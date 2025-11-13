@@ -1,0 +1,263 @@
+export interface DialogueNode {
+  id: string;
+  text: string;
+  responses?: { text: string; nextId: string; requiresQuest?: string; givesQuest?: string }[];
+}
+
+export interface Dialogue {
+  id: string;
+  nodes: DialogueNode[];
+}
+
+export const dialogues: Record<string, Dialogue> = {
+  elder: {
+    id: 'elder',
+    nodes: [
+      {
+        id: 'start',
+        text: "Welcome, traveler. I am the village elder. Our peaceful village has been troubled by strange occurrences in the forest. Would you help us?",
+        responses: [
+          { text: "I'll help. What's happening?", nextId: 'accept' },
+          { text: "Tell me more about these occurrences.", nextId: 'more_info' },
+          { text: "Not now.", nextId: 'reject' },
+        ],
+      },
+      {
+        id: 'more_info',
+        text: "Mysterious lights have been seen deep in the forest, and strange sounds echo through the night. Our hunter went to investigate but hasn't returned. We fear something dark has awakened.",
+        responses: [
+          { text: "I'll help find your hunter.", nextId: 'accept' },
+          { text: "This sounds dangerous. I need to think about it.", nextId: 'reject' },
+        ],
+      },
+      {
+        id: 'accept',
+        text: "Thank you, brave soul! The hunter was last seen heading north into the Deep Woods. Please, find him and discover what troubles our forest. Take this map - it will guide you.",
+        responses: [
+          { text: "I'll return with news.", nextId: 'end', givesQuest: 'find_hunter' },
+        ],
+      },
+      {
+        id: 'reject',
+        text: "I understand. These are dangerous times. If you change your mind, I'll be here.",
+        responses: [
+          { text: "Farewell.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'quest_active',
+        text: "Have you found any sign of our missing hunter? Please be careful in the forest.",
+        responses: [
+          { text: "Still searching. I'll keep looking.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'quest_complete',
+        text: "You've returned! And with such dire news. The ancient ruins awakening... This is worse than I feared. You've done well. Take this reward and my eternal gratitude.",
+        responses: [
+          { text: "Thank you, elder.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'end',
+        text: "May fortune smile upon you, traveler.",
+        responses: [],
+      },
+    ],
+  },
+  
+  merchant: {
+    id: 'merchant',
+    nodes: [
+      {
+        id: 'start',
+        text: "Ah, a customer! Welcome to my humble shop. I have traveled far and wide to bring you the finest goods. What can I interest you in today?",
+        responses: [
+          { text: "What do you have for sale?", nextId: 'shop' },
+          { text: "Tell me about your travels.", nextId: 'travels' },
+          { text: "Nothing today, thanks.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'shop',
+        text: "I have health potions, ancient maps, and mysterious artifacts. Each item has been carefully selected from my journeys. Prices are fair, I assure you!",
+        responses: [
+          { text: "I'll take a health potion.", nextId: 'buy_potion' },
+          { text: "Tell me about these artifacts.", nextId: 'artifacts' },
+          { text: "Maybe later.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'travels',
+        text: "I've been from the coastal cities to the mountain peaks! Each place has its own stories and treasures. The world is vast and full of wonders, my friend.",
+        responses: [
+          { text: "What's the most interesting place you've been?", nextId: 'interesting' },
+          { text: "Show me your goods.", nextId: 'shop' },
+          { text: "Fascinating. I should go.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'interesting',
+        text: "Ah! There's an ancient ruin to the north - older than the village itself. Locals say it holds great power, but also great danger. Few dare venture there.",
+        responses: [
+          { text: "I might check it out.", nextId: 'end' },
+          { text: "Show me what you're selling.", nextId: 'shop' },
+        ],
+      },
+      {
+        id: 'artifacts',
+        text: "These are relics from ages past. Some say they hold magical properties, others that they're just old junk. But to a collector, they're priceless!",
+        responses: [
+          { text: "I'll take one.", nextId: 'buy_artifact' },
+          { text: "Too rich for my blood.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'buy_potion',
+        text: "Excellent choice! This potion will restore your vitality in times of need. That'll be 10 gold pieces.",
+        responses: [
+          { text: "Here you go.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'buy_artifact',
+        text: "A wise investment! This artifact may prove useful on your journey. That'll be 50 gold pieces.",
+        responses: [
+          { text: "It's a deal.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'end',
+        text: "Safe travels, friend! Come back anytime!",
+        responses: [],
+      },
+    ],
+  },
+  
+  guard: {
+    id: 'guard',
+    nodes: [
+      {
+        id: 'start',
+        text: "Halt! I'm on duty protecting the village. What's your business here, traveler?",
+        responses: [
+          { text: "Just passing through.", nextId: 'passing' },
+          { text: "I'm here to help with the trouble in the forest.", nextId: 'helping', requiresQuest: 'find_hunter' },
+          { text: "What are you guarding against?", nextId: 'guarding' },
+        ],
+      },
+      {
+        id: 'passing',
+        text: "Fair enough. Keep your nose clean and we won't have any problems. The village is safe as long as I'm watching.",
+        responses: [
+          { text: "Noted.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'helping',
+        text: "Ah, so the elder sent you! Good. We need all the help we can get. The forest paths have become dangerous, but the northern route is still clear if you're careful.",
+        responses: [
+          { text: "Thanks for the tip.", nextId: 'end' },
+          { text: "What should I watch out for?", nextId: 'dangers' },
+        ],
+      },
+      {
+        id: 'guarding',
+        text: "Strange creatures have been spotted near the village borders. Nothing has attacked yet, but I'm not taking any chances. Better safe than sorry.",
+        responses: [
+          { text: "Good thinking.", nextId: 'end' },
+          { text: "What kind of creatures?", nextId: 'creatures' },
+        ],
+      },
+      {
+        id: 'creatures',
+        text: "Shadow beasts, some say. Others claim they're just wolves. But wolves don't glow with an eerie light, if you ask me.",
+        responses: [
+          { text: "That does sound strange.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'dangers',
+        text: "Stick to the paths, don't travel at night, and trust your instincts. If something feels wrong, it probably is.",
+        responses: [
+          { text: "Sound advice.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'end',
+        text: "Stay vigilant out there.",
+        responses: [],
+      },
+    ],
+  },
+
+  village_sign: {
+    id: 'village_sign',
+    nodes: [
+      {
+        id: 'start',
+        text: "A weathered wooden sign reads: 'Welcome to Willowbrook Village - Founded 342 years ago. Population: 47. May peace and prosperity guide all who enter.'",
+        responses: [
+          { text: "[Continue]", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'end',
+        text: "",
+        responses: [],
+      },
+    ],
+  },
+
+  well: {
+    id: 'well',
+    nodes: [
+      {
+        id: 'start',
+        text: "An old stone well sits in the center of the village square. The water looks crystal clear. You can hear the echo of dripping water from deep below.",
+        responses: [
+          { text: "[Drink from the well]", nextId: 'drink' },
+          { text: "[Leave it alone]", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'drink',
+        text: "The cool, refreshing water revitalizes you! You feel your strength returning. (Health restored)",
+        responses: [
+          { text: "[Continue]", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'end',
+        text: "",
+        responses: [],
+      },
+    ],
+  },
+
+  chest_1: {
+    id: 'chest_1',
+    nodes: [
+      {
+        id: 'start',
+        text: "A wooden chest sits here, partially hidden by grass. It doesn't appear to be locked.",
+        responses: [
+          { text: "[Open the chest]", nextId: 'open' },
+          { text: "[Leave it alone]", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'open',
+        text: "Inside the chest you find 20 gold coins and a small health potion! (Added to inventory)",
+        responses: [
+          { text: "[Take the items]", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'end',
+        text: "",
+        responses: [],
+      },
+    ],
+  },
+};
