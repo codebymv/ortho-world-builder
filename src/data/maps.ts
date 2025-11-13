@@ -110,7 +110,7 @@ export const villageMap: WorldMap = {
     }),
 
     // Rows 17-19: Forest border
-    ...Array(3).fill(null).map(() => 
+    ...Array(4).fill(null).map(() => 
       Array(30).fill(null).map((_, x) => 
         x < 2 || x > 27 ? createTile('tree', false) : createTile('grass')
       )
