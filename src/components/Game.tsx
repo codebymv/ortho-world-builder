@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GameState, NPC } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { World } from '@/lib/game/World';
-import { villageMap } from '@/data/maps';
+import { allMaps } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
 import { quests } from '@/data/quests';
 import { items } from '@/data/items';
@@ -54,9 +54,32 @@ const Game = () => {
     setGameState(state);
 
     // Load world
-    const world = new World(scene, assetManager, villageMap);
+    const world = new World(scene, assetManager, allMaps.village);
     const spawnPoint = world.getSpawnPoint();
     state.player.position = { x: spawnPoint.x, y: spawnPoint.y };
+
+    // Map transition handler
+    const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
+      const newMap = allMaps[targetMap];
+      if (!newMap) {
+        console.error(`Map ${targetMap} not found`);
+        return;
+      }
+
+      state.currentMap = targetMap;
+      world.loadMap(newMap);
+      
+      // Convert target spawn position to world coordinates
+      const worldX = targetX - newMap.width / 2;
+      const worldY = targetY - newMap.height / 2;
+      
+      state.player.position = { x: worldX, y: worldY };
+      playerMesh.position.set(worldX, worldY, 0.2);
+      camera.position.x = worldX;
+      camera.position.y = worldY;
+
+      toast.success(`Entered ${newMap.name}`);
+    };
 
     // Create player mesh
     const playerGeometry = new THREE.PlaneGeometry(0.7, 0.7);
@@ -242,6 +265,12 @@ const Game = () => {
           if (directionTexture && playerMaterial.map !== directionTexture) {
             playerMaterial.map = directionTexture;
             playerMaterial.needsUpdate = true;
+          }
+
+          // Check for map transitions
+          const transition = world.getTransitionAt(newPos.x, newPos.y);
+          if (transition) {
+            handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
           }
         } else {
           state.player.isMoving = false;
