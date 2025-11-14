@@ -188,5 +188,45 @@ export class AssetManager {
       [0x9370DB, 0x8A2BE2, 0x8A2BE2, 0x8A2BE2, 0x8A2BE2, 0x8A2BE2, 0x9370DB],
       [0, 0x9370DB, 0x9370DB, 0x9370DB, 0x9370DB, 0x9370DB, 0],
     ]));
+
+    // Enemy sprites
+    this.textures.set('enemy_wolf', this.createSpriteTexture([
+      [0, 0, 0x696969, 0x696969, 0x696969, 0, 0],
+      [0, 0x696969, 0xFFFFFF, 0x696969, 0xFFFFFF, 0x696969, 0],
+      [0, 0x696969, 0x696969, 0x696969, 0x696969, 0x696969, 0],
+      [0x696969, 0x696969, 0x696969, 0x696969, 0x696969, 0x696969, 0x696969],
+      [0, 0x696969, 0x696969, 0x696969, 0x696969, 0x696969, 0],
+      [0, 0x696969, 0, 0, 0, 0x696969, 0],
+    ]));
+
+    this.textures.set('enemy_shadow', this.createSpriteTexture([
+      [0, 0, 0x4B0082, 0x4B0082, 0x4B0082, 0, 0],
+      [0, 0x4B0082, 0xFF0000, 0x4B0082, 0xFF0000, 0x4B0082, 0],
+      [0x4B0082, 0x4B0082, 0x4B0082, 0x4B0082, 0x4B0082, 0x4B0082, 0x4B0082],
+      [0, 0x4B0082, 0x4B0082, 0x4B0082, 0x4B0082, 0x4B0082, 0],
+      [0, 0x4B0082, 0x4B0082, 0x4B0082, 0x4B0082, 0x4B0082, 0],
+      [0, 0x4B0082, 0, 0, 0, 0x4B0082, 0],
+    ]));
+
+    // Environmental objects for storytelling
+    this.textures.set('flower', this.createSpriteTexture([
+      [0, 0, 0xFF69B4, 0, 0],
+      [0, 0xFF69B4, 0xFFD700, 0xFF69B4, 0],
+      [0, 0, 0x228B22, 0, 0],
+      [0, 0, 0x228B22, 0, 0],
+    ]));
+
+    this.textures.set('bones', this.createSpriteTexture([
+      [0, 0xFFFFFF, 0xFFFFFF, 0, 0],
+      [0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0],
+      [0, 0, 0xFFFFFF, 0xFFFFFF, 0],
+    ]));
+
+    this.textures.set('mushroom', this.createSpriteTexture([
+      [0, 0xFF4500, 0xFF4500, 0xFF4500, 0],
+      [0, 0xFF4500, 0xFFFFFF, 0xFF4500, 0],
+      [0, 0, 0xFFE4B5, 0, 0],
+      [0, 0, 0xFFE4B5, 0, 0],
+    ]));
   }
 }

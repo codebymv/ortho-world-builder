@@ -8,6 +8,10 @@ export interface PlayerState {
   health: number;
   maxHealth: number;
   gold: number;
+  attackDamage: number;
+  attackRange: number;
+  lastAttackTime: number;
+  attackCooldown: number;
 }
 
 export interface NPC {
@@ -65,6 +69,10 @@ export class GameState {
       health: 100,
       maxHealth: 100,
       gold: 0,
+      attackDamage: 20,
+      attackRange: 2,
+      lastAttackTime: 0,
+      attackCooldown: 500,
     };
 
     this.inventory = [];
