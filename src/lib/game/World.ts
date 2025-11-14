@@ -1,13 +1,18 @@
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager';
 
-export type TileType = 'grass' | 'dirt' | 'water' | 'stone' | 'wood' | 'tree' | 'house' | 'rock' | 'chest';
+export type TileType = 'grass' | 'dirt' | 'water' | 'stone' | 'wood' | 'tree' | 'house' | 'rock' | 'chest' | 'portal';
 
 export interface Tile {
   type: TileType;
   walkable: boolean;
   interactable?: boolean;
   interactionId?: string;
+  transition?: {
+    targetMap: string;
+    targetX: number;
+    targetY: number;
+  };
 }
 
 export interface WorldMap {
@@ -49,14 +54,14 @@ export class World {
           const geometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
           const material = new THREE.MeshBasicMaterial({
             map: texture,
-            transparent: tile.type === 'tree' || tile.type === 'house' || tile.type === 'rock' || tile.type === 'chest',
+            transparent: tile.type === 'tree' || tile.type === 'house' || tile.type === 'rock' || tile.type === 'chest' || tile.type === 'portal',
           });
           const mesh = new THREE.Mesh(geometry, material);
           
           mesh.position.set(
             startX + x * this.tileSize,
             startY + y * this.tileSize,
-            tile.type === 'tree' || tile.type === 'house' || tile.type === 'rock' || tile.type === 'chest' ? 0.1 : -0.5
+            tile.type === 'tree' || tile.type === 'house' || tile.type === 'rock' || tile.type === 'chest' || tile.type === 'portal' ? 0.1 : -0.5
           );
 
           this.scene.add(mesh);
@@ -92,5 +97,19 @@ export class World {
   getInteractableAt(x: number, y: number): string | null {
     const tile = this.getTile(x, y);
     return tile?.interactable && tile.interactionId ? tile.interactionId : null;
+  }
+
+  getTransitionAt(x: number, y: number): { targetMap: string; targetX: number; targetY: number } | null {
+    const tile = this.getTile(x, y);
+    return tile?.transition || null;
+  }
+
+  loadMap(map: WorldMap) {
+    this.map = map;
+    this.buildWorld();
+  }
+
+  getCurrentMap(): WorldMap {
+    return this.map;
   }
 }
