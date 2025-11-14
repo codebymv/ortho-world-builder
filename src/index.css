@@ -102,4 +102,10 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  .pixelated {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
 }
