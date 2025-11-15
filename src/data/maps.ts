@@ -14,116 +14,149 @@ const createTile = (
   transition,
 });
 
+// ============= VILLAGE: Cozy Starting Town =============
 export const villageMap: WorldMap = {
-  name: 'Village',
-  width: 30,
-  height: 20,
-  spawnPoint: { x: 15, y: 10 },
+  name: 'Greenleaf Village',
+  width: 35,
+  height: 25,
+  spawnPoint: { x: 17, y: 20 },
   tiles: [
-    // Row 0-3: Forest border with trees
-    ...Array(3).fill(null).map(() => 
-      Array(30).fill(null).map((_, x) => 
-        x < 2 || x > 27 ? createTile('tree', false) : createTile('grass')
-      )
-    ),
-    
-    // Row 4: Village entrance with portal to north
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 10) return createTile('stone', true, true, 'village_sign');
-      if (x === 15) return createTile('portal', true, false, undefined, { targetMap: 'forest', targetX: 15, targetY: 18 });
+    Array(35).fill(null).map(() => createTile('tree', false)),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 15 || x > 19) return createTile('tree', false);
+      if (x === 16 || x === 18) return createTile('stone', false);
+      if (x === 17) return createTile('portal', true, false, undefined, { targetMap: 'forest', targetX: 17, targetY: 23 });
       return createTile('dirt');
     }),
-
-    // Row 5: Village square
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 15) return createTile('chest', true, true, 'chest_1');
-      return createTile('dirt');
-    }),
-
-    // Rows 6-8: Houses and NPCs
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 5 || x === 25) return createTile('house', false);
-      if (x === 8) return createTile('rock', false);
-      return createTile('grass');
-    }),
-    
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 15) return createTile('dirt');
-      return createTile('grass');
-    }),
-
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 10 || x === 20) return createTile('tree', false);
-      return createTile('grass');
-    }),
-
-    // Rows 9-11: Central area with well
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 15) return createTile('water', false, true, 'well');
-      if (x === 12 || x === 18) return createTile('rock', false);
-      return createTile('grass');
-    }),
-
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 15) return createTile('water', false);
-      return createTile('grass');
-    }),
-
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 5) return createTile('tree', false);
-      if (x === 25) return createTile('tree', false);
-      return createTile('grass');
-    }),
-
-    // Rows 12-15: More buildings
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 8 || x === 22) return createTile('house', false);
-      return createTile('grass');
-    }),
-
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 15) return createTile('dirt');
-      return createTile('grass');
-    }),
-
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 15) return createTile('dirt');
-      if (x === 10 || x === 20) return createTile('tree', false);
-      return createTile('grass');
-    }),
-
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 15) return createTile('dirt');
-      return createTile('grass');
-    }),
-
-    // Row 16: Exit path with portal to south
-    Array(30).fill(null).map((_, x) => {
-      if (x < 2 || x > 27) return createTile('tree', false);
-      if (x === 15) return createTile('portal', true, false, undefined, { targetMap: 'deep_woods', targetX: 15, targetY: 2 });
-      if (x === 5 || x === 25) return createTile('rock', false);
-      return createTile('grass');
-    }),
-
-    // Rows 17-19: Forest border
-    ...Array(4).fill(null).map(() => 
-      Array(30).fill(null).map((_, x) => 
-        x < 2 || x > 27 ? createTile('tree', false) : createTile('grass')
-      )
+    ...Array(2).fill(null).map(() =>
+      Array(35).fill(null).map((_, x) => {
+        if (x < 3 || x > 31) return createTile('tree', false);
+        if (x >= 16 && x <= 18) return createTile('dirt');
+        if (x === 10 || x === 24) return createTile('tree', false);
+        return createTile('grass');
+      })
     ),
-  ],
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x === 15 || x === 19) return createTile('stone', true, true, 'village_sign');
+      if (x >= 16 && x <= 18) return createTile('dirt');
+      if (x === 8 || x === 26) return createTile('flower', true);
+      return createTile('grass');
+    }),
+    ...Array(2).fill(null).map(() =>
+      Array(35).fill(null).map((_, x) => {
+        if (x < 3 || x > 31) return createTile('tree', false);
+        if (x === 5 || x === 9) return createTile('house', false);
+        if (x >= 16 && x <= 18) return createTile('dirt');
+        if (x === 6 || x === 7) return createTile('flower', true);
+        return createTile('grass');
+      })
+    ),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x === 11 || x === 13) return createTile('stone', true, true, 'market_stall');
+      if (x >= 16 && x <= 18) return createTile('dirt');
+      if (x === 25 || x === 29) return createTile('house', false);
+      return createTile('grass');
+    }),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x === 21 || x === 23) return createTile('stone', true, true, 'market_stall');
+      if (x >= 16 && x <= 18) return createTile('dirt');
+      if (x === 27) return createTile('flower', true);
+      return createTile('grass');
+    }),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x >= 10 && x <= 24) return createTile('stone');
+      return createTile('grass');
+    }),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x >= 10 && x <= 24) return createTile('stone');
+      if (x === 14 || x === 20) return createTile('flower', true);
+      return createTile('grass');
+    }),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x >= 10 && x <= 24) {
+        if (x >= 15 && x <= 19 && x !== 17) return createTile('water', false);
+        if (x === 17) return createTile('water', false, true, 'fountain');
+        return createTile('stone');
+      }
+      return createTile('grass');
+    }),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x >= 10 && x <= 24) {
+        if (x >= 15 && x <= 19) return createTile('water', false);
+        return createTile('stone');
+      }
+      return createTile('grass');
+    }),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x >= 10 && x <= 24) {
+        if (x >= 15 && x <= 19 && x !== 17) return createTile('water', false);
+        if (x === 17) return createTile('chest', true, true, 'chest_1');
+        return createTile('stone');
+      }
+      return createTile('grass');
+    }),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x >= 10 && x <= 24) return createTile('stone');
+      if (x === 14 || x === 20) return createTile('flower', true);
+      return createTile('grass');
+    }),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x >= 15 && x <= 19) return createTile('dirt');
+      if (x === 7) return createTile('house', false);
+      return createTile('grass');
+    }),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x >= 15 && x <= 19) return createTile('stone');
+      return createTile('grass');
+    }),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x >= 14 && x <= 20) return createTile('stone');
+      if (x === 17) return createTile('stone', true, true, 'elder_house');
+      return createTile('grass');
+    }),
+    ...Array(3).fill(null).map(() =>
+      Array(35).fill(null).map((_, x) => {
+        if (x < 3 || x > 31) return createTile('tree', false);
+        if (x >= 16 && x <= 18) return createTile('dirt');
+        if (x === 8 || x === 11 || x === 23 || x === 27) return createTile('house', false);
+        if (x === 9 || x === 26) return createTile('flower', true);
+        return createTile('grass');
+      })
+    ),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x >= 16 && x <= 18) return createTile('dirt');
+      if (x === 20) return createTile('tree', false);
+      return createTile('grass');
+    }),
+    ...Array(2).fill(null).map(() =>
+      Array(35).fill(null).map((_, x) => {
+        if (x < 3 || x > 31) return createTile('tree', false);
+        if (x >= 16 && x <= 18) return createTile('dirt');
+        if (x === 10 || x === 13 || x === 22 || x === 25) return createTile('flower', true);
+        return createTile('grass');
+      })
+    ),
+    Array(35).fill(null).map((_, x) => {
+      if (x < 3 || x > 31) return createTile('tree', false);
+      if (x >= 16 && x <= 18) return createTile('dirt');
+      if (x === 15 || x === 19) return createTile('stone', false);
+      return createTile('grass');
+    }),
+    Array(35).fill(null).map(() => createTile('tree', false)),
+  ]
 };
 
 // Forest - Northern area with denser trees
