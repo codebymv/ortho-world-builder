@@ -98,10 +98,10 @@ export class ParticleSystem {
       if (particle.active) {
         particle.lifetime += deltaTime;
 
-        // Update position
-        particle.mesh.position.add(
-          particle.velocity.clone().multiplyScalar(deltaTime)
-        );
+        // Update position (avoid clone for GC)
+        particle.mesh.position.x += particle.velocity.x * deltaTime;
+        particle.mesh.position.y += particle.velocity.y * deltaTime;
+        particle.mesh.position.z += particle.velocity.z * deltaTime;
 
         // Apply gravity
         particle.velocity.y -= 3 * deltaTime;

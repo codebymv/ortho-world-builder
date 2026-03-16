@@ -171,7 +171,8 @@ export const GameUI = ({ gameState }: GameUIProps) => {
       {/* Controls Help */}
       <div className="fixed bottom-4 left-4 bg-background/90 backdrop-blur-sm border border-border rounded-lg p-3 z-40">
         <p className="text-xs font-bold mb-1 text-foreground">Controls:</p>
-        <p className="text-xs text-muted-foreground">WASD/Arrow Keys - Move</p>
+        <p className="text-xs text-muted-foreground">WASD/Arrows - Move</p>
+        <p className="text-xs text-muted-foreground">SPACE - Attack</p>
         <p className="text-xs text-muted-foreground">E - Interact</p>
       </div>
     </>

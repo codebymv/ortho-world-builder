@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager';
 
-export type TileType = 'grass' | 'dirt' | 'water' | 'stone' | 'wood' | 'tree' | 'house' | 'rock' | 'chest' | 'portal';
+export type TileType = 'grass' | 'dirt' | 'water' | 'stone' | 'wood' | 'tree' | 'house' | 'rock' | 'chest' | 'portal' | 'flower';
 
 export interface Tile {
   type: TileType;
@@ -52,16 +52,17 @@ export class World {
 
         if (texture) {
           const geometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
+          const isOverlay = tile.type === 'tree' || tile.type === 'house' || tile.type === 'rock' || tile.type === 'chest' || tile.type === 'portal' || tile.type === 'flower';
           const material = new THREE.MeshBasicMaterial({
             map: texture,
-            transparent: tile.type === 'tree' || tile.type === 'house' || tile.type === 'rock' || tile.type === 'chest' || tile.type === 'portal',
+            transparent: isOverlay,
           });
           const mesh = new THREE.Mesh(geometry, material);
           
           mesh.position.set(
             startX + x * this.tileSize,
             startY + y * this.tileSize,
-            tile.type === 'tree' || tile.type === 'house' || tile.type === 'rock' || tile.type === 'chest' || tile.type === 'portal' ? 0.1 : -0.5
+            isOverlay ? 0.1 : -0.5
           );
 
           this.scene.add(mesh);
