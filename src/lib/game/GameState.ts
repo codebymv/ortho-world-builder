@@ -12,6 +12,8 @@ export interface PlayerState {
   attackRange: number;
   lastAttackTime: number;
   attackCooldown: number;
+  damageFlashTimer: number;
+  attackAnimationTimer: number;
 }
 
 export interface NPC {
@@ -73,6 +75,8 @@ export class GameState {
       attackRange: 2,
       lastAttackTime: 0,
       attackCooldown: 500,
+      damageFlashTimer: 0,
+      attackAnimationTimer: 0,
     };
 
     this.inventory = [];

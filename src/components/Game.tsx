@@ -137,7 +137,10 @@ const Game = () => {
         }
       }
 
-      toast.success(`Entered ${newMap.name}`);
+      toast(`Entered ${newMap.name}`, {
+        className: "rpg-toast font-bold text-lg text-center justify-center",
+        duration: 3000,
+      });
       visitedTilesRef.current = new Set();
       setVisitedTilesVersion(v => v + 1);
       portalCooldown = 0.5; // Half second cooldown before next transition
@@ -213,6 +216,8 @@ const Game = () => {
         state.player.attackRange
       );
 
+      state.player.attackAnimationTimer = 0.2; // 200ms weapon swing/lunge
+
       if (enemiesInRange.length > 0) {
         // Target closest enemy in facing direction first, fallback to closest overall
         let target = enemiesInRange[0];
@@ -237,7 +242,10 @@ const Game = () => {
         );
 
         if (died) {
-          toast.success(`Defeated ${target.name}! +${target.goldReward} gold`);
+          toast(`Defeated ${target.name}!`, {
+            description: `Gained ${target.goldReward} gold.`,
+            className: "rpg-toast",
+          });
           triggerUIUpdate();
         }
       } else {
@@ -287,7 +295,10 @@ const Game = () => {
             state.player.gold += 20;
             state.setFlag('chest_1_opened', true);
             particleSystem.emitSparkles(new THREE.Vector3(checkX + dir.x * 0.5, checkY + dir.y * 0.5, 0.3));
-            toast.success('Found 20 gold and a health potion!');
+            toast.success('Chest Opened!', {
+              description: 'Found 20 gold and a Health Potion.',
+              className: "rpg-toast",
+            });
             triggerUIUpdate();
             return;
           }
@@ -297,7 +308,10 @@ const Game = () => {
             state.player.gold += 50;
             state.setFlag('forest_chest_opened', true);
             particleSystem.emitSparkles(new THREE.Vector3(checkX + dir.x * 0.5, checkY + dir.y * 0.5, 0.3));
-            toast.success('Found 50 gold and a Moonbloom!');
+            toast.success('Hidden Cache Found!', {
+              description: 'Found 50 gold and a Moonbloom.',
+              className: "rpg-toast",
+            });
             triggerUIUpdate();
             return;
           }
@@ -307,7 +321,10 @@ const Game = () => {
             state.player.gold += 100;
             state.setFlag('ancient_chest_opened', true);
             particleSystem.emitSparkles(new THREE.Vector3(checkX + dir.x * 0.5, checkY + dir.y * 0.5, 0.3));
-            toast.success('Found 100 gold and the Ancient Map!');
+            toast.success('Ancient Treasure!', {
+              description: 'Found 100 gold and the Ancient Map.',
+              className: "rpg-toast",
+            });
             triggerUIUpdate();
             return;
           }
@@ -315,7 +332,10 @@ const Game = () => {
           if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain') {
             state.player.health = Math.min(state.player.maxHealth, state.player.health + 25);
             particleSystem.emitHeal(new THREE.Vector3(checkX, checkY, 0.3));
-            toast.success('Refreshing water! Health restored.');
+            toast.success('Refreshing Water!', {
+              description: 'Health restored.',
+              className: "rpg-toast",
+            });
             triggerUIUpdate();
             return;
           }
@@ -465,8 +485,39 @@ const Game = () => {
           footstepTimer = 0;
         }
 
-        // Update player mesh
-        playerMesh.position.set(state.player.position.x, state.player.position.y, 0.2);
+        // --- Animations & Visual Effects ---
+        // Player bobbing animation while moving
+        let bobbingOffset = 0;
+        if (state.player.isMoving) {
+          bobbingOffset = Math.sin(currentTime / 100) * 0.05;
+        }
+
+        // Player attack lunge animation
+        let attackOffsetX = 0;
+        let attackOffsetY = 0;
+        if (state.player.attackAnimationTimer > 0) {
+          state.player.attackAnimationTimer -= deltaTime;
+          const lungeAmount = Math.sin((state.player.attackAnimationTimer / 0.2) * Math.PI) * 0.3;
+          if (state.player.direction === 'up') attackOffsetY = lungeAmount;
+          else if (state.player.direction === 'down') attackOffsetY = -lungeAmount;
+          else if (state.player.direction === 'left') attackOffsetX = -lungeAmount;
+          else if (state.player.direction === 'right') attackOffsetX = lungeAmount;
+        }
+
+        // Update player mesh position with animation offsets
+        playerMesh.position.set(
+          state.player.position.x + attackOffsetX,
+          state.player.position.y + bobbingOffset + attackOffsetY,
+          0.2
+        );
+
+        // Player damage flash
+        if (state.player.damageFlashTimer > 0) {
+          state.player.damageFlashTimer -= deltaTime;
+          playerMaterial.color.setHex(0xff0000); // Red flash
+        } else {
+          playerMaterial.color.setHex(0xffffff); // Normal color
+        }
 
         // Smooth camera follow (delta-time based lerp)
         cameraTarget.x = state.player.position.x;
@@ -496,19 +547,58 @@ const Game = () => {
             enemyMeshes.set(enemy.id, enemyMesh);
           }
 
-          enemyMesh.position.set(enemy.position.x, enemy.position.y, 0.2);
+          // Enemy bobbing animation while chasing
+          let enemyBobbingOffset = 0;
+          if (enemy.state === 'chasing') {
+            enemyBobbingOffset = Math.sin(currentTime / 100 + parseFloat(enemy.id.split('_')[1] || "0")) * 0.05;
+          }
+
+          // Enemy damage flash
+          if (enemy.damageFlashTimer > 0) {
+            enemy.damageFlashTimer -= deltaTime;
+            (enemyMesh.material as THREE.MeshBasicMaterial).color.setHex(0xff0000);
+          } else {
+            (enemyMesh.material as THREE.MeshBasicMaterial).color.setHex(0xffffff);
+          }
+
+          enemyMesh.position.set(
+            enemy.position.x,
+            enemy.position.y + enemyBobbingOffset,
+            0.2
+          );
         }
 
-        // Remove dead enemy meshes
-        const deadEnemies = combatSystem.removeDeadEnemies();
-        for (const dead of deadEnemies) {
-          const mesh = enemyMeshes.get(dead.id);
-          if (mesh) {
-            scene.remove(mesh);
-            mesh.geometry.dispose();
-            (mesh.material as THREE.Material).dispose();
-            enemyMeshes.delete(dead.id);
+        // Handle dying enemies
+        const allEnemies = combatSystem.getAllEnemies();
+        const fullyDeadEnemyIds = new Set<string>();
+
+        for (const enemy of allEnemies) {
+          if (enemy.state === 'dead') {
+            const mesh = enemyMeshes.get(enemy.id);
+            if (mesh) {
+              // Death animation: fade out and shrink
+              mesh.scale.x *= 0.9;
+              mesh.scale.y *= 0.9;
+              const mat = mesh.material as THREE.MeshBasicMaterial;
+              mat.opacity -= 0.05;
+
+              if (mat.opacity <= 0) {
+                scene.remove(mesh);
+                mesh.geometry.dispose();
+                mat.dispose();
+                enemyMeshes.delete(enemy.id);
+                fullyDeadEnemyIds.add(enemy.id);
+              }
+            } else {
+               // If mesh is already gone but enemy is still in state, mark for removal
+               fullyDeadEnemyIds.add(enemy.id);
+            }
           }
+        }
+
+        // Remove completely dead enemies from logical state only after animation completes
+        if (fullyDeadEnemyIds.size > 0) {
+           combatSystem.removeDeadEnemiesByIds(Array.from(fullyDeadEnemyIds));
         }
 
         // Check if player died
@@ -530,7 +620,16 @@ const Game = () => {
     };
 
     animate();
-    toast.success('Welcome to the adventure! WASD to move, SPACE to attack, E to interact.');
+
+    // Initial narrative hook instead of generic toast
+    setTimeout(() => {
+      toast("The Village Elder looks deeply troubled...", {
+        description: "Perhaps you should speak with him. (Press E to interact)",
+        icon: "📜",
+        duration: 8000,
+        className: "rpg-toast",
+      });
+    }, 1000);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
@@ -550,7 +649,12 @@ const Game = () => {
     if (givesQuest && quests[givesQuest]) {
       const quest = { ...quests[givesQuest], active: true };
       gameState.addQuest(quest);
-      toast.success(`New quest: ${quest.title}`);
+      toast.success(`Quest Accepted: ${quest.title}`, {
+        description: quest.description,
+        icon: "📜",
+        className: "rpg-toast",
+        duration: 5000,
+      });
       triggerUIUpdate();
     }
 
