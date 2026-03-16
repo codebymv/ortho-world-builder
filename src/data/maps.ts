@@ -25,7 +25,7 @@ export const villageMap: WorldMap = {
     Array(35).fill(null).map((_, x) => {
       if (x < 15 || x > 19) return createTile('tree', false);
       if (x === 16 || x === 18) return createTile('stone', false);
-      if (x === 17) return createTile('portal', true, false, undefined, { targetMap: 'forest', targetX: 17, targetY: 23 });
+      if (x === 17) return createTile('portal', true, false, undefined, { targetMap: 'forest', targetX: 15, targetY: 17 });
       return createTile('dirt');
     }),
     ...Array(2).fill(null).map(() =>

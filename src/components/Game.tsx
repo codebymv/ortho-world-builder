@@ -81,7 +81,8 @@ const Game = () => {
     let lastTime = performance.now();
     let dtAccumulator = 0;
     const FIXED_STEP = 1 / 60;
-    const MAX_DELTA = 0.1; // Cap delta to prevent spiral of death
+    const MAX_DELTA = 0.1;
+    let portalCooldown = 0; // Prevent instant re-transition
 
     // Map transition handler
     const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
@@ -139,6 +140,7 @@ const Game = () => {
       toast.success(`Entered ${newMap.name}`);
       visitedTilesRef.current = new Set();
       setVisitedTilesVersion(v => v + 1);
+      portalCooldown = 0.5; // Half second cooldown before next transition
     };
 
     // Create player mesh
@@ -449,10 +451,14 @@ const Game = () => {
             setVisitedTilesVersion(v => v + 1);
           }
 
-          // Check for map transitions
-          const transition = world.getTransitionAt(state.player.position.x, state.player.position.y);
-          if (transition) {
-            handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
+          // Check for map transitions (with cooldown)
+          if (portalCooldown > 0) {
+            portalCooldown -= deltaTime;
+          } else {
+            const transition = world.getTransitionAt(state.player.position.x, state.player.position.y);
+            if (transition) {
+              handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
+            }
           }
         } else {
           state.player.isMoving = false;
