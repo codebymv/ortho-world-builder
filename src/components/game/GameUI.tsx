@@ -11,89 +11,105 @@ export const GameUI = ({ gameState }: GameUIProps) => {
   const [showInventory, setShowInventory] = useState(false);
   const [showQuests, setShowQuests] = useState(false);
 
+  const activeQuests = gameState.quests.filter(q => q.active && !q.completed);
+
   return (
     <>
-      {/* Top HUD */}
-      <div className="fixed top-4 left-4 right-4 z-40 pointer-events-none">
-        <div className="max-w-7xl mx-auto flex justify-between items-start">
-          {/* Player Stats */}
-          <div className="bg-background/90 backdrop-blur-sm border-2 border-primary rounded-lg p-3 space-y-2 pointer-events-auto">
-            <div className="flex items-center gap-2">
-              <Heart className="w-5 h-5 text-red-500" />
-              <div className="flex-1">
-                <div className="w-32 h-3 bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-red-500 transition-all"
-                    style={{ width: `${(gameState.player.health / gameState.player.maxHealth) * 100}%` }}
-                  />
-                </div>
-              </div>
-              <span className="text-sm font-bold text-foreground">
-                {gameState.player.health}/{gameState.player.maxHealth}
-              </span>
+      {/* Minimal Top Bar */}
+      <div className="fixed top-0 left-0 right-0 h-12 bg-[#1A0F0A]/85 backdrop-blur-sm border-b border-[#5C3A21] z-50 flex justify-between items-center px-4 pointer-events-auto shadow-md">
+
+        {/* Left Side: Health & Gold */}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <Heart className="w-4 h-4 text-red-500 drop-shadow" />
+            <div className="w-32 h-2.5 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
+              <div
+                className="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all"
+                style={{ width: `${(gameState.player.health / gameState.player.maxHealth) * 100}%` }}
+              />
             </div>
-            
-            <div className="flex items-center gap-2">
-              <Coins className="w-5 h-5 text-yellow-500" />
-              <span className="text-sm font-bold text-foreground">{gameState.player.gold}</span>
-            </div>
+            <span className="text-xs font-bold text-[#F5DEB3] tracking-wide">
+              {gameState.player.health}/{gameState.player.maxHealth}
+            </span>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pointer-events-auto">
-            <Button
-              onClick={() => setShowInventory(!showInventory)}
-              variant="outline"
-              size="icon"
-              className="bg-background/90 backdrop-blur-sm"
-            >
-              <Package className="w-5 h-5" />
-            </Button>
-            
-            <Button
-              onClick={() => setShowQuests(!showQuests)}
-              variant="outline"
-              size="icon"
-              className="bg-background/90 backdrop-blur-sm relative"
-            >
-              <ScrollText className="w-5 h-5" />
-              {gameState.quests.filter(q => q.active && !q.completed).length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center">
-                  {gameState.quests.filter(q => q.active && !q.completed).length}
-                </span>
-              )}
-            </Button>
+          <div className="flex items-center gap-1.5">
+            <Coins className="w-4 h-4 text-yellow-400 drop-shadow" />
+            <span className="text-xs font-bold text-[#F5DEB3] tracking-wide">{gameState.player.gold}</span>
           </div>
+        </div>
+
+        {/* Center: Current Objective */}
+        <div className="flex-1 flex justify-center">
+          {activeQuests.length > 0 && (
+            <div className="flex items-center gap-2 bg-[#2D1B11]/50 px-3 py-1 rounded-full border border-[#5C3A21]">
+              <span className="text-[#DAA520] text-xs font-bold uppercase tracking-wider">Objective:</span>
+              <span className="text-[#F5DEB3] text-xs truncate max-w-[200px]">{activeQuests[0].title}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Right Side: Toggles */}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => {
+              setShowInventory(!showInventory);
+              if (!showInventory) setShowQuests(false);
+            }}
+            variant="ghost"
+            size="sm"
+            className={`h-8 px-3 text-xs font-bold tracking-wider rounded-sm transition-colors ${
+              showInventory
+                ? 'bg-[#3D2B21] text-[#DAA520] border border-[#DAA520]'
+                : 'text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent'
+            }`}
+          >
+            <Package className="w-4 h-4 mr-2" />
+            INVENTORY
+          </Button>
+
+          <Button
+            onClick={() => {
+              setShowQuests(!showQuests);
+              if (!showQuests) setShowInventory(false);
+            }}
+            variant="ghost"
+            size="sm"
+            className={`h-8 px-3 text-xs font-bold tracking-wider rounded-sm transition-colors relative ${
+              showQuests
+                ? 'bg-[#3D2B21] text-[#DAA520] border border-[#DAA520]'
+                : 'text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent'
+            }`}
+          >
+            <ScrollText className="w-4 h-4 mr-2" />
+            QUESTS
+            {activeQuests.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border border-[#1A0F0A]">
+                {activeQuests.length}
+              </span>
+            )}
+          </Button>
         </div>
       </div>
 
-      {/* Inventory Panel */}
+      {/* Inventory Dropdown Menu */}
       {showInventory && (
-        <div className="fixed top-20 right-4 w-80 max-h-[500px] bg-background/95 backdrop-blur-sm border-2 border-primary rounded-lg shadow-2xl z-40 overflow-hidden">
-          <div className="p-4 border-b border-border flex justify-between items-center">
-            <h3 className="font-bold text-lg text-foreground">Inventory</h3>
-            <Button
-              onClick={() => setShowInventory(false)}
-              variant="ghost"
-              size="icon"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-          
-          <div className="p-4 overflow-y-auto max-h-[400px]">
+        <div className="fixed top-12 right-24 w-72 bg-[#1A0F0A]/95 backdrop-blur-md border border-[#5C3A21] border-t-0 rounded-b-md shadow-xl z-40 flex flex-col pointer-events-auto">
+          <div className="p-3 overflow-y-auto max-h-[400px]">
             {gameState.inventory.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No items yet</p>
+              <p className="text-[#A0522D] text-center py-6 text-sm font-semibold">Your pack is empty</p>
             ) : (
               <div className="space-y-2">
                 {gameState.inventory.map((item) => (
                   <div
                     key={item.id}
-                    className="p-3 bg-secondary rounded-lg hover:bg-secondary/80 transition-colors"
+                    className="p-2 bg-[#2D1B11]/80 border border-[#5C3A21] rounded-sm hover:border-[#DAA520]/50 transition-colors"
                   >
-                    <h4 className="font-semibold text-foreground">{item.name}</h4>
-                    <p className="text-sm text-muted-foreground">{item.description}</p>
-                    <span className="text-xs text-primary capitalize">{item.type}</span>
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-bold text-[#F5DEB3] text-sm">{item.name}</h4>
+                      <span className="text-[9px] text-[#DAA520] uppercase bg-[#1A0F0A] px-1.5 py-0.5 rounded-sm border border-[#5C3A21]">{item.type}</span>
+                    </div>
+                    <p className="text-xs text-[#D3D3D3] mt-1 leading-tight opacity-80">{item.description}</p>
                   </div>
                 ))}
               </div>
@@ -102,61 +118,54 @@ export const GameUI = ({ gameState }: GameUIProps) => {
         </div>
       )}
 
-      {/* Quest Log */}
+      {/* Quest Dropdown Menu */}
       {showQuests && (
-        <div className="fixed top-20 right-4 w-96 max-h-[500px] bg-background/95 backdrop-blur-sm border-2 border-primary rounded-lg shadow-2xl z-40 overflow-hidden">
-          <div className="p-4 border-b border-border flex justify-between items-center">
-            <h3 className="font-bold text-lg text-foreground">Quest Log</h3>
-            <Button
-              onClick={() => setShowQuests(false)}
-              variant="ghost"
-              size="icon"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-          
-          <div className="p-4 overflow-y-auto max-h-[400px]">
+        <div className="fixed top-12 right-4 w-80 bg-[#1A0F0A]/95 backdrop-blur-md border border-[#5C3A21] border-t-0 rounded-b-md shadow-xl z-40 flex flex-col pointer-events-auto">
+          <div className="p-3 overflow-y-auto max-h-[400px]">
             {gameState.quests.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No quests yet</p>
+              <p className="text-[#A0522D] text-center py-6 text-sm font-semibold">Your journal is empty</p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {gameState.quests.map((quest) => (
                   <div
                     key={quest.id}
-                    className={`p-4 rounded-lg border-2 ${
+                    className={`p-3 rounded-sm border shadow-inner ${
                       quest.completed
-                        ? 'bg-green-500/10 border-green-500'
+                        ? 'bg-[#1e2e1e]/60 border-[#2e5e2e]'
                         : quest.active
-                        ? 'bg-primary/10 border-primary'
-                        : 'bg-secondary border-border'
+                        ? 'bg-[#2D1B11]/80 border-[#DAA520]/50'
+                        : 'bg-[#1A0F0A] border-[#5C3A21]'
                     }`}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-semibold text-foreground">{quest.title}</h4>
+                    <div className="flex justify-between items-start mb-1.5">
+                      <h4 className={`font-bold text-sm ${quest.completed ? 'text-[#8FBC8F]' : 'text-[#F5DEB3]'}`}>{quest.title}</h4>
                       {quest.completed && (
-                        <span className="text-xs bg-green-500 text-white px-2 py-1 rounded">
+                        <span className="text-[9px] uppercase font-bold text-[#8FBC8F] border border-[#2e5e2e] px-1.5 py-0.5 rounded-sm">
                           Completed
                         </span>
                       )}
                       {quest.active && !quest.completed && (
-                        <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
+                        <span className="text-[9px] uppercase font-bold text-[#DAA520] border border-[#DAA520]/50 px-1.5 py-0.5 rounded-sm">
                           Active
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">{quest.description}</p>
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-foreground">Objectives:</p>
+                    <p className="text-xs text-[#D3D3D3] mb-3 leading-relaxed opacity-80">{quest.description}</p>
+                    <div className="space-y-1.5 bg-[#1A0F0A]/50 p-2 rounded-sm border border-[#5C3A21]/30">
+                      <p className="text-[10px] font-bold text-[#DAA520] uppercase tracking-wider">Objectives:</p>
                       {quest.objectives.map((obj, i) => (
-                        <p key={i} className="text-xs text-muted-foreground ml-2">• {obj}</p>
+                        <p key={i} className="text-xs text-[#F5DEB3] ml-1 flex gap-1.5 opacity-90">
+                          <span className="text-[#DAA520]">{quest.completed ? '✓' : '▶'}</span> {obj}
+                        </p>
                       ))}
                     </div>
                     {quest.reward && (
-                      <div className="mt-2 pt-2 border-t border-border">
-                        <p className="text-xs font-semibold text-foreground">Reward:</p>
+                      <div className="mt-2 pt-2 border-t border-[#5C3A21]/50 flex items-center gap-2">
+                        <p className="text-[10px] font-bold text-[#DAA520] uppercase">Reward:</p>
                         {quest.reward.gold && (
-                          <p className="text-xs text-muted-foreground ml-2">• {quest.reward.gold} gold</p>
+                          <p className="text-xs text-[#F5DEB3] font-bold flex items-center gap-1">
+                            <Coins className="w-3 h-3 text-yellow-400" /> {quest.reward.gold}
+                          </p>
                         )}
                       </div>
                     )}
@@ -168,13 +177,16 @@ export const GameUI = ({ gameState }: GameUIProps) => {
         </div>
       )}
 
-      {/* Controls Help */}
-      <div className="fixed bottom-4 left-4 bg-background/90 backdrop-blur-sm border border-border rounded-lg p-3 z-40">
-        <p className="text-xs font-bold mb-1 text-foreground">Controls:</p>
-        <p className="text-xs text-muted-foreground">WASD/Arrows - Move</p>
-        <p className="text-xs text-muted-foreground">SPACE - Attack</p>
-        <p className="text-xs text-muted-foreground">E - Interact</p>
+      {/* Controls Help (Minimal) */}
+      <div className="fixed bottom-4 left-4 bg-[#1A0F0A]/80 backdrop-blur-sm border border-[#5C3A21] rounded-sm p-2 z-40 shadow-sm pointer-events-auto">
+        <div className="flex gap-4 items-center">
+          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-1">WASD</kbd> Move</p>
+          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1.5 rounded border border-[#5C3A21] text-[#DAA520] mr-1">SPACE</kbd> Attack</p>
+          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1.5 rounded border border-[#5C3A21] text-[#DAA520] mr-1">E</kbd> Interact</p>
+        </div>
       </div>
     </>
   );
 };
+
+export default GameUI;

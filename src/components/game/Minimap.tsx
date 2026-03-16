@@ -76,11 +76,11 @@ export const Minimap = ({ currentMap, playerPosition, visitedTiles, npcs }: Mini
   }, [currentMap, playerPosition, visitedTiles, npcs]);
 
   return (
-    <div className="absolute top-4 right-4 bg-black/80 p-2 rounded-lg border-2 border-primary/50">
-      <div className="text-white text-xs mb-1 text-center font-bold">{currentMap.name}</div>
+    <div className="fixed top-16 right-4 bg-[#1A0F0A]/85 backdrop-blur-sm p-1.5 rounded-sm border-2 border-[#5C3A21] shadow-md z-30 font-sans pointer-events-auto">
+      <div className="text-[#DAA520] text-xs mb-1 text-center font-bold uppercase tracking-wider">{currentMap.name}</div>
       <canvas
         ref={canvasRef}
-        className="pixelated"
+        className="pixelated border-2 border-[#5C3A21] block"
         style={{ imageRendering: 'pixelated' }}
       />
     </div>

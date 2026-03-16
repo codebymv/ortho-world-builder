@@ -17,6 +17,8 @@ export interface Enemy {
   state: 'idle' | 'chasing' | 'attacking' | 'dead';
   lastAttackTime: number;
   attackCooldown: number;
+  damageFlashTimer: number;
+  attackAnimationTimer: number;
 }
 
 export class CombatSystem {
@@ -50,6 +52,8 @@ export class CombatSystem {
       state: 'idle',
       lastAttackTime: 0,
       attackCooldown: 1500,
+      damageFlashTimer: 0,
+      attackAnimationTimer: 0,
     };
 
     this.enemies.push(enemy);
@@ -108,12 +112,16 @@ export class CombatSystem {
 
   private attackPlayer(enemy: Enemy): void {
     this.gameState.player.health = Math.max(0, this.gameState.player.health - enemy.damage);
+    this.gameState.player.damageFlashTimer = 0.2;
+    enemy.attackAnimationTimer = 0.2; // Enemy attack lunge animation
   }
 
   playerAttack(targetEnemy: Enemy, damage: number): boolean {
     if (targetEnemy.state === 'dead') return false;
 
     targetEnemy.health = Math.max(0, targetEnemy.health - damage);
+
+    targetEnemy.damageFlashTimer = 0.2; // 200ms flash
 
     if (targetEnemy.health <= 0) {
       targetEnemy.state = 'dead';
@@ -141,6 +149,13 @@ export class CombatSystem {
     const dead = this.enemies.filter(e => e.state === 'dead');
     this.enemies = this.enemies.filter(e => e.state !== 'dead');
     return dead;
+  }
+
+  removeDeadEnemiesByIds(ids: string[]): Enemy[] {
+    const toRemove = new Set(ids);
+    const removed = this.enemies.filter(e => toRemove.has(e.id));
+    this.enemies = this.enemies.filter(e => !toRemove.has(e.id));
+    return removed;
   }
 
   clearAllEnemies(): void {

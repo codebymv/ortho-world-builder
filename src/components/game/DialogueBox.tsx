@@ -46,38 +46,49 @@ export const DialogueBox = ({ node, npcName, onResponse, onClose }: DialogueBoxP
   if (!node) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4 z-50">
-      <div className="max-w-3xl mx-auto bg-background/95 backdrop-blur-sm border-2 border-primary rounded-lg shadow-2xl">
-        <div className="p-4 border-b border-border">
+    <div className="fixed bottom-8 left-0 right-0 px-8 z-50 font-sans flex justify-center">
+      <div className="w-full max-w-4xl bg-[#2D1B11]/95 border-4 border-[#8B5A2B] rounded-sm shadow-[8px_8px_0px_0px_rgba(0,0,0,0.6)] flex flex-col relative">
+        {/* Decorative corners */}
+        <div className="absolute top-0 left-0 w-3 h-3 border-t-4 border-l-4 border-[#DAA520]" />
+        <div className="absolute top-0 right-0 w-3 h-3 border-t-4 border-r-4 border-[#DAA520]" />
+        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-4 border-l-4 border-[#DAA520]" />
+        <div className="absolute bottom-0 right-0 w-3 h-3 border-b-4 border-r-4 border-[#DAA520]" />
+
+        <div className="p-3 bg-[#1A0F0A] border-b-4 border-[#5C3A21]">
           {npcName && (
-            <h3 className="font-bold text-lg text-primary">{npcName}</h3>
+            <h3 className="font-bold text-xl text-[#DAA520] tracking-widest uppercase ml-2">{npcName}</h3>
           )}
         </div>
         
-        <div className="p-6 min-h-[120px]" onClick={skipTyping}>
-          <p className="text-foreground leading-relaxed">
+        <div className="p-6 min-h-[140px] cursor-pointer bg-[#2D1B11]" onClick={skipTyping}>
+          <p className="text-[#F5DEB3] text-lg leading-relaxed font-medium">
             {displayedText}
-            {isTyping && <span className="animate-pulse">▊</span>}
+            {isTyping && <span className="animate-pulse text-[#DAA520] ml-1">▼</span>}
           </p>
         </div>
 
         {!isTyping && (
-          <div className="p-4 space-y-2 border-t border-border">
+          <div className="p-4 space-y-2 bg-[#1A0F0A]/50 border-t-4 border-[#5C3A21]">
             {node.responses && node.responses.length > 0 ? (
               node.responses.map((response, index) => (
                 <Button
                   key={index}
                   onClick={() => onResponse(response.nextId, response.givesQuest)}
-                  className="w-full justify-start text-left"
+                  className="w-full justify-start text-left bg-[#3D2B21] hover:bg-[#4D3B31] border-2 border-[#8B5A2B] hover:border-[#DAA520] text-[#F5DEB3] hover:text-white rounded-sm py-6 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]"
                   variant="outline"
                 >
-                  {response.text}
+                  <span className="text-[#DAA520] mr-2">▶</span> {response.text}
                 </Button>
               ))
             ) : (
-              <Button onClick={onClose} className="w-full">
-                Close
-              </Button>
+              <div className="flex justify-end">
+                <Button
+                  onClick={onClose}
+                  className="bg-[#8B5A2B] hover:bg-[#A0522D] text-white font-bold py-2 px-8 rounded-sm border-2 border-[#5C3A21] shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]"
+                >
+                  Leave
+                </Button>
+              </div>
             )}
           </div>
         )}
