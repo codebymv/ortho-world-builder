@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager';
 
-export type TileType = 'grass' | 'dirt' | 'water' | 'stone' | 'wood' | 'tree' | 'house' | 'rock' | 'chest' | 'portal';
+export type TileType = 'grass' | 'dirt' | 'water' | 'stone' | 'wood' | 'tree' | 'house' | 'rock' | 'chest' | 'portal' | 'flower';
 
 export interface Tile {
   type: TileType;
