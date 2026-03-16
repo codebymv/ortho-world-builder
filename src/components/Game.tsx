@@ -140,6 +140,7 @@ const Game = () => {
       toast.success(`Entered ${newMap.name}`);
       visitedTilesRef.current = new Set();
       setVisitedTilesVersion(v => v + 1);
+      portalCooldown = 0.5; // Half second cooldown before next transition
     };
 
     // Create player mesh
