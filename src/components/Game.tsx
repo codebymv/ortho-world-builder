@@ -79,7 +79,7 @@ const Game = () => {
 
     // Delta time smoothing
     let lastTime = performance.now();
-    let dtAccumulator = 0;
+    const dtAccumulator = 0;
     const FIXED_STEP = 1 / 60;
     const MAX_DELTA = 0.1;
     let portalCooldown = 0; // Prevent instant re-transition
@@ -561,9 +561,33 @@ const Game = () => {
             (enemyMesh.material as THREE.MeshBasicMaterial).color.setHex(0xffffff);
           }
 
+          let finalEnemyX = enemy.position.x;
+          let finalEnemyY = enemy.position.y + enemyBobbingOffset;
+
+          // Enemy attack lunge animation
+          if (enemy.attackAnimationTimer && enemy.attackAnimationTimer > 0) {
+            enemy.attackAnimationTimer -= deltaTime * 1000;
+            const progress = enemy.attackAnimationTimer / 200; // 200ms animation
+            if (progress > 0) {
+              const lungeDistance = Math.sin(progress * Math.PI) * 0.3; // Lunge distance
+
+              // Calculate direction to player
+              const dx = state.player.position.x - enemy.position.x;
+              const dy = state.player.position.y - enemy.position.y;
+              const dist = Math.sqrt(dx*dx + dy*dy);
+
+              if (dist > 0) {
+                finalEnemyX += (dx / dist) * lungeDistance;
+                finalEnemyY += (dy / dist) * lungeDistance;
+              }
+            } else {
+              enemy.attackAnimationTimer = 0;
+            }
+          }
+
           enemyMesh.position.set(
-            enemy.position.x,
-            enemy.position.y + enemyBobbingOffset,
+            finalEnemyX,
+            finalEnemyY,
             0.2
           );
         }
