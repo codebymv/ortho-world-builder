@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { GameState, NPC } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
@@ -19,7 +19,8 @@ const Game = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [, forceUpdate] = useState(0);
   const [currentDialogue, setCurrentDialogue] = useState<{ node: DialogueNode; npcName: string } | null>(null);
-  const [visitedTiles, setVisitedTiles] = useState<Set<string>>(new Set());
+  const visitedTilesRef = useRef<Set<string>>(new Set());
+  const [visitedTilesVersion, setVisitedTilesVersion] = useState(0);
   const gameStateRef = useRef<GameState | null>(null);
 
   const triggerUIUpdate = () => forceUpdate(prev => prev + 1);
@@ -47,6 +48,7 @@ const Game = () => {
     // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     mountRef.current.appendChild(renderer.domElement);
 
     // Initialize game systems
@@ -70,11 +72,16 @@ const Game = () => {
 
     // Smooth camera variables
     const cameraTarget = { x: state.player.position.x, y: state.player.position.y };
-    const cameraLerpSpeed = 0.1;
 
     // Footstep timer
     let footstepTimer = 0;
     const footstepInterval = 0.3;
+
+    // Delta time smoothing
+    let lastTime = performance.now();
+    let dtAccumulator = 0;
+    const FIXED_STEP = 1 / 60;
+    const MAX_DELTA = 0.1; // Cap delta to prevent spiral of death
 
     // Map transition handler
     const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
@@ -87,7 +94,6 @@ const Game = () => {
       state.currentMap = targetMap;
       world.loadMap(newMap);
       
-      // Convert target spawn position to world coordinates
       const worldX = targetX - newMap.width / 2;
       const worldY = targetY - newMap.height / 2;
       
@@ -100,7 +106,11 @@ const Game = () => {
 
       // Clear enemies when changing maps
       combatSystem.clearAllEnemies();
-      enemyMeshes.forEach(mesh => scene.remove(mesh));
+      enemyMeshes.forEach(mesh => {
+        scene.remove(mesh);
+        mesh.geometry.dispose();
+        (mesh.material as THREE.Material).dispose();
+      });
       enemyMeshes.clear();
 
       // Spawn enemies based on map
@@ -127,7 +137,8 @@ const Game = () => {
       }
 
       toast.success(`Entered ${newMap.name}`);
-      setVisitedTiles(new Set()); // Reset visited tiles for new map
+      visitedTilesRef.current = new Set();
+      setVisitedTilesVersion(v => v + 1);
     };
 
     // Create player mesh
@@ -165,21 +176,21 @@ const Game = () => {
       npcMeshes.push(npcMesh);
     });
 
-    // Keyboard controls
+    // Keyboard controls with input buffering
     const keys: { [key: string]: boolean } = {};
+    let interactBuffered = false;
+    let attackBuffered = false;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       keys[e.key.toLowerCase()] = true;
       
-      // Interact key
       if (e.key.toLowerCase() === 'e' && !state.dialogueActive) {
-        checkInteraction();
+        interactBuffered = true;
       }
 
-      // Attack key
       if (e.key === ' ' && !state.dialogueActive) {
         e.preventDefault();
-        performAttack();
+        attackBuffered = true;
       }
     };
 
@@ -190,19 +201,33 @@ const Game = () => {
     const performAttack = () => {
       const currentTime = Date.now();
       if (currentTime - state.player.lastAttackTime < state.player.attackCooldown) {
-        return; // Still on cooldown
+        return;
       }
 
       state.player.lastAttackTime = currentTime;
 
-      // Get enemies in attack range
       const enemiesInRange = combatSystem.getEnemiesInRange(
         state.player.position,
         state.player.attackRange
       );
 
       if (enemiesInRange.length > 0) {
-        const target = enemiesInRange[0];
+        // Target closest enemy in facing direction first, fallback to closest overall
+        let target = enemiesInRange[0];
+        const dirOffsets: Record<string, {x: number, y: number}> = {
+          up: {x: 0, y: 1}, down: {x: 0, y: -1},
+          left: {x: -1, y: 0}, right: {x: 1, y: 0}
+        };
+        const dir = dirOffsets[state.player.direction];
+        
+        // Prefer enemies in facing direction
+        const facingEnemies = enemiesInRange.filter(e => {
+          const dx = e.position.x - state.player.position.x;
+          const dy = e.position.y - state.player.position.y;
+          return (dx * dir.x + dy * dir.y) > 0;
+        });
+        if (facingEnemies.length > 0) target = facingEnemies[0];
+
         const died = combatSystem.playerAttack(target, state.player.attackDamage);
 
         particleSystem.emitDamage(
@@ -214,7 +239,6 @@ const Game = () => {
           triggerUIUpdate();
         }
       } else {
-        // Attack animation even if no target
         const attackPos = { ...state.player.position };
         if (state.player.direction === 'up') attackPos.y += 1;
         else if (state.player.direction === 'down') attackPos.y -= 1;
@@ -223,17 +247,12 @@ const Game = () => {
 
         particleSystem.emit(
           new THREE.Vector3(attackPos.x, attackPos.y, 0.3),
-          4,
-          0xFFFFFF,
-          0.3,
-          1,
-          1
+          4, 0xFFFFFF, 0.3, 1, 1
         );
       }
     };
 
     const checkInteraction = () => {
-      // Check for NPC interaction
       const interactionRange = 1.5;
       for (const npc of state.npcs) {
         const distance = Math.sqrt(
@@ -247,7 +266,6 @@ const Game = () => {
         }
       }
 
-      // Check for world object interaction
       const checkX = state.player.position.x;
       const checkY = state.player.position.y;
       
@@ -292,7 +310,7 @@ const Game = () => {
             return;
           }
           
-          if (interactionId === 'well') {
+          if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain') {
             state.player.health = Math.min(state.player.maxHealth, state.player.health + 25);
             particleSystem.emitHeal(new THREE.Vector3(checkX, checkY, 0.3));
             toast.success('Refreshing water! Health restored.');
@@ -317,7 +335,6 @@ const Game = () => {
 
       let startNode = dialogue.nodes.find(n => n.id === 'start');
       
-      // Check for quest-specific dialogue
       if (dialogueId === 'elder') {
         const hunterQuest = state.quests.find(q => q.id === 'find_hunter');
         if (hunterQuest?.completed) {
@@ -335,7 +352,6 @@ const Game = () => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    // Handle window resize
     const handleResize = () => {
       const aspect = window.innerWidth / window.innerHeight;
       camera.left = frustumSize * aspect / -2;
@@ -348,16 +364,26 @@ const Game = () => {
 
     window.addEventListener('resize', handleResize);
 
-    // Delta time tracking
-    let lastTime = performance.now();
-
     // Animation loop
     const animate = () => {
       requestAnimationFrame(animate);
 
       const currentTime = performance.now();
-      const deltaTime = (currentTime - lastTime) / 1000;
+      let deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
+
+      // Cap delta time to prevent physics explosion after tab-away
+      if (deltaTime > MAX_DELTA) deltaTime = MAX_DELTA;
+
+      // Process buffered inputs
+      if (interactBuffered && !state.dialogueActive) {
+        checkInteraction();
+        interactBuffered = false;
+      }
+      if (attackBuffered && !state.dialogueActive) {
+        performAttack();
+        attackBuffered = false;
+      }
 
       if (!state.dialogueActive) {
         let moveX = 0;
@@ -365,27 +391,10 @@ const Game = () => {
         let moved = false;
         let newDirection = state.player.direction;
 
-        // Collect input
-        if (keys['w'] || keys['arrowup']) {
-          moveY += 1;
-          newDirection = 'up';
-          moved = true;
-        }
-        if (keys['s'] || keys['arrowdown']) {
-          moveY -= 1;
-          newDirection = 'down';
-          moved = true;
-        }
-        if (keys['a'] || keys['arrowleft']) {
-          moveX -= 1;
-          newDirection = 'left';
-          moved = true;
-        }
-        if (keys['d'] || keys['arrowright']) {
-          moveX += 1;
-          newDirection = 'right';
-          moved = true;
-        }
+        if (keys['w'] || keys['arrowup']) { moveY += 1; newDirection = 'up'; moved = true; }
+        if (keys['s'] || keys['arrowdown']) { moveY -= 1; newDirection = 'down'; moved = true; }
+        if (keys['a'] || keys['arrowleft']) { moveX -= 1; newDirection = 'left'; moved = true; }
+        if (keys['d'] || keys['arrowright']) { moveX += 1; newDirection = 'right'; moved = true; }
 
         // Normalize diagonal movement
         if (moveX !== 0 && moveY !== 0) {
@@ -394,50 +403,56 @@ const Game = () => {
           moveY /= length;
         }
 
-        // Apply movement
         if (moved) {
+          // Delta-time based movement (speed * 60 to normalize around 60fps feel)
+          const frameSpeed = state.player.speed * deltaTime * 60;
           const newPos = {
-            x: state.player.position.x + moveX * state.player.speed,
-            y: state.player.position.y + moveY * state.player.speed,
+            x: state.player.position.x + moveX * frameSpeed,
+            y: state.player.position.y + moveY * frameSpeed,
           };
 
+          // Try full movement, then axis-separated (wall sliding)
           if (world.isWalkable(newPos.x, newPos.y)) {
             state.player.position = newPos;
-            state.player.direction = newDirection;
-            state.player.isMoving = true;
+          } else if (world.isWalkable(newPos.x, state.player.position.y)) {
+            state.player.position.x = newPos.x;
+          } else if (world.isWalkable(state.player.position.x, newPos.y)) {
+            state.player.position.y = newPos.y;
+          }
 
-            // Update player texture
-            const directionTexture = assetManager.getTexture(`player_${newDirection}`);
-            if (directionTexture && playerMaterial.map !== directionTexture) {
-              playerMaterial.map = directionTexture;
-              playerMaterial.needsUpdate = true;
-            }
+          state.player.direction = newDirection;
+          state.player.isMoving = true;
 
-            // Footstep particles
-            footstepTimer += deltaTime;
-            if (footstepTimer >= footstepInterval) {
-              particleSystem.emitDust(
-                new THREE.Vector3(state.player.position.x, state.player.position.y, 0)
-              );
-              footstepTimer = 0;
-            }
+          // Update player texture
+          const directionTexture = assetManager.getTexture(`player_${newDirection}`);
+          if (directionTexture && playerMaterial.map !== directionTexture) {
+            playerMaterial.map = directionTexture;
+            playerMaterial.needsUpdate = true;
+          }
 
-            // Track visited tiles for minimap
-            const currentMap = world.getCurrentMap();
-            const tileX = Math.floor(state.player.position.x + currentMap.width / 2);
-            const tileY = Math.floor(state.player.position.y + currentMap.height / 2);
-            const tileKey = `${tileX},${tileY}`;
-            if (!visitedTiles.has(tileKey)) {
-              setVisitedTiles(prev => new Set(prev).add(tileKey));
-            }
+          // Footstep particles
+          footstepTimer += deltaTime;
+          if (footstepTimer >= footstepInterval) {
+            particleSystem.emitDust(
+              new THREE.Vector3(state.player.position.x, state.player.position.y, 0)
+            );
+            footstepTimer = 0;
+          }
 
-            // Check for map transitions
-            const transition = world.getTransitionAt(newPos.x, newPos.y);
-            if (transition) {
-              handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
-            }
-          } else {
-            state.player.isMoving = false;
+          // Track visited tiles for minimap (use ref to avoid stale closure)
+          const currentMap = world.getCurrentMap();
+          const tileX = Math.floor(state.player.position.x + currentMap.width / 2);
+          const tileY = Math.floor(state.player.position.y + currentMap.height / 2);
+          const tileKey = `${tileX},${tileY}`;
+          if (!visitedTilesRef.current.has(tileKey)) {
+            visitedTilesRef.current.add(tileKey);
+            setVisitedTilesVersion(v => v + 1);
+          }
+
+          // Check for map transitions
+          const transition = world.getTransitionAt(state.player.position.x, state.player.position.y);
+          if (transition) {
+            handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
           }
         } else {
           state.player.isMoving = false;
@@ -447,11 +462,12 @@ const Game = () => {
         // Update player mesh
         playerMesh.position.set(state.player.position.x, state.player.position.y, 0.2);
 
-        // Smooth camera follow
+        // Smooth camera follow (delta-time based lerp)
         cameraTarget.x = state.player.position.x;
         cameraTarget.y = state.player.position.y;
-        camera.position.x += (cameraTarget.x - camera.position.x) * cameraLerpSpeed;
-        camera.position.y += (cameraTarget.y - camera.position.y) * cameraLerpSpeed;
+        const lerpFactor = 1 - Math.pow(0.001, deltaTime); // frame-rate independent lerp
+        camera.position.x += (cameraTarget.x - camera.position.x) * lerpFactor;
+        camera.position.y += (cameraTarget.y - camera.position.y) * lerpFactor;
 
         // Update combat system
         combatSystem.updateEnemies(deltaTime, state.player.position);
@@ -483,6 +499,8 @@ const Game = () => {
           const mesh = enemyMeshes.get(dead.id);
           if (mesh) {
             scene.remove(mesh);
+            mesh.geometry.dispose();
+            (mesh.material as THREE.Material).dispose();
             enemyMeshes.delete(dead.id);
           }
         }
@@ -492,6 +510,9 @@ const Game = () => {
           toast.error('You have been defeated!');
           state.player.health = state.player.maxHealth;
           state.player.position = world.getSpawnPoint();
+          playerMesh.position.set(state.player.position.x, state.player.position.y, 0.2);
+          camera.position.x = state.player.position.x;
+          camera.position.y = state.player.position.y;
           triggerUIUpdate();
         }
       }
@@ -503,9 +524,8 @@ const Game = () => {
     };
 
     animate();
-    toast.success('Welcome to the adventure! Press SPACE to attack, E to interact.');
+    toast.success('Welcome to the adventure! WASD to move, SPACE to attack, E to interact.');
 
-    // Cleanup
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
@@ -561,7 +581,7 @@ const Game = () => {
           <Minimap
             currentMap={allMaps[gameState.currentMap]}
             playerPosition={gameState.player.position}
-            visitedTiles={visitedTiles}
+            visitedTiles={visitedTilesRef.current}
             npcs={gameState.npcs}
           />
         </>

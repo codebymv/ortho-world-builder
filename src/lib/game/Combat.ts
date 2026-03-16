@@ -86,14 +86,15 @@ export class CombatSystem {
 
       // Behavior
       if (enemy.state === 'chasing') {
-        // Move toward player
+        // Move toward player (delta-time based)
         const dx = playerPosition.x - enemy.position.x;
         const dy = playerPosition.y - enemy.position.y;
         const length = Math.sqrt(dx * dx + dy * dy);
 
         if (length > 0) {
-          enemy.position.x += (dx / length) * enemy.speed;
-          enemy.position.y += (dy / length) * enemy.speed;
+          const moveSpeed = enemy.speed * deltaTime * 60; // normalize to ~60fps baseline
+          enemy.position.x += (dx / length) * moveSpeed;
+          enemy.position.y += (dy / length) * moveSpeed;
         }
       } else if (enemy.state === 'attacking') {
         // Attack player if cooldown ready
