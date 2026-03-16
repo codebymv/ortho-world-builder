@@ -451,10 +451,14 @@ const Game = () => {
             setVisitedTilesVersion(v => v + 1);
           }
 
-          // Check for map transitions
-          const transition = world.getTransitionAt(state.player.position.x, state.player.position.y);
-          if (transition) {
-            handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
+          // Check for map transitions (with cooldown)
+          if (portalCooldown > 0) {
+            portalCooldown -= deltaTime;
+          } else {
+            const transition = world.getTransitionAt(state.player.position.x, state.player.position.y);
+            if (transition) {
+              handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
+            }
           }
         } else {
           state.player.isMoving = false;
