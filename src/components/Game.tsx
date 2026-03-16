@@ -81,7 +81,8 @@ const Game = () => {
     let lastTime = performance.now();
     let dtAccumulator = 0;
     const FIXED_STEP = 1 / 60;
-    const MAX_DELTA = 0.1; // Cap delta to prevent spiral of death
+    const MAX_DELTA = 0.1;
+    let portalCooldown = 0; // Prevent instant re-transition
 
     // Map transition handler
     const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
