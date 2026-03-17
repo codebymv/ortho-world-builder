@@ -107,6 +107,9 @@ const Game = () => {
       camera.position.x = worldX;
       camera.position.y = worldY;
 
+      // Initial chunk render at new position
+      world.updateChunks(worldX, worldY);
+
       // Clear enemies when changing maps
       combatSystem.clearAllEnemies();
       enemyMeshes.forEach(mesh => {
@@ -116,26 +119,20 @@ const Game = () => {
       });
       enemyMeshes.clear();
 
-      // Spawn enemies based on map
-      if (targetMap === 'forest') {
-        for (let i = 0; i < 3; i++) {
-          combatSystem.spawnEnemy(
-            'Forest Wolf',
-            { x: Math.random() * 10 - 5, y: Math.random() * 10 - 5 },
-            40,
-            10,
-            'enemy_wolf'
-          );
-        }
-      } else if (targetMap === 'deep_woods') {
-        for (let i = 0; i < 5; i++) {
-          combatSystem.spawnEnemy(
-            'Shadow Creature',
-            { x: Math.random() * 8 - 4, y: Math.random() * 8 - 4 },
-            60,
-            15,
-            'enemy_shadow'
-          );
+      // Spawn enemies based on map definition
+      const mapDef = mapDefinitions[targetMap];
+      if (mapDef?.enemyZones) {
+        for (const zone of mapDef.enemyZones) {
+          const enemySprite = zone.enemyType === 'wolf' ? 'enemy_wolf' : 'enemy_shadow';
+          const enemyName = zone.enemyType === 'wolf' ? 'Forest Wolf' : 'Shadow Creature';
+          const hp = zone.enemyType === 'wolf' ? 40 : 60;
+          const dmg = zone.enemyType === 'wolf' ? 10 : 15;
+          
+          for (let i = 0; i < zone.count; i++) {
+            const ex = (zone.x + Math.random() * zone.width) - newMap.width / 2;
+            const ey = (zone.y + Math.random() * zone.height) - newMap.height / 2;
+            combatSystem.spawnEnemy(enemyName, { x: ex, y: ey }, hp, dmg, enemySprite);
+          }
         }
       }
 
@@ -145,7 +142,7 @@ const Game = () => {
       });
       visitedTilesRef.current = new Set();
       setVisitedTilesVersion(v => v + 1);
-      portalCooldown = 0.5; // Half second cooldown before next transition
+      portalCooldown = 0.5;
     };
 
     // Create player mesh
