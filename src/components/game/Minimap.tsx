@@ -18,7 +18,8 @@ export const Minimap = ({ currentMap, playerPosition, visitedTiles, npcs }: Mini
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const scale = 4; // pixels per tile
+    const maxMinimapSize = 180;
+    const scale = Math.max(1, Math.min(4, Math.floor(maxMinimapSize / Math.max(currentMap.width, currentMap.height))));
     canvas.width = currentMap.width * scale;
     canvas.height = currentMap.height * scale;
 

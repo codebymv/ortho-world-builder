@@ -156,11 +156,11 @@ const Game = () => {
     playerMesh.position.set(spawnPoint.x, spawnPoint.y, 0.2);
     scene.add(playerMesh);
 
-    // Add NPCs
+    // Add NPCs (positioned relative to village center)
     const npcData: NPC[] = [
-      { id: 'elder', name: 'Village Elder', position: { x: -5, y: 3 }, dialogueId: 'elder', sprite: 'npc_elder', questGiver: true },
-      { id: 'merchant', name: 'Traveling Merchant', position: { x: 5, y: 1 }, dialogueId: 'merchant', sprite: 'npc_merchant' },
-      { id: 'guard', name: 'Village Guard', position: { x: 2, y: -3 }, dialogueId: 'guard', sprite: 'npc_guard' },
+      { id: 'elder', name: 'Village Elder', position: { x: -18, y: -10 }, dialogueId: 'elder', sprite: 'npc_elder', questGiver: true },
+      { id: 'merchant', name: 'Traveling Merchant', position: { x: 20, y: -2 }, dialogueId: 'merchant', sprite: 'npc_merchant' },
+      { id: 'guard', name: 'Village Guard', position: { x: 0, y: 5 }, dialogueId: 'guard', sprite: 'npc_guard' },
     ];
 
     state.npcs = npcData;
