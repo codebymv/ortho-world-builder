@@ -18,7 +18,8 @@ export const Minimap = ({ currentMap, playerPosition, visitedTiles, npcs }: Mini
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const scale = 4; // pixels per tile
+    const maxMinimapSize = 180;
+    const scale = Math.max(1, Math.min(4, Math.floor(maxMinimapSize / Math.max(currentMap.width, currentMap.height))));
     canvas.width = currentMap.width * scale;
     canvas.height = currentMap.height * scale;
 
@@ -76,12 +77,12 @@ export const Minimap = ({ currentMap, playerPosition, visitedTiles, npcs }: Mini
   }, [currentMap, playerPosition, visitedTiles, npcs]);
 
   return (
-    <div className="fixed top-16 right-4 bg-[#1A0F0A]/85 backdrop-blur-sm p-1.5 rounded-sm border-2 border-[#5C3A21] shadow-md z-30 font-sans pointer-events-auto">
+    <div className="fixed top-16 right-4 bg-[#1A0F0A]/85 backdrop-blur-sm p-1.5 rounded-sm border-2 border-[#5C3A21] shadow-md z-30 font-sans pointer-events-auto" style={{ maxWidth: '200px', maxHeight: '200px' }}>
       <div className="text-[#DAA520] text-xs mb-1 text-center font-bold uppercase tracking-wider">{currentMap.name}</div>
       <canvas
         ref={canvasRef}
         className="pixelated border-2 border-[#5C3A21] block"
-        style={{ imageRendering: 'pixelated' }}
+        style={{ imageRendering: 'pixelated', maxWidth: '180px', maxHeight: '160px', width: '100%', height: 'auto' }}
       />
     </div>
   );

@@ -403,5 +403,127 @@ export class AssetManager {
       [C,        C,        C,       MUSH_STEM, MUSH_STEM_S,C,      C,       C],
       [C,        C,        C,       MUSH_STEM_S,MUSH_STEM,C,       C,       C],
     ]));
+
+    // ========== NEW TILE TYPES ==========
+    this.textures.set('tall_grass', this.createColorTexture(0x388E3C, 32, 32, 'noise'));
+    this.textures.set('sand', this.createColorTexture(0xF5DEB3, 32, 32, 'noise'));
+    this.textures.set('swamp', this.createColorTexture(0x556B2F, 32, 32, 'noise'));
+    this.textures.set('bridge', this.createColorTexture(0x8D6E63, 32, 32, 'checker'));
+
+    // Sign post
+    const SIGN_WOOD = 0x8D6E63;
+    const SIGN_WOOD_H = 0xA1887F;
+    const SIGN_WOOD_S = 0x6D4C41;
+    const SIGN_POST = 0x5D4037;
+    this.textures.set('sign', this.createSpriteTexture([
+      [C,         C,         SIGN_WOOD,SIGN_WOOD_H,SIGN_WOOD,SIGN_WOOD_H,SIGN_WOOD,C,         C,         C],
+      [C,         SIGN_WOOD, SIGN_WOOD_H,SIGN_WOOD_S,SIGN_WOOD,SIGN_WOOD_S,SIGN_WOOD_H,SIGN_WOOD,C,      C],
+      [C,         SIGN_WOOD_S,SIGN_WOOD,SIGN_WOOD,SIGN_WOOD,SIGN_WOOD,SIGN_WOOD,SIGN_WOOD_S,C,          C],
+      [C,         C,         C,        C,         SIGN_POST,SIGN_POST,C,        C,         C,           C],
+      [C,         C,         C,        C,         SIGN_POST,SIGN_POST,C,        C,         C,           C],
+      [C,         C,         C,        C,         SIGN_POST,SIGN_POST,C,        C,         C,           C],
+    ]));
+
+    // Well
+    const WELL_STONE = 0x78909C;
+    const WELL_STONE_S = 0x546E7A;
+    const WELL_WATER = 0x1E88E5;
+    const WELL_ROOF = 0x795548;
+    this.textures.set('well', this.createSpriteTexture([
+      [C,          C,          WELL_ROOF,WELL_ROOF, WELL_ROOF,WELL_ROOF, WELL_ROOF,WELL_ROOF,C,          C],
+      [C,          WELL_ROOF,  C,        C,         WELL_ROOF,C,        C,         WELL_ROOF,C,          C],
+      [C,          WELL_STONE, WELL_STONE,WELL_STONE_S,WELL_WATER,WELL_STONE_S,WELL_STONE,WELL_STONE,C, C],
+      [C,          WELL_STONE_S,WELL_STONE,WELL_WATER,WELL_WATER,WELL_WATER,WELL_STONE,WELL_STONE_S,C,  C],
+      [C,          C,          WELL_STONE_S,WELL_STONE,WELL_STONE,WELL_STONE,WELL_STONE_S,C,C,          C],
+    ]));
+
+    // Campfire
+    const FIRE_R = 0xFF5722;
+    const FIRE_O = 0xFF9800;
+    const FIRE_Y = 0xFFEB3B;
+    const LOG = 0x5D4037;
+    this.textures.set('campfire', this.createSpriteTexture([
+      [C,     C,     C,     FIRE_Y,FIRE_Y,C,     C,     C],
+      [C,     C,     FIRE_O,FIRE_Y,FIRE_O,FIRE_O,C,     C],
+      [C,     FIRE_R,FIRE_O,FIRE_Y,FIRE_Y,FIRE_O,FIRE_R,C],
+      [C,     FIRE_R,FIRE_R,FIRE_O,FIRE_O,FIRE_R,FIRE_R,C],
+      [LOG,   LOG,   FIRE_R,FIRE_R,FIRE_R,FIRE_R,LOG,   LOG],
+      [C,     LOG,   LOG,   LOG,   LOG,   LOG,   LOG,   C],
+    ]));
+
+    // Tombstone
+    const TOMB = 0x757575;
+    const TOMB_S = 0x616161;
+    const TOMB_H = 0x9E9E9E;
+    this.textures.set('tombstone', this.createSpriteTexture([
+      [C,     C,     TOMB_H,TOMB,  TOMB,  TOMB_H,C,     C],
+      [C,     TOMB,  TOMB,  TOMB_S,TOMB_S,TOMB,  TOMB,  C],
+      [C,     TOMB,  TOMB_S,TOMB,  TOMB,  TOMB_S,TOMB,  C],
+      [C,     TOMB_S,TOMB,  TOMB,  TOMB,  TOMB,  TOMB_S,C],
+      [C,     TOMB_S,TOMB_S,TOMB_S,TOMB_S,TOMB_S,TOMB_S,C],
+      [C,     C,     TOMB_S,TOMB_S,TOMB_S,TOMB_S,C,     C],
+    ]));
+
+    // Stump
+    const STUMP_W = 0x795548;
+    const STUMP_S2 = 0x5D4037;
+    const STUMP_R = 0xBCAAA4;
+    this.textures.set('stump', this.createSpriteTexture([
+      [C,       STUMP_R,STUMP_W,STUMP_R,STUMP_W,STUMP_R,C],
+      [STUMP_W, STUMP_R,STUMP_S2,STUMP_R,STUMP_S2,STUMP_R,STUMP_W],
+      [STUMP_S2,STUMP_W,STUMP_S2,STUMP_W,STUMP_S2,STUMP_W,STUMP_S2],
+      [C,       STUMP_S2,STUMP_S2,STUMP_S2,STUMP_S2,STUMP_S2,C],
+    ]));
+
+    // Fence
+    const FENCE_W = 0xA1887F;
+    const FENCE_S = 0x6D4C41;
+    this.textures.set('fence', this.createSpriteTexture([
+      [FENCE_W, C,      FENCE_W, C,      FENCE_W, C,      FENCE_W, C],
+      [FENCE_W, FENCE_S,FENCE_W, FENCE_S,FENCE_W, FENCE_S,FENCE_W, FENCE_S],
+      [FENCE_S, C,      FENCE_S, C,      FENCE_S, C,      FENCE_S, C],
+      [FENCE_S, FENCE_W,FENCE_S, FENCE_W,FENCE_S, FENCE_W,FENCE_S, FENCE_W],
+    ]));
+
+    // Barrel
+    const BARREL_W = 0x6D4C41;
+    const BARREL_H = 0x8D6E63;
+    const BARREL_M = 0x546E7A;
+    this.textures.set('barrel', this.createSpriteTexture([
+      [C,        BARREL_W,BARREL_H,BARREL_W,BARREL_H,BARREL_W,C],
+      [BARREL_M, BARREL_W,BARREL_H,BARREL_W,BARREL_H,BARREL_W,BARREL_M],
+      [BARREL_W, BARREL_H,BARREL_W,BARREL_H,BARREL_W,BARREL_H,BARREL_W],
+      [BARREL_M, BARREL_W,BARREL_H,BARREL_W,BARREL_H,BARREL_W,BARREL_M],
+      [C,        BARREL_W,BARREL_H,BARREL_W,BARREL_H,BARREL_W,C],
+    ]));
+
+    // Crate
+    const CRATE_W = 0x795548;
+    const CRATE_H = 0x8D6E63;
+    const CRATE_S = 0x5D4037;
+    this.textures.set('crate', this.createSpriteTexture([
+      [CRATE_S, CRATE_W,CRATE_W,CRATE_W,CRATE_W,CRATE_W,CRATE_S],
+      [CRATE_W, CRATE_H,CRATE_S,CRATE_H,CRATE_S,CRATE_H,CRATE_W],
+      [CRATE_W, CRATE_S,CRATE_H,CRATE_S,CRATE_H,CRATE_S,CRATE_W],
+      [CRATE_W, CRATE_H,CRATE_S,CRATE_H,CRATE_S,CRATE_H,CRATE_W],
+      [CRATE_S, CRATE_W,CRATE_W,CRATE_W,CRATE_W,CRATE_W,CRATE_S],
+    ]));
+
+    // Gate (open)
+    this.textures.set('gate', this.createSpriteTexture([
+      [FENCE_W, C,      C,      C,      C,      C,      FENCE_W],
+      [FENCE_S, C,      C,      C,      C,      C,      FENCE_S],
+      [FENCE_S, C,      C,      C,      C,      C,      FENCE_S],
+      [FENCE_W, C,      C,      C,      C,      C,      FENCE_W],
+    ]));
+
+    // Pressure plate
+    this.textures.set('pressure_plate', this.createColorTexture(0x607D8B, 32, 32, 'checker'));
+    // Hidden wall (looks like normal stone but can be revealed)
+    this.textures.set('hidden_wall', this.createColorTexture(0x78909C, 32, 32, 'checker'));
+    // Push block
+    this.textures.set('push_block', this.createColorTexture(0x5D4037, 32, 32, 'gradient'));
+    // Switch door
+    this.textures.set('switch_door', this.createColorTexture(0x4E342E, 32, 32, 'gradient'));
   }
 }

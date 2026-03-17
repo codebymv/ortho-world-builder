@@ -5,7 +5,7 @@ import { AssetManager } from '@/lib/game/AssetManager';
 import { World } from '@/lib/game/World';
 import { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { CombatSystem, Enemy } from '@/lib/game/Combat';
-import { allMaps } from '@/data/maps';
+import { allMaps, mapDefinitions } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
 import { quests } from '@/data/quests';
 import { items } from '@/data/items';
@@ -66,6 +66,8 @@ const Game = () => {
     const world = new World(scene, assetManager, allMaps.village);
     const spawnPoint = world.getSpawnPoint();
     state.player.position = { x: spawnPoint.x, y: spawnPoint.y };
+    // Initial chunk render
+    world.updateChunks(spawnPoint.x, spawnPoint.y);
 
     // Enemy meshes storage
     const enemyMeshes = new Map<string, THREE.Mesh>();
@@ -105,6 +107,9 @@ const Game = () => {
       camera.position.x = worldX;
       camera.position.y = worldY;
 
+      // Initial chunk render at new position
+      world.updateChunks(worldX, worldY);
+
       // Clear enemies when changing maps
       combatSystem.clearAllEnemies();
       enemyMeshes.forEach(mesh => {
@@ -114,26 +119,20 @@ const Game = () => {
       });
       enemyMeshes.clear();
 
-      // Spawn enemies based on map
-      if (targetMap === 'forest') {
-        for (let i = 0; i < 3; i++) {
-          combatSystem.spawnEnemy(
-            'Forest Wolf',
-            { x: Math.random() * 10 - 5, y: Math.random() * 10 - 5 },
-            40,
-            10,
-            'enemy_wolf'
-          );
-        }
-      } else if (targetMap === 'deep_woods') {
-        for (let i = 0; i < 5; i++) {
-          combatSystem.spawnEnemy(
-            'Shadow Creature',
-            { x: Math.random() * 8 - 4, y: Math.random() * 8 - 4 },
-            60,
-            15,
-            'enemy_shadow'
-          );
+      // Spawn enemies based on map definition
+      const mapDef = mapDefinitions[targetMap];
+      if (mapDef?.enemyZones) {
+        for (const zone of mapDef.enemyZones) {
+          const enemySprite = zone.enemyType === 'wolf' ? 'enemy_wolf' : 'enemy_shadow';
+          const enemyName = zone.enemyType === 'wolf' ? 'Forest Wolf' : 'Shadow Creature';
+          const hp = zone.enemyType === 'wolf' ? 40 : 60;
+          const dmg = zone.enemyType === 'wolf' ? 10 : 15;
+          
+          for (let i = 0; i < zone.count; i++) {
+            const ex = (zone.x + Math.random() * zone.width) - newMap.width / 2;
+            const ey = (zone.y + Math.random() * zone.height) - newMap.height / 2;
+            combatSystem.spawnEnemy(enemyName, { x: ex, y: ey }, hp, dmg, enemySprite);
+          }
         }
       }
 
@@ -143,7 +142,7 @@ const Game = () => {
       });
       visitedTilesRef.current = new Set();
       setVisitedTilesVersion(v => v + 1);
-      portalCooldown = 0.5; // Half second cooldown before next transition
+      portalCooldown = 0.5;
     };
 
     // Create player mesh
@@ -157,11 +156,11 @@ const Game = () => {
     playerMesh.position.set(spawnPoint.x, spawnPoint.y, 0.2);
     scene.add(playerMesh);
 
-    // Add NPCs
+    // Add NPCs (positioned relative to village center)
     const npcData: NPC[] = [
-      { id: 'elder', name: 'Village Elder', position: { x: -5, y: 3 }, dialogueId: 'elder', sprite: 'npc_elder', questGiver: true },
-      { id: 'merchant', name: 'Traveling Merchant', position: { x: 5, y: 1 }, dialogueId: 'merchant', sprite: 'npc_merchant' },
-      { id: 'guard', name: 'Village Guard', position: { x: 2, y: -3 }, dialogueId: 'guard', sprite: 'npc_guard' },
+      { id: 'elder', name: 'Village Elder', position: { x: -18, y: -10 }, dialogueId: 'elder', sprite: 'npc_elder', questGiver: true },
+      { id: 'merchant', name: 'Traveling Merchant', position: { x: 20, y: -2 }, dialogueId: 'merchant', sprite: 'npc_merchant' },
+      { id: 'guard', name: 'Village Guard', position: { x: 0, y: 5 }, dialogueId: 'guard', sprite: 'npc_guard' },
     ];
 
     state.npcs = npcData;
@@ -290,49 +289,32 @@ const Game = () => {
         );
         
         if (interactionId) {
-          if (interactionId === 'chest_1' && !state.getFlag('chest_1_opened')) {
-            state.addItem(items.health_potion);
-            state.player.gold += 20;
-            state.setFlag('chest_1_opened', true);
+          // Generic chest handler
+          if (interactionId.includes('chest') && !state.getFlag(`${interactionId}_opened`)) {
+            const goldAmount = interactionId.includes('ancient') ? 100 : 
+                             interactionId.includes('ruins') ? 75 :
+                             interactionId.includes('wolf') || interactionId.includes('shadow') ? 60 :
+                             interactionId.includes('hidden') ? 50 : 
+                             interactionId.includes('forest') ? 40 : 20;
+            state.player.gold += goldAmount;
+            if (items.health_potion) state.addItem(items.health_potion);
+            state.setFlag(`${interactionId}_opened`, true);
             particleSystem.emitSparkles(new THREE.Vector3(checkX + dir.x * 0.5, checkY + dir.y * 0.5, 0.3));
             toast.success('Chest Opened!', {
-              description: 'Found 20 gold and a Health Potion.',
-              className: "rpg-toast",
-            });
-            triggerUIUpdate();
-            return;
-          }
-
-          if (interactionId === 'forest_chest' && !state.getFlag('forest_chest_opened')) {
-            state.addItem(items.moonbloom);
-            state.player.gold += 50;
-            state.setFlag('forest_chest_opened', true);
-            particleSystem.emitSparkles(new THREE.Vector3(checkX + dir.x * 0.5, checkY + dir.y * 0.5, 0.3));
-            toast.success('Hidden Cache Found!', {
-              description: 'Found 50 gold and a Moonbloom.',
-              className: "rpg-toast",
-            });
-            triggerUIUpdate();
-            return;
-          }
-
-          if (interactionId === 'ancient_chest' && !state.getFlag('ancient_chest_opened')) {
-            state.addItem(items.ancient_map);
-            state.player.gold += 100;
-            state.setFlag('ancient_chest_opened', true);
-            particleSystem.emitSparkles(new THREE.Vector3(checkX + dir.x * 0.5, checkY + dir.y * 0.5, 0.3));
-            toast.success('Ancient Treasure!', {
-              description: 'Found 100 gold and the Ancient Map.',
+              description: `Found ${goldAmount} gold and a Health Potion.`,
               className: "rpg-toast",
             });
             triggerUIUpdate();
             return;
           }
           
-          if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain') {
+          // Healing sources
+          if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'healing_mushroom' || interactionId === 'campfire') {
             state.player.health = Math.min(state.player.maxHealth, state.player.health + 25);
             particleSystem.emitHeal(new THREE.Vector3(checkX, checkY, 0.3));
-            toast.success('Refreshing Water!', {
+            const label = interactionId === 'campfire' ? 'Resting by the Fire' : 
+                         interactionId === 'healing_mushroom' ? 'Mushroom Energy!' : 'Refreshing Water!';
+            toast.success(label, {
               description: 'Health restored.',
               className: "rpg-toast",
             });
@@ -441,6 +423,9 @@ const Game = () => {
           } else if (world.isWalkable(state.player.position.x, newPos.y)) {
             state.player.position.y = newPos.y;
           }
+
+          // Update chunk rendering based on new player position
+          world.updateChunks(state.player.position.x, state.player.position.y);
 
           state.player.direction = newDirection;
           state.player.isMoving = true;

@@ -260,4 +260,66 @@ export const dialogues: Record<string, Dialogue> = {
       },
     ],
   },
+
+  // === NEW MAP INTERACTABLES ===
+  ranger_sign: {
+    id: 'ranger_sign',
+    nodes: [{ id: 'start', text: "A weathered sign reads: 'Ranger Outpost — All travelers welcome. Beware wolves north of here.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  bridge_sign: {
+    id: 'bridge_sign',
+    nodes: [{ id: 'start', text: "A sign posted near the bridge: 'Lake crossing — Watch your step. Fish are biting!'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  danger_sign: {
+    id: 'danger_sign',
+    nodes: [{ id: 'start', text: "WARNING: Wolf territory ahead. Only experienced adventurers should proceed.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  forest_entry_sign: {
+    id: 'forest_entry_sign',
+    nodes: [{ id: 'start', text: "A carved wooden sign: 'Welcome to the Whispering Woods. Stay on the paths, traveler.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  witch_sign: {
+    id: 'witch_sign',
+    nodes: [{ id: 'start', text: "Scrawled on a rotting plank: 'The Witch sees all. Leave offerings or leave quickly.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  temple_sign: {
+    id: 'temple_sign',
+    nodes: [{ id: 'start', text: "Ancient runes glow faintly: 'Beyond lies the Temple of the Forgotten. Only the worthy may enter.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  deep_woods_sign: {
+    id: 'deep_woods_sign',
+    nodes: [{ id: 'start', text: "A battered sign: 'The Deep Woods — Turn back. Shadow creatures roam these lands.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  tombstone: {
+    id: 'tombstone',
+    nodes: [{ id: 'start', text: "The weathered inscription is barely legible: 'Here lies one who sought the truth and found only darkness.'", responses: [{ text: "[Pay respects]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  stump_lore: {
+    id: 'stump_lore',
+    nodes: [{ id: 'start', text: "This ancient tree stump has strange markings carved into it. They seem to point north, toward the forest.", responses: [{ text: "[Interesting...]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  market_sign: {
+    id: 'market_sign',
+    nodes: [{ id: 'start', text: "The Market District — Finest wares in all of Greenleaf Village!", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  ancient_tablet: {
+    id: 'ancient_tablet',
+    nodes: [{ id: 'start', text: "The ancient tablet bears inscriptions in a forgotten language. You can make out: '...the key lies where shadows converge...'", responses: [{ text: "[Study further]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  ancient_tablet_2: {
+    id: 'ancient_tablet_2',
+    nodes: [{ id: 'start', text: "Another tablet, cracked with age: '...three trials await those who seek the vault. Strength. Wisdom. Courage.'", responses: [{ text: "[Remember this]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  vault_inscription: {
+    id: 'vault_inscription',
+    nodes: [{ id: 'start', text: "Golden letters shimmer on the wall: 'The Vault of Ancients. Here rest treasures of a civilization long forgotten.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  campfire: {
+    id: 'campfire',
+    nodes: [{ id: 'start', text: "The campfire crackles warmly. You feel your wounds healing in its gentle light.", responses: [{ text: "[Rest by the fire]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  healing_mushroom: {
+    id: 'healing_mushroom',
+    nodes: [{ id: 'start', text: "A ring of glowing mushrooms pulses with healing energy. You feel revitalized!", responses: [{ text: "[Absorb the energy]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
 };
