@@ -5,7 +5,7 @@ import { AssetManager } from '@/lib/game/AssetManager';
 import { World } from '@/lib/game/World';
 import { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { CombatSystem, Enemy } from '@/lib/game/Combat';
-import { allMaps } from '@/data/maps';
+import { allMaps, mapDefinitions } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
 import { quests } from '@/data/quests';
 import { items } from '@/data/items';
