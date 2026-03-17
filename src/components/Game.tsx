@@ -441,6 +441,9 @@ const Game = () => {
             state.player.position.y = newPos.y;
           }
 
+          // Update chunk rendering based on new player position
+          world.updateChunks(state.player.position.x, state.player.position.y);
+
           state.player.direction = newDirection;
           state.player.isMoving = true;
 
