@@ -289,49 +289,32 @@ const Game = () => {
         );
         
         if (interactionId) {
-          if (interactionId === 'chest_1' && !state.getFlag('chest_1_opened')) {
-            state.addItem(items.health_potion);
-            state.player.gold += 20;
-            state.setFlag('chest_1_opened', true);
+          // Generic chest handler
+          if (interactionId.includes('chest') && !state.getFlag(`${interactionId}_opened`)) {
+            const goldAmount = interactionId.includes('ancient') ? 100 : 
+                             interactionId.includes('ruins') ? 75 :
+                             interactionId.includes('wolf') || interactionId.includes('shadow') ? 60 :
+                             interactionId.includes('hidden') ? 50 : 
+                             interactionId.includes('forest') ? 40 : 20;
+            state.player.gold += goldAmount;
+            if (items.health_potion) state.addItem(items.health_potion);
+            state.setFlag(`${interactionId}_opened`, true);
             particleSystem.emitSparkles(new THREE.Vector3(checkX + dir.x * 0.5, checkY + dir.y * 0.5, 0.3));
             toast.success('Chest Opened!', {
-              description: 'Found 20 gold and a Health Potion.',
-              className: "rpg-toast",
-            });
-            triggerUIUpdate();
-            return;
-          }
-
-          if (interactionId === 'forest_chest' && !state.getFlag('forest_chest_opened')) {
-            state.addItem(items.moonbloom);
-            state.player.gold += 50;
-            state.setFlag('forest_chest_opened', true);
-            particleSystem.emitSparkles(new THREE.Vector3(checkX + dir.x * 0.5, checkY + dir.y * 0.5, 0.3));
-            toast.success('Hidden Cache Found!', {
-              description: 'Found 50 gold and a Moonbloom.',
-              className: "rpg-toast",
-            });
-            triggerUIUpdate();
-            return;
-          }
-
-          if (interactionId === 'ancient_chest' && !state.getFlag('ancient_chest_opened')) {
-            state.addItem(items.ancient_map);
-            state.player.gold += 100;
-            state.setFlag('ancient_chest_opened', true);
-            particleSystem.emitSparkles(new THREE.Vector3(checkX + dir.x * 0.5, checkY + dir.y * 0.5, 0.3));
-            toast.success('Ancient Treasure!', {
-              description: 'Found 100 gold and the Ancient Map.',
+              description: `Found ${goldAmount} gold and a Health Potion.`,
               className: "rpg-toast",
             });
             triggerUIUpdate();
             return;
           }
           
-          if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain') {
+          // Healing sources
+          if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'healing_mushroom' || interactionId === 'campfire') {
             state.player.health = Math.min(state.player.maxHealth, state.player.health + 25);
             particleSystem.emitHeal(new THREE.Vector3(checkX, checkY, 0.3));
-            toast.success('Refreshing Water!', {
+            const label = interactionId === 'campfire' ? 'Resting by the Fire' : 
+                         interactionId === 'healing_mushroom' ? 'Mushroom Energy!' : 'Refreshing Water!';
+            toast.success(label, {
               description: 'Health restored.',
               className: "rpg-toast",
             });
