@@ -66,6 +66,8 @@ const Game = () => {
     const world = new World(scene, assetManager, allMaps.village);
     const spawnPoint = world.getSpawnPoint();
     state.player.position = { x: spawnPoint.x, y: spawnPoint.y };
+    // Initial chunk render
+    world.updateChunks(spawnPoint.x, spawnPoint.y);
 
     // Enemy meshes storage
     const enemyMeshes = new Map<string, THREE.Mesh>();
