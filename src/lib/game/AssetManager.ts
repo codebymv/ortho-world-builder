@@ -747,46 +747,32 @@ export class AssetManager {
     ]));
 
     // ========== NEW ENEMY: Skeleton Warrior ==========
-    const BONE = 0xEEEEEE;
-    const BONE_S = 0xBDBDBD;
-    const BONE_D = 0x9E9E9E;
-    const SK_EYE = 0xFF1744;
-    const SK_HELM = 0x546E7A;
-    const SK_HELM_H = 0x78909C;
-    const SK_SWORD = 0xB0BEC5;
-
-    this.textures.set('enemy_skeleton', this.createSpriteTexture([
-      [C,       C,       SK_HELM, SK_HELM_H,SK_HELM, SK_HELM_H,SK_HELM, C,       C,       C],
-      [C,       SK_HELM, BONE,    SK_EYE,   BONE_S,  SK_EYE,   BONE,    SK_HELM, C,       C],
-      [C,       C,       BONE_S,  BONE,     BONE_D,  BONE,     BONE_S,  C,       C,       C],
-      [C,       SK_SWORD,BONE,    BONE_S,   BONE,    BONE_S,   BONE,    SK_SWORD,C,       C],
-      [C,       SK_SWORD,C,       BONE_D,   BONE,    BONE_D,   C,       SK_SWORD,C,       C],
-      [C,       C,       C,       BONE,     BONE_S,  BONE,     C,       C,       C,       C],
-      [C,       C,       BONE,    C,        C,       C,        BONE,    C,       C,       C],
-      [C,       C,       BONE_D,  C,        C,       C,        BONE_D,  C,       C,       C],
-    ]));
-
-    this.textures.set('enemy_skeleton_telegraph', this.createSpriteTexture([
-      [C,       SK_SWORD,SK_HELM, SK_HELM_H,SK_HELM, SK_HELM_H,SK_HELM, SK_SWORD,C,       C],
-      [C,       SK_HELM, BONE,    SK_EYE,   BONE_S,  SK_EYE,   BONE,    SK_HELM, C,       C],
-      [C,       C,       BONE_S,  BONE,     BONE_D,  BONE,     BONE_S,  C,       C,       C],
-      [SK_SWORD,SK_SWORD,BONE,    BONE_S,   BONE,    BONE_S,   BONE,    SK_SWORD,SK_SWORD,C],
-      [C,       C,       C,       BONE_D,   BONE,    BONE_D,   C,       C,       C,       C],
-      [C,       C,       C,       BONE,     BONE_S,  BONE,     C,       C,       C,       C],
-      [C,       C,       BONE,    C,        C,       C,        BONE,    C,       C,       C],
-      [C,       C,       BONE_D,  C,        C,       C,        BONE_D,  C,       C,       C],
-    ]));
-
-    this.textures.set('enemy_skeleton_attack', this.createSpriteTexture([
-      [SK_SWORD,C,       SK_HELM, SK_HELM_H,SK_HELM, SK_HELM_H,SK_HELM, C,       SK_SWORD,C],
-      [SK_SWORD,SK_HELM, BONE,    SK_EYE,   BONE_S,  SK_EYE,   BONE,    SK_HELM, SK_SWORD,C],
-      [C,       C,       BONE_S,  BONE,     BONE_D,  BONE,     BONE_S,  C,       C,       C],
-      [C,       BONE,    BONE,    BONE_S,   BONE,    BONE_S,   BONE,    BONE,    C,       C],
-      [C,       C,       C,       BONE_D,   BONE,    BONE_D,   C,       C,       C,       C],
-      [C,       C,       C,       BONE,     BONE_S,  BONE,     C,       C,       C,       C],
-      [C,       C,       BONE,    C,        C,       C,        BONE,    C,       C,       C],
-      [C,       C,       BONE_D,  C,        C,       C,        BONE_D,  C,       C,       C],
-    ]));
+    const skeletonPalette = {
+      hair: 0x546E7A, hairLight: 0x78909C, hairDark: 0x37474F,
+      skin: 0xE0E0E0, skinLight: 0xFFFFFF, skinShadow: 0xB0BEC5,
+      eyeIris: 0xEF5350, eyeIrisDark: 0xB71C1C,
+      tunicMain: 0xB0BEC5, tunicLight: 0xCFD8DC, tunicDark: 0x90A4AE,
+      trimColor: 0xECEFF1, trimLight: 0xFFFFFF,
+      capeMain: 0x455A64, capeDark: 0x263238,
+      pantColor: 0xB0BEC5, pantDark: 0x90A4AE,
+      bootColor: 0x546E7A, bootDark: 0x37474F,
+    };
+    const skeletonDirs: Array<'down' | 'up' | 'left' | 'right'> = ['down', 'up', 'left', 'right'];
+    const skeletonStates: Array<'idle' | 'walk' | 'attack' | 'charge'> = ['idle', 'walk', 'attack', 'charge'];
+    for (const dir of skeletonDirs) {
+      for (const state of skeletonStates) {
+        const frames = state === 'attack' || state === 'charge' ? 3 : state === 'walk' ? 2 : 1;
+        for (let frame = 0; frame < frames; frame++) {
+          const d = dir;
+          const s = state;
+          const f = frame;
+          this.registerTexture(`enemy_skeleton_${d}_${s}_${f}`, () => this.createChibiCharacter(d, s, f, skeletonPalette));
+        }
+      }
+    }
+    this.registerTexture('enemy_skeleton', () => this.getTexture('enemy_skeleton_down_idle_0')!);
+    this.registerTexture('enemy_skeleton_telegraph', () => this.getTexture('enemy_skeleton_down_charge_1')!);
+    this.registerTexture('enemy_skeleton_attack', () => this.getTexture('enemy_skeleton_down_attack_1')!);
 
     // ========== NEW ENEMY: Bandit ==========
     const banditPalette = {

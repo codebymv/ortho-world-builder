@@ -123,6 +123,36 @@ const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
   lantern: 0.9,
 };
 
+const OVERLAY_FOOT_OFFSET: Partial<Record<TileType, number>> = {
+  house: 0.58,
+  house_blue: 0.58,
+  house_green: 0.58,
+  house_thatch: 0.54,
+  destroyed_house: 0.5,
+  tree: 0.52,
+  dead_tree: 0.48,
+  statue: 0.36,
+  well: 0.24,
+  portal: 0.2,
+  rock: 0.16,
+  chest: 0.12,
+  campfire: 0.08,
+  sign: 0.1,
+  tombstone: 0.14,
+  barrel: 0.1,
+  crate: 0.1,
+  stump: 0.08,
+  fence: 0.08,
+  gate: 0.08,
+  push_block: 0.12,
+  spike_trap: 0.06,
+  iron_fence: 0.08,
+  hedge: 0.1,
+  scarecrow: 0.3,
+  hay_bale: 0.08,
+  lantern: 0.12,
+};
+
 export class World {
   private map: WorldMap;
   private tileSize: number = 1;

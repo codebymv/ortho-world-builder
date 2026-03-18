@@ -98,6 +98,21 @@ export interface MapDefinition {
   }>;
 }
 
+const STRUCTURE_FEATURE_TYPES: Set<MapFeature['type']> = new Set([
+  'building', 'cottage', 'watchtower', 'church', 'temple', 'fort', 'ruined_fort', 'farm', 'cemetery'
+]);
+const STRUCTURE_FEATURE_SPACING = 8;
+
+function areStructureFeaturesTooClose(a: MapFeature, b: MapFeature): boolean {
+  const pad = STRUCTURE_FEATURE_SPACING;
+  return !(
+    a.x + a.width + pad <= b.x ||
+    b.x + b.width + pad <= a.x ||
+    a.y + a.height + pad <= b.y ||
+    b.y + b.height + pad <= a.y
+  );
+}
+
 function generateBaseTerrain(def: MapDefinition): Tile[][] {
   const tiles: Tile[][] = [];
   const rand = seededRandom(def.seed);
