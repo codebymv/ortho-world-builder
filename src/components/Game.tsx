@@ -1349,7 +1349,7 @@ const Game = () => {
           spinSwooshTimer -= deltaTime;
           const progress = 1 - (spinSwooshTimer / SPIN_SWOOSH_DURATION);
           spinSwooshMesh.visible = true;
-          spinSwooshMaterial.opacity = (1 - progress) * 0.5;
+          spinSwooshMaterial.opacity = (1 - progress) * 0.35;
           const chargeRange = state.player.attackRange * 1.5;
           const spinScale = chargeRange * (0.3 + progress * 0.7);
           spinSwooshMesh.scale.set(spinScale, spinScale, 1);
