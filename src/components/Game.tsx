@@ -209,6 +209,10 @@ const Game = () => {
               enemySprite = 'enemy_bandit'; enemyName = 'Bandit'; hp = 45; dmg = 11; break;
             case 'golem':
               enemySprite = 'enemy_golem'; enemyName = 'Stone Golem'; hp = 200; dmg = 25; break;
+            case 'spider':
+              enemySprite = 'enemy_spider'; enemyName = 'Giant Spider'; hp = 35; dmg = 8; break;
+            case 'slime':
+              enemySprite = 'enemy_slime'; enemyName = 'Green Slime'; hp = 25; dmg = 5; break;
             default:
               enemySprite = 'enemy_wolf'; enemyName = 'Wild Beast'; hp = 40; dmg = 10;
           }

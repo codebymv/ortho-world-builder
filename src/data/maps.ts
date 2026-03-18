@@ -155,6 +155,9 @@ const villageDef: MapDefinition = {
     { x: 3, y: 125, width: 15, height: 15, enemyType: 'wolf', count: 3 },
     { x: 190, y: 18, width: 20, height: 16, enemyType: 'bandit', count: 4 },
     { x: 8, y: 40, width: 16, height: 14, enemyType: 'skeleton', count: 3 },
+    { x: 55, y: 115, width: 20, height: 14, enemyType: 'slime', count: 6 },
+    { x: 130, y: 120, width: 20, height: 12, enemyType: 'slime', count: 4 },
+    { x: 210, y: 115, width: 18, height: 16, enemyType: 'spider', count: 3 },
   ],
 };
 
