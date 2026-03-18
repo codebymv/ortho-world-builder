@@ -273,6 +273,18 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
       case 'path':
         placePath(tiles, feature);
         break;
+      case 'destroyed_town':
+        placeDestroyedTown(tiles, feature);
+        break;
+      case 'temple':
+        placeTemple(tiles, feature);
+        break;
+      case 'waterfall':
+        placeWaterfall(tiles, feature);
+        break;
+      case 'volcano':
+        placeVolcano(tiles, feature);
+        break;
     }
   }
 }
