@@ -569,9 +569,11 @@ const Game = () => {
         checkInteraction();
         interactBuffered = false;
       }
-      if (attackBuffered && !state.dialogueActive) {
-        performAttack();
-        attackBuffered = false;
+      // Update charge timer
+      if (isChargingAttack) {
+        chargeTimer += deltaTime;
+        chargeLevel = Math.min(1, Math.max(0, (chargeTimer - CHARGE_TIME_MIN) / (CHARGE_TIME_MAX - CHARGE_TIME_MIN)));
+        playerAnimState = 'charge';
       }
 
       if (!state.dialogueActive) {
