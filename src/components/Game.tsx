@@ -1667,8 +1667,8 @@ const Game = () => {
       particleSystem.update(deltaTime);
       
       // Auto-save every 30 seconds
-      if (now - lastAutoSaveTime >= AUTO_SAVE_INTERVAL) {
-        lastAutoSaveTime = now;
+      if (currentTime - lastAutoSaveTime >= AUTO_SAVE_INTERVAL) {
+        lastAutoSaveTime = currentTime;
         triggerSave();
       }
       
