@@ -1388,7 +1388,7 @@ const Game = () => {
           state.player.position.y + attackOffsetY,
           0.19
         );
-        playerOutline.scale.set(visualScaleX * 1.06, visualScaleY * 1.06, 1);
+        playerOutline.scale.set(visualScaleX * OUTLINE_PAD, visualScaleY * OUTLINE_PAD, 1);
         playerOutline.rotation.z = visualRotation;
         playerOutline.renderOrder = playerMesh.renderOrder - 1;
 
