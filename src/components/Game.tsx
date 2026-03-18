@@ -1818,6 +1818,10 @@ const Game = () => {
             if (eShadow) {
               eShadow.visible = false;
             }
+            const eOutlineDead = enemyOutlines.get(enemy.id);
+            if (eOutlineDead) {
+              eOutlineDead.visible = false;
+            }
           }
         }
 
