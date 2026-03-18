@@ -1551,10 +1551,16 @@ const Game = () => {
             const eShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
             const enemyType2 = enemy.sprite.replace('enemy_', '');
             const eVisual = ENEMY_VISUALS[enemyType2] ?? ENEMY_VISUALS.wolf;
-            eShadow.scale.set(eVisual.baseScale * 0.8, eVisual.baseScale * 0.35, 1);
-            eShadow.renderOrder = 0;
+            eShadow.scale.set(eVisual.baseScale * 0.6, eVisual.baseScale * 0.25, 1);
+            eShadow.renderOrder = 1;
             scene.add(eShadow);
             enemyShadows.set(enemy.id, eShadow);
+
+            // Enemy outline
+            const eOutline = createOutlineMesh(enemyGeometry, 0xff6666, 1.06);
+            eOutline.position.z = 0.19;
+            scene.add(eOutline);
+            enemyOutlines.set(enemy.id, eOutline);
           }
 
           const mat = enemyMesh.material as THREE.MeshBasicMaterial;
