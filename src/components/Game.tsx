@@ -490,8 +490,17 @@ const Game = () => {
 
     state.npcs = npcData;
     const npcMeshes: THREE.Mesh[] = [];
+    const npcShadows: THREE.Mesh[] = [];
 
     npcData.forEach(npc => {
+      // NPC shadow
+      const npcShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
+      npcShadow.position.set(npc.position.x, npc.position.y - 0.35, -0.01);
+      npcShadow.scale.set(0.9, 0.4, 1);
+      npcShadow.renderOrder = 0;
+      scene.add(npcShadow);
+      npcShadows.push(npcShadow);
+
       const npcGeometry = SharedGeometry.player;
       const npcTexture = assetManager.getTexture(npc.sprite);
       const npcMaterial = new THREE.MeshBasicMaterial({
