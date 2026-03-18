@@ -51,7 +51,7 @@ export const Minimap = ({ currentMap, playerPosition, visitedTiles, npcs }: Mini
           }
 
           ctx.fillStyle = color;
-          ctx.fillRect(x * scale, y * scale, scale, scale);
+          ctx.fillRect(x * scale, (currentMap.height - 1 - y) * scale, scale, scale);
         }
       }
     }
@@ -61,14 +61,14 @@ export const Minimap = ({ currentMap, playerPosition, visitedTiles, npcs }: Mini
     for (const npc of npcs) {
       const npcX = Math.floor(npc.position.x + currentMap.width / 2);
       const npcY = Math.floor(npc.position.y + currentMap.height / 2);
-      ctx.fillRect(npcX * scale, npcY * scale, scale, scale);
+      ctx.fillRect(npcX * scale, (currentMap.height - 1 - npcY) * scale, scale, scale);
     }
 
     // Draw player
     const playerX = Math.floor(playerPosition.x + currentMap.width / 2);
     const playerY = Math.floor(playerPosition.y + currentMap.height / 2);
     ctx.fillStyle = '#FF0000';
-    ctx.fillRect(playerX * scale - 1, playerY * scale - 1, scale + 2, scale + 2);
+    ctx.fillRect(playerX * scale - 1, (currentMap.height - 1 - playerY) * scale - 1, scale + 2, scale + 2);
 
     // Border
     ctx.strokeStyle = '#FFFFFF';
