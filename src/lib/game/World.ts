@@ -283,6 +283,7 @@ export class World {
     this.activeMeshes.clear();
     this.lastChunkCenter = { x: -9999, y: -9999 };
     this.lastMoveDir = { x: 0, y: 0 };
+  }
 
   getTile(x: number, y: number): Tile | null {
     const tileX = Math.floor(x + this.map.width / 2);
