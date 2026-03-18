@@ -366,7 +366,8 @@ const Game = () => {
     });
     const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
     playerMesh.position.set(spawnPoint.x, spawnPoint.y, 0.2);
-    playerMesh.renderOrder = getYRenderOrder(spawnPoint.y);
+    playerMesh.scale.setScalar(PLAYER_BASE_SCALE);
+    playerMesh.renderOrder = getYRenderOrder(spawnPoint.y, PLAYER_FOOT_OFFSET);
     scene.add(playerMesh);
 
     const npcData: NPC[] = [
@@ -411,8 +412,10 @@ const Game = () => {
         depthWrite: false,
       });
       const npcMesh = new THREE.Mesh(npcGeometry, npcMaterial);
+      const npcScale = NPC_SCALE_BY_ID[npc.id] ?? 1;
       npcMesh.position.set(npc.position.x, npc.position.y, 0.2);
-      npcMesh.renderOrder = getYRenderOrder(npc.position.y);
+      npcMesh.scale.set(npcScale, npcScale, 1);
+      npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET);
       npcMesh.userData = { npcId: npc.id };
       scene.add(npcMesh);
       npcMeshes.push(npcMesh);
