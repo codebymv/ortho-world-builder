@@ -229,5 +229,6 @@ export class CombatSystem {
 
   clearAllEnemies(): void {
     this.enemies = [];
+    this._enemiesDirty = true;
   }
 }
