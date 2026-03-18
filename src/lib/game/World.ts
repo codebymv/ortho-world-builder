@@ -154,9 +154,11 @@ export class World {
         transparent: true,
       });
       mesh = new THREE.Mesh(this.sharedTileGeometry, material);
+      mesh.frustumCulled = false; // We handle culling manually
     }
 
     mesh.position.z = z;
+    mesh.matrixAutoUpdate = false;
     return mesh;
   }
 
@@ -175,6 +177,7 @@ export class World {
 
     const group = this.overlayPool.pop() ?? new THREE.Group();
     group.clear();
+    group.matrixAutoUpdate = false;
 
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5);
     const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1);
@@ -186,6 +189,8 @@ export class World {
       // Offset upward so bottom aligns with tile bottom
       overlayMesh.position.y = (scale - 1) * this.tileSize * 0.3;
     }
+    baseMesh.updateMatrix();
+    overlayMesh.updateMatrix();
 
     group.add(baseMesh, overlayMesh);
     return group;
@@ -268,6 +273,10 @@ export class World {
           worldOffsetY + y * this.tileSize,
           0
         );
+        object.updateMatrix();
+        if (object instanceof THREE.Group) {
+          object.updateMatrixWorld(true);
+        }
 
         this.scene.add(object);
         this.activeMeshes.set(key, object);
