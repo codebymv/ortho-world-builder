@@ -335,8 +335,10 @@ export class World {
       this.recycleObject(object);
     }
     this.activeMeshes.clear();
+    this.pendingTiles = [];
     this.lastChunkCenter = { x: -9999, y: -9999 };
     this.lastMoveDir = { x: 0, y: 0 };
+    this.isInitialLoad = true;
   }
 
   getTile(x: number, y: number): Tile | null {
