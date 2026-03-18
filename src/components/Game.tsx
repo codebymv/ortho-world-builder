@@ -1501,6 +1501,15 @@ const Game = () => {
             enemyMesh.renderOrder = getYRenderOrder(enemy.position.y);
             scene.add(enemyMesh);
             enemyMeshes.set(enemy.id, enemyMesh);
+
+            // Enemy shadow
+            const eShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
+            const enemyType2 = enemy.sprite.replace('enemy_', '');
+            const eVisual = ENEMY_VISUALS[enemyType2] ?? ENEMY_VISUALS.wolf;
+            eShadow.scale.set(eVisual.baseScale * 0.8, eVisual.baseScale * 0.35, 1);
+            eShadow.renderOrder = 0;
+            scene.add(eShadow);
+            enemyShadows.set(enemy.id, eShadow);
           }
 
           const mat = enemyMesh.material as THREE.MeshBasicMaterial;
