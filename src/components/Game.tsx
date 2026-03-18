@@ -275,6 +275,14 @@ const Game = () => {
       ruins: 'ruins',
     };
 
+    // Set biome for loaded map
+    biomeAmbience.setBiome(mapBiomes[startMap] || 'grassland');
+
+    // Save helper
+    const triggerSave = () => {
+      SaveManager.save(state, mapMarkersRef.current, visitedTilesRef.current);
+    };
+
     // Kill tracker for quests
     let killCount = 0;
 
