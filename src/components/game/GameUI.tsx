@@ -1,6 +1,6 @@
 import { GameState } from '@/lib/game/GameState';
 import { Button } from '@/components/ui/button';
-import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX } from 'lucide-react';
+import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -48,10 +48,10 @@ export const GameUI = ({ gameState, refreshToken, musicRef }: GameUIProps) => {
 
           {/* Stamina */}
           <div className="flex items-center gap-2">
-            <Zap className="w-3.5 h-3.5 text-yellow-300 drop-shadow" />
+            <Shield className="w-3.5 h-3.5 text-emerald-400 drop-shadow" />
             <div className="w-20 h-2 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
               <div
-                className="h-full bg-gradient-to-r from-yellow-500 to-yellow-300 transition-all"
+                className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all"
                 style={{ width: `${(gameState.player.stamina / gameState.player.maxStamina) * 100}%` }}
               />
             </div>
