@@ -145,10 +145,16 @@ const villageDef: MapDefinition = {
   secretAreas: [
     { x: 5, y: 20, width: 6, height: 4, fill: 'stone' },
     { x: 220, y: 140, width: 5, height: 4, fill: 'stone' },
+    { x: 75, y: 45, width: 4, height: 4, fill: 'grass' },
+    { x: 200, y: 50, width: 5, height: 3, fill: 'stone' },
+    { x: 95, y: 135, width: 6, height: 4, fill: 'grass' },
+    { x: 160, y: 130, width: 4, height: 4, fill: 'stone' },
   ],
   enemyZones: [
-    { x: 210, y: 8, width: 25, height: 20, enemyType: 'wolf', count: 5 },
+    { x: 210, y: 8, width: 25, height: 20, enemyType: 'bandit', count: 5 },
     { x: 3, y: 125, width: 15, height: 15, enemyType: 'wolf', count: 3 },
+    { x: 190, y: 18, width: 20, height: 16, enemyType: 'bandit', count: 4 },
+    { x: 8, y: 40, width: 16, height: 14, enemyType: 'skeleton', count: 3 },
   ],
 };
 
