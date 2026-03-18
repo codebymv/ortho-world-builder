@@ -775,7 +775,7 @@ const Game = () => {
       }
 
       // Skip during death animation
-      if (playerDead) {
+      if (playerDeadRef.current) {
         renderer.render(scene, camera);
         return;
       }
