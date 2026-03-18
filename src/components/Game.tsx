@@ -306,6 +306,7 @@ const Game = () => {
       });
       const npcMesh = new THREE.Mesh(npcGeometry, npcMaterial);
       npcMesh.position.set(npc.position.x, npc.position.y, 0.2);
+      npcMesh.renderOrder = 9998;
       npcMesh.userData = { npcId: npc.id };
       scene.add(npcMesh);
       npcMeshes.push(npcMesh);
