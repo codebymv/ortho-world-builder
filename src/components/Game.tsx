@@ -46,6 +46,7 @@ const Game = () => {
   const [deathGoldLost, setDeathGoldLost] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const pausedRef = useRef(false);
+  const playerDeadRef = useRef(false);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Healing cooldowns: interactionId -> last use timestamp
