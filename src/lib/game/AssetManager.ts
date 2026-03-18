@@ -554,6 +554,106 @@ export class AssetManager {
       [C,          SHADOW_WISP, C,           C,           SHADOW_WISP, C,           C,          SHADOW_WISP,C,         C],
     ]));
 
+    // ========== NEW ENEMY: Plant Monster ==========
+    const VINE = 0x2E7D32;
+    const VINE_H = 0x43A047;
+    const VINE_S = 0x1B5E20;
+    const PETAL_E = 0xE91E63;
+    const PETAL_EH = 0xF06292;
+    const THORN = 0x5D4037;
+    const BULB = 0x8BC34A;
+    const BULB_S = 0x689F38;
+
+    this.textures.set('enemy_plant', this.createSpriteTexture([
+      [C,       C,       PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, C,       C,       C,       C],
+      [C,       PETAL_E, PETAL_EH,0xFFEB3B,0xFFEB3B,PETAL_EH,PETAL_E, C,       C,       C],
+      [VINE_S,  VINE,    PETAL_E, PETAL_EH,PETAL_E, PETAL_E, VINE,    VINE_S,  C,       C],
+      [C,       VINE_S,  VINE,    BULB,    BULB_S,  VINE,    VINE_S,  C,       C,       C],
+      [THORN,   VINE,    VINE_H,  VINE,    VINE,    VINE_H,  VINE,    THORN,   C,       C],
+      [C,       VINE_S,  VINE,    VINE_S,  VINE_S,  VINE,    VINE_S,  C,       C,       C],
+      [C,       C,       VINE_S,  VINE,    VINE,    VINE_S,  C,       C,       C,       C],
+      [C,       VINE_S,  C,       VINE_S,  VINE_S,  C,       VINE_S,  C,       C,       C],
+    ]));
+
+    this.textures.set('enemy_plant_telegraph', this.createSpriteTexture([
+      [PETAL_EH,C,       PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, C,       PETAL_EH,C,       C],
+      [C,       PETAL_E, 0xFFEB3B,0xFFEB3B,0xFFEB3B,0xFFEB3B,PETAL_E, C,       C,       C],
+      [VINE,    VINE_H,  PETAL_E, PETAL_EH,PETAL_E, PETAL_E, VINE_H,  VINE,    C,       C],
+      [THORN,   VINE,    VINE_H,  BULB,    BULB_S,  VINE_H,  VINE,    THORN,   C,       C],
+      [THORN,   VINE_H,  VINE,    VINE_H,  VINE_H,  VINE,    VINE_H,  THORN,   C,       C],
+      [C,       VINE,    VINE_S,  VINE,    VINE,    VINE_S,  VINE,    C,       C,       C],
+      [C,       C,       VINE_S,  VINE,    VINE,    VINE_S,  C,       C,       C,       C],
+      [C,       VINE_S,  C,       VINE_S,  VINE_S,  C,       VINE_S,  C,       C,       C],
+    ]));
+
+    this.textures.set('enemy_plant_attack', this.createSpriteTexture([
+      [PETAL_E, PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, PETAL_EH,C,       C],
+      [THORN,   PETAL_E, 0xFFEB3B,0xFFEB3B,0xFFEB3B,0xFFEB3B,PETAL_E, THORN,   C,       C],
+      [THORN,   VINE_H,  PETAL_E, PETAL_EH,PETAL_E, PETAL_E, VINE_H,  THORN,   C,       C],
+      [C,       VINE,    VINE_H,  BULB,    BULB_S,  VINE_H,  VINE,    C,       C,       C],
+      [THORN,   VINE_H,  VINE,    VINE_H,  VINE_H,  VINE,    VINE_H,  THORN,   C,       C],
+      [C,       VINE,    VINE_S,  VINE,    VINE,    VINE_S,  VINE,    C,       C,       C],
+      [C,       C,       VINE_S,  VINE,    VINE,    VINE_S,  C,       C,       C,       C],
+      [C,       VINE_S,  C,       VINE_S,  VINE_S,  C,       VINE_S,  C,       C,       C],
+    ]));
+
+    // ========== NEW ENEMY: Skeleton Warrior ==========
+    const BONE = 0xEEEEEE;
+    const BONE_S = 0xBDBDBD;
+    const BONE_D = 0x9E9E9E;
+    const SK_EYE = 0xFF1744;
+    const SK_HELM = 0x546E7A;
+    const SK_HELM_H = 0x78909C;
+    const SK_SWORD = 0xB0BEC5;
+
+    this.textures.set('enemy_skeleton', this.createSpriteTexture([
+      [C,       C,       SK_HELM, SK_HELM_H,SK_HELM, SK_HELM_H,SK_HELM, C,       C,       C],
+      [C,       SK_HELM, BONE,    SK_EYE,   BONE_S,  SK_EYE,   BONE,    SK_HELM, C,       C],
+      [C,       C,       BONE_S,  BONE,     BONE_D,  BONE,     BONE_S,  C,       C,       C],
+      [C,       SK_SWORD,BONE,    BONE_S,   BONE,    BONE_S,   BONE,    SK_SWORD,C,       C],
+      [C,       SK_SWORD,C,       BONE_D,   BONE,    BONE_D,   C,       SK_SWORD,C,       C],
+      [C,       C,       C,       BONE,     BONE_S,  BONE,     C,       C,       C,       C],
+      [C,       C,       BONE,    C,        C,       C,        BONE,    C,       C,       C],
+      [C,       C,       BONE_D,  C,        C,       C,        BONE_D,  C,       C,       C],
+    ]));
+
+    this.textures.set('enemy_skeleton_telegraph', this.createSpriteTexture([
+      [C,       SK_SWORD,SK_HELM, SK_HELM_H,SK_HELM, SK_HELM_H,SK_HELM, SK_SWORD,C,       C],
+      [C,       SK_HELM, BONE,    SK_EYE,   BONE_S,  SK_EYE,   BONE,    SK_HELM, C,       C],
+      [C,       C,       BONE_S,  BONE,     BONE_D,  BONE,     BONE_S,  C,       C,       C],
+      [SK_SWORD,SK_SWORD,BONE,    BONE_S,   BONE,    BONE_S,   BONE,    SK_SWORD,SK_SWORD,C],
+      [C,       C,       C,       BONE_D,   BONE,    BONE_D,   C,       C,       C,       C],
+      [C,       C,       C,       BONE,     BONE_S,  BONE,     C,       C,       C,       C],
+      [C,       C,       BONE,    C,        C,       C,        BONE,    C,       C,       C],
+      [C,       C,       BONE_D,  C,        C,       C,        BONE_D,  C,       C,       C],
+    ]));
+
+    this.textures.set('enemy_skeleton_attack', this.createSpriteTexture([
+      [SK_SWORD,C,       SK_HELM, SK_HELM_H,SK_HELM, SK_HELM_H,SK_HELM, C,       SK_SWORD,C],
+      [SK_SWORD,SK_HELM, BONE,    SK_EYE,   BONE_S,  SK_EYE,   BONE,    SK_HELM, SK_SWORD,C],
+      [C,       C,       BONE_S,  BONE,     BONE_D,  BONE,     BONE_S,  C,       C,       C],
+      [C,       BONE,    BONE,    BONE_S,   BONE,    BONE_S,   BONE,    BONE,    C,       C],
+      [C,       C,       C,       BONE_D,   BONE,    BONE_D,   C,       C,       C,       C],
+      [C,       C,       C,       BONE,     BONE_S,  BONE,     C,       C,       C,       C],
+      [C,       C,       BONE,    C,        C,       C,        BONE,    C,       C,       C],
+      [C,       C,       BONE_D,  C,        C,       C,        BONE_D,  C,       C,       C],
+    ]));
+
+    // ========== NEW ENEMY: Bandit ==========
+    const banditPalette = {
+      hair: 0x4E342E, hairLight: 0x6D4C41, hairDark: 0x3E2723,
+      skin: 0xFFE0BD, skinLight: 0xFFF0D8, skinShadow: 0xE8C4A0,
+      eyeIris: 0x455A64, eyeIrisDark: 0x263238,
+      tunicMain: 0x5D4037, tunicLight: 0x795548, tunicDark: 0x3E2723,
+      trimColor: 0x8D6E63, trimLight: 0xA1887F,
+      capeMain: 0x4E342E, capeDark: 0x3E2723,
+      pantColor: 0x3E2723, pantDark: 0x2C1B0E,
+      bootColor: 0x4E342E, bootDark: 0x3E2723,
+    };
+    this.textures.set('enemy_bandit', this.createChibiCharacter('down', 'idle', 0, banditPalette));
+    this.textures.set('enemy_bandit_telegraph', this.createChibiCharacter('down', 'charge', 0, banditPalette));
+    this.textures.set('enemy_bandit_attack', this.createChibiCharacter('down', 'attack', 1, banditPalette));
+
     // ========== FIELD BOSS: Golem ==========
     const GOL = 0x607060;
     const GOL_H = 0x788878;
@@ -577,6 +677,16 @@ export class AssetManager {
 
     this.textures.set('enemy_golem_telegraph', this.textures.get('enemy_golem')!);
     this.textures.set('enemy_golem_attack', this.textures.get('enemy_golem')!);
+
+    // ========== Interaction indicator sprite ==========
+    this.textures.set('interact_indicator', this.createSpriteTexture([
+      [C,       C,       0xFFD700,0xFFD700,C,       C],
+      [C,       0xFFD700,0xFFF9C4,0xFFF9C4,0xFFD700,C],
+      [0xFFD700,0xFFF9C4,0xFFFFFF,0xFFFFFF,0xFFF9C4,0xFFD700],
+      [0xFFD700,0xFFF9C4,0xFFFFFF,0xFFFFFF,0xFFF9C4,0xFFD700],
+      [C,       0xFFD700,0xFFF9C4,0xFFF9C4,0xFFD700,C],
+      [C,       C,       0xFFD700,0xFFD700,C,       C],
+    ]));
 
     // ========== TERRAIN ==========
     this.textures.set('grass', this.createColorTexture(0x4CAF50, 32, 32, 'noise'));
