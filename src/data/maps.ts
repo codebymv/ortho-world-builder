@@ -164,13 +164,23 @@ const villageDef: MapDefinition = {
     { x: 160, y: 130, width: 4, height: 4, fill: 'stone' },
   ],
   enemyZones: [
-    { x: 210, y: 8, width: 25, height: 20, enemyType: 'bandit', count: 5 },
-    { x: 3, y: 125, width: 15, height: 15, enemyType: 'wolf', count: 3 },
-    { x: 190, y: 18, width: 20, height: 16, enemyType: 'bandit', count: 4 },
-    { x: 8, y: 40, width: 16, height: 14, enemyType: 'skeleton', count: 3 },
-    { x: 55, y: 115, width: 20, height: 14, enemyType: 'slime', count: 6 },
-    { x: 130, y: 120, width: 20, height: 12, enemyType: 'slime', count: 4 },
-    { x: 210, y: 115, width: 18, height: 16, enemyType: 'spider', count: 3 },
+    { x: 210, y: 8, width: 25, height: 20, enemyType: 'bandit', count: 6 },
+    { x: 3, y: 125, width: 15, height: 15, enemyType: 'wolf', count: 4 },
+    { x: 190, y: 18, width: 20, height: 16, enemyType: 'bandit', count: 5 },
+    { x: 8, y: 40, width: 16, height: 14, enemyType: 'skeleton', count: 4 },
+    { x: 55, y: 115, width: 20, height: 14, enemyType: 'slime', count: 8 },
+    { x: 130, y: 120, width: 20, height: 12, enemyType: 'slime', count: 5 },
+    { x: 210, y: 115, width: 18, height: 16, enemyType: 'spider', count: 4 },
+    // Wandering wolves near forest edges
+    { x: 85, y: 10, width: 30, height: 20, enemyType: 'wolf', count: 4 },
+    { x: 200, y: 30, width: 28, height: 22, enemyType: 'spider', count: 3 },
+    // Graveyard undead
+    { x: 10, y: 15, width: 28, height: 22, enemyType: 'skeleton', count: 5 },
+    // Field boss - Giant Bandit Chief near north fort
+    { x: 192, y: 20, width: 16, height: 12, enemyType: 'golem', count: 1 },
+    // Cottage area wanderers
+    { x: 80, y: 108, width: 20, height: 16, enemyType: 'slime', count: 4 },
+    { x: 160, y: 35, width: 14, height: 12, enemyType: 'wolf', count: 3 },
   ],
 };
 
