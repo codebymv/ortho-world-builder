@@ -3,7 +3,7 @@ import { AssetManager } from './AssetManager';
 
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'stone' | 'wood' 
-  | 'tree' | 'house' | 'rock' | 'chest' | 'portal' | 'flower'
+  | 'tree' | 'house' | 'house_blue' | 'house_green' | 'house_thatch' | 'rock' | 'chest' | 'portal' | 'flower'
   | 'tall_grass' | 'bridge' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
   | 'campfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
