@@ -24,6 +24,42 @@ import { DeathOverlay } from './game/DeathOverlay';
 import { toast } from 'sonner';
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
+type CardinalDirection = 'up' | 'down' | 'left' | 'right';
+
+type EnemyVisualProfile = {
+  baseScale: number;
+  footOffset: number;
+  strideAmp: number;
+  bobAmp: number;
+  squashAmp: number;
+  leanAmp: number;
+  hpBarOffset: number;
+};
+
+const PLAYER_BASE_SCALE = 1.06;
+const PLAYER_FOOT_OFFSET = 0.44;
+const NPC_FOOT_OFFSET = 0.42;
+
+const NPC_SCALE_BY_ID: Record<string, number> = {
+  elder: 1.06,
+  merchant: 1.02,
+  guard: 1.04,
+  blacksmith: 1.1,
+  healer: 0.98,
+  farmer: 1.03,
+  child: 0.86,
+};
+
+const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
+  wolf: { baseScale: 1.22, footOffset: 0.18, strideAmp: 0.05, bobAmp: 0.045, squashAmp: 0.07, leanAmp: 0.08, hpBarOffset: 0.62 },
+  shadow: { baseScale: 1.12, footOffset: 0.12, strideAmp: 0.03, bobAmp: 0.05, squashAmp: 0.04, leanAmp: 0.03, hpBarOffset: 0.62 },
+  plant: { baseScale: 1.14, footOffset: 0.16, strideAmp: 0.02, bobAmp: 0.03, squashAmp: 0.03, leanAmp: 0.04, hpBarOffset: 0.64 },
+  skeleton: { baseScale: 1.18, footOffset: 0.22, strideAmp: 0.04, bobAmp: 0.04, squashAmp: 0.05, leanAmp: 0.05, hpBarOffset: 0.66 },
+  bandit: { baseScale: 1.12, footOffset: 0.24, strideAmp: 0.04, bobAmp: 0.05, squashAmp: 0.06, leanAmp: 0.05, hpBarOffset: 0.7 },
+  golem: { baseScale: 1.72, footOffset: 0.28, strideAmp: 0.025, bobAmp: 0.03, squashAmp: 0.04, leanAmp: 0.025, hpBarOffset: 0.86 },
+  spider: { baseScale: 1.08, footOffset: 0.14, strideAmp: 0.06, bobAmp: 0.02, squashAmp: 0.08, leanAmp: 0.06, hpBarOffset: 0.56 },
+  slime: { baseScale: 1.18, footOffset: 0.12, strideAmp: 0.02, bobAmp: 0.035, squashAmp: 0.12, leanAmp: 0.02, hpBarOffset: 0.58 },
+};
 
 const Game = () => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -218,11 +254,11 @@ const Game = () => {
       return 'down';
     };
 
-    // Helper: get Y-based render order (lower Y on screen = higher render order = in front)
-    const getYRenderOrder = (worldY: number): number => {
+    // Helper: get Y-based render order using the entity foot point instead of body center
+    const getYRenderOrder = (worldY: number, footOffset: number = 0): number => {
       const currentMap = world.getCurrentMap();
-      const tileY = Math.floor(worldY + currentMap.height / 2);
-      // Invert: lower world Y (closer to bottom of screen) should render on top
+      const footY = worldY - footOffset;
+      const tileY = Math.floor(footY + currentMap.height / 2);
       return 100 + (currentMap.height - tileY);
     };
 
@@ -330,7 +366,8 @@ const Game = () => {
     });
     const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
     playerMesh.position.set(spawnPoint.x, spawnPoint.y, 0.2);
-    playerMesh.renderOrder = getYRenderOrder(spawnPoint.y);
+    playerMesh.scale.setScalar(PLAYER_BASE_SCALE);
+    playerMesh.renderOrder = getYRenderOrder(spawnPoint.y, PLAYER_FOOT_OFFSET);
     scene.add(playerMesh);
 
     const npcData: NPC[] = [
@@ -375,8 +412,10 @@ const Game = () => {
         depthWrite: false,
       });
       const npcMesh = new THREE.Mesh(npcGeometry, npcMaterial);
+      const npcScale = NPC_SCALE_BY_ID[npc.id] ?? 1;
       npcMesh.position.set(npc.position.x, npc.position.y, 0.2);
-      npcMesh.renderOrder = getYRenderOrder(npc.position.y);
+      npcMesh.scale.set(npcScale, npcScale, 1);
+      npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET);
       npcMesh.userData = { npcId: npc.id };
       scene.add(npcMesh);
       npcMeshes.push(npcMesh);
@@ -860,18 +899,26 @@ const Game = () => {
             wander.angle += (Math.random() - 0.5) * Math.PI * 1.5;
           }
 
-          const mesh = npcMeshes[ni];
-          if (mesh) {
-            mesh.position.set(npc.position.x, npc.position.y, 0.2);
-          }
         }
 
-        // Idle bob + Y-sort for NPCs
         const npcMesh = npcMeshes[ni];
         if (npcMesh) {
-          const bob = Math.sin(currentTime / 800 + ni * 2.1) * 0.03;
-          npcMesh.position.y = npc.position.y + bob;
-          npcMesh.renderOrder = getYRenderOrder(npc.position.y);
+          const npcScale = NPC_SCALE_BY_ID[npc.id] ?? 1;
+          const walkWave = !wander.isPaused ? Math.sin(currentTime / 120 + ni * 1.7) : 0;
+          const stride = Math.abs(walkWave);
+          const bob = !wander.isPaused
+            ? stride * 0.05
+            : Math.sin(currentTime / 800 + ni * 2.1) * 0.03;
+          const lean = !wander.isPaused ? walkWave * 0.035 : 0;
+
+          npcMesh.position.set(npc.position.x, npc.position.y + bob, 0.2);
+          npcMesh.scale.set(
+            npcScale * (1 - stride * 0.025),
+            npcScale * (1 + stride * 0.05),
+            1
+          );
+          npcMesh.rotation.z = lean;
+          npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET);
         }
       }
 
@@ -1089,13 +1136,18 @@ const Game = () => {
         // === PLAYER POSITION WITH ANIMATION OFFSETS ===
         let attackOffsetX = 0;
         let attackOffsetY = 0;
+        const facing4 = dir8to4(currentDir8);
+        const moveWave = playerAnimState === 'walk' || state.player.isDodging
+          ? Math.sin(currentTime / 95)
+          : 0;
+        const stride = Math.abs(moveWave);
+
         if (playerAnimState === 'attack' && attackFrame === 1) {
           const lungeAmount = 0.15;
-          const d4 = dir8to4(currentDir8);
-          if (d4 === 'up') attackOffsetY = lungeAmount;
-          else if (d4 === 'down') attackOffsetY = -lungeAmount;
-          else if (d4 === 'left') attackOffsetX = -lungeAmount;
-          else if (d4 === 'right') attackOffsetX = lungeAmount;
+          if (facing4 === 'up') attackOffsetY = lungeAmount;
+          else if (facing4 === 'down') attackOffsetY = -lungeAmount;
+          else if (facing4 === 'left') attackOffsetX = -lungeAmount;
+          else if (facing4 === 'right') attackOffsetX = lungeAmount;
         } else if (playerAnimState === 'spin_attack') {
           const spinDir = SPIN_DIRECTIONS[Math.min(spinDirIndex, SPIN_DIRECTIONS.length - 1)];
           const lungeAmount = 0.1;
@@ -1106,25 +1158,37 @@ const Game = () => {
           else if (d4 === 'right') attackOffsetX = lungeAmount;
         }
 
-        // Dodge roll visual
-        let dodgeScaleX = 1, dodgeScaleY = 1;
+        let visualScaleX = PLAYER_BASE_SCALE;
+        let visualScaleY = PLAYER_BASE_SCALE;
+        let visualRotation = 0;
+
+        if (playerAnimState === 'walk') {
+          attackOffsetY += stride * 0.06;
+          if (facing4 === 'left') attackOffsetX -= stride * 0.04;
+          else if (facing4 === 'right') attackOffsetX += stride * 0.04;
+          visualScaleX *= 1 - stride * 0.035;
+          visualScaleY *= 1 + stride * 0.07;
+          visualRotation = moveWave * (facing4 === 'left' ? -0.035 : facing4 === 'right' ? 0.035 : 0.018);
+        }
+
         if (state.player.isDodging) {
           const t = 1 - (state.player.dodgeTimer / state.player.dodgeDuration);
-          dodgeScaleX = 1 + Math.sin(t * Math.PI) * 0.3;
-          dodgeScaleY = 1 - Math.sin(t * Math.PI) * 0.2;
-          playerMesh.rotation.z = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? -1 : 1);
+          const dodgeScaleX = 1 + Math.sin(t * Math.PI) * 0.3;
+          const dodgeScaleY = 1 - Math.sin(t * Math.PI) * 0.2;
+          visualScaleX *= dodgeScaleX;
+          visualScaleY *= dodgeScaleY;
+          visualRotation = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? -1 : 1);
         } else if (isChargingAttack) {
           const pulse = 1 + chargeLevel * 0.15;
           const shake = chargeLevel * Math.sin(currentTime / 30) * 0.02;
-          dodgeScaleX = pulse;
-          dodgeScaleY = pulse;
+          visualScaleX *= pulse;
+          visualScaleY *= pulse;
           attackOffsetX += shake;
-          playerMesh.rotation.z = 0;
-        } else {
-          playerMesh.rotation.z = 0;
+          visualRotation = 0;
         }
-        playerMesh.scale.set(dodgeScaleX, dodgeScaleY, 1);
 
+        playerMesh.rotation.z = visualRotation;
+        playerMesh.scale.set(visualScaleX, visualScaleY, 1);
         playerMesh.position.set(
           state.player.position.x + attackOffsetX,
           state.player.position.y + attackOffsetY,
@@ -1132,7 +1196,7 @@ const Game = () => {
         );
 
         // Dynamic Y-sorting for player
-        playerMesh.renderOrder = getYRenderOrder(state.player.position.y);
+        playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
 
         // Player damage flash
         if (state.player.damageFlashTimer > 0) {
@@ -1238,14 +1302,42 @@ const Game = () => {
 
           const mat = enemyMesh.material as THREE.MeshBasicMaterial;
 
+          const enemyType = enemy.sprite.replace('enemy_', '');
+          const visual = ENEMY_VISUALS[enemyType] ?? ENEMY_VISUALS.wolf;
+          const seed = parseFloat(enemy.id.split('_')[1] || "0") * 0.001;
+
           let spriteKey = enemy.sprite;
-          if (enemy.state === 'telegraphing') {
+          if (enemyType === 'bandit') {
+            const banditState = enemy.state === 'telegraphing'
+              ? 'charge'
+              : enemy.state === 'recovering' && enemy.attackAnimationTimer > 0
+                ? 'attack'
+                : enemy.moveBlend > 0.25
+                  ? 'walk'
+                  : 'idle';
+            const banditFrame = banditState === 'walk'
+              ? Math.floor(enemy.moveCycle * 2.4) % 2
+              : banditState === 'charge'
+                ? Math.min(2, Math.floor((1 - enemy.telegraphTimer / enemy.telegraphDuration) * 3))
+                : banditState === 'attack'
+                  ? 1
+                  : 0;
+            spriteKey = `enemy_bandit_${enemy.facing as CardinalDirection}_${banditState}_${banditFrame}`;
+          } else if (enemy.state === 'telegraphing') {
             spriteKey = `${enemy.sprite}_telegraph`;
           } else if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) {
             spriteKey = `${enemy.sprite}_attack`;
           }
 
-          const enemyTex = assetManager.getTexture(spriteKey);
+          let enemyTex = assetManager.getTexture(spriteKey);
+          if (!enemyTex) {
+            const fallbackKey = enemy.state === 'telegraphing'
+              ? `${enemy.sprite}_telegraph`
+              : enemy.state === 'recovering' && enemy.attackAnimationTimer > 0
+                ? `${enemy.sprite}_attack`
+                : enemy.sprite;
+            enemyTex = assetManager.getTexture(fallbackKey);
+          }
           if (enemyTex && mat.map !== enemyTex) {
             mat.map = enemyTex;
           }
@@ -1259,25 +1351,57 @@ const Game = () => {
 
           let finalEnemyX = enemy.position.x;
           let finalEnemyY = enemy.position.y;
+          let scaleX = visual.baseScale;
+          let scaleY = visual.baseScale;
+          let rotation = 0;
+          const moveWave = Math.sin(enemy.moveCycle);
+          const stride = Math.abs(moveWave) * enemy.moveBlend;
+          const lateralBias = Math.abs(enemy.velocity.x) > 0.001 ? Math.sign(enemy.velocity.x) : 0;
 
-          if (enemy.state === 'chasing') {
-            const walkCycle = Math.sin(currentTime / 120 + parseFloat(enemy.id.split('_')[1] || "0") * 2);
-            const strideBob = Math.abs(walkCycle) * 0.04;
-            finalEnemyY += strideBob;
-            const dx = state.player.position.x - enemy.position.x;
-            const lean = dx > 0 ? 0.08 : dx < 0 ? -0.08 : 0;
-            enemyMesh.rotation.z = lean * walkCycle * 0.5;
-            const squash = 1 + Math.abs(walkCycle) * 0.06;
-            const stretch = 1 - Math.abs(walkCycle) * 0.04;
-            enemyMesh.scale.set(stretch, squash, 1);
+          if (enemy.state === 'chasing' || enemy.moveBlend > 0.2) {
+            finalEnemyY += stride * visual.bobAmp;
+            finalEnemyX += moveWave * visual.strideAmp * (enemyType === 'spider' ? 1 : lateralBias * 0.5);
+            scaleX *= 1 - stride * visual.squashAmp;
+            scaleY *= 1 + stride * visual.squashAmp * 1.35;
+            rotation = moveWave * visual.leanAmp * (lateralBias !== 0 ? lateralBias : 1);
+
+            switch (enemyType) {
+              case 'shadow':
+                finalEnemyY += Math.sin(currentTime / 180 + seed) * 0.05;
+                finalEnemyX += Math.cos(currentTime / 220 + seed) * 0.025;
+                scaleX *= 1 + stride * 0.02;
+                scaleY *= 1 - stride * 0.02;
+                rotation *= 0.4;
+                break;
+              case 'slime':
+                finalEnemyY += stride * 0.02;
+                scaleX *= 1 + stride * 0.08;
+                scaleY *= 1 - stride * 0.08;
+                rotation = moveWave * 0.015;
+                break;
+              case 'spider':
+                finalEnemyY += Math.sin(enemy.moveCycle * 2) * 0.012;
+                rotation = moveWave * 0.03;
+                break;
+              case 'golem':
+                finalEnemyY += stride * 0.03;
+                scaleX *= 1 + stride * 0.03;
+                scaleY *= 1 - stride * 0.04;
+                rotation *= 0.35;
+                break;
+              case 'plant':
+                finalEnemyX += Math.sin(currentTime / 260 + seed) * 0.02;
+                rotation = moveWave * 0.025;
+                break;
+            }
           } else if (enemy.state === 'telegraphing') {
-            const shakeIntensity = 0.06 * (1 - enemy.telegraphTimer / enemy.telegraphDuration);
-            finalEnemyX += (Math.random() - 0.5) * shakeIntensity;
-            finalEnemyY += (Math.random() - 0.5) * shakeIntensity;
-            
             const telegraphProgress = 1 - (enemy.telegraphTimer / enemy.telegraphDuration);
-            const scale = 1 + telegraphProgress * 0.2;
-            enemyMesh.scale.set(scale, scale, 1);
+            const shakeIntensity = 0.06 * telegraphProgress;
+            finalEnemyX += Math.sin(currentTime / 35 + seed) * shakeIntensity;
+            finalEnemyY += Math.cos(currentTime / 42 + seed) * shakeIntensity;
+            scaleX *= 1 + telegraphProgress * 0.18;
+            scaleY *= 1 + telegraphProgress * 0.2;
+            rotation = Math.sin(currentTime / 55 + seed) * 0.03;
 
             if (Math.sin(currentTime / 50) > 0) {
               mat.color.setHex(0xffaa00);
@@ -1298,25 +1422,42 @@ const Game = () => {
               }
             }
             const recoverProgress = enemy.recoverTimer / enemy.recoverDuration;
-            enemyMesh.scale.set(0.9 + recoverProgress * 0.1, 0.9 + recoverProgress * 0.1, 1);
+            scaleX *= 0.92 + recoverProgress * 0.08;
+            scaleY *= 0.88 + recoverProgress * 0.12;
+            rotation = Math.sin(currentTime / 90 + seed) * 0.02;
             if (!enemy.damageFlashTimer || enemy.damageFlashTimer <= 0) {
               mat.color.setHex(0x8888ff);
             }
-          } else if (enemy.state === 'idle') {
-            const breathe = Math.sin(currentTime / 800 + parseFloat(enemy.id.split('_')[1] || "0") * 3);
-            finalEnemyY += breathe * 0.02;
-            enemyMesh.scale.set(1 + breathe * 0.015, 1 - breathe * 0.015, 1);
-            enemyMesh.rotation.z = 0;
+          } else {
+            const breathe = Math.sin(currentTime / 800 + seed * 3);
+            if (enemyType === 'shadow') {
+              finalEnemyY += breathe * 0.05;
+              finalEnemyX += Math.cos(currentTime / 900 + seed) * 0.02;
+              scaleX *= 1 + breathe * 0.012;
+              scaleY *= 1 - breathe * 0.012;
+            } else if (enemyType === 'slime') {
+              finalEnemyY += Math.abs(breathe) * 0.025;
+              scaleX *= 1 + Math.abs(breathe) * 0.04;
+              scaleY *= 1 - Math.abs(breathe) * 0.04;
+            } else if (enemyType === 'spider') {
+              finalEnemyX += breathe * 0.015;
+              rotation = breathe * 0.02;
+            } else {
+              finalEnemyY += breathe * 0.02;
+              scaleX *= 1 + breathe * 0.015;
+              scaleY *= 1 - breathe * 0.015;
+            }
           }
 
+          enemyMesh.rotation.z = rotation;
+          enemyMesh.scale.set(scaleX, scaleY, 1);
           enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
-          // Dynamic Y-sorting for enemies
-          enemyMesh.renderOrder = getYRenderOrder(enemy.position.y);
+          enemyMesh.renderOrder = getYRenderOrder(enemy.position.y, visual.footOffset);
 
           // === HP BAR ===
           const hpBar = getOrCreateHPBar(enemy);
           const hpRatio = enemy.health / enemy.maxHealth;
-          const barY = finalEnemyY + 0.5;
+          const barY = finalEnemyY + visual.hpBarOffset;
           
           hpBar.bg.position.set(finalEnemyX, barY, 0.35);
           hpBar.fill.position.set(finalEnemyX - 0.29 * (1 - hpRatio), barY, 0.36);

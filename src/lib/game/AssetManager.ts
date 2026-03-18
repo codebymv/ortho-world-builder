@@ -799,9 +799,22 @@ export class AssetManager {
       pantColor: 0x3E2723, pantDark: 0x2C1B0E,
       bootColor: 0x4E342E, bootDark: 0x3E2723,
     };
-    this.registerTexture('enemy_bandit', () => this.createChibiCharacter('down', 'idle', 0, banditPalette));
-    this.registerTexture('enemy_bandit_telegraph', () => this.createChibiCharacter('down', 'charge', 0, banditPalette));
-    this.registerTexture('enemy_bandit_attack', () => this.createChibiCharacter('down', 'attack', 1, banditPalette));
+    const banditDirs: Array<'down' | 'up' | 'left' | 'right'> = ['down', 'up', 'left', 'right'];
+    const banditStates: Array<'idle' | 'walk' | 'attack' | 'charge'> = ['idle', 'walk', 'attack', 'charge'];
+    for (const dir of banditDirs) {
+      for (const state of banditStates) {
+        const frames = state === 'attack' || state === 'charge' ? 3 : state === 'walk' ? 2 : 1;
+        for (let frame = 0; frame < frames; frame++) {
+          const d = dir;
+          const s = state;
+          const f = frame;
+          this.registerTexture(`enemy_bandit_${d}_${s}_${f}`, () => this.createChibiCharacter(d, s, f, banditPalette));
+        }
+      }
+    }
+    this.registerTexture('enemy_bandit', () => this.getTexture('enemy_bandit_down_idle_0')!);
+    this.registerTexture('enemy_bandit_telegraph', () => this.getTexture('enemy_bandit_down_charge_1')!);
+    this.registerTexture('enemy_bandit_attack', () => this.getTexture('enemy_bandit_down_attack_1')!);
 
     // ========== FIELD BOSS: Golem ==========
     const GOL = 0x607060;
