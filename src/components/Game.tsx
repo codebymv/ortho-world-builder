@@ -1208,12 +1208,13 @@ const Game = () => {
       
       {gameState && (
         <>
-          <GameUI gameState={gameState} />
+          <GameUI gameState={gameState} refreshToken={uiVersion} />
           <Minimap
             currentMap={allMaps[gameState.currentMap]}
             playerPosition={gameState.player.position}
             visitedTiles={visitedTilesRef.current}
             npcs={gameState.npcs}
+            refreshToken={minimapVersion}
           />
         </>
       )}
