@@ -241,7 +241,7 @@ const Game = () => {
     const npcMeshes: THREE.Mesh[] = [];
 
     npcData.forEach(npc => {
-      const npcGeometry = new THREE.PlaneGeometry(1.0, 1.25);
+      const npcGeometry = SharedGeometry.player;
       const npcTexture = assetManager.getTexture(npc.sprite);
       const npcMaterial = new THREE.MeshBasicMaterial({
         map: npcTexture,
