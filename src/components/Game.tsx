@@ -890,7 +890,7 @@ const Game = () => {
           let enemyMesh = enemyMeshes.get(enemy.id);
           
           if (!enemyMesh) {
-            const enemyGeometry = new THREE.PlaneGeometry(0.7, 0.7);
+            const enemyGeometry = SharedGeometry.enemy;
             const enemyTexture = assetManager.getTexture(enemy.sprite);
             const enemyMaterial = new THREE.MeshBasicMaterial({
               map: enemyTexture,
