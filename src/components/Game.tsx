@@ -983,7 +983,6 @@ const Game = () => {
           const enemyTex = assetManager.getTexture(spriteKey);
           if (enemyTex && mat.map !== enemyTex) {
             mat.map = enemyTex;
-            mat.needsUpdate = true;
           }
 
           if (enemy.damageFlashTimer > 0) {
