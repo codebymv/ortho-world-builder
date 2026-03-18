@@ -240,10 +240,10 @@ const Game = () => {
     let swooshTimer = 0;
     const SWOOSH_DURATION = 0.22;
 
-    // Spin attack swoosh — larger, more aggressive
-    const spinSwooshGeometry = new THREE.RingGeometry(0.3, 1.2, 24, 1, 0, Math.PI * 2);
+    // Spin attack swoosh — same arc style as normal but full circle
+    const spinSwooshGeometry = new THREE.RingGeometry(0.2, 0.8, 16, 1, 0, Math.PI * 2);
     const spinSwooshMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffd700,
+      color: 0xccddff,
       transparent: true,
       opacity: 0,
       depthWrite: false,
