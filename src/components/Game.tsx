@@ -551,6 +551,9 @@ const Game = () => {
       if (e.key === 'Shift') {
         keys['shift'] = false;
       }
+      if (e.key === 'Control') {
+        keys['control'] = false;
+      }
       if (e.key === ' ' && isChargingAttack) {
         if (chargeTimer >= CHARGE_TIME_MIN) {
           performChargeAttack(chargeLevel);
