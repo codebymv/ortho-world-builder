@@ -429,6 +429,22 @@ const Game = () => {
       portalCooldown = 0.5;
     };
 
+    // === SHADOW SYSTEM ===
+    const shadowGeometry = new THREE.CircleGeometry(0.4, 16);
+    const shadowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.3,
+      depthWrite: false,
+    });
+
+    // Player shadow
+    const playerShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
+    playerShadow.position.z = -0.01;
+    playerShadow.scale.set(1.1, 0.5, 1);
+    playerShadow.renderOrder = 0;
+    scene.add(playerShadow);
+
     const playerGeometry = SharedGeometry.player;
     const playerTexture = assetManager.getTexture('player_down_idle_0');
     const playerMaterial = new THREE.MeshBasicMaterial({
