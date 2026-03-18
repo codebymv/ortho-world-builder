@@ -263,9 +263,11 @@ export class World {
         const isOverlay = OVERLAY_TYPES.has(tile.type);
         object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, 0);
         if (isOverlay) {
-          object.renderOrder = 100 + y;
+          // Y-sort: lower world Y (bottom of screen) = higher renderOrder = renders on top
+          const ySort = 100 + (this.map.height - y);
+          object.renderOrder = ySort;
           if (object instanceof THREE.Group) {
-            for (const child of object.children) child.renderOrder = 100 + y;
+            for (const child of object.children) child.renderOrder = ySort;
           }
         }
         object.updateMatrix();
