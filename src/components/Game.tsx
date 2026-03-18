@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { GameState, NPC } from '@/lib/game/GameState';
-import { AssetManager } from '@/lib/game/AssetManager';
+import { AssetManager, SharedGeometry } from '@/lib/game/AssetManager';
 import { World } from '@/lib/game/World';
 import { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { BiomeAmbience } from '@/lib/game/BiomeAmbience';
@@ -164,7 +164,6 @@ const Game = () => {
       combatSystem.clearAllEnemies();
       enemyMeshes.forEach(mesh => {
         scene.remove(mesh);
-        mesh.geometry.dispose();
         (mesh.material as THREE.Material).dispose();
       });
       enemyMeshes.clear();
@@ -172,9 +171,7 @@ const Game = () => {
       enemyHPBars.forEach(({ bg, fill }) => {
         scene.remove(bg);
         scene.remove(fill);
-        bg.geometry.dispose();
         (bg.material as THREE.Material).dispose();
-        fill.geometry.dispose();
         (fill.material as THREE.Material).dispose();
       });
       enemyHPBars.clear();
@@ -221,7 +218,7 @@ const Game = () => {
       portalCooldown = 0.5;
     };
 
-    const playerGeometry = new THREE.PlaneGeometry(1.0, 1.25);
+    const playerGeometry = SharedGeometry.player;
     const playerTexture = assetManager.getTexture('player_down_idle_0');
     const playerMaterial = new THREE.MeshBasicMaterial({
       map: playerTexture,
@@ -241,7 +238,7 @@ const Game = () => {
     const npcMeshes: THREE.Mesh[] = [];
 
     npcData.forEach(npc => {
-      const npcGeometry = new THREE.PlaneGeometry(1.0, 1.25);
+      const npcGeometry = SharedGeometry.player;
       const npcTexture = assetManager.getTexture(npc.sprite);
       const npcMaterial = new THREE.MeshBasicMaterial({
         map: npcTexture,
@@ -563,13 +560,11 @@ const Game = () => {
     const getOrCreateHPBar = (enemy: Enemy) => {
       let hpBar = enemyHPBars.get(enemy.id);
       if (!hpBar) {
-        const bgGeo = new THREE.PlaneGeometry(0.6, 0.06);
         const bgMat = new THREE.MeshBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.8, depthWrite: false });
-        const bg = new THREE.Mesh(bgGeo, bgMat);
+        const bg = new THREE.Mesh(SharedGeometry.hpBarBg, bgMat);
 
-        const fillGeo = new THREE.PlaneGeometry(0.58, 0.04);
         const fillMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.9, depthWrite: false });
-        const fill = new THREE.Mesh(fillGeo, fillMat);
+        const fill = new THREE.Mesh(SharedGeometry.hpBarFill, fillMat);
 
         scene.add(bg);
         scene.add(fill);
@@ -892,7 +887,7 @@ const Game = () => {
           let enemyMesh = enemyMeshes.get(enemy.id);
           
           if (!enemyMesh) {
-            const enemyGeometry = new THREE.PlaneGeometry(0.7, 0.7);
+            const enemyGeometry = SharedGeometry.enemy;
             const enemyTexture = assetManager.getTexture(enemy.sprite);
             const enemyMaterial = new THREE.MeshBasicMaterial({
               map: enemyTexture,
@@ -1006,7 +1001,6 @@ const Game = () => {
 
               if (deadMat.opacity <= 0) {
                 scene.remove(mesh);
-                mesh.geometry.dispose();
                 deadMat.dispose();
                 enemyMeshes.delete(enemy.id);
 
@@ -1015,9 +1009,7 @@ const Game = () => {
                 if (hpBar) {
                   scene.remove(hpBar.bg);
                   scene.remove(hpBar.fill);
-                  hpBar.bg.geometry.dispose();
                   (hpBar.bg.material as THREE.Material).dispose();
-                  hpBar.fill.geometry.dispose();
                   (hpBar.fill.material as THREE.Material).dispose();
                   enemyHPBars.delete(enemy.id);
                 }

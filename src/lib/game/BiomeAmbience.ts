@@ -8,6 +8,7 @@ interface AmbientParticle {
   baseY: number;
   phase: number;
   type: 'firefly' | 'fog' | 'dust' | 'smoke' | 'snow' | 'ember';
+  active: boolean;
 }
 
 export class BiomeAmbience {
@@ -17,27 +18,59 @@ export class BiomeAmbience {
   private spawnTimer: number = 0;
   private readonly MAX_PARTICLES = 40;
 
+  // Shared geometry for all ambient particles (avoids per-particle allocation)
+  private readonly sharedGeometry = new THREE.PlaneGeometry(1, 1);
+
   constructor(scene: THREE.Scene) {
     this.scene = scene;
+    this.initializePool();
+  }
+
+  private initializePool() {
+    for (let i = 0; i < this.MAX_PARTICLES; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(this.sharedGeometry, mat);
+      mesh.visible = false;
+      this.scene.add(mesh);
+
+      this.particles.push({
+        mesh,
+        velocity: new THREE.Vector3(),
+        lifetime: 0,
+        maxLifetime: 1,
+        baseY: 0,
+        phase: 0,
+        type: 'firefly',
+        active: false,
+      });
+    }
   }
 
   setBiome(biome: string) {
     if (this.currentBiome === biome) return;
     this.currentBiome = biome;
-    this.clearAll();
-  }
-
-  private clearAll() {
+    // Deactivate all particles instead of destroying
     for (const p of this.particles) {
-      this.scene.remove(p.mesh);
-      p.mesh.geometry.dispose();
-      (p.mesh.material as THREE.Material).dispose();
+      p.active = false;
+      p.mesh.visible = false;
     }
-    this.particles = [];
   }
 
   private spawnParticle(playerX: number, playerY: number) {
-    if (this.particles.length >= this.MAX_PARTICLES) return;
+    // Find inactive particle from pool
+    let particle: AmbientParticle | null = null;
+    for (const p of this.particles) {
+      if (!p.active) {
+        particle = p;
+        break;
+      }
+    }
+    if (!particle) return;
 
     const offsetX = (Math.random() - 0.5) * 16;
     const offsetY = (Math.random() - 0.5) * 16;
@@ -49,25 +82,24 @@ export class BiomeAmbience {
     let lifetime = 3;
     let type: AmbientParticle['type'] = 'firefly';
     let vx = 0, vy = 0;
+    let baseOpacity = 0.8;
 
     switch (this.currentBiome) {
       case 'forest':
-        // Fireflies
         color = Math.random() > 0.5 ? 0xCDDC39 : 0xFFEB3B;
         size = 0.06 + Math.random() * 0.04;
         lifetime = 3 + Math.random() * 4;
         type = 'firefly';
         break;
       case 'swamp':
-        // Fog wisps
         color = 0x90A4AE;
         size = 0.3 + Math.random() * 0.4;
         lifetime = 4 + Math.random() * 3;
         type = 'fog';
         vx = (Math.random() - 0.5) * 0.3;
+        baseOpacity = 0.15;
         break;
       case 'ruins':
-        // Dust motes
         color = 0xBCAAA4;
         size = 0.04 + Math.random() * 0.03;
         lifetime = 2 + Math.random() * 3;
@@ -75,7 +107,6 @@ export class BiomeAmbience {
         vy = 0.1 + Math.random() * 0.2;
         break;
       case 'grassland':
-        // Pollen / dandelion seeds
         color = 0xFFF9C4;
         size = 0.03 + Math.random() * 0.03;
         lifetime = 4 + Math.random() * 4;
@@ -87,26 +118,22 @@ export class BiomeAmbience {
         return;
     }
 
-    const geo = new THREE.PlaneGeometry(size, size);
-    const mat = new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity: type === 'fog' ? 0.15 : 0.8,
-      depthWrite: false,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, y, 0.15);
-    this.scene.add(mesh);
+    // Reuse mesh from pool - just update properties
+    particle.active = true;
+    particle.lifetime = 0;
+    particle.maxLifetime = lifetime;
+    particle.baseY = y;
+    particle.phase = Math.random() * Math.PI * 2;
+    particle.type = type;
+    particle.velocity.set(vx, vy, 0);
 
-    this.particles.push({
-      mesh,
-      velocity: new THREE.Vector3(vx, vy, 0),
-      lifetime: 0,
-      maxLifetime: lifetime,
-      baseY: y,
-      phase: Math.random() * Math.PI * 2,
-      type,
-    });
+    particle.mesh.visible = true;
+    particle.mesh.position.set(x, y, 0.15);
+    particle.mesh.scale.set(size, size, 1);
+
+    const mat = particle.mesh.material as THREE.MeshBasicMaterial;
+    mat.color.setHex(color);
+    mat.opacity = baseOpacity;
   }
 
   update(deltaTime: number, playerX: number, playerY: number) {
@@ -118,8 +145,9 @@ export class BiomeAmbience {
       this.spawnTimer = 0;
     }
 
-    for (let i = this.particles.length - 1; i >= 0; i--) {
-      const p = this.particles[i];
+    for (const p of this.particles) {
+      if (!p.active) continue;
+
       p.lifetime += deltaTime;
 
       // Movement
@@ -128,14 +156,12 @@ export class BiomeAmbience {
 
       // Type-specific animation
       if (p.type === 'firefly') {
-        // Gentle floating + bobbing
         p.mesh.position.x += Math.sin(p.lifetime * 1.5 + p.phase) * 0.003;
         p.mesh.position.y += Math.cos(p.lifetime * 2 + p.phase) * 0.002;
         const mat = p.mesh.material as THREE.MeshBasicMaterial;
         mat.opacity = 0.4 + Math.sin(p.lifetime * 3 + p.phase) * 0.4;
       } else if (p.type === 'fog') {
-        // Slow drift and expand
-        const scale = 1 + p.lifetime * 0.1;
+        const scale = (0.3 + Math.random() * 0.4) * (1 + p.lifetime * 0.1);
         p.mesh.scale.set(scale, scale, 1);
       }
 
@@ -146,21 +172,24 @@ export class BiomeAmbience {
       const baseFade = p.type === 'fog' ? 0.15 : 0.8;
       mat.opacity = baseFade * fadeIn * fadeOut;
 
-      // Remove old/far particles
+      // Deactivate old/far particles (return to pool)
       const distX = p.mesh.position.x - playerX;
       const distY = p.mesh.position.y - playerY;
-      const dist = Math.sqrt(distX * distX + distY * distY);
+      const dist = distX * distX + distY * distY; // skip sqrt
 
-      if (p.lifetime >= p.maxLifetime || dist > 20) {
-        this.scene.remove(p.mesh);
-        p.mesh.geometry.dispose();
-        (p.mesh.material as THREE.Material).dispose();
-        this.particles.splice(i, 1);
+      if (p.lifetime >= p.maxLifetime || dist > 400) {
+        p.active = false;
+        p.mesh.visible = false;
       }
     }
   }
 
   cleanup() {
-    this.clearAll();
+    for (const p of this.particles) {
+      this.scene.remove(p.mesh);
+      (p.mesh.material as THREE.Material).dispose();
+    }
+    this.sharedGeometry.dispose();
+    this.particles = [];
   }
 }

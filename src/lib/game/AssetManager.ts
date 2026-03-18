@@ -1,11 +1,28 @@
 import * as THREE from 'three';
 
+// Shared geometry instances to avoid creating duplicates
+const _sharedTileGeometry = new THREE.PlaneGeometry(1, 1);
+const _sharedPlayerGeometry = new THREE.PlaneGeometry(1.0, 1.25);
+const _sharedEnemyGeometry = new THREE.PlaneGeometry(0.7, 0.7);
+const _sharedHPBarBgGeometry = new THREE.PlaneGeometry(0.6, 0.06);
+const _sharedHPBarFillGeometry = new THREE.PlaneGeometry(0.58, 0.04);
+
+export const SharedGeometry = {
+  tile: _sharedTileGeometry,
+  player: _sharedPlayerGeometry,
+  enemy: _sharedEnemyGeometry,
+  hpBarBg: _sharedHPBarBgGeometry,
+  hpBarFill: _sharedHPBarFillGeometry,
+};
+
 export class AssetManager {
   private textures: Map<string, THREE.Texture>;
+  private textureGenerators: Map<string, () => THREE.Texture>;
   private textureLoader: THREE.TextureLoader;
 
   constructor() {
     this.textures = new Map();
+    this.textureGenerators = new Map();
     this.textureLoader = new THREE.TextureLoader();
   }
 
@@ -402,8 +419,24 @@ export class AssetManager {
     return texture;
   }
 
+  // Register a lazy texture generator instead of creating immediately
+  private registerTexture(name: string, generator: () => THREE.Texture) {
+    this.textureGenerators.set(name, generator);
+  }
+
   getTexture(name: string): THREE.Texture | undefined {
-    return this.textures.get(name);
+    // Check cache first
+    let tex = this.textures.get(name);
+    if (tex) return tex;
+    // Try lazy generation
+    const gen = this.textureGenerators.get(name);
+    if (gen) {
+      tex = gen();
+      this.textures.set(name, tex);
+      this.textureGenerators.delete(name);
+      return tex;
+    }
+    return undefined;
   }
 
   loadDefaultAssets() {
@@ -433,8 +466,8 @@ export class AssetManager {
       for (const state of states) {
         const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' ? 1 : 2;
         for (let f = 0; f < maxFrames; f++) {
-          const tex = this.createChibiCharacter(dir, state, f, heroPalette);
-          this.textures.set(`player_${dir}_${state}_${f}`, tex);
+          const d = dir, s = state, fr = f;
+          this.registerTexture(`player_${d}_${s}_${fr}`, () => this.createChibiCharacter(d, s, fr, heroPalette));
         }
       }
     }
@@ -448,17 +481,17 @@ export class AssetManager {
       for (const state of states) {
         const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' ? 1 : 2;
         for (let f = 0; f < maxFrames; f++) {
-          const src = this.textures.get(`player_${base}_${state}_${f}`);
-          if (src) this.textures.set(`player_${dDir}_${state}_${f}`, src);
+          const dd = dDir, b = base, s = state, fr = f;
+          this.registerTexture(`player_${dd}_${s}_${fr}`, () => this.getTexture(`player_${b}_${s}_${fr}`)!);
         }
       }
     }
 
     // Legacy aliases
-    this.textures.set('player_down', this.textures.get('player_down_idle_0')!);
-    this.textures.set('player_up', this.textures.get('player_up_idle_0')!);
-    this.textures.set('player_left', this.textures.get('player_left_idle_0')!);
-    this.textures.set('player_right', this.textures.get('player_right_idle_0')!);
+    for (const d of ['down', 'up', 'left', 'right']) {
+      const dd = d;
+      this.registerTexture(`player_${dd}`, () => this.getTexture(`player_${dd}_idle_0`)!);
+    }
 
     // ========== NPC SPRITES - Using same chibi system ==========
     const elderPalette = {
@@ -471,7 +504,7 @@ export class AssetManager {
       pantColor: 0x5A1A8A, pantDark: 0x3A0A6A,
       bootColor: 0x6B4428, bootDark: 0x503018,
     };
-    this.textures.set('npc_elder', this.createChibiCharacter('down', 'idle', 0, elderPalette));
+    this.registerTexture('npc_elder', () => this.createChibiCharacter('down', 'idle', 0, elderPalette));
 
     const merchantPalette = {
       hair: 0x6D4C41, hairLight: 0x8D6E63, hairDark: 0x4E342E,
@@ -483,7 +516,7 @@ export class AssetManager {
       pantColor: 0x5A4030, pantDark: 0x3E2818,
       bootColor: 0x6B4428, bootDark: 0x503018,
     };
-    this.textures.set('npc_merchant', this.createChibiCharacter('down', 'idle', 0, merchantPalette));
+    this.registerTexture('npc_merchant', () => this.createChibiCharacter('down', 'idle', 0, merchantPalette));
 
     const guardPalette = {
       hair: 0x506070, hairLight: 0x687888, hairDark: 0x37474F,
@@ -495,7 +528,7 @@ export class AssetManager {
       pantColor: 0x5A4030, pantDark: 0x3E2818,
       bootColor: 0x485060, bootDark: 0x37474F,
     };
-    this.textures.set('npc_guard', this.createChibiCharacter('down', 'idle', 0, guardPalette));
+    this.registerTexture('npc_guard', () => this.createChibiCharacter('down', 'idle', 0, guardPalette));
 
     // ========== ENEMY SPRITES ==========
     const WOLF_FUR = 0x616161;
@@ -678,9 +711,9 @@ export class AssetManager {
       pantColor: 0x3E2723, pantDark: 0x2C1B0E,
       bootColor: 0x4E342E, bootDark: 0x3E2723,
     };
-    this.textures.set('enemy_bandit', this.createChibiCharacter('down', 'idle', 0, banditPalette));
-    this.textures.set('enemy_bandit_telegraph', this.createChibiCharacter('down', 'charge', 0, banditPalette));
-    this.textures.set('enemy_bandit_attack', this.createChibiCharacter('down', 'attack', 1, banditPalette));
+    this.registerTexture('enemy_bandit', () => this.createChibiCharacter('down', 'idle', 0, banditPalette));
+    this.registerTexture('enemy_bandit_telegraph', () => this.createChibiCharacter('down', 'charge', 0, banditPalette));
+    this.registerTexture('enemy_bandit_attack', () => this.createChibiCharacter('down', 'attack', 1, banditPalette));
 
     // ========== FIELD BOSS: Golem ==========
     const GOL = 0x607060;
@@ -703,8 +736,8 @@ export class AssetManager {
       [C,    C,    GOL_D,GOL_S,GOL,  C,   C,   GOL, GOL_S,GOL_D,C,    C],
     ]));
 
-    this.textures.set('enemy_golem_telegraph', this.textures.get('enemy_golem')!);
-    this.textures.set('enemy_golem_attack', this.textures.get('enemy_golem')!);
+    this.registerTexture('enemy_golem_telegraph', () => this.getTexture('enemy_golem')!);
+    this.registerTexture('enemy_golem_attack', () => this.getTexture('enemy_golem')!);
 
     // ========== Interaction indicator sprite ==========
     this.textures.set('interact_indicator', this.createSpriteTexture([

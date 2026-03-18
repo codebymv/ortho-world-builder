@@ -31,6 +31,8 @@ export interface Enemy {
 export class CombatSystem {
   private enemies: Enemy[] = [];
   private gameState: GameState;
+  private _cachedLiveEnemies: Enemy[] = [];
+  private _enemiesDirty: boolean = true;
 
   constructor(gameState: GameState) {
     this.gameState = gameState;
@@ -71,11 +73,16 @@ export class CombatSystem {
     };
 
     this.enemies.push(enemy);
+    this._enemiesDirty = true;
     return enemy;
   }
 
   getEnemies(): Enemy[] {
-    return this.enemies.filter(e => e.state !== 'dead');
+    if (this._enemiesDirty) {
+      this._cachedLiveEnemies = this.enemies.filter(e => e.state !== 'dead');
+      this._enemiesDirty = false;
+    }
+    return this._cachedLiveEnemies;
   }
 
   getAllEnemies(): Enemy[] {
@@ -186,6 +193,7 @@ export class CombatSystem {
 
     if (targetEnemy.health <= 0) {
       targetEnemy.state = 'dead';
+      this._enemiesDirty = true;
       this.gameState.player.gold += targetEnemy.goldReward;
       return true;
     }
@@ -207,6 +215,7 @@ export class CombatSystem {
   removeDeadEnemies(): Enemy[] {
     const dead = this.enemies.filter(e => e.state === 'dead');
     this.enemies = this.enemies.filter(e => e.state !== 'dead');
+    this._enemiesDirty = true;
     return dead;
   }
 
@@ -214,10 +223,12 @@ export class CombatSystem {
     const toRemove = new Set(ids);
     const removed = this.enemies.filter(e => toRemove.has(e.id));
     this.enemies = this.enemies.filter(e => !toRemove.has(e.id));
+    this._enemiesDirty = true;
     return removed;
   }
 
   clearAllEnemies(): void {
     this.enemies = [];
+    this._enemiesDirty = true;
   }
 }

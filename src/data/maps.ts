@@ -526,11 +526,8 @@ const ruinsDef: MapDefinition = {
   ],
 };
 
-// Generate all maps
-export const villageMap: WorldMap = generateMap(villageDef);
-export const forestMap: WorldMap = generateMap(forestDef);
-export const deepWoodsMap: WorldMap = generateMap(deepWoodsDef);
-export const ruinsMap: WorldMap = generateMap(ruinsDef);
+// Lazy map generation - only generate when first accessed
+const mapCache: Record<string, WorldMap> = {};
 
 export const mapDefinitions: Record<string, MapDefinition> = {
   village: villageDef,
@@ -539,9 +536,21 @@ export const mapDefinitions: Record<string, MapDefinition> = {
   ruins: ruinsDef,
 };
 
-export const allMaps: Record<string, WorldMap> = {
-  village: villageMap,
-  forest: forestMap,
-  deep_woods: deepWoodsMap,
-  ruins: ruinsMap,
-};
+function getOrGenerateMap(key: string): WorldMap {
+  if (!mapCache[key]) {
+    const def = mapDefinitions[key];
+    if (!def) throw new Error(`Unknown map: ${key}`);
+    mapCache[key] = generateMap(def);
+  }
+  return mapCache[key];
+}
+
+// Proxy that lazily generates maps on first access
+export const allMaps: Record<string, WorldMap> = new Proxy({} as Record<string, WorldMap>, {
+  get(_target, prop: string) {
+    return getOrGenerateMap(prop);
+  },
+  has(_target, prop: string) {
+    return prop in mapDefinitions;
+  },
+});
