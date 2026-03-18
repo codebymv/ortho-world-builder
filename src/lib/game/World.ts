@@ -161,6 +161,14 @@ export class World {
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5);
     const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1);
 
+    // Apply scale to overlay
+    const scale = OVERLAY_SCALE[tile.type] ?? 1.0;
+    if (scale !== 1.0) {
+      overlayMesh.scale.set(scale, scale, 1);
+      // Offset upward so bottom aligns with tile bottom
+      overlayMesh.position.y = (scale - 1) * this.tileSize * 0.3;
+    }
+
     group.add(baseMesh, overlayMesh);
     return group;
   }
