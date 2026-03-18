@@ -154,9 +154,11 @@ export class World {
         transparent: true,
       });
       mesh = new THREE.Mesh(this.sharedTileGeometry, material);
+      mesh.frustumCulled = false; // We handle culling manually
     }
 
     mesh.position.z = z;
+    mesh.matrixAutoUpdate = false;
     return mesh;
   }
 
