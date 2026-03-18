@@ -684,7 +684,7 @@ const Game = () => {
     };
 
     const checkInteraction = () => {
-      const interactionRange = 1.5;
+      const interactionRange = 2.0;
       const interactionRangeSq = interactionRange * interactionRange;
       for (const npc of state.npcs) {
         const dx = state.player.position.x - npc.position.x;
