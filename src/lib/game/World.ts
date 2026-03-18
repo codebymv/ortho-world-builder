@@ -100,6 +100,7 @@ const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
   house_thatch: 2.0,
   destroyed_house: 2.0,
   tree: 1.8,
+  tall_grass: 0.9,
   dead_tree: 1.5,
   statue: 1.4,
   well: 1.2,
@@ -113,7 +114,7 @@ const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
   crate: 0.7,
   stump: 0.6,
   flower: 0.5,
-  mushroom: 0.5,
+  mushroom: 0.7,
   bones: 0.5,
   fence: 1.0,
   gate: 1.0,
@@ -124,6 +125,7 @@ const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
   scarecrow: 1.4,
   hay_bale: 0.7,
   lantern: 0.9,
+  wheat: 0.95,
 };
 
 const OVERLAY_FOOT_OFFSET: Partial<Record<TileType, number>> = {
