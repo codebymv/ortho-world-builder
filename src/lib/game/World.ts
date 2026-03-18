@@ -175,7 +175,7 @@ export class World {
 
     if (!isOverlay) {
       const texture = this.assetManager.getTexture(tile.type);
-      return texture ? this.createPlaneMesh(texture, -0.5) : null;
+      return texture ? this.createPlaneMesh(texture, -0.5, `base_${tile.type}`) : null;
     }
 
     const overlayTexture = this.assetManager.getTexture(tile.type);
@@ -187,14 +187,13 @@ export class World {
     group.clear();
     group.matrixAutoUpdate = false;
 
-    const baseMesh = this.createPlaneMesh(baseTexture, -0.5);
-    const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1);
+    const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
+    const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1, `overlay_${tile.type}`);
 
     // Apply scale to overlay
     const scale = OVERLAY_SCALE[tile.type] ?? 1.0;
     if (scale !== 1.0) {
       overlayMesh.scale.set(scale, scale, 1);
-      // Offset upward so bottom aligns with tile bottom
       overlayMesh.position.y = (scale - 1) * this.tileSize * 0.3;
     }
     baseMesh.updateMatrix();
