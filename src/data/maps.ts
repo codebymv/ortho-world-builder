@@ -374,33 +374,43 @@ const forestDef: MapDefinition = {
     { x: 270, y: 130, width: 4, height: 5, fill: 'grass' },
   ],
   enemyZones: [
-    { x: 30, y: 30, width: 30, height: 24, enemyType: 'wolf', count: 8 },
-    { x: 210, y: 36, width: 30, height: 24, enemyType: 'bandit', count: 6 },
-    { x: 60, y: 120, width: 40, height: 30, enemyType: 'wolf', count: 5 },
-    { x: 200, y: 160, width: 40, height: 40, enemyType: 'wolf', count: 6 },
-    { x: 20, y: 240, width: 35, height: 30, enemyType: 'shadow', count: 7 },
-    { x: 100, y: 250, width: 25, height: 20, enemyType: 'skeleton', count: 4 },
-    { x: 250, y: 50, width: 25, height: 20, enemyType: 'wolf', count: 4 },
-    { x: 160, y: 40, width: 30, height: 20, enemyType: 'bandit', count: 3 },
+    { x: 30, y: 30, width: 30, height: 24, enemyType: 'wolf', count: 10 },
+    { x: 210, y: 36, width: 30, height: 24, enemyType: 'bandit', count: 8 },
+    { x: 60, y: 120, width: 40, height: 30, enemyType: 'wolf', count: 6 },
+    { x: 200, y: 160, width: 40, height: 40, enemyType: 'wolf', count: 7 },
+    { x: 20, y: 240, width: 35, height: 30, enemyType: 'shadow', count: 9 },
+    { x: 100, y: 250, width: 25, height: 20, enemyType: 'skeleton', count: 6 },
+    { x: 250, y: 50, width: 25, height: 20, enemyType: 'wolf', count: 5 },
+    { x: 160, y: 40, width: 30, height: 20, enemyType: 'bandit', count: 5 },
     // Plant monster zones in enchanted groves
-    { x: 70, y: 140, width: 30, height: 26, enemyType: 'plant', count: 6 },
-    { x: 240, y: 240, width: 24, height: 22, enemyType: 'plant', count: 5 },
-    { x: 50, y: 260, width: 26, height: 22, enemyType: 'plant', count: 4 },
+    { x: 70, y: 140, width: 30, height: 26, enemyType: 'plant', count: 8 },
+    { x: 240, y: 240, width: 24, height: 22, enemyType: 'plant', count: 6 },
+    { x: 50, y: 260, width: 26, height: 22, enemyType: 'plant', count: 5 },
     // Fort defenders
-    { x: 130, y: 120, width: 22, height: 18, enemyType: 'bandit', count: 5 },
-    { x: 200, y: 60, width: 18, height: 16, enemyType: 'skeleton', count: 4 },
-    { x: 60, y: 190, width: 20, height: 16, enemyType: 'bandit', count: 4 },
-    // Field boss zone
+    { x: 130, y: 120, width: 22, height: 18, enemyType: 'bandit', count: 6 },
+    { x: 200, y: 60, width: 18, height: 16, enemyType: 'skeleton', count: 5 },
+    { x: 60, y: 190, width: 20, height: 16, enemyType: 'bandit', count: 5 },
+    // Field bosses (golem in arena + wandering)
     { x: 215, y: 145, width: 30, height: 30, enemyType: 'golem', count: 1 },
+    { x: 110, y: 30, width: 18, height: 16, enemyType: 'golem', count: 1 }, // ruined fort boss
+    { x: 260, y: 170, width: 16, height: 14, enemyType: 'golem', count: 1 }, // ruined east fort boss
     // Cemetery undead
-    { x: 118, y: 238, width: 26, height: 20, enemyType: 'skeleton', count: 5 },
+    { x: 118, y: 238, width: 26, height: 20, enemyType: 'skeleton', count: 7 },
     // Abandoned areas
-    { x: 175, y: 195, width: 30, height: 25, enemyType: 'wolf', count: 5 },
-    // New enemy types in forest
-    { x: 25, y: 245, width: 20, height: 20, enemyType: 'spider', count: 5 },
-    { x: 80, y: 220, width: 18, height: 14, enemyType: 'slime', count: 6 },
-    { x: 240, y: 180, width: 16, height: 14, enemyType: 'spider', count: 3 },
-    { x: 40, y: 200, width: 14, height: 10, enemyType: 'slime', count: 4 },
+    { x: 175, y: 195, width: 30, height: 25, enemyType: 'wolf', count: 6 },
+    // Spider nests & slimes
+    { x: 25, y: 245, width: 20, height: 20, enemyType: 'spider', count: 7 },
+    { x: 80, y: 220, width: 18, height: 14, enemyType: 'slime', count: 8 },
+    { x: 240, y: 180, width: 16, height: 14, enemyType: 'spider', count: 4 },
+    { x: 40, y: 200, width: 14, height: 10, enemyType: 'slime', count: 5 },
+    // Church area undead
+    { x: 175, y: 125, width: 20, height: 20, enemyType: 'skeleton', count: 4 },
+    { x: 45, y: 95, width: 16, height: 18, enemyType: 'shadow', count: 3 },
+    // Ruined fort overrun
+    { x: 28, y: 168, width: 20, height: 16, enemyType: 'bandit', count: 5 },
+    // Wide wandering packs across open areas
+    { x: 140, y: 140, width: 50, height: 50, enemyType: 'wolf', count: 6 },
+    { x: 80, y: 80, width: 40, height: 40, enemyType: 'spider', count: 4 },
   ],
 };
 
