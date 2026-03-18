@@ -261,6 +261,7 @@ const Game = () => {
     });
     const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
     playerMesh.position.set(spawnPoint.x, spawnPoint.y, 0.2);
+    playerMesh.renderOrder = 9999;
     scene.add(playerMesh);
 
     const npcData: NPC[] = [
