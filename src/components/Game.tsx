@@ -369,6 +369,63 @@ const Game = () => {
       }
     };
 
+    const performChargeAttack = (level: number) => {
+      const currentTime = Date.now();
+      if (state.player.isDodging) return;
+
+      state.player.lastAttackTime = currentTime;
+      playerAnimState = 'attack';
+      attackFrame = 0;
+      attackFrameTimer = ATTACK_FRAME_DURATION * 1.5; // slower, heavier swing
+      state.player.attackAnimationTimer = ATTACK_FRAME_DURATION * 4;
+
+      const dmgMult = 1 + (CHARGE_DAMAGE_MULT - 1) * level;
+      const chargeDamage = Math.floor(state.player.attackDamage * dmgMult);
+      const chargeRange = state.player.attackRange * (1 + level * 0.5);
+
+      const enemiesInRange = combatSystem.getEnemiesInRange(
+        state.player.position,
+        chargeRange
+      );
+
+      if (enemiesInRange.length > 0) {
+        // Charged attack hits ALL enemies in range
+        for (const target of enemiesInRange) {
+          const died = combatSystem.playerAttack(target, chargeDamage);
+
+          particleSystem.emitDamage(
+            new THREE.Vector3(target.position.x, target.position.y, 0.3)
+          );
+
+          // Extra sparkle particles for charged hits
+          particleSystem.emitSparkles(
+            new THREE.Vector3(target.position.x, target.position.y + 0.3, 0.5)
+          );
+
+          if (died) {
+            toast(`Defeated ${target.name}!`, {
+              description: `Charged strike! Gained ${target.goldReward} gold.`,
+              className: "rpg-toast",
+            });
+            triggerUIUpdate();
+          }
+        }
+      } else {
+        // Whiff particles (bigger for charge)
+        const attackPos = { ...state.player.position };
+        const d4 = dir8to4(currentDir8);
+        if (d4 === 'up') attackPos.y += 1.5;
+        else if (d4 === 'down') attackPos.y -= 1.5;
+        else if (d4 === 'left') attackPos.x -= 1.5;
+        else if (d4 === 'right') attackPos.x += 1.5;
+
+        particleSystem.emit(
+          new THREE.Vector3(attackPos.x, attackPos.y, 0.3),
+          8, 0xFFD700, 0.5, 1.5, 2
+        );
+      }
+    };
+
     const checkInteraction = () => {
       const interactionRange = 1.5;
       for (const npc of state.npcs) {
