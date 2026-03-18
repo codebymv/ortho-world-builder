@@ -225,8 +225,8 @@ export class AssetManager {
       return row;
     });
 
-    this.textures.set('player_down_idle_0', this.createSpriteTexture(downIdle0, 3));
-    this.textures.set('player_down_idle_1', this.createSpriteTexture(downIdle1, 3));
+    this.textures.set('player_down_idle_0', this.createSpriteTexture(downIdle0, 4));
+    this.textures.set('player_down_idle_1', this.createSpriteTexture(downIdle1, 4));
 
     // Walk frames
     const downWalk0 = downIdle0.map((row, i) => {
@@ -242,8 +242,8 @@ export class AssetManager {
       return row;
     });
 
-    this.textures.set('player_down_walk_0', this.createSpriteTexture(downWalk0, 3));
-    this.textures.set('player_down_walk_1', this.createSpriteTexture(downWalk1, 3));
+    this.textures.set('player_down_walk_0', this.createSpriteTexture(downWalk0, 4));
+    this.textures.set('player_down_walk_1', this.createSpriteTexture(downWalk1, 4));
 
     // Attack frames - sword swings
     const downAtk0 = downIdle0.map((row, i) => {
@@ -265,9 +265,9 @@ export class AssetManager {
       return row;
     });
 
-    this.textures.set('player_down_attack_0', this.createSpriteTexture(downAtk0, 3));
-    this.textures.set('player_down_attack_1', this.createSpriteTexture(downAtk1, 3));
-    this.textures.set('player_down_attack_2', this.createSpriteTexture(downAtk2, 3));
+    this.textures.set('player_down_attack_0', this.createSpriteTexture(downAtk0, 4));
+    this.textures.set('player_down_attack_1', this.createSpriteTexture(downAtk1, 4));
+    this.textures.set('player_down_attack_2', this.createSpriteTexture(downAtk2, 4));
 
     // Charge frames - glowing sword
     const downChg0 = downAtk0.map((row, i) => {
@@ -289,9 +289,9 @@ export class AssetManager {
       return row;
     });
 
-    this.textures.set('player_down_charge_0', this.createSpriteTexture(downChg0, 3));
-    this.textures.set('player_down_charge_1', this.createSpriteTexture(downChg1, 3));
-    this.textures.set('player_down_charge_2', this.createSpriteTexture(downChg2, 3));
+    this.textures.set('player_down_charge_0', this.createSpriteTexture(downChg0, 4));
+    this.textures.set('player_down_charge_1', this.createSpriteTexture(downChg1, 4));
+    this.textures.set('player_down_charge_2', this.createSpriteTexture(downChg2, 4));
 
     // Hurt frame
     const downHurt = downIdle0.map((row, i) => {
@@ -299,7 +299,7 @@ export class AssetManager {
       if (i === 9) return [C,C,C,C,C,SK,SK_S,MOUTH_H,SK_S,SK,SK,C,C,C,C,C];
       return row;
     });
-    this.textures.set('player_down_hurt_0', this.createSpriteTexture(downHurt, 3));
+    this.textures.set('player_down_hurt_0', this.createSpriteTexture(downHurt, 4));
 
     // ========== PLAYER UP - Back view (16x20) ==========
     const upIdle0: number[][] = [
@@ -326,8 +326,8 @@ export class AssetManager {
       [C,  C,  C,  C,  CAPE_D,CAPE_S,CAPE,CAPE_S,CAPE,CAPE_S,CAPE_D,C,  C,  C,  C,  C ],
     ];
 
-    this.textures.set('player_up_idle_0', this.createSpriteTexture(upIdle0, 3));
-    this.textures.set('player_up_idle_1', this.createSpriteTexture(upIdle0, 3));
+    this.textures.set('player_up_idle_0', this.createSpriteTexture(upIdle0, 4));
+    this.textures.set('player_up_idle_1', this.createSpriteTexture(upIdle0, 4));
 
     const upWalk0 = upIdle0.map((row, i) => {
       if (i === 16) return [C,C,C,C,BOOT,PANT_S,C,C,C,PANT,BOOT,C,C,C,C,C];
@@ -340,8 +340,8 @@ export class AssetManager {
       return row;
     });
 
-    this.textures.set('player_up_walk_0', this.createSpriteTexture(upWalk0, 3));
-    this.textures.set('player_up_walk_1', this.createSpriteTexture(upWalk1, 3));
+    this.textures.set('player_up_walk_0', this.createSpriteTexture(upWalk0, 4));
+    this.textures.set('player_up_walk_1', this.createSpriteTexture(upWalk1, 4));
 
     const upAtk0 = upIdle0.map((row, i) => {
       if (i === 0) return [C,C,POM,GRD,BL_S,HR_S,HR,HR_H,HR_B,HR,HR_S,C,C,C,C,C];
@@ -349,13 +349,13 @@ export class AssetManager {
       if (i === 2) return [C,C,C,C,BL_H,HR,HR_H,HR_B,HR,HR_B,HR_H,HR,HR_D,C,C,C];
       return row;
     });
-    this.textures.set('player_up_attack_0', this.createSpriteTexture(upAtk0, 3));
+    this.textures.set('player_up_attack_0', this.createSpriteTexture(upAtk0, 4));
     this.textures.set('player_up_attack_1', this.textures.get('player_up_attack_0')!);
     const upAtk2 = upIdle0.map((row, i) => {
       if (i === 15) return [POM,GRD,BL_S,BL,BL_H,PANT,PANT_H,PANT,PANT_H,PANT,CAPE_D,C,C,C,C,C];
       return row;
     });
-    this.textures.set('player_up_attack_2', this.createSpriteTexture(upAtk2, 3));
+    this.textures.set('player_up_attack_2', this.createSpriteTexture(upAtk2, 4));
 
     this.textures.set('player_up_charge_0', this.textures.get('player_down_charge_0')!);
     this.textures.set('player_up_charge_1', this.textures.get('player_down_charge_1')!);
@@ -399,11 +399,11 @@ export class AssetManager {
       [C,  C,  C,  C,  C,  C,  C,  C,  C,  HR_D,HR_S,C,  C,  C,  C,  C ],
     ];
 
-    this.textures.set('player_left_idle_0', this.createSpriteTexture(leftIdle0, 3));
+    this.textures.set('player_left_idle_0', this.createSpriteTexture(leftIdle0, 4));
     this.textures.set('player_left_idle_1', this.createSpriteTexture(leftIdle0.map((row, i) => {
       if (i === 15) return [C,POM,C,C,CAPE_D,PANT,PANT_H,PANT,CAPE_H,CAPE_S,C,C,C,C,C,C]; // cape flutter
       return row;
-    }), 3));
+    }), 4));
 
     const leftWalk0 = leftIdle0.map((row, i) => {
       if (i === 16) return [C,C,C,C,BOOT,PANT_S,PANT,C,PANT,PANT_S,C,C,C,C,C,C];
@@ -416,8 +416,8 @@ export class AssetManager {
       return row;
     });
 
-    this.textures.set('player_left_walk_0', this.createSpriteTexture(leftWalk0, 3));
-    this.textures.set('player_left_walk_1', this.createSpriteTexture(leftWalk1, 3));
+    this.textures.set('player_left_walk_0', this.createSpriteTexture(leftWalk0, 4));
+    this.textures.set('player_left_walk_1', this.createSpriteTexture(leftWalk1, 4));
 
     // Left attack
     const leftAtk0 = leftIdle0.map((row, i) => {
@@ -435,9 +435,9 @@ export class AssetManager {
       return row;
     });
 
-    this.textures.set('player_left_attack_0', this.createSpriteTexture(leftAtk0, 3));
-    this.textures.set('player_left_attack_1', this.createSpriteTexture(leftAtk1, 3));
-    this.textures.set('player_left_attack_2', this.createSpriteTexture(leftAtk2, 3));
+    this.textures.set('player_left_attack_0', this.createSpriteTexture(leftAtk0, 4));
+    this.textures.set('player_left_attack_1', this.createSpriteTexture(leftAtk1, 4));
+    this.textures.set('player_left_attack_2', this.createSpriteTexture(leftAtk2, 4));
 
     // Left charge
     const leftChg0 = leftAtk0.map((row, i) => {
@@ -445,9 +445,9 @@ export class AssetManager {
       if (i === 13) return [CG,CG_B,CG_B,GRD_H,GLV_H,TUN_S,TUN,TUN,TUN_S,CAPE_D,C,C,C,C,C,C];
       return row;
     });
-    this.textures.set('player_left_charge_0', this.createSpriteTexture(leftChg0, 3));
-    this.textures.set('player_left_charge_1', this.createSpriteTexture(leftChg0, 3));
-    this.textures.set('player_left_charge_2', this.createSpriteTexture(leftChg0, 3));
+    this.textures.set('player_left_charge_0', this.createSpriteTexture(leftChg0, 4));
+    this.textures.set('player_left_charge_1', this.createSpriteTexture(leftChg0, 4));
+    this.textures.set('player_left_charge_2', this.createSpriteTexture(leftChg0, 4));
     
     // Left hurt
     const leftHurt = leftIdle0.map((row, i) => {
@@ -455,20 +455,20 @@ export class AssetManager {
       if (i === 9) return [C,C,C,C,SK,SK_S,MOUTH_H,SK,C,C,C,C,C,C,C,C];
       return row;
     });
-    this.textures.set('player_left_hurt_0', this.createSpriteTexture(leftHurt, 3));
+    this.textures.set('player_left_hurt_0', this.createSpriteTexture(leftHurt, 4));
 
     // ========== PLAYER RIGHT (mirror of left) ==========
-    this.textures.set('player_right_idle_0', this.createSpriteTexture(mirrorSprite(leftIdle0), 3));
+    this.textures.set('player_right_idle_0', this.createSpriteTexture(mirrorSprite(leftIdle0), 4));
     this.textures.set('player_right_idle_1', this.textures.get('player_right_idle_0')!);
-    this.textures.set('player_right_walk_0', this.createSpriteTexture(mirrorSprite(leftWalk0), 3));
-    this.textures.set('player_right_walk_1', this.createSpriteTexture(mirrorSprite(leftWalk1), 3));
-    this.textures.set('player_right_attack_0', this.createSpriteTexture(mirrorSprite(leftAtk0.map(r => [...r])), 3));
-    this.textures.set('player_right_attack_1', this.createSpriteTexture(mirrorSprite(leftAtk1.map(r => [...r])), 3));
-    this.textures.set('player_right_attack_2', this.createSpriteTexture(mirrorSprite(leftAtk2.map(r => [...r])), 3));
-    this.textures.set('player_right_charge_0', this.createSpriteTexture(mirrorSprite(leftChg0.map(r => [...r])), 3));
+    this.textures.set('player_right_walk_0', this.createSpriteTexture(mirrorSprite(leftWalk0), 4));
+    this.textures.set('player_right_walk_1', this.createSpriteTexture(mirrorSprite(leftWalk1), 4));
+    this.textures.set('player_right_attack_0', this.createSpriteTexture(mirrorSprite(leftAtk0.map(r => [...r])), 4));
+    this.textures.set('player_right_attack_1', this.createSpriteTexture(mirrorSprite(leftAtk1.map(r => [...r])), 4));
+    this.textures.set('player_right_attack_2', this.createSpriteTexture(mirrorSprite(leftAtk2.map(r => [...r])), 4));
+    this.textures.set('player_right_charge_0', this.createSpriteTexture(mirrorSprite(leftChg0.map(r => [...r])), 4));
     this.textures.set('player_right_charge_1', this.textures.get('player_right_charge_0')!);
     this.textures.set('player_right_charge_2', this.textures.get('player_right_charge_0')!);
-    this.textures.set('player_right_hurt_0', this.createSpriteTexture(mirrorSprite(leftHurt.map(r => [...r])), 3));
+    this.textures.set('player_right_hurt_0', this.createSpriteTexture(mirrorSprite(leftHurt.map(r => [...r])), 4));
 
     // ========== DIAGONAL SPRITES ==========
     const diagDirs = ['down_left', 'down_right', 'up_left', 'up_right'] as const;
