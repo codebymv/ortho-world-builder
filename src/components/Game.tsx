@@ -816,11 +816,11 @@ const Game = () => {
       }
 
       // Stamina regen
-      const nowSec = Date.now() / 1000;
+      const nowSec = currentTime / 1000;
       if (nowSec - state.player.lastStaminaUseTime > state.player.staminaRegenDelay) {
         const prevStamina = state.player.stamina;
         state.player.stamina = Math.min(state.player.maxStamina, state.player.stamina + state.player.staminaRegenRate * deltaTime);
-        if (state.player.stamina !== prevStamina && Math.floor(state.player.stamina) !== Math.floor(prevStamina)) {
+        if (Math.floor(state.player.stamina) !== Math.floor(prevStamina)) {
           triggerUIUpdate();
         }
       }
