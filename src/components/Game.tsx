@@ -72,6 +72,20 @@ const Game = () => {
     const enemyHPBars = new Map<string, { bg: THREE.Mesh; fill: THREE.Mesh }>();
     const cameraTarget = { x: state.player.position.x, y: state.player.position.y };
 
+    // Interaction indicator
+    const indicatorTexture = assetManager.getTexture('interact_indicator');
+    const indicatorGeometry = new THREE.PlaneGeometry(0.4, 0.4);
+    const indicatorMaterial = new THREE.MeshBasicMaterial({
+      map: indicatorTexture,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+    const indicatorMesh = new THREE.Mesh(indicatorGeometry, indicatorMaterial);
+    indicatorMesh.position.z = 0.5;
+    indicatorMesh.visible = false;
+    scene.add(indicatorMesh);
+
     let footstepTimer = 0;
     const footstepInterval = 0.3;
     let lastTime = performance.now();
