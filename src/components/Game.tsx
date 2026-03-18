@@ -4,6 +4,7 @@ import { GameState, NPC } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { World } from '@/lib/game/World';
 import { ParticleSystem } from '@/lib/game/ParticleSystem';
+import { BiomeAmbience } from '@/lib/game/BiomeAmbience';
 import { CombatSystem, Enemy } from '@/lib/game/Combat';
 import { allMaps, mapDefinitions } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
@@ -13,6 +14,8 @@ import { DialogueBox } from './game/DialogueBox';
 import { GameUI } from './game/GameUI';
 import { Minimap } from './game/Minimap';
 import { toast } from 'sonner';
+
+type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
 
 const Game = () => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -57,13 +60,16 @@ const Game = () => {
 
     const particleSystem = new ParticleSystem(scene);
     const combatSystem = new CombatSystem(state);
+    const biomeAmbience = new BiomeAmbience(scene);
 
     const world = new World(scene, assetManager, allMaps.village);
     const spawnPoint = world.getSpawnPoint();
     state.player.position = { x: spawnPoint.x, y: spawnPoint.y };
     world.updateChunks(spawnPoint.x, spawnPoint.y);
+    biomeAmbience.setBiome('grassland');
 
     const enemyMeshes = new Map<string, THREE.Mesh>();
+    const enemyHPBars = new Map<string, { bg: THREE.Mesh; fill: THREE.Mesh }>();
     const cameraTarget = { x: state.player.position.x, y: state.player.position.y };
 
     let footstepTimer = 0;
@@ -75,15 +81,43 @@ const Game = () => {
     // Animation state
     let animFrame = 0;
     let animTimer = 0;
-    const IDLE_FRAME_DURATION = 0.8; // slow idle breathing
-    const WALK_FRAME_DURATION = 0.18; // fast walk cycle
-    let playerAnimState: 'idle' | 'walk' | 'attack' = 'idle';
+    const IDLE_FRAME_DURATION = 0.8;
+    const WALK_FRAME_DURATION = 0.18;
+    let playerAnimState: 'idle' | 'walk' | 'attack' | 'dodge' = 'idle';
     let attackFrameTimer = 0;
     let attackFrame = 0;
-    const ATTACK_FRAME_DURATION = 0.1; // 100ms per attack frame (3 frames = 300ms total)
+    const ATTACK_FRAME_DURATION = 0.1;
+    let currentDir8: Direction8 = 'down';
 
-    const getPlayerTextureName = (dir: string, animState: string, frame: number): string => {
+    // Map biome lookup
+    const mapBiomes: Record<string, string> = {
+      village: 'grassland',
+      forest: 'forest',
+      deep_woods: 'swamp',
+      ruins: 'ruins',
+    };
+
+    const getPlayerTextureName = (dir: Direction8, animState: string, frame: number): string => {
       return `player_${dir}_${animState}_${frame}`;
+    };
+
+    const getDirection8 = (mx: number, my: number): Direction8 => {
+      if (mx === 0 && my > 0) return 'up';
+      if (mx === 0 && my < 0) return 'down';
+      if (mx < 0 && my === 0) return 'left';
+      if (mx > 0 && my === 0) return 'right';
+      if (mx < 0 && my > 0) return 'up_left';
+      if (mx > 0 && my > 0) return 'up_right';
+      if (mx < 0 && my < 0) return 'down_left';
+      if (mx > 0 && my < 0) return 'down_right';
+      return 'down';
+    };
+
+    const dir8to4 = (d: Direction8): 'up' | 'down' | 'left' | 'right' => {
+      if (d === 'up' || d === 'up_left' || d === 'up_right') return 'up';
+      if (d === 'left' || d === 'down_left') return 'left';
+      if (d === 'right' || d === 'down_right') return 'right';
+      return 'down';
     };
 
     const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
@@ -92,6 +126,7 @@ const Game = () => {
 
       state.currentMap = targetMap;
       world.loadMap(newMap);
+      biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
       
       const worldX = targetX - newMap.width / 2;
       const worldY = targetY - newMap.height / 2;
@@ -111,6 +146,16 @@ const Game = () => {
         (mesh.material as THREE.Material).dispose();
       });
       enemyMeshes.clear();
+      // Clear HP bars
+      enemyHPBars.forEach(({ bg, fill }) => {
+        scene.remove(bg);
+        scene.remove(fill);
+        bg.geometry.dispose();
+        (bg.material as THREE.Material).dispose();
+        fill.geometry.dispose();
+        (fill.material as THREE.Material).dispose();
+      });
+      enemyHPBars.clear();
 
       const mapDef = mapDefinitions[targetMap];
       if (mapDef?.enemyZones) {
@@ -173,6 +218,7 @@ const Game = () => {
     const keys: { [key: string]: boolean } = {};
     let interactBuffered = false;
     let attackBuffered = false;
+    let dodgeBuffered = false;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       keys[e.key.toLowerCase()] = true;
@@ -183,19 +229,58 @@ const Game = () => {
         e.preventDefault();
         attackBuffered = true;
       }
+      if (e.key === 'Shift' && !state.dialogueActive) {
+        dodgeBuffered = true;
+      }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       keys[e.key.toLowerCase()] = false;
+      if (e.key === 'Shift') {
+        keys['shift'] = false;
+      }
+    };
+
+    const performDodge = (moveX: number, moveY: number) => {
+      const now = Date.now();
+      if (now - state.player.lastDodgeTime < state.player.dodgeCooldown) return;
+      if (state.player.stamina < 25) return;
+      if (state.player.isDodging) return;
+
+      // Use facing direction if not moving
+      let dx = moveX;
+      let dy = moveY;
+      if (dx === 0 && dy === 0) {
+        const dirMap: Record<string, { x: number; y: number }> = {
+          up: { x: 0, y: 1 }, down: { x: 0, y: -1 },
+          left: { x: -1, y: 0 }, right: { x: 1, y: 0 },
+          up_left: { x: -1, y: 1 }, up_right: { x: 1, y: 1 },
+          down_left: { x: -1, y: -1 }, down_right: { x: 1, y: -1 },
+        };
+        const d = dirMap[currentDir8] || { x: 0, y: -1 };
+        dx = d.x;
+        dy = d.y;
+      }
+
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > 0) { dx /= len; dy /= len; }
+
+      state.player.isDodging = true;
+      state.player.dodgeTimer = state.player.dodgeDuration;
+      state.player.dodgeDirection = { x: dx, y: dy };
+      state.player.lastDodgeTime = now;
+      state.player.stamina -= 25;
+      state.player.lastStaminaUseTime = now / 1000;
+      playerAnimState = 'dodge';
+      triggerUIUpdate();
     };
 
     const performAttack = () => {
       const currentTime = Date.now();
       if (currentTime - state.player.lastAttackTime < state.player.attackCooldown) return;
+      if (state.player.isDodging) return;
 
       state.player.lastAttackTime = currentTime;
-
-      // Start attack animation
       playerAnimState = 'attack';
       attackFrame = 0;
       attackFrameTimer = ATTACK_FRAME_DURATION;
@@ -208,11 +293,12 @@ const Game = () => {
 
       if (enemiesInRange.length > 0) {
         let target = enemiesInRange[0];
+        const d4 = dir8to4(currentDir8);
         const dirOffsets: Record<string, {x: number, y: number}> = {
           up: {x: 0, y: 1}, down: {x: 0, y: -1},
           left: {x: -1, y: 0}, right: {x: 1, y: 0}
         };
-        const dir = dirOffsets[state.player.direction];
+        const dir = dirOffsets[d4];
         
         const facingEnemies = enemiesInRange.filter(e => {
           const edx = e.position.x - state.player.position.x;
@@ -223,7 +309,6 @@ const Game = () => {
 
         const died = combatSystem.playerAttack(target, state.player.attackDamage);
 
-        // Show bonus damage text if recovering
         if (target.state === 'recovering' || (target.health > 0 && target.damageFlashTimer > 0)) {
           particleSystem.emitDamage(
             new THREE.Vector3(target.position.x, target.position.y + 0.5, 0.5)
@@ -243,10 +328,11 @@ const Game = () => {
         }
       } else {
         const attackPos = { ...state.player.position };
-        if (state.player.direction === 'up') attackPos.y += 1;
-        else if (state.player.direction === 'down') attackPos.y -= 1;
-        else if (state.player.direction === 'left') attackPos.x -= 1;
-        else if (state.player.direction === 'right') attackPos.x += 1;
+        const d4 = dir8to4(currentDir8);
+        if (d4 === 'up') attackPos.y += 1;
+        else if (d4 === 'down') attackPos.y -= 1;
+        else if (d4 === 'left') attackPos.x -= 1;
+        else if (d4 === 'right') attackPos.x += 1;
 
         particleSystem.emit(
           new THREE.Vector3(attackPos.x, attackPos.y, 0.3),
@@ -358,6 +444,26 @@ const Game = () => {
 
     window.addEventListener('resize', handleResize);
 
+    // Helper: create/update HP bar for an enemy
+    const getOrCreateHPBar = (enemy: Enemy) => {
+      let hpBar = enemyHPBars.get(enemy.id);
+      if (!hpBar) {
+        const bgGeo = new THREE.PlaneGeometry(0.6, 0.06);
+        const bgMat = new THREE.MeshBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.8, depthWrite: false });
+        const bg = new THREE.Mesh(bgGeo, bgMat);
+
+        const fillGeo = new THREE.PlaneGeometry(0.58, 0.04);
+        const fillMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.9, depthWrite: false });
+        const fill = new THREE.Mesh(fillGeo, fillMat);
+
+        scene.add(bg);
+        scene.add(fill);
+        hpBar = { bg, fill };
+        enemyHPBars.set(enemy.id, hpBar);
+      }
+      return hpBar;
+    };
+
     // ============= ANIMATION LOOP =============
     const animate = () => {
       requestAnimationFrame(animate);
@@ -366,6 +472,12 @@ const Game = () => {
       let deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
       if (deltaTime > MAX_DELTA) deltaTime = MAX_DELTA;
+
+      // Stamina regen
+      const nowSec = currentTime / 1000;
+      if (nowSec - state.player.lastStaminaUseTime > state.player.staminaRegenDelay) {
+        state.player.stamina = Math.min(state.player.maxStamina, state.player.stamina + state.player.staminaRegenRate * deltaTime);
+      }
 
       // Process buffered inputs
       if (interactBuffered && !state.dialogueActive) {
@@ -381,12 +493,17 @@ const Game = () => {
         let moveX = 0;
         let moveY = 0;
         let moved = false;
-        let newDirection = state.player.direction;
 
-        if (keys['w'] || keys['arrowup']) { moveY += 1; newDirection = 'up'; moved = true; }
-        if (keys['s'] || keys['arrowdown']) { moveY -= 1; newDirection = 'down'; moved = true; }
-        if (keys['a'] || keys['arrowleft']) { moveX -= 1; newDirection = 'left'; moved = true; }
-        if (keys['d'] || keys['arrowright']) { moveX += 1; newDirection = 'right'; moved = true; }
+        if (keys['w'] || keys['arrowup']) { moveY += 1; moved = true; }
+        if (keys['s'] || keys['arrowdown']) { moveY -= 1; moved = true; }
+        if (keys['a'] || keys['arrowleft']) { moveX -= 1; moved = true; }
+        if (keys['d'] || keys['arrowright']) { moveX += 1; moved = true; }
+
+        // Handle dodge input
+        if (dodgeBuffered && !state.dialogueActive) {
+          performDodge(moveX, moveY);
+          dodgeBuffered = false;
+        }
 
         if (moveX !== 0 && moveY !== 0) {
           const length = Math.sqrt(moveX * moveX + moveY * moveY);
@@ -394,7 +511,29 @@ const Game = () => {
           moveY /= length;
         }
 
-        if (moved) {
+        // Dodge roll movement
+        if (state.player.isDodging) {
+          state.player.dodgeTimer -= deltaTime;
+          const dodgeFrameSpeed = state.player.dodgeSpeed * deltaTime * 60;
+          const newPos = {
+            x: state.player.position.x + state.player.dodgeDirection.x * dodgeFrameSpeed,
+            y: state.player.position.y + state.player.dodgeDirection.y * dodgeFrameSpeed,
+          };
+          if (world.isWalkable(newPos.x, newPos.y)) {
+            state.player.position = newPos;
+          }
+          world.updateChunks(state.player.position.x, state.player.position.y);
+
+          if (state.player.dodgeTimer <= 0) {
+            state.player.isDodging = false;
+            playerAnimState = moved ? 'walk' : 'idle';
+          }
+        } else if (moved) {
+          // Determine 8-direction
+          const rawDir = getDirection8(moveX > 0 ? 1 : moveX < 0 ? -1 : 0, moveY > 0 ? 1 : moveY < 0 ? -1 : 0);
+          currentDir8 = rawDir;
+          state.player.direction = dir8to4(rawDir);
+
           const frameSpeed = state.player.speed * deltaTime * 60;
           const newPos = {
             x: state.player.position.x + moveX * frameSpeed,
@@ -410,11 +549,9 @@ const Game = () => {
           }
 
           world.updateChunks(state.player.position.x, state.player.position.y);
-          state.player.direction = newDirection;
           state.player.isMoving = true;
 
-          // Walk animation if not attacking
-          if (playerAnimState !== 'attack') {
+          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge') {
             playerAnimState = 'walk';
           }
 
@@ -446,7 +583,7 @@ const Game = () => {
         } else {
           state.player.isMoving = false;
           footstepTimer = 0;
-          if (playerAnimState !== 'attack') {
+          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge') {
             playerAnimState = 'idle';
           }
         }
@@ -457,7 +594,6 @@ const Game = () => {
           if (attackFrameTimer <= 0) {
             attackFrame++;
             if (attackFrame >= 3) {
-              // Attack animation done
               playerAnimState = moved ? 'walk' : 'idle';
               attackFrame = 0;
             } else {
@@ -468,7 +604,7 @@ const Game = () => {
         }
 
         // Cycle idle/walk frames
-        if (playerAnimState !== 'attack') {
+        if (playerAnimState !== 'attack' && playerAnimState !== 'dodge') {
           const frameDuration = playerAnimState === 'walk' ? WALK_FRAME_DURATION : IDLE_FRAME_DURATION;
           animTimer += deltaTime;
           if (animTimer >= frameDuration) {
@@ -478,11 +614,25 @@ const Game = () => {
         }
 
         // Update player texture based on animation state
-        const texName = playerAnimState === 'attack'
-          ? getPlayerTextureName(state.player.direction, 'attack', Math.min(attackFrame, 2))
-          : getPlayerTextureName(state.player.direction, playerAnimState, animFrame);
+        let texName: string;
+        if (playerAnimState === 'attack') {
+          texName = getPlayerTextureName(currentDir8, 'attack', Math.min(attackFrame, 2));
+        } else if (playerAnimState === 'dodge') {
+          texName = getPlayerTextureName(currentDir8, 'walk', animFrame);
+        } else {
+          texName = getPlayerTextureName(currentDir8, playerAnimState, animFrame);
+        }
         
-        const newTex = assetManager.getTexture(texName);
+        // Fallback to 4-dir texture if 8-dir not found
+        let newTex = assetManager.getTexture(texName);
+        if (!newTex) {
+          const fallbackDir = dir8to4(currentDir8);
+          const fallbackState = playerAnimState === 'dodge' ? 'walk' : playerAnimState;
+          const fallbackFrame = playerAnimState === 'attack' ? Math.min(attackFrame, 2) : animFrame;
+          texName = `player_${fallbackDir}_${fallbackState}_${fallbackFrame}`;
+          newTex = assetManager.getTexture(texName);
+        }
+        
         if (newTex && playerMaterial.map !== newTex) {
           playerMaterial.map = newTex;
           playerMaterial.needsUpdate = true;
@@ -492,13 +642,25 @@ const Game = () => {
         let attackOffsetX = 0;
         let attackOffsetY = 0;
         if (playerAnimState === 'attack' && attackFrame === 1) {
-          // Lunge forward on the slash frame
           const lungeAmount = 0.15;
-          if (state.player.direction === 'up') attackOffsetY = lungeAmount;
-          else if (state.player.direction === 'down') attackOffsetY = -lungeAmount;
-          else if (state.player.direction === 'left') attackOffsetX = -lungeAmount;
-          else if (state.player.direction === 'right') attackOffsetX = lungeAmount;
+          const d4 = dir8to4(currentDir8);
+          if (d4 === 'up') attackOffsetY = lungeAmount;
+          else if (d4 === 'down') attackOffsetY = -lungeAmount;
+          else if (d4 === 'left') attackOffsetX = -lungeAmount;
+          else if (d4 === 'right') attackOffsetX = lungeAmount;
         }
+
+        // Dodge roll visual: squish + spin
+        let dodgeScaleX = 1, dodgeScaleY = 1;
+        if (state.player.isDodging) {
+          const t = 1 - (state.player.dodgeTimer / state.player.dodgeDuration);
+          dodgeScaleX = 1 + Math.sin(t * Math.PI) * 0.3;
+          dodgeScaleY = 1 - Math.sin(t * Math.PI) * 0.2;
+          playerMesh.rotation.z = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? 1 : -1);
+        } else {
+          playerMesh.rotation.z = 0;
+        }
+        playerMesh.scale.set(dodgeScaleX, dodgeScaleY, 1);
 
         playerMesh.position.set(
           state.player.position.x + attackOffsetX,
@@ -506,13 +668,18 @@ const Game = () => {
           0.2
         );
 
-        // Player damage flash
+        // Player damage flash (skip during dodge i-frames)
         if (state.player.damageFlashTimer > 0) {
           state.player.damageFlashTimer -= deltaTime;
           const flashIntensity = Math.sin(state.player.damageFlashTimer * 30) > 0 ? 0xff0000 : 0xff6666;
           playerMaterial.color.setHex(flashIntensity);
+        } else if (state.player.isDodging) {
+          // Semi-transparent during dodge (i-frames visual)
+          playerMaterial.color.setHex(0xaaaaff);
+          playerMaterial.opacity = 0.6;
         } else {
           playerMaterial.color.setHex(0xffffff);
+          playerMaterial.opacity = 1;
         }
 
         // Smooth camera follow
@@ -522,10 +689,10 @@ const Game = () => {
         camera.position.x += (cameraTarget.x - camera.position.x) * lerpFactor;
         camera.position.y += (cameraTarget.y - camera.position.y) * lerpFactor;
 
-        // Update combat system
-        combatSystem.updateEnemies(deltaTime, state.player.position);
+        // Update combat system — pass dodge state for i-frames
+        combatSystem.updateEnemies(deltaTime, state.player.position, state.player.isDodging);
 
-        // === ENEMY RENDERING WITH STATE-BASED SPRITES ===
+        // === ENEMY RENDERING WITH HP BARS ===
         const enemies = combatSystem.getEnemies();
         for (const enemy of enemies) {
           let enemyMesh = enemyMeshes.get(enemy.id);
@@ -545,8 +712,7 @@ const Game = () => {
 
           const mat = enemyMesh.material as THREE.MeshBasicMaterial;
 
-          // Choose sprite based on enemy state
-          let spriteKey = enemy.sprite; // default idle
+          let spriteKey = enemy.sprite;
           if (enemy.state === 'telegraphing') {
             spriteKey = `${enemy.sprite}_telegraph`;
           } else if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) {
@@ -559,7 +725,6 @@ const Game = () => {
             mat.needsUpdate = true;
           }
 
-          // Enemy damage flash
           if (enemy.damageFlashTimer > 0) {
             enemy.damageFlashTimer -= deltaTime;
             mat.color.setHex(0xff0000);
@@ -570,29 +735,23 @@ const Game = () => {
           let finalEnemyX = enemy.position.x;
           let finalEnemyY = enemy.position.y;
 
-          // State-based animations
           if (enemy.state === 'chasing') {
-            // Bobbing while chasing
             finalEnemyY += Math.sin(currentTime / 100 + parseFloat(enemy.id.split('_')[1] || "0")) * 0.05;
           } else if (enemy.state === 'telegraphing') {
-            // Shake/vibrate during telegraph (warning!)
             const shakeIntensity = 0.06 * (1 - enemy.telegraphTimer / enemy.telegraphDuration);
             finalEnemyX += (Math.random() - 0.5) * shakeIntensity;
             finalEnemyY += (Math.random() - 0.5) * shakeIntensity;
             
-            // Scale up slightly during telegraph
             const telegraphProgress = 1 - (enemy.telegraphTimer / enemy.telegraphDuration);
             const scale = 1 + telegraphProgress * 0.2;
             enemyMesh.scale.set(scale, scale, 1);
 
-            // Pulsing glow
             if (Math.sin(currentTime / 50) > 0) {
               mat.color.setHex(0xffaa00);
             } else {
               mat.color.setHex(0xffffff);
             }
           } else if (enemy.state === 'recovering') {
-            // Attack lunge then recoil
             if (enemy.attackAnimationTimer > 0) {
               enemy.attackAnimationTimer -= deltaTime;
               const dx = state.player.position.x - enemy.position.x;
@@ -605,20 +764,37 @@ const Game = () => {
                 finalEnemyY += (dy / dist) * lungeDistance;
               }
             }
-            // Shrink slightly during recovery (vulnerable)
             const recoverProgress = enemy.recoverTimer / enemy.recoverDuration;
             enemyMesh.scale.set(0.9 + recoverProgress * 0.1, 0.9 + recoverProgress * 0.1, 1);
-            // Tint slightly blue to show vulnerability
             if (!enemy.damageFlashTimer || enemy.damageFlashTimer <= 0) {
               mat.color.setHex(0x8888ff);
             }
           } else if (enemy.state === 'idle') {
-            // Gentle floating
             finalEnemyY += Math.sin(currentTime / 500 + parseFloat(enemy.id.split('_')[1] || "0") * 3) * 0.03;
             enemyMesh.scale.set(1, 1, 1);
           }
 
           enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
+
+          // === HP BAR ===
+          const hpBar = getOrCreateHPBar(enemy);
+          const hpRatio = enemy.health / enemy.maxHealth;
+          const barY = finalEnemyY + 0.5;
+          
+          hpBar.bg.position.set(finalEnemyX, barY, 0.35);
+          hpBar.fill.position.set(finalEnemyX - 0.29 * (1 - hpRatio), barY, 0.36);
+          hpBar.fill.scale.set(hpRatio, 1, 1);
+
+          // Color HP bar based on health
+          const fillMat = hpBar.fill.material as THREE.MeshBasicMaterial;
+          if (hpRatio > 0.5) fillMat.color.setHex(0x4CAF50);
+          else if (hpRatio > 0.25) fillMat.color.setHex(0xFFC107);
+          else fillMat.color.setHex(0xF44336);
+
+          // Only show HP bar when enemy is engaged or damaged
+          const showBar = enemy.state !== 'idle' || enemy.health < enemy.maxHealth;
+          hpBar.bg.visible = showBar;
+          hpBar.fill.visible = showBar;
         }
 
         // Handle dying enemies
@@ -639,10 +815,30 @@ const Game = () => {
                 mesh.geometry.dispose();
                 deadMat.dispose();
                 enemyMeshes.delete(enemy.id);
+
+                // Remove HP bar
+                const hpBar = enemyHPBars.get(enemy.id);
+                if (hpBar) {
+                  scene.remove(hpBar.bg);
+                  scene.remove(hpBar.fill);
+                  hpBar.bg.geometry.dispose();
+                  (hpBar.bg.material as THREE.Material).dispose();
+                  hpBar.fill.geometry.dispose();
+                  (hpBar.fill.material as THREE.Material).dispose();
+                  enemyHPBars.delete(enemy.id);
+                }
+
                 fullyDeadEnemyIds.add(enemy.id);
               }
             } else {
               fullyDeadEnemyIds.add(enemy.id);
+            }
+
+            // Hide HP bars for dead enemies immediately
+            const hpBar = enemyHPBars.get(enemy.id);
+            if (hpBar) {
+              hpBar.bg.visible = false;
+              hpBar.fill.visible = false;
             }
           }
         }
@@ -655,14 +851,20 @@ const Game = () => {
         if (state.player.health <= 0) {
           toast.error('You have been defeated!');
           state.player.health = state.player.maxHealth;
+          state.player.stamina = state.player.maxStamina;
+          state.player.isDodging = false;
           state.player.position = world.getSpawnPoint();
           playerMesh.position.set(state.player.position.x, state.player.position.y, 0.2);
+          playerMesh.rotation.z = 0;
+          playerMesh.scale.set(1, 1, 1);
           camera.position.x = state.player.position.x;
           camera.position.y = state.player.position.y;
           triggerUIUpdate();
         }
       }
 
+      // Update systems
+      biomeAmbience.update(deltaTime, state.player.position.x, state.player.position.y);
       particleSystem.update(deltaTime);
       renderer.render(scene, camera);
     };
@@ -686,6 +888,7 @@ const Game = () => {
         mountRef.current.removeChild(renderer.domElement);
       }
       particleSystem.cleanup();
+      biomeAmbience.cleanup();
       renderer.dispose();
     };
   }, []);

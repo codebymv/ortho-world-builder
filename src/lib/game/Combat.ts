@@ -19,12 +19,10 @@ export interface Enemy {
   attackCooldown: number;
   damageFlashTimer: number;
   attackAnimationTimer: number;
-  // Telegraph system
-  telegraphTimer: number;      // counts down during telegraph
-  telegraphDuration: number;   // how long the telegraph lasts (dodge window)
-  recoverTimer: number;        // recovery after attack (vulnerable window)
+  telegraphTimer: number;
+  telegraphDuration: number;
+  recoverTimer: number;
   recoverDuration: number;
-  // Patrol
   patrolOrigin: { x: number; y: number };
   patrolAngle: number;
   patrolRadius: number;
@@ -63,12 +61,10 @@ export class CombatSystem {
       attackCooldown: 2000,
       damageFlashTimer: 0,
       attackAnimationTimer: 0,
-      // Telegraph: visible windup before attacking
       telegraphTimer: 0,
-      telegraphDuration: 0.8, // 800ms warning — player can dodge
+      telegraphDuration: 0.8,
       recoverTimer: 0,
-      recoverDuration: 0.6, // 600ms vulnerability after attack
-      // Patrol
+      recoverDuration: 0.6,
       patrolOrigin: { ...position },
       patrolAngle: Math.random() * Math.PI * 2,
       patrolRadius: 2 + Math.random() * 2,
@@ -86,7 +82,7 @@ export class CombatSystem {
     return this.enemies;
   }
 
-  updateEnemies(deltaTime: number, playerPosition: { x: number; y: number }): void {
+  updateEnemies(deltaTime: number, playerPosition: { x: number; y: number }, playerDodging: boolean = false): void {
     for (const enemy of this.enemies) {
       if (enemy.state === 'dead') continue;
 
@@ -96,7 +92,6 @@ export class CombatSystem {
 
       switch (enemy.state) {
         case 'idle': {
-          // Gentle patrol around origin
           enemy.patrolAngle += deltaTime * 0.5;
           const px = enemy.patrolOrigin.x + Math.cos(enemy.patrolAngle) * enemy.patrolRadius;
           const py = enemy.patrolOrigin.y + Math.sin(enemy.patrolAngle) * enemy.patrolRadius;
@@ -122,13 +117,11 @@ export class CombatSystem {
           }
 
           if (distance <= enemy.attackRange) {
-            // Begin telegraph — visible windup
             enemy.state = 'telegraphing';
             enemy.telegraphTimer = enemy.telegraphDuration;
             break;
           }
 
-          // Move toward player
           if (distance > 0) {
             const moveSpeed = enemy.speed * deltaTime * 60;
             enemy.position.x += (dx / distance) * moveSpeed;
@@ -138,21 +131,18 @@ export class CombatSystem {
         }
 
         case 'telegraphing': {
-          // Freeze in place, showing windup animation
           enemy.telegraphTimer -= deltaTime;
 
           if (enemy.telegraphTimer <= 0) {
-            // Execute attack — check if player is still in range
             const newDist = Math.sqrt(
               Math.pow(playerPosition.x - enemy.position.x, 2) +
               Math.pow(playerPosition.y - enemy.position.y, 2)
             );
 
-            if (newDist <= enemy.attackRange * 1.3) {
-              // Player didn't dodge — take damage!
+            // Player dodging = i-frames, attack misses!
+            if (newDist <= enemy.attackRange * 1.3 && !playerDodging) {
               this.attackPlayer(enemy);
             }
-            // Regardless, enter recovery (vulnerable)
             enemy.state = 'recovering';
             enemy.recoverTimer = enemy.recoverDuration;
             enemy.attackAnimationTimer = 0.3;
@@ -161,14 +151,12 @@ export class CombatSystem {
         }
 
         case 'attacking': {
-          // Legacy state — shouldn't reach here with new system
           enemy.state = 'recovering';
           enemy.recoverTimer = enemy.recoverDuration;
           break;
         }
 
         case 'recovering': {
-          // Stunned after attack — takes extra damage
           enemy.recoverTimer -= deltaTime;
           if (enemy.recoverTimer <= 0) {
             enemy.state = distance <= enemy.chaseRange ? 'chasing' : 'idle';
@@ -188,10 +176,9 @@ export class CombatSystem {
   playerAttack(targetEnemy: Enemy, damage: number): boolean {
     if (targetEnemy.state === 'dead') return false;
 
-    // Bonus damage if enemy is recovering (reward for timing)
     let finalDamage = damage;
     if (targetEnemy.state === 'recovering') {
-      finalDamage = Math.floor(damage * 1.5); // 50% bonus for punishing recovery
+      finalDamage = Math.floor(damage * 1.5);
     }
 
     targetEnemy.health = Math.max(0, targetEnemy.health - finalDamage);
