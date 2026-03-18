@@ -967,36 +967,44 @@ function placeEnchantedGrove(tiles: Tile[][], f: MapFeature) {
   const cy = f.y + f.height / 2;
   const rx = f.width / 2;
   const ry = f.height / 2;
+  // Use pseudo-random scatter based on tile position for natural placement
+  const hash = (x: number, y: number) => {
+    const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+    return n - Math.floor(n);
+  };
   for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++) {
     for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
       const tx = Math.floor(cx + dx);
       const ty = Math.floor(cy + dy);
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         const dist = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+        const rng = hash(tx, ty);
         if (dist < 0.15) {
-          // Center clearing with flowers
-          if ((dx + dy) % 3 === 0) {
+          // Center clearing with scattered flowers
+          if (rng < 0.35) {
             tiles[ty][tx] = createTile('flower', true);
           } else {
             tiles[ty][tx] = createTile('dark_grass', true);
           }
         } else if (dist < 0.4) {
-          // Mushroom ring
-          if ((dx + dy) % 5 === 0) {
+          // Mushroom ring - scattered naturally, not grid-aligned
+          if (rng < 0.2) {
             tiles[ty][tx] = createTile('mushroom', true, { interactable: true, interactionId: 'healing_mushroom' });
+          } else if (rng < 0.4) {
+            tiles[ty][tx] = createTile('flower', true);
           } else {
             tiles[ty][tx] = createTile('dark_grass', true);
           }
         } else if (dist < 0.7) {
-          // Dense magical trees
-          if ((dx + dy) % 2 === 0) {
+          // Dense magical trees - scattered
+          if (rng < 0.45) {
             tiles[ty][tx] = createTile('tree', false);
           } else {
             tiles[ty][tx] = createTile('dark_grass', true);
           }
         } else if (dist < 1.0) {
           // Outer ring - thick canopy
-          if ((dx + dy) % 3 !== 0) {
+          if (rng < 0.6) {
             tiles[ty][tx] = createTile('tree', false);
           } else {
             tiles[ty][tx] = createTile('tall_grass', true);

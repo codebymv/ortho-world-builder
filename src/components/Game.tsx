@@ -17,6 +17,9 @@ import { items } from '@/data/items';
 import { DialogueBox } from './game/DialogueBox';
 import { GameUI } from './game/GameUI';
 import { Minimap } from './game/Minimap';
+import { PauseMenu } from './game/PauseMenu';
+import { TransitionOverlay } from './game/TransitionOverlay';
+import { DeathOverlay } from './game/DeathOverlay';
 import { toast } from 'sonner';
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
@@ -35,6 +38,21 @@ const Game = () => {
   const lastMinimapRefreshRef = useRef(0);
   const gameStateRef = useRef<GameState | null>(null);
 
+  // New state for overlays
+  const [isPaused, setIsPaused] = useState(false);
+  const [transitionActive, setTransitionActive] = useState(false);
+  const [transitionMapName, setTransitionMapName] = useState('');
+  const [deathActive, setDeathActive] = useState(false);
+  const [deathGoldLost, setDeathGoldLost] = useState(0);
+  const [showControls, setShowControls] = useState(true);
+  const pausedRef = useRef(false);
+  const playerDeadRef = useRef(false);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Healing cooldowns: interactionId -> last use timestamp
+  const healCooldowns = useRef<Map<string, number>>(new Map());
+  const HEAL_COOLDOWN_MS = 30000; // 30 seconds
+
   const triggerUIUpdate = () => setUiVersion(prev => prev + 1);
   const triggerMinimapUpdate = (force: boolean = false, now: number = performance.now()) => {
     if (force || now - lastMinimapRefreshRef.current >= 120) {
@@ -42,6 +60,12 @@ const Game = () => {
       setMinimapVersion(prev => prev + 1);
     }
   };
+
+  // Auto-hide controls after 60 seconds
+  useEffect(() => {
+    controlsTimerRef.current = setTimeout(() => setShowControls(false), 60000);
+    return () => { if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current); };
+  }, []);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -131,16 +155,18 @@ const Game = () => {
     // Charge attack state
     let isChargingAttack = false;
     let chargeTimer = 0;
-    const CHARGE_TIME_MIN = 0.4;   // minimum hold for charged attack
-    const CHARGE_TIME_MAX = 1.2;    // fully charged
-    const CHARGE_DAMAGE_MULT = 2.5; // damage multiplier at full charge
-    let chargeLevel = 0; // 0-1
+    const CHARGE_TIME_MIN = 0.4;
+    const CHARGE_TIME_MAX = 1.2;
+    const CHARGE_DAMAGE_MULT = 2.5;
+    let chargeLevel = 0;
 
     // Spin attack animation state
     const SPIN_DIRECTIONS: Direction8[] = ['down', 'left', 'up', 'right'];
     let spinDirIndex = 0;
     let spinFrameTimer = 0;
-    const SPIN_FRAME_DURATION = 0.06; // Very fast frame cycling for spin
+    const SPIN_FRAME_DURATION = 0.06;
+
+    // Death state - use ref so callback can reset it
 
     // Map biome lookup
     const mapBiomes: Record<string, string> = {
@@ -149,6 +175,9 @@ const Game = () => {
       deep_woods: 'swamp',
       ruins: 'ruins',
     };
+
+    // Kill tracker for quests
+    let killCount = 0;
 
     const getPlayerTextureName = (dir: Direction8, animState: string, frame: number): string => {
       return `player_${dir}_${animState}_${frame}`;
@@ -173,9 +202,22 @@ const Game = () => {
       return 'down';
     };
 
+    // Helper: get Y-based render order (lower Y on screen = higher render order = in front)
+    const getYRenderOrder = (worldY: number): number => {
+      const currentMap = world.getCurrentMap();
+      const tileY = Math.floor(worldY + currentMap.height / 2);
+      // Invert: lower world Y (closer to bottom of screen) should render on top
+      return 100 + (currentMap.height - tileY);
+    };
+
     const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
       const newMap = allMaps[targetMap];
       if (!newMap) return;
+
+      // Show transition overlay
+      setTransitionMapName(newMap.name);
+      setTransitionActive(true);
+      setTimeout(() => setTransitionActive(false), 100); // trigger re-render
 
       state.currentMap = targetMap;
       world.loadMap(newMap);
@@ -198,7 +240,6 @@ const Game = () => {
         (mesh.material as THREE.Material).dispose();
       });
       enemyMeshes.clear();
-      // Clear HP bars
       enemyHPBars.forEach(({ bg, fill }) => {
         scene.remove(bg);
         scene.remove(fill);
@@ -244,12 +285,23 @@ const Game = () => {
         }
       }
 
+      // Quest objective: track map entry
+      const guardQuest = state.quests.find(q => q.id === 'guard_duty' && q.active && !q.completed);
+      if (guardQuest && targetMap === 'forest') {
+        guardQuest.objectives[0] = 'Patrol the northern forest border ✓';
+      }
+      const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
+      if (hunterQuest && targetMap === 'deep_woods') {
+        hunterQuest.objectives[0] = 'Travel to the Deep Woods ✓';
+      }
+
       toast(`Entered ${newMap.name}`, {
         className: "rpg-toast font-bold text-lg text-center justify-center",
         duration: 3000,
       });
       visitedTilesRef.current = new Set();
       triggerMinimapUpdate(true);
+      triggerUIUpdate();
       portalCooldown = 0.5;
     };
 
@@ -262,7 +314,7 @@ const Game = () => {
     });
     const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
     playerMesh.position.set(spawnPoint.x, spawnPoint.y, 0.2);
-    playerMesh.renderOrder = 9999;
+    playerMesh.renderOrder = getYRenderOrder(spawnPoint.y);
     scene.add(playerMesh);
 
     const npcData: NPC[] = [
@@ -308,7 +360,7 @@ const Game = () => {
       });
       const npcMesh = new THREE.Mesh(npcGeometry, npcMaterial);
       npcMesh.position.set(npc.position.x, npc.position.y, 0.2);
-      npcMesh.renderOrder = 9998;
+      npcMesh.renderOrder = getYRenderOrder(npc.position.y);
       npcMesh.userData = { npcId: npc.id };
       scene.add(npcMesh);
       npcMeshes.push(npcMesh);
@@ -317,15 +369,27 @@ const Game = () => {
     const keys: { [key: string]: boolean } = {};
     let interactBuffered = false;
     let dodgeBuffered = false;
+    let potionBuffered = false;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Pause toggle
+      if (e.key === 'Escape') {
+        pausedRef.current = !pausedRef.current;
+        setIsPaused(pausedRef.current);
+        return;
+      }
+      if (pausedRef.current) return;
+
       keys[e.key.toLowerCase()] = true;
       if (e.key.toLowerCase() === 'e' && !state.dialogueActive) {
         interactBuffered = true;
       }
+      // Q = use potion hotkey
+      if (e.key.toLowerCase() === 'q' && !state.dialogueActive) {
+        potionBuffered = true;
+      }
       if (e.key === ' ' && !state.dialogueActive) {
         e.preventDefault();
-        // Start charging instead of immediate attack
         if (!isChargingAttack && !state.player.isDodging && playerAnimState !== 'attack') {
           const currentTime = Date.now();
           if (currentTime - state.player.lastAttackTime >= state.player.attackCooldown) {
@@ -342,12 +406,12 @@ const Game = () => {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      if (pausedRef.current && e.key !== 'Escape') return;
       keys[e.key.toLowerCase()] = false;
       if (e.key === 'Shift') {
         keys['shift'] = false;
       }
       if (e.key === ' ' && isChargingAttack) {
-        // Release: perform attack (charged or normal)
         if (chargeTimer >= CHARGE_TIME_MIN) {
           performChargeAttack(chargeLevel);
         } else {
@@ -365,7 +429,6 @@ const Game = () => {
       if (state.player.stamina < 25) return;
       if (state.player.isDodging) return;
 
-      // Use facing direction if not moving
       let dx = moveX;
       let dy = moveY;
       if (dx === 0 && dy === 0) {
@@ -403,6 +466,24 @@ const Game = () => {
       sfx.play().catch(() => {});
     };
 
+    const onEnemyKilled = (enemy: Enemy) => {
+      killCount++;
+      // Update guard_duty quest kill counter
+      const guardQuest = state.quests.find(q => q.id === 'guard_duty' && q.active && !q.completed);
+      if (guardQuest) {
+        const kills = Math.min(killCount, 5);
+        guardQuest.objectives[1] = `Defeat any hostile creatures (${kills}/5)`;
+        if (kills >= 5) {
+          guardQuest.objectives[1] = 'Defeat any hostile creatures (5/5) ✓';
+        }
+      }
+      toast(`Defeated ${enemy.name}!`, {
+        description: `Gained ${enemy.goldReward} gold.`,
+        className: "rpg-toast",
+      });
+      triggerUIUpdate();
+    };
+
     const performAttack = () => {
       const currentTime = Date.now();
       if (currentTime - state.player.lastAttackTime < state.player.attackCooldown) return;
@@ -438,8 +519,6 @@ const Game = () => {
 
         const died = combatSystem.playerAttack(target, state.player.attackDamage);
 
-        // Combat juice: screen shake + floating damage number
-        const dmgDealt = target.damageFlashTimer > 0 ? state.player.attackDamage : state.player.attackDamage;
         const isCrit = target.state === 'recovering';
         const actualDmg = isCrit ? Math.floor(state.player.attackDamage * 1.5) : state.player.attackDamage;
         floatingText.spawnDamage(target.position.x, target.position.y, actualDmg, isCrit);
@@ -451,11 +530,7 @@ const Game = () => {
         );
 
         if (died) {
-          toast(`Defeated ${target.name}!`, {
-            description: `Gained ${target.goldReward} gold.`,
-            className: "rpg-toast",
-          });
-          triggerUIUpdate();
+          onEnemyKilled(target);
         }
       } else {
         const attackPos = { ...state.player.position };
@@ -478,11 +553,10 @@ const Game = () => {
       playSwordSwing();
 
       state.player.lastAttackTime = currentTime;
-      // Use spin_attack animation: rapidly cycle through directional attack frames
       playerAnimState = 'spin_attack';
       spinDirIndex = 0;
       spinFrameTimer = SPIN_FRAME_DURATION;
-      attackFrame = 1; // mid-swing frame
+      attackFrame = 1;
       state.player.attackAnimationTimer = SPIN_FRAME_DURATION * SPIN_DIRECTIONS.length;
 
       const dmgMult = 1 + (CHARGE_DAMAGE_MULT - 1) * level;
@@ -495,7 +569,6 @@ const Game = () => {
       );
 
       if (enemiesInRange.length > 0) {
-        // Charged attack hits ALL enemies in range
         for (const target of enemiesInRange) {
           const died = combatSystem.playerAttack(target, chargeDamage);
 
@@ -506,22 +579,15 @@ const Game = () => {
           particleSystem.emitDamage(
             new THREE.Vector3(target.position.x, target.position.y, 0.3)
           );
-
-          // Extra sparkle particles for charged hits
           particleSystem.emitSparkles(
             new THREE.Vector3(target.position.x, target.position.y + 0.3, 0.5)
           );
 
           if (died) {
-            toast(`Defeated ${target.name}!`, {
-              description: `Charged strike! Gained ${target.goldReward} gold.`,
-              className: "rpg-toast",
-            });
-            triggerUIUpdate();
+            onEnemyKilled(target);
           }
         }
       } else {
-        // Whiff particles (bigger for charge)
         const attackPos = { ...state.player.position };
         const d4 = dir8to4(currentDir8);
         if (d4 === 'up') attackPos.y += 1.5;
@@ -534,6 +600,23 @@ const Game = () => {
           8, 0xFFD700, 0.5, 1.5, 2
         );
       }
+    };
+
+    const usePotion = () => {
+      const potionIdx = state.inventory.findIndex(item => item.type === 'consumable' && item.id === 'health_potion');
+      if (potionIdx === -1) {
+        toast('No potions!', { className: 'rpg-toast' });
+        return;
+      }
+      if (state.player.health >= state.player.maxHealth) {
+        toast('Already at full health!', { className: 'rpg-toast' });
+        return;
+      }
+      state.player.health = Math.min(state.player.maxHealth, state.player.health + 50);
+      state.inventory.splice(potionIdx, 1);
+      particleSystem.emitHeal(new THREE.Vector3(state.player.position.x, state.player.position.y, 0.3));
+      toast.success('Used Health Potion!', { description: 'Restored 50 health.', className: 'rpg-toast' });
+      triggerUIUpdate();
     };
 
     const checkInteraction = () => {
@@ -580,7 +663,20 @@ const Game = () => {
             return;
           }
           
+          // Healing sources with cooldown
           if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'healing_mushroom' || interactionId === 'campfire') {
+            const now = Date.now();
+            const lastUse = healCooldowns.current.get(interactionId) || 0;
+            if (now - lastUse < HEAL_COOLDOWN_MS) {
+              const remaining = Math.ceil((HEAL_COOLDOWN_MS - (now - lastUse)) / 1000);
+              toast(`Not ready yet... (${remaining}s)`, { className: 'rpg-toast' });
+              return;
+            }
+            if (state.player.health >= state.player.maxHealth) {
+              toast('Already at full health!', { className: 'rpg-toast' });
+              return;
+            }
+            healCooldowns.current.set(interactionId, now);
             state.player.health = Math.min(state.player.maxHealth, state.player.health + 25);
             particleSystem.emitHeal(new THREE.Vector3(checkX, checkY, 0.3));
             const label = interactionId === 'campfire' ? 'Resting by the Fire' : 
@@ -608,7 +704,6 @@ const Game = () => {
       state.dialogueActive = true;
       state.currentDialogue = dialogueId;
 
-      // Track the NPC's world position for chat bubble
       const npc = state.npcs.find(n => n.dialogueId === dialogueId);
       if (npc) {
         activeNpcWorldPos.current = { x: npc.position.x, y: npc.position.y };
@@ -647,7 +742,6 @@ const Game = () => {
 
     window.addEventListener('resize', handleResize);
 
-    // Helper: create/update HP bar for an enemy
     const getOrCreateHPBar = (enemy: Enemy) => {
       let hpBar = enemyHPBars.get(enemy.id);
       if (!hpBar) {
@@ -673,6 +767,18 @@ const Game = () => {
       let deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
       if (deltaTime > MAX_DELTA) deltaTime = MAX_DELTA;
+
+      // Skip game logic when paused
+      if (pausedRef.current) {
+        renderer.render(scene, camera);
+        return;
+      }
+
+      // Skip during death animation
+      if (playerDeadRef.current) {
+        renderer.render(scene, camera);
+        return;
+      }
 
       // Hit-stop: freeze game logic when active
       const frozen = screenShake.update(deltaTime);
@@ -715,12 +821,11 @@ const Game = () => {
             const moveSpeed = wander.speed * deltaTime;
             const nx = npc.position.x + (dx / dist) * moveSpeed;
             const ny = npc.position.y + (dy / dist) * moveSpeed;
-            // Only move if tile is walkable
             if (world.isWalkable(nx, ny)) {
               npc.position.x = nx;
               npc.position.y = ny;
             } else {
-              wander.angle += Math.PI * 0.5; // turn away from wall
+              wander.angle += Math.PI * 0.5;
             }
           } else {
             wander.isPaused = true;
@@ -728,18 +833,18 @@ const Game = () => {
             wander.angle += (Math.random() - 0.5) * Math.PI * 1.5;
           }
 
-          // Update mesh
           const mesh = npcMeshes[ni];
           if (mesh) {
             mesh.position.set(npc.position.x, npc.position.y, 0.2);
           }
         }
 
-        // Idle bob for all NPCs
+        // Idle bob + Y-sort for NPCs
         const npcMesh = npcMeshes[ni];
         if (npcMesh) {
           const bob = Math.sin(currentTime / 800 + ni * 2.1) * 0.03;
           npcMesh.position.y = npc.position.y + bob;
+          npcMesh.renderOrder = getYRenderOrder(npc.position.y);
         }
       }
 
@@ -747,6 +852,10 @@ const Game = () => {
       if (interactBuffered && !state.dialogueActive) {
         checkInteraction();
         interactBuffered = false;
+      }
+      if (potionBuffered && !state.dialogueActive) {
+        usePotion();
+        potionBuffered = false;
       }
       // Update charge timer
       if (isChargingAttack) {
@@ -765,7 +874,6 @@ const Game = () => {
         if (keys['a'] || keys['arrowleft']) { moveX -= 1; moved = true; }
         if (keys['d'] || keys['arrowright']) { moveX += 1; moved = true; }
 
-        // Handle dodge input
         if (dodgeBuffered && !state.dialogueActive) {
           performDodge(moveX, moveY);
           dodgeBuffered = false;
@@ -795,7 +903,6 @@ const Game = () => {
             playerAnimState = moved ? 'walk' : 'idle';
           }
         } else if (moved && !isChargingAttack && playerAnimState !== 'spin_attack') {
-          // Determine 8-direction
           const rawDir = getDirection8(moveX > 0 ? 1 : moveX < 0 ? -1 : 0, moveY > 0 ? 1 : moveY < 0 ? -1 : 0);
           currentDir8 = rawDir;
           state.player.direction = dir8to4(rawDir);
@@ -830,7 +937,7 @@ const Game = () => {
 
           // Reveal all tiles within the player's visible viewport
           const currentMap = world.getCurrentMap();
-          const viewHalfH = 7; // ~frustumSize/2 + buffer
+          const viewHalfH = 7;
           const viewHalfW = Math.ceil(viewHalfH * (window.innerWidth / window.innerHeight));
           const centerTileX = Math.floor(state.player.position.x + currentMap.width / 2);
           const centerTileY = Math.floor(state.player.position.y + currentMap.height / 2);
@@ -883,7 +990,6 @@ const Game = () => {
           state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
         }
 
-        // Spin attack: rapidly cycle through directional attack frames
         if (playerAnimState === 'spin_attack') {
           spinFrameTimer -= deltaTime;
           if (spinFrameTimer <= 0) {
@@ -908,7 +1014,6 @@ const Game = () => {
           }
         }
 
-        // Update charge animation frame
         if (playerAnimState === 'charge') {
           animTimer += deltaTime;
           if (animTimer >= 0.15) {
@@ -917,12 +1022,11 @@ const Game = () => {
           }
         }
 
-        // Update player texture based on animation state
+        // Update player texture
         let texName: string;
         if (state.player.damageFlashTimer > 0) {
           texName = getPlayerTextureName(currentDir8, 'hurt', 0);
         } else if (playerAnimState === 'spin_attack') {
-          // Use attack frame 1 (mid-swing) cycling through directions
           const spinDir = SPIN_DIRECTIONS[Math.min(spinDirIndex, SPIN_DIRECTIONS.length - 1)];
           texName = getPlayerTextureName(spinDir, 'attack', 1);
         } else if (playerAnimState === 'charge') {
@@ -935,7 +1039,6 @@ const Game = () => {
           texName = getPlayerTextureName(currentDir8, playerAnimState, animFrame);
         }
         
-        // Fallback to 4-dir texture if 8-dir not found
         let newTex = assetManager.getTexture(texName);
         if (!newTex) {
           const fallbackDir = dir8to4(playerAnimState === 'spin_attack' 
@@ -967,7 +1070,6 @@ const Game = () => {
           else if (d4 === 'left') attackOffsetX = -lungeAmount;
           else if (d4 === 'right') attackOffsetX = lungeAmount;
         } else if (playerAnimState === 'spin_attack') {
-          // Small radial offset during spin for visual feedback
           const spinDir = SPIN_DIRECTIONS[Math.min(spinDirIndex, SPIN_DIRECTIONS.length - 1)];
           const lungeAmount = 0.1;
           const d4 = dir8to4(spinDir);
@@ -977,7 +1079,7 @@ const Game = () => {
           else if (d4 === 'right') attackOffsetX = lungeAmount;
         }
 
-        // Dodge roll visual: squish + spin
+        // Dodge roll visual
         let dodgeScaleX = 1, dodgeScaleY = 1;
         if (state.player.isDodging) {
           const t = 1 - (state.player.dodgeTimer / state.player.dodgeDuration);
@@ -985,7 +1087,6 @@ const Game = () => {
           dodgeScaleY = 1 - Math.sin(t * Math.PI) * 0.2;
           playerMesh.rotation.z = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? -1 : 1);
         } else if (isChargingAttack) {
-          // Charge: pulsing scale + slight shake, NO rotation
           const pulse = 1 + chargeLevel * 0.15;
           const shake = chargeLevel * Math.sin(currentTime / 30) * 0.02;
           dodgeScaleX = pulse;
@@ -1003,21 +1104,26 @@ const Game = () => {
           0.2
         );
 
-        // Player damage flash (skip during dodge i-frames)
+        // Dynamic Y-sorting for player
+        playerMesh.renderOrder = getYRenderOrder(state.player.position.y);
+
+        // Player damage flash
         if (state.player.damageFlashTimer > 0) {
-          // Shake on first frame of damage
           if (state.player.damageFlashTimer > 0.28) {
             screenShake.shake(0.18, 0.12);
           }
           state.player.damageFlashTimer -= deltaTime;
           const flashIntensity = Math.sin(state.player.damageFlashTimer * 30) > 0 ? 0xff0000 : 0xff6666;
           playerMaterial.color.setHex(flashIntensity);
+
+          // Floating damage text on player when hit
+          if (state.player.damageFlashTimer > 0.25) {
+            // Show the damage amount the first frame
+          }
         } else if (state.player.isDodging) {
-          // Semi-transparent during dodge (i-frames visual)
           playerMaterial.color.setHex(0xaaaaff);
           playerMaterial.opacity = 0.6;
         } else if (isChargingAttack && chargeLevel > 0) {
-          // Golden glow during charge
           const glow = Math.sin(currentTime / 100) > 0 ? 0xFFD700 : 0xFFA000;
           playerMaterial.color.setHex(glow);
           playerMaterial.opacity = 1;
@@ -1035,7 +1141,6 @@ const Game = () => {
         let indicatorX = 0, indicatorY = 0;
         const interactionRange = 1.5;
 
-        // Check NPC proximity
         const interactionRangeSq = interactionRange * interactionRange;
         for (const npc of state.npcs) {
           const ndx = state.player.position.x - npc.position.x;
@@ -1049,7 +1154,6 @@ const Game = () => {
           }
         }
 
-        // Check tile interactables
         if (!showIndicator) {
           const directions = [
             { x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
@@ -1082,7 +1186,7 @@ const Game = () => {
         camera.position.x += (cameraTarget.x - camera.position.x) * lerpFactor;
         camera.position.y += (cameraTarget.y - camera.position.y) * lerpFactor;
 
-        // Update combat system — pass dodge state for i-frames
+        // Update combat system
         combatSystem.updateEnemies(deltaTime, state.player.position, state.player.isDodging);
 
         // === ENEMY RENDERING WITH HP BARS ===
@@ -1100,7 +1204,7 @@ const Game = () => {
             });
             enemyMesh = new THREE.Mesh(enemyGeometry, enemyMaterial);
             enemyMesh.position.z = 0.2;
-            enemyMesh.renderOrder = 9997;
+            enemyMesh.renderOrder = getYRenderOrder(enemy.position.y);
             scene.add(enemyMesh);
             enemyMeshes.set(enemy.id, enemyMesh);
           }
@@ -1130,15 +1234,12 @@ const Game = () => {
           let finalEnemyY = enemy.position.y;
 
           if (enemy.state === 'chasing') {
-            // Walk animation: leg bob + body sway
             const walkCycle = Math.sin(currentTime / 120 + parseFloat(enemy.id.split('_')[1] || "0") * 2);
             const strideBob = Math.abs(walkCycle) * 0.04;
             finalEnemyY += strideBob;
-            // Lean into movement direction
             const dx = state.player.position.x - enemy.position.x;
             const lean = dx > 0 ? 0.08 : dx < 0 ? -0.08 : 0;
             enemyMesh.rotation.z = lean * walkCycle * 0.5;
-            // Squash & stretch for walk feel
             const squash = 1 + Math.abs(walkCycle) * 0.06;
             const stretch = 1 - Math.abs(walkCycle) * 0.04;
             enemyMesh.scale.set(stretch, squash, 1);
@@ -1175,7 +1276,6 @@ const Game = () => {
               mat.color.setHex(0x8888ff);
             }
           } else if (enemy.state === 'idle') {
-            // Gentle breathing animation
             const breathe = Math.sin(currentTime / 800 + parseFloat(enemy.id.split('_')[1] || "0") * 3);
             finalEnemyY += breathe * 0.02;
             enemyMesh.scale.set(1 + breathe * 0.015, 1 - breathe * 0.015, 1);
@@ -1183,6 +1283,8 @@ const Game = () => {
           }
 
           enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
+          // Dynamic Y-sorting for enemies
+          enemyMesh.renderOrder = getYRenderOrder(enemy.position.y);
 
           // === HP BAR ===
           const hpBar = getOrCreateHPBar(enemy);
@@ -1192,14 +1294,14 @@ const Game = () => {
           hpBar.bg.position.set(finalEnemyX, barY, 0.35);
           hpBar.fill.position.set(finalEnemyX - 0.29 * (1 - hpRatio), barY, 0.36);
           hpBar.fill.scale.set(hpRatio, 1, 1);
+          hpBar.bg.renderOrder = 10000;
+          hpBar.fill.renderOrder = 10001;
 
-          // Color HP bar based on health
           const fillMat = hpBar.fill.material as THREE.MeshBasicMaterial;
           if (hpRatio > 0.5) fillMat.color.setHex(0x4CAF50);
           else if (hpRatio > 0.25) fillMat.color.setHex(0xFFC107);
           else fillMat.color.setHex(0xF44336);
 
-          // Only show HP bar when enemy is engaged or damaged
           const showBar = enemy.state !== 'idle' || enemy.health < enemy.maxHealth;
           hpBar.bg.visible = showBar;
           hpBar.fill.visible = showBar;
@@ -1223,7 +1325,6 @@ const Game = () => {
                 deadMat.dispose();
                 enemyMeshes.delete(enemy.id);
 
-                // Remove HP bar
                 const hpBar = enemyHPBars.get(enemy.id);
                 if (hpBar) {
                   scene.remove(hpBar.bg);
@@ -1239,7 +1340,6 @@ const Game = () => {
               fullyDeadEnemyIds.add(enemy.id);
             }
 
-            // Hide HP bars for dead enemies immediately
             const hpBar = enemyHPBars.get(enemy.id);
             if (hpBar) {
               hpBar.bg.visible = false;
@@ -1252,19 +1352,13 @@ const Game = () => {
           combatSystem.removeDeadEnemiesByIds(Array.from(fullyDeadEnemyIds));
         }
 
-        // Check if player died
-        if (state.player.health <= 0) {
-          toast.error('You have been defeated!');
-          state.player.health = state.player.maxHealth;
-          state.player.stamina = state.player.maxStamina;
-          state.player.isDodging = false;
-          state.player.position = world.getSpawnPoint();
-          playerMesh.position.set(state.player.position.x, state.player.position.y, 0.2);
-          playerMesh.rotation.z = 0;
-          playerMesh.scale.set(1, 1, 1);
-          camera.position.x = state.player.position.x;
-          camera.position.y = state.player.position.y;
-          triggerUIUpdate();
+        // Check if player died — death penalty
+        if (state.player.health <= 0 && !playerDeadRef.current) {
+          playerDeadRef.current = true;
+          const goldLoss = Math.floor(state.player.gold * 0.1);
+          state.player.gold -= goldLoss;
+          setDeathGoldLost(goldLoss);
+          setDeathActive(true);
         }
       }
 
@@ -1329,6 +1423,36 @@ const Game = () => {
       triggerUIUpdate();
     }
 
+    // Merchant buy logic
+    if (gameState.currentDialogue === 'merchant') {
+      if (nextId === 'end' && currentDialogue.node.id === 'buy_potion') {
+        if (gameState.player.gold >= 10) {
+          gameState.player.gold -= 10;
+          gameState.addItem(items.health_potion);
+          toast.success('Purchased Health Potion!', { description: 'Spent 10 gold.', className: 'rpg-toast' });
+        } else {
+          toast.error("Not enough gold!", { className: 'rpg-toast' });
+        }
+        triggerUIUpdate();
+      }
+      if (nextId === 'end' && currentDialogue.node.id === 'buy_artifact') {
+        if (gameState.player.gold >= 50) {
+          gameState.player.gold -= 50;
+          gameState.addItem(items.ancient_map);
+          toast.success('Purchased Ancient Artifact!', { description: 'Spent 50 gold.', className: 'rpg-toast' });
+        } else {
+          toast.error("Not enough gold!", { className: 'rpg-toast' });
+        }
+        triggerUIUpdate();
+      }
+    }
+
+    // Healer free heal
+    if (gameState.currentDialogue === 'healer' && nextId === 'end' && currentDialogue.node.id === 'heal') {
+      gameState.player.health = gameState.player.maxHealth;
+      triggerUIUpdate();
+    }
+
     if (nextId === 'end' || !gameState.currentDialogue) {
       setCurrentDialogue(null);
       setNpcScreenPos(null);
@@ -1356,6 +1480,19 @@ const Game = () => {
     activeNpcWorldPos.current = null;
   };
 
+  const handleDeathComplete = useCallback(() => {
+    setDeathActive(false);
+    playerDeadRef.current = false;
+    if (gameStateRef.current) {
+      const state = gameStateRef.current;
+      state.player.health = state.player.maxHealth;
+      state.player.stamina = state.player.maxStamina;
+      state.player.isDodging = false;
+      state.player.position = { x: 0, y: 0 };
+      triggerUIUpdate();
+    }
+  }, []);
+
   // Unlock and play music on first user interaction
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const musicStarted = useRef(false);
@@ -1372,7 +1509,6 @@ const Game = () => {
       audio.play().catch(() => {});
     };
 
-    // Try autoplay first, fallback to user gesture
     audio.play().catch(() => {
       window.addEventListener('click', startMusic, { once: true });
       window.addEventListener('keydown', startMusic, { once: true });
@@ -1386,13 +1522,15 @@ const Game = () => {
     };
   }, []);
 
+  const activeQuestTitle = gameState?.quests.find(q => q.active && !q.completed)?.title;
+
   return (
     <div className="relative w-full h-screen overflow-hidden">
       <div ref={mountRef} className="w-full h-full" />
       
       {gameState && (
         <>
-          <GameUI gameState={gameState} refreshToken={uiVersion} musicRef={musicRef} />
+          <GameUI gameState={gameState} refreshToken={uiVersion} musicRef={musicRef} showControls={showControls} />
           <Minimap
             currentMap={allMaps[gameState.currentMap]}
             playerPosition={gameState.player.position}
@@ -1412,6 +1550,16 @@ const Game = () => {
           onClose={handleCloseDialogue}
         />
       )}
+
+      {isPaused && (
+        <PauseMenu
+          onResume={() => { pausedRef.current = false; setIsPaused(false); }}
+          questSummary={activeQuestTitle}
+        />
+      )}
+
+      <TransitionOverlay active={transitionActive} mapName={transitionMapName} />
+      <DeathOverlay active={deathActive} goldLost={deathGoldLost} onComplete={handleDeathComplete} />
     </div>
   );
 };

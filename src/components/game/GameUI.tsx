@@ -8,9 +8,10 @@ interface GameUIProps {
   gameState: GameState;
   refreshToken: number;
   musicRef: React.RefObject<HTMLAudioElement | null>;
+  showControls?: boolean;
 }
 
-export const GameUI = ({ gameState, refreshToken, musicRef }: GameUIProps) => {
+export const GameUI = ({ gameState, refreshToken, musicRef, showControls = true }: GameUIProps) => {
   const [showInventory, setShowInventory] = useState(false);
   const [showQuests, setShowQuests] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -232,16 +233,20 @@ export const GameUI = ({ gameState, refreshToken, musicRef }: GameUIProps) => {
         </div>
       )}
 
-      {/* Controls Help (Minimal) */}
-      <div className="fixed bottom-4 left-4 bg-[#1A0F0A]/80 backdrop-blur-sm border border-[#5C3A21] rounded-sm p-2 z-40 shadow-sm pointer-events-auto">
-        <div className="flex gap-3 items-center">
-          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">WASD</kbd> Move</p>
-          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Attack</p>
-          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">HOLD</kbd> Charge</p>
-          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SHIFT</kbd> Dodge</p>
-          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">E</kbd> Interact</p>
+      {/* Controls Help (auto-hide) */}
+      {showControls && (
+        <div className="fixed bottom-4 left-4 bg-[#1A0F0A]/80 backdrop-blur-sm border border-[#5C3A21] rounded-sm p-2 z-40 shadow-sm pointer-events-auto transition-opacity duration-1000">
+          <div className="flex gap-3 items-center">
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">WASD</kbd> Move</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Attack</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">HOLD</kbd> Charge</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SHIFT</kbd> Dodge</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">E</kbd> Interact</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Q</kbd> Potion</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">ESC</kbd> Pause</p>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 };
