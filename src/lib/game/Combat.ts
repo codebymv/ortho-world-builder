@@ -95,7 +95,9 @@ export class CombatSystem {
 
       const dx = playerPosition.x - enemy.position.x;
       const dy = playerPosition.y - enemy.position.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+      const distSq = dx * dx + dy * dy;
+      const chaseRangeSq = enemy.chaseRange * enemy.chaseRange;
+      const attackRangeSq = enemy.attackRange * enemy.attackRange;
 
       switch (enemy.state) {
         case 'idle': {
@@ -104,35 +106,38 @@ export class CombatSystem {
           const py = enemy.patrolOrigin.y + Math.sin(enemy.patrolAngle) * enemy.patrolRadius;
           const pdx = px - enemy.position.x;
           const pdy = py - enemy.position.y;
-          const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
-          if (pdist > 0.1) {
+          const pdistSq = pdx * pdx + pdy * pdy;
+          if (pdistSq > 0.01) {
+            const pdist = Math.sqrt(pdistSq);
             const moveSpeed = enemy.speed * 0.4 * deltaTime * 60;
             enemy.position.x += (pdx / pdist) * moveSpeed;
             enemy.position.y += (pdy / pdist) * moveSpeed;
           }
 
-          if (distance <= enemy.chaseRange) {
+          if (distSq <= chaseRangeSq) {
             enemy.state = 'chasing';
           }
           break;
         }
 
         case 'chasing': {
-          if (distance > enemy.chaseRange * 1.5) {
+          const leashRangeSq = chaseRangeSq * 2.25; // 1.5x chase range squared
+          if (distSq > leashRangeSq) {
             enemy.state = 'idle';
             break;
           }
 
-          if (distance <= enemy.attackRange) {
+          if (distSq <= attackRangeSq) {
             enemy.state = 'telegraphing';
             enemy.telegraphTimer = enemy.telegraphDuration;
             break;
           }
 
-          if (distance > 0) {
+          if (distSq > 0) {
+            const dist = Math.sqrt(distSq);
             const moveSpeed = enemy.speed * deltaTime * 60;
-            enemy.position.x += (dx / distance) * moveSpeed;
-            enemy.position.y += (dy / distance) * moveSpeed;
+            enemy.position.x += (dx / dist) * moveSpeed;
+            enemy.position.y += (dy / dist) * moveSpeed;
           }
           break;
         }
@@ -141,13 +146,12 @@ export class CombatSystem {
           enemy.telegraphTimer -= deltaTime;
 
           if (enemy.telegraphTimer <= 0) {
-            const newDist = Math.sqrt(
-              Math.pow(playerPosition.x - enemy.position.x, 2) +
-              Math.pow(playerPosition.y - enemy.position.y, 2)
-            );
+            const newDx = playerPosition.x - enemy.position.x;
+            const newDy = playerPosition.y - enemy.position.y;
+            const newDistSq = newDx * newDx + newDy * newDy;
+            const extAttackRangeSq = attackRangeSq * 1.69; // 1.3x range squared
 
-            // Player dodging = i-frames, attack misses!
-            if (newDist <= enemy.attackRange * 1.3 && !playerDodging) {
+            if (newDistSq <= extAttackRangeSq && !playerDodging) {
               this.attackPlayer(enemy);
             }
             enemy.state = 'recovering';
@@ -166,7 +170,7 @@ export class CombatSystem {
         case 'recovering': {
           enemy.recoverTimer -= deltaTime;
           if (enemy.recoverTimer <= 0) {
-            enemy.state = distance <= enemy.chaseRange ? 'chasing' : 'idle';
+            enemy.state = distSq <= chaseRangeSq ? 'chasing' : 'idle';
           }
           break;
         }
@@ -202,13 +206,12 @@ export class CombatSystem {
   }
 
   getEnemiesInRange(position: { x: number; y: number }, range: number): Enemy[] {
+    const rangeSq = range * range;
     return this.enemies.filter(enemy => {
       if (enemy.state === 'dead') return false;
-      const distance = Math.sqrt(
-        Math.pow(position.x - enemy.position.x, 2) +
-        Math.pow(position.y - enemy.position.y, 2)
-      );
-      return distance <= range;
+      const dx = position.x - enemy.position.x;
+      const dy = position.y - enemy.position.y;
+      return (dx * dx + dy * dy) <= rangeSq;
     });
   }
 
