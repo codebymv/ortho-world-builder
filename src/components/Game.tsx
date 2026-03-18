@@ -1246,7 +1246,7 @@ const Game = () => {
         // === INTERACTION INDICATOR ===
         let showIndicator = false;
         let indicatorX = 0, indicatorY = 0;
-        const interactionRange = 1.5;
+        const interactionRange = 2.0;
 
         const interactionRangeSq = interactionRange * interactionRange;
         for (const npc of state.npcs) {
