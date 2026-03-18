@@ -5,6 +5,7 @@ import { AssetManager, SharedGeometry } from '@/lib/game/AssetManager';
 import { World } from '@/lib/game/World';
 import { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { BiomeAmbience } from '@/lib/game/BiomeAmbience';
+import { WeatherSystem } from '@/lib/game/WeatherSystem';
 import { CombatSystem, Enemy } from '@/lib/game/Combat';
 import { allMaps, mapDefinitions } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
