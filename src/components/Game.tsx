@@ -75,6 +75,7 @@ const Game = () => {
     const particleSystem = new ParticleSystem(scene);
     const combatSystem = new CombatSystem(state);
     const biomeAmbience = new BiomeAmbience(scene);
+    const weatherSystem = new WeatherSystem(scene);
 
     const world = new World(scene, assetManager, allMaps.village);
     const spawnPoint = world.getSpawnPoint();
