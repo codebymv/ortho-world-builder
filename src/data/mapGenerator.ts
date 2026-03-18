@@ -294,6 +294,24 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
       case 'cemetery':
         placeCemetery(tiles, feature);
         break;
+      case 'cliff_face':
+        placeCliffFace(tiles, feature);
+        break;
+      case 'farm':
+        placeFarm(tiles, feature);
+        break;
+      case 'iron_fence_border':
+        placeIronFenceBorder(tiles, feature);
+        break;
+      case 'hedge_maze':
+        placeHedgeMaze(tiles, feature);
+        break;
+      case 'cobble_plaza':
+        placeCobblePlaza(tiles, feature);
+        break;
+      case 'forest_grove':
+        placeForestGrove(tiles, feature);
+        break;
     }
   }
 }
