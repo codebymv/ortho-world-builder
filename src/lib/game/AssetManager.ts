@@ -711,9 +711,9 @@ export class AssetManager {
       pantColor: 0x3E2723, pantDark: 0x2C1B0E,
       bootColor: 0x4E342E, bootDark: 0x3E2723,
     };
-    this.textures.set('enemy_bandit', this.createChibiCharacter('down', 'idle', 0, banditPalette));
-    this.textures.set('enemy_bandit_telegraph', this.createChibiCharacter('down', 'charge', 0, banditPalette));
-    this.textures.set('enemy_bandit_attack', this.createChibiCharacter('down', 'attack', 1, banditPalette));
+    this.registerTexture('enemy_bandit', () => this.createChibiCharacter('down', 'idle', 0, banditPalette));
+    this.registerTexture('enemy_bandit_telegraph', () => this.createChibiCharacter('down', 'charge', 0, banditPalette));
+    this.registerTexture('enemy_bandit_attack', () => this.createChibiCharacter('down', 'attack', 1, banditPalette));
 
     // ========== FIELD BOSS: Golem ==========
     const GOL = 0x607060;
