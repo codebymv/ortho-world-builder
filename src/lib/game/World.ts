@@ -407,7 +407,6 @@ export class World {
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
     const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1, `overlay_${tile.type}`);
 
-    const scale = OVERLAY_SCALE[tile.type] ?? 1.0;
     if (scale !== 1.0) {
       overlayMesh.scale.set(scale, scale, 1);
       overlayMesh.position.y = (scale - 1) * this.tileSize * 0.3;
