@@ -20,17 +20,24 @@ type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'd
 const Game = () => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [, forceUpdate] = useState(0);
+  const [uiVersion, setUiVersion] = useState(0);
   const [currentDialogue, setCurrentDialogue] = useState<{ node: DialogueNode; npcName: string } | null>(null);
   const [npcScreenPos, setNpcScreenPos] = useState<{ x: number; y: number } | null>(null);
   const activeNpcWorldPos = useRef<{ x: number; y: number } | null>(null);
   const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const visitedTilesRef = useRef<Set<string>>(new Set());
-  const [visitedTilesVersion, setVisitedTilesVersion] = useState(0);
+  const [minimapVersion, setMinimapVersion] = useState(0);
+  const lastMinimapRefreshRef = useRef(0);
   const gameStateRef = useRef<GameState | null>(null);
 
-  const triggerUIUpdate = () => forceUpdate(prev => prev + 1);
+  const triggerUIUpdate = () => setUiVersion(prev => prev + 1);
+  const triggerMinimapUpdate = (force: boolean = false, now: number = performance.now()) => {
+    if (force || now - lastMinimapRefreshRef.current >= 120) {
+      lastMinimapRefreshRef.current = now;
+      setMinimapVersion(prev => prev + 1);
+    }
+  };
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -234,7 +241,7 @@ const Game = () => {
         duration: 3000,
       });
       visitedTilesRef.current = new Set();
-      setVisitedTilesVersion(v => v + 1);
+      triggerMinimapUpdate(true);
       portalCooldown = 0.5;
     };
 
@@ -714,7 +721,7 @@ const Game = () => {
           const tileKey = `${tileX},${tileY}`;
           if (!visitedTilesRef.current.has(tileKey)) {
             visitedTilesRef.current.add(tileKey);
-            setVisitedTilesVersion(v => v + 1);
+            triggerMinimapUpdate(false, currentTime);
           }
 
           if (portalCooldown > 0) {
@@ -819,7 +826,6 @@ const Game = () => {
         
         if (newTex && playerMaterial.map !== newTex) {
           playerMaterial.map = newTex;
-          playerMaterial.needsUpdate = true;
         }
 
         // === PLAYER POSITION WITH ANIMATION OFFSETS ===
@@ -977,7 +983,6 @@ const Game = () => {
           const enemyTex = assetManager.getTexture(spriteKey);
           if (enemyTex && mat.map !== enemyTex) {
             mat.map = enemyTex;
-            mat.needsUpdate = true;
           }
 
           if (enemy.damageFlashTimer > 0) {
@@ -1203,12 +1208,13 @@ const Game = () => {
       
       {gameState && (
         <>
-          <GameUI gameState={gameState} />
+          <GameUI gameState={gameState} refreshToken={uiVersion} />
           <Minimap
             currentMap={allMaps[gameState.currentMap]}
             playerPosition={gameState.player.position}
             visitedTiles={visitedTilesRef.current}
             npcs={gameState.npcs}
+            refreshToken={minimapVersion}
           />
         </>
       )}
