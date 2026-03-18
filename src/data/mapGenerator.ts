@@ -312,6 +312,12 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
       case 'forest_grove':
         placeForestGrove(tiles, feature);
         break;
+      case 'fort':
+        placeFort(tiles, feature);
+        break;
+      case 'enchanted_grove':
+        placeEnchantedGrove(tiles, feature);
+        break;
     }
   }
 }
