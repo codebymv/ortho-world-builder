@@ -432,20 +432,33 @@ const Game = () => {
     };
 
     // === SHADOW SYSTEM ===
-    const shadowGeometry = new THREE.CircleGeometry(0.4, 16);
+    const shadowGeometry = new THREE.CircleGeometry(0.25, 12);
     const shadowMaterial = new THREE.MeshBasicMaterial({
       color: 0x000000,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.18,
       depthWrite: false,
     });
 
     // Player shadow
     const playerShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
-    playerShadow.position.z = -0.01;
-    playerShadow.scale.set(1.1, 0.5, 1);
-    playerShadow.renderOrder = 0;
+    playerShadow.position.z = 0.05;
+    playerShadow.scale.set(1.0, 0.4, 1);
+    playerShadow.renderOrder = 1;
     scene.add(playerShadow);
+
+    // === OUTLINE SYSTEM — thin colored silhouette behind each sprite ===
+    const createOutlineMesh = (geometry: THREE.BufferGeometry, color: number, outlineScale: number = 1.08) => {
+      const outlineMat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.5,
+        depthWrite: false,
+      });
+      const outline = new THREE.Mesh(geometry, outlineMat);
+      outline.scale.setScalar(outlineScale);
+      return outline;
+    };
 
     const playerGeometry = SharedGeometry.player;
     const playerTexture = assetManager.getTexture('player_down_idle_0');
@@ -459,6 +472,11 @@ const Game = () => {
     playerMesh.scale.setScalar(PLAYER_BASE_SCALE);
     playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
     scene.add(playerMesh);
+
+    // Player outline
+    const playerOutline = createOutlineMesh(playerGeometry, 0xaaddff, 1.06);
+    playerOutline.position.z = 0.19;
+    scene.add(playerOutline);
 
     const npcData: NPC[] = [
       { id: 'elder', name: 'Village Elder', position: { x: -18, y: -10 }, dialogueId: 'elder', sprite: 'npc_elder', questGiver: true },
