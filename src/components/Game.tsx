@@ -899,18 +899,26 @@ const Game = () => {
             wander.angle += (Math.random() - 0.5) * Math.PI * 1.5;
           }
 
-          const mesh = npcMeshes[ni];
-          if (mesh) {
-            mesh.position.set(npc.position.x, npc.position.y, 0.2);
-          }
         }
 
-        // Idle bob + Y-sort for NPCs
         const npcMesh = npcMeshes[ni];
         if (npcMesh) {
-          const bob = Math.sin(currentTime / 800 + ni * 2.1) * 0.03;
-          npcMesh.position.y = npc.position.y + bob;
-          npcMesh.renderOrder = getYRenderOrder(npc.position.y);
+          const npcScale = NPC_SCALE_BY_ID[npc.id] ?? 1;
+          const walkWave = !wander.isPaused ? Math.sin(currentTime / 120 + ni * 1.7) : 0;
+          const stride = Math.abs(walkWave);
+          const bob = !wander.isPaused
+            ? stride * 0.05
+            : Math.sin(currentTime / 800 + ni * 2.1) * 0.03;
+          const lean = !wander.isPaused ? walkWave * 0.035 : 0;
+
+          npcMesh.position.set(npc.position.x, npc.position.y + bob, 0.2);
+          npcMesh.scale.set(
+            npcScale * (1 - stride * 0.025),
+            npcScale * (1 + stride * 0.05),
+            1
+          );
+          npcMesh.rotation.z = lean;
+          npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET);
         }
       }
 
