@@ -193,6 +193,7 @@ export class CombatSystem {
 
     if (targetEnemy.health <= 0) {
       targetEnemy.state = 'dead';
+      this._enemiesDirty = true;
       this.gameState.player.gold += targetEnemy.goldReward;
       return true;
     }
