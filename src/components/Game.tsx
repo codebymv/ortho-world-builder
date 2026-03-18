@@ -168,10 +168,27 @@ const Game = () => {
       const mapDef = mapDefinitions[targetMap];
       if (mapDef?.enemyZones) {
         for (const zone of mapDef.enemyZones) {
-          const enemySprite = zone.enemyType === 'wolf' ? 'enemy_wolf' : 'enemy_shadow';
-          const enemyName = zone.enemyType === 'wolf' ? 'Forest Wolf' : 'Shadow Creature';
-          const hp = zone.enemyType === 'wolf' ? 40 : 60;
-          const dmg = zone.enemyType === 'wolf' ? 10 : 15;
+          let enemySprite: string;
+          let enemyName: string;
+          let hp: number;
+          let dmg: number;
+
+          switch (zone.enemyType) {
+            case 'wolf':
+              enemySprite = 'enemy_wolf'; enemyName = 'Forest Wolf'; hp = 40; dmg = 10; break;
+            case 'shadow':
+              enemySprite = 'enemy_shadow'; enemyName = 'Shadow Creature'; hp = 60; dmg = 15; break;
+            case 'plant':
+              enemySprite = 'enemy_plant'; enemyName = 'Vine Terror'; hp = 50; dmg = 12; break;
+            case 'skeleton':
+              enemySprite = 'enemy_skeleton'; enemyName = 'Skeleton Warrior'; hp = 55; dmg = 14; break;
+            case 'bandit':
+              enemySprite = 'enemy_bandit'; enemyName = 'Bandit'; hp = 45; dmg = 11; break;
+            case 'golem':
+              enemySprite = 'enemy_golem'; enemyName = 'Stone Golem'; hp = 200; dmg = 25; break;
+            default:
+              enemySprite = 'enemy_wolf'; enemyName = 'Wild Beast'; hp = 40; dmg = 10;
+          }
           
           for (let i = 0; i < zone.count; i++) {
             const ex = (zone.x + Math.random() * zone.width) - newMap.width / 2;
