@@ -51,7 +51,8 @@ const OVERLAY_TYPES: Set<TileType> = new Set([
   'tree', 'house', 'rock', 'chest', 'portal', 'flower',
   'push_block', 'campfire', 'sign', 'well', 'tombstone', 'mushroom', 'stump',
   'fence', 'gate', 'barrel', 'crate', 'spike_trap', 'bones',
-  'dead_tree', 'destroyed_house', 'statue'
+  'dead_tree', 'destroyed_house', 'statue',
+  'iron_fence', 'hedge', 'scarecrow', 'hay_bale', 'lantern'
 ]);
 
 const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
