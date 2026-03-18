@@ -409,8 +409,10 @@ const Game = () => {
       state.player.lastAttackTime = currentTime;
       playerAnimState = 'attack';
       attackFrame = 0;
-      attackFrameTimer = ATTACK_FRAME_DURATION * 1.5; // slower, heavier swing
+      attackFrameTimer = ATTACK_FRAME_DURATION * 1.5;
       state.player.attackAnimationTimer = ATTACK_FRAME_DURATION * 4;
+      // Reset rotation from spin
+      // (will be smoothly handled in render loop)
 
       const dmgMult = 1 + (CHARGE_DAMAGE_MULT - 1) * level;
       const chargeDamage = Math.floor(state.player.attackDamage * dmgMult);
