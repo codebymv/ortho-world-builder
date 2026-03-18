@@ -205,20 +205,11 @@ export class World {
 
   private recycleObject(object: THREE.Object3D) {
     if (object instanceof THREE.Group) {
-      const children = [...object.children];
-      for (const child of children) {
-        object.remove(child);
-        if (child instanceof THREE.Mesh) {
-          this.meshPool.push(child);
-        }
-      }
+      object.clear();
       this.overlayPool.push(object);
       return;
     }
-
-    if (object instanceof THREE.Mesh) {
-      this.meshPool.push(object);
-    }
+    // Meshes with shared materials just get removed from scene — no disposal needed
   }
 
   updateChunks(playerWorldX: number, playerWorldY: number) {
