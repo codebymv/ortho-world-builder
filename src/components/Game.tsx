@@ -448,18 +448,19 @@ const Game = () => {
     playerShadow.renderOrder = 1;
     scene.add(playerShadow);
 
-    // === OUTLINE SYSTEM — thin colored silhouette behind each sprite ===
-    const createOutlineMesh = (geometry: THREE.BufferGeometry, color: number, outlineScale: number = 1.08) => {
+    // === OUTLINE SYSTEM — thin dark silhouette behind each sprite ===
+    const createOutlineMesh = (geometry: THREE.BufferGeometry, texture: THREE.Texture | null) => {
       const outlineMat = new THREE.MeshBasicMaterial({
-        color,
+        map: texture,
+        color: 0x222222,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.45,
         depthWrite: false,
       });
-      const outline = new THREE.Mesh(geometry, outlineMat);
-      outline.scale.setScalar(outlineScale);
-      return outline;
+      return new THREE.Mesh(geometry, outlineMat);
     };
+
+    const OUTLINE_PAD = 1.035; // just 3.5% larger than sprite
 
     const playerGeometry = SharedGeometry.player;
     const playerTexture = assetManager.getTexture('player_down_idle_0');
@@ -475,7 +476,7 @@ const Game = () => {
     scene.add(playerMesh);
 
     // Player outline
-    const playerOutline = createOutlineMesh(playerGeometry, 0xaaddff, 1.06);
+    const playerOutline = createOutlineMesh(playerGeometry, playerTexture);
     playerOutline.position.z = 0.19;
     scene.add(playerOutline);
 
@@ -540,9 +541,9 @@ const Game = () => {
       npcMeshes.push(npcMesh);
 
       // NPC outline
-      const npcOutline = createOutlineMesh(npcGeometry, 0xffe066, 1.06);
+      const npcOutline = createOutlineMesh(npcGeometry, npcTexture);
       npcOutline.position.set(npc.position.x, npc.position.y, 0.19);
-      npcOutline.scale.set(npcScale * 1.06, npcScale * 1.06, 1);
+      npcOutline.scale.set(npcScale * OUTLINE_PAD, npcScale * OUTLINE_PAD, 1);
       npcOutline.renderOrder = npcMesh.renderOrder - 1;
       scene.add(npcOutline);
       npcOutlines.push(npcOutline);
@@ -1306,6 +1307,7 @@ const Game = () => {
         
         if (newTex && playerMaterial.map !== newTex) {
           playerMaterial.map = newTex;
+          (playerOutline.material as THREE.MeshBasicMaterial).map = newTex;
         }
 
         // === PLAYER POSITION WITH ANIMATION OFFSETS ===
@@ -1387,7 +1389,7 @@ const Game = () => {
           state.player.position.y + attackOffsetY,
           0.19
         );
-        playerOutline.scale.set(visualScaleX * 1.06, visualScaleY * 1.06, 1);
+        playerOutline.scale.set(visualScaleX * OUTLINE_PAD, visualScaleY * OUTLINE_PAD, 1);
         playerOutline.rotation.z = visualRotation;
         playerOutline.renderOrder = playerMesh.renderOrder - 1;
 
@@ -1558,7 +1560,7 @@ const Game = () => {
             enemyShadows.set(enemy.id, eShadow);
 
             // Enemy outline
-            const eOutline = createOutlineMesh(enemyGeometry, 0xff6666, 1.06);
+            const eOutline = createOutlineMesh(enemyGeometry, enemyTexture);
             eOutline.position.z = 0.19;
             scene.add(eOutline);
             enemyOutlines.set(enemy.id, eOutline);
@@ -1735,7 +1737,7 @@ const Game = () => {
           const eOutline = enemyOutlines.get(enemy.id);
           if (eOutline) {
             eOutline.position.set(finalEnemyX, finalEnemyY, 0.19);
-            eOutline.scale.set(scaleX * 1.06, scaleY * 1.06, 1);
+            eOutline.scale.set(scaleX * OUTLINE_PAD, scaleY * OUTLINE_PAD, 1);
             eOutline.rotation.z = rotation;
             eOutline.renderOrder = enemyMesh.renderOrder - 1;
           }
