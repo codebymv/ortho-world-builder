@@ -75,7 +75,7 @@ export const Minimap = ({ currentMap, playerPosition, visitedTiles, npcs, refres
     ctx.strokeStyle = '#FFFFFF';
     ctx.lineWidth = 2;
     ctx.strokeRect(0, 0, canvas.width, canvas.height);
-  }, [currentMap, playerPosition, visitedTiles, npcs]);
+  }, [currentMap, playerPosition, visitedTiles, npcs, refreshToken]);
 
   return (
     <div className="fixed top-16 right-4 bg-[#1A0F0A]/85 backdrop-blur-sm p-1.5 rounded-sm border-2 border-[#5C3A21] shadow-md z-30 font-sans pointer-events-auto" style={{ maxWidth: '200px', maxHeight: '200px' }}>

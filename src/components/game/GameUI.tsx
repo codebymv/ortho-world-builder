@@ -13,6 +13,7 @@ export const GameUI = ({ gameState, refreshToken }: GameUIProps) => {
   const [showQuests, setShowQuests] = useState(false);
 
   const activeQuests = gameState.quests.filter(q => q.active && !q.completed);
+  void refreshToken;
 
   return (
     <>
