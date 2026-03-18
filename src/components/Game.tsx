@@ -83,11 +83,19 @@ const Game = () => {
     let animTimer = 0;
     const IDLE_FRAME_DURATION = 0.8;
     const WALK_FRAME_DURATION = 0.18;
-    let playerAnimState: 'idle' | 'walk' | 'attack' | 'dodge' = 'idle';
+    let playerAnimState: 'idle' | 'walk' | 'attack' | 'dodge' | 'charge' | 'hurt' = 'idle';
     let attackFrameTimer = 0;
     let attackFrame = 0;
     const ATTACK_FRAME_DURATION = 0.1;
     let currentDir8: Direction8 = 'down';
+
+    // Charge attack state
+    let isChargingAttack = false;
+    let chargeTimer = 0;
+    const CHARGE_TIME_MIN = 0.4;   // minimum hold for charged attack
+    const CHARGE_TIME_MAX = 1.2;    // fully charged
+    const CHARGE_DAMAGE_MULT = 2.5; // damage multiplier at full charge
+    let chargeLevel = 0; // 0-1
 
     // Map biome lookup
     const mapBiomes: Record<string, string> = {
@@ -217,7 +225,6 @@ const Game = () => {
 
     const keys: { [key: string]: boolean } = {};
     let interactBuffered = false;
-    let attackBuffered = false;
     let dodgeBuffered = false;
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -227,7 +234,16 @@ const Game = () => {
       }
       if (e.key === ' ' && !state.dialogueActive) {
         e.preventDefault();
-        attackBuffered = true;
+        // Start charging instead of immediate attack
+        if (!isChargingAttack && !state.player.isDodging && playerAnimState !== 'attack') {
+          const currentTime = Date.now();
+          if (currentTime - state.player.lastAttackTime >= state.player.attackCooldown) {
+            isChargingAttack = true;
+            chargeTimer = 0;
+            chargeLevel = 0;
+            playerAnimState = 'charge';
+          }
+        }
       }
       if (e.key === 'Shift' && !state.dialogueActive) {
         dodgeBuffered = true;
@@ -238,6 +254,17 @@ const Game = () => {
       keys[e.key.toLowerCase()] = false;
       if (e.key === 'Shift') {
         keys['shift'] = false;
+      }
+      if (e.key === ' ' && isChargingAttack) {
+        // Release: perform attack (charged or normal)
+        if (chargeTimer >= CHARGE_TIME_MIN) {
+          performChargeAttack(chargeLevel);
+        } else {
+          performAttack();
+        }
+        isChargingAttack = false;
+        chargeTimer = 0;
+        chargeLevel = 0;
       }
     };
 
@@ -337,6 +364,63 @@ const Game = () => {
         particleSystem.emit(
           new THREE.Vector3(attackPos.x, attackPos.y, 0.3),
           4, 0xFFFFFF, 0.3, 1, 1
+        );
+      }
+    };
+
+    const performChargeAttack = (level: number) => {
+      const currentTime = Date.now();
+      if (state.player.isDodging) return;
+
+      state.player.lastAttackTime = currentTime;
+      playerAnimState = 'attack';
+      attackFrame = 0;
+      attackFrameTimer = ATTACK_FRAME_DURATION * 1.5; // slower, heavier swing
+      state.player.attackAnimationTimer = ATTACK_FRAME_DURATION * 4;
+
+      const dmgMult = 1 + (CHARGE_DAMAGE_MULT - 1) * level;
+      const chargeDamage = Math.floor(state.player.attackDamage * dmgMult);
+      const chargeRange = state.player.attackRange * (1 + level * 0.5);
+
+      const enemiesInRange = combatSystem.getEnemiesInRange(
+        state.player.position,
+        chargeRange
+      );
+
+      if (enemiesInRange.length > 0) {
+        // Charged attack hits ALL enemies in range
+        for (const target of enemiesInRange) {
+          const died = combatSystem.playerAttack(target, chargeDamage);
+
+          particleSystem.emitDamage(
+            new THREE.Vector3(target.position.x, target.position.y, 0.3)
+          );
+
+          // Extra sparkle particles for charged hits
+          particleSystem.emitSparkles(
+            new THREE.Vector3(target.position.x, target.position.y + 0.3, 0.5)
+          );
+
+          if (died) {
+            toast(`Defeated ${target.name}!`, {
+              description: `Charged strike! Gained ${target.goldReward} gold.`,
+              className: "rpg-toast",
+            });
+            triggerUIUpdate();
+          }
+        }
+      } else {
+        // Whiff particles (bigger for charge)
+        const attackPos = { ...state.player.position };
+        const d4 = dir8to4(currentDir8);
+        if (d4 === 'up') attackPos.y += 1.5;
+        else if (d4 === 'down') attackPos.y -= 1.5;
+        else if (d4 === 'left') attackPos.x -= 1.5;
+        else if (d4 === 'right') attackPos.x += 1.5;
+
+        particleSystem.emit(
+          new THREE.Vector3(attackPos.x, attackPos.y, 0.3),
+          8, 0xFFD700, 0.5, 1.5, 2
         );
       }
     };
@@ -484,9 +568,11 @@ const Game = () => {
         checkInteraction();
         interactBuffered = false;
       }
-      if (attackBuffered && !state.dialogueActive) {
-        performAttack();
-        attackBuffered = false;
+      // Update charge timer
+      if (isChargingAttack) {
+        chargeTimer += deltaTime;
+        chargeLevel = Math.min(1, Math.max(0, (chargeTimer - CHARGE_TIME_MIN) / (CHARGE_TIME_MAX - CHARGE_TIME_MIN)));
+        playerAnimState = 'charge';
       }
 
       if (!state.dialogueActive) {
@@ -551,7 +637,7 @@ const Game = () => {
           world.updateChunks(state.player.position.x, state.player.position.y);
           state.player.isMoving = true;
 
-          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge') {
+          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge') {
             playerAnimState = 'walk';
           }
 
@@ -583,7 +669,7 @@ const Game = () => {
         } else {
           state.player.isMoving = false;
           footstepTimer = 0;
-          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge') {
+          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge') {
             playerAnimState = 'idle';
           }
         }
@@ -604,7 +690,7 @@ const Game = () => {
         }
 
         // Cycle idle/walk frames
-        if (playerAnimState !== 'attack' && playerAnimState !== 'dodge') {
+        if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge') {
           const frameDuration = playerAnimState === 'walk' ? WALK_FRAME_DURATION : IDLE_FRAME_DURATION;
           animTimer += deltaTime;
           if (animTimer >= frameDuration) {
@@ -613,9 +699,23 @@ const Game = () => {
           }
         }
 
+        // Update charge animation frame
+        if (playerAnimState === 'charge') {
+          animTimer += deltaTime;
+          if (animTimer >= 0.15) {
+            animFrame = (animFrame + 1) % 3;
+            animTimer = 0;
+          }
+        }
+
         // Update player texture based on animation state
         let texName: string;
-        if (playerAnimState === 'attack') {
+        if (state.player.damageFlashTimer > 0) {
+          // Hurt face while taking damage
+          texName = getPlayerTextureName(currentDir8, 'hurt', 0);
+        } else if (playerAnimState === 'charge') {
+          texName = getPlayerTextureName(currentDir8, 'charge', Math.min(animFrame, 2));
+        } else if (playerAnimState === 'attack') {
           texName = getPlayerTextureName(currentDir8, 'attack', Math.min(attackFrame, 2));
         } else if (playerAnimState === 'dodge') {
           texName = getPlayerTextureName(currentDir8, 'walk', animFrame);
@@ -627,8 +727,11 @@ const Game = () => {
         let newTex = assetManager.getTexture(texName);
         if (!newTex) {
           const fallbackDir = dir8to4(currentDir8);
-          const fallbackState = playerAnimState === 'dodge' ? 'walk' : playerAnimState;
-          const fallbackFrame = playerAnimState === 'attack' ? Math.min(attackFrame, 2) : animFrame;
+          const fallbackState = playerAnimState === 'dodge' ? 'walk' : 
+                               playerAnimState === 'charge' ? 'charge' : 
+                               playerAnimState === 'hurt' ? 'hurt' : playerAnimState;
+          const fallbackFrame = playerAnimState === 'attack' ? Math.min(attackFrame, 2) : 
+                               playerAnimState === 'charge' ? Math.min(animFrame, 2) : animFrame;
           texName = `player_${fallbackDir}_${fallbackState}_${fallbackFrame}`;
           newTex = assetManager.getTexture(texName);
         }
@@ -657,6 +760,12 @@ const Game = () => {
           dodgeScaleX = 1 + Math.sin(t * Math.PI) * 0.3;
           dodgeScaleY = 1 - Math.sin(t * Math.PI) * 0.2;
           playerMesh.rotation.z = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? 1 : -1);
+        } else if (isChargingAttack) {
+          // Pulsing scale during charge
+          const pulse = 1 + chargeLevel * 0.15 * Math.sin(currentTime / 80);
+          dodgeScaleX = 1 + chargeLevel * 0.1 + pulse * 0.02;
+          dodgeScaleY = 1 + chargeLevel * 0.1 + pulse * 0.02;
+          playerMesh.rotation.z = 0;
         } else {
           playerMesh.rotation.z = 0;
         }
@@ -677,6 +786,11 @@ const Game = () => {
           // Semi-transparent during dodge (i-frames visual)
           playerMaterial.color.setHex(0xaaaaff);
           playerMaterial.opacity = 0.6;
+        } else if (isChargingAttack && chargeLevel > 0) {
+          // Golden glow during charge
+          const glow = Math.sin(currentTime / 100) > 0 ? 0xFFD700 : 0xFFA000;
+          playerMaterial.color.setHex(glow);
+          playerMaterial.opacity = 1;
         } else {
           playerMaterial.color.setHex(0xffffff);
           playerMaterial.opacity = 1;
