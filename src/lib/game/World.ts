@@ -257,7 +257,7 @@ export class World {
         const tile = this.map.tiles[y]?.[x];
         if (!tile || tile.hidden) continue;
 
-        const object = this.createTileObject(tile);
+        const object = this.createTileObject(tile, x, y);
         if (!object) continue;
 
         const isOverlay = OVERLAY_TYPES.has(tile.type);
