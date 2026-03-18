@@ -49,10 +49,12 @@ const Game = () => {
       1000
     );
     camera.position.z = 5;
+    cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    rendererRef.current = renderer;
     mountRef.current.appendChild(renderer.domElement);
 
     const assetManager = new AssetManager();
