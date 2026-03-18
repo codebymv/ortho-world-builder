@@ -1119,6 +1119,8 @@ const Game = () => {
 
     if (nextId === 'end' || !gameState.currentDialogue) {
       setCurrentDialogue(null);
+      setNpcScreenPos(null);
+      activeNpcWorldPos.current = null;
       gameState.dialogueActive = false;
       gameState.currentDialogue = null;
       return;
