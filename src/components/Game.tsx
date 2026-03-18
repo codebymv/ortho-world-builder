@@ -1984,7 +1984,7 @@ const Game = () => {
       musicStarted.current = true;
       // On first interaction, also sync to the correct track for current map
       const map = gameStateRef.current?.currentMap || 'village';
-      const correctTrack = MAP_MUSIC[map] || DEFAULT_MUSIC;
+      const correctTrack = MAP_MUSIC_MAP[map] || DEFAULT_MUSIC_TRACK;
       if (currentTrackRef.current !== correctTrack) {
         audio.src = correctTrack;
         currentTrackRef.current = correctTrack;
