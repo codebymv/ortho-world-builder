@@ -1376,9 +1376,19 @@ const Game = () => {
         // Update player shadow
         playerShadow.position.set(
           state.player.position.x + attackOffsetX,
-          state.player.position.y + attackOffsetY - 0.4,
-          -0.01
+          state.player.position.y + attackOffsetY - 0.35,
+          0.05
         );
+
+        // Update player outline
+        playerOutline.position.set(
+          state.player.position.x + attackOffsetX,
+          state.player.position.y + attackOffsetY,
+          0.19
+        );
+        playerOutline.scale.set(visualScaleX * 1.06, visualScaleY * 1.06, 1);
+        playerOutline.rotation.z = visualRotation;
+        playerOutline.renderOrder = playerMesh.renderOrder - 1;
 
         // Dynamic Y-sorting for player
         playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
