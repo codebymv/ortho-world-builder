@@ -1592,9 +1592,7 @@ const Game = () => {
             scaleX *= 0.92 + recoverProgress * 0.08;
             scaleY *= 0.88 + recoverProgress * 0.12;
             rotation = Math.sin(currentTime / 90 + seed) * 0.02;
-            if (!enemy.damageFlashTimer || enemy.damageFlashTimer <= 0) {
-              mat.color.setHex(0x8888ff);
-            }
+            // No glow — just show the recoil posture
           } else {
             const breathe = Math.sin(currentTime / 800 + seed * 3);
             if (enemyType === 'shadow') {
