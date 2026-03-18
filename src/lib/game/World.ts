@@ -213,7 +213,6 @@ export class World {
     // Determine base tile: check surrounding terrain for context, fall back to default
     let baseType = OVERLAY_BASE_TILE[tile.type] ?? 'grass';
     if (tileX !== undefined && tileY !== undefined) {
-      // Sample adjacent tiles to find the dominant ground type
       const neighbors: TileType[] = [];
       for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
         const nx = tileX + dx, ny = tileY + dy;
@@ -225,11 +224,15 @@ export class World {
         }
       }
       if (neighbors.length > 0) {
-        // Use the most common neighbor as base
         const counts = new Map<TileType, number>();
         for (const n of neighbors) counts.set(n, (counts.get(n) || 0) + 1);
         let best = neighbors[0], bestCount = 0;
-        for (const [t, c] of counts) { if (c > bestCount) { best = t; bestCount = c; } }
+        for (const [t, c] of counts) {
+          if (c > bestCount) {
+            best = t;
+            bestCount = c;
+          }
+        }
         baseType = best;
       }
     }
@@ -240,11 +243,14 @@ export class World {
     const group = this.overlayPool.pop() ?? new THREE.Group();
     group.clear();
     group.matrixAutoUpdate = false;
+    group.userData = {
+      tileType: tile.type,
+      footOffset: OVERLAY_FOOT_OFFSET[tile.type] ?? 0,
+    };
 
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
     const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1, `overlay_${tile.type}`);
 
-    // Apply scale to overlay
     const scale = OVERLAY_SCALE[tile.type] ?? 1.0;
     if (scale !== 1.0) {
       overlayMesh.scale.set(scale, scale, 1);
