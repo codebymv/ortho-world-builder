@@ -689,6 +689,7 @@ const Game = () => {
       const currentTime = Date.now();
       if (state.player.isDodging) return;
       playSwordSwing();
+      spinSwooshTimer = SPIN_SWOOSH_DURATION; // trigger spin swoosh
 
       state.player.lastAttackTime = currentTime;
       playerAnimState = 'spin_attack';
