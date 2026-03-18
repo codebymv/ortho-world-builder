@@ -1132,7 +1132,9 @@ const Game = () => {
       }
 
       // Update systems
+      const currentBiome = mapBiomes[state.currentMap] || 'grassland';
       biomeAmbience.update(deltaTime, state.player.position.x, state.player.position.y);
+      weatherSystem.update(deltaTime, state.player.position.x, state.player.position.y, currentBiome);
       particleSystem.update(deltaTime);
       renderer.render(scene, camera);
     };
