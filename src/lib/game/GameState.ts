@@ -97,7 +97,7 @@ export class GameState {
       dodgeCooldown: 600,
       lastDodgeTime: 0,
       dodgeDirection: { x: 0, y: 0 },
-      dodgeSpeed: 0.35,
+      dodgeSpeed: 0.12,
       stamina: 100,
       maxStamina: 100,
       staminaRegenRate: 30, // per second

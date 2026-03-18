@@ -119,13 +119,13 @@ export class World {
           mesh = this.meshPool.pop()!;
           const mat = mesh.material as THREE.MeshBasicMaterial;
           mat.map = texture;
-          mat.transparent = isOverlay;
+          mat.transparent = true;
           mat.needsUpdate = true;
         } else {
           const geometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
           const material = new THREE.MeshBasicMaterial({
             map: texture,
-            transparent: isOverlay,
+            transparent: true,
           });
           mesh = new THREE.Mesh(geometry, material);
         }
