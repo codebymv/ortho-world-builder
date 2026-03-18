@@ -58,6 +58,12 @@ const villageDef: MapDefinition = {
     { x: 200, y: 15, width: 16, height: 12, type: 'camp', interactionId: 'bandit_camp' },
     { x: 10, y: 135, width: 10, height: 8, type: 'camp', interactionId: 'goblin_camp' },
 
+    // === ABANDONED CAMP (south-west) ===
+    { x: 15, y: 120, width: 14, height: 10, type: 'abandoned_camp', interactionId: 'old_camp' },
+
+    // === CEMETERY (north) ===
+    { x: 80, y: 15, width: 18, height: 14, type: 'cemetery' },
+
     // === DESTROYED OUTPOST (north-west) ===
     { x: 10, y: 50, width: 18, height: 14, type: 'destroyed_town' },
 
