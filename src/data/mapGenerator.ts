@@ -318,6 +318,18 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
       case 'enchanted_grove':
         placeEnchantedGrove(tiles, feature);
         break;
+      case 'church':
+        placeChurch(tiles, feature);
+        break;
+      case 'ruined_fort':
+        placeRuinedFort(tiles, feature);
+        break;
+      case 'cottage':
+        placeCottage(tiles, feature);
+        break;
+      case 'watchtower':
+        placeWatchtower(tiles, feature);
+        break;
     }
   }
 }
