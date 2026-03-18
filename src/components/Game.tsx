@@ -1728,7 +1728,16 @@ const Game = () => {
           // Update enemy shadow
           const eShadow = enemyShadows.get(enemy.id);
           if (eShadow) {
-            eShadow.position.set(finalEnemyX, finalEnemyY - visual.footOffset * 0.8, -0.01);
+            eShadow.position.set(finalEnemyX, finalEnemyY - visual.footOffset * 0.7, 0.05);
+          }
+
+          // Update enemy outline
+          const eOutline = enemyOutlines.get(enemy.id);
+          if (eOutline) {
+            eOutline.position.set(finalEnemyX, finalEnemyY, 0.19);
+            eOutline.scale.set(scaleX * 1.06, scaleY * 1.06, 1);
+            eOutline.rotation.z = rotation;
+            eOutline.renderOrder = enemyMesh.renderOrder - 1;
           }
 
           // === HP BAR ===
