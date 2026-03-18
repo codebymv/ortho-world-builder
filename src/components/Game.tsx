@@ -670,7 +670,7 @@ const Game = () => {
         } else {
           state.player.isMoving = false;
           footstepTimer = 0;
-          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge') {
+          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge') {
             playerAnimState = 'idle';
           }
         }
