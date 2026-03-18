@@ -308,20 +308,33 @@ const forestDef: MapDefinition = {
     { x: 256, y: 184, width: 8, height: 6, fill: 'grass' },
     { x: 24, y: 24, width: 6, height: 6, fill: 'stone' },
     { x: 280, y: 270, width: 5, height: 5, fill: 'grass' },
+    { x: 90, y: 145, width: 6, height: 5, fill: 'grass' },
+    { x: 195, y: 175, width: 5, height: 5, fill: 'stone' },
+    { x: 145, y: 270, width: 6, height: 4, fill: 'grass' },
+    { x: 55, y: 195, width: 5, height: 5, fill: 'stone' },
+    { x: 270, y: 130, width: 4, height: 5, fill: 'grass' },
   ],
   enemyZones: [
     { x: 30, y: 30, width: 30, height: 24, enemyType: 'wolf', count: 8 },
-    { x: 210, y: 36, width: 30, height: 24, enemyType: 'wolf', count: 6 },
+    { x: 210, y: 36, width: 30, height: 24, enemyType: 'bandit', count: 6 },
     { x: 60, y: 120, width: 40, height: 30, enemyType: 'wolf', count: 5 },
     { x: 200, y: 160, width: 40, height: 40, enemyType: 'wolf', count: 6 },
     { x: 20, y: 240, width: 35, height: 30, enemyType: 'shadow', count: 7 },
-    { x: 100, y: 250, width: 25, height: 20, enemyType: 'wolf', count: 4 },
+    { x: 100, y: 250, width: 25, height: 20, enemyType: 'skeleton', count: 4 },
     { x: 250, y: 50, width: 25, height: 20, enemyType: 'wolf', count: 4 },
-    { x: 160, y: 40, width: 30, height: 20, enemyType: 'wolf', count: 3 },
+    { x: 160, y: 40, width: 30, height: 20, enemyType: 'bandit', count: 3 },
+    // Plant monster zones in enchanted groves
+    { x: 70, y: 140, width: 30, height: 26, enemyType: 'plant', count: 6 },
+    { x: 240, y: 240, width: 24, height: 22, enemyType: 'plant', count: 5 },
+    { x: 50, y: 260, width: 26, height: 22, enemyType: 'plant', count: 4 },
+    // Fort defenders
+    { x: 130, y: 120, width: 22, height: 18, enemyType: 'bandit', count: 5 },
+    { x: 200, y: 60, width: 18, height: 16, enemyType: 'skeleton', count: 4 },
+    { x: 60, y: 190, width: 20, height: 16, enemyType: 'bandit', count: 4 },
     // Field boss zone
     { x: 215, y: 145, width: 30, height: 30, enemyType: 'golem', count: 1 },
     // Cemetery undead
-    { x: 118, y: 238, width: 26, height: 20, enemyType: 'shadow', count: 5 },
+    { x: 118, y: 238, width: 26, height: 20, enemyType: 'skeleton', count: 5 },
     // Abandoned areas
     { x: 175, y: 195, width: 30, height: 25, enemyType: 'wolf', count: 5 },
   ],
