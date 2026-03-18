@@ -1432,6 +1432,8 @@ const Game = () => {
         duration: 8000,
         className: "rpg-toast",
       });
+      // Ping the Elder's location on the minimap
+      addMarkersFromText("Village Elder", state.currentMap);
     }, 1000);
 
     return () => {
