@@ -164,7 +164,6 @@ const Game = () => {
       combatSystem.clearAllEnemies();
       enemyMeshes.forEach(mesh => {
         scene.remove(mesh);
-        mesh.geometry.dispose();
         (mesh.material as THREE.Material).dispose();
       });
       enemyMeshes.clear();
@@ -172,9 +171,7 @@ const Game = () => {
       enemyHPBars.forEach(({ bg, fill }) => {
         scene.remove(bg);
         scene.remove(fill);
-        bg.geometry.dispose();
         (bg.material as THREE.Material).dispose();
-        fill.geometry.dispose();
         (fill.material as THREE.Material).dispose();
       });
       enemyHPBars.clear();
