@@ -285,6 +285,15 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
       case 'volcano':
         placeVolcano(tiles, feature);
         break;
+      case 'boss_arena':
+        placeBossArena(tiles, feature);
+        break;
+      case 'abandoned_camp':
+        placeAbandonedCamp(tiles, feature);
+        break;
+      case 'cemetery':
+        placeCemetery(tiles, feature);
+        break;
     }
   }
 }
