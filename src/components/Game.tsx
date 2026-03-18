@@ -1553,19 +1553,28 @@ const Game = () => {
                 break;
             }
           } else if (enemy.state === 'telegraphing') {
+            // Movement-based telegraph: wind-up crouch + lean toward player
             const telegraphProgress = 1 - (enemy.telegraphTimer / enemy.telegraphDuration);
-            const shakeIntensity = 0.06 * telegraphProgress;
-            finalEnemyX += Math.sin(currentTime / 35 + seed) * shakeIntensity;
-            finalEnemyY += Math.cos(currentTime / 42 + seed) * shakeIntensity;
-            scaleX *= 1 + telegraphProgress * 0.18;
-            scaleY *= 1 + telegraphProgress * 0.2;
-            rotation = Math.sin(currentTime / 55 + seed) * 0.03;
-
-            if (Math.sin(currentTime / 50) > 0) {
-              mat.color.setHex(0xffaa00);
-            } else {
-              mat.color.setHex(0xffffff);
-            }
+            const dx = state.player.position.x - enemy.position.x;
+            const dy = state.player.position.y - enemy.position.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            
+            // Crouch down (squash vertically, widen)
+            scaleX *= 1 + telegraphProgress * 0.15;
+            scaleY *= 1 - telegraphProgress * 0.12;
+            
+            // Lean toward player (wind-up)
+            const windUpDist = telegraphProgress * 0.15;
+            finalEnemyX += (dx / dist) * -windUpDist; // pull BACK first
+            finalEnemyY += (dy / dist) * -windUpDist;
+            
+            // Increasing vibration
+            const shakeIntensity = 0.03 * telegraphProgress * telegraphProgress;
+            finalEnemyX += Math.sin(currentTime / 25 + seed) * shakeIntensity;
+            finalEnemyY += Math.cos(currentTime / 30 + seed) * shakeIntensity;
+            
+            // Tilt toward player
+            rotation = Math.atan2(dy, dx) * 0.08 * telegraphProgress;
           } else if (enemy.state === 'recovering') {
             if (enemy.attackAnimationTimer > 0) {
               enemy.attackAnimationTimer -= deltaTime;
