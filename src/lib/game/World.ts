@@ -125,7 +125,7 @@ export class World {
           const geometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
           const material = new THREE.MeshBasicMaterial({
             map: texture,
-            transparent: isOverlay,
+            transparent: true,
           });
           mesh = new THREE.Mesh(geometry, material);
         }
