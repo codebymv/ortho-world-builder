@@ -100,8 +100,8 @@ export class GameState {
       dodgeSpeed: 0.12,
       stamina: 100,
       maxStamina: 100,
-      staminaRegenRate: 8, // per second (slow souls-like regen)
-      staminaRegenDelay: 1.5, // seconds after use before regen starts
+      staminaRegenRate: 15, // per second (moderate souls-like regen)
+      staminaRegenDelay: 1.0, // seconds after use before regen starts
       lastStaminaUseTime: 0,
     };
 

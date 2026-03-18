@@ -156,11 +156,13 @@ export class World {
       const material = mesh.material as THREE.MeshBasicMaterial;
       material.map = texture;
       material.transparent = true;
+      material.depthWrite = false;
       material.needsUpdate = true;
     } else {
       const material = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
+        depthWrite: false,
       });
       mesh = new THREE.Mesh(this.sharedTileGeometry, material);
       mesh.frustumCulled = false; // We handle culling manually
