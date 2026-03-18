@@ -1,6 +1,6 @@
 import { GameState } from '@/lib/game/GameState';
 import { Button } from '@/components/ui/button';
-import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX } from 'lucide-react';
+import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
