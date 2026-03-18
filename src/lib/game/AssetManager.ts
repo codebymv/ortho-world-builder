@@ -1,11 +1,28 @@
 import * as THREE from 'three';
 
+// Shared geometry instances to avoid creating duplicates
+const _sharedTileGeometry = new THREE.PlaneGeometry(1, 1);
+const _sharedPlayerGeometry = new THREE.PlaneGeometry(1.0, 1.25);
+const _sharedEnemyGeometry = new THREE.PlaneGeometry(0.7, 0.7);
+const _sharedHPBarBgGeometry = new THREE.PlaneGeometry(0.6, 0.06);
+const _sharedHPBarFillGeometry = new THREE.PlaneGeometry(0.58, 0.04);
+
+export const SharedGeometry = {
+  tile: _sharedTileGeometry,
+  player: _sharedPlayerGeometry,
+  enemy: _sharedEnemyGeometry,
+  hpBarBg: _sharedHPBarBgGeometry,
+  hpBarFill: _sharedHPBarFillGeometry,
+};
+
 export class AssetManager {
   private textures: Map<string, THREE.Texture>;
+  private textureGenerators: Map<string, () => THREE.Texture>;
   private textureLoader: THREE.TextureLoader;
 
   constructor() {
     this.textures = new Map();
+    this.textureGenerators = new Map();
     this.textureLoader = new THREE.TextureLoader();
   }
 
