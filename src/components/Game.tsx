@@ -1117,10 +1117,10 @@ const Game = () => {
 
       // Project active NPC world pos to screen for chat bubble
       if (activeNpcWorldPos.current && state.dialogueActive) {
-        const worldPos = new THREE.Vector3(activeNpcWorldPos.current.x, activeNpcWorldPos.current.y + 1.2, 0);
-        worldPos.project(camera);
-        const sx = (worldPos.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-        const sy = (-worldPos.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+        _worldPosVec3.set(activeNpcWorldPos.current.x, activeNpcWorldPos.current.y + 1.2, 0);
+        _worldPosVec3.project(camera);
+        const sx = (_worldPosVec3.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+        const sy = (-_worldPosVec3.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
         setNpcScreenPos({ x: sx, y: sy });
       }
 

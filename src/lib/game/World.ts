@@ -213,16 +213,24 @@ export class World {
     const centerTileX = Math.floor(playerWorldX + this.map.width / 2);
     const centerTileY = Math.floor(playerWorldY + this.map.height / 2);
 
-    const dx = Math.abs(centerTileX - this.lastChunkCenter.x);
-    const dy = Math.abs(centerTileY - this.lastChunkCenter.y);
-    if (dx < this.CHUNK_UPDATE_THRESHOLD && dy < this.CHUNK_UPDATE_THRESHOLD) return;
+    const dx = centerTileX - this.lastChunkCenter.x;
+    const dy = centerTileY - this.lastChunkCenter.y;
+    if (Math.abs(dx) < this.CHUNK_UPDATE_THRESHOLD && Math.abs(dy) < this.CHUNK_UPDATE_THRESHOLD) return;
 
+    // Track movement direction for preloading
+    if (dx !== 0 || dy !== 0) {
+      this.lastMoveDir.x = dx > 0 ? 1 : dx < 0 ? -1 : 0;
+      this.lastMoveDir.y = dy > 0 ? 1 : dy < 0 ? -1 : 0;
+    }
     this.lastChunkCenter = { x: centerTileX, y: centerTileY };
 
-    const startX = Math.max(0, centerTileX - RENDER_RADIUS);
-    const endX = Math.min(this.map.width - 1, centerTileX + RENDER_RADIUS);
-    const startY = Math.max(0, centerTileY - RENDER_RADIUS);
-    const endY = Math.min(this.map.height - 1, centerTileY + RENDER_RADIUS);
+    // Extend render radius in movement direction for seamless preloading
+    const preX = this.lastMoveDir.x * this.PRELOAD_EXTRA;
+    const preY = this.lastMoveDir.y * this.PRELOAD_EXTRA;
+    const startX = Math.max(0, centerTileX - RENDER_RADIUS + Math.min(0, preX));
+    const endX = Math.min(this.map.width - 1, centerTileX + RENDER_RADIUS + Math.max(0, preX));
+    const startY = Math.max(0, centerTileY - RENDER_RADIUS + Math.min(0, preY));
+    const endY = Math.min(this.map.height - 1, centerTileY + RENDER_RADIUS + Math.max(0, preY));
 
     const neededKeys = new Set<string>();
     for (let y = startY; y <= endY; y++) {
