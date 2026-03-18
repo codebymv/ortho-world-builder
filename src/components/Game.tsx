@@ -1303,16 +1303,17 @@ const Game = () => {
         // Dynamic Y-sorting for player
         playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
 
-        // === SWORD SWOOSH TRAIL ===
+        // === NORMAL SWORD SWOOSH (synced to attackRange) ===
         if (swooshTimer > 0) {
           swooshTimer -= deltaTime;
           const progress = 1 - (swooshTimer / SWOOSH_DURATION);
           swooshMesh.visible = true;
-          swooshMaterial.opacity = (1 - progress) * 0.6;
-          const swooshScale = 0.6 + progress * 0.8;
+          swooshMaterial.opacity = (1 - progress) * 0.35; // subtle
+          // Scale to match attackRange
+          const rangeScale = state.player.attackRange * 0.5;
+          const swooshScale = rangeScale * (0.5 + progress * 0.7);
           swooshMesh.scale.set(swooshScale, swooshScale, 1);
 
-          // Position and rotate based on facing direction
           const swooshDirAngles: Record<string, number> = {
             up: Math.PI * 0.5,
             down: -Math.PI * 0.5,
@@ -1322,9 +1323,10 @@ const Game = () => {
           const baseAngle = swooshDirAngles[facing4] ?? 0;
           swooshMesh.rotation.z = baseAngle + progress * Math.PI * 0.5 - Math.PI * 0.25;
 
+          const swooshDist = state.player.attackRange * 0.4;
           const swooshOffsets: Record<string, {x: number, y: number}> = {
-            up: {x: 0, y: 0.6}, down: {x: 0, y: -0.6},
-            left: {x: -0.6, y: 0}, right: {x: 0.6, y: 0},
+            up: {x: 0, y: swooshDist}, down: {x: 0, y: -swooshDist},
+            left: {x: -swooshDist, y: 0}, right: {x: swooshDist, y: 0},
           };
           const sOff = swooshOffsets[facing4] ?? {x: 0, y: 0};
           swooshMesh.position.set(
@@ -1334,6 +1336,25 @@ const Game = () => {
           );
         } else {
           swooshMesh.visible = false;
+        }
+
+        // === SPIN ATTACK SWOOSH (full circle, synced to chargeRange) ===
+        if (spinSwooshTimer > 0) {
+          spinSwooshTimer -= deltaTime;
+          const progress = 1 - (spinSwooshTimer / SPIN_SWOOSH_DURATION);
+          spinSwooshMesh.visible = true;
+          spinSwooshMaterial.opacity = (1 - progress) * 0.5;
+          const chargeRange = state.player.attackRange * 1.5;
+          const spinScale = chargeRange * (0.3 + progress * 0.7);
+          spinSwooshMesh.scale.set(spinScale, spinScale, 1);
+          spinSwooshMesh.rotation.z = progress * Math.PI * 2;
+          spinSwooshMesh.position.set(
+            state.player.position.x + attackOffsetX,
+            state.player.position.y + attackOffsetY,
+            0.3
+          );
+        } else {
+          spinSwooshMesh.visible = false;
         }
         // Player damage flash
         if (state.player.damageFlashTimer > 0) {
