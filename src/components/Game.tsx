@@ -273,6 +273,26 @@ const Game = () => {
       { id: 'child', name: 'Village Child', position: { x: 5, y: -5 }, dialogueId: 'child', sprite: 'npc_child' },
     ];
 
+    // NPC wandering state
+    const npcWander: Record<string, {
+      origin: { x: number; y: number };
+      angle: number;
+      radius: number;
+      speed: number;
+      pauseTimer: number;
+      isPaused: boolean;
+    }> = {};
+    for (const npc of npcData) {
+      npcWander[npc.id] = {
+        origin: { ...npc.position },
+        angle: Math.random() * Math.PI * 2,
+        radius: npc.id === 'guard' ? 3 : npc.id === 'child' ? 4 : 1.5,
+        speed: npc.id === 'child' ? 1.2 : npc.id === 'guard' ? 0.8 : 0.5,
+        pauseTimer: Math.random() * 3,
+        isPaused: true,
+      };
+    }
+
     state.npcs = npcData;
     const npcMeshes: THREE.Mesh[] = [];
 
