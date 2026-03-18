@@ -1972,7 +1972,7 @@ const Game = () => {
 
   useEffect(() => {
     const currentMap = gameStateRef.current?.currentMap || 'village';
-    const startTrack = MAP_MUSIC[currentMap] || DEFAULT_MUSIC;
+    const startTrack = MAP_MUSIC_MAP[currentMap] || DEFAULT_MUSIC_TRACK;
     const audio = new Audio(startTrack);
     audio.loop = true;
     audio.volume = 0.15;
