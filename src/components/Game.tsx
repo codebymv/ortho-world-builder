@@ -258,6 +258,7 @@ const Game = () => {
     const playerMaterial = new THREE.MeshBasicMaterial({
       map: playerTexture,
       transparent: true,
+      depthWrite: false,
     });
     const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
     playerMesh.position.set(spawnPoint.x, spawnPoint.y, 0.2);
@@ -303,6 +304,7 @@ const Game = () => {
       const npcMaterial = new THREE.MeshBasicMaterial({
         map: npcTexture,
         transparent: true,
+        depthWrite: false,
       });
       const npcMesh = new THREE.Mesh(npcGeometry, npcMaterial);
       npcMesh.position.set(npc.position.x, npc.position.y, 0.2);
@@ -1370,7 +1372,7 @@ const Game = () => {
       
       {gameState && (
         <>
-          <GameUI gameState={gameState} refreshToken={uiVersion} />
+          <GameUI gameState={gameState} refreshToken={uiVersion} musicRef={musicRef} />
           <Minimap
             currentMap={allMaps[gameState.currentMap]}
             playerPosition={gameState.player.position}
