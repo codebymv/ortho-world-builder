@@ -1231,6 +1231,38 @@ const Game = () => {
         // Dynamic Y-sorting for player
         playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
 
+        // === SWORD SWOOSH TRAIL ===
+        if (swooshTimer > 0) {
+          swooshTimer -= deltaTime;
+          const progress = 1 - (swooshTimer / SWOOSH_DURATION);
+          swooshMesh.visible = true;
+          swooshMaterial.opacity = (1 - progress) * 0.6;
+          const swooshScale = 0.6 + progress * 0.8;
+          swooshMesh.scale.set(swooshScale, swooshScale, 1);
+
+          // Position and rotate based on facing direction
+          const swooshDirAngles: Record<string, number> = {
+            up: Math.PI * 0.5,
+            down: -Math.PI * 0.5,
+            left: Math.PI,
+            right: 0,
+          };
+          const baseAngle = swooshDirAngles[facing4] ?? 0;
+          swooshMesh.rotation.z = baseAngle + progress * Math.PI * 0.5 - Math.PI * 0.25;
+
+          const swooshOffsets: Record<string, {x: number, y: number}> = {
+            up: {x: 0, y: 0.6}, down: {x: 0, y: -0.6},
+            left: {x: -0.6, y: 0}, right: {x: 0.6, y: 0},
+          };
+          const sOff = swooshOffsets[facing4] ?? {x: 0, y: 0};
+          swooshMesh.position.set(
+            state.player.position.x + attackOffsetX + sOff.x,
+            state.player.position.y + attackOffsetY + sOff.y,
+            0.3
+          );
+        } else {
+          swooshMesh.visible = false;
+        }
         // Player damage flash
         if (state.player.damageFlashTimer > 0) {
           if (state.player.damageFlashTimer > 0.28) {
