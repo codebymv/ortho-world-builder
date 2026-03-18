@@ -254,12 +254,12 @@ const Game = () => {
       return 'down';
     };
 
-    // Helper: get Y-based render order using the entity foot point instead of body center
+    // Helper: get Y-based render order using the entity foot point with sub-tile precision
     const getYRenderOrder = (worldY: number, footOffset: number = 0): number => {
       const currentMap = world.getCurrentMap();
       const footY = worldY - footOffset;
-      const tileY = Math.floor(footY + currentMap.height / 2);
-      return 100 + (currentMap.height - tileY);
+      const tileYFloat = footY + currentMap.height / 2;
+      return Math.round(1000 + (currentMap.height - tileYFloat) * 10);
     };
 
     const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
