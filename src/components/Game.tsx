@@ -1320,9 +1320,38 @@ const Game = () => {
     activeNpcWorldPos.current = null;
   };
 
+  // Unlock and play music on first user interaction
+  const musicRef = useRef<HTMLAudioElement | null>(null);
+  const musicStarted = useRef(false);
+
+  useEffect(() => {
+    const audio = new Audio('/audio/ortho_loop2.mp3');
+    audio.loop = true;
+    audio.volume = 0.15;
+    musicRef.current = audio;
+
+    const startMusic = () => {
+      if (musicStarted.current) return;
+      musicStarted.current = true;
+      audio.play().catch(() => {});
+    };
+
+    // Try autoplay first, fallback to user gesture
+    audio.play().catch(() => {
+      window.addEventListener('click', startMusic, { once: true });
+      window.addEventListener('keydown', startMusic, { once: true });
+    });
+
+    return () => {
+      audio.pause();
+      audio.src = '';
+      window.removeEventListener('click', startMusic);
+      window.removeEventListener('keydown', startMusic);
+    };
+  }, []);
+
   return (
     <div className="relative w-full h-screen overflow-hidden">
-      <audio src="/audio/ortho_loop2.mp3" autoPlay loop style={{ display: 'none' }} ref={(el) => { if (el) el.volume = 0.15; }} />
       <div ref={mountRef} className="w-full h-full" />
       
       {gameState && (
