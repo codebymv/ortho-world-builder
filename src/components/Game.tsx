@@ -531,6 +531,14 @@ const Game = () => {
       state.dialogueActive = true;
       state.currentDialogue = dialogueId;
 
+      // Track the NPC's world position for chat bubble
+      const npc = state.npcs.find(n => n.dialogueId === dialogueId);
+      if (npc) {
+        activeNpcWorldPos.current = { x: npc.position.x, y: npc.position.y };
+      } else {
+        activeNpcWorldPos.current = null;
+      }
+
       let startNode = dialogue.nodes.find(n => n.id === 'start');
       
       if (dialogueId === 'elder') {
