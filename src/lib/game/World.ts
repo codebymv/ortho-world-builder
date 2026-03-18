@@ -45,8 +45,9 @@ interface ChunkMesh {
   active: boolean;
 }
 
-const RENDER_RADIUS = 28;
-const CULL_RADIUS = 38;
+const RENDER_RADIUS = 32;
+const CULL_RADIUS = 42;
+const MAX_TILES_PER_FRAME = 200; // batch tile creation to prevent frame drops
 const OVERLAY_TYPES: Set<TileType> = new Set([
   'tree', 'house', 'house_blue', 'house_green', 'house_thatch', 'rock', 'chest', 'portal', 'flower',
   'push_block', 'campfire', 'sign', 'well', 'tombstone', 'mushroom', 'stump',
