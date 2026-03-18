@@ -182,15 +182,15 @@ export const DialogueBox = ({ node, npcName, npcScreenPos, onResponse, onClose }
 
       {/* Response Options - compact bottom bar */}
       {!isTyping && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-auto w-full max-w-2xl px-4">
-          <div className="bg-[#1A0F0A]/90 backdrop-blur-sm border-2 border-[#5C3A21] rounded-lg p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)]">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-auto px-4">
+          <div className="bg-[#1A0F0A]/90 backdrop-blur-sm border-2 border-[#5C3A21] rounded-lg p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)] w-auto min-w-[200px]">
             {hasResponses ? (
               <div className="flex flex-col gap-1.5">
                 {node.responses!.map((response, index) => (
                   <Button
                     key={index}
                     onClick={() => onResponse(response.nextId, response.givesQuest)}
-                    className="w-full justify-start text-left bg-[#2D1B11]/80 hover:bg-[#3D2B21] border border-[#5C3A21] hover:border-[#DAA520] text-[#F5DEB3] hover:text-white rounded-md py-3 text-sm transition-all"
+                    className="justify-start text-left bg-[#2D1B11]/80 hover:bg-[#3D2B21] border border-[#5C3A21] hover:border-[#DAA520] text-[#F5DEB3] hover:text-white rounded-md py-3 px-4 text-sm transition-all whitespace-nowrap"
                     variant="outline"
                   >
                     <span className="text-[#DAA520] mr-2 text-xs">▶</span> {response.text}

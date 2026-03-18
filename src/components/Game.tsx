@@ -193,6 +193,22 @@ const Game = () => {
     const _tmpVec3 = new THREE.Vector3();
     const _worldPosVec3 = new THREE.Vector3();
 
+    // Sword swoosh trail effect
+    const swooshGeometry = new THREE.RingGeometry(0.3, 0.9, 16, 1, 0, Math.PI * 0.75);
+    const swooshMaterial = new THREE.MeshBasicMaterial({
+      color: 0xccddff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const swooshMesh = new THREE.Mesh(swooshGeometry, swooshMaterial);
+    swooshMesh.visible = false;
+    swooshMesh.renderOrder = 20000;
+    scene.add(swooshMesh);
+    let swooshTimer = 0;
+    const SWOOSH_DURATION = 0.25;
+
     // Animation state
     let animFrame = 0;
     let animTimer = 0;
@@ -254,12 +270,12 @@ const Game = () => {
       return 'down';
     };
 
-    // Helper: get Y-based render order using the entity foot point instead of body center
+    // Helper: get Y-based render order using the entity foot point with sub-tile precision
     const getYRenderOrder = (worldY: number, footOffset: number = 0): number => {
       const currentMap = world.getCurrentMap();
       const footY = worldY - footOffset;
-      const tileY = Math.floor(footY + currentMap.height / 2);
-      return 100 + (currentMap.height - tileY);
+      const tileYFloat = footY + currentMap.height / 2;
+      return Math.round(1000 + (currentMap.height - tileYFloat) * 10);
     };
 
     const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
@@ -553,6 +569,7 @@ const Game = () => {
       if (currentTime - state.player.lastAttackTime < state.player.attackCooldown) return;
       if (state.player.isDodging) return;
       playSwordSwing();
+      swooshTimer = SWOOSH_DURATION; // trigger swoosh effect
 
       state.player.lastAttackTime = currentTime;
       playerAnimState = 'attack';
@@ -684,7 +701,7 @@ const Game = () => {
     };
 
     const checkInteraction = () => {
-      const interactionRange = 1.5;
+      const interactionRange = 2.0;
       const interactionRangeSq = interactionRange * interactionRange;
       for (const npc of state.npcs) {
         const dx = state.player.position.x - npc.position.x;
@@ -864,11 +881,27 @@ const Game = () => {
         }
       }
 
-      // === NPC WANDERING ===
+    // === NPC WANDERING ===
       for (let ni = 0; ni < npcData.length; ni++) {
         const npc = npcData[ni];
         const wander = npcWander[npc.id];
         if (!wander) continue;
+
+        // Freeze NPC in place when player is in conversation with them
+        const isTalkingToThisNpc = state.dialogueActive && state.currentDialogue === npc.dialogueId;
+        if (isTalkingToThisNpc) {
+          // Update mesh position without moving
+          const npcMesh = npcMeshes[ni];
+          if (npcMesh) {
+            const npcScale = NPC_SCALE_BY_ID[npc.id] ?? 1;
+            const breathe = Math.sin(currentTime / 800 + ni * 2.1) * 0.03;
+            npcMesh.position.set(npc.position.x, npc.position.y + breathe, 0.2);
+            npcMesh.scale.set(npcScale, npcScale, 1);
+            npcMesh.rotation.z = 0;
+            npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET);
+          }
+          continue;
+        }
 
         if (wander.isPaused) {
           wander.pauseTimer -= deltaTime;
@@ -1198,6 +1231,38 @@ const Game = () => {
         // Dynamic Y-sorting for player
         playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
 
+        // === SWORD SWOOSH TRAIL ===
+        if (swooshTimer > 0) {
+          swooshTimer -= deltaTime;
+          const progress = 1 - (swooshTimer / SWOOSH_DURATION);
+          swooshMesh.visible = true;
+          swooshMaterial.opacity = (1 - progress) * 0.6;
+          const swooshScale = 0.6 + progress * 0.8;
+          swooshMesh.scale.set(swooshScale, swooshScale, 1);
+
+          // Position and rotate based on facing direction
+          const swooshDirAngles: Record<string, number> = {
+            up: Math.PI * 0.5,
+            down: -Math.PI * 0.5,
+            left: Math.PI,
+            right: 0,
+          };
+          const baseAngle = swooshDirAngles[facing4] ?? 0;
+          swooshMesh.rotation.z = baseAngle + progress * Math.PI * 0.5 - Math.PI * 0.25;
+
+          const swooshOffsets: Record<string, {x: number, y: number}> = {
+            up: {x: 0, y: 0.6}, down: {x: 0, y: -0.6},
+            left: {x: -0.6, y: 0}, right: {x: 0.6, y: 0},
+          };
+          const sOff = swooshOffsets[facing4] ?? {x: 0, y: 0};
+          swooshMesh.position.set(
+            state.player.position.x + attackOffsetX + sOff.x,
+            state.player.position.y + attackOffsetY + sOff.y,
+            0.3
+          );
+        } else {
+          swooshMesh.visible = false;
+        }
         // Player damage flash
         if (state.player.damageFlashTimer > 0) {
           if (state.player.damageFlashTimer > 0.28) {
@@ -1230,7 +1295,7 @@ const Game = () => {
         // === INTERACTION INDICATOR ===
         let showIndicator = false;
         let indicatorX = 0, indicatorY = 0;
-        const interactionRange = 1.5;
+        const interactionRange = 2.0;
 
         const interactionRangeSq = interactionRange * interactionRange;
         for (const npc of state.npcs) {
