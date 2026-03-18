@@ -193,6 +193,22 @@ const Game = () => {
     const _tmpVec3 = new THREE.Vector3();
     const _worldPosVec3 = new THREE.Vector3();
 
+    // Sword swoosh trail effect
+    const swooshGeometry = new THREE.RingGeometry(0.3, 0.9, 16, 1, 0, Math.PI * 0.75);
+    const swooshMaterial = new THREE.MeshBasicMaterial({
+      color: 0xccddff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const swooshMesh = new THREE.Mesh(swooshGeometry, swooshMaterial);
+    swooshMesh.visible = false;
+    swooshMesh.renderOrder = 20000;
+    scene.add(swooshMesh);
+    let swooshTimer = 0;
+    const SWOOSH_DURATION = 0.25;
+
     // Animation state
     let animFrame = 0;
     let animTimer = 0;
