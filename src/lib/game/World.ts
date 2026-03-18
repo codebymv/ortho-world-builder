@@ -76,6 +76,32 @@ const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
   statue: 'stone',
 };
 
+// Scale multipliers for overlay objects to make them proportionally correct
+const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
+  house: 2.2,
+  destroyed_house: 2.0,
+  tree: 1.8,
+  dead_tree: 1.5,
+  statue: 1.4,
+  well: 1.2,
+  portal: 1.3,
+  rock: 1.0,
+  chest: 0.8,
+  campfire: 0.8,
+  sign: 0.8,
+  tombstone: 0.7,
+  barrel: 0.7,
+  crate: 0.7,
+  stump: 0.6,
+  flower: 0.5,
+  mushroom: 0.5,
+  bones: 0.5,
+  fence: 1.0,
+  gate: 1.0,
+  push_block: 1.0,
+  spike_trap: 0.8,
+};
+
 export class World {
   private map: WorldMap;
   private tileSize: number = 1;
