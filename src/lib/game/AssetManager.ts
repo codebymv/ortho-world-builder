@@ -55,6 +55,10 @@ export class AssetManager {
     return texture;
   }
 
+  private hex(c: number): string {
+    return `rgb(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255})`;
+  }
+
   createSpriteTexture(
     colors: number[][],
     cellSize: number = 4
@@ -92,6 +96,492 @@ export class AssetManager {
     return texture;
   }
 
+  // Canvas-drawn chibi character sprite
+  createChibiCharacter(
+    dir: 'down' | 'up' | 'left' | 'right',
+    state: 'idle' | 'walk' | 'attack' | 'charge' | 'hurt' = 'idle',
+    frame: number = 0,
+    palette: {
+      hair: number; hairLight: number; hairDark: number;
+      skin: number; skinLight: number; skinShadow: number;
+      eyeIris: number; eyeIrisDark: number;
+      tunicMain: number; tunicLight: number; tunicDark: number;
+      trimColor: number; trimLight: number;
+      capeMain: number; capeDark: number;
+      pantColor: number; pantDark: number;
+      bootColor: number; bootDark: number;
+    }
+  ): THREE.Texture {
+    const W = 64, H = 80;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+    const p = palette;
+    const hex = this.hex.bind(this);
+
+    const isLeft = dir === 'left';
+    const isRight = dir === 'right';
+    const isSide = isLeft || isRight;
+    const isUp = dir === 'up';
+
+    // Animation offsets
+    let legOffset = 0;
+    let bodyBob = 0;
+    let armAngle = 0;
+    let swordVisible = true;
+    let swordAngle = 0;
+    let squishX = 1, squishY = 1;
+
+    if (state === 'walk') {
+      legOffset = frame === 0 ? -3 : 3;
+      bodyBob = Math.abs(legOffset) > 1 ? -1 : 0;
+    } else if (state === 'attack') {
+      if (frame === 0) { swordAngle = -0.8; armAngle = -0.5; }
+      else if (frame === 1) { swordAngle = 0.5; armAngle = 0.3; }
+      else { swordAngle = 1.5; armAngle = 0.6; }
+    } else if (state === 'charge') {
+      squishX = 1.05; squishY = 0.97;
+      swordAngle = -0.5;
+    }
+
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(squishX, squishY);
+    ctx.translate(-W / 2, -H / 2);
+
+    const cx = W / 2 + (isSide ? (isLeft ? 2 : -2) : 0);
+    const headY = 20 + bodyBob;
+    const bodyY = 42 + bodyBob;
+
+    // ---- CAPE (behind character) ----
+    if (!isUp || state !== 'idle') {
+      ctx.fillStyle = hex(p.capeMain);
+      if (isSide) {
+        const capeX = isLeft ? cx + 6 : cx - 14;
+        ctx.beginPath();
+        ctx.moveTo(capeX, bodyY - 6);
+        ctx.quadraticCurveTo(capeX + 4, bodyY + 20 + (state === 'walk' ? legOffset : 0), capeX + 2, bodyY + 28);
+        ctx.quadraticCurveTo(capeX - 2, bodyY + 20, capeX + 2, bodyY - 6);
+        ctx.fill();
+      } else if (isUp) {
+        // Full cape visible from back
+        ctx.beginPath();
+        ctx.moveTo(cx - 12, bodyY - 6);
+        ctx.quadraticCurveTo(cx - 14, bodyY + 24, cx - 8, bodyY + 30);
+        ctx.lineTo(cx + 8, bodyY + 30);
+        ctx.quadraticCurveTo(cx + 14, bodyY + 24, cx + 12, bodyY - 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = hex(p.capeDark);
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, bodyY + 10);
+        ctx.quadraticCurveTo(cx, bodyY + 14, cx + 8, bodyY + 10);
+        ctx.quadraticCurveTo(cx, bodyY + 18, cx - 8, bodyY + 10);
+        ctx.fill();
+      } else {
+        // Small cape peeks from behind (front view)
+        ctx.fillStyle = hex(p.capeDark);
+        ctx.fillRect(cx - 14, bodyY - 4, 3, 20);
+        ctx.fillRect(cx + 11, bodyY - 4, 3, 20);
+      }
+    }
+
+    // ---- SWORD (behind for some frames) ----
+    if (swordVisible && !isUp) {
+      ctx.save();
+      const swordX = isSide ? (isLeft ? cx - 14 : cx + 14) : cx - 14;
+      const swordY = bodyY + 2;
+      ctx.translate(swordX, swordY);
+      ctx.rotate(swordAngle * (isRight ? -1 : 1));
+      // Blade
+      ctx.fillStyle = hex(0xD8E0E8);
+      ctx.fillRect(-1, -22, 3, 18);
+      ctx.fillStyle = hex(0xF0F4FF);
+      ctx.fillRect(0, -22, 1, 18);
+      // Guard
+      ctx.fillStyle = hex(p.trimColor);
+      ctx.fillRect(-3, -4, 7, 2);
+      // Grip
+      ctx.fillStyle = hex(0x5A3020);
+      ctx.fillRect(0, -2, 2, 6);
+      // Pommel
+      ctx.fillStyle = hex(p.trimColor);
+      ctx.beginPath();
+      ctx.arc(1, 5, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ---- LEGS ----
+    const legSpread = isSide ? 2 : 5;
+    const leftLegX = cx - legSpread;
+    const rightLegX = cx + legSpread - (isSide ? 1 : 0);
+    const legTop = bodyY + 14;
+
+    // Left leg
+    ctx.fillStyle = hex(p.pantColor);
+    ctx.fillRect(leftLegX - 2, legTop + (state === 'walk' ? legOffset : 0), 5, 10);
+    ctx.fillStyle = hex(p.bootColor);
+    ctx.fillRect(leftLegX - 3, legTop + 9 + (state === 'walk' ? legOffset : 0), 7, 5);
+    ctx.fillStyle = hex(p.trimColor);
+    ctx.fillRect(leftLegX - 3, legTop + 9 + (state === 'walk' ? legOffset : 0), 7, 1);
+
+    if (!isSide) {
+      // Right leg
+      ctx.fillStyle = hex(p.pantColor);
+      ctx.fillRect(rightLegX - 2, legTop + (state === 'walk' ? -legOffset : 0), 5, 10);
+      ctx.fillStyle = hex(p.bootColor);
+      ctx.fillRect(rightLegX - 3, legTop + 9 + (state === 'walk' ? -legOffset : 0), 7, 5);
+      ctx.fillStyle = hex(p.trimColor);
+      ctx.fillRect(rightLegX - 3, legTop + 9 + (state === 'walk' ? -legOffset : 0), 7, 1);
+    }
+
+    // ---- BODY / TUNIC ----
+    // Tunic body
+    ctx.fillStyle = hex(p.tunicMain);
+    const tunicW = isSide ? 14 : 18;
+    const tunicX = cx - tunicW / 2;
+    ctx.beginPath();
+    ctx.moveTo(tunicX, bodyY - 4);
+    ctx.lineTo(tunicX + tunicW, bodyY - 4);
+    ctx.lineTo(tunicX + tunicW + 2, bodyY + 16);
+    ctx.lineTo(tunicX - 2, bodyY + 16);
+    ctx.closePath();
+    ctx.fill();
+
+    // Tunic highlight
+    ctx.fillStyle = hex(p.tunicLight);
+    ctx.fillRect(cx - 3, bodyY - 2, 6, 12);
+
+    // Gold trim lines
+    ctx.fillStyle = hex(p.trimColor);
+    ctx.fillRect(tunicX, bodyY - 4, tunicW, 2); // top trim
+    ctx.fillRect(cx - 1, bodyY - 2, 2, 14); // center seam
+
+    // Belt
+    ctx.fillStyle = hex(p.bootDark);
+    ctx.fillRect(tunicX + 1, bodyY + 10, tunicW - 2, 3);
+    ctx.fillStyle = hex(p.trimColor);
+    ctx.fillRect(cx - 2, bodyY + 10, 4, 3); // buckle
+
+    // ---- ARMS ----
+    if (!isUp) {
+      // Left arm
+      ctx.fillStyle = hex(p.tunicDark);
+      const armX1 = isSide ? (isLeft ? cx - tunicW/2 - 3 : cx - tunicW/2 + 1) : cx - tunicW/2 - 4;
+      ctx.fillRect(armX1, bodyY - 2, 5, 12);
+      ctx.fillStyle = hex(p.skinShadow);
+      ctx.fillRect(armX1 + 1, bodyY + 9, 3, 4);
+
+      if (!isSide) {
+        // Right arm
+        ctx.fillStyle = hex(p.tunicDark);
+        ctx.fillRect(cx + tunicW/2 - 1, bodyY - 2, 5, 12);
+        ctx.fillStyle = hex(p.skinShadow);
+        ctx.fillRect(cx + tunicW/2, bodyY + 9, 3, 4);
+      }
+    }
+
+    // ---- HEAD ----
+    const headR = 14;
+
+    // Hair back volume (behind head)
+    ctx.fillStyle = hex(p.hairDark);
+    ctx.beginPath();
+    ctx.ellipse(cx, headY - 2, headR + 3, headR + 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head shape (skin circle)
+    if (!isUp) {
+      ctx.fillStyle = hex(p.skin);
+      ctx.beginPath();
+      ctx.ellipse(cx, headY, headR - 1, headR, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Skin highlight
+      ctx.fillStyle = hex(p.skinLight);
+      ctx.beginPath();
+      ctx.ellipse(cx - 2, headY - 3, headR - 5, headR - 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // ---- HAIR ----
+    ctx.fillStyle = hex(p.hair);
+    // Top hair volume
+    ctx.beginPath();
+    ctx.ellipse(cx, headY - 6, headR + 1, 10, 0, Math.PI, Math.PI * 2);
+    ctx.fill();
+
+    // Hair highlight
+    ctx.fillStyle = hex(p.hairLight);
+    ctx.beginPath();
+    ctx.ellipse(cx + 2, headY - 9, 6, 4, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Spiky hair tufts
+    ctx.fillStyle = hex(p.hair);
+    // Center spike
+    ctx.beginPath();
+    ctx.moveTo(cx - 3, headY - 14);
+    ctx.lineTo(cx + 1, headY - 20);
+    ctx.lineTo(cx + 4, headY - 14);
+    ctx.fill();
+    // Left spike
+    ctx.beginPath();
+    ctx.moveTo(cx - 8, headY - 11);
+    ctx.lineTo(cx - 6, headY - 18);
+    ctx.lineTo(cx - 2, headY - 13);
+    ctx.fill();
+    // Right spike
+    ctx.beginPath();
+    ctx.moveTo(cx + 2, headY - 13);
+    ctx.lineTo(cx + 7, headY - 17);
+    ctx.lineTo(cx + 9, headY - 10);
+    ctx.fill();
+
+    // Bangs
+    if (!isUp) {
+      ctx.fillStyle = hex(p.hair);
+      if (isSide) {
+        const bangDir = isLeft ? -1 : 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - bangDir * 10, headY - 8);
+        ctx.quadraticCurveTo(cx - bangDir * 8, headY + 2, cx - bangDir * 4, headY + 4);
+        ctx.lineTo(cx - bangDir * 2, headY - 2);
+        ctx.quadraticCurveTo(cx - bangDir * 6, headY - 4, cx - bangDir * 10, headY - 8);
+        ctx.fill();
+        // Side hair strand
+        ctx.fillStyle = hex(p.hairDark);
+        ctx.beginPath();
+        ctx.moveTo(cx + bangDir * 8, headY - 2);
+        ctx.quadraticCurveTo(cx + bangDir * 12, headY + 10, cx + bangDir * 10, headY + 20);
+        ctx.lineTo(cx + bangDir * 8, headY + 18);
+        ctx.quadraticCurveTo(cx + bangDir * 10, headY + 8, cx + bangDir * 6, headY);
+        ctx.fill();
+      } else {
+        // Front bangs - swept
+        ctx.beginPath();
+        ctx.moveTo(cx - 12, headY - 6);
+        ctx.quadraticCurveTo(cx - 10, headY + 3, cx - 6, headY + 4);
+        ctx.lineTo(cx - 4, headY - 1);
+        ctx.quadraticCurveTo(cx - 8, headY - 2, cx - 12, headY - 6);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(cx + 12, headY - 6);
+        ctx.quadraticCurveTo(cx + 10, headY + 2, cx + 7, headY + 3);
+        ctx.lineTo(cx + 5, headY - 1);
+        ctx.quadraticCurveTo(cx + 8, headY - 2, cx + 12, headY - 6);
+        ctx.fill();
+        
+        // Center bang wisps
+        ctx.fillStyle = hex(p.hairDark);
+        ctx.beginPath();
+        ctx.moveTo(cx - 3, headY - 6);
+        ctx.quadraticCurveTo(cx, headY - 2, cx + 3, headY - 6);
+        ctx.lineTo(cx + 1, headY - 8);
+        ctx.lineTo(cx - 1, headY - 8);
+        ctx.fill();
+      }
+    } else {
+      // Back of head - full hair coverage
+      ctx.fillStyle = hex(p.hair);
+      ctx.beginPath();
+      ctx.ellipse(cx, headY, headR, headR + 1, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Hair texture lines
+      ctx.strokeStyle = hex(p.hairDark);
+      ctx.lineWidth = 1;
+      for (let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(cx + i * 4, headY - 10);
+        ctx.quadraticCurveTo(cx + i * 3, headY + 5, cx + i * 5, headY + 14);
+        ctx.stroke();
+      }
+    }
+
+    // ---- FACE (front/side only) ----
+    if (!isUp) {
+      if (isSide) {
+        // ONE big eye
+        const eyeX = isLeft ? cx - 5 : cx + 5;
+        const eyeDir = isLeft ? -1 : 1;
+
+        // Eye white
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.ellipse(eyeX - eyeDir * 1, headY, 5, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Iris
+        const irisColor = state === 'charge' ? hex(0xFFD700) : state === 'hurt' ? hex(0x888888) : hex(p.eyeIris);
+        ctx.fillStyle = irisColor;
+        ctx.beginPath();
+        ctx.ellipse(eyeX - eyeDir * 2, headY + 1, 3.5, 4.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pupil
+        if (state !== 'hurt') {
+          ctx.fillStyle = hex(p.eyeIrisDark);
+          ctx.beginPath();
+          ctx.ellipse(eyeX - eyeDir * 2, headY + 1.5, 2, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Eye sparkle
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(eyeX - eyeDir * 3.5, headY - 1.5, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(eyeX - eyeDir * 1, headY + 2.5, 0.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyebrow
+        ctx.strokeStyle = hex(p.hairDark);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(eyeX + eyeDir * 3, headY - 6);
+        ctx.quadraticCurveTo(eyeX, headY - 7.5, eyeX - eyeDir * 4, headY - 5);
+        ctx.stroke();
+
+        // Blush
+        ctx.fillStyle = 'rgba(255, 150, 150, 0.35)';
+        ctx.beginPath();
+        ctx.ellipse(eyeX - eyeDir * 1, headY + 6, 4, 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mouth
+        if (state === 'attack' || state === 'charge') {
+          ctx.fillStyle = hex(0xC04030);
+          ctx.beginPath();
+          ctx.ellipse(eyeX - eyeDir * 3, headY + 9, 2.5, 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (state === 'hurt') {
+          ctx.strokeStyle = hex(0xCC4444);
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(eyeX - eyeDir * 5, headY + 8);
+          ctx.quadraticCurveTo(eyeX - eyeDir * 3, headY + 10, eyeX - eyeDir * 1, headY + 8);
+          ctx.stroke();
+        } else {
+          // Small happy mouth
+          ctx.fillStyle = hex(0xD06050);
+          ctx.beginPath();
+          ctx.arc(eyeX - eyeDir * 3, headY + 8, 2, 0, Math.PI);
+          ctx.fill();
+        }
+
+        // Nose
+        ctx.fillStyle = hex(p.skinShadow);
+        ctx.beginPath();
+        ctx.arc(eyeX - eyeDir * 6, headY + 3, 1, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else {
+        // FRONT VIEW - Two big eyes
+        const eyeSpacing = 7;
+        const eyeY = headY;
+
+        for (let side = -1; side <= 1; side += 2) {
+          const eyeX = cx + side * eyeSpacing;
+
+          // Eye white
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.ellipse(eyeX, eyeY, 5, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Iris
+          const irisColor = state === 'charge' ? hex(0xFFD700) : state === 'hurt' ? hex(0x888888) : hex(p.eyeIris);
+          ctx.fillStyle = irisColor;
+          ctx.beginPath();
+          ctx.ellipse(eyeX, eyeY + 1, 3.5, 4.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Pupil
+          if (state !== 'hurt') {
+            ctx.fillStyle = hex(p.eyeIrisDark);
+            ctx.beginPath();
+            ctx.ellipse(eyeX, eyeY + 1.5, 2, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Sparkle highlights
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(eyeX - 1.5, eyeY - 1.5, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(eyeX + 1, eyeY + 2.5, 0.8, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Eyebrow
+          ctx.strokeStyle = hex(p.hairDark);
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(eyeX - 4, headY - 6);
+          ctx.quadraticCurveTo(eyeX, headY - 8, eyeX + 4, headY - 6);
+          ctx.stroke();
+
+          // Blush
+          ctx.fillStyle = 'rgba(255, 150, 150, 0.3)';
+          ctx.beginPath();
+          ctx.ellipse(eyeX, headY + 7, 4, 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Nose (tiny dot)
+        ctx.fillStyle = hex(p.skinShadow);
+        ctx.beginPath();
+        ctx.arc(cx, headY + 4, 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mouth
+        if (state === 'attack' || state === 'charge') {
+          // Open yelling mouth
+          ctx.fillStyle = hex(0xC04030);
+          ctx.beginPath();
+          ctx.ellipse(cx, headY + 9, 4, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = hex(0x801818);
+          ctx.beginPath();
+          ctx.ellipse(cx, headY + 9, 2.5, 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (state === 'hurt') {
+          ctx.strokeStyle = hex(0xCC4444);
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(cx - 4, headY + 9);
+          ctx.quadraticCurveTo(cx, headY + 11, cx + 4, headY + 9);
+          ctx.stroke();
+        } else {
+          // Happy smile
+          ctx.fillStyle = hex(0xD06050);
+          ctx.beginPath();
+          ctx.arc(cx, headY + 8, 3, 0, Math.PI);
+          ctx.fill();
+          // Inner mouth
+          ctx.fillStyle = hex(0x801818);
+          ctx.beginPath();
+          ctx.arc(cx, headY + 8, 2, 0.1, Math.PI - 0.1);
+          ctx.fill();
+        }
+      }
+    }
+
+    // ---- NECK ----
+    ctx.fillStyle = hex(p.skinShadow);
+    ctx.fillRect(cx - 3, headY + headR - 4, 6, 6);
+
+    ctx.restore();
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    return texture;
+  }
+
   getTexture(name: string): THREE.Texture | undefined {
     return this.textures.get(name);
   }
@@ -103,412 +593,45 @@ export class AssetManager {
       return sprite.map(row => [...row].reverse());
     };
 
-    // ===== VANILLA FANTASY HERO PALETTE =====
-    // Skin
-    const SK   = 0xFFE0BD;
-    const SK_H = 0xFFF0D8;
-    const SK_S = 0xE8C4A0;
-    const SK_D = 0xD4A878;
-    const BLUSH = 0xFFA8A8;
-    // Hair - warm chestnut brown
-    const HR   = 0x8B6040;
-    const HR_H = 0xA87850;
-    const HR_S = 0x6B4428;
-    const HR_D = 0x503018;
-    const HR_T = 0x7A5238;
-    const HR_B = 0xC09060;
-    // Eyes - big expressive
-    const EY_W = 0xFFFFFF; // white sclera
-    const EY   = 0x7B5B3A; // iris
-    const EY_H = 0x9B7B50; // iris highlight
-    const EY_D = 0x5A3E20; // iris dark
-    const EY_P = 0x2A1A08; // pupil
-    const EY_G = 0xFFFFFF; // sparkle
-    const EY_L = 0xE8E8F0; // lower white
-    const EY_HURT = 0x888888;
-    const EY_CHG = 0xFFD700;
-    const EY_CHG2 = 0xFFA000;
-    const MOUTH = 0xD06050;
-    const MOUTH_O = 0xC04030;
-    const MOUTH_I = 0x801818; // inner mouth
-    const MOUTH_H = 0xCC4444;
-    const MOUTH_C = 0xFF8C00;
-    const BROW = 0x503018;
-    // Outfit - blue tunic with gold trim
-    const TUN   = 0x3A8AC0;
-    const TUN_H = 0x50A0D8;
-    const TUN_S = 0x286890;
-    const TUN_D = 0x1A5070;
-    const GOLD  = 0xE8C030;
-    const GOLD_H = 0xFFD850;
-    const GOLD_S = 0xB89820;
-    const SHIRT = 0x404048;
-    const SHIRT_H = 0x505058;
-    const BELT   = 0x6B4428;
-    const BELT_B = 0xE8C030;
-    const PANT   = 0x5A4030;
-    const PANT_S = 0x3E2818;
-    const PANT_H = 0x6E5040;
-    const BOOT   = 0x6B4428;
-    const BOOT_H = 0x8B6040;
-    const BOOT_S = 0x503018;
-    const BOOT_T = 0xE8C030;
-    const GLV  = 0x6B4428;
-    const GLV_H = 0x8B6040;
-    // Cape
-    const CAPE  = 0x3080B8;
-    const CAPE_H = 0x4898D0;
-    const CAPE_S = 0x206898;
-    const CAPE_D = 0x185078;
-    // Sword
-    const BL   = 0xD0D8E0;
-    const BL_H = 0xF0F4FF;
-    const BL_S = 0xA0A8B8;
-    const GRD  = 0xE8C030;
-    const GRD_H = 0xFFD850;
-    const GRP  = 0x5A3020;
-    const POM  = 0xE8C030;
-    // Charge glow
-    const CG   = 0x50B8FF;
-    const CG2  = 0x3090DD;
-    const CG_B = 0x80D0FF;
+    // ===== HERO PALETTE for canvas-drawn chibi =====
+    const heroPalette = {
+      hair: 0x8B6040, hairLight: 0xC09060, hairDark: 0x503018,
+      skin: 0xFFE0BD, skinLight: 0xFFF0D8, skinShadow: 0xE8C4A0,
+      eyeIris: 0x5B8B3A, eyeIrisDark: 0x2A5A08,
+      tunicMain: 0x3A8AC0, tunicLight: 0x50A0D8, tunicDark: 0x286890,
+      trimColor: 0xE8C030, trimLight: 0xFFD850,
+      capeMain: 0x3080B8, capeDark: 0x185078,
+      pantColor: 0x5A4030, pantDark: 0x3E2818,
+      bootColor: 0x6B4428, bootDark: 0x503018,
+    };
 
-    // ========== PLAYER DOWN - 24x28 grid ==========
-    const downIdle0: number[][] = [
-      // Row 0-4: Hair top (fluffy, tousled)
-      [C, C, C, C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR_H,HR, HR_S,HR_D,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR_H,HR, HR_B,HR_H,HR, HR_S,HR_D,C, C, C, C, C, C],
-      [C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR, HR, HR, HR, HR_B,HR_H,HR, HR_S,HR_D,C, C, C, C, C],
-      [C, C, C, C, HR_D,HR_S,HR, HR_B,HR_H,HR, HR, HR, HR, HR, HR, HR_H,HR_B,HR, HR_S,HR_D,C, C, C, C],
-      [C, C, C, C, HR_S,HR, HR_B,HR_H,HR, HR, HR_H,HR, HR, HR_H,HR, HR, HR_H,HR_B,HR, HR_S,C, C, C, C],
-      // Row 5-6: Bangs frame forehead
-      [C, C, C, C, HR_D,HR, HR_S,SK_H,SK, SK, SK_H,SK, SK, SK_H,SK, SK, SK_H,HR_S,HR, HR_D,C, C, C, C],
-      [C, C, C, C, HR_S,HR_D,SK, SK_H,SK, SK, SK, SK_H,SK, SK, SK, SK, SK_H,SK, HR_D,HR_S,C, C, C, C],
-      // Row 7-9: Eyes - BIG with clear whites, iris, pupil, sparkle (3 rows tall!)
-      [C, C, C, C, HR_D,SK, BROW,BROW,EY_W,EY_W,EY_H,EY, SK, SK, EY, EY_H,EY_W,EY_W,BROW,BROW,SK, HR_D,C, C],
-      [C, C, C, C, C, SK, SK, EY_W,EY_W,EY_G,EY, EY_P,SK, SK, EY_P,EY, EY_G,EY_W,EY_W,SK, SK, C, C, C],
-      [C, C, C, C, C, SK, SK, SK, EY_L,EY_D,EY_D,EY_D,SK_S,SK_S,EY_D,EY_D,EY_D,EY_L,SK, SK, SK, C, C, C],
-      // Row 10: Nose + blush
-      [C, C, C, C, C, C, SK, BLUSH,SK, SK, SK, SK_S,SK_D,SK, SK, SK, BLUSH,SK, C, C, C, C, C, C],
-      // Row 11: Open mouth
-      [C, C, C, C, C, C, C, SK, SK, SK_S,MOUTH_O,MOUTH_I,MOUTH_O,SK_S,SK, SK, C, C, C, C, C, C, C, C],
-      // Row 12: Chin
-      [C, C, C, C, C, C, C, C, SK, SK_S,SK, SK, SK, SK_S,SK, C, C, C, C, C, C, C, C, C],
-      // Row 13: Neck
-      [C, C, C, C, C, C, C, C, SK_S,SK_D,SHIRT,SHIRT_H,SHIRT,SK_D,SK_S,C, C, C, C, C, C, C, C, C],
-      // Row 14-15: Shoulders - tunic with gold trim, cape behind
-      [C, C, C, C, CAPE_S,CAPE_S,TUN_S,TUN, GOLD,TUN, TUN_H,TUN, TUN_H,TUN, GOLD,TUN, TUN_S,CAPE_S,CAPE_S,C, C, C, C, C],
-      [C, C, C, C, CAPE, TUN_S,TUN, TUN_H,GOLD_S,TUN_H,TUN, TUN_H,TUN, TUN_H,GOLD_S,TUN_H,TUN, TUN_S,CAPE, C, C, C, C, C],
-      // Row 16: Belt
-      [C, C, C, C, CAPE, TUN, TUN_S,BELT,BELT,BELT_B,BELT,BELT,BELT,BELT_B,BELT,BELT,TUN_S,TUN, CAPE, C, C, C, C, C],
-      // Row 17: Arms + sword
-      [C, BL_H,BL, GLV, GLV_H,TUN_S,TUN, TUN_S,TUN_D,TUN, TUN, TUN, TUN_D,TUN_S,TUN, TUN_S,GLV_H,GLV, C, C, C, C, C, C],
-      [C, GRD,BL_S,C, GLV, GLV_H,TUN_D,TUN_S,TUN_D,TUN_S,TUN_D,TUN_S,TUN_D,TUN_S,TUN_D,GLV_H,GLV, C, C, C, C, C, C, C],
-      // Row 19: Cape tails + upper legs
-      [C, POM, C, C, C, CAPE_D,CAPE_S,PANT,PANT_H,PANT, PANT, PANT, PANT, PANT_H,PANT, CAPE_S,CAPE_D,C, C, C, C, C, C, C],
-      // Row 20-21: Legs
-      [C, C, C, C, C, C, C, PANT_S,PANT,PANT_H,C, C, C, PANT_H,PANT,PANT_S,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, PANT_S,PANT,C, C, C, PANT, PANT_S,C, C, C, C, C, C, C, C, C],
-      // Row 22-23: Boots
-      [C, C, C, C, C, C, BOOT_S,BOOT,BOOT, BOOT_T,BOOT_H,C, BOOT_H,BOOT_T,BOOT, BOOT,BOOT_S,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, BOOT_S,BOOT_S,BOOT, BOOT_H,C, BOOT_H,BOOT, BOOT_S,BOOT_S,C, C, C, C, C, C, C, C],
-      // Row 24-25: Hair tips at sides
-      [C, C, C, C, C, HR_D,HR_S,HR, C, C, C, C, C, C, C, C, HR, HR_S,HR_D,C, C, C, C, C],
-      [C, C, C, C, C, C, HR_D,HR_S,C, C, C, C, C, C, C, C, HR_S,HR_D,C, C, C, C, C, C],
-      // Row 26-27: Cape bottom
-      [C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-    ];
+    // Generate all player sprites using canvas drawing
+    const dirs: Array<'down' | 'up' | 'left' | 'right'> = ['down', 'up', 'left', 'right'];
+    const states: Array<'idle' | 'walk' | 'attack' | 'charge' | 'hurt'> = ['idle', 'walk', 'attack', 'charge', 'hurt'];
 
-    const downIdle1 = downIdle0.map((row, i) => {
-      if (i === 14) return [C,C,C,C,CAPE_H,CAPE_H,TUN_S,TUN,GOLD,TUN,TUN_H,TUN,TUN_H,TUN,GOLD,TUN,TUN_S,CAPE_H,CAPE_H,C,C,C,C,C];
-      if (i === 24) return [C,C,C,C,C,HR_S,HR_D,HR,C,C,C,C,C,C,C,C,HR,HR_D,HR_S,C,C,C,C,C];
-      return row;
-    });
+    for (const dir of dirs) {
+      for (const state of states) {
+        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' ? 1 : 2;
+        for (let f = 0; f < maxFrames; f++) {
+          const tex = this.createChibiCharacter(dir, state, f, heroPalette);
+          this.textures.set(`player_${dir}_${state}_${f}`, tex);
+        }
+      }
+    }
 
-    this.textures.set('player_down_idle_0', this.createSpriteTexture(downIdle0, 3));
-    this.textures.set('player_down_idle_1', this.createSpriteTexture(downIdle1, 3));
-
-    // Walk frames
-    const downWalk0 = downIdle0.map((row, i) => {
-      if (i === 20) return [C,C,C,C,C,C,BOOT,PANT_S,PANT,C,C,C,C,C,PANT,PANT_S,BOOT,C,C,C,C,C,C,C];
-      if (i === 21) return [C,C,C,C,C,C,BOOT_S,BOOT,C,C,C,C,C,C,C,BOOT,BOOT_S,C,C,C,C,C,C,C];
-      if (i === 22) return [C,C,C,C,C,BOOT_S,BOOT_T,BOOT_H,C,C,C,C,C,C,C,BOOT_H,BOOT_T,BOOT_S,C,C,C,C,C,C];
-      if (i === 23) return [C,C,C,C,C,C,BOOT_S,C,C,C,C,C,C,C,C,C,BOOT_S,C,C,C,C,C,C,C];
-      return row;
-    });
-    const downWalk1 = downIdle0.map((row, i) => {
-      if (i === 20) return [C,C,C,C,C,C,C,PANT,PANT_S,BOOT,C,C,BOOT,PANT_S,PANT,C,C,C,C,C,C,C,C,C];
-      if (i === 21) return [C,C,C,C,C,C,C,BOOT,BOOT_S,C,C,C,C,BOOT_S,BOOT,C,C,C,C,C,C,C,C,C];
-      if (i === 22) return [C,C,C,C,C,C,BOOT_H,BOOT_T,BOOT_S,C,C,C,C,BOOT_S,BOOT_T,BOOT_H,C,C,C,C,C,C,C,C];
-      if (i === 23) return [C,C,C,C,C,C,C,BOOT_S,C,C,C,C,C,C,BOOT_S,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-
-    this.textures.set('player_down_walk_0', this.createSpriteTexture(downWalk0, 3));
-    this.textures.set('player_down_walk_1', this.createSpriteTexture(downWalk1, 3));
-
-    // Attack frames
-    const downAtk0 = downIdle0.map((row, i) => {
-      if (i === 0) return [C,C,POM,GRD,BL_S,C,C,C,HR_D,HR_S,HR,HR_H,HR_B,HR_H,HR,HR_S,HR_D,C,C,C,C,C,C,C];
-      if (i === 1) return [C,C,C,GRP,BL,BL_H,C,HR_S,HR,HR_H,HR_B,HR_H,HR,HR_B,HR_H,HR,HR_S,HR_D,C,C,C,C,C,C];
-      if (i === 7) return [C,C,C,C,HR_D,SK,BROW,BROW,EY_W,EY_W,EY_D,EY_P,SK,SK,EY_P,EY_D,EY_W,EY_W,BROW,BROW,SK,HR_D,C,C];
-      if (i === 11) return [C,C,C,C,C,C,C,SK,BROW,SK_S,MOUTH_O,MOUTH_I,MOUTH_O,SK_S,BROW,SK,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    const downAtk1 = downIdle0.map((row, i) => {
-      if (i === 7) return [C,C,C,C,HR_D,SK,BROW,BROW,EY_W,EY_W,EY_D,EY_P,SK,SK,EY_P,EY_D,EY_W,EY_W,BROW,BROW,SK,HR_D,C,C];
-      if (i === 11) return [C,C,C,C,C,C,C,SK,BROW,SK_S,MOUTH_O,MOUTH_I,MOUTH_O,SK_S,BROW,SK,C,C,C,C,C,C,C,C];
-      if (i === 17) return [BL_H,BL,BL_S,GRD,GLV_H,TUN_S,TUN,TUN_S,TUN_D,TUN,TUN,TUN,TUN_D,TUN_S,TUN,TUN_S,GLV_H,GLV,C,C,C,C,C,C];
-      return row;
-    });
-    const downAtk2 = downIdle0.map((row, i) => {
-      if (i === 19) return [POM,GRD,BL_S,BL,BL_H,CAPE_D,CAPE_S,PANT,PANT_H,PANT,PANT,PANT,PANT,PANT_H,PANT,CAPE_S,CAPE_D,C,C,C,C,C,C,C];
-      return row;
-    });
-
-    this.textures.set('player_down_attack_0', this.createSpriteTexture(downAtk0, 3));
-    this.textures.set('player_down_attack_1', this.createSpriteTexture(downAtk1, 3));
-    this.textures.set('player_down_attack_2', this.createSpriteTexture(downAtk2, 3));
-
-    // Charge frames
-    const downChg0 = downAtk0.map((row, i) => {
-      if (i === 0) return [C,C,POM,GRD_H,CG_B,C,C,C,HR_D,HR_S,HR,HR_H,HR_B,HR_H,HR,HR_S,HR_D,C,C,C,C,C,C,C];
-      if (i === 1) return [C,C,C,GRP,CG,CG_B,C,HR_S,HR,HR_H,HR_B,HR_H,HR,HR_B,HR_H,HR,HR_S,HR_D,C,C,C,C,C,C];
-      if (i === 7) return [C,C,C,C,HR_D,SK,BROW,BROW,EY_W,EY_W,EY_CHG,EY_CHG2,SK,SK,EY_CHG2,EY_CHG,EY_W,EY_W,BROW,BROW,SK,HR_D,C,C];
-      if (i === 11) return [C,C,C,C,C,C,C,SK,BROW,SK_S,MOUTH_C,MOUTH_I,MOUTH_C,SK_S,BROW,SK,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    const downChg1 = downAtk1.map((row, i) => {
-      if (i === 7) return [C,C,C,C,HR_D,SK,BROW,BROW,EY_W,EY_W,EY_CHG,EY_CHG2,SK,SK,EY_CHG2,EY_CHG,EY_W,EY_W,BROW,BROW,SK,HR_D,C,C];
-      if (i === 17) return [CG,CG_B,CG_B,GRD_H,GLV_H,TUN_S,TUN,TUN_S,TUN_D,TUN,TUN,TUN,TUN_D,TUN_S,TUN,TUN_S,GLV_H,GLV,C,C,C,C,C,C];
-      return row;
-    });
-    const downChg2 = downAtk2.map((row, i) => {
-      if (i === 19) return [POM,GRD_H,CG_B,CG,CG2,CAPE_D,CAPE_S,PANT,PANT_H,PANT,PANT,PANT,PANT,PANT_H,PANT,CAPE_S,CAPE_D,C,C,C,C,C,C,C];
-      return row;
-    });
-
-    this.textures.set('player_down_charge_0', this.createSpriteTexture(downChg0, 3));
-    this.textures.set('player_down_charge_1', this.createSpriteTexture(downChg1, 3));
-    this.textures.set('player_down_charge_2', this.createSpriteTexture(downChg2, 3));
-
-    // Hurt frame
-    const downHurt = downIdle0.map((row, i) => {
-      if (i === 7) return [C,C,C,C,HR_D,SK,BROW,BROW,EY_W,EY_HURT,BROW,BROW,SK,SK,BROW,BROW,EY_HURT,EY_W,BROW,BROW,SK,HR_D,C,C];
-      if (i === 8) return [C,C,C,C,C,SK,SK,EY_W,EY_HURT,EY_HURT,EY_HURT,BROW,SK_S,SK_S,BROW,EY_HURT,EY_HURT,EY_HURT,EY_W,SK,SK,C,C,C];
-      if (i === 11) return [C,C,C,C,C,C,C,SK,SK_S,SK,MOUTH_H,MOUTH_H,MOUTH_H,SK,SK_S,SK,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    this.textures.set('player_down_hurt_0', this.createSpriteTexture(downHurt, 3));
-
-    // ========== PLAYER UP - Back view (24x28) ==========
-    const upIdle0: number[][] = [
-      [C, C, C, C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR_H,HR, HR_S,HR_D,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR_H,HR, HR_B,HR_H,HR, HR_S,HR_D,C, C, C, C, C, C],
-      [C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR, HR, HR, HR, HR_B,HR_H,HR, HR_S,HR_D,C, C, C, C, C],
-      [C, C, C, C, HR_D,HR_S,HR, HR_B,HR_H,HR, HR, HR, HR, HR, HR, HR_H,HR_B,HR, HR_S,HR_D,C, C, C, C],
-      [C, C, C, C, HR_S,HR, HR_B,HR_H,HR, HR_S,HR, HR_S,HR_S,HR, HR_S,HR, HR_H,HR_B,HR, HR_S,C, C, C, C],
-      [C, C, C, C, HR_D,HR, HR_S,HR, HR_T,HR_S,HR, HR, HR, HR, HR_S,HR_T,HR, HR_S,HR, HR_D,C, C, C, C],
-      [C, C, C, C, HR_S,HR, HR, HR_S,HR, HR, HR_S,HR, HR, HR_S,HR, HR, HR_S,HR, HR, HR_S,C, C, C, C],
-      [C, C, C, C, HR_D,HR, HR, HR, HR_S,HR, HR, HR_S,HR_S,HR, HR, HR_S,HR, HR, HR, HR_D,C, C, C, C],
-      [C, C, C, C, C, HR_S,HR, HR, HR, HR_S,HR, HR, HR, HR, HR_S,HR, HR, HR, HR_S,C, C, C, C, C],
-      [C, C, C, C, C, C, HR_D,HR_S,HR, HR, HR, HR_S,HR_S,HR, HR, HR, HR_S,HR_D,C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, SK_S,SK, SK, SK_S,SK_S,SK, SK, SK_S,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, SK_D,SK_S,SK, SK_S,SK_S,SK, SK_S,SK_D,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, SK_S,SK_D,SHIRT,SHIRT_H,SHIRT,SK_D,SK_S,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, SK_D,SK_D,SHIRT,SHIRT_H,SHIRT,SK_D,SK_D,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, CAPE_S,CAPE_S,TUN_S,TUN, TUN, TUN, TUN_S,TUN, TUN_S,TUN, TUN, TUN, TUN_S,CAPE_S,CAPE_S,C, C, C, C, C],
-      [C, C, C, C, CAPE, TUN_S,TUN, TUN_H,TUN, TUN_H,TUN, TUN_H,TUN, TUN_H,TUN, TUN_H,TUN, TUN_S,CAPE, C, C, C, C, C],
-      [C, C, C, C, CAPE, TUN, TUN_S,BELT,BELT,BELT,BELT,BELT,BELT,BELT,BELT,BELT,TUN_S,TUN, CAPE, C, C, C, C, C],
-      [C, BL_H,BL, GLV, GLV_H,TUN_S,TUN, TUN_S,TUN_D,TUN, TUN, TUN, TUN_D,TUN_S,TUN, TUN_S,GLV_H,GLV, C, C, C, C, C, C],
-      [C, GRD,BL_S,C, GLV, GLV_H,TUN_D,TUN_S,TUN_D,TUN_S,TUN_D,TUN_S,TUN_D,TUN_S,TUN_D,GLV_H,GLV, C, C, C, C, C, C, C],
-      [C, POM, C, C, C, CAPE_D,CAPE_S,PANT,PANT_H,PANT, PANT, PANT, PANT, PANT_H,PANT, CAPE_S,CAPE_D,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, PANT_S,PANT,PANT_H,C, C, C, PANT_H,PANT,PANT_S,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, PANT_S,PANT,C, C, C, PANT, PANT_S,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, BOOT_S,BOOT,BOOT, BOOT_T,BOOT_H,C, BOOT_H,BOOT_T,BOOT, BOOT,BOOT_S,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, BOOT_S,BOOT_S,BOOT, BOOT_H,C, BOOT_H,BOOT, BOOT_S,BOOT_S,C, C, C, C, C, C, C, C],
-      // Cape flows down back
-      [C, C, C, C, C, CAPE_D,CAPE_S,CAPE, CAPE_H,CAPE, CAPE, CAPE, CAPE, CAPE_H,CAPE, CAPE_S,CAPE_D,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, CAPE_D,CAPE_S,CAPE, CAPE_H,CAPE_S,CAPE,CAPE_S,CAPE_H,CAPE, CAPE_S,CAPE_D,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, CAPE_D,CAPE_S,CAPE, CAPE_S,C, CAPE_S,CAPE, CAPE_S,CAPE_D,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-    ];
-
-    this.textures.set('player_up_idle_0', this.createSpriteTexture(upIdle0, 3));
-    this.textures.set('player_up_idle_1', this.createSpriteTexture(upIdle0, 3));
-
-    const upWalk0 = upIdle0.map((row, i) => {
-      if (i === 20) return [C,C,C,C,C,C,BOOT,PANT_S,PANT,C,C,C,C,C,PANT,PANT_S,BOOT,C,C,C,C,C,C,C];
-      if (i === 21) return [C,C,C,C,C,C,BOOT_S,BOOT,C,C,C,C,C,C,C,BOOT,BOOT_S,C,C,C,C,C,C,C];
-      if (i === 22) return [C,C,C,C,C,BOOT_S,BOOT_T,BOOT_H,C,C,C,C,C,C,C,BOOT_H,BOOT_T,BOOT_S,C,C,C,C,C,C];
-      return row;
-    });
-    const upWalk1 = upIdle0.map((row, i) => {
-      if (i === 20) return [C,C,C,C,C,C,C,PANT,PANT_S,BOOT,C,C,BOOT,PANT_S,PANT,C,C,C,C,C,C,C,C,C];
-      if (i === 21) return [C,C,C,C,C,C,C,BOOT,BOOT_S,C,C,C,C,BOOT_S,BOOT,C,C,C,C,C,C,C,C,C];
-      if (i === 22) return [C,C,C,C,C,C,BOOT_H,BOOT_T,BOOT_S,C,C,C,C,BOOT_S,BOOT_T,BOOT_H,C,C,C,C,C,C,C,C];
-      return row;
-    });
-
-    this.textures.set('player_up_walk_0', this.createSpriteTexture(upWalk0, 3));
-    this.textures.set('player_up_walk_1', this.createSpriteTexture(upWalk1, 3));
-
-    const upAtk0 = upIdle0.map((row, i) => {
-      if (i === 0) return [C,C,POM,GRD,BL_S,C,C,C,HR_D,HR_S,HR,HR_H,HR_B,HR_H,HR,HR_S,HR_D,C,C,C,C,C,C,C];
-      if (i === 1) return [C,C,C,GRP,BL,BL_H,C,HR_S,HR,HR_H,HR_B,HR_H,HR,HR_B,HR_H,HR,HR_S,HR_D,C,C,C,C,C,C];
-      return row;
-    });
-    this.textures.set('player_up_attack_0', this.createSpriteTexture(upAtk0, 3));
-    this.textures.set('player_up_attack_1', this.textures.get('player_up_attack_0')!);
-    const upAtk2 = upIdle0.map((row, i) => {
-      if (i === 19) return [POM,GRD,BL_S,BL,BL_H,CAPE_D,CAPE_S,PANT,PANT_H,PANT,PANT,PANT,PANT,PANT_H,PANT,CAPE_S,CAPE_D,C,C,C,C,C,C,C];
-      return row;
-    });
-    this.textures.set('player_up_attack_2', this.createSpriteTexture(upAtk2, 3));
-
-    this.textures.set('player_up_charge_0', this.textures.get('player_down_charge_0')!);
-    this.textures.set('player_up_charge_1', this.textures.get('player_down_charge_1')!);
-    this.textures.set('player_up_charge_2', this.textures.get('player_down_charge_2')!);
-    this.textures.set('player_up_hurt_0', this.textures.get('player_down_hurt_0')!);
-
-    // ========== PLAYER LEFT - Side view (24x28) ==========
-    const leftIdle0: number[][] = [
-      [C, C, C, C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR, HR_S,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, HR_D,HR, HR_H,HR_B,HR, HR, HR_H,HR_S,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, HR_D,HR, HR_H,HR_B,HR, HR, HR, HR, HR_H,HR_S,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, HR_D,HR, HR_B,HR_H,HR, HR, HR, HR, HR_T,HR, HR_S,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, HR_S,HR, HR_H,HR, HR, HR_H,HR, HR_T,HR, HR, HR_S,HR_D,C, C, C, C, C, C, C],
-      // Side face
-      [C, C, C, C, C, HR_D,HR, SK, SK_H,SK, SK, SK, SK_S,HR, HR_S,HR_T,HR_D,C, C, C, C, C, C, C],
-      [C, C, C, C, C, HR_S,SK, SK_H,SK, SK, SK, SK_S,HR_S,HR, HR_D,C, C, C, C, C, C, C, C, C],
-      // Eye row - big visible eye with clear white
-      [C, C, C, C, C, SK, BROW,BROW,EY_W,EY_W,EY_H,EY, EY_P,SK_S,HR_D,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, SK, SK, EY_W,EY_W,EY_G,EY, EY_D,SK, SK_S,C, C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, SK, SK, SK, EY_L,EY_D,EY_D,SK_S,SK, C, C, C, C, C, C, C, C, C, C, C],
-      // Nose + blush
-      [C, C, C, C, C, C, SK, SK, BLUSH,SK_S,SK, SK, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Mouth
-      [C, C, C, C, C, C, C, SK, SK_S,MOUTH_O,SK, C, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Chin
-      [C, C, C, C, C, C, C, C, SK_S,SK, SK, C, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Neck
-      [C, C, C, C, C, C, C, C, SK_D,SHIRT,SK_D,C, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Shoulder - body 10px wide with cape
-      [C, C, C, C, C, CAPE_S,TUN_S,TUN, GOLD,TUN, TUN_H,TUN, TUN_S,CAPE, CAPE_H,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, CAPE, TUN, TUN_H,GOLD_S,TUN_H,TUN, TUN, TUN_S,CAPE_S,CAPE, C, C, C, C, C, C, C, C, C],
-      // Belt
-      [C, C, C, C, C, CAPE, TUN_S,BELT,BELT_B,BELT,TUN, TUN_S,TUN_D,CAPE_S,C, C, C, C, C, C, C, C, C, C],
-      // Arms
-      [C, BL_H,BL, GLV, GLV_H,TUN_S,TUN, TUN_S,TUN_D,TUN, TUN_S,CAPE_D,C, C, C, C, C, C, C, C, C, C, C, C],
-      [C, GRD,BL_S,C, GLV, GLV_H,TUN_D,TUN_S,TUN_D,TUN_S,CAPE_D,C, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Cape + pants
-      [C, POM, C, C, C, CAPE_D,PANT,PANT_H,PANT, PANT,CAPE_S,CAPE_H,CAPE, C, C, C, C, C, C, C, C, C, C, C],
-      // Legs
-      [C, C, C, C, C, C, C, PANT_S,PANT,PANT_H,PANT_S,C, C, C, C, C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, PANT_S,PANT,C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Boots
-      [C, C, C, C, C, C, BOOT_S,BOOT,BOOT_T,BOOT_H,BOOT_S,C, C, C, C, C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, BOOT_S,BOOT, BOOT_H,C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Hair trailing behind
-      [C, C, C, C, C, C, C, C, C, C, C, C, HR, HR_S,HR_D,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, C, C, C, C, C, HR_D,HR_S,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-    ];
-
-    this.textures.set('player_left_idle_0', this.createSpriteTexture(leftIdle0, 3));
-    this.textures.set('player_left_idle_1', this.createSpriteTexture(leftIdle0.map((row, i) => {
-      if (i === 19) return [C,POM,C,C,C,CAPE_D,PANT,PANT_H,PANT,PANT,CAPE_H,CAPE_S,CAPE_H,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    }), 3));
-
-    const leftWalk0 = leftIdle0.map((row, i) => {
-      if (i === 20) return [C,C,C,C,C,C,BOOT,PANT_S,PANT,C,PANT,PANT_S,C,C,C,C,C,C,C,C,C,C,C,C];
-      if (i === 21) return [C,C,C,C,C,C,BOOT_S,BOOT,C,C,C,BOOT,C,C,C,C,C,C,C,C,C,C,C,C];
-      if (i === 22) return [C,C,C,C,C,BOOT_S,BOOT_T,BOOT_H,C,C,C,BOOT_H,BOOT_S,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    const leftWalk1 = leftIdle0.map((row, i) => {
-      if (i === 20) return [C,C,C,C,C,C,PANT,PANT_S,C,BOOT,C,PANT_S,C,C,C,C,C,C,C,C,C,C,C,C];
-      if (i === 21) return [C,C,C,C,C,C,BOOT,C,C,BOOT_S,C,C,BOOT,C,C,C,C,C,C,C,C,C,C,C];
-      if (i === 22) return [C,C,C,C,C,BOOT_H,BOOT_T,C,C,BOOT_S,C,C,BOOT_T,BOOT_S,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-
-    this.textures.set('player_left_walk_0', this.createSpriteTexture(leftWalk0, 3));
-    this.textures.set('player_left_walk_1', this.createSpriteTexture(leftWalk1, 3));
-
-    // Left attack
-    const leftAtk0 = leftIdle0.map((row, i) => {
-      if (i === 7) return [C,C,C,C,C,SK,BROW,BROW,EY_W,EY_W,EY_D,EY_P,SK_S,HR_D,C,C,C,C,C,C,C,C,C,C];
-      if (i === 17) return [BL_H,BL,BL_S,GRD,GLV_H,TUN_S,TUN,TUN_S,TUN_D,TUN,TUN_S,CAPE_D,C,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    const leftAtk1 = leftIdle0.map((row, i) => {
-      if (i === 7) return [C,C,C,C,C,SK,BROW,BROW,EY_W,EY_W,EY_D,EY_P,SK_S,HR_D,C,C,C,C,C,C,C,C,C,C];
-      if (i === 17) return [BL_H,BL,BL_S,BL,BL,GRD,GLV_H,TUN_S,TUN_D,TUN,TUN_S,CAPE_D,C,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    const leftAtk2 = leftIdle0.map((row, i) => {
-      if (i === 19) return [POM,GRD,BL_S,BL,BL_H,CAPE_D,PANT,PANT_H,PANT,PANT,CAPE_S,CAPE_H,CAPE,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-
-    this.textures.set('player_left_attack_0', this.createSpriteTexture(leftAtk0, 3));
-    this.textures.set('player_left_attack_1', this.createSpriteTexture(leftAtk1, 3));
-    this.textures.set('player_left_attack_2', this.createSpriteTexture(leftAtk2, 3));
-
-    // Left charge
-    const leftChg0 = leftAtk0.map((row, i) => {
-      if (i === 7) return [C,C,C,C,C,SK,BROW,BROW,EY_W,EY_W,EY_CHG,EY_CHG2,SK_S,HR_D,C,C,C,C,C,C,C,C,C,C];
-      if (i === 17) return [CG,CG_B,CG_B,GRD_H,GLV_H,TUN_S,TUN,TUN_S,TUN_D,TUN,TUN_S,CAPE_D,C,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    this.textures.set('player_left_charge_0', this.createSpriteTexture(leftChg0, 3));
-    this.textures.set('player_left_charge_1', this.createSpriteTexture(leftChg0, 3));
-    this.textures.set('player_left_charge_2', this.createSpriteTexture(leftChg0, 3));
-    
-    // Left hurt
-    const leftHurt = leftIdle0.map((row, i) => {
-      if (i === 7) return [C,C,C,C,C,SK,BROW,BROW,EY_W,EY_HURT,BROW,BROW,SK_S,HR_D,C,C,C,C,C,C,C,C,C,C];
-      if (i === 11) return [C,C,C,C,C,C,C,SK,SK_S,MOUTH_H,SK,C,C,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    this.textures.set('player_left_hurt_0', this.createSpriteTexture(leftHurt, 3));
-
-    // ========== PLAYER RIGHT (mirror of left) ==========
-    this.textures.set('player_right_idle_0', this.createSpriteTexture(mirrorSprite(leftIdle0), 3));
-    this.textures.set('player_right_idle_1', this.textures.get('player_right_idle_0')!);
-    this.textures.set('player_right_walk_0', this.createSpriteTexture(mirrorSprite(leftWalk0), 3));
-    this.textures.set('player_right_walk_1', this.createSpriteTexture(mirrorSprite(leftWalk1), 3));
-    this.textures.set('player_right_attack_0', this.createSpriteTexture(mirrorSprite(leftAtk0.map(r => [...r])), 3));
-    this.textures.set('player_right_attack_1', this.createSpriteTexture(mirrorSprite(leftAtk1.map(r => [...r])), 3));
-    this.textures.set('player_right_attack_2', this.createSpriteTexture(mirrorSprite(leftAtk2.map(r => [...r])), 3));
-    this.textures.set('player_right_charge_0', this.createSpriteTexture(mirrorSprite(leftChg0.map(r => [...r])), 3));
-    this.textures.set('player_right_charge_1', this.textures.get('player_right_charge_0')!);
-    this.textures.set('player_right_charge_2', this.textures.get('player_right_charge_0')!);
-    this.textures.set('player_right_hurt_0', this.createSpriteTexture(mirrorSprite(leftHurt.map(r => [...r])), 3));
-
-    // ========== DIAGONAL SPRITES ==========
+    // Diagonal sprites reuse side views
     const diagDirs = ['down_left', 'down_right', 'up_left', 'up_right'] as const;
     const diagBase = { down_left: 'left', down_right: 'right', up_left: 'left', up_right: 'right' } as const;
     
     for (const dDir of diagDirs) {
       const base = diagBase[dDir];
-      for (const state of ['idle', 'walk', 'attack']) {
-        const frames = state === 'attack' ? 3 : 2;
-        for (let f = 0; f < frames; f++) {
+      for (const state of states) {
+        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' ? 1 : 2;
+        for (let f = 0; f < maxFrames; f++) {
           const src = this.textures.get(`player_${base}_${state}_${f}`);
           if (src) this.textures.set(`player_${dDir}_${state}_${f}`, src);
         }
       }
-      for (let f = 0; f < 3; f++) {
-        const src = this.textures.get(`player_${base}_charge_${f}`);
-        if (src) this.textures.set(`player_${dDir}_charge_${f}`, src);
-      }
-      const hurtSrc = this.textures.get(`player_${base}_hurt_0`);
-      if (hurtSrc) this.textures.set(`player_${dDir}_hurt_0`, hurtSrc);
     }
 
     // Legacy aliases
@@ -517,7 +640,12 @@ export class AssetManager {
     this.textures.set('player_left', this.textures.get('player_left_idle_0')!);
     this.textures.set('player_right', this.textures.get('player_right_idle_0')!);
 
-    // ========== NPC SPRITES - Chibi Anime Style (matching protagonist proportions) ==========
+    // Shared NPC palette constants
+    const SK = 0xFFE0BD; const SK_H = 0xFFF0D8; const SK_S = 0xE8C4A0; const SK_D = 0xD4A878;
+    const EY_W = 0xFFFFFF; const BROW = 0x503018; const MOUTH = 0xD06050;
+    const PANT = 0x5A4030; const BOOT = 0x6B4428; const BOOT_H = 0x8B6040; const BOOT_S = 0x503018;
+
+    // ========== NPC SPRITES - Chibi Anime Style ==========
     const NPC_W = 14; // NPCs use 14-wide sprites at cellSize 3
 
     // Elder - wise old man, long white beard, purple robes, crystal staff
