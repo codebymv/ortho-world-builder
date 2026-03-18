@@ -1136,13 +1136,18 @@ const Game = () => {
         // === PLAYER POSITION WITH ANIMATION OFFSETS ===
         let attackOffsetX = 0;
         let attackOffsetY = 0;
+        const facing4 = dir8to4(currentDir8);
+        const moveWave = playerAnimState === 'walk' || state.player.isDodging
+          ? Math.sin(currentTime / 95)
+          : 0;
+        const stride = Math.abs(moveWave);
+
         if (playerAnimState === 'attack' && attackFrame === 1) {
           const lungeAmount = 0.15;
-          const d4 = dir8to4(currentDir8);
-          if (d4 === 'up') attackOffsetY = lungeAmount;
-          else if (d4 === 'down') attackOffsetY = -lungeAmount;
-          else if (d4 === 'left') attackOffsetX = -lungeAmount;
-          else if (d4 === 'right') attackOffsetX = lungeAmount;
+          if (facing4 === 'up') attackOffsetY = lungeAmount;
+          else if (facing4 === 'down') attackOffsetY = -lungeAmount;
+          else if (facing4 === 'left') attackOffsetX = -lungeAmount;
+          else if (facing4 === 'right') attackOffsetX = lungeAmount;
         } else if (playerAnimState === 'spin_attack') {
           const spinDir = SPIN_DIRECTIONS[Math.min(spinDirIndex, SPIN_DIRECTIONS.length - 1)];
           const lungeAmount = 0.1;
@@ -1153,25 +1158,37 @@ const Game = () => {
           else if (d4 === 'right') attackOffsetX = lungeAmount;
         }
 
-        // Dodge roll visual
-        let dodgeScaleX = 1, dodgeScaleY = 1;
+        let visualScaleX = PLAYER_BASE_SCALE;
+        let visualScaleY = PLAYER_BASE_SCALE;
+        let visualRotation = 0;
+
+        if (playerAnimState === 'walk') {
+          attackOffsetY += stride * 0.06;
+          if (facing4 === 'left') attackOffsetX -= stride * 0.04;
+          else if (facing4 === 'right') attackOffsetX += stride * 0.04;
+          visualScaleX *= 1 - stride * 0.035;
+          visualScaleY *= 1 + stride * 0.07;
+          visualRotation = moveWave * (facing4 === 'left' ? -0.035 : facing4 === 'right' ? 0.035 : 0.018);
+        }
+
         if (state.player.isDodging) {
           const t = 1 - (state.player.dodgeTimer / state.player.dodgeDuration);
-          dodgeScaleX = 1 + Math.sin(t * Math.PI) * 0.3;
-          dodgeScaleY = 1 - Math.sin(t * Math.PI) * 0.2;
-          playerMesh.rotation.z = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? -1 : 1);
+          const dodgeScaleX = 1 + Math.sin(t * Math.PI) * 0.3;
+          const dodgeScaleY = 1 - Math.sin(t * Math.PI) * 0.2;
+          visualScaleX *= dodgeScaleX;
+          visualScaleY *= dodgeScaleY;
+          visualRotation = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? -1 : 1);
         } else if (isChargingAttack) {
           const pulse = 1 + chargeLevel * 0.15;
           const shake = chargeLevel * Math.sin(currentTime / 30) * 0.02;
-          dodgeScaleX = pulse;
-          dodgeScaleY = pulse;
+          visualScaleX *= pulse;
+          visualScaleY *= pulse;
           attackOffsetX += shake;
-          playerMesh.rotation.z = 0;
-        } else {
-          playerMesh.rotation.z = 0;
+          visualRotation = 0;
         }
-        playerMesh.scale.set(dodgeScaleX, dodgeScaleY, 1);
 
+        playerMesh.rotation.z = visualRotation;
+        playerMesh.scale.set(visualScaleX, visualScaleY, 1);
         playerMesh.position.set(
           state.player.position.x + attackOffsetX,
           state.player.position.y + attackOffsetY,
@@ -1179,7 +1196,7 @@ const Game = () => {
         );
 
         // Dynamic Y-sorting for player
-        playerMesh.renderOrder = getYRenderOrder(state.player.position.y);
+        playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
 
         // Player damage flash
         if (state.player.damageFlashTimer > 0) {
