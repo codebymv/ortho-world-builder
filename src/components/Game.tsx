@@ -1964,7 +1964,8 @@ const Game = () => {
   }, []);
 
   useEffect(() => {
-    const startTrack = gameState ? (MAP_MUSIC[gameState.currentMap] || DEFAULT_MUSIC) : DEFAULT_MUSIC;
+    const currentMap = gameStateRef.current?.currentMap || 'village';
+    const startTrack = MAP_MUSIC[currentMap] || DEFAULT_MUSIC;
     const audio = new Audio(startTrack);
     audio.loop = true;
     audio.volume = 0.15;
@@ -1974,6 +1975,13 @@ const Game = () => {
     const startMusic = () => {
       if (musicStarted.current) return;
       musicStarted.current = true;
+      // On first interaction, also sync to the correct track for current map
+      const map = gameStateRef.current?.currentMap || 'village';
+      const correctTrack = MAP_MUSIC[map] || DEFAULT_MUSIC;
+      if (currentTrackRef.current !== correctTrack) {
+        audio.src = correctTrack;
+        currentTrackRef.current = correctTrack;
+      }
       audio.play().catch(() => {});
     };
 
