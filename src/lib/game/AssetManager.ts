@@ -1065,5 +1065,79 @@ export class AssetManager {
       [C,     0xEEEEEE,0xEEEEEE,0xBDBDBD,0xEEEEEE,C],
       [0xEEEEEE,0xBDBDBD,C,     C,     0xBDBDBD,0xEEEEEE],
     ]));
+
+    // Iron fence - dark metal bars
+    const IRON = 0x37474F;
+    const IRON_H = 0x546E7A;
+    this.textures.set('iron_fence', this.createSpriteTexture([
+      [IRON_H, C,      IRON_H, C,      IRON_H, C,      IRON_H, C],
+      [IRON,   IRON_H, IRON,   IRON_H, IRON,   IRON_H, IRON,   IRON_H],
+      [IRON,   C,      IRON,   C,      IRON,   C,      IRON,   C],
+      [IRON,   IRON_H, IRON,   IRON_H, IRON,   IRON_H, IRON,   IRON_H],
+      [IRON,   C,      IRON,   C,      IRON,   C,      IRON,   C],
+    ]));
+
+    // Hedge - dense green bush
+    const HEDGE = 0x2E7D32;
+    const HEDGE_H = 0x43A047;
+    const HEDGE_S = 0x1B5E20;
+    this.textures.set('hedge', this.createSpriteTexture([
+      [C,      HEDGE_H,HEDGE,  HEDGE_H,HEDGE,  HEDGE_H,C,     C],
+      [HEDGE_S,HEDGE,  HEDGE_H,HEDGE,  HEDGE_H,HEDGE,  HEDGE_S,C],
+      [HEDGE,  HEDGE_S,HEDGE,  HEDGE_S,HEDGE,  HEDGE_S,HEDGE, C],
+      [HEDGE_S,HEDGE,  HEDGE_S,HEDGE,  HEDGE_S,HEDGE,  HEDGE_S,C],
+    ]));
+
+    // Wheat - golden crop
+    const WHEAT = 0xFFC107;
+    const WHEAT_H = 0xFFD54F;
+    const WHEAT_S = 0xFFA000;
+    const WHEAT_STEM = 0x8BC34A;
+    this.textures.set('wheat', this.createSpriteTexture([
+      [C,        WHEAT_H, C,       WHEAT,   C,       WHEAT_H, C,       C],
+      [WHEAT,    WHEAT_H, WHEAT,   WHEAT_H, WHEAT,   WHEAT,   WHEAT_S, C],
+      [WHEAT_S,  WHEAT,   WHEAT_S, WHEAT,   WHEAT_S, WHEAT,   WHEAT_S, C],
+      [C,        WHEAT_STEM,C,     WHEAT_STEM,C,     WHEAT_STEM,C,      C],
+      [C,        WHEAT_STEM,C,     WHEAT_STEM,C,     WHEAT_STEM,C,      C],
+    ]));
+
+    // Scarecrow
+    const SC_HAT = 0x5D4037;
+    const SC_SHIRT = 0xBCAAA4;
+    const SC_FACE = 0xFFE0BD;
+    this.textures.set('scarecrow', this.createSpriteTexture([
+      [C,      C,      SC_HAT, SC_HAT, SC_HAT, SC_HAT, C,      C],
+      [C,      SC_HAT, SC_HAT, SC_HAT, SC_HAT, SC_HAT, SC_HAT, C],
+      [C,      C,      SC_FACE,0x000000,SC_FACE,0x000000,C,      C],
+      [C,      C,      SC_FACE,SC_FACE,SC_FACE,SC_FACE, C,      C],
+      [SC_SHIRT,SC_SHIRT,SC_SHIRT,SC_SHIRT,SC_SHIRT,SC_SHIRT,SC_SHIRT,SC_SHIRT],
+      [C,      C,      C,      SC_SHIRT,SC_SHIRT,C,      C,      C],
+      [C,      C,      C,      0x5D4037,0x5D4037,C,      C,      C],
+      [C,      C,      C,      0x5D4037,0x5D4037,C,      C,      C],
+    ]));
+
+    // Hay bale
+    const HAY = 0xD4A017;
+    const HAY_H = 0xE8B830;
+    const HAY_S = 0xB8860B;
+    this.textures.set('hay_bale', this.createSpriteTexture([
+      [HAY_S, HAY,   HAY_H, HAY,   HAY_H, HAY,   HAY_S],
+      [HAY,   HAY_H, HAY,   HAY_S, HAY,   HAY_H, HAY],
+      [HAY_S, HAY,   HAY_S, HAY,   HAY_S, HAY,   HAY_S],
+      [HAY,   HAY_S, HAY,   HAY_H, HAY,   HAY_S, HAY],
+    ]));
+
+    // Lantern
+    const LANT_METAL = 0x37474F;
+    const LANT_GLASS = 0xFFEB3B;
+    const LANT_GLOW = 0xFFF9C4;
+    this.textures.set('lantern', this.createSpriteTexture([
+      [C,         C,         LANT_METAL,LANT_METAL,C,         C],
+      [C,         LANT_METAL,LANT_GLOW, LANT_GLASS,LANT_METAL,C],
+      [C,         LANT_METAL,LANT_GLASS,LANT_GLOW, LANT_METAL,C],
+      [C,         C,         LANT_METAL,LANT_METAL,C,         C],
+      [C,         C,         LANT_METAL,LANT_METAL,C,         C],
+      [C,         C,         LANT_METAL,LANT_METAL,C,         C],
+    ]));
   }
 }
