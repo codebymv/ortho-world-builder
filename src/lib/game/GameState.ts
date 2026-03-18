@@ -14,6 +14,19 @@ export interface PlayerState {
   attackCooldown: number;
   damageFlashTimer: number;
   attackAnimationTimer: number;
+  // Dodge roll
+  isDodging: boolean;
+  dodgeTimer: number;
+  dodgeDuration: number;
+  dodgeCooldown: number;
+  lastDodgeTime: number;
+  dodgeDirection: { x: number; y: number };
+  dodgeSpeed: number;
+  stamina: number;
+  maxStamina: number;
+  staminaRegenRate: number;
+  staminaRegenDelay: number;
+  lastStaminaUseTime: number;
 }
 
 export interface NPC {
@@ -77,6 +90,19 @@ export class GameState {
       attackCooldown: 500,
       damageFlashTimer: 0,
       attackAnimationTimer: 0,
+      // Dodge
+      isDodging: false,
+      dodgeTimer: 0,
+      dodgeDuration: 0.25,
+      dodgeCooldown: 600,
+      lastDodgeTime: 0,
+      dodgeDirection: { x: 0, y: 0 },
+      dodgeSpeed: 0.35,
+      stamina: 100,
+      maxStamina: 100,
+      staminaRegenRate: 30, // per second
+      staminaRegenDelay: 0.8, // seconds after use before regen
+      lastStaminaUseTime: 0,
     };
 
     this.inventory = [];

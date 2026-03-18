@@ -58,6 +58,9 @@ const villageDef: MapDefinition = {
     { x: 200, y: 15, width: 16, height: 12, type: 'camp', interactionId: 'bandit_camp' },
     { x: 10, y: 135, width: 10, height: 8, type: 'camp', interactionId: 'goblin_camp' },
 
+    // === DESTROYED OUTPOST (north-west) ===
+    { x: 10, y: 50, width: 18, height: 14, type: 'destroyed_town' },
+
     // === MAIN ROADS ===
     { x: 116, y: 100, width: 8, height: 50, type: 'path', fill: 'dirt' },
     { x: 30, y: 74, width: 150, height: 4, type: 'path', fill: 'dirt' },
@@ -159,6 +162,18 @@ const forestDef: MapDefinition = {
     { x: 270, y: 260, width: 8, height: 6, type: 'building', interactionId: 'hermit_hut' },
     { x: 265, y: 255, width: 20, height: 16, type: 'clearing', fill: 'grass' },
 
+    // === DESTROYED TOWN (south-west) ===
+    { x: 20, y: 200, width: 30, height: 22, type: 'destroyed_town' },
+
+    // === WATERFALL (north) ===
+    { x: 155, y: 15, width: 12, height: 18, type: 'waterfall' },
+
+    // === TEMPLE (east) ===
+    { x: 250, y: 140, width: 20, height: 16, type: 'temple' },
+
+    // === VOLCANO (far north-east) ===
+    { x: 260, y: 20, width: 28, height: 24, type: 'volcano' },
+
     // === MAIN PATHS ===
     { x: 146, y: 260, width: 8, height: 40, type: 'path', fill: 'dirt' },
     { x: 146, y: 160, width: 8, height: 100, type: 'path', fill: 'dirt' },
@@ -169,6 +184,8 @@ const forestDef: MapDefinition = {
     { x: 200, y: 100, width: 6, height: 60, type: 'path', fill: 'dirt' },
     { x: 80, y: 230, width: 70, height: 4, type: 'path', fill: 'dirt' },
     { x: 220, y: 220, width: 50, height: 4, type: 'path', fill: 'dirt' },
+    { x: 20, y: 210, width: 60, height: 4, type: 'path', fill: 'dirt' },
+    { x: 250, y: 140, width: 4, height: 40, type: 'path', fill: 'dirt' },
   ],
   portals: [
     { x: 150, y: 297, targetMap: 'village', targetX: 120, targetY: 6 },
@@ -189,6 +206,10 @@ const forestDef: MapDefinition = {
     { x: 105, y: 265, interactionId: 'ruins_south_chest' },
     { x: 30, y: 250, interactionId: 'spider_nest_chest' },
     { x: 190, y: 260, interactionId: 'forest_deep_chest' },
+    { x: 30, y: 210, interactionId: 'destroyed_town_chest' },
+    { x: 160, y: 20, interactionId: 'waterfall_chest' },
+    { x: 258, y: 148, interactionId: 'temple_chest' },
+    { x: 268, y: 28, interactionId: 'volcano_chest' },
   ],
   interactables: [
     { x: 140, y: 170, type: 'sign', walkable: false, interactionId: 'ranger_sign' },
@@ -201,6 +222,8 @@ const forestDef: MapDefinition = {
     { x: 160, y: 175, type: 'campfire', walkable: false, interactionId: 'campfire' },
     { x: 35, y: 250, type: 'campfire', walkable: false, interactionId: 'campfire' },
     { x: 275, y: 270, type: 'well', walkable: false, interactionId: 'well' },
+    { x: 25, y: 205, type: 'sign', walkable: false, interactionId: 'destroyed_town_sign' },
+    { x: 258, y: 155, type: 'well', walkable: false, interactionId: 'ancient_fountain' },
   ],
   secretAreas: [
     { x: 256, y: 184, width: 8, height: 6, fill: 'grass' },

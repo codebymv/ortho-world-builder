@@ -1,6 +1,6 @@
 import { GameState } from '@/lib/game/GameState';
 import { Button } from '@/components/ui/button';
-import { Heart, Coins, Package, ScrollText, X } from 'lucide-react';
+import { Heart, Coins, Package, ScrollText, Zap } from 'lucide-react';
 import { useState } from 'react';
 
 interface GameUIProps {
@@ -18,19 +18,31 @@ export const GameUI = ({ gameState }: GameUIProps) => {
       {/* Minimal Top Bar */}
       <div className="fixed top-0 left-0 right-0 h-12 bg-[#1A0F0A]/85 backdrop-blur-sm border-b border-[#5C3A21] z-50 flex justify-between items-center px-4 pointer-events-auto shadow-md">
 
-        {/* Left Side: Health & Gold */}
-        <div className="flex items-center gap-6">
+        {/* Left Side: Health, Stamina & Gold */}
+        <div className="flex items-center gap-4">
+          {/* Health */}
           <div className="flex items-center gap-2">
             <Heart className="w-4 h-4 text-red-500 drop-shadow" />
-            <div className="w-32 h-2.5 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
+            <div className="w-28 h-2.5 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
               <div
                 className="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all"
                 style={{ width: `${(gameState.player.health / gameState.player.maxHealth) * 100}%` }}
               />
             </div>
-            <span className="text-xs font-bold text-[#F5DEB3] tracking-wide">
+            <span className="text-[10px] font-bold text-[#F5DEB3] tracking-wide">
               {gameState.player.health}/{gameState.player.maxHealth}
             </span>
+          </div>
+
+          {/* Stamina */}
+          <div className="flex items-center gap-2">
+            <Zap className="w-3.5 h-3.5 text-yellow-300 drop-shadow" />
+            <div className="w-20 h-2 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
+              <div
+                className="h-full bg-gradient-to-r from-yellow-500 to-yellow-300 transition-all"
+                style={{ width: `${(gameState.player.stamina / gameState.player.maxStamina) * 100}%` }}
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -179,10 +191,11 @@ export const GameUI = ({ gameState }: GameUIProps) => {
 
       {/* Controls Help (Minimal) */}
       <div className="fixed bottom-4 left-4 bg-[#1A0F0A]/80 backdrop-blur-sm border border-[#5C3A21] rounded-sm p-2 z-40 shadow-sm pointer-events-auto">
-        <div className="flex gap-4 items-center">
-          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-1">WASD</kbd> Move</p>
-          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1.5 rounded border border-[#5C3A21] text-[#DAA520] mr-1">SPACE</kbd> Attack</p>
-          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1.5 rounded border border-[#5C3A21] text-[#DAA520] mr-1">E</kbd> Interact</p>
+        <div className="flex gap-3 items-center">
+          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">WASD</kbd> Move</p>
+          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Attack</p>
+          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SHIFT</kbd> Dodge</p>
+          <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">E</kbd> Interact</p>
         </div>
       </div>
     </>

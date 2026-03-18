@@ -46,7 +46,7 @@ export interface MapFeature {
   y: number;
   width: number;
   height: number;
-  type: 'building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'secret_cave';
+  type: 'building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'secret_cave' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano';
   tiles?: Partial<Record<string, Tile>>; // specific tile overrides by "dx,dy"
   fill?: TileType;
   border?: TileType;
@@ -273,6 +273,18 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
       case 'path':
         placePath(tiles, feature);
         break;
+      case 'destroyed_town':
+        placeDestroyedTown(tiles, feature);
+        break;
+      case 'temple':
+        placeTemple(tiles, feature);
+        break;
+      case 'waterfall':
+        placeWaterfall(tiles, feature);
+        break;
+      case 'volcano':
+        placeVolcano(tiles, feature);
+        break;
     }
   }
 }
@@ -453,6 +465,96 @@ function placePath(tiles: Tile[][], f: MapFeature) {
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         tiles[ty][tx] = createTile(f.fill || 'dirt', true);
+      }
+    }
+  }
+}
+
+function placeDestroyedTown(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        if ((dx + dy * 3) % 7 === 0) {
+          tiles[ty][tx] = createTile('destroyed_house', false);
+        } else if ((dx * 2 + dy) % 11 === 0) {
+          tiles[ty][tx] = createTile('bones', true);
+        } else if ((dx + dy) % 9 === 0) {
+          tiles[ty][tx] = createTile('barrel', false);
+        } else if ((dx * 3 + dy * 2) % 13 === 0) {
+          tiles[ty][tx] = createTile('crate', false);
+        } else {
+          tiles[ty][tx] = createTile('dirt', true);
+        }
+      }
+    }
+  }
+}
+
+function placeTemple(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
+          if ((dx === Math.floor(f.width / 2) && dy === f.height - 1)) {
+            tiles[ty][tx] = createTile('stone', true);
+          } else {
+            tiles[ty][tx] = createTile('stone', false);
+          }
+        } else if (dx % 4 === 2 && dy % 4 === 2) {
+          tiles[ty][tx] = createTile('statue', false);
+        } else {
+          tiles[ty][tx] = createTile('ruins_floor', true);
+        }
+      }
+    }
+  }
+}
+
+function placeWaterfall(tiles: Tile[][], f: MapFeature) {
+  const cx = f.x + Math.floor(f.width / 2);
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        const distFromCenter = Math.abs(tx - cx);
+        if (distFromCenter <= 2) {
+          tiles[ty][tx] = createTile(dy < 3 ? 'waterfall' : 'water', false);
+        } else if (distFromCenter <= 3) {
+          tiles[ty][tx] = createTile('rock', false);
+        } else {
+          tiles[ty][tx] = createTile('grass', true);
+        }
+      }
+    }
+  }
+}
+
+function placeVolcano(tiles: Tile[][], f: MapFeature) {
+  const cx = f.x + f.width / 2;
+  const cy = f.y + f.height / 2;
+  const rx = f.width / 2;
+  const ry = f.height / 2;
+
+  for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++) {
+    for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
+      const tx = Math.floor(cx + dx);
+      const ty = Math.floor(cy + dy);
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        const dist = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+        if (dist < 0.15) {
+          tiles[ty][tx] = createTile('lava', false);
+        } else if (dist < 0.5) {
+          tiles[ty][tx] = createTile('volcanic_rock', false);
+        } else if (dist < 0.85) {
+          tiles[ty][tx] = createTile('ash', true);
+        } else if (dist < 1.1) {
+          tiles[ty][tx] = createTile('rock', false);
+        }
       }
     }
   }
