@@ -444,22 +444,13 @@ export class World {
   dispose() {
     for (const [, object] of this.activeMeshes) {
       this.scene.remove(object);
-      if (object instanceof THREE.Group) {
-        for (const child of object.children) {
-          if (child instanceof THREE.Mesh) {
-            (child.material as THREE.Material).dispose();
-          }
-        }
-      } else if (object instanceof THREE.Mesh) {
-        (object.material as THREE.Material).dispose();
-      }
     }
     this.activeMeshes.clear();
     
-    for (const mesh of this.meshPool) {
-      (mesh.material as THREE.Material).dispose();
+    for (const [, material] of this.materialCache) {
+      material.dispose();
     }
-    this.meshPool = [];
+    this.materialCache.clear();
     this.overlayPool = [];
     this.sharedTileGeometry.dispose();
   }
