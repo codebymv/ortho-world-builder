@@ -1125,6 +1125,54 @@ function placeSecretAreas(tiles: Tile[][], def: MapDefinition) {
   }
 }
 
+// Tiles that should not have decoration overlays on or adjacent to them
+const INCOMPATIBLE_BASE: Set<TileType> = new Set([
+  'water', 'lava', 'ice', 'swamp', 'waterfall', 'bridge',
+]);
+
+// Decoration overlay types that should only appear on land
+const LAND_DECORATIONS: Set<TileType> = new Set([
+  'flower', 'tall_grass', 'mushroom', 'rock', 'tree', 'dead_tree',
+  'stump', 'bones', 'scarecrow', 'hay_bale', 'tombstone',
+]);
+
+function cleanupIllogicalPlacements(tiles: Tile[][]) {
+  const h = tiles.length;
+  const w = tiles[0].length;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const tile = tiles[y][x];
+
+      // Remove land decorations sitting on incompatible terrain
+      if (LAND_DECORATIONS.has(tile.type)) {
+        // Check if any neighbor (including self base) is water/lava
+        let onBadTerrain = false;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (ny >= 0 && ny < h && nx >= 0 && nx < w) {
+              if (INCOMPATIBLE_BASE.has(tiles[ny][nx].type)) {
+                onBadTerrain = true;
+              }
+            }
+          }
+        }
+        if (onBadTerrain) {
+          // Replace with appropriate base tile
+          tiles[y][x] = createTile('sand', true);
+        }
+      }
+
+      // Remove any decoration directly ON water/lava
+      if (INCOMPATIBLE_BASE.has(tile.type) && LAND_DECORATIONS.has(tile.type)) {
+        tiles[y][x] = createTile('water', false);
+      }
+    }
+  }
+}
+
 export function generateMap(def: MapDefinition): WorldMap {
   const tiles = generateBaseTerrain(def);
 
@@ -1139,6 +1187,9 @@ export function generateMap(def: MapDefinition): WorldMap {
   placeChests(tiles, def);
   placeInteractables(tiles, def);
   placeSecretAreas(tiles, def);
+
+  // Clean up illogical placements (flowers in water, etc.)
+  cleanupIllogicalPlacements(tiles);
 
   // Ensure spawn point is walkable
   const sp = def.spawnPoint;
