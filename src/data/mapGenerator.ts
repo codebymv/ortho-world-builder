@@ -336,7 +336,7 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 
 const HOUSE_VARIANTS: TileType[] = ['house', 'house_blue', 'house_green', 'house_thatch'];
 const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch']);
-const MIN_BUILDING_SPACING = 5; // minimum tiles between any two buildings
+const MIN_BUILDING_SPACING = 8; // minimum tiles between any two buildings
 
 function isBuildingNearby(tiles: Tile[][], fx: number, fy: number, fw: number, fh: number): boolean {
   const checkPad = MIN_BUILDING_SPACING;
@@ -385,7 +385,7 @@ function placeBuilding(tiles: Tile[][], f: MapFeature) {
   const variant = HOUSE_VARIANTS[(f.x * 7 + f.y * 13) % HOUSE_VARIANTS.length];
   
   // First, clear a yard around the building (3-tile border of grass)
-  const yardPad = 3;
+  const yardPad = 4;
   for (let dy = -yardPad; dy < f.height + yardPad; dy++) {
     for (let dx = -yardPad; dx < f.width + yardPad; dx++) {
       const tx = f.x + dx;
