@@ -1673,6 +1673,12 @@ const Game = () => {
           enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
           enemyMesh.renderOrder = getYRenderOrder(enemy.position.y, visual.footOffset);
 
+          // Update enemy shadow
+          const eShadow = enemyShadows.get(enemy.id);
+          if (eShadow) {
+            eShadow.position.set(finalEnemyX, finalEnemyY - visual.footOffset * 0.8, -0.01);
+          }
+
           // === HP BAR ===
           const hpBar = getOrCreateHPBar(enemy);
           const hpRatio = enemy.health / enemy.maxHealth;
