@@ -349,6 +349,10 @@ export class World {
           const group = this.overlayPool.pop() ?? new THREE.Group();
           group.clear();
           group.matrixAutoUpdate = false;
+          group.userData = {
+            tileType: tile.type,
+            sortAnchorY: null,
+          };
           const baseMesh = this.createPlaneMesh(texture, -0.5, `base_${tile.type}`);
           baseMesh.updateMatrix();
           decal.updateMatrix();
