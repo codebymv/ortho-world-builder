@@ -1761,6 +1761,8 @@ const Game = () => {
       activeNpcWorldPos.current = null;
       gameState.dialogueActive = false;
       gameState.currentDialogue = null;
+      // Save on dialogue end
+      SaveManager.save(gameState, mapMarkersRef.current, visitedTilesRef.current);
       return;
     }
 
