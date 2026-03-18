@@ -11,7 +11,7 @@ interface GameUIProps {
   showControls?: boolean;
 }
 
-export const GameUI = ({ gameState, refreshToken, musicRef }: GameUIProps) => {
+export const GameUI = ({ gameState, refreshToken, musicRef, showControls = true }: GameUIProps) => {
   const [showInventory, setShowInventory] = useState(false);
   const [showQuests, setShowQuests] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
