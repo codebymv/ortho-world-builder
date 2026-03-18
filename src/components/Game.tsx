@@ -98,6 +98,10 @@ const Game = () => {
     const MAX_DELTA = 0.1;
     let portalCooldown = 0;
 
+    // Reusable vectors to avoid per-frame allocation
+    const _tmpVec3 = new THREE.Vector3();
+    const _worldPosVec3 = new THREE.Vector3();
+
     // Animation state
     let animFrame = 0;
     let animTimer = 0;
