@@ -73,7 +73,9 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   
   // Deep woods
   { keywords: ['deep woods', 'shadow', 'shadow creature', 'shadow beast'], tileX: 120, tileY: 120, map: 'deep_woods', label: 'Deep Woods', type: 'danger', color: '#4B0082' },
-  { keywords: ['hunter', 'missing hunter'], tileX: 120, tileY: 120, map: 'deep_woods', label: 'Missing Hunter', type: 'quest', color: '#FF4500' },
+  { keywords: ['hunter', 'missing hunter', 'signs of the missing', 'find signs'], tileX: 120, tileY: 120, map: 'deep_woods', label: 'Missing Hunter', type: 'quest', color: '#FF4500' },
+  { keywords: ['mysterious lights', 'investigate the mysterious', 'strange lights'], tileX: 80, tileY: 90, map: 'deep_woods', label: 'Mysterious Lights', type: 'quest', color: '#00BFFF' },
+  { keywords: ['return to the elder', 'findings'], tileX: 102, tileY: 70, map: 'village', label: 'Report to Elder', type: 'quest', color: '#FFD700' },
 
   // Ruins  
   { keywords: ['ancient ruins', 'ruins', 'ancient ruin', 'temple', 'vault'], tileX: 100, tileY: 100, map: 'ruins', label: 'Ancient Ruins', type: 'danger', color: '#B8860B' },
