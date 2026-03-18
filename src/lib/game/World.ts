@@ -123,6 +123,36 @@ const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
   lantern: 0.9,
 };
 
+const OVERLAY_FOOT_OFFSET: Partial<Record<TileType, number>> = {
+  house: 0.58,
+  house_blue: 0.58,
+  house_green: 0.58,
+  house_thatch: 0.54,
+  destroyed_house: 0.5,
+  tree: 0.52,
+  dead_tree: 0.48,
+  statue: 0.36,
+  well: 0.24,
+  portal: 0.2,
+  rock: 0.16,
+  chest: 0.12,
+  campfire: 0.08,
+  sign: 0.1,
+  tombstone: 0.14,
+  barrel: 0.1,
+  crate: 0.1,
+  stump: 0.08,
+  fence: 0.08,
+  gate: 0.08,
+  push_block: 0.12,
+  spike_trap: 0.06,
+  iron_fence: 0.08,
+  hedge: 0.1,
+  scarecrow: 0.3,
+  hay_bale: 0.08,
+  lantern: 0.12,
+};
+
 export class World {
   private map: WorldMap;
   private tileSize: number = 1;
@@ -183,7 +213,6 @@ export class World {
     // Determine base tile: check surrounding terrain for context, fall back to default
     let baseType = OVERLAY_BASE_TILE[tile.type] ?? 'grass';
     if (tileX !== undefined && tileY !== undefined) {
-      // Sample adjacent tiles to find the dominant ground type
       const neighbors: TileType[] = [];
       for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
         const nx = tileX + dx, ny = tileY + dy;
@@ -195,11 +224,15 @@ export class World {
         }
       }
       if (neighbors.length > 0) {
-        // Use the most common neighbor as base
         const counts = new Map<TileType, number>();
         for (const n of neighbors) counts.set(n, (counts.get(n) || 0) + 1);
         let best = neighbors[0], bestCount = 0;
-        for (const [t, c] of counts) { if (c > bestCount) { best = t; bestCount = c; } }
+        for (const [t, c] of counts) {
+          if (c > bestCount) {
+            best = t;
+            bestCount = c;
+          }
+        }
         baseType = best;
       }
     }
@@ -210,11 +243,14 @@ export class World {
     const group = this.overlayPool.pop() ?? new THREE.Group();
     group.clear();
     group.matrixAutoUpdate = false;
+    group.userData = {
+      tileType: tile.type,
+      footOffset: OVERLAY_FOOT_OFFSET[tile.type] ?? 0,
+    };
 
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
     const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1, `overlay_${tile.type}`);
 
-    // Apply scale to overlay
     const scale = OVERLAY_SCALE[tile.type] ?? 1.0;
     if (scale !== 1.0) {
       overlayMesh.scale.set(scale, scale, 1);
@@ -263,8 +299,9 @@ export class World {
         const isOverlay = OVERLAY_TYPES.has(tile.type);
         object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, 0);
         if (isOverlay) {
-          // Y-sort: lower world Y (bottom of screen) = higher renderOrder = renders on top
-          const ySort = Math.round(1000 + (this.map.height - y) * 10);
+          const footOffset = object.userData?.footOffset ?? 0;
+          const worldY = worldOffsetY + y * this.tileSize;
+          const ySort = Math.round(1000 + (this.map.height - (worldY - footOffset + this.map.height / 2)) * 10);
           object.renderOrder = ySort;
           if (object instanceof THREE.Group) {
             for (const child of object.children) child.renderOrder = ySort;
@@ -343,7 +380,9 @@ export class World {
       const isOverlay = OVERLAY_TYPES.has(tile.type);
       object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, 0);
       if (isOverlay) {
-        const ySort = Math.round(1000 + (this.map.height - y) * 10);
+        const footOffset = object.userData?.footOffset ?? 0;
+        const worldY = worldOffsetY + y * this.tileSize;
+        const ySort = Math.round(1000 + (this.map.height - (worldY - footOffset + this.map.height / 2)) * 10);
         object.renderOrder = ySort;
         if (object instanceof THREE.Group) {
           for (const child of object.children) child.renderOrder = ySort;
