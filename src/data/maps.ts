@@ -82,6 +82,19 @@ const villageDef: MapDefinition = {
     { x: 190, y: 18, width: 20, height: 16, type: 'fort', interactionId: 'north_fort' },
     { x: 8, y: 40, width: 16, height: 14, type: 'fort', interactionId: 'west_fort' },
 
+    // ====== VILLAGE CHURCH (east of cemetery) ======
+    { x: 45, y: 30, width: 12, height: 14, type: 'church', interactionId: 'village_church' },
+
+    // ====== SCATTERED COTTAGES (countryside feel) ======
+    { x: 88, y: 115, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_south' },
+    { x: 165, y: 40, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_east' },
+    { x: 22, y: 95, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_west' },
+    { x: 195, y: 100, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_lake' },
+
+    // ====== WATCHTOWERS along roads ======
+    { x: 115, y: 38, width: 6, height: 6, type: 'watchtower' },
+    { x: 145, y: 95, width: 6, height: 6, type: 'watchtower' },
+
     // ====== DESTROYED OUTPOST (north-west, near cemetery) ======
     { x: 45, y: 15, width: 18, height: 14, type: 'destroyed_town' },
 
