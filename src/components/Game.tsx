@@ -5,6 +5,7 @@ import { AssetManager, SharedGeometry } from '@/lib/game/AssetManager';
 import { World } from '@/lib/game/World';
 import { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { BiomeAmbience } from '@/lib/game/BiomeAmbience';
+import { WeatherSystem } from '@/lib/game/WeatherSystem';
 import { CombatSystem, Enemy } from '@/lib/game/Combat';
 import { allMaps, mapDefinitions } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
@@ -74,6 +75,7 @@ const Game = () => {
     const particleSystem = new ParticleSystem(scene);
     const combatSystem = new CombatSystem(state);
     const biomeAmbience = new BiomeAmbience(scene);
+    const weatherSystem = new WeatherSystem(scene);
 
     const world = new World(scene, assetManager, allMaps.village);
     const spawnPoint = world.getSpawnPoint();
@@ -1130,7 +1132,9 @@ const Game = () => {
       }
 
       // Update systems
+      const currentBiome = mapBiomes[state.currentMap] || 'grassland';
       biomeAmbience.update(deltaTime, state.player.position.x, state.player.position.y);
+      weatherSystem.update(deltaTime, state.player.position.x, state.player.position.y, currentBiome);
       particleSystem.update(deltaTime);
       renderer.render(scene, camera);
     };
@@ -1155,6 +1159,7 @@ const Game = () => {
       }
       particleSystem.cleanup();
       biomeAmbience.cleanup();
+      weatherSystem.cleanup();
       renderer.dispose();
     };
   }, []);

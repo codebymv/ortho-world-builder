@@ -46,7 +46,7 @@ export interface MapFeature {
   y: number;
   width: number;
   height: number;
-  type: 'building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'secret_cave' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano' | 'boss_arena' | 'abandoned_camp' | 'cemetery' | 'cliff_face' | 'farm' | 'iron_fence_border' | 'hedge_maze' | 'cobble_plaza' | 'forest_grove' | 'fort' | 'enchanted_grove';
+  type: 'building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'secret_cave' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano' | 'boss_arena' | 'abandoned_camp' | 'cemetery' | 'cliff_face' | 'farm' | 'iron_fence_border' | 'hedge_maze' | 'cobble_plaza' | 'forest_grove' | 'fort' | 'enchanted_grove' | 'church' | 'ruined_fort' | 'cottage' | 'watchtower';
   tiles?: Partial<Record<string, Tile>>; // specific tile overrides by "dx,dy"
   fill?: TileType;
   border?: TileType;
@@ -317,6 +317,18 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
         break;
       case 'enchanted_grove':
         placeEnchantedGrove(tiles, feature);
+        break;
+      case 'church':
+        placeChurch(tiles, feature);
+        break;
+      case 'ruined_fort':
+        placeRuinedFort(tiles, feature);
+        break;
+      case 'cottage':
+        placeCottage(tiles, feature);
+        break;
+      case 'watchtower':
+        placeWatchtower(tiles, feature);
         break;
     }
   }
@@ -904,6 +916,146 @@ function placeEnchantedGrove(tiles: Tile[][], f: MapFeature) {
         }
       }
     }
+  }
+}
+
+function placeChurch(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        // Stone walls
+        if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
+          if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
+            tiles[ty][tx] = createTile('gate', true); // entrance
+          } else {
+            tiles[ty][tx] = createTile('mossy_stone', false);
+          }
+        }
+        // Interior with statues as pillars
+        else if (dx === 2 && dy % 3 === 1) {
+          tiles[ty][tx] = createTile('statue', false);
+        } else if (dx === f.width - 3 && dy % 3 === 1) {
+          tiles[ty][tx] = createTile('statue', false);
+        }
+        // Altar at front
+        else if (dx === Math.floor(f.width / 2) && dy === 1) {
+          tiles[ty][tx] = createTile('well', false, { interactable: true, interactionId: f.interactionId || 'church_altar' });
+        }
+        // Pews (cobblestone rows)
+        else if (dy >= 3 && dy <= f.height - 3 && (dx >= 3 && dx <= f.width - 4)) {
+          if (dy % 2 === 0) {
+            tiles[ty][tx] = createTile('wooden_path', true);
+          } else {
+            tiles[ty][tx] = createTile('cobblestone', true);
+          }
+        } else {
+          tiles[ty][tx] = createTile('cobblestone', true);
+        }
+      }
+    }
+  }
+}
+
+function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        // Crumbling outer walls with gaps
+        if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
+          if ((dx + dy) % 3 === 0) {
+            tiles[ty][tx] = createTile('stone', true); // collapsed section
+          } else {
+            tiles[ty][tx] = createTile('mossy_stone', false);
+          }
+        }
+        // Broken corner towers
+        else if ((dx <= 2 && dy <= 2) || (dx >= f.width - 3 && dy <= 2) ||
+                 (dx <= 2 && dy >= f.height - 3) || (dx >= f.width - 3 && dy >= f.height - 3)) {
+          if ((dx + dy) % 2 === 0) {
+            tiles[ty][tx] = createTile('stone', false);
+          } else {
+            tiles[ty][tx] = createTile('ruins_floor', true);
+          }
+        }
+        // Interior - overgrown with debris
+        else if ((dx * 3 + dy * 7) % 11 === 0) {
+          tiles[ty][tx] = createTile('bones', true);
+        } else if ((dx + dy * 5) % 13 === 0) {
+          tiles[ty][tx] = createTile('destroyed_house', false);
+        } else if ((dx * 2 + dy) % 9 === 0) {
+          tiles[ty][tx] = createTile('tall_grass', true);
+        } else {
+          tiles[ty][tx] = createTile('ruins_floor', true);
+        }
+      }
+    }
+  }
+  // Center marker
+  const cx = f.x + Math.floor(f.width / 2);
+  const cy = f.y + Math.floor(f.height / 2);
+  if (cy < tiles.length && cx < tiles[0].length) {
+    tiles[cy][cx] = createTile('campfire', false, { interactable: true, interactionId: f.interactionId || 'ruined_fort' });
+  }
+}
+
+function placeCottage(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        if (dx >= 1 && dx <= f.width - 2 && dy >= 0 && dy <= 2) {
+          tiles[ty][tx] = createTile('house', false);
+        } else if (dx === Math.floor(f.width / 2) && dy === 3) {
+          tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId || 'cottage' });
+        } else if (dy >= 3) {
+          // Small garden around cottage
+          if ((dx + dy) % 4 === 0) {
+            tiles[ty][tx] = createTile('flower', true);
+          } else {
+            tiles[ty][tx] = createTile('grass', true);
+          }
+        } else {
+          tiles[ty][tx] = createTile('wood', false);
+        }
+      }
+    }
+  }
+}
+
+function placeWatchtower(tiles: Tile[][], f: MapFeature) {
+  const cx = f.x + Math.floor(f.width / 2);
+  const cy = f.y + Math.floor(f.height / 2);
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        const ddx = tx - cx;
+        const ddy = ty - cy;
+        const dist = ddx * ddx + ddy * ddy;
+        if (dist <= 4) {
+          tiles[ty][tx] = createTile('stone', false);
+        } else if (dist <= 9) {
+          tiles[ty][tx] = createTile('cobblestone', true);
+        } else {
+          tiles[ty][tx] = createTile('dirt', true);
+        }
+      }
+    }
+  }
+  // Entrance
+  const ey = cy + 2;
+  if (ey < tiles.length) {
+    tiles[ey][cx] = createTile('cobblestone', true);
+  }
+  // Lantern on top
+  if (cy < tiles.length && cx < tiles[0].length) {
+    tiles[cy][cx] = createTile('lantern', false);
   }
 }
 

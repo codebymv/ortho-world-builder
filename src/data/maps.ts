@@ -82,6 +82,19 @@ const villageDef: MapDefinition = {
     { x: 190, y: 18, width: 20, height: 16, type: 'fort', interactionId: 'north_fort' },
     { x: 8, y: 40, width: 16, height: 14, type: 'fort', interactionId: 'west_fort' },
 
+    // ====== VILLAGE CHURCH (east of cemetery) ======
+    { x: 45, y: 30, width: 12, height: 14, type: 'church', interactionId: 'village_church' },
+
+    // ====== SCATTERED COTTAGES (countryside feel) ======
+    { x: 88, y: 115, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_south' },
+    { x: 165, y: 40, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_east' },
+    { x: 22, y: 95, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_west' },
+    { x: 195, y: 100, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_lake' },
+
+    // ====== WATCHTOWERS along roads ======
+    { x: 115, y: 38, width: 6, height: 6, type: 'watchtower' },
+    { x: 145, y: 95, width: 6, height: 6, type: 'watchtower' },
+
     // ====== DESTROYED OUTPOST (north-west, near cemetery) ======
     { x: 45, y: 15, width: 18, height: 14, type: 'destroyed_town' },
 
@@ -151,13 +164,23 @@ const villageDef: MapDefinition = {
     { x: 160, y: 130, width: 4, height: 4, fill: 'stone' },
   ],
   enemyZones: [
-    { x: 210, y: 8, width: 25, height: 20, enemyType: 'bandit', count: 5 },
-    { x: 3, y: 125, width: 15, height: 15, enemyType: 'wolf', count: 3 },
-    { x: 190, y: 18, width: 20, height: 16, enemyType: 'bandit', count: 4 },
-    { x: 8, y: 40, width: 16, height: 14, enemyType: 'skeleton', count: 3 },
-    { x: 55, y: 115, width: 20, height: 14, enemyType: 'slime', count: 6 },
-    { x: 130, y: 120, width: 20, height: 12, enemyType: 'slime', count: 4 },
-    { x: 210, y: 115, width: 18, height: 16, enemyType: 'spider', count: 3 },
+    { x: 210, y: 8, width: 25, height: 20, enemyType: 'bandit', count: 6 },
+    { x: 3, y: 125, width: 15, height: 15, enemyType: 'wolf', count: 4 },
+    { x: 190, y: 18, width: 20, height: 16, enemyType: 'bandit', count: 5 },
+    { x: 8, y: 40, width: 16, height: 14, enemyType: 'skeleton', count: 4 },
+    { x: 55, y: 115, width: 20, height: 14, enemyType: 'slime', count: 8 },
+    { x: 130, y: 120, width: 20, height: 12, enemyType: 'slime', count: 5 },
+    { x: 210, y: 115, width: 18, height: 16, enemyType: 'spider', count: 4 },
+    // Wandering wolves near forest edges
+    { x: 85, y: 10, width: 30, height: 20, enemyType: 'wolf', count: 4 },
+    { x: 200, y: 30, width: 28, height: 22, enemyType: 'spider', count: 3 },
+    // Graveyard undead
+    { x: 10, y: 15, width: 28, height: 22, enemyType: 'skeleton', count: 5 },
+    // Field boss - Giant Bandit Chief near north fort
+    { x: 192, y: 20, width: 16, height: 12, enemyType: 'golem', count: 1 },
+    // Cottage area wanderers
+    { x: 80, y: 108, width: 20, height: 16, enemyType: 'slime', count: 4 },
+    { x: 160, y: 35, width: 14, height: 12, enemyType: 'wolf', count: 3 },
   ],
 };
 
@@ -244,6 +267,28 @@ const forestDef: MapDefinition = {
     { x: 200, y: 60, width: 18, height: 16, type: 'fort', interactionId: 'north_fort' },
     { x: 60, y: 190, width: 20, height: 16, type: 'fort', interactionId: 'south_fort' },
 
+    // === RUINED FORTS (collapsed, overrun) ===
+    { x: 110, y: 30, width: 18, height: 16, type: 'ruined_fort', interactionId: 'ruined_north_fort' },
+    { x: 260, y: 170, width: 16, height: 14, type: 'ruined_fort', interactionId: 'ruined_east_fort' },
+    { x: 30, y: 170, width: 16, height: 14, type: 'ruined_fort', interactionId: 'ruined_west_fort' },
+
+    // === FOREST CHURCHES (ancient, overgrown) ===
+    { x: 180, y: 130, width: 12, height: 16, type: 'church', interactionId: 'forest_church' },
+    { x: 50, y: 100, width: 10, height: 14, type: 'church', interactionId: 'old_chapel' },
+
+    // === SCATTERED COTTAGES (hermits, woodcutters) ===
+    { x: 90, y: 180, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage' },
+    { x: 230, y: 130, width: 6, height: 6, type: 'cottage', interactionId: 'witch_cottage' },
+    { x: 140, y: 240, width: 6, height: 6, type: 'cottage', interactionId: 'hunter_cottage' },
+    { x: 170, y: 80, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage' },
+    { x: 80, y: 50, width: 6, height: 6, type: 'cottage', interactionId: 'ruin_cottage' },
+    { x: 210, y: 200, width: 6, height: 6, type: 'cottage', interactionId: 'hidden_cottage' },
+
+    // === WATCHTOWERS ===
+    { x: 150, y: 130, width: 6, height: 6, type: 'watchtower' },
+    { x: 100, y: 70, width: 6, height: 6, type: 'watchtower' },
+    { x: 230, y: 90, width: 6, height: 6, type: 'watchtower' },
+
     // === ABANDONED CAMPS scattered ===
     { x: 100, y: 200, width: 16, height: 12, type: 'abandoned_camp', interactionId: 'lost_expedition' },
     { x: 50, y: 80, width: 12, height: 10, type: 'abandoned_camp', interactionId: 'hunters_camp' },
@@ -268,6 +313,10 @@ const forestDef: MapDefinition = {
     { x: 20, y: 210, width: 60, height: 4, type: 'path', fill: 'dirt' },
     { x: 250, y: 140, width: 4, height: 40, type: 'path', fill: 'dirt' },
     { x: 220, y: 150, width: 30, height: 4, type: 'path', fill: 'dirt' },
+    // Extra connectors to new landmarks
+    { x: 110, y: 30, width: 40, height: 4, type: 'path', fill: 'dirt' },
+    { x: 180, y: 130, width: 4, height: 30, type: 'path', fill: 'dirt' },
+    { x: 50, y: 100, width: 10, height: 4, type: 'path', fill: 'dirt' },
   ],
   portals: [
     { x: 150, y: 297, targetMap: 'village', targetX: 120, targetY: 6 },
@@ -325,33 +374,43 @@ const forestDef: MapDefinition = {
     { x: 270, y: 130, width: 4, height: 5, fill: 'grass' },
   ],
   enemyZones: [
-    { x: 30, y: 30, width: 30, height: 24, enemyType: 'wolf', count: 8 },
-    { x: 210, y: 36, width: 30, height: 24, enemyType: 'bandit', count: 6 },
-    { x: 60, y: 120, width: 40, height: 30, enemyType: 'wolf', count: 5 },
-    { x: 200, y: 160, width: 40, height: 40, enemyType: 'wolf', count: 6 },
-    { x: 20, y: 240, width: 35, height: 30, enemyType: 'shadow', count: 7 },
-    { x: 100, y: 250, width: 25, height: 20, enemyType: 'skeleton', count: 4 },
-    { x: 250, y: 50, width: 25, height: 20, enemyType: 'wolf', count: 4 },
-    { x: 160, y: 40, width: 30, height: 20, enemyType: 'bandit', count: 3 },
+    { x: 30, y: 30, width: 30, height: 24, enemyType: 'wolf', count: 10 },
+    { x: 210, y: 36, width: 30, height: 24, enemyType: 'bandit', count: 8 },
+    { x: 60, y: 120, width: 40, height: 30, enemyType: 'wolf', count: 6 },
+    { x: 200, y: 160, width: 40, height: 40, enemyType: 'wolf', count: 7 },
+    { x: 20, y: 240, width: 35, height: 30, enemyType: 'shadow', count: 9 },
+    { x: 100, y: 250, width: 25, height: 20, enemyType: 'skeleton', count: 6 },
+    { x: 250, y: 50, width: 25, height: 20, enemyType: 'wolf', count: 5 },
+    { x: 160, y: 40, width: 30, height: 20, enemyType: 'bandit', count: 5 },
     // Plant monster zones in enchanted groves
-    { x: 70, y: 140, width: 30, height: 26, enemyType: 'plant', count: 6 },
-    { x: 240, y: 240, width: 24, height: 22, enemyType: 'plant', count: 5 },
-    { x: 50, y: 260, width: 26, height: 22, enemyType: 'plant', count: 4 },
+    { x: 70, y: 140, width: 30, height: 26, enemyType: 'plant', count: 8 },
+    { x: 240, y: 240, width: 24, height: 22, enemyType: 'plant', count: 6 },
+    { x: 50, y: 260, width: 26, height: 22, enemyType: 'plant', count: 5 },
     // Fort defenders
-    { x: 130, y: 120, width: 22, height: 18, enemyType: 'bandit', count: 5 },
-    { x: 200, y: 60, width: 18, height: 16, enemyType: 'skeleton', count: 4 },
-    { x: 60, y: 190, width: 20, height: 16, enemyType: 'bandit', count: 4 },
-    // Field boss zone
+    { x: 130, y: 120, width: 22, height: 18, enemyType: 'bandit', count: 6 },
+    { x: 200, y: 60, width: 18, height: 16, enemyType: 'skeleton', count: 5 },
+    { x: 60, y: 190, width: 20, height: 16, enemyType: 'bandit', count: 5 },
+    // Field bosses (golem in arena + wandering)
     { x: 215, y: 145, width: 30, height: 30, enemyType: 'golem', count: 1 },
+    { x: 110, y: 30, width: 18, height: 16, enemyType: 'golem', count: 1 }, // ruined fort boss
+    { x: 260, y: 170, width: 16, height: 14, enemyType: 'golem', count: 1 }, // ruined east fort boss
     // Cemetery undead
-    { x: 118, y: 238, width: 26, height: 20, enemyType: 'skeleton', count: 5 },
+    { x: 118, y: 238, width: 26, height: 20, enemyType: 'skeleton', count: 7 },
     // Abandoned areas
-    { x: 175, y: 195, width: 30, height: 25, enemyType: 'wolf', count: 5 },
-    // New enemy types in forest
-    { x: 25, y: 245, width: 20, height: 20, enemyType: 'spider', count: 5 },
-    { x: 80, y: 220, width: 18, height: 14, enemyType: 'slime', count: 6 },
-    { x: 240, y: 180, width: 16, height: 14, enemyType: 'spider', count: 3 },
-    { x: 40, y: 200, width: 14, height: 10, enemyType: 'slime', count: 4 },
+    { x: 175, y: 195, width: 30, height: 25, enemyType: 'wolf', count: 6 },
+    // Spider nests & slimes
+    { x: 25, y: 245, width: 20, height: 20, enemyType: 'spider', count: 7 },
+    { x: 80, y: 220, width: 18, height: 14, enemyType: 'slime', count: 8 },
+    { x: 240, y: 180, width: 16, height: 14, enemyType: 'spider', count: 4 },
+    { x: 40, y: 200, width: 14, height: 10, enemyType: 'slime', count: 5 },
+    // Church area undead
+    { x: 175, y: 125, width: 20, height: 20, enemyType: 'skeleton', count: 4 },
+    { x: 45, y: 95, width: 16, height: 18, enemyType: 'shadow', count: 3 },
+    // Ruined fort overrun
+    { x: 28, y: 168, width: 20, height: 16, enemyType: 'bandit', count: 5 },
+    // Wide wandering packs across open areas
+    { x: 140, y: 140, width: 50, height: 50, enemyType: 'wolf', count: 6 },
+    { x: 80, y: 80, width: 40, height: 40, enemyType: 'spider', count: 4 },
   ],
 };
 
@@ -448,12 +507,21 @@ const deepWoodsDef: MapDefinition = {
     { x: 225, y: 175, width: 6, height: 5, fill: 'stone' },
   ],
   enemyZones: [
-    { x: 175, y: 75, width: 40, height: 35, enemyType: 'shadow', count: 10 },
-    { x: 30, y: 110, width: 40, height: 40, enemyType: 'shadow', count: 7 },
-    { x: 80, y: 30, width: 30, height: 25, enemyType: 'shadow', count: 5 },
-    { x: 15, y: 15, width: 35, height: 30, enemyType: 'shadow', count: 8 },
-    { x: 195, y: 155, width: 30, height: 25, enemyType: 'shadow', count: 6 },
-    { x: 150, y: 155, width: 20, height: 15, enemyType: 'wolf', count: 4 },
+    { x: 175, y: 75, width: 40, height: 35, enemyType: 'shadow', count: 12 },
+    { x: 30, y: 110, width: 40, height: 40, enemyType: 'shadow', count: 9 },
+    { x: 80, y: 30, width: 30, height: 25, enemyType: 'shadow', count: 7 },
+    { x: 15, y: 15, width: 35, height: 30, enemyType: 'shadow', count: 10 },
+    { x: 195, y: 155, width: 30, height: 25, enemyType: 'shadow', count: 8 },
+    { x: 150, y: 155, width: 20, height: 15, enemyType: 'wolf', count: 5 },
+    // Field boss - Shadow Lord
+    { x: 88, y: 38, width: 24, height: 24, enemyType: 'golem', count: 1 },
+    // Skeleton packs near cursed cemetery
+    { x: 148, y: 98, width: 22, height: 18, enemyType: 'skeleton', count: 6 },
+    // Spiders in dark hollow
+    { x: 18, y: 18, width: 32, height: 28, enemyType: 'spider', count: 6 },
+    // Wide wandering shadows
+    { x: 60, y: 60, width: 80, height: 80, enemyType: 'shadow', count: 8 },
+    { x: 120, y: 120, width: 60, height: 60, enemyType: 'spider', count: 4 },
   ],
 };
 
