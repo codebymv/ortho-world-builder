@@ -224,8 +224,8 @@ const Game = () => {
     const _tmpVec3 = new THREE.Vector3();
     const _worldPosVec3 = new THREE.Vector3();
 
-    // Sword swoosh trail effect
-    const swooshGeometry = new THREE.RingGeometry(0.3, 0.9, 16, 1, 0, Math.PI * 0.75);
+    // Sword swoosh trail effect — normal attack
+    const swooshGeometry = new THREE.RingGeometry(0.2, 0.8, 16, 1, 0, Math.PI * 0.75);
     const swooshMaterial = new THREE.MeshBasicMaterial({
       color: 0xccddff,
       transparent: true,
@@ -238,7 +238,23 @@ const Game = () => {
     swooshMesh.renderOrder = 20000;
     scene.add(swooshMesh);
     let swooshTimer = 0;
-    const SWOOSH_DURATION = 0.25;
+    const SWOOSH_DURATION = 0.22;
+
+    // Spin attack swoosh — larger, more aggressive
+    const spinSwooshGeometry = new THREE.RingGeometry(0.3, 1.2, 24, 1, 0, Math.PI * 2);
+    const spinSwooshMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffd700,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const spinSwooshMesh = new THREE.Mesh(spinSwooshGeometry, spinSwooshMaterial);
+    spinSwooshMesh.visible = false;
+    spinSwooshMesh.renderOrder = 20000;
+    scene.add(spinSwooshMesh);
+    let spinSwooshTimer = 0;
+    const SPIN_SWOOSH_DURATION = 0.35;
 
     // Animation state
     let animFrame = 0;
