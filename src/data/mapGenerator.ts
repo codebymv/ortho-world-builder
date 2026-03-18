@@ -120,7 +120,7 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
 
       switch (def.baseTerrain) {
         case 'grassland':
-          if (n1 < 0.15) {
+          if (n1 < 0.05 && n2 > 0.6) {
             tile = createTile('flower', true);
           } else if (n1 > 0.85 && n2 > 0.5) {
             tile = createTile('tree', false);
