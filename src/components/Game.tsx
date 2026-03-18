@@ -654,7 +654,7 @@ const Game = () => {
             state.player.isDodging = false;
             playerAnimState = moved ? 'walk' : 'idle';
           }
-        } else if (moved) {
+        } else if (moved && !isChargingAttack) {
           // Determine 8-direction
           const rawDir = getDirection8(moveX > 0 ? 1 : moveX < 0 ? -1 : 0, moveY > 0 ? 1 : moveY < 0 ? -1 : 0);
           currentDir8 = rawDir;
