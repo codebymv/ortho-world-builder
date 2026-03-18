@@ -978,6 +978,10 @@ const Game = () => {
 
         // Player damage flash (skip during dodge i-frames)
         if (state.player.damageFlashTimer > 0) {
+          // Shake on first frame of damage
+          if (state.player.damageFlashTimer > 0.28) {
+            screenShake.shake(0.18, 0.12);
+          }
           state.player.damageFlashTimer -= deltaTime;
           const flashIntensity = Math.sin(state.player.damageFlashTimer * 30) > 0 ? 0xff0000 : 0xff6666;
           playerMaterial.color.setHex(flashIntensity);
