@@ -206,6 +206,10 @@ const forestDef: MapDefinition = {
     { x: 105, y: 265, interactionId: 'ruins_south_chest' },
     { x: 30, y: 250, interactionId: 'spider_nest_chest' },
     { x: 190, y: 260, interactionId: 'forest_deep_chest' },
+    { x: 30, y: 210, interactionId: 'destroyed_town_chest' },
+    { x: 160, y: 20, interactionId: 'waterfall_chest' },
+    { x: 258, y: 148, interactionId: 'temple_chest' },
+    { x: 268, y: 28, interactionId: 'volcano_chest' },
   ],
   interactables: [
     { x: 140, y: 170, type: 'sign', walkable: false, interactionId: 'ranger_sign' },
@@ -218,6 +222,8 @@ const forestDef: MapDefinition = {
     { x: 160, y: 175, type: 'campfire', walkable: false, interactionId: 'campfire' },
     { x: 35, y: 250, type: 'campfire', walkable: false, interactionId: 'campfire' },
     { x: 275, y: 270, type: 'well', walkable: false, interactionId: 'well' },
+    { x: 25, y: 205, type: 'sign', walkable: false, interactionId: 'destroyed_town_sign' },
+    { x: 258, y: 155, type: 'well', walkable: false, interactionId: 'ancient_fountain' },
   ],
   secretAreas: [
     { x: 256, y: 184, width: 8, height: 6, fill: 'grass' },
