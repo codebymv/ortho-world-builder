@@ -851,7 +851,6 @@ const Game = () => {
           dodgeScaleY = pulse;
           attackOffsetX += shake;
           playerMesh.rotation.z = 0;
-          dodgeScaleY = pulse;
         } else {
           playerMesh.rotation.z = 0;
         }
