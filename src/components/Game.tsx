@@ -1160,6 +1160,7 @@ const Game = () => {
         <DialogueBox
           node={currentDialogue.node}
           npcName={currentDialogue.npcName}
+          npcScreenPos={npcScreenPos}
           onResponse={handleDialogueResponse}
           onClose={handleCloseDialogue}
         />
