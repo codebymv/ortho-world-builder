@@ -1307,6 +1307,7 @@ const Game = () => {
         
         if (newTex && playerMaterial.map !== newTex) {
           playerMaterial.map = newTex;
+          (playerOutline.material as THREE.MeshBasicMaterial).map = newTex;
         }
 
         // === PLAYER POSITION WITH ANIMATION OFFSETS ===
