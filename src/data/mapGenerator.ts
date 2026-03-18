@@ -256,7 +256,17 @@ function carvePath(tiles: Tile[][], x1: number, y1: number, x2: number, y2: numb
 }
 
 function placeFeatures(tiles: Tile[][], def: MapDefinition) {
+  const placedStructures: MapFeature[] = [];
+
   for (const feature of def.features) {
+    const isStructureFeature = STRUCTURE_FEATURE_TYPES.has(feature.type);
+    if (isStructureFeature) {
+      const tooCloseToPlacedStructure = placedStructures.some(existing =>
+        areStructureFeaturesTooClose(existing, feature)
+      );
+      if (tooCloseToPlacedStructure) continue;
+    }
+
     switch (feature.type) {
       case 'building':
         placeBuilding(tiles, feature);
@@ -345,6 +355,10 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
       case 'watchtower':
         placeWatchtower(tiles, feature);
         break;
+    }
+
+    if (isStructureFeature) {
+      placedStructures.push(feature);
     }
   }
 }
