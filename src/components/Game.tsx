@@ -1078,8 +1078,8 @@ const Game = () => {
           currentDir8 = rawDir;
           state.player.direction = dir8to4(rawDir);
 
-          // Sprint: hold shift while moving (not dodging)
-          const wantsSprint = keys['shift'] && !dodgeBuffered && state.player.stamina > 0;
+          // Sprint: hold shift while moving
+          const wantsSprint = keys['shift'] && state.player.stamina > 0;
           state.player.isSprinting = wantsSprint;
           const currentSpeed = wantsSprint ? state.player.sprintSpeed : state.player.speed;
           if (wantsSprint) {
