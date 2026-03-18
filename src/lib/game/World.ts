@@ -535,9 +535,9 @@ export class World {
       const isOverlay = OVERLAY_TYPES.has(tile.type);
       object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, 0);
       if (isOverlay) {
-        const footOffset = object.userData?.footOffset ?? 0;
-        const worldY = worldOffsetY + y * this.tileSize;
-        const ySort = Math.round(1000 + (this.map.height - (worldY - footOffset + this.map.height / 2)) * 10);
+        const sortAnchorY = object.userData?.sortAnchorY ?? 0;
+        const worldY = worldOffsetY + y * this.tileSize + sortAnchorY;
+        const ySort = Math.round(1000 + (this.map.height - (worldY + this.map.height / 2)) * 10);
         object.renderOrder = ySort;
         if (object instanceof THREE.Group) {
           for (const child of object.children) child.renderOrder = ySort;
