@@ -488,10 +488,10 @@ export class AssetManager {
     }
 
     // Legacy aliases
-    this.textures.set('player_down', this.textures.get('player_down_idle_0')!);
-    this.textures.set('player_up', this.textures.get('player_up_idle_0')!);
-    this.textures.set('player_left', this.textures.get('player_left_idle_0')!);
-    this.textures.set('player_right', this.textures.get('player_right_idle_0')!);
+    for (const d of ['down', 'up', 'left', 'right']) {
+      const dd = d;
+      this.registerTexture(`player_${dd}`, () => this.getTexture(`player_${dd}_idle_0`)!);
+    }
 
     // ========== NPC SPRITES - Using same chibi system ==========
     const elderPalette = {
