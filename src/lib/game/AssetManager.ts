@@ -419,8 +419,24 @@ export class AssetManager {
     return texture;
   }
 
+  // Register a lazy texture generator instead of creating immediately
+  private registerTexture(name: string, generator: () => THREE.Texture) {
+    this.textureGenerators.set(name, generator);
+  }
+
   getTexture(name: string): THREE.Texture | undefined {
-    return this.textures.get(name);
+    // Check cache first
+    let tex = this.textures.get(name);
+    if (tex) return tex;
+    // Try lazy generation
+    const gen = this.textureGenerators.get(name);
+    if (gen) {
+      tex = gen();
+      this.textures.set(name, tex);
+      this.textureGenerators.delete(name);
+      return tex;
+    }
+    return undefined;
   }
 
   loadDefaultAssets() {
