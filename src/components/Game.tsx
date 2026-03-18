@@ -22,6 +22,10 @@ const Game = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [, forceUpdate] = useState(0);
   const [currentDialogue, setCurrentDialogue] = useState<{ node: DialogueNode; npcName: string } | null>(null);
+  const [npcScreenPos, setNpcScreenPos] = useState<{ x: number; y: number } | null>(null);
+  const activeNpcWorldPos = useRef<{ x: number; y: number } | null>(null);
+  const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const visitedTilesRef = useRef<Set<string>>(new Set());
   const [visitedTilesVersion, setVisitedTilesVersion] = useState(0);
   const gameStateRef = useRef<GameState | null>(null);
@@ -45,10 +49,12 @@ const Game = () => {
       1000
     );
     camera.position.z = 5;
+    cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    rendererRef.current = renderer;
     mountRef.current.appendChild(renderer.domElement);
 
     const assetManager = new AssetManager();
@@ -524,6 +530,14 @@ const Game = () => {
 
       state.dialogueActive = true;
       state.currentDialogue = dialogueId;
+
+      // Track the NPC's world position for chat bubble
+      const npc = state.npcs.find(n => n.dialogueId === dialogueId);
+      if (npc) {
+        activeNpcWorldPos.current = { x: npc.position.x, y: npc.position.y };
+      } else {
+        activeNpcWorldPos.current = null;
+      }
 
       let startNode = dialogue.nodes.find(n => n.id === 'start');
       
@@ -1049,6 +1063,15 @@ const Game = () => {
         }
       }
 
+      // Project active NPC world pos to screen for chat bubble
+      if (activeNpcWorldPos.current && state.dialogueActive) {
+        const worldPos = new THREE.Vector3(activeNpcWorldPos.current.x, activeNpcWorldPos.current.y + 1.2, 0);
+        worldPos.project(camera);
+        const sx = (worldPos.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+        const sy = (-worldPos.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+        setNpcScreenPos({ x: sx, y: sy });
+      }
+
       // Update systems
       biomeAmbience.update(deltaTime, state.player.position.x, state.player.position.y);
       particleSystem.update(deltaTime);
@@ -1096,6 +1119,8 @@ const Game = () => {
 
     if (nextId === 'end' || !gameState.currentDialogue) {
       setCurrentDialogue(null);
+      setNpcScreenPos(null);
+      activeNpcWorldPos.current = null;
       gameState.dialogueActive = false;
       gameState.currentDialogue = null;
       return;
@@ -1115,6 +1140,8 @@ const Game = () => {
       gameState.currentDialogue = null;
     }
     setCurrentDialogue(null);
+    setNpcScreenPos(null);
+    activeNpcWorldPos.current = null;
   };
 
   return (
@@ -1137,6 +1164,7 @@ const Game = () => {
         <DialogueBox
           node={currentDialogue.node}
           npcName={currentDialogue.npcName}
+          npcScreenPos={npcScreenPos}
           onResponse={handleDialogueResponse}
           onClose={handleCloseDialogue}
         />
