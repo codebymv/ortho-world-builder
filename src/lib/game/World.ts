@@ -78,6 +78,11 @@ const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
   house: 'dirt',
   destroyed_house: 'ruins_floor',
   statue: 'stone',
+  iron_fence: 'cobblestone',
+  hedge: 'grass',
+  scarecrow: 'farmland',
+  hay_bale: 'farmland',
+  lantern: 'cobblestone',
 };
 
 // Scale multipliers for overlay objects to make them proportionally correct
