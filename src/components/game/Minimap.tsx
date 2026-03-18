@@ -68,7 +68,7 @@ export const Minimap = ({ currentMap, playerPosition, visitedTiles, npcs }: Mini
     const playerX = Math.floor(playerPosition.x + currentMap.width / 2);
     const playerY = Math.floor(playerPosition.y + currentMap.height / 2);
     ctx.fillStyle = '#FF0000';
-    ctx.fillRect(playerX * scale - 1, playerY * scale - 1, scale + 2, scale + 2);
+    ctx.fillRect(playerX * scale - 1, (currentMap.height - 1 - playerY) * scale - 1, scale + 2, scale + 2);
 
     // Border
     ctx.strokeStyle = '#FFFFFF';

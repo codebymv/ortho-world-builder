@@ -759,7 +759,7 @@ const Game = () => {
           const t = 1 - (state.player.dodgeTimer / state.player.dodgeDuration);
           dodgeScaleX = 1 + Math.sin(t * Math.PI) * 0.3;
           dodgeScaleY = 1 - Math.sin(t * Math.PI) * 0.2;
-          playerMesh.rotation.z = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? 1 : -1);
+          playerMesh.rotation.z = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? -1 : 1);
         } else if (isChargingAttack) {
           // Pulsing scale during charge
           const pulse = 1 + chargeLevel * 0.15 * Math.sin(currentTime / 80);
