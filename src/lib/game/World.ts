@@ -91,6 +91,9 @@ const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
 // Scale multipliers for overlay objects to make them proportionally correct
 const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
   house: 2.2,
+  house_blue: 2.2,
+  house_green: 2.2,
+  house_thatch: 2.0,
   destroyed_house: 2.0,
   tree: 1.8,
   dead_tree: 1.5,
