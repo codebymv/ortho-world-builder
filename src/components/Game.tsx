@@ -665,13 +665,20 @@ const Game = () => {
       triggerUIUpdate();
     };
 
-    // Pre-load sword swing sound
-    const swordSwingAudio = new Audio('/audio/sword_swing.mp3');
-    swordSwingAudio.volume = 0.3;
+    // Pre-load sword swing sound with pooling to prevent memory leaks
+    const SFX_POOL_SIZE = 4;
+    const swordSwingPool: HTMLAudioElement[] = [];
+    for (let i = 0; i < SFX_POOL_SIZE; i++) {
+      const a = new Audio('/audio/sword_swing.mp3');
+      a.volume = 0.3;
+      swordSwingPool.push(a);
+    }
+    let swordSwingIdx = 0;
 
     const playSwordSwing = () => {
-      const sfx = swordSwingAudio.cloneNode() as HTMLAudioElement;
-      sfx.volume = 0.3;
+      const sfx = swordSwingPool[swordSwingIdx % SFX_POOL_SIZE];
+      swordSwingIdx++;
+      sfx.currentTime = 0;
       sfx.play().catch(() => {});
     };
 
