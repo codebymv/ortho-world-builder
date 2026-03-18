@@ -247,15 +247,16 @@ export class World {
         const object = this.createTileObject(tile);
         if (!object) continue;
 
+        const isOverlay = OVERLAY_TYPES.has(tile.type);
         object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, 0);
-        object.renderOrder = y * 10;
-        object.updateMatrix();
-        if (object instanceof THREE.Group) {
-          for (const child of object.children) {
-            child.renderOrder = y * 10;
+        if (isOverlay) {
+          object.renderOrder = 100 + y;
+          if (object instanceof THREE.Group) {
+            for (const child of object.children) child.renderOrder = 100 + y;
           }
-          object.updateMatrixWorld(true);
         }
+        object.updateMatrix();
+        if (object instanceof THREE.Group) object.updateMatrixWorld(true);
 
         this.scene.add(object);
         this.activeMeshes.set(key, object);
