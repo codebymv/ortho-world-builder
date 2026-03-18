@@ -225,7 +225,6 @@ const Game = () => {
 
     const keys: { [key: string]: boolean } = {};
     let interactBuffered = false;
-    let attackBuffered = false;
     let dodgeBuffered = false;
 
     const handleKeyDown = (e: KeyboardEvent) => {
