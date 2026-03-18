@@ -130,7 +130,6 @@ export class World {
   private assetManager: AssetManager;
   
   private activeMeshes: Map<string, THREE.Object3D> = new Map();
-  private meshPool: THREE.Mesh[] = [];
   private overlayPool: THREE.Group[] = [];
   private lastChunkCenter: { x: number; y: number } = { x: -9999, y: -9999 };
   private lastMoveDir: { x: number; y: number } = { x: 0, y: 0 };
@@ -138,6 +137,7 @@ export class World {
   private readonly PRELOAD_EXTRA = 10; // extra tiles in movement direction
   private pendingTiles: Array<{ x: number; y: number; key: string }> = [];
   private isInitialLoad: boolean = true;
+  private materialCache: Map<string, THREE.MeshBasicMaterial> = new Map();
 
   constructor(scene: THREE.Scene, assetManager: AssetManager, map: WorldMap) {
     this.scene = scene;
@@ -148,26 +148,23 @@ export class World {
   // Shared geometry for all tile meshes
   private readonly sharedTileGeometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
 
-  private createPlaneMesh(texture: THREE.Texture, z: number): THREE.Mesh {
-    let mesh: THREE.Mesh;
-
-    if (this.meshPool.length > 0) {
-      mesh = this.meshPool.pop()!;
-      const material = mesh.material as THREE.MeshBasicMaterial;
-      material.map = texture;
-      material.transparent = true;
-      material.depthWrite = false;
-      material.needsUpdate = true;
-    } else {
-      const material = new THREE.MeshBasicMaterial({
+  private getCachedMaterial(texture: THREE.Texture, cacheKey: string): THREE.MeshBasicMaterial {
+    let material = this.materialCache.get(cacheKey);
+    if (!material) {
+      material = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
         depthWrite: false,
       });
-      mesh = new THREE.Mesh(this.sharedTileGeometry, material);
-      mesh.frustumCulled = false; // We handle culling manually
+      this.materialCache.set(cacheKey, material);
     }
+    return material;
+  }
 
+  private createPlaneMesh(texture: THREE.Texture, z: number, cacheKey: string): THREE.Mesh {
+    const material = this.getCachedMaterial(texture, cacheKey);
+    const mesh = new THREE.Mesh(this.sharedTileGeometry, material);
+    mesh.frustumCulled = false;
     mesh.position.z = z;
     mesh.matrixAutoUpdate = false;
     return mesh;
@@ -178,7 +175,7 @@ export class World {
 
     if (!isOverlay) {
       const texture = this.assetManager.getTexture(tile.type);
-      return texture ? this.createPlaneMesh(texture, -0.5) : null;
+      return texture ? this.createPlaneMesh(texture, -0.5, `base_${tile.type}`) : null;
     }
 
     const overlayTexture = this.assetManager.getTexture(tile.type);
@@ -190,14 +187,13 @@ export class World {
     group.clear();
     group.matrixAutoUpdate = false;
 
-    const baseMesh = this.createPlaneMesh(baseTexture, -0.5);
-    const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1);
+    const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
+    const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1, `overlay_${tile.type}`);
 
     // Apply scale to overlay
     const scale = OVERLAY_SCALE[tile.type] ?? 1.0;
     if (scale !== 1.0) {
       overlayMesh.scale.set(scale, scale, 1);
-      // Offset upward so bottom aligns with tile bottom
       overlayMesh.position.y = (scale - 1) * this.tileSize * 0.3;
     }
     baseMesh.updateMatrix();
@@ -209,20 +205,11 @@ export class World {
 
   private recycleObject(object: THREE.Object3D) {
     if (object instanceof THREE.Group) {
-      const children = [...object.children];
-      for (const child of children) {
-        object.remove(child);
-        if (child instanceof THREE.Mesh) {
-          this.meshPool.push(child);
-        }
-      }
+      object.clear();
       this.overlayPool.push(object);
       return;
     }
-
-    if (object instanceof THREE.Mesh) {
-      this.meshPool.push(object);
-    }
+    // Meshes with shared materials just get removed from scene — no disposal needed
   }
 
   updateChunks(playerWorldX: number, playerWorldY: number) {
@@ -457,22 +444,13 @@ export class World {
   dispose() {
     for (const [, object] of this.activeMeshes) {
       this.scene.remove(object);
-      if (object instanceof THREE.Group) {
-        for (const child of object.children) {
-          if (child instanceof THREE.Mesh) {
-            (child.material as THREE.Material).dispose();
-          }
-        }
-      } else if (object instanceof THREE.Mesh) {
-        (object.material as THREE.Material).dispose();
-      }
     }
     this.activeMeshes.clear();
     
-    for (const mesh of this.meshPool) {
-      (mesh.material as THREE.Material).dispose();
+    for (const [, material] of this.materialCache) {
+      material.dispose();
     }
-    this.meshPool = [];
+    this.materialCache.clear();
     this.overlayPool = [];
     this.sharedTileGeometry.dispose();
   }
