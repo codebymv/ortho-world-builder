@@ -1041,7 +1041,12 @@ const Game = () => {
           );
           npcMesh.rotation.z = lean;
           npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET);
-        }
+
+          // Update NPC shadow
+          const npcShadow = npcShadows[ni];
+          if (npcShadow) {
+            npcShadow.position.set(npc.position.x, npc.position.y - 0.35, -0.01);
+          }
       }
 
       // Process buffered inputs
