@@ -741,8 +741,23 @@ const Game = () => {
           state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
         }
 
+        // Spin attack: rapidly cycle through directional attack frames
+        if (playerAnimState === 'spin_attack') {
+          spinFrameTimer -= deltaTime;
+          if (spinFrameTimer <= 0) {
+            spinDirIndex++;
+            if (spinDirIndex >= SPIN_DIRECTIONS.length) {
+              playerAnimState = moved ? 'walk' : 'idle';
+              spinDirIndex = 0;
+            } else {
+              spinFrameTimer = SPIN_FRAME_DURATION;
+            }
+          }
+          state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
+        }
+
         // Cycle idle/walk frames
-        if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge') {
+        if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge' && playerAnimState !== 'spin_attack') {
           const frameDuration = playerAnimState === 'walk' ? WALK_FRAME_DURATION : IDLE_FRAME_DURATION;
           animTimer += deltaTime;
           if (animTimer >= frameDuration) {
@@ -763,8 +778,11 @@ const Game = () => {
         // Update player texture based on animation state
         let texName: string;
         if (state.player.damageFlashTimer > 0) {
-          // Hurt face while taking damage
           texName = getPlayerTextureName(currentDir8, 'hurt', 0);
+        } else if (playerAnimState === 'spin_attack') {
+          // Use attack frame 1 (mid-swing) cycling through directions
+          const spinDir = SPIN_DIRECTIONS[Math.min(spinDirIndex, SPIN_DIRECTIONS.length - 1)];
+          texName = getPlayerTextureName(spinDir, 'attack', 1);
         } else if (playerAnimState === 'charge') {
           texName = getPlayerTextureName(currentDir8, 'charge', Math.min(animFrame, 2));
         } else if (playerAnimState === 'attack') {
@@ -778,11 +796,15 @@ const Game = () => {
         // Fallback to 4-dir texture if 8-dir not found
         let newTex = assetManager.getTexture(texName);
         if (!newTex) {
-          const fallbackDir = dir8to4(currentDir8);
+          const fallbackDir = dir8to4(playerAnimState === 'spin_attack' 
+            ? SPIN_DIRECTIONS[Math.min(spinDirIndex, SPIN_DIRECTIONS.length - 1)] 
+            : currentDir8);
           const fallbackState = playerAnimState === 'dodge' ? 'walk' : 
                                playerAnimState === 'charge' ? 'charge' : 
+                               playerAnimState === 'spin_attack' ? 'attack' :
                                playerAnimState === 'hurt' ? 'hurt' : playerAnimState;
           const fallbackFrame = playerAnimState === 'attack' ? Math.min(attackFrame, 2) : 
+                               playerAnimState === 'spin_attack' ? 1 :
                                playerAnimState === 'charge' ? Math.min(animFrame, 2) : animFrame;
           texName = `player_${fallbackDir}_${fallbackState}_${fallbackFrame}`;
           newTex = assetManager.getTexture(texName);
@@ -803,6 +825,15 @@ const Game = () => {
           else if (d4 === 'down') attackOffsetY = -lungeAmount;
           else if (d4 === 'left') attackOffsetX = -lungeAmount;
           else if (d4 === 'right') attackOffsetX = lungeAmount;
+        } else if (playerAnimState === 'spin_attack') {
+          // Small radial offset during spin for visual feedback
+          const spinDir = SPIN_DIRECTIONS[Math.min(spinDirIndex, SPIN_DIRECTIONS.length - 1)];
+          const lungeAmount = 0.1;
+          const d4 = dir8to4(spinDir);
+          if (d4 === 'up') attackOffsetY = lungeAmount;
+          else if (d4 === 'down') attackOffsetY = -lungeAmount;
+          else if (d4 === 'left') attackOffsetX = -lungeAmount;
+          else if (d4 === 'right') attackOffsetX = lungeAmount;
         }
 
         // Dodge roll visual: squish + spin
@@ -813,11 +844,13 @@ const Game = () => {
           dodgeScaleY = 1 - Math.sin(t * Math.PI) * 0.2;
           playerMesh.rotation.z = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? -1 : 1);
         } else if (isChargingAttack) {
-          // Spin attack: rotate faster as charge builds
-          const spinSpeed = 4 + chargeLevel * 12; // radians per second
-          playerMesh.rotation.z -= spinSpeed * deltaTime;
-          const pulse = 1 + chargeLevel * 0.12;
+          // Charge: pulsing scale + slight shake, NO rotation
+          const pulse = 1 + chargeLevel * 0.15;
+          const shake = chargeLevel * Math.sin(currentTime / 30) * 0.02;
           dodgeScaleX = pulse;
+          dodgeScaleY = pulse;
+          attackOffsetX += shake;
+          playerMesh.rotation.z = 0;
           dodgeScaleY = pulse;
         } else {
           playerMesh.rotation.z = 0;
