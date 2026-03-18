@@ -1721,6 +1721,8 @@ const Game = () => {
       addMarkersFromText(quest.description, gameState.currentMap);
       quest.objectives.forEach(obj => addMarkersFromText(obj, gameState.currentMap));
       triggerUIUpdate();
+      // Save on quest accept
+      SaveManager.save(gameState, mapMarkersRef.current, visitedTilesRef.current);
     }
 
     // Merchant buy logic
