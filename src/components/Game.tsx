@@ -1096,9 +1096,11 @@ const Game = () => {
             const enemyMaterial = new THREE.MeshBasicMaterial({
               map: enemyTexture,
               transparent: true,
+              depthWrite: false,
             });
             enemyMesh = new THREE.Mesh(enemyGeometry, enemyMaterial);
             enemyMesh.position.z = 0.2;
+            enemyMesh.renderOrder = 9997;
             scene.add(enemyMesh);
             enemyMeshes.set(enemy.id, enemyMesh);
           }
