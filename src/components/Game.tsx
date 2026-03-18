@@ -11,6 +11,7 @@ import { DayNightCycle } from '@/lib/game/DayNightCycle';
 import { FloatingTextSystem } from '@/lib/game/FloatingText';
 import { ScreenShake } from '@/lib/game/ScreenShake';
 import { MapMarker, extractMarkersFromText } from '@/lib/game/MapMarkers';
+import { SaveManager } from '@/lib/game/SaveManager';
 import { allMaps, mapDefinitions } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
 import { quests } from '@/data/quests';
