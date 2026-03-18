@@ -98,6 +98,10 @@ const Game = () => {
     const MAX_DELTA = 0.1;
     let portalCooldown = 0;
 
+    // Reusable vectors to avoid per-frame allocation
+    const _tmpVec3 = new THREE.Vector3();
+    const _worldPosVec3 = new THREE.Vector3();
+
     // Animation state
     let animFrame = 0;
     let animTimer = 0;
@@ -477,12 +481,12 @@ const Game = () => {
 
     const checkInteraction = () => {
       const interactionRange = 1.5;
+      const interactionRangeSq = interactionRange * interactionRange;
       for (const npc of state.npcs) {
-        const distance = Math.sqrt(
-          Math.pow(state.player.position.x - npc.position.x, 2) +
-          Math.pow(state.player.position.y - npc.position.y, 2)
-        );
-        if (distance < interactionRange) {
+        const dx = state.player.position.x - npc.position.x;
+        const dy = state.player.position.y - npc.position.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < interactionRangeSq) {
           startDialogue(npc.dialogueId, npc.name);
           return;
         }
@@ -699,9 +703,8 @@ const Game = () => {
 
           footstepTimer += deltaTime;
           if (footstepTimer >= footstepInterval) {
-            particleSystem.emitDust(
-              new THREE.Vector3(state.player.position.x, state.player.position.y, 0)
-            );
+          _tmpVec3.set(state.player.position.x, state.player.position.y, 0);
+          particleSystem.emitDust(_tmpVec3);
             footstepTimer = 0;
           }
 
@@ -895,12 +898,12 @@ const Game = () => {
         const interactionRange = 1.5;
 
         // Check NPC proximity
+        const interactionRangeSq = interactionRange * interactionRange;
         for (const npc of state.npcs) {
-          const dist = Math.sqrt(
-            Math.pow(state.player.position.x - npc.position.x, 2) +
-            Math.pow(state.player.position.y - npc.position.y, 2)
-          );
-          if (dist < interactionRange) {
+          const ndx = state.player.position.x - npc.position.x;
+          const ndy = state.player.position.y - npc.position.y;
+          const distSq = ndx * ndx + ndy * ndy;
+          if (distSq < interactionRangeSq) {
             showIndicator = true;
             indicatorX = npc.position.x;
             indicatorY = npc.position.y;
@@ -1114,10 +1117,10 @@ const Game = () => {
 
       // Project active NPC world pos to screen for chat bubble
       if (activeNpcWorldPos.current && state.dialogueActive) {
-        const worldPos = new THREE.Vector3(activeNpcWorldPos.current.x, activeNpcWorldPos.current.y + 1.2, 0);
-        worldPos.project(camera);
-        const sx = (worldPos.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-        const sy = (-worldPos.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+        _worldPosVec3.set(activeNpcWorldPos.current.x, activeNpcWorldPos.current.y + 1.2, 0);
+        _worldPosVec3.project(camera);
+        const sx = (_worldPosVec3.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+        const sy = (-_worldPosVec3.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
         setNpcScreenPos({ x: sx, y: sy });
       }
 
