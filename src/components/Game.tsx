@@ -1238,8 +1238,9 @@ const Game = () => {
         let attackOffsetX = 0;
         let attackOffsetY = 0;
         const facing4 = dir8to4(currentDir8);
+        const walkCycleSpeed = state.player.isSprinting ? 70 : 95;
         const moveWave = playerAnimState === 'walk' || state.player.isDodging
-          ? Math.sin(currentTime / 95)
+          ? Math.sin(currentTime / walkCycleSpeed)
           : 0;
         const stride = Math.abs(moveWave);
 
