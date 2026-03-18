@@ -189,19 +189,29 @@ export class AssetManager {
         cell(m(11), dy + bob, p.capeDark);
         if (dy > 9) cell(m(12), dy + bob, p.capeDark);
       }
-      // Sword - long imposing blade
+      // Sword - long imposing blade with 3-frame swing
       const BLADE = 0xC0D0E0;
       const BLADE_H = 0xF0F4FF;
       const BLADE_E = 0x90A8C0;
       const GUARD = p.trimColor;
       const GRIP = 0x5D4037;
-      if (atkFrame >= 1) {
-        // Swing pose - sword straight up/out
-        cell(m(3), 1 + bob, BLADE_H); cell(m(3), 2 + bob, BLADE); cell(m(3), 3 + bob, BLADE);
-        cell(m(3), 4 + bob, BLADE_E); cell(m(3), 5 + bob, GUARD);
-        cell(m(3), 6 + bob, GRIP);
+      if (atkFrame === 0) {
+        // Wind-up: sword raised high behind head
+        cell(m(8), 0 + bob, BLADE_H); cell(m(9), 1 + bob, BLADE); cell(m(10), 2 + bob, BLADE);
+        cell(m(10), 3 + bob, BLADE_E); cell(m(9), 3 + bob, GUARD);
+        cell(m(8), 4 + bob, GRIP);
+      } else if (atkFrame === 1) {
+        // Mid-swing: sword diagonal coming down
+        cell(m(3), 2 + bob, BLADE_H); cell(m(3), 3 + bob, BLADE); cell(m(4), 4 + bob, BLADE);
+        cell(m(4), 5 + bob, BLADE_E); cell(m(5), 5 + bob, GUARD);
+        cell(m(5), 6 + bob, GRIP);
+      } else if (atkFrame === 2) {
+        // Follow-through: sword low and forward
+        cell(m(2), 7 + bob, BLADE_H); cell(m(3), 7 + bob, BLADE); cell(m(4), 7 + bob, BLADE);
+        cell(m(5), 7 + bob, BLADE_E); cell(m(5), 8 + bob, GUARD);
+        cell(m(5), 9 + bob, GRIP);
       } else {
-        // Resting at side - straight vertical blade
+        // Idle: resting at side
         cell(m(4), 4 + bob, BLADE_H); cell(m(4), 5 + bob, BLADE); cell(m(4), 6 + bob, BLADE);
         cell(m(4), 7 + bob, BLADE_E); cell(m(4), 8 + bob, GUARD);
         cell(m(4), 9 + bob, GRIP); cell(m(4), 10 + bob, GRIP);
@@ -272,13 +282,23 @@ export class AssetManager {
       const BLADE_E = 0x90A8C0;
       const GUARD = p.trimColor;
       const GRIP = 0x5D4037;
-      if (atkFrame >= 1) {
-        // Swing pose - sword straight up
-        cell(3, 1 + bob, BLADE_H); cell(3, 2 + bob, BLADE); cell(3, 3 + bob, BLADE);
-        cell(3, 4 + bob, BLADE_E); cell(3, 5 + bob, GUARD);
-        cell(3, 6 + bob, GRIP);
+      if (atkFrame === 0) {
+        // Wind-up: sword raised overhead
+        cell(6, 0 + bob, BLADE_H); cell(7, 0 + bob, BLADE); cell(8, 0 + bob, BLADE);
+        cell(9, 0 + bob, BLADE_E); cell(8, 1 + bob, GUARD);
+        cell(7, 1 + bob, GRIP);
+      } else if (atkFrame === 1) {
+        // Mid-swing: sword coming down diagonally
+        cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE); cell(3, 5 + bob, BLADE);
+        cell(3, 6 + bob, BLADE_E); cell(4, 6 + bob, GUARD);
+        cell(4, 7 + bob, GRIP);
+      } else if (atkFrame === 2) {
+        // Follow-through: sword swept low
+        cell(2, 9 + bob, BLADE_H); cell(3, 9 + bob, BLADE); cell(4, 9 + bob, BLADE);
+        cell(5, 9 + bob, BLADE_E); cell(4, 10 + bob, GUARD);
+        cell(4, 11 + bob, GRIP);
       } else {
-        // Resting - straight vertical blade at side
+        // Idle: resting at left side
         cell(4, 4 + bob, BLADE_H); cell(4, 5 + bob, BLADE); cell(4, 6 + bob, BLADE);
         cell(4, 7 + bob, BLADE_E); cell(4, 8 + bob, GUARD);
         cell(4, 9 + bob, GRIP); cell(4, 10 + bob, GRIP);
