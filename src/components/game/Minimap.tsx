@@ -85,32 +85,43 @@ export const Minimap = ({ currentMap, currentMapId, playerPosition, visitedTiles
         const isPulsing = now < marker.pulseUntil;
         const age = now - marker.createdAt;
 
-        // Always draw the marker dot
+        const cx = mx + scale / 2;
+        const cy = my + scale / 2;
+
+        // Glowing background circle (always visible)
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
         ctx.fillStyle = marker.color;
-        const dotSize = scale * 1.5;
-        ctx.fillRect(mx - dotSize / 2 + scale / 2, my - dotSize / 2 + scale / 2, dotSize, dotSize);
+        ctx.globalAlpha = 0.4;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Bright center dot
+        ctx.fillStyle = marker.color;
+        const dotSize = Math.max(scale * 2, 3);
+        ctx.fillRect(cx - dotSize / 2, cy - dotSize / 2, dotSize, dotSize);
 
         // Pulsing ring animation
         if (isPulsing) {
-          const pulsePhase = (age % 2000) / 2000; // 0-1 over 2 seconds
-          const ringRadius = 3 + pulsePhase * 12;
+          const pulsePhase = (age % 1500) / 1500;
+          const ringRadius = 4 + pulsePhase * 16;
           const ringAlpha = 1 - pulsePhase;
 
           ctx.beginPath();
-          ctx.arc(mx + scale / 2, my + scale / 2, ringRadius, 0, Math.PI * 2);
+          ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
           ctx.strokeStyle = marker.color;
-          ctx.globalAlpha = ringAlpha * 0.7;
-          ctx.lineWidth = 1.5;
+          ctx.globalAlpha = ringAlpha * 0.8;
+          ctx.lineWidth = 2;
           ctx.stroke();
           ctx.globalAlpha = 1;
 
           // Second ring offset
-          const pulsePhase2 = ((age + 1000) % 2000) / 2000;
-          const ringRadius2 = 3 + pulsePhase2 * 12;
+          const pulsePhase2 = ((age + 750) % 1500) / 1500;
+          const ringRadius2 = 4 + pulsePhase2 * 16;
           const ringAlpha2 = 1 - pulsePhase2;
           ctx.beginPath();
-          ctx.arc(mx + scale / 2, my + scale / 2, ringRadius2, 0, Math.PI * 2);
-          ctx.globalAlpha = ringAlpha2 * 0.4;
+          ctx.arc(cx, cy, ringRadius2, 0, Math.PI * 2);
+          ctx.globalAlpha = ringAlpha2 * 0.5;
           ctx.stroke();
           ctx.globalAlpha = 1;
         }
@@ -153,7 +164,7 @@ export const Minimap = ({ currentMap, currentMapId, playerPosition, visitedTiles
   // Build legend from active markers on current map
   const currentMarkers = markers.filter(m => m.map === currentMapId);
   const now = Date.now();
-  const recentMarkers = currentMarkers.filter(m => now - m.createdAt < 30000 || now < m.pulseUntil);
+  const recentMarkers = currentMarkers.filter(m => m.permanent || now - m.createdAt < 120000 || now < m.pulseUntil);
 
   return (
     <div className="fixed top-16 right-4 bg-[#1A0F0A]/85 backdrop-blur-sm p-1.5 rounded-sm border-2 border-[#5C3A21] shadow-md z-30 font-sans pointer-events-auto" style={{ maxWidth: '200px' }}>
