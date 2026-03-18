@@ -241,7 +241,7 @@ const Game = () => {
         duration: 3000,
       });
       visitedTilesRef.current = new Set();
-      setVisitedTilesVersion(v => v + 1);
+      triggerMinimapUpdate(true);
       portalCooldown = 0.5;
     };
 
