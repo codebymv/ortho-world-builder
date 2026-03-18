@@ -268,13 +268,24 @@ export class AssetManager {
       cell(4, 9 + bob, p.capeDark); cell(11, 9 + bob, p.capeDark);
       cell(4, 10 + bob, p.capeDark); cell(11, 10 + bob, p.capeDark);
 
-      // Sword (left side)
+      // Sword (left side) - long imposing blade
+      const BLADE = 0xC0D0E0;
+      const BLADE_H = 0xF0F4FF;
+      const BLADE_E = 0x90A8C0;
+      const GUARD = p.trimColor;
+      const GRIP = 0x5D4037;
       if (atkFrame >= 1) {
-        cell(3, 3 + bob, 0xF0F4FF); cell(3, 4 + bob, 0xD8E0E8); cell(3, 5 + bob, 0xD8E0E8);
-        cell(3, 6 + bob, p.trimColor);
+        // Swing pose - sword sweeping across
+        cell(2, 1 + bob, BLADE_H); cell(3, 2 + bob, BLADE_H); cell(3, 3 + bob, BLADE);
+        cell(3, 4 + bob, BLADE); cell(3, 5 + bob, BLADE_E); cell(3, 6 + bob, GUARD);
+        cell(3, 7 + bob, GRIP);
+        cell(1, 1 + bob, BLADE_E); // tip glint
       } else {
-        cell(4, 7 + bob, 0xD8E0E8); cell(4, 6 + bob, 0xF0F4FF);
-        cell(4, 8 + bob, p.trimColor);
+        // Resting - long blade at side
+        cell(4, 4 + bob, BLADE_H); cell(4, 5 + bob, BLADE); cell(4, 6 + bob, BLADE);
+        cell(4, 7 + bob, BLADE_E); cell(4, 8 + bob, GUARD);
+        cell(4, 9 + bob, GRIP); cell(4, 10 + bob, GRIP);
+        cell(3, 5 + bob, BLADE_E); // edge glint
       }
 
       // Hair (top rows)
