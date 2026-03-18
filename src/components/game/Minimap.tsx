@@ -164,7 +164,7 @@ export const Minimap = ({ currentMap, currentMapId, playerPosition, visitedTiles
   // Build legend from active markers on current map
   const currentMarkers = markers.filter(m => m.map === currentMapId);
   const now = Date.now();
-  const recentMarkers = currentMarkers.filter(m => now - m.createdAt < 30000 || now < m.pulseUntil);
+  const recentMarkers = currentMarkers.filter(m => m.permanent || now - m.createdAt < 120000 || now < m.pulseUntil);
 
   return (
     <div className="fixed top-16 right-4 bg-[#1A0F0A]/85 backdrop-blur-sm p-1.5 rounded-sm border-2 border-[#5C3A21] shadow-md z-30 font-sans pointer-events-auto" style={{ maxWidth: '200px' }}>
