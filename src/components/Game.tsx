@@ -240,10 +240,10 @@ const Game = () => {
     let swooshTimer = 0;
     const SWOOSH_DURATION = 0.22;
 
-    // Spin attack swoosh — larger, more aggressive
-    const spinSwooshGeometry = new THREE.RingGeometry(0.3, 1.2, 24, 1, 0, Math.PI * 2);
+    // Spin attack swoosh — same arc style as normal but full circle
+    const spinSwooshGeometry = new THREE.RingGeometry(0.2, 0.8, 16, 1, 0, Math.PI * 2);
     const spinSwooshMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffd700,
+      color: 0xccddff,
       transparent: true,
       opacity: 0,
       depthWrite: false,
@@ -536,8 +536,11 @@ const Game = () => {
           }
         }
       }
-      if (e.key === 'Shift' && !state.dialogueActive) {
+      if (e.key === 'Control' && !state.dialogueActive) {
         dodgeBuffered = true;
+        keys['control'] = true;
+      }
+      if (e.key === 'Shift') {
         keys['shift'] = true;
       }
     };
@@ -547,6 +550,9 @@ const Game = () => {
       keys[e.key.toLowerCase()] = false;
       if (e.key === 'Shift') {
         keys['shift'] = false;
+      }
+      if (e.key === 'Control') {
+        keys['control'] = false;
       }
       if (e.key === ' ' && isChargingAttack) {
         if (chargeTimer >= CHARGE_TIME_MIN) {
@@ -736,7 +742,7 @@ const Game = () => {
 
         particleSystem.emit(
           new THREE.Vector3(attackPos.x, attackPos.y, 0.3),
-          8, 0xFFD700, 0.5, 1.5, 2
+          4, 0xcccccc, 0.3, 1, 1
         );
       }
     };
@@ -1072,8 +1078,8 @@ const Game = () => {
           currentDir8 = rawDir;
           state.player.direction = dir8to4(rawDir);
 
-          // Sprint: hold shift while moving (not dodging)
-          const wantsSprint = keys['shift'] && !dodgeBuffered && state.player.stamina > 0;
+          // Sprint: hold shift while moving
+          const wantsSprint = keys['shift'] && state.player.stamina > 0;
           state.player.isSprinting = wantsSprint;
           const currentSpeed = wantsSprint ? state.player.sprintSpeed : state.player.speed;
           if (wantsSprint) {
@@ -1343,7 +1349,7 @@ const Game = () => {
           spinSwooshTimer -= deltaTime;
           const progress = 1 - (spinSwooshTimer / SPIN_SWOOSH_DURATION);
           spinSwooshMesh.visible = true;
-          spinSwooshMaterial.opacity = (1 - progress) * 0.5;
+          spinSwooshMaterial.opacity = (1 - progress) * 0.35;
           const chargeRange = state.player.attackRange * 1.5;
           const spinScale = chargeRange * (0.3 + progress * 0.7);
           spinSwooshMesh.scale.set(spinScale, spinScale, 1);

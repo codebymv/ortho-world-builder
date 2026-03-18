@@ -76,7 +76,7 @@ export class ParticleSystem {
   }
 
   emitSparkles(position: THREE.Vector3) {
-    this.emit(position, 8, 0xFFD700, 0.8, 1.5, 2);
+    this.emit(position, 5, 0xcccccc, 0.4, 1, 1.5);
   }
 
   emitDust(position: THREE.Vector3) {
@@ -88,7 +88,7 @@ export class ParticleSystem {
   }
 
   emitDamage(position: THREE.Vector3) {
-    this.emit(position, 6, 0xFF0000, 0.7, 2, 1.5);
+    this.emit(position, 4, 0xdddddd, 0.4, 1.5, 1);
   }
 
   emitHeal(position: THREE.Vector3) {
