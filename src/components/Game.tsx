@@ -563,13 +563,11 @@ const Game = () => {
     const getOrCreateHPBar = (enemy: Enemy) => {
       let hpBar = enemyHPBars.get(enemy.id);
       if (!hpBar) {
-        const bgGeo = new THREE.PlaneGeometry(0.6, 0.06);
         const bgMat = new THREE.MeshBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.8, depthWrite: false });
-        const bg = new THREE.Mesh(bgGeo, bgMat);
+        const bg = new THREE.Mesh(SharedGeometry.hpBarBg, bgMat);
 
-        const fillGeo = new THREE.PlaneGeometry(0.58, 0.04);
         const fillMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.9, depthWrite: false });
-        const fill = new THREE.Mesh(fillGeo, fillMat);
+        const fill = new THREE.Mesh(SharedGeometry.hpBarFill, fillMat);
 
         scene.add(bg);
         scene.add(fill);
