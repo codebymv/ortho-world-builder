@@ -83,11 +83,19 @@ const Game = () => {
     let animTimer = 0;
     const IDLE_FRAME_DURATION = 0.8;
     const WALK_FRAME_DURATION = 0.18;
-    let playerAnimState: 'idle' | 'walk' | 'attack' | 'dodge' = 'idle';
+    let playerAnimState: 'idle' | 'walk' | 'attack' | 'dodge' | 'charge' | 'hurt' = 'idle';
     let attackFrameTimer = 0;
     let attackFrame = 0;
     const ATTACK_FRAME_DURATION = 0.1;
     let currentDir8: Direction8 = 'down';
+
+    // Charge attack state
+    let isChargingAttack = false;
+    let chargeTimer = 0;
+    const CHARGE_TIME_MIN = 0.4;   // minimum hold for charged attack
+    const CHARGE_TIME_MAX = 1.2;    // fully charged
+    const CHARGE_DAMAGE_MULT = 2.5; // damage multiplier at full charge
+    let chargeLevel = 0; // 0-1
 
     // Map biome lookup
     const mapBiomes: Record<string, string> = {
