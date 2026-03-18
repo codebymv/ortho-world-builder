@@ -61,7 +61,7 @@ export const Minimap = ({ currentMap, playerPosition, visitedTiles, npcs }: Mini
     for (const npc of npcs) {
       const npcX = Math.floor(npc.position.x + currentMap.width / 2);
       const npcY = Math.floor(npc.position.y + currentMap.height / 2);
-      ctx.fillRect(npcX * scale, npcY * scale, scale, scale);
+      ctx.fillRect(npcX * scale, (currentMap.height - 1 - npcY) * scale, scale, scale);
     }
 
     // Draw player
