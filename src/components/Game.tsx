@@ -687,7 +687,7 @@ const Game = () => {
       if (nowSec - state.player.lastStaminaUseTime > state.player.staminaRegenDelay) {
         const prevStamina = state.player.stamina;
         state.player.stamina = Math.min(state.player.maxStamina, state.player.stamina + state.player.staminaRegenRate * deltaTime);
-        if (state.player.stamina !== prevStamina) {
+        if (state.player.stamina !== prevStamina && Math.floor(state.player.stamina) !== Math.floor(prevStamina)) {
           triggerUIUpdate();
         }
       }
