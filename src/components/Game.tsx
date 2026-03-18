@@ -1665,6 +1665,13 @@ const Game = () => {
       dayNightCycle.update(deltaTime, state.player.position.x, state.player.position.y);
       floatingText.update(deltaTime);
       particleSystem.update(deltaTime);
+      
+      // Auto-save every 30 seconds
+      if (now - lastAutoSaveTime >= AUTO_SAVE_INTERVAL) {
+        lastAutoSaveTime = now;
+        triggerSave();
+      }
+      
       renderer.render(scene, camera);
     };
 
