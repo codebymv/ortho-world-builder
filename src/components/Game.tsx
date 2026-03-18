@@ -258,6 +258,7 @@ const Game = () => {
     const playerMaterial = new THREE.MeshBasicMaterial({
       map: playerTexture,
       transparent: true,
+      depthWrite: false,
     });
     const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
     playerMesh.position.set(spawnPoint.x, spawnPoint.y, 0.2);
