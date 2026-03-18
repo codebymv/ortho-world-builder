@@ -432,84 +432,42 @@ export class AssetManager {
     this.textures.set('player_left', this.textures.get('player_left_idle_0')!);
     this.textures.set('player_right', this.textures.get('player_right_idle_0')!);
 
-    // Shared NPC palette constants
-    const SK = 0xFFE0BD; const SK_H = 0xFFF0D8; const SK_S = 0xE8C4A0; const SK_D = 0xD4A878;
-    const EY_W = 0xFFFFFF; const BROW = 0x503018; const MOUTH = 0xD06050;
-    const PANT = 0x5A4030; const BOOT = 0x6B4428; const BOOT_H = 0x8B6040; const BOOT_S = 0x503018;
+    // ========== NPC SPRITES - Using same chibi system ==========
+    const elderPalette = {
+      hair: 0xE8E8F0, hairLight: 0xFFFFFF, hairDark: 0xC0C0D0,
+      skin: 0xFFE0BD, skinLight: 0xFFF0D8, skinShadow: 0xE8C4A0,
+      eyeIris: 0x5D4037, eyeIrisDark: 0x3E2723,
+      tunicMain: 0x5A1A8A, tunicLight: 0x7828AA, tunicDark: 0x3A0A6A,
+      trimColor: 0xCCA800, trimLight: 0xFFD850,
+      capeMain: 0x5A1A8A, capeDark: 0x3A0A6A,
+      pantColor: 0x5A1A8A, pantDark: 0x3A0A6A,
+      bootColor: 0x6B4428, bootDark: 0x503018,
+    };
+    this.textures.set('npc_elder', this.createChibiCharacter('down', 'idle', 0, elderPalette));
 
-    // ========== NPC SPRITES - Chibi Anime Style ==========
-    const NPC_W = 14; // NPCs use 14-wide sprites at cellSize 3
+    const merchantPalette = {
+      hair: 0x6D4C41, hairLight: 0x8D6E63, hairDark: 0x4E342E,
+      skin: 0xFFE0BD, skinLight: 0xFFF0D8, skinShadow: 0xE8C4A0,
+      eyeIris: 0x5D4037, eyeIrisDark: 0x3E2723,
+      tunicMain: 0xE06000, tunicLight: 0xFF8800, tunicDark: 0xBB4400,
+      trimColor: 0xFFD700, trimLight: 0xFFE850,
+      capeMain: 0xE06000, capeDark: 0xBB4400,
+      pantColor: 0x5A4030, pantDark: 0x3E2818,
+      bootColor: 0x6B4428, bootDark: 0x503018,
+    };
+    this.textures.set('npc_merchant', this.createChibiCharacter('down', 'idle', 0, merchantPalette));
 
-    // Elder - wise old man, long white beard, purple robes, crystal staff
-    const ELD_ROBE = 0x5A1A8A;
-    const ELD_ROBE_H = 0x7828AA;
-    const ELD_ROBE_S = 0x3A0A6A;
-    const ELD_HAIR = 0xE8E8F0;
-    const ELD_HAIR_S = 0xC0C0D0;
-    const ELD_BEARD = 0xE0E0E8;
-    const ELD_BEARD_S = 0xC0C0C8;
-    const ELD_STAFF = 0xCCA800;
-    const ELD_STAFF_S = 0x997700;
-    const ELD_GEM = 0x44BBFF;
-    const ELD_GEM_G = 0x88DDFF;
-
-    this.textures.set('npc_elder', this.createSpriteTexture([
-      [C,  C,  C,  C,  ELD_HAIR_S,ELD_HAIR,ELD_HAIR,ELD_HAIR,ELD_HAIR,ELD_HAIR_S,C,  C,  C,  C],
-      [C,  C,  C,  ELD_HAIR_S,ELD_HAIR,ELD_HAIR,ELD_HAIR,ELD_HAIR,ELD_HAIR,ELD_HAIR_S,C,  C,  C,  C],
-      [C,  C,  C,  ELD_HAIR,SK, SK_H, SK, SK, SK_H, SK, ELD_HAIR,C,  C,  C],
-      [C,  C,  C,  SK, BROW,0x5D4037,SK, SK, 0x5D4037,BROW,SK, C,  C,  C],
-      [C,  C,  C,  C,  SK, SK, SK_S, SK_S, SK, SK, C,  C,  C,  C],
-      [C,  C,  C,  C,  ELD_BEARD,ELD_BEARD,ELD_BEARD,ELD_BEARD,ELD_BEARD,ELD_BEARD,C,  C,  C,  C],
-      [C,  C,  C,  C,  ELD_BEARD_S,ELD_BEARD,ELD_BEARD_S,ELD_BEARD,ELD_BEARD_S,C,  C,  C,  C,  C],
-      [C,  ELD_STAFF,ELD_GEM,ELD_GEM_G,ELD_ROBE,ELD_ROBE_H,ELD_ROBE,ELD_ROBE_H,ELD_ROBE,ELD_ROBE,C,  C,  C,  C],
-      [C,  ELD_STAFF,C,  C, ELD_ROBE_S,ELD_ROBE,ELD_ROBE_S,ELD_ROBE,ELD_ROBE_S,ELD_ROBE,C,  C,  C,  C],
-      [C,  ELD_STAFF_S,C,  C, ELD_ROBE,ELD_ROBE,ELD_ROBE,ELD_ROBE,ELD_ROBE,ELD_ROBE,C,  C,  C,  C],
-      [C,  C,  C,  C, ELD_ROBE,ELD_ROBE_S,C,  C,  ELD_ROBE_S,ELD_ROBE,C,  C,  C,  C],
-      [C,  C,  C,  C, ELD_ROBE_S,ELD_ROBE,C,  C,  ELD_ROBE,ELD_ROBE_S,C,  C,  C,  C],
-      [C,  C,  C,  BOOT_S,BOOT,BOOT_H,C,  C,  BOOT_H,BOOT,BOOT_S,C,  C,  C],
-    ], 3));
-
-    // Merchant - jolly with hat, orange vest, gold accents
-    const MCH_VEST = 0xE06000;
-    const MCH_VEST_H = 0xFF8800;
-    const MCH_VEST_S = 0xBB4400;
-    const MCH_HAT = 0x6D4C41;
-    const MCH_HAT_H = 0x8D6E63;
-
-    this.textures.set('npc_merchant', this.createSpriteTexture([
-      [C,  C,  C,  MCH_HAT,MCH_HAT_H,MCH_HAT,MCH_HAT_H,MCH_HAT,MCH_HAT,C,  C,  C,  C,  C],
-      [C,  C,  MCH_HAT,MCH_HAT,MCH_HAT,MCH_HAT,MCH_HAT,MCH_HAT,MCH_HAT,MCH_HAT,C,  C,  C,  C],
-      [C,  C,  C,  SK, SK_H,SK, SK, SK_H,SK, C,  C,  C,  C,  C],
-      [C,  C,  C,  SK, EY_W,0x5D4037,SK, 0x5D4037,EY_W,SK, C,  C,  C,  C],
-      [C,  C,  C,  C,  SK, SK, SK_S,SK, SK, C,  C,  C,  C,  C],
-      [C,  C,  C,  C,  C,  SK, MOUTH,SK, C,  C,  C,  C,  C,  C],
-      [C,  C,  MCH_VEST,MCH_VEST_H,0xFFD700,MCH_VEST,0xFFE850,MCH_VEST_H,MCH_VEST,MCH_VEST,C,  C,  C,  C],
-      [C,  C,  MCH_VEST_S,MCH_VEST,MCH_VEST_S,MCH_VEST,MCH_VEST_S,MCH_VEST,MCH_VEST_S,C,  C,  C,  C,  C],
-      [C,  SK, C,  MCH_VEST,MCH_VEST,MCH_VEST,MCH_VEST,MCH_VEST,C,  SK, C,  C,  C,  C],
-      [C,  C,  C,  C,  PANT,C,  C,  PANT,C,  C,  C,  C,  C,  C],
-      [C,  C,  C,  BOOT_S,BOOT_H,C,  C,  BOOT_H,BOOT_S,C,  C,  C,  C,  C],
-    ], 3));
-
-    // Guard - armored, helmet, stern
-    const G_ARM = 0x607080;
-    const G_ARM_H = 0x788898;
-    const G_ARM_S = 0x485060;
-    const G_HELM = 0x506070;
-    const G_HELM_H = 0x687888;
-    const G_SWD = 0xB0BEC5;
-
-    this.textures.set('npc_guard', this.createSpriteTexture([
-      [C,  C,  C,  G_HELM,G_HELM_H,G_HELM,G_HELM_H,G_HELM,G_HELM,C,  C,  C,  C,  C],
-      [C,  C,  C,  G_HELM,G_HELM,G_HELM_H,G_HELM,G_HELM,G_HELM,C,  C,  C,  C,  C],
-      [C,  C,  C,  SK, SK, SK, SK, SK, SK, C,  C,  C,  C,  C],
-      [C,  C,  C,  SK, EY_W,0x37474F,SK,0x37474F,EY_W,SK, C,  C,  C,  C],
-      [C,  C,  C,  C,  SK, SK, SK_S,SK, SK, C,  C,  C,  C,  C],
-      [C,  G_SWD,G_ARM,G_ARM_H,G_ARM,G_ARM_H,G_ARM,G_ARM_H,G_ARM,G_ARM,C,  C,  C,  C],
-      [C,  G_SWD,G_ARM_S,G_ARM,G_ARM_S,G_ARM,G_ARM_S,G_ARM,G_ARM_S,C,  C,  C,  C,  C],
-      [C,  C,  G_ARM,G_ARM,G_ARM,G_ARM,G_ARM,G_ARM,G_ARM,C,  C,  C,  C,  C],
-      [C,  C,  C,  C,  PANT,C,  C,  PANT,C,  C,  C,  C,  C,  C],
-      [C,  C,  C,  G_ARM_S,G_ARM_S,C,  C,  G_ARM_S,G_ARM_S,C,  C,  C,  C,  C],
-    ], 3));
+    const guardPalette = {
+      hair: 0x506070, hairLight: 0x687888, hairDark: 0x37474F,
+      skin: 0xFFE0BD, skinLight: 0xFFF0D8, skinShadow: 0xE8C4A0,
+      eyeIris: 0x37474F, eyeIrisDark: 0x263238,
+      tunicMain: 0x607080, tunicLight: 0x788898, tunicDark: 0x485060,
+      trimColor: 0xB0BEC5, trimLight: 0xCFD8DC,
+      capeMain: 0x607080, capeDark: 0x485060,
+      pantColor: 0x5A4030, pantDark: 0x3E2818,
+      bootColor: 0x485060, bootDark: 0x37474F,
+    };
+    this.textures.set('npc_guard', this.createChibiCharacter('down', 'idle', 0, guardPalette));
 
     // ========== ENEMY SPRITES ==========
     const WOLF_FUR = 0x616161;
