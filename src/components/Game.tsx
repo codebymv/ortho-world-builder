@@ -412,9 +412,9 @@ const Game = () => {
       depthWrite: false,
     });
     const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
-    playerMesh.position.set(spawnPoint.x, spawnPoint.y, 0.2);
+    playerMesh.position.set(state.player.position.x, state.player.position.y, 0.2);
     playerMesh.scale.setScalar(PLAYER_BASE_SCALE);
-    playerMesh.renderOrder = getYRenderOrder(spawnPoint.y, PLAYER_FOOT_OFFSET);
+    playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
     scene.add(playerMesh);
 
     const npcData: NPC[] = [
