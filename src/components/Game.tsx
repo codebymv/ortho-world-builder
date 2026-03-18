@@ -1940,14 +1940,16 @@ const Game = () => {
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const musicStarted = useRef(false);
   const currentTrackRef = useRef<string>('');
+  const switchMusicTrackRef = useRef<(mapId: string) => void>(() => {});
 
-  const MAP_MUSIC: Record<string, string> = {
+  const MAP_MUSIC_MAP: Record<string, string> = {
     forest: '/audio/wood_theme.mp3',
   };
-  const DEFAULT_MUSIC = '/audio/ortho_loop2.mp3';
+  const DEFAULT_MUSIC_TRACK = '/audio/ortho_loop2.mp3';
 
-  const switchMusicTrack = useCallback((mapId: string) => {
-    const track = MAP_MUSIC[mapId] || DEFAULT_MUSIC;
+  // Keep the ref always up to date
+  switchMusicTrackRef.current = (mapId: string) => {
+    const track = MAP_MUSIC_MAP[mapId] || DEFAULT_MUSIC_TRACK;
     if (currentTrackRef.current === track) return;
     currentTrackRef.current = track;
     const audio = musicRef.current;
@@ -1961,11 +1963,16 @@ const Game = () => {
     if (musicStarted.current) {
       audio.play().catch(() => {});
     }
+  };
+
+  // Stable reference for use in effects
+  const switchMusicTrack = useCallback((mapId: string) => {
+    switchMusicTrackRef.current(mapId);
   }, []);
 
   useEffect(() => {
     const currentMap = gameStateRef.current?.currentMap || 'village';
-    const startTrack = MAP_MUSIC[currentMap] || DEFAULT_MUSIC;
+    const startTrack = MAP_MUSIC_MAP[currentMap] || DEFAULT_MUSIC_TRACK;
     const audio = new Audio(startTrack);
     audio.loop = true;
     audio.volume = 0.15;
@@ -1977,7 +1984,7 @@ const Game = () => {
       musicStarted.current = true;
       // On first interaction, also sync to the correct track for current map
       const map = gameStateRef.current?.currentMap || 'village';
-      const correctTrack = MAP_MUSIC[map] || DEFAULT_MUSIC;
+      const correctTrack = MAP_MUSIC_MAP[map] || DEFAULT_MUSIC_TRACK;
       if (currentTrackRef.current !== correctTrack) {
         audio.src = correctTrack;
         currentTrackRef.current = correctTrack;
