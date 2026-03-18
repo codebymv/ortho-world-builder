@@ -507,12 +507,21 @@ const deepWoodsDef: MapDefinition = {
     { x: 225, y: 175, width: 6, height: 5, fill: 'stone' },
   ],
   enemyZones: [
-    { x: 175, y: 75, width: 40, height: 35, enemyType: 'shadow', count: 10 },
-    { x: 30, y: 110, width: 40, height: 40, enemyType: 'shadow', count: 7 },
-    { x: 80, y: 30, width: 30, height: 25, enemyType: 'shadow', count: 5 },
-    { x: 15, y: 15, width: 35, height: 30, enemyType: 'shadow', count: 8 },
-    { x: 195, y: 155, width: 30, height: 25, enemyType: 'shadow', count: 6 },
-    { x: 150, y: 155, width: 20, height: 15, enemyType: 'wolf', count: 4 },
+    { x: 175, y: 75, width: 40, height: 35, enemyType: 'shadow', count: 12 },
+    { x: 30, y: 110, width: 40, height: 40, enemyType: 'shadow', count: 9 },
+    { x: 80, y: 30, width: 30, height: 25, enemyType: 'shadow', count: 7 },
+    { x: 15, y: 15, width: 35, height: 30, enemyType: 'shadow', count: 10 },
+    { x: 195, y: 155, width: 30, height: 25, enemyType: 'shadow', count: 8 },
+    { x: 150, y: 155, width: 20, height: 15, enemyType: 'wolf', count: 5 },
+    // Field boss - Shadow Lord
+    { x: 88, y: 38, width: 24, height: 24, enemyType: 'golem', count: 1 },
+    // Skeleton packs near cursed cemetery
+    { x: 148, y: 98, width: 22, height: 18, enemyType: 'skeleton', count: 6 },
+    // Spiders in dark hollow
+    { x: 18, y: 18, width: 32, height: 28, enemyType: 'spider', count: 6 },
+    // Wide wandering shadows
+    { x: 60, y: 60, width: 80, height: 80, enemyType: 'shadow', count: 8 },
+    { x: 120, y: 120, width: 60, height: 60, enemyType: 'spider', count: 4 },
   ],
 };
 
