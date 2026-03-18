@@ -134,8 +134,10 @@ export class World {
   private overlayPool: THREE.Group[] = [];
   private lastChunkCenter: { x: number; y: number } = { x: -9999, y: -9999 };
   private lastMoveDir: { x: number; y: number } = { x: 0, y: 0 };
-  private readonly CHUNK_UPDATE_THRESHOLD = 1;
-  private readonly PRELOAD_EXTRA = 8; // extra tiles in movement direction
+  private readonly CHUNK_UPDATE_THRESHOLD = 2;
+  private readonly PRELOAD_EXTRA = 10; // extra tiles in movement direction
+  private pendingTiles: Array<{ x: number; y: number; key: string }> = [];
+  private isInitialLoad: boolean = true;
 
   constructor(scene: THREE.Scene, assetManager: AssetManager, map: WorldMap) {
     this.scene = scene;
