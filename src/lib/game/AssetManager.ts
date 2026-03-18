@@ -558,11 +558,12 @@ export class AssetManager {
       [C,  C,    BOOTS, BOOTS_H,C,    C,      BOOTS_H,BOOTS, C,   C],
     ]));
 
-    const ARMOR = 0x78909C;
-    const ARMOR_H = 0x90A4AE;
-    const ARMOR_S = 0x546E7A;
+    const G_ARMOR = 0x78909C;
+    const G_ARMOR_H = 0x90A4AE;
+    const G_ARMOR_S = 0x546E7A;
     const HELMET = 0x607D8B;
     const HELMET_H = 0x78909C;
+    const G_SWORD = 0xB0BEC5;
 
     this.textures.set('npc_guard', this.createSpriteTexture([
       [C,  C,    HELMET,HELMET_H,HELMET,HELMET_H,HELMET,C,   C,   C],
@@ -570,11 +571,11 @@ export class AssetManager {
       [C,  C,    SKIN,  SKIN,  SKIN,  SKIN,   SKIN,  C,     C,   C],
       [C,  C,    SKIN,  0x37474F,SKIN,0x37474F,SKIN,  C,     C,   C],
       [C,  C,    C,     SKIN,  SKIN_S,SKIN,   C,     C,     C,   C],
-      [C,  SWORD,ARMOR, ARMOR_H,ARMOR, ARMOR_H,ARMOR, C,     C,   C],
-      [C,  SWORD,ARMOR_S,ARMOR, ARMOR_S,ARMOR, ARMOR_S,C,    C,   C],
-      [C,  C,    ARMOR, ARMOR, ARMOR, ARMOR,  ARMOR, C,     C,   C],
+      [C,  G_SWORD,G_ARMOR, G_ARMOR_H,G_ARMOR, G_ARMOR_H,G_ARMOR, C,     C,   C],
+      [C,  G_SWORD,G_ARMOR_S,G_ARMOR, G_ARMOR_S,G_ARMOR, G_ARMOR_S,C,    C,   C],
+      [C,  C,    G_ARMOR, G_ARMOR, G_ARMOR, G_ARMOR,  G_ARMOR, C,     C,   C],
       [C,  C,    C,     PANTS, C,     PANTS,  C,     C,     C,   C],
-      [C,  C,    ARMOR_S,ARMOR_S,C,   C,      ARMOR_S,ARMOR_S,C, C],
+      [C,  C,    G_ARMOR_S,G_ARMOR_S,C,   C,      G_ARMOR_S,G_ARMOR_S,C, C],
     ]));
 
     // ========== ENEMY SPRITES ==========
