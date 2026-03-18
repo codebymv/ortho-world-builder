@@ -336,7 +336,7 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 
 const HOUSE_VARIANTS: TileType[] = ['house', 'house_blue', 'house_green', 'house_thatch'];
 const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch']);
-const MIN_BUILDING_SPACING = 8; // minimum tiles between any two buildings
+const MIN_BUILDING_SPACING = 12; // minimum tiles between any two buildings
 
 function isBuildingNearby(tiles: Tile[][], fx: number, fy: number, fw: number, fh: number): boolean {
   const checkPad = MIN_BUILDING_SPACING;
@@ -910,6 +910,7 @@ function placeForestGrove(tiles: Tile[][], f: MapFeature) {
 }
 
 function placeFort(tiles: Tile[][], f: MapFeature) {
+  if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
@@ -999,6 +1000,7 @@ function placeEnchantedGrove(tiles: Tile[][], f: MapFeature) {
 }
 
 function placeChurch(tiles: Tile[][], f: MapFeature) {
+  if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
@@ -1082,6 +1084,7 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
 }
 
 function placeCottage(tiles: Tile[][], f: MapFeature) {
+  if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
