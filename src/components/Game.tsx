@@ -54,6 +54,21 @@ const Game = () => {
   const healCooldowns = useRef<Map<string, number>>(new Map());
   const HEAL_COOLDOWN_MS = 30000; // 30 seconds
 
+  // Map markers system
+  const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
+  const mapMarkersRef = useRef<MapMarker[]>([]);
+  
+  const addMarkersFromText = useCallback((text: string, currentMap: string) => {
+    const existingIds = new Set(mapMarkersRef.current.map(m => m.id));
+    const newMarkers = extractMarkersFromText(text, currentMap, existingIds);
+    if (newMarkers.length > 0) {
+      const updated = [...mapMarkersRef.current, ...newMarkers];
+      mapMarkersRef.current = updated;
+      setMapMarkers(updated);
+      triggerMinimapUpdate(true);
+    }
+  }, []);
+
   const triggerUIUpdate = () => setUiVersion(prev => prev + 1);
   const triggerMinimapUpdate = (force: boolean = false, now: number = performance.now()) => {
     if (force || now - lastMinimapRefreshRef.current >= 120) {
