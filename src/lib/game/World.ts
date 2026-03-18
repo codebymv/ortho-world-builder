@@ -53,7 +53,8 @@ const OVERLAY_TYPES: Set<TileType> = new Set([
   'push_block', 'campfire', 'sign', 'well', 'tombstone', 'mushroom', 'stump',
   'fence', 'gate', 'barrel', 'crate', 'spike_trap', 'bones',
   'dead_tree', 'destroyed_house', 'statue',
-  'iron_fence', 'hedge', 'scarecrow', 'hay_bale', 'lantern'
+  'iron_fence', 'hedge', 'scarecrow', 'hay_bale', 'lantern',
+  'tall_grass', 'wheat'
 ]);
 
 const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
@@ -61,6 +62,7 @@ const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
   mushroom: 'grass',
   stump: 'grass',
   tree: 'grass',
+  tall_grass: 'grass',
   dead_tree: 'ash',
   rock: 'stone',
   chest: 'grass',
@@ -87,6 +89,7 @@ const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
   scarecrow: 'farmland',
   hay_bale: 'farmland',
   lantern: 'cobblestone',
+  wheat: 'farmland',
 };
 
 // Scale multipliers for overlay objects to make them proportionally correct
@@ -97,6 +100,7 @@ const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
   house_thatch: 2.0,
   destroyed_house: 2.0,
   tree: 1.8,
+  tall_grass: 0.9,
   dead_tree: 1.5,
   statue: 1.4,
   well: 1.2,
@@ -110,7 +114,7 @@ const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
   crate: 0.7,
   stump: 0.6,
   flower: 0.5,
-  mushroom: 0.5,
+  mushroom: 0.7,
   bones: 0.5,
   fence: 1.0,
   gate: 1.0,
@@ -121,36 +125,42 @@ const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
   scarecrow: 1.4,
   hay_bale: 0.7,
   lantern: 0.9,
+  wheat: 0.95,
 };
 
-const OVERLAY_FOOT_OFFSET: Partial<Record<TileType, number>> = {
-  house: 0.58,
-  house_blue: 0.58,
-  house_green: 0.58,
-  house_thatch: 0.54,
-  destroyed_house: 0.5,
-  tree: 0.52,
-  dead_tree: 0.48,
-  statue: 0.36,
-  well: 0.24,
+const OVERLAY_SORT_TRIM: Partial<Record<TileType, number>> = {
+  tree: 0.12,
+  dead_tree: 0.1,
+  house: 0.14,
+  house_blue: 0.14,
+  house_green: 0.14,
+  house_thatch: 0.12,
+  destroyed_house: 0.1,
+  statue: 0.08,
+  well: 0.18,
   portal: 0.2,
-  rock: 0.16,
-  chest: 0.12,
-  campfire: 0.08,
-  sign: 0.1,
-  tombstone: 0.14,
-  barrel: 0.1,
-  crate: 0.1,
-  stump: 0.08,
-  fence: 0.08,
-  gate: 0.08,
-  push_block: 0.12,
-  spike_trap: 0.06,
-  iron_fence: 0.08,
-  hedge: 0.1,
-  scarecrow: 0.3,
-  hay_bale: 0.08,
-  lantern: 0.12,
+  rock: 0.18,
+  chest: 0.16,
+  campfire: 0.2,
+  sign: 0.16,
+  tombstone: 0.16,
+  barrel: 0.16,
+  crate: 0.16,
+  stump: 0.16,
+  flower: 0.22,
+  mushroom: 0.2,
+  bones: 0.18,
+  fence: 0.22,
+  gate: 0.22,
+  push_block: 0.16,
+  spike_trap: 0.2,
+  iron_fence: 0.22,
+  hedge: 0.2,
+  scarecrow: 0.12,
+  hay_bale: 0.18,
+  lantern: 0.14,
+  tall_grass: 0.24,
+  wheat: 0.24,
 };
 
 // Seeded hash for deterministic detail placement
@@ -339,6 +349,10 @@ export class World {
           const group = this.overlayPool.pop() ?? new THREE.Group();
           group.clear();
           group.matrixAutoUpdate = false;
+          group.userData = {
+            tileType: tile.type,
+            sortAnchorY: null,
+          };
           const baseMesh = this.createPlaneMesh(texture, -0.5, `base_${tile.type}`);
           baseMesh.updateMatrix();
           decal.updateMatrix();
@@ -385,15 +399,18 @@ export class World {
     const group = this.overlayPool.pop() ?? new THREE.Group();
     group.clear();
     group.matrixAutoUpdate = false;
+    const scale = OVERLAY_SCALE[tile.type] ?? 1.0;
+    const sortTrim = OVERLAY_SORT_TRIM[tile.type] ?? 0.16;
+    const sortAnchorY = ((scale - 1) * this.tileSize * 0.3) - (scale * 0.5) + sortTrim;
+
     group.userData = {
       tileType: tile.type,
-      footOffset: OVERLAY_FOOT_OFFSET[tile.type] ?? 0,
+      sortAnchorY,
     };
 
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
     const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1, `overlay_${tile.type}`);
 
-    const scale = OVERLAY_SCALE[tile.type] ?? 1.0;
     if (scale !== 1.0) {
       overlayMesh.scale.set(scale, scale, 1);
       overlayMesh.position.y = (scale - 1) * this.tileSize * 0.3;
@@ -441,9 +458,9 @@ export class World {
         const isOverlay = OVERLAY_TYPES.has(tile.type);
         object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, 0);
         if (isOverlay) {
-          const footOffset = object.userData?.footOffset ?? 0;
-          const worldY = worldOffsetY + y * this.tileSize;
-          const ySort = Math.round(1000 + (this.map.height - (worldY - footOffset + this.map.height / 2)) * 10);
+          const sortAnchorY = object.userData?.sortAnchorY ?? 0;
+          const worldY = worldOffsetY + y * this.tileSize + sortAnchorY;
+          const ySort = Math.round(1000 + (this.map.height - (worldY + this.map.height / 2)) * 10);
           object.renderOrder = ySort;
           if (object instanceof THREE.Group) {
             for (const child of object.children) child.renderOrder = ySort;
@@ -522,9 +539,9 @@ export class World {
       const isOverlay = OVERLAY_TYPES.has(tile.type);
       object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, 0);
       if (isOverlay) {
-        const footOffset = object.userData?.footOffset ?? 0;
-        const worldY = worldOffsetY + y * this.tileSize;
-        const ySort = Math.round(1000 + (this.map.height - (worldY - footOffset + this.map.height / 2)) * 10);
+        const sortAnchorY = object.userData?.sortAnchorY ?? 0;
+        const worldY = worldOffsetY + y * this.tileSize + sortAnchorY;
+        const ySort = Math.round(1000 + (this.map.height - (worldY + this.map.height / 2)) * 10);
         object.renderOrder = ySort;
         if (object instanceof THREE.Group) {
           for (const child of object.children) child.renderOrder = ySort;
