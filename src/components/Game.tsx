@@ -1265,12 +1265,13 @@ const Game = () => {
         let visualRotation = 0;
 
         if (playerAnimState === 'walk') {
-          attackOffsetY += stride * 0.06;
-          if (facing4 === 'left') attackOffsetX -= stride * 0.04;
-          else if (facing4 === 'right') attackOffsetX += stride * 0.04;
-          visualScaleX *= 1 - stride * 0.035;
-          visualScaleY *= 1 + stride * 0.07;
-          visualRotation = moveWave * (facing4 === 'left' ? -0.035 : facing4 === 'right' ? 0.035 : 0.018);
+          const sprintMult = state.player.isSprinting ? 1.4 : 1.0;
+          attackOffsetY += stride * 0.06 * sprintMult;
+          if (facing4 === 'left') attackOffsetX -= stride * 0.04 * sprintMult;
+          else if (facing4 === 'right') attackOffsetX += stride * 0.04 * sprintMult;
+          visualScaleX *= 1 - stride * 0.035 * sprintMult;
+          visualScaleY *= 1 + stride * 0.07 * sprintMult;
+          visualRotation = moveWave * (facing4 === 'left' ? -0.035 : facing4 === 'right' ? 0.035 : 0.018) * sprintMult;
         }
 
         if (state.player.isDodging) {
