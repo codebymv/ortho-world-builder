@@ -1331,6 +1331,13 @@ const Game = () => {
           0.2
         );
 
+        // Update player shadow
+        playerShadow.position.set(
+          state.player.position.x + attackOffsetX,
+          state.player.position.y + attackOffsetY - 0.4,
+          -0.01
+        );
+
         // Dynamic Y-sorting for player
         playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
 
