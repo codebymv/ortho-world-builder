@@ -50,14 +50,40 @@ const OVERLAY_TYPES: Set<TileType> = new Set([
   'dead_tree', 'destroyed_house', 'statue'
 ]);
 
+const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
+  flower: 'grass',
+  mushroom: 'grass',
+  stump: 'grass',
+  tree: 'grass',
+  dead_tree: 'ash',
+  rock: 'stone',
+  chest: 'grass',
+  portal: 'stone',
+  push_block: 'stone',
+  campfire: 'dirt',
+  sign: 'dirt',
+  well: 'stone',
+  tombstone: 'grass',
+  fence: 'grass',
+  gate: 'dirt',
+  barrel: 'wood',
+  crate: 'wood',
+  spike_trap: 'stone',
+  bones: 'dirt',
+  house: 'dirt',
+  destroyed_house: 'ruins_floor',
+  statue: 'stone',
+};
+
 export class World {
   private map: WorldMap;
   private tileSize: number = 1;
   private scene: THREE.Scene;
   private assetManager: AssetManager;
   
-  private activeMeshes: Map<string, THREE.Mesh> = new Map();
+  private activeMeshes: Map<string, THREE.Object3D> = new Map();
   private meshPool: THREE.Mesh[] = [];
+  private overlayPool: THREE.Group[] = [];
   private lastChunkCenter: { x: number; y: number } = { x: -9999, y: -9999 };
   private readonly CHUNK_UPDATE_THRESHOLD = 2;
 
@@ -65,6 +91,69 @@ export class World {
     this.scene = scene;
     this.assetManager = assetManager;
     this.map = map;
+  }
+
+  private createPlaneMesh(texture: THREE.Texture, z: number): THREE.Mesh {
+    let mesh: THREE.Mesh;
+
+    if (this.meshPool.length > 0) {
+      mesh = this.meshPool.pop()!;
+      const material = mesh.material as THREE.MeshBasicMaterial;
+      material.map = texture;
+      material.transparent = true;
+      material.needsUpdate = true;
+    } else {
+      const geometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+      });
+      mesh = new THREE.Mesh(geometry, material);
+    }
+
+    mesh.position.z = z;
+    return mesh;
+  }
+
+  private createTileObject(tile: Tile): THREE.Object3D | null {
+    const isOverlay = OVERLAY_TYPES.has(tile.type);
+
+    if (!isOverlay) {
+      const texture = this.assetManager.getTexture(tile.type);
+      return texture ? this.createPlaneMesh(texture, -0.5) : null;
+    }
+
+    const overlayTexture = this.assetManager.getTexture(tile.type);
+    const baseType = OVERLAY_BASE_TILE[tile.type] ?? 'grass';
+    const baseTexture = this.assetManager.getTexture(baseType);
+    if (!overlayTexture || !baseTexture) return null;
+
+    const group = this.overlayPool.pop() ?? new THREE.Group();
+    group.clear();
+
+    const baseMesh = this.createPlaneMesh(baseTexture, -0.5);
+    const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1);
+
+    group.add(baseMesh, overlayMesh);
+    return group;
+  }
+
+  private recycleObject(object: THREE.Object3D) {
+    if (object instanceof THREE.Group) {
+      const children = [...object.children];
+      for (const child of children) {
+        object.remove(child);
+        if (child instanceof THREE.Mesh) {
+          this.meshPool.push(child);
+        }
+      }
+      this.overlayPool.push(object);
+      return;
+    }
+
+    if (object instanceof THREE.Mesh) {
+      this.meshPool.push(object);
+    }
   }
 
   updateChunks(playerWorldX: number, playerWorldY: number) {
@@ -89,10 +178,10 @@ export class World {
       }
     }
 
-    for (const [key, mesh] of this.activeMeshes) {
+    for (const [key, object] of this.activeMeshes) {
       if (!neededKeys.has(key)) {
-        this.scene.remove(mesh);
-        this.meshPool.push(mesh);
+        this.scene.remove(object);
+        this.recycleObject(object);
         this.activeMeshes.delete(key);
       }
     }
@@ -106,46 +195,27 @@ export class World {
         if (this.activeMeshes.has(key)) continue;
 
         const tile = this.map.tiles[y]?.[x];
-        if (!tile) continue;
-        if (tile.hidden) continue;
+        if (!tile || tile.hidden) continue;
 
-        const texture = this.assetManager.getTexture(tile.type);
-        if (!texture) continue;
+        const object = this.createTileObject(tile);
+        if (!object) continue;
 
-        const isOverlay = OVERLAY_TYPES.has(tile.type);
-        let mesh: THREE.Mesh;
-
-        if (this.meshPool.length > 0) {
-          mesh = this.meshPool.pop()!;
-          const mat = mesh.material as THREE.MeshBasicMaterial;
-          mat.map = texture;
-          mat.transparent = true;
-          mat.needsUpdate = true;
-        } else {
-          const geometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
-          const material = new THREE.MeshBasicMaterial({
-            map: texture,
-            transparent: true,
-          });
-          mesh = new THREE.Mesh(geometry, material);
-        }
-
-        mesh.position.set(
+        object.position.set(
           worldOffsetX + x * this.tileSize,
           worldOffsetY + y * this.tileSize,
-          isOverlay ? 0.1 : -0.5
+          0
         );
 
-        this.scene.add(mesh);
-        this.activeMeshes.set(key, mesh);
+        this.scene.add(object);
+        this.activeMeshes.set(key, object);
       }
     }
   }
 
   rebuildChunks() {
-    for (const [, mesh] of this.activeMeshes) {
-      this.scene.remove(mesh);
-      this.meshPool.push(mesh);
+    for (const [, object] of this.activeMeshes) {
+      this.scene.remove(object);
+      this.recycleObject(object);
     }
     this.activeMeshes.clear();
     this.lastChunkCenter = { x: -9999, y: -9999 };
@@ -249,10 +319,19 @@ export class World {
   }
 
   dispose() {
-    for (const [, mesh] of this.activeMeshes) {
-      this.scene.remove(mesh);
-      mesh.geometry.dispose();
-      (mesh.material as THREE.Material).dispose();
+    for (const [, object] of this.activeMeshes) {
+      this.scene.remove(object);
+      if (object instanceof THREE.Group) {
+        for (const child of object.children) {
+          if (child instanceof THREE.Mesh) {
+            child.geometry.dispose();
+            (child.material as THREE.Material).dispose();
+          }
+        }
+      } else if (object instanceof THREE.Mesh) {
+        object.geometry.dispose();
+        (object.material as THREE.Material).dispose();
+      }
     }
     this.activeMeshes.clear();
     
@@ -261,5 +340,6 @@ export class World {
       (mesh.material as THREE.Material).dispose();
     }
     this.meshPool = [];
+    this.overlayPool = [];
   }
 }
