@@ -1082,6 +1082,7 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
 }
 
 function placeCottage(tiles: Tile[][], f: MapFeature) {
+  if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
