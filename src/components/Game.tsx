@@ -1262,6 +1262,8 @@ const Game = () => {
       particleSystem.cleanup();
       biomeAmbience.cleanup();
       weatherSystem.cleanup();
+      dayNightCycle.cleanup();
+      floatingText.cleanup();
       renderer.dispose();
     };
   }, []);
