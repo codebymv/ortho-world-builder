@@ -569,7 +569,95 @@ function placeVolcano(tiles: Tile[][], f: MapFeature) {
   }
 }
 
-function placePortals(tiles: Tile[][], def: MapDefinition) {
+function placeBossArena(tiles: Tile[][], f: MapFeature) {
+  const cx = f.x + Math.floor(f.width / 2);
+  const cy = f.y + Math.floor(f.height / 2);
+  const rx = f.width / 2;
+  const ry = f.height / 2;
+
+  for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++) {
+    for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
+      const tx = Math.floor(cx + dx);
+      const ty = Math.floor(cy + dy);
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        const dist = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+        if (dist < 0.7) {
+          tiles[ty][tx] = createTile('stone', true);
+        } else if (dist < 1.0) {
+          // Ring of pillars/statues
+          if ((dx + dy) % 5 === 0) {
+            tiles[ty][tx] = createTile('statue', false);
+          } else {
+            tiles[ty][tx] = createTile('ruins_floor', true);
+          }
+        }
+      }
+    }
+  }
+  // Central marker
+  if (cy < tiles.length && cx < tiles[0].length) {
+    tiles[cy][cx] = createTile('campfire', false, { interactable: true, interactionId: f.interactionId || 'boss_summon' });
+  }
+}
+
+function placeAbandonedCamp(tiles: Tile[][], f: MapFeature) {
+  // Overgrown abandoned camp with scattered supplies
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        if ((dx * 3 + dy * 7) % 11 === 0) {
+          tiles[ty][tx] = createTile('barrel', false);
+        } else if ((dx + dy * 5) % 13 === 0) {
+          tiles[ty][tx] = createTile('crate', false);
+        } else if ((dx * 2 + dy) % 9 === 0) {
+          tiles[ty][tx] = createTile('bones', true);
+        } else if ((dx + dy) % 7 === 0) {
+          tiles[ty][tx] = createTile('tall_grass', true);
+        } else {
+          tiles[ty][tx] = createTile('dirt', true);
+        }
+      }
+    }
+  }
+  // Extinguished campfire center
+  const ccx = f.x + Math.floor(f.width / 2);
+  const ccy = f.y + Math.floor(f.height / 2);
+  if (ccy < tiles.length && ccx < tiles[0].length) {
+    tiles[ccy][ccx] = createTile('stump', false, { interactable: true, interactionId: f.interactionId || 'abandoned_camp' });
+  }
+}
+
+function placeCemetery(tiles: Tile[][], f: MapFeature) {
+  // Fenced cemetery with orderly tombstones, dead trees, and bones
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        // Fence border
+        if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
+          if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
+            tiles[ty][tx] = createTile('gate', true);
+          } else {
+            tiles[ty][tx] = createTile('fence', false);
+          }
+        } else if (dx % 3 === 1 && dy % 3 === 1) {
+          tiles[ty][tx] = createTile('tombstone', false, { interactable: true, interactionId: 'tombstone' });
+        } else if (dx === Math.floor(f.width / 2) && dy === Math.floor(f.height / 2)) {
+          tiles[ty][tx] = createTile('dead_tree', false);
+        } else if ((dx + dy * 3) % 17 === 0) {
+          tiles[ty][tx] = createTile('bones', true);
+        } else {
+          tiles[ty][tx] = createTile('dirt', true);
+        }
+      }
+    }
+  }
+}
+
+
   for (const portal of def.portals) {
     if (portal.y < tiles.length && portal.x < tiles[0].length) {
       tiles[portal.y][portal.x] = createTile('portal', true, {
