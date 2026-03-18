@@ -223,6 +223,7 @@ export class CombatSystem {
     const toRemove = new Set(ids);
     const removed = this.enemies.filter(e => toRemove.has(e.id));
     this.enemies = this.enemies.filter(e => !toRemove.has(e.id));
+    this._enemiesDirty = true;
     return removed;
   }
 
