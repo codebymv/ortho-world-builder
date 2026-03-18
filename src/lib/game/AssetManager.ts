@@ -189,13 +189,24 @@ export class AssetManager {
         cell(m(11), dy + bob, p.capeDark);
         if (dy > 9) cell(m(12), dy + bob, p.capeDark);
       }
-      // Sword
+      // Sword - long imposing blade
+      const BLADE = 0xC0D0E0;
+      const BLADE_H = 0xF0F4FF;
+      const BLADE_E = 0x90A8C0;
+      const GUARD = p.trimColor;
+      const GRIP = 0x5D4037;
       if (atkFrame >= 1) {
-        cell(m(3), 4 + bob, 0xD8E0E8); cell(m(3), 3 + bob, 0xD8E0E8); cell(m(3), 2 + bob, 0xF0F4FF);
-        cell(m(3), 5 + bob, p.trimColor);
+        // Swing pose - sword extended outward
+        cell(m(2), 1 + bob, BLADE_H); cell(m(2), 2 + bob, BLADE); cell(m(2), 3 + bob, BLADE);
+        cell(m(3), 4 + bob, BLADE_E); cell(m(3), 5 + bob, GUARD);
+        cell(m(3), 6 + bob, GRIP);
+        cell(m(1), 1 + bob, BLADE_E); // edge glint
       } else {
-        cell(m(4), 8 + bob, 0xD8E0E8); cell(m(4), 7 + bob, 0xD8E0E8); cell(m(4), 6 + bob, 0xF0F4FF);
-        cell(m(4), 9 + bob, p.trimColor);
+        // Resting at side - long blade pointing down
+        cell(m(4), 4 + bob, BLADE_H); cell(m(4), 5 + bob, BLADE); cell(m(4), 6 + bob, BLADE);
+        cell(m(4), 7 + bob, BLADE_E); cell(m(4), 8 + bob, GUARD);
+        cell(m(4), 9 + bob, GRIP); cell(m(4), 10 + bob, GRIP);
+        cell(m(3), 5 + bob, BLADE_E); // edge glint
       }
       // Hair back
       cell(m(9), 0, p.hairDark); cell(m(10), 1, p.hairDark); cell(m(10), 2, p.hairDark);
