@@ -1063,6 +1063,15 @@ const Game = () => {
         }
       }
 
+      // Project active NPC world pos to screen for chat bubble
+      if (activeNpcWorldPos.current && state.dialogueActive) {
+        const worldPos = new THREE.Vector3(activeNpcWorldPos.current.x, activeNpcWorldPos.current.y + 1.2, 0);
+        worldPos.project(camera);
+        const sx = (worldPos.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+        const sy = (-worldPos.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+        setNpcScreenPos({ x: sx, y: sy });
+      }
+
       // Update systems
       biomeAmbience.update(deltaTime, state.player.position.x, state.player.position.y);
       particleSystem.update(deltaTime);
