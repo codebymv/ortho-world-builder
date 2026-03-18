@@ -736,8 +736,8 @@ export class AssetManager {
       [C,    C,    GOL_D,GOL_S,GOL,  C,   C,   GOL, GOL_S,GOL_D,C,    C],
     ]));
 
-    this.textures.set('enemy_golem_telegraph', this.textures.get('enemy_golem')!);
-    this.textures.set('enemy_golem_attack', this.textures.get('enemy_golem')!);
+    this.registerTexture('enemy_golem_telegraph', () => this.getTexture('enemy_golem')!);
+    this.registerTexture('enemy_golem_attack', () => this.getTexture('enemy_golem')!);
 
     // ========== Interaction indicator sprite ==========
     this.textures.set('interact_indicator', this.createSpriteTexture([
