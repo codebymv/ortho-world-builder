@@ -8,6 +8,7 @@ interface GameUIProps {
   gameState: GameState;
   refreshToken: number;
   musicRef: React.RefObject<HTMLAudioElement | null>;
+  showControls?: boolean;
 }
 
 export const GameUI = ({ gameState, refreshToken, musicRef }: GameUIProps) => {
