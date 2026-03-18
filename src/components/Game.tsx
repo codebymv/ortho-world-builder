@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { GameState, NPC } from '@/lib/game/GameState';
-import { AssetManager } from '@/lib/game/AssetManager';
+import { AssetManager, SharedGeometry } from '@/lib/game/AssetManager';
 import { World } from '@/lib/game/World';
 import { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { BiomeAmbience } from '@/lib/game/BiomeAmbience';
