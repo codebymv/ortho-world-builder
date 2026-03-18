@@ -693,7 +693,7 @@ const Game = () => {
           world.updateChunks(state.player.position.x, state.player.position.y);
           state.player.isMoving = true;
 
-          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge') {
+          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge' && playerAnimState !== 'spin_attack') {
             playerAnimState = 'walk';
           }
 
