@@ -800,6 +800,15 @@ export class AssetManager {
     this.textures.set('ruins_floor', this.createColorTexture(0x6D4C41, 32, 32, 'checker'));
     this.textures.set('waterfall', this.createColorTexture(0x42A5F5, 32, 32, 'noise'));
     this.textures.set('snow', this.createColorTexture(0xECEFF1, 32, 32, 'noise'));
+    
+    // New terrain tiles
+    this.textures.set('cliff', this.createColorTexture(0x5D4037, 32, 32, 'gradient'));
+    this.textures.set('cliff_edge', this.createColorTexture(0x4E342E, 32, 32, 'gradient'));
+    this.textures.set('cobblestone', this.createColorTexture(0x9E9E9E, 32, 32, 'checker'));
+    this.textures.set('farmland', this.createColorTexture(0x6D4C41, 32, 32, 'noise'));
+    this.textures.set('dark_grass', this.createColorTexture(0x2E7D32, 32, 32, 'noise'));
+    this.textures.set('mossy_stone', this.createColorTexture(0x607060, 32, 32, 'checker'));
+    this.textures.set('wooden_path', this.createColorTexture(0x8D6E63, 32, 32, 'gradient'));
 
     // ========== OBJECTS ==========
     const TRUNK = 0x5D4037;
