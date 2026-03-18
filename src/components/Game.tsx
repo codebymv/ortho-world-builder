@@ -190,7 +190,7 @@ const Game = () => {
       portalCooldown = 0.5;
     };
 
-    const playerGeometry = new THREE.PlaneGeometry(1.0, 1.17);
+    const playerGeometry = new THREE.PlaneGeometry(1.0, 1.25);
     const playerTexture = assetManager.getTexture('player_down_idle_0');
     const playerMaterial = new THREE.MeshBasicMaterial({
       map: playerTexture,
