@@ -270,6 +270,7 @@ export class World {
           worldOffsetY + y * this.tileSize,
           0
         );
+        object.updateMatrix();
 
         this.scene.add(object);
         this.activeMeshes.set(key, object);
