@@ -481,12 +481,12 @@ const Game = () => {
 
     const checkInteraction = () => {
       const interactionRange = 1.5;
+      const interactionRangeSq = interactionRange * interactionRange;
       for (const npc of state.npcs) {
-        const distance = Math.sqrt(
-          Math.pow(state.player.position.x - npc.position.x, 2) +
-          Math.pow(state.player.position.y - npc.position.y, 2)
-        );
-        if (distance < interactionRange) {
+        const dx = state.player.position.x - npc.position.x;
+        const dy = state.player.position.y - npc.position.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < interactionRangeSq) {
           startDialogue(npc.dialogueId, npc.name);
           return;
         }
