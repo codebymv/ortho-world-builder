@@ -1509,6 +1509,8 @@ const Game = () => {
     
     if (nextNode) {
       setCurrentDialogue({ node: nextNode, npcName: currentDialogue.npcName });
+      // Extract map markers from new dialogue text
+      addMarkersFromText(nextNode.text, gameState.currentMap);
     }
   };
 
