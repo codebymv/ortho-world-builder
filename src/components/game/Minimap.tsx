@@ -51,7 +51,7 @@ export const Minimap = ({ currentMap, playerPosition, visitedTiles, npcs }: Mini
           }
 
           ctx.fillStyle = color;
-          ctx.fillRect(x * scale, y * scale, scale, scale);
+          ctx.fillRect(x * scale, (currentMap.height - 1 - y) * scale, scale, scale);
         }
       }
     }
