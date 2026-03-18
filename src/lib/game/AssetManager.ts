@@ -640,7 +640,12 @@ export class AssetManager {
     this.textures.set('player_left', this.textures.get('player_left_idle_0')!);
     this.textures.set('player_right', this.textures.get('player_right_idle_0')!);
 
-    // ========== NPC SPRITES - Chibi Anime Style (matching protagonist proportions) ==========
+    // Shared NPC palette constants
+    const SK = 0xFFE0BD; const SK_H = 0xFFF0D8; const SK_S = 0xE8C4A0; const SK_D = 0xD4A878;
+    const EY_W = 0xFFFFFF; const BROW = 0x503018; const MOUTH = 0xD06050;
+    const PANT = 0x5A4030; const BOOT = 0x6B4428; const BOOT_H = 0x8B6040; const BOOT_S = 0x503018;
+
+    // ========== NPC SPRITES - Chibi Anime Style ==========
     const NPC_W = 14; // NPCs use 14-wide sprites at cellSize 3
 
     // Elder - wise old man, long white beard, purple robes, crystal staff
