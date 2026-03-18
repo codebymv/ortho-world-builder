@@ -1935,15 +1935,40 @@ const Game = () => {
     }
   }, []);
 
-  // Unlock and play music on first user interaction
+  // Music system with per-map tracks
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const musicStarted = useRef(false);
+  const currentTrackRef = useRef<string>('');
+
+  const MAP_MUSIC: Record<string, string> = {
+    forest: '/audio/wood_theme.mp3',
+  };
+  const DEFAULT_MUSIC = '/audio/ortho_loop2.mp3';
+
+  const switchMusicTrack = useCallback((mapId: string) => {
+    const track = MAP_MUSIC[mapId] || DEFAULT_MUSIC;
+    if (currentTrackRef.current === track) return;
+    currentTrackRef.current = track;
+    const audio = musicRef.current;
+    if (!audio) return;
+    const wasMuted = audio.muted;
+    audio.pause();
+    audio.src = track;
+    audio.loop = true;
+    audio.volume = 0.15;
+    audio.muted = wasMuted;
+    if (musicStarted.current) {
+      audio.play().catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
-    const audio = new Audio('/audio/ortho_loop2.mp3');
+    const startTrack = gameState ? (MAP_MUSIC[gameState.currentMap] || DEFAULT_MUSIC) : DEFAULT_MUSIC;
+    const audio = new Audio(startTrack);
     audio.loop = true;
     audio.volume = 0.15;
     musicRef.current = audio;
+    currentTrackRef.current = startTrack;
 
     const startMusic = () => {
       if (musicStarted.current) return;
