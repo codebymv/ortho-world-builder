@@ -225,11 +225,7 @@ export class AssetManager {
       // Re-draw skin highlight on forehead
       cell(m(7), 1, p.skinLight);
       // Mouth
-      if (state === 'attack') {
-        cell(m(6), 5, 0xB03020);
-      } else {
-        cell(m(6), 5, p.skinShadow);
-      }
+      cell(m(6), 5, p.skinShadow);
       // Neck
       cell(m(7), 6, p.skinShadow); cell(m(8), 6, p.skinShadow);
       // Body
