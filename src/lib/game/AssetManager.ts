@@ -528,7 +528,7 @@ export class AssetManager {
       pantColor: 0x5A4030, pantDark: 0x3E2818,
       bootColor: 0x485060, bootDark: 0x37474F,
     };
-    this.textures.set('npc_guard', this.createChibiCharacter('down', 'idle', 0, guardPalette));
+    this.registerTexture('npc_guard', () => this.createChibiCharacter('down', 'idle', 0, guardPalette));
 
     // ========== ENEMY SPRITES ==========
     const WOLF_FUR = 0x616161;
