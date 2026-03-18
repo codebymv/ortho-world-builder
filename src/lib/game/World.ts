@@ -126,7 +126,7 @@ export class World {
   private meshPool: THREE.Mesh[] = [];
   private overlayPool: THREE.Group[] = [];
   private lastChunkCenter: { x: number; y: number } = { x: -9999, y: -9999 };
-  private readonly CHUNK_UPDATE_THRESHOLD = 4;
+  private readonly CHUNK_UPDATE_THRESHOLD = 1;
 
   constructor(scene: THREE.Scene, assetManager: AssetManager, map: WorldMap) {
     this.scene = scene;
