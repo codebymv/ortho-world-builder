@@ -1353,8 +1353,8 @@ const Game = () => {
         }
 
         // Check if player died — death penalty
-        if (state.player.health <= 0 && !playerDead) {
-          playerDead = true;
+        if (state.player.health <= 0 && !playerDeadRef.current) {
+          playerDeadRef.current = true;
           const goldLoss = Math.floor(state.player.gold * 0.1);
           state.player.gold -= goldLoss;
           setDeathGoldLost(goldLoss);
