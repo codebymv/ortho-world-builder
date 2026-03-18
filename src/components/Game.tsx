@@ -103,7 +103,7 @@ const Game = () => {
     let animTimer = 0;
     const IDLE_FRAME_DURATION = 0.8;
     const WALK_FRAME_DURATION = 0.18;
-    let playerAnimState: 'idle' | 'walk' | 'attack' | 'dodge' | 'charge' | 'hurt' = 'idle';
+    let playerAnimState: 'idle' | 'walk' | 'attack' | 'dodge' | 'charge' | 'hurt' | 'spin_attack' = 'idle';
     let attackFrameTimer = 0;
     let attackFrame = 0;
     const ATTACK_FRAME_DURATION = 0.1;
@@ -116,6 +116,12 @@ const Game = () => {
     const CHARGE_TIME_MAX = 1.2;    // fully charged
     const CHARGE_DAMAGE_MULT = 2.5; // damage multiplier at full charge
     let chargeLevel = 0; // 0-1
+
+    // Spin attack animation state
+    const SPIN_DIRECTIONS: Direction8[] = ['down', 'left', 'up', 'right', 'down', 'left', 'up', 'right'];
+    let spinDirIndex = 0;
+    let spinFrameTimer = 0;
+    const SPIN_FRAME_DURATION = 0.06; // Very fast frame cycling for spin
 
     // Map biome lookup
     const mapBiomes: Record<string, string> = {
