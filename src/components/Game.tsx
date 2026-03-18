@@ -1072,7 +1072,17 @@ const Game = () => {
           currentDir8 = rawDir;
           state.player.direction = dir8to4(rawDir);
 
-          const frameSpeed = state.player.speed * deltaTime * 60;
+          // Sprint: hold shift while moving (not dodging)
+          const wantsSprint = keys['shift'] && !dodgeBuffered && state.player.stamina > 0;
+          state.player.isSprinting = wantsSprint;
+          const currentSpeed = wantsSprint ? state.player.sprintSpeed : state.player.speed;
+          if (wantsSprint) {
+            state.player.stamina = Math.max(0, state.player.stamina - 20 * deltaTime);
+            state.player.lastStaminaUseTime = currentTime / 1000;
+            if (state.player.stamina <= 0) state.player.isSprinting = false;
+          }
+
+          const frameSpeed = currentSpeed * deltaTime * 60;
           const newPos = {
             x: state.player.position.x + moveX * frameSpeed,
             y: state.player.position.y + moveY * frameSpeed,
