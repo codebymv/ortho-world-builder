@@ -7,7 +7,9 @@ export type TileType =
   | 'tall_grass' | 'bridge' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
   | 'campfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
-  | 'fence' | 'gate' | 'barrel' | 'crate' | 'spike_trap' | 'bones';
+  | 'fence' | 'gate' | 'barrel' | 'crate' | 'spike_trap' | 'bones'
+  | 'volcanic_rock' | 'ash' | 'ruins_floor' | 'waterfall' | 'snow'
+  | 'dead_tree' | 'destroyed_house' | 'statue';
 
 export interface Tile {
   type: TileType;
@@ -19,10 +21,10 @@ export interface Tile {
     targetX: number;
     targetY: number;
   };
-  hidden?: boolean; // for secret areas - becomes visible when discovered
-  linkedTo?: string; // for pressure plates/switches linking to doors
-  pushable?: boolean; // for push blocks
-  activated?: boolean; // for switches/plates
+  hidden?: boolean;
+  linkedTo?: string;
+  pushable?: boolean;
+  activated?: boolean;
 }
 
 export interface WorldMap {
@@ -33,7 +35,6 @@ export interface WorldMap {
   spawnPoint: { x: number; y: number };
 }
 
-// Mesh pool entry
 interface ChunkMesh {
   mesh: THREE.Mesh;
   tileX: number;
@@ -41,11 +42,12 @@ interface ChunkMesh {
   active: boolean;
 }
 
-const RENDER_RADIUS = 18; // tiles around the player to render
+const RENDER_RADIUS = 18;
 const OVERLAY_TYPES: Set<TileType> = new Set([
   'tree', 'house', 'rock', 'chest', 'portal', 'flower',
   'push_block', 'campfire', 'sign', 'well', 'tombstone', 'mushroom', 'stump',
-  'fence', 'gate', 'barrel', 'crate', 'spike_trap', 'bones'
+  'fence', 'gate', 'barrel', 'crate', 'spike_trap', 'bones',
+  'dead_tree', 'destroyed_house', 'statue'
 ]);
 
 export class World {
@@ -54,11 +56,10 @@ export class World {
   private scene: THREE.Scene;
   private assetManager: AssetManager;
   
-  // Chunk rendering
   private activeMeshes: Map<string, THREE.Mesh> = new Map();
   private meshPool: THREE.Mesh[] = [];
   private lastChunkCenter: { x: number; y: number } = { x: -9999, y: -9999 };
-  private readonly CHUNK_UPDATE_THRESHOLD = 2; // retrigger when player moves 2+ tiles
+  private readonly CHUNK_UPDATE_THRESHOLD = 2;
 
   constructor(scene: THREE.Scene, assetManager: AssetManager, map: WorldMap) {
     this.scene = scene;
@@ -66,7 +67,6 @@ export class World {
     this.map = map;
   }
 
-  // Call every frame with player world position
   updateChunks(playerWorldX: number, playerWorldY: number) {
     const centerTileX = Math.floor(playerWorldX + this.map.width / 2);
     const centerTileY = Math.floor(playerWorldY + this.map.height / 2);
@@ -82,7 +82,6 @@ export class World {
     const startY = Math.max(0, centerTileY - RENDER_RADIUS);
     const endY = Math.min(this.map.height - 1, centerTileY + RENDER_RADIUS);
 
-    // Track which keys should be visible
     const neededKeys = new Set<string>();
     for (let y = startY; y <= endY; y++) {
       for (let x = startX; x <= endX; x++) {
@@ -90,7 +89,6 @@ export class World {
       }
     }
 
-    // Remove meshes that are out of range
     for (const [key, mesh] of this.activeMeshes) {
       if (!neededKeys.has(key)) {
         this.scene.remove(mesh);
@@ -99,7 +97,6 @@ export class World {
       }
     }
 
-    // Add meshes for new tiles in range
     const worldOffsetX = -this.map.width / 2;
     const worldOffsetY = -this.map.height / 2;
 
@@ -110,7 +107,7 @@ export class World {
 
         const tile = this.map.tiles[y]?.[x];
         if (!tile) continue;
-        if (tile.hidden) continue; // don't render hidden tiles
+        if (tile.hidden) continue;
 
         const texture = this.assetManager.getTexture(tile.type);
         if (!texture) continue;
@@ -145,9 +142,7 @@ export class World {
     }
   }
 
-  // Force full rebuild (used on map transitions)
   rebuildChunks() {
-    // Clear everything
     for (const [, mesh] of this.activeMeshes) {
       this.scene.remove(mesh);
       this.meshPool.push(mesh);
@@ -189,7 +184,6 @@ export class World {
     return tile?.transition || null;
   }
 
-  // Push block mechanics
   tryPushBlock(playerX: number, playerY: number, direction: { x: number; y: number }): boolean {
     const blockTileX = Math.floor(playerX + direction.x + this.map.width / 2);
     const blockTileY = Math.floor(playerY + direction.y + this.map.height / 2);
@@ -203,11 +197,9 @@ export class World {
     
     if (!targetTile || !targetTile.walkable) return false;
 
-    // Move the block
     this.map.tiles[blockTileY][blockTileX] = { type: 'stone', walkable: true };
     this.map.tiles[targetTileY][targetTileX] = { type: 'push_block', walkable: false, pushable: true };
 
-    // Check if block landed on a pressure plate target
     if (targetTile.type === 'pressure_plate' && targetTile.linkedTo) {
       this.activateSwitch(targetTile.linkedTo);
     }
@@ -216,21 +208,19 @@ export class World {
     return true;
   }
 
-  // Activate switch/pressure plate
   activateSwitch(doorId: string) {
     for (let y = 0; y < this.map.height; y++) {
       for (let x = 0; x < this.map.width; x++) {
         const tile = this.map.tiles[y][x];
         if (tile.type === 'switch_door' && tile.interactionId === doorId) {
           tile.walkable = true;
-          tile.type = 'stone'; // door opens
+          tile.type = 'stone';
           tile.activated = true;
         }
       }
     }
   }
 
-  // Reveal hidden area
   revealHiddenArea(centerX: number, centerY: number, radius: number = 3) {
     const tileX = Math.floor(centerX + this.map.width / 2);
     const tileY = Math.floor(centerY + this.map.height / 2);
