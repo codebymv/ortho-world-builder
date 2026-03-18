@@ -395,9 +395,13 @@ export class World {
     const group = this.overlayPool.pop() ?? new THREE.Group();
     group.clear();
     group.matrixAutoUpdate = false;
+    const scale = OVERLAY_SCALE[tile.type] ?? 1.0;
+    const sortTrim = OVERLAY_SORT_TRIM[tile.type] ?? 0.16;
+    const sortAnchorY = ((scale - 1) * this.tileSize * 0.3) - (scale * 0.5) + sortTrim;
+
     group.userData = {
       tileType: tile.type,
-      footOffset: OVERLAY_FOOT_OFFSET[tile.type] ?? 0,
+      sortAnchorY,
     };
 
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
