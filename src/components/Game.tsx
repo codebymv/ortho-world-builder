@@ -1373,8 +1373,8 @@ const Game = () => {
           playerMaterial.color.setHex(0xaaaaff);
           playerMaterial.opacity = 0.6;
         } else if (isChargingAttack && chargeLevel > 0) {
-          const glow = Math.sin(currentTime / 100) > 0 ? 0xFFD700 : 0xFFA000;
-          playerMaterial.color.setHex(glow);
+          // No glow — keep natural color during charge
+          playerMaterial.color.setHex(0xffffff);
           playerMaterial.opacity = 1;
         } else {
           playerMaterial.color.setHex(0xffffff);
