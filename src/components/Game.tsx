@@ -423,11 +423,13 @@ const Game = () => {
 
         const died = combatSystem.playerAttack(target, state.player.attackDamage);
 
-        if (target.state === 'recovering' || (target.health > 0 && target.damageFlashTimer > 0)) {
-          particleSystem.emitDamage(
-            new THREE.Vector3(target.position.x, target.position.y + 0.5, 0.5)
-          );
-        }
+        // Combat juice: screen shake + floating damage number
+        const dmgDealt = target.damageFlashTimer > 0 ? state.player.attackDamage : state.player.attackDamage;
+        const isCrit = target.state === 'recovering';
+        const actualDmg = isCrit ? Math.floor(state.player.attackDamage * 1.5) : state.player.attackDamage;
+        floatingText.spawnDamage(target.position.x, target.position.y, actualDmg, isCrit);
+        screenShake.shake(isCrit ? 0.2 : 0.1, isCrit ? 0.15 : 0.08);
+        if (isCrit) screenShake.hitStop(0.05);
 
         particleSystem.emitDamage(
           new THREE.Vector3(target.position.x, target.position.y, 0.3)
