@@ -721,7 +721,7 @@ const Game = () => {
           const tileKey = `${tileX},${tileY}`;
           if (!visitedTilesRef.current.has(tileKey)) {
             visitedTilesRef.current.add(tileKey);
-            setVisitedTilesVersion(v => v + 1);
+            triggerMinimapUpdate(false, currentTime);
           }
 
           if (portalCooldown > 0) {
