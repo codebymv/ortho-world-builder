@@ -1136,17 +1136,42 @@ const LAND_DECORATIONS: Set<TileType> = new Set([
   'stump', 'bones', 'scarecrow', 'hay_bale', 'tombstone',
 ]);
 
-function cleanupIllogicalPlacements(tiles: Tile[][]) {
+// Path-type tiles that trees/rocks should be cleared away from
+const PATH_TILES: Set<TileType> = new Set([
+  'dirt', 'cobblestone', 'wooden_path', 'bridge', 'sand',
+]);
+
+// How far from paths to clear blocking objects (trees, rocks)
+const PATH_CLEAR_RADIUS = 2;
+
+// Objects that block paths and should be cleared near roads
+const PATH_BLOCKERS: Set<TileType> = new Set([
+  'tree', 'rock', 'stump', 'dead_tree', 'hedge',
+]);
+
+function cleanupIllogicalPlacements(tiles: Tile[][], def: MapDefinition) {
   const h = tiles.length;
   const w = tiles[0].length;
+
+  // First pass: identify all path tiles
+  const isPathTile = new Uint8Array(h * w);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (PATH_TILES.has(tiles[y][x].type)) {
+        isPathTile[y * w + x] = 1;
+      }
+    }
+  }
+
+  // Determine if this is a heavily forested map (forest biome gets reduced clearing)
+  const isForestBiome = def.baseTerrain === 'forest';
 
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const tile = tiles[y][x];
 
-      // Remove land decorations sitting on incompatible terrain
+      // Remove land decorations near water/lava
       if (LAND_DECORATIONS.has(tile.type)) {
-        // Check if any neighbor (including self base) is water/lava
         let onBadTerrain = false;
         for (let dy = -1; dy <= 1; dy++) {
           for (let dx = -1; dx <= 1; dx++) {
@@ -1160,8 +1185,28 @@ function cleanupIllogicalPlacements(tiles: Tile[][]) {
           }
         }
         if (onBadTerrain) {
-          // Replace with appropriate base tile
           tiles[y][x] = createTile('sand', true);
+          continue;
+        }
+      }
+
+      // Clear trees/rocks near paths (reduced radius in forest biomes)
+      if (PATH_BLOCKERS.has(tile.type)) {
+        const clearRadius = isForestBiome ? 1 : PATH_CLEAR_RADIUS;
+        let nearPath = false;
+        for (let dy = -clearRadius; dy <= clearRadius && !nearPath; dy++) {
+          for (let dx = -clearRadius; dx <= clearRadius && !nearPath; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (ny >= 0 && ny < h && nx >= 0 && nx < w) {
+              if (isPathTile[ny * w + nx]) {
+                nearPath = true;
+              }
+            }
+          }
+        }
+        if (nearPath) {
+          tiles[y][x] = createTile('grass', true);
         }
       }
 
