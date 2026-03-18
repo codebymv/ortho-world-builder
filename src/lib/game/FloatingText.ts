@@ -117,9 +117,11 @@ export class FloatingTextSystem {
   cleanup() {
     for (const e of this.entries) {
       this.scene.remove(e.mesh);
-      e.mesh.geometry.dispose();
-      (e.mesh.material as THREE.Material).dispose();
+      const mat = e.mesh.material as THREE.MeshBasicMaterial;
+      if (mat.map) mat.map.dispose();
+      mat.dispose();
     }
+    this.sharedGeometry.dispose();
     this.entries = [];
   }
 }
