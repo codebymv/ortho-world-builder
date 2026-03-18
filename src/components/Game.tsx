@@ -235,7 +235,16 @@ const Game = () => {
       }
       if (e.key === ' ' && !state.dialogueActive) {
         e.preventDefault();
-        attackBuffered = true;
+        // Start charging instead of immediate attack
+        if (!isChargingAttack && !state.player.isDodging && playerAnimState !== 'attack') {
+          const currentTime = Date.now();
+          if (currentTime - state.player.lastAttackTime >= state.player.attackCooldown) {
+            isChargingAttack = true;
+            chargeTimer = 0;
+            chargeLevel = 0;
+            playerAnimState = 'charge';
+          }
+        }
       }
       if (e.key === 'Shift' && !state.dialogueActive) {
         dodgeBuffered = true;
@@ -246,6 +255,17 @@ const Game = () => {
       keys[e.key.toLowerCase()] = false;
       if (e.key === 'Shift') {
         keys['shift'] = false;
+      }
+      if (e.key === ' ' && isChargingAttack) {
+        // Release: perform attack (charged or normal)
+        if (chargeTimer >= CHARGE_TIME_MIN) {
+          performChargeAttack(chargeLevel);
+        } else {
+          performAttack();
+        }
+        isChargingAttack = false;
+        chargeTimer = 0;
+        chargeLevel = 0;
       }
     };
 
