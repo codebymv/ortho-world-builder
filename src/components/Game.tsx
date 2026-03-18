@@ -1001,7 +1001,6 @@ const Game = () => {
 
               if (deadMat.opacity <= 0) {
                 scene.remove(mesh);
-                mesh.geometry.dispose();
                 deadMat.dispose();
                 enemyMeshes.delete(enemy.id);
 
@@ -1010,9 +1009,7 @@ const Game = () => {
                 if (hpBar) {
                   scene.remove(hpBar.bg);
                   scene.remove(hpBar.fill);
-                  hpBar.bg.geometry.dispose();
                   (hpBar.bg.material as THREE.Material).dispose();
-                  hpBar.fill.geometry.dispose();
                   (hpBar.fill.material as THREE.Material).dispose();
                   enemyHPBars.delete(enemy.id);
                 }
