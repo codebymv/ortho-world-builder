@@ -448,18 +448,19 @@ const Game = () => {
     playerShadow.renderOrder = 1;
     scene.add(playerShadow);
 
-    // === OUTLINE SYSTEM — thin colored silhouette behind each sprite ===
-    const createOutlineMesh = (geometry: THREE.BufferGeometry, color: number, outlineScale: number = 1.08) => {
+    // === OUTLINE SYSTEM — thin dark silhouette behind each sprite ===
+    const createOutlineMesh = (geometry: THREE.BufferGeometry, texture: THREE.Texture | null) => {
       const outlineMat = new THREE.MeshBasicMaterial({
-        color,
+        map: texture,
+        color: 0x222222,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.45,
         depthWrite: false,
       });
-      const outline = new THREE.Mesh(geometry, outlineMat);
-      outline.scale.setScalar(outlineScale);
-      return outline;
+      return new THREE.Mesh(geometry, outlineMat);
     };
+
+    const OUTLINE_PAD = 1.035; // just 3.5% larger than sprite
 
     const playerGeometry = SharedGeometry.player;
     const playerTexture = assetManager.getTexture('player_down_idle_0');
@@ -475,7 +476,7 @@ const Game = () => {
     scene.add(playerMesh);
 
     // Player outline
-    const playerOutline = createOutlineMesh(playerGeometry, 0xaaddff, 1.06);
+    const playerOutline = createOutlineMesh(playerGeometry, playerTexture);
     playerOutline.position.z = 0.19;
     scene.add(playerOutline);
 
