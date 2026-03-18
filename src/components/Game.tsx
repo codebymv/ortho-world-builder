@@ -717,12 +717,27 @@ const Game = () => {
             footstepTimer = 0;
           }
 
+          // Reveal all tiles within the player's visible viewport
           const currentMap = world.getCurrentMap();
-          const tileX = Math.floor(state.player.position.x + currentMap.width / 2);
-          const tileY = Math.floor(state.player.position.y + currentMap.height / 2);
-          const tileKey = `${tileX},${tileY}`;
-          if (!visitedTilesRef.current.has(tileKey)) {
-            visitedTilesRef.current.add(tileKey);
+          const viewHalfH = 7; // ~frustumSize/2 + buffer
+          const viewHalfW = Math.ceil(viewHalfH * (window.innerWidth / window.innerHeight));
+          const centerTileX = Math.floor(state.player.position.x + currentMap.width / 2);
+          const centerTileY = Math.floor(state.player.position.y + currentMap.height / 2);
+          let newTilesRevealed = false;
+          for (let dy = -viewHalfH; dy <= viewHalfH; dy++) {
+            for (let dx = -viewHalfW; dx <= viewHalfW; dx++) {
+              const tx = centerTileX + dx;
+              const ty = centerTileY + dy;
+              if (tx >= 0 && tx < currentMap.width && ty >= 0 && ty < currentMap.height) {
+                const key = `${tx},${ty}`;
+                if (!visitedTilesRef.current.has(key)) {
+                  visitedTilesRef.current.add(key);
+                  newTilesRevealed = true;
+                }
+              }
+            }
+          }
+          if (newTilesRevealed) {
             triggerMinimapUpdate(false, currentTime);
           }
 
