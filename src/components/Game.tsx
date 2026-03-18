@@ -1573,9 +1573,11 @@ const Game = () => {
           <GameUI gameState={gameState} refreshToken={uiVersion} musicRef={musicRef} showControls={showControls} />
           <Minimap
             currentMap={allMaps[gameState.currentMap]}
+            currentMapId={gameState.currentMap}
             playerPosition={gameState.player.position}
             visitedTiles={visitedTilesRef.current}
             npcs={gameState.npcs}
+            markers={mapMarkers}
             refreshToken={minimapVersion}
           />
         </>
