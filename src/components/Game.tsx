@@ -826,7 +826,6 @@ const Game = () => {
         
         if (newTex && playerMaterial.map !== newTex) {
           playerMaterial.map = newTex;
-          playerMaterial.needsUpdate = true;
         }
 
         // === PLAYER POSITION WITH ANIMATION OFFSETS ===
