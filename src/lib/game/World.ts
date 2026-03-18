@@ -62,6 +62,7 @@ const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
   mushroom: 'grass',
   stump: 'grass',
   tree: 'grass',
+  tall_grass: 'grass',
   dead_tree: 'ash',
   rock: 'stone',
   chest: 'grass',
@@ -88,6 +89,7 @@ const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
   scarecrow: 'farmland',
   hay_bale: 'farmland',
   lantern: 'cobblestone',
+  wheat: 'farmland',
 };
 
 // Scale multipliers for overlay objects to make them proportionally correct
