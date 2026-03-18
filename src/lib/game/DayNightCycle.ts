@@ -9,15 +9,17 @@ const TIME_COLORS: Record<TimeOfDay, { tint: number; opacity: number; bgColor: n
   night: { tint: 0x111133, opacity: 0.35, bgColor: 0x1A1A3A },
 };
 
-// Full cycle in seconds (real time). 4 minutes = fun pace for exploration.
 const FULL_CYCLE_DURATION = 240;
 
 export class DayNightCycle {
   private overlay: THREE.Mesh;
   private scene: THREE.Scene;
-  private time: number = 0; // 0-1 normalized
+  private time: number = 0;
   private currentPhase: TimeOfDay = 'day';
   private sceneBackground: THREE.Color;
+  // Pre-allocated colors to avoid per-frame allocation
+  private readonly _colorA = new THREE.Color();
+  private readonly _colorB = new THREE.Color();
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -28,11 +30,10 @@ export class DayNightCycle {
       color: 0x000000, transparent: true, opacity: 0, depthWrite: false,
     });
     this.overlay = new THREE.Mesh(geo, mat);
-    this.overlay.position.z = 3.5; // above weather overlay
+    this.overlay.position.z = 3.5;
     this.overlay.frustumCulled = false;
     scene.add(this.overlay);
 
-    // Start at early morning
     this.time = 0.15;
   }
 
@@ -42,9 +43,8 @@ export class DayNightCycle {
   update(deltaTime: number, playerX: number, playerY: number) {
     this.time = (this.time + deltaTime / FULL_CYCLE_DURATION) % 1;
 
-    // Phases: dawn 0.0-0.15, day 0.15-0.55, dusk 0.55-0.7, night 0.7-1.0
     let phase: TimeOfDay;
-    let blend = 0; // 0-1 within phase
+    let blend = 0;
     if (this.time < 0.15) {
       phase = 'dawn'; blend = this.time / 0.15;
     } else if (this.time < 0.55) {
@@ -56,23 +56,21 @@ export class DayNightCycle {
     }
     this.currentPhase = phase;
 
-    // Interpolate between current and next phase for smooth transitions
     const cfg = TIME_COLORS[phase];
     const nextPhase: TimeOfDay = phase === 'dawn' ? 'day' : phase === 'day' ? 'dusk' : phase === 'dusk' ? 'night' : 'dawn';
     const nextCfg = TIME_COLORS[nextPhase];
 
-    // Edge transitions (first/last 20% of each phase)
     const edgeFade = blend < 0.2 ? blend / 0.2 : blend > 0.8 ? 1 - (blend - 0.8) / 0.2 : 1;
     
     const mat = this.overlay.material as THREE.MeshBasicMaterial;
     mat.color.setHex(cfg.tint);
     mat.opacity = cfg.opacity * edgeFade + nextCfg.opacity * (1 - edgeFade) * 0.3;
 
-    // Update scene background color
-    const bgA = new THREE.Color(cfg.bgColor);
-    const bgB = new THREE.Color(nextCfg.bgColor);
+    // Reuse pre-allocated colors
     const transBlend = blend > 0.8 ? (blend - 0.8) / 0.2 : 0;
-    this.sceneBackground.copy(bgA).lerp(bgB, transBlend);
+    this._colorA.setHex(cfg.bgColor);
+    this._colorB.setHex(nextCfg.bgColor);
+    this.sceneBackground.copy(this._colorA).lerp(this._colorB, transBlend);
 
     this.overlay.position.x = playerX;
     this.overlay.position.y = playerY;

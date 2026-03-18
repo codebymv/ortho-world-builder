@@ -12,6 +12,7 @@ export class ParticleSystem {
   private particles: Particle[] = [];
   private scene: THREE.Scene;
   private poolSize: number = 50;
+  private readonly sharedGeometry = new THREE.PlaneGeometry(0.1, 0.1);
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -20,14 +21,16 @@ export class ParticleSystem {
 
   private initializePool() {
     for (let i = 0; i < this.poolSize; i++) {
-      const geometry = new THREE.PlaneGeometry(0.1, 0.1);
       const material = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         transparent: true,
         opacity: 1,
+        depthWrite: false,
       });
-      const mesh = new THREE.Mesh(geometry, material);
+      const mesh = new THREE.Mesh(this.sharedGeometry, material);
       mesh.visible = false;
+      mesh.frustumCulled = false;
+      mesh.matrixAutoUpdate = false;
       this.scene.add(mesh);
 
       this.particles.push({
@@ -57,7 +60,6 @@ export class ParticleSystem {
         particle.mesh.position.copy(position);
         particle.mesh.visible = true;
 
-        // Random velocity
         particle.velocity.set(
           (Math.random() - 0.5) * spread,
           (Math.random() - 0.5) * spread,
@@ -96,24 +98,22 @@ export class ParticleSystem {
   update(deltaTime: number) {
     for (const particle of this.particles) {
       if (particle.active) {
-        particle.lifetime += deltaTime;
-
-        // Update position (avoid clone for GC)
         particle.mesh.position.x += particle.velocity.x * deltaTime;
         particle.mesh.position.y += particle.velocity.y * deltaTime;
         particle.mesh.position.z += particle.velocity.z * deltaTime;
 
-        // Apply gravity
         particle.velocity.y -= 3 * deltaTime;
 
-        // Fade out
         const material = particle.mesh.material as THREE.MeshBasicMaterial;
         material.opacity = 1 - (particle.lifetime / particle.maxLifetime);
 
-        // Deactivate if lifetime exceeded
+        particle.lifetime += deltaTime;
+
         if (particle.lifetime >= particle.maxLifetime) {
           particle.active = false;
           particle.mesh.visible = false;
+        } else {
+          particle.mesh.updateMatrix();
         }
       }
     }
@@ -122,9 +122,9 @@ export class ParticleSystem {
   cleanup() {
     for (const particle of this.particles) {
       this.scene.remove(particle.mesh);
-      particle.mesh.geometry.dispose();
       (particle.mesh.material as THREE.Material).dispose();
     }
+    this.sharedGeometry.dispose();
     this.particles = [];
   }
 }

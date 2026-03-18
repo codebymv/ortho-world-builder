@@ -161,7 +161,7 @@ export class BiomeAmbience {
         const mat = p.mesh.material as THREE.MeshBasicMaterial;
         mat.opacity = 0.4 + Math.sin(p.lifetime * 3 + p.phase) * 0.4;
       } else if (p.type === 'fog') {
-        const scale = (0.3 + Math.random() * 0.4) * (1 + p.lifetime * 0.1);
+        const scale = (0.3 + Math.sin(p.phase + p.lifetime) * 0.2) * (1 + p.lifetime * 0.1);
         p.mesh.scale.set(scale, scale, 1);
       }
 
