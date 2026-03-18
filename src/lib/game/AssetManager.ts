@@ -123,7 +123,7 @@ export class AssetManager {
     const TUNIC = 0x1B5E20;
     const TUNIC_H = 0x2E7D32;
     const TUNIC_S = 0x0D3B10;
-    const ARMOR_PLATE = 0x90A4AE;
+    const ARMOR = 0x90A4AE;
     const ARMOR_H = 0xB0BEC5;
     const ARMOR_S = 0x607D8B;
     const BELT = 0x6D4C41;
