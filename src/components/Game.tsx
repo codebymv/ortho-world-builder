@@ -7,6 +7,9 @@ import { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { BiomeAmbience } from '@/lib/game/BiomeAmbience';
 import { WeatherSystem } from '@/lib/game/WeatherSystem';
 import { CombatSystem, Enemy } from '@/lib/game/Combat';
+import { DayNightCycle } from '@/lib/game/DayNightCycle';
+import { FloatingTextSystem } from '@/lib/game/FloatingText';
+import { ScreenShake } from '@/lib/game/ScreenShake';
 import { allMaps, mapDefinitions } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
 import { quests } from '@/data/quests';
@@ -76,6 +79,9 @@ const Game = () => {
     const combatSystem = new CombatSystem(state);
     const biomeAmbience = new BiomeAmbience(scene);
     const weatherSystem = new WeatherSystem(scene);
+    const dayNightCycle = new DayNightCycle(scene);
+    const floatingText = new FloatingTextSystem(scene);
+    const screenShake = new ScreenShake(camera);
 
     const world = new World(scene, assetManager, allMaps.village);
     const spawnPoint = world.getSpawnPoint();
@@ -267,6 +273,26 @@ const Game = () => {
       { id: 'child', name: 'Village Child', position: { x: 5, y: -5 }, dialogueId: 'child', sprite: 'npc_child' },
     ];
 
+    // NPC wandering state
+    const npcWander: Record<string, {
+      origin: { x: number; y: number };
+      angle: number;
+      radius: number;
+      speed: number;
+      pauseTimer: number;
+      isPaused: boolean;
+    }> = {};
+    for (const npc of npcData) {
+      npcWander[npc.id] = {
+        origin: { ...npc.position },
+        angle: Math.random() * Math.PI * 2,
+        radius: npc.id === 'guard' ? 3 : npc.id === 'child' ? 4 : 1.5,
+        speed: npc.id === 'child' ? 1.2 : npc.id === 'guard' ? 0.8 : 0.5,
+        pauseTimer: Math.random() * 3,
+        isPaused: true,
+      };
+    }
+
     state.npcs = npcData;
     const npcMeshes: THREE.Mesh[] = [];
 
@@ -397,11 +423,13 @@ const Game = () => {
 
         const died = combatSystem.playerAttack(target, state.player.attackDamage);
 
-        if (target.state === 'recovering' || (target.health > 0 && target.damageFlashTimer > 0)) {
-          particleSystem.emitDamage(
-            new THREE.Vector3(target.position.x, target.position.y + 0.5, 0.5)
-          );
-        }
+        // Combat juice: screen shake + floating damage number
+        const dmgDealt = target.damageFlashTimer > 0 ? state.player.attackDamage : state.player.attackDamage;
+        const isCrit = target.state === 'recovering';
+        const actualDmg = isCrit ? Math.floor(state.player.attackDamage * 1.5) : state.player.attackDamage;
+        floatingText.spawnDamage(target.position.x, target.position.y, actualDmg, isCrit);
+        screenShake.shake(isCrit ? 0.2 : 0.1, isCrit ? 0.15 : 0.08);
+        if (isCrit) screenShake.hitStop(0.05);
 
         particleSystem.emitDamage(
           new THREE.Vector3(target.position.x, target.position.y, 0.3)
@@ -454,6 +482,10 @@ const Game = () => {
         // Charged attack hits ALL enemies in range
         for (const target of enemiesInRange) {
           const died = combatSystem.playerAttack(target, chargeDamage);
+
+          floatingText.spawnDamage(target.position.x, target.position.y, chargeDamage, true);
+          screenShake.shake(0.25, 0.2);
+          screenShake.hitStop(0.06);
 
           particleSystem.emitDamage(
             new THREE.Vector3(target.position.x, target.position.y, 0.3)
@@ -626,10 +658,69 @@ const Game = () => {
       lastTime = currentTime;
       if (deltaTime > MAX_DELTA) deltaTime = MAX_DELTA;
 
+      // Hit-stop: freeze game logic when active
+      const frozen = screenShake.update(deltaTime);
+      if (frozen) {
+        floatingText.update(deltaTime);
+        renderer.render(scene, camera);
+        return;
+      }
+
       // Stamina regen
       const nowSec = currentTime / 1000;
       if (nowSec - state.player.lastStaminaUseTime > state.player.staminaRegenDelay) {
         state.player.stamina = Math.min(state.player.maxStamina, state.player.stamina + state.player.staminaRegenRate * deltaTime);
+      }
+
+      // === NPC WANDERING ===
+      for (let ni = 0; ni < npcData.length; ni++) {
+        const npc = npcData[ni];
+        const wander = npcWander[npc.id];
+        if (!wander) continue;
+
+        if (wander.isPaused) {
+          wander.pauseTimer -= deltaTime;
+          if (wander.pauseTimer <= 0) {
+            wander.isPaused = false;
+            wander.angle += (Math.random() - 0.5) * Math.PI;
+          }
+        } else {
+          const targetX = wander.origin.x + Math.cos(wander.angle) * wander.radius;
+          const targetY = wander.origin.y + Math.sin(wander.angle) * wander.radius;
+          const dx = targetX - npc.position.x;
+          const dy = targetY - npc.position.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist > 0.1) {
+            const moveSpeed = wander.speed * deltaTime;
+            const nx = npc.position.x + (dx / dist) * moveSpeed;
+            const ny = npc.position.y + (dy / dist) * moveSpeed;
+            // Only move if tile is walkable
+            if (world.isWalkable(nx, ny)) {
+              npc.position.x = nx;
+              npc.position.y = ny;
+            } else {
+              wander.angle += Math.PI * 0.5; // turn away from wall
+            }
+          } else {
+            wander.isPaused = true;
+            wander.pauseTimer = 1.5 + Math.random() * 3;
+            wander.angle += (Math.random() - 0.5) * Math.PI * 1.5;
+          }
+
+          // Update mesh
+          const mesh = npcMeshes[ni];
+          if (mesh) {
+            mesh.position.set(npc.position.x, npc.position.y, 0.2);
+          }
+        }
+
+        // Idle bob for all NPCs
+        const npcMesh = npcMeshes[ni];
+        if (npcMesh) {
+          const bob = Math.sin(currentTime / 800 + ni * 2.1) * 0.03;
+          npcMesh.position.y = npc.position.y + bob;
+        }
       }
 
       // Process buffered inputs
@@ -894,6 +985,10 @@ const Game = () => {
 
         // Player damage flash (skip during dodge i-frames)
         if (state.player.damageFlashTimer > 0) {
+          // Shake on first frame of damage
+          if (state.player.damageFlashTimer > 0.28) {
+            screenShake.shake(0.18, 0.12);
+          }
           state.player.damageFlashTimer -= deltaTime;
           const flashIntensity = Math.sin(state.player.damageFlashTimer * 30) > 0 ? 0xff0000 : 0xff6666;
           playerMaterial.color.setHex(flashIntensity);
@@ -1150,6 +1245,8 @@ const Game = () => {
       const currentBiome = mapBiomes[state.currentMap] || 'grassland';
       biomeAmbience.update(deltaTime, state.player.position.x, state.player.position.y);
       weatherSystem.update(deltaTime, state.player.position.x, state.player.position.y, currentBiome);
+      dayNightCycle.update(deltaTime, state.player.position.x, state.player.position.y);
+      floatingText.update(deltaTime);
       particleSystem.update(deltaTime);
       renderer.render(scene, camera);
     };
@@ -1175,6 +1272,8 @@ const Game = () => {
       particleSystem.cleanup();
       biomeAmbience.cleanup();
       weatherSystem.cleanup();
+      dayNightCycle.cleanup();
+      floatingText.cleanup();
       renderer.dispose();
     };
   }, []);

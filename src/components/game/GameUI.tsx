@@ -2,6 +2,7 @@ import { GameState } from '@/lib/game/GameState';
 import { Button } from '@/components/ui/button';
 import { Heart, Coins, Package, ScrollText, Zap } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface GameUIProps {
   gameState: GameState;
@@ -114,16 +115,37 @@ export const GameUI = ({ gameState, refreshToken }: GameUIProps) => {
               <p className="text-[#A0522D] text-center py-6 text-sm font-semibold">Your pack is empty</p>
             ) : (
               <div className="space-y-2">
-                {gameState.inventory.map((item) => (
+                {gameState.inventory.map((item, idx) => (
                   <div
-                    key={item.id}
-                    className="p-2 bg-[#2D1B11]/80 border border-[#5C3A21] rounded-sm hover:border-[#DAA520]/50 transition-colors"
+                    key={`${item.id}_${idx}`}
+                    className={`p-2 bg-[#2D1B11]/80 border border-[#5C3A21] rounded-sm transition-colors ${
+                      item.type === 'consumable' ? 'hover:border-[#DAA520] cursor-pointer' : 'hover:border-[#5C3A21]/70'
+                    }`}
+                    onClick={() => {
+                      if (item.type === 'consumable' && item.id === 'health_potion') {
+                        if (gameState.player.health >= gameState.player.maxHealth) {
+                          toast('Already at full health!', { className: 'rpg-toast' });
+                          return;
+                        }
+                        gameState.player.health = Math.min(gameState.player.maxHealth, gameState.player.health + 50);
+                        gameState.removeItem(item.id);
+                        toast.success('Used Health Potion!', {
+                          description: 'Restored 50 health.',
+                          className: 'rpg-toast',
+                        });
+                        refreshToken; // force re-render trigger
+                        setShowInventory(true); // keep open
+                      }
+                    }}
                   >
                     <div className="flex justify-between items-start">
                       <h4 className="font-bold text-[#F5DEB3] text-sm">{item.name}</h4>
                       <span className="text-[9px] text-[#DAA520] uppercase bg-[#1A0F0A] px-1.5 py-0.5 rounded-sm border border-[#5C3A21]">{item.type}</span>
                     </div>
                     <p className="text-xs text-[#D3D3D3] mt-1 leading-tight opacity-80">{item.description}</p>
+                    {item.type === 'consumable' && (
+                      <p className="text-[10px] text-[#DAA520] mt-1 uppercase tracking-wider">Click to use</p>
+                    )}
                   </div>
                 ))}
               </div>
