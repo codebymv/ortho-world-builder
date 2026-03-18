@@ -389,10 +389,21 @@ const Game = () => {
       triggerUIUpdate();
     };
 
+    // Pre-load sword swing sound
+    const swordSwingAudio = new Audio('/audio/sword_swing.mp3');
+    swordSwingAudio.volume = 0.3;
+
+    const playSwordSwing = () => {
+      const sfx = swordSwingAudio.cloneNode() as HTMLAudioElement;
+      sfx.volume = 0.3;
+      sfx.play().catch(() => {});
+    };
+
     const performAttack = () => {
       const currentTime = Date.now();
       if (currentTime - state.player.lastAttackTime < state.player.attackCooldown) return;
       if (state.player.isDodging) return;
+      playSwordSwing();
 
       state.player.lastAttackTime = currentTime;
       playerAnimState = 'attack';
