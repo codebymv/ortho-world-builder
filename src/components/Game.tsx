@@ -801,11 +801,12 @@ const Game = () => {
           dodgeScaleY = 1 - Math.sin(t * Math.PI) * 0.2;
           playerMesh.rotation.z = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? -1 : 1);
         } else if (isChargingAttack) {
-          // Pulsing scale during charge
-          const pulse = 1 + chargeLevel * 0.15 * Math.sin(currentTime / 80);
-          dodgeScaleX = 1 + chargeLevel * 0.1 + pulse * 0.02;
-          dodgeScaleY = 1 + chargeLevel * 0.1 + pulse * 0.02;
-          playerMesh.rotation.z = 0;
+          // Spin attack: rotate faster as charge builds
+          const spinSpeed = 4 + chargeLevel * 12; // radians per second
+          playerMesh.rotation.z -= spinSpeed * deltaTime;
+          const pulse = 1 + chargeLevel * 0.12;
+          dodgeScaleX = pulse;
+          dodgeScaleY = pulse;
         } else {
           playerMesh.rotation.z = 0;
         }
