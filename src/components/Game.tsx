@@ -254,11 +254,11 @@ const Game = () => {
       return 'down';
     };
 
-    // Helper: get Y-based render order (lower Y on screen = higher render order = in front)
-    const getYRenderOrder = (worldY: number): number => {
+    // Helper: get Y-based render order using the entity foot point instead of body center
+    const getYRenderOrder = (worldY: number, footOffset: number = 0): number => {
       const currentMap = world.getCurrentMap();
-      const tileY = Math.floor(worldY + currentMap.height / 2);
-      // Invert: lower world Y (closer to bottom of screen) should render on top
+      const footY = worldY - footOffset;
+      const tileY = Math.floor(footY + currentMap.height / 2);
       return 100 + (currentMap.height - tileY);
     };
 
