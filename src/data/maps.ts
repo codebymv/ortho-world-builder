@@ -231,6 +231,16 @@ const forestDef: MapDefinition = {
     // === FIELD BOSS ARENA (central-east) ===
     { x: 220, y: 150, width: 24, height: 24, type: 'boss_arena', interactionId: 'golem_boss' },
 
+    // === ENCHANTED GROVES with plant monsters ===
+    { x: 70, y: 140, width: 30, height: 26, type: 'enchanted_grove' },
+    { x: 240, y: 240, width: 24, height: 22, type: 'enchanted_grove' },
+    { x: 50, y: 260, width: 26, height: 22, type: 'enchanted_grove' },
+
+    // === FORTS (strategic positions) ===
+    { x: 130, y: 120, width: 22, height: 18, type: 'fort', interactionId: 'forest_fort' },
+    { x: 200, y: 60, width: 18, height: 16, type: 'fort', interactionId: 'north_fort' },
+    { x: 60, y: 190, width: 20, height: 16, type: 'fort', interactionId: 'south_fort' },
+
     // === ABANDONED CAMPS scattered ===
     { x: 100, y: 200, width: 16, height: 12, type: 'abandoned_camp', interactionId: 'lost_expedition' },
     { x: 50, y: 80, width: 12, height: 10, type: 'abandoned_camp', interactionId: 'hunters_camp' },
