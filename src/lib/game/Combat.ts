@@ -215,6 +215,7 @@ export class CombatSystem {
   removeDeadEnemies(): Enemy[] {
     const dead = this.enemies.filter(e => e.state === 'dead');
     this.enemies = this.enemies.filter(e => e.state !== 'dead');
+    this._enemiesDirty = true;
     return dead;
   }
 
