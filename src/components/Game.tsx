@@ -761,6 +761,12 @@ const Game = () => {
           dodgeScaleX = 1 + Math.sin(t * Math.PI) * 0.3;
           dodgeScaleY = 1 - Math.sin(t * Math.PI) * 0.2;
           playerMesh.rotation.z = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? 1 : -1);
+        } else if (isChargingAttack) {
+          // Pulsing scale during charge
+          const pulse = 1 + chargeLevel * 0.15 * Math.sin(currentTime / 80);
+          dodgeScaleX = 1 + chargeLevel * 0.1 + pulse * 0.02;
+          dodgeScaleY = 1 + chargeLevel * 0.1 + pulse * 0.02;
+          playerMesh.rotation.z = 0;
         } else {
           playerMesh.rotation.z = 0;
         }
@@ -781,6 +787,11 @@ const Game = () => {
           // Semi-transparent during dodge (i-frames visual)
           playerMaterial.color.setHex(0xaaaaff);
           playerMaterial.opacity = 0.6;
+        } else if (isChargingAttack && chargeLevel > 0) {
+          // Golden glow during charge
+          const glow = Math.sin(currentTime / 100) > 0 ? 0xFFD700 : 0xFFA000;
+          playerMaterial.color.setHex(glow);
+          playerMaterial.opacity = 1;
         } else {
           playerMaterial.color.setHex(0xffffff);
           playerMaterial.opacity = 1;
