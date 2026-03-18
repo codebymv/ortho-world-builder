@@ -130,7 +130,6 @@ export class World {
   private assetManager: AssetManager;
   
   private activeMeshes: Map<string, THREE.Object3D> = new Map();
-  private meshPool: THREE.Mesh[] = [];
   private overlayPool: THREE.Group[] = [];
   private lastChunkCenter: { x: number; y: number } = { x: -9999, y: -9999 };
   private lastMoveDir: { x: number; y: number } = { x: 0, y: 0 };
@@ -138,6 +137,7 @@ export class World {
   private readonly PRELOAD_EXTRA = 10; // extra tiles in movement direction
   private pendingTiles: Array<{ x: number; y: number; key: string }> = [];
   private isInitialLoad: boolean = true;
+  private materialCache: Map<string, THREE.MeshBasicMaterial> = new Map();
 
   constructor(scene: THREE.Scene, assetManager: AssetManager, map: WorldMap) {
     this.scene = scene;
@@ -148,26 +148,23 @@ export class World {
   // Shared geometry for all tile meshes
   private readonly sharedTileGeometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
 
-  private createPlaneMesh(texture: THREE.Texture, z: number): THREE.Mesh {
-    let mesh: THREE.Mesh;
-
-    if (this.meshPool.length > 0) {
-      mesh = this.meshPool.pop()!;
-      const material = mesh.material as THREE.MeshBasicMaterial;
-      material.map = texture;
-      material.transparent = true;
-      material.depthWrite = false;
-      material.needsUpdate = true;
-    } else {
-      const material = new THREE.MeshBasicMaterial({
+  private getCachedMaterial(texture: THREE.Texture, cacheKey: string): THREE.MeshBasicMaterial {
+    let material = this.materialCache.get(cacheKey);
+    if (!material) {
+      material = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
         depthWrite: false,
       });
-      mesh = new THREE.Mesh(this.sharedTileGeometry, material);
-      mesh.frustumCulled = false; // We handle culling manually
+      this.materialCache.set(cacheKey, material);
     }
+    return material;
+  }
 
+  private createPlaneMesh(texture: THREE.Texture, z: number, cacheKey: string): THREE.Mesh {
+    const material = this.getCachedMaterial(texture, cacheKey);
+    const mesh = new THREE.Mesh(this.sharedTileGeometry, material);
+    mesh.frustumCulled = false;
     mesh.position.z = z;
     mesh.matrixAutoUpdate = false;
     return mesh;
