@@ -1159,6 +1159,7 @@ const Game = () => {
       }
       particleSystem.cleanup();
       biomeAmbience.cleanup();
+      weatherSystem.cleanup();
       renderer.dispose();
     };
   }, []);
