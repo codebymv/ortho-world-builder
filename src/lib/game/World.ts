@@ -4,10 +4,10 @@ import { AssetManager } from './AssetManager';
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'stone' | 'wood' 
   | 'tree' | 'house' | 'rock' | 'chest' | 'portal' | 'flower'
-  | 'tall_grass' | 'bridge' | 'sand' | 'swamp'
+  | 'tall_grass' | 'bridge' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
   | 'campfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
-  | 'fence' | 'gate' | 'barrel' | 'crate';
+  | 'fence' | 'gate' | 'barrel' | 'crate' | 'spike_trap' | 'bones';
 
 export interface Tile {
   type: TileType;
@@ -45,7 +45,7 @@ const RENDER_RADIUS = 18; // tiles around the player to render
 const OVERLAY_TYPES: Set<TileType> = new Set([
   'tree', 'house', 'rock', 'chest', 'portal', 'flower',
   'push_block', 'campfire', 'sign', 'well', 'tombstone', 'mushroom', 'stump',
-  'fence', 'gate', 'barrel', 'crate'
+  'fence', 'gate', 'barrel', 'crate', 'spike_trap', 'bones'
 ]);
 
 export class World {
