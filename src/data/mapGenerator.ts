@@ -657,7 +657,7 @@ function placeCemetery(tiles: Tile[][], f: MapFeature) {
   }
 }
 
-
+function placePortals(tiles: Tile[][], def: MapDefinition) {
   for (const portal of def.portals) {
     if (portal.y < tiles.length && portal.x < tiles[0].length) {
       tiles[portal.y][portal.x] = createTile('portal', true, {
