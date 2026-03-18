@@ -530,6 +530,94 @@ export class AssetManager {
     };
     this.registerTexture('npc_guard', () => this.createChibiCharacter('down', 'idle', 0, guardPalette));
 
+    // ========== NEW NPCs ==========
+    const blacksmithPalette = {
+      hair: 0x212121, hairLight: 0x424242, hairDark: 0x000000,
+      skin: 0xD2A679, skinLight: 0xE8C49A, skinShadow: 0xB8895A,
+      eyeIris: 0x4E342E, eyeIrisDark: 0x3E2723,
+      tunicMain: 0x5D4037, tunicLight: 0x795548, tunicDark: 0x3E2723,
+      trimColor: 0xFF6F00, trimLight: 0xFF8F00,
+      capeMain: 0x4E342E, capeDark: 0x3E2723,
+      pantColor: 0x3E2723, pantDark: 0x2C1B0E,
+      bootColor: 0x3E2723, bootDark: 0x212121,
+    };
+    this.registerTexture('npc_blacksmith', () => this.createChibiCharacter('down', 'idle', 0, blacksmithPalette));
+
+    const healerPalette = {
+      hair: 0xFFF9C4, hairLight: 0xFFFFFF, hairDark: 0xFFF176,
+      skin: 0xFFE0BD, skinLight: 0xFFF0D8, skinShadow: 0xE8C4A0,
+      eyeIris: 0x4FC3F7, eyeIrisDark: 0x0288D1,
+      tunicMain: 0xF5F5F5, tunicLight: 0xFFFFFF, tunicDark: 0xE0E0E0,
+      trimColor: 0x81C784, trimLight: 0xA5D6A7,
+      capeMain: 0xC8E6C9, capeDark: 0xA5D6A7,
+      pantColor: 0xE0E0E0, pantDark: 0xBDBDBD,
+      bootColor: 0xA5D6A7, bootDark: 0x81C784,
+    };
+    this.registerTexture('npc_healer', () => this.createChibiCharacter('down', 'idle', 0, healerPalette));
+
+    const farmerPalette = {
+      hair: 0x8D6E63, hairLight: 0xA1887F, hairDark: 0x6D4C41,
+      skin: 0xD2A679, skinLight: 0xE8C49A, skinShadow: 0xB8895A,
+      eyeIris: 0x5D4037, eyeIrisDark: 0x3E2723,
+      tunicMain: 0x7CB342, tunicLight: 0x9CCC65, tunicDark: 0x558B2F,
+      trimColor: 0x8D6E63, trimLight: 0xA1887F,
+      capeMain: 0x689F38, capeDark: 0x558B2F,
+      pantColor: 0x5D4037, pantDark: 0x4E342E,
+      bootColor: 0x5D4037, bootDark: 0x3E2723,
+    };
+    this.registerTexture('npc_farmer', () => this.createChibiCharacter('down', 'idle', 0, farmerPalette));
+
+    const childPalette = {
+      hair: 0xFFB74D, hairLight: 0xFFCC80, hairDark: 0xFFA726,
+      skin: 0xFFE0BD, skinLight: 0xFFF0D8, skinShadow: 0xE8C4A0,
+      eyeIris: 0x42A5F5, eyeIrisDark: 0x1E88E5,
+      tunicMain: 0x66BB6A, tunicLight: 0x81C784, tunicDark: 0x43A047,
+      trimColor: 0xFFEB3B, trimLight: 0xFFF176,
+      capeMain: 0x66BB6A, capeDark: 0x43A047,
+      pantColor: 0x5D4037, pantDark: 0x4E342E,
+      bootColor: 0x6D4C41, bootDark: 0x5D4037,
+    };
+    this.registerTexture('npc_child', () => this.createChibiCharacter('down', 'idle', 0, childPalette));
+
+    // ========== NEW ENEMY: Spider ==========
+    const SPIDER_BODY = 0x212121;
+    const SPIDER_BODY_H = 0x424242;
+    const SPIDER_LEG = 0x37474F;
+    const SPIDER_EYE = 0xF44336;
+    const SPIDER_FANG = 0xBDBDBD;
+
+    this.textures.set('enemy_spider', this.createSpriteTexture([
+      [C,          SPIDER_LEG,C,          C,          C,          C,          SPIDER_LEG,C,          C,          C],
+      [SPIDER_LEG, C,         SPIDER_BODY,SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY_H,C,     SPIDER_LEG, C,         C],
+      [C,          SPIDER_BODY,SPIDER_EYE,SPIDER_BODY,SPIDER_BODY,SPIDER_EYE,SPIDER_BODY,C,         C,         C],
+      [SPIDER_LEG, SPIDER_BODY,SPIDER_FANG,SPIDER_BODY_H,SPIDER_BODY_H,SPIDER_FANG,SPIDER_BODY,SPIDER_LEG,C,C],
+      [C,          SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY_H,C,  C,         C],
+      [SPIDER_LEG, C,         SPIDER_BODY,SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY,C,     SPIDER_LEG, C,         C],
+      [C,          SPIDER_LEG,C,          SPIDER_BODY,SPIDER_BODY,C,          SPIDER_LEG,C,          C,         C],
+      [SPIDER_LEG, C,         C,          C,          C,          C,          C,         SPIDER_LEG, C,         C],
+    ]));
+    this.registerTexture('enemy_spider_telegraph', () => this.getTexture('enemy_spider')!);
+    this.registerTexture('enemy_spider_attack', () => this.getTexture('enemy_spider')!);
+
+    // ========== NEW ENEMY: Slime ==========
+    const SLIME_BODY = 0x4CAF50;
+    const SLIME_H = 0x66BB6A;
+    const SLIME_S = 0x2E7D32;
+    const SLIME_EYE = 0xFFFFFF;
+    const SLIME_PUPIL = 0x212121;
+    const SLIME_SHINE = 0xA5D6A7;
+
+    this.textures.set('enemy_slime', this.createSpriteTexture([
+      [C,          C,          SLIME_H,   SLIME_H,   SLIME_H,   C,          C,          C],
+      [C,          SLIME_H,   SLIME_SHINE,SLIME_BODY,SLIME_BODY,SLIME_H,   C,          C],
+      [SLIME_S,   SLIME_BODY,SLIME_EYE, SLIME_BODY,SLIME_EYE, SLIME_BODY,SLIME_S,    C],
+      [SLIME_S,   SLIME_BODY,SLIME_PUPIL,SLIME_BODY,SLIME_PUPIL,SLIME_BODY,SLIME_S,  C],
+      [C,          SLIME_BODY,SLIME_BODY,SLIME_BODY,SLIME_BODY,SLIME_BODY,C,          C],
+      [C,          SLIME_S,   SLIME_BODY,SLIME_S,   SLIME_BODY,SLIME_S,   C,          C],
+    ]));
+    this.registerTexture('enemy_slime_telegraph', () => this.getTexture('enemy_slime')!);
+    this.registerTexture('enemy_slime_attack', () => this.getTexture('enemy_slime')!);
+
     // ========== ENEMY SPRITES ==========
     const WOLF_FUR = 0x616161;
     const WOLF_FUR_H = 0x757575;

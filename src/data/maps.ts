@@ -155,6 +155,9 @@ const villageDef: MapDefinition = {
     { x: 3, y: 125, width: 15, height: 15, enemyType: 'wolf', count: 3 },
     { x: 190, y: 18, width: 20, height: 16, enemyType: 'bandit', count: 4 },
     { x: 8, y: 40, width: 16, height: 14, enemyType: 'skeleton', count: 3 },
+    { x: 55, y: 115, width: 20, height: 14, enemyType: 'slime', count: 6 },
+    { x: 130, y: 120, width: 20, height: 12, enemyType: 'slime', count: 4 },
+    { x: 210, y: 115, width: 18, height: 16, enemyType: 'spider', count: 3 },
   ],
 };
 
@@ -344,6 +347,11 @@ const forestDef: MapDefinition = {
     { x: 118, y: 238, width: 26, height: 20, enemyType: 'skeleton', count: 5 },
     // Abandoned areas
     { x: 175, y: 195, width: 30, height: 25, enemyType: 'wolf', count: 5 },
+    // New enemy types in forest
+    { x: 25, y: 245, width: 20, height: 20, enemyType: 'spider', count: 5 },
+    { x: 80, y: 220, width: 18, height: 14, enemyType: 'slime', count: 6 },
+    { x: 240, y: 180, width: 16, height: 14, enemyType: 'spider', count: 3 },
+    { x: 40, y: 200, width: 14, height: 10, enemyType: 'slime', count: 4 },
   ],
 };
 

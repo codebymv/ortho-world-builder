@@ -322,4 +322,126 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'healing_mushroom',
     nodes: [{ id: 'start', text: "A ring of glowing mushrooms pulses with healing energy. You feel revitalized!", responses: [{ text: "[Absorb the energy]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
+
+  // ========== NEW NPC DIALOGUES ==========
+  blacksmith: {
+    id: 'blacksmith',
+    nodes: [
+      {
+        id: 'start',
+        text: "The forge burns hot! Name's Grond. I've been hammering steel since before you were born. What brings you to my shop?",
+        responses: [
+          { text: "Can you improve my weapons?", nextId: 'weapons' },
+          { text: "Heard any rumors lately?", nextId: 'rumors' },
+          { text: "Just browsing.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'weapons',
+        text: "Ha! Eager to fight, are we? I can see your blade's seen some action. Come back with some rare ore from the ruins and I'll forge you something special.",
+        responses: [
+          { text: "I'll keep an eye out for ore.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'rumors',
+        text: "Word is the creatures in the forest are getting bolder. Wolves prowling closer to the village walls. And there's talk of something stirring in the deep woods... something ancient.",
+        responses: [
+          { text: "That's concerning.", nextId: 'end' },
+          { text: "Nothing I can't handle.", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: "Keep your blade sharp, adventurer.", responses: [] },
+    ],
+  },
+
+  healer: {
+    id: 'healer',
+    nodes: [
+      {
+        id: 'start',
+        text: "Greetings, weary traveler. I am Sister Lenna. I tend to the sick and wounded. You look like you could use some healing.",
+        responses: [
+          { text: "Can you heal me?", nextId: 'heal' },
+          { text: "Do you know anything about the forest?", nextId: 'forest' },
+          { text: "I'm fine, thanks.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'heal',
+        text: "Of course. The light mends all wounds. Rest a moment... there. You should feel much better now.",
+        responses: [
+          { text: "Thank you, Sister.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'forest',
+        text: "I've treated several hunters with strange wounds recently. Bite marks that glow with an unnatural purple light. Whatever lurks in those woods, it's no ordinary beast.",
+        responses: [
+          { text: "I'll be careful.", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: "May the light guide your path.", responses: [] },
+    ],
+  },
+
+  farmer: {
+    id: 'farmer',
+    nodes: [
+      {
+        id: 'start',
+        text: "Hmph. Another adventurer tramping through my fields. Mind where you step! Those crops took months to grow.",
+        responses: [
+          { text: "Sorry about that. Need any help?", nextId: 'help' },
+          { text: "Seen anything strange around here?", nextId: 'strange' },
+          { text: "I'll be on my way.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'help',
+        text: "Help? HA! Unless you can chase off the slimes eating my cabbages, I don't see what good a sword-swinger like you can do. They come from the south at night.",
+        responses: [
+          { text: "I'll handle the slimes for you.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'strange',
+        text: "Strange? Besides the wolves getting braver and those blasted slimes? I saw lights flickering near the old cemetery last night. Didn't stick around to investigate.",
+        responses: [
+          { text: "I'll check it out.", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: "Now get off my turnips!", responses: [] },
+    ],
+  },
+
+  child: {
+    id: 'child',
+    nodes: [
+      {
+        id: 'start',
+        text: "Wow! Are you a real adventurer?! That's so cool! I want to be an adventurer when I grow up! Do you fight monsters?!",
+        responses: [
+          { text: "I sure do! Want to hear a story?", nextId: 'story' },
+          { text: "It's dangerous work, kid.", nextId: 'dangerous' },
+          { text: "Maybe when you're older.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'story',
+        text: "YES! Tell me tell me! ...Wow, a real shadow beast?! My friend Tommy says he saw one near the old well but I think he was just making it up. Or maybe not...",
+        responses: [
+          { text: "Stay safe, little one.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'dangerous',
+        text: "I know! That's what makes it COOL! My mom says I can't go past the village gates but sometimes I sneak out to the lake. Don't tell her!",
+        responses: [
+          { text: "Your secret's safe with me.", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: "Bye bye, adventurer! Come back and tell me more stories!", responses: [] },
+    ],
+  },
 };
