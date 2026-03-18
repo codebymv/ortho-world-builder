@@ -12,6 +12,7 @@ export class FloatingTextSystem {
   private entries: FloatingTextEntry[] = [];
   private scene: THREE.Scene;
   private readonly POOL_SIZE = 20;
+  private readonly sharedGeometry = new THREE.PlaneGeometry(1.2, 0.45);
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -30,7 +31,7 @@ export class FloatingTextSystem {
       const mat = new THREE.MeshBasicMaterial({
         map: tex, transparent: true, opacity: 1, depthWrite: false,
       });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.45), mat);
+      const mesh = new THREE.Mesh(this.sharedGeometry, mat);
       mesh.visible = false;
       mesh.frustumCulled = false;
       this.scene.add(mesh);
