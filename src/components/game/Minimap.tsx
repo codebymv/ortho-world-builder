@@ -6,9 +6,10 @@ interface MinimapProps {
   playerPosition: { x: number; y: number };
   visitedTiles: Set<string>;
   npcs: Array<{ position: { x: number; y: number } }>;
+  refreshToken: number;
 }
 
-export const Minimap = ({ currentMap, playerPosition, visitedTiles, npcs }: MinimapProps) => {
+export const Minimap = ({ currentMap, playerPosition, visitedTiles, npcs, refreshToken }: MinimapProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {

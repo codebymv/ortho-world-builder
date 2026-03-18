@@ -5,9 +5,10 @@ import { useState } from 'react';
 
 interface GameUIProps {
   gameState: GameState;
+  refreshToken: number;
 }
 
-export const GameUI = ({ gameState }: GameUIProps) => {
+export const GameUI = ({ gameState, refreshToken }: GameUIProps) => {
   const [showInventory, setShowInventory] = useState(false);
   const [showQuests, setShowQuests] = useState(false);
 
