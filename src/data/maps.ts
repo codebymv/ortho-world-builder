@@ -289,6 +289,13 @@ const forestDef: MapDefinition = {
     { x: 160, y: 20, interactionId: 'waterfall_chest' },
     { x: 258, y: 148, interactionId: 'temple_chest' },
     { x: 268, y: 28, interactionId: 'volcano_chest' },
+    // New chests in enchanted groves and forts
+    { x: 80, y: 150, interactionId: 'enchanted_chest_1' },
+    { x: 248, y: 250, interactionId: 'enchanted_chest_2' },
+    { x: 58, y: 268, interactionId: 'enchanted_chest_3' },
+    { x: 138, y: 128, interactionId: 'fort_chest_1' },
+    { x: 208, y: 66, interactionId: 'fort_chest_2' },
+    { x: 68, y: 196, interactionId: 'fort_chest_3' },
   ],
   interactables: [
     { x: 140, y: 170, type: 'sign', walkable: false, interactionId: 'ranger_sign' },
