@@ -166,8 +166,7 @@ const Game = () => {
     let spinFrameTimer = 0;
     const SPIN_FRAME_DURATION = 0.06;
 
-    // Death state
-    let playerDead = false;
+    // Death state - use ref so callback can reset it
 
     // Map biome lookup
     const mapBiomes: Record<string, string> = {
