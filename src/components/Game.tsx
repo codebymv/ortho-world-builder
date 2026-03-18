@@ -10,6 +10,7 @@ import { CombatSystem, Enemy } from '@/lib/game/Combat';
 import { DayNightCycle } from '@/lib/game/DayNightCycle';
 import { FloatingTextSystem } from '@/lib/game/FloatingText';
 import { ScreenShake } from '@/lib/game/ScreenShake';
+import { MapMarker, extractMarkersFromText } from '@/lib/game/MapMarkers';
 import { allMaps, mapDefinitions } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
 import { quests } from '@/data/quests';
@@ -52,6 +53,21 @@ const Game = () => {
   // Healing cooldowns: interactionId -> last use timestamp
   const healCooldowns = useRef<Map<string, number>>(new Map());
   const HEAL_COOLDOWN_MS = 30000; // 30 seconds
+
+  // Map markers system
+  const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
+  const mapMarkersRef = useRef<MapMarker[]>([]);
+  
+  const addMarkersFromText = useCallback((text: string, currentMap: string) => {
+    const existingIds = new Set(mapMarkersRef.current.map(m => m.id));
+    const newMarkers = extractMarkersFromText(text, currentMap, existingIds);
+    if (newMarkers.length > 0) {
+      const updated = [...mapMarkersRef.current, ...newMarkers];
+      mapMarkersRef.current = updated;
+      setMapMarkers(updated);
+      triggerMinimapUpdate(true);
+    }
+  }, []);
 
   const triggerUIUpdate = () => setUiVersion(prev => prev + 1);
   const triggerMinimapUpdate = (force: boolean = false, now: number = performance.now()) => {
@@ -733,6 +749,8 @@ const Game = () => {
 
       if (startNode) {
         setCurrentDialogue({ node: startNode, npcName: npcName || '' });
+        // Extract map markers from dialogue text
+        addMarkersFromText(startNode.text, state.currentMap);
       }
     };
 
@@ -1444,6 +1462,9 @@ const Game = () => {
         className: "rpg-toast",
         duration: 5000,
       });
+      // Extract markers from quest description
+      addMarkersFromText(quest.description, gameState.currentMap);
+      quest.objectives.forEach(obj => addMarkersFromText(obj, gameState.currentMap));
       triggerUIUpdate();
     }
 
@@ -1491,6 +1512,8 @@ const Game = () => {
     
     if (nextNode) {
       setCurrentDialogue({ node: nextNode, npcName: currentDialogue.npcName });
+      // Extract map markers from new dialogue text
+      addMarkersFromText(nextNode.text, gameState.currentMap);
     }
   };
 
@@ -1557,9 +1580,11 @@ const Game = () => {
           <GameUI gameState={gameState} refreshToken={uiVersion} musicRef={musicRef} showControls={showControls} />
           <Minimap
             currentMap={allMaps[gameState.currentMap]}
+            currentMapId={gameState.currentMap}
             playerPosition={gameState.player.position}
             visitedTiles={visitedTilesRef.current}
             npcs={gameState.npcs}
+            markers={mapMarkers}
             refreshToken={minimapVersion}
           />
         </>
