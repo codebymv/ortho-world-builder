@@ -898,12 +898,12 @@ const Game = () => {
         const interactionRange = 1.5;
 
         // Check NPC proximity
+        const interactionRangeSq = interactionRange * interactionRange;
         for (const npc of state.npcs) {
-          const dist = Math.sqrt(
-            Math.pow(state.player.position.x - npc.position.x, 2) +
-            Math.pow(state.player.position.y - npc.position.y, 2)
-          );
-          if (dist < interactionRange) {
+          const ndx = state.player.position.x - npc.position.x;
+          const ndy = state.player.position.y - npc.position.y;
+          const distSq = ndx * ndx + ndy * ndy;
+          if (distSq < interactionRangeSq) {
             showIndicator = true;
             indicatorX = npc.position.x;
             indicatorY = npc.position.y;
