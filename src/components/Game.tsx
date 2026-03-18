@@ -79,6 +79,9 @@ const Game = () => {
     const combatSystem = new CombatSystem(state);
     const biomeAmbience = new BiomeAmbience(scene);
     const weatherSystem = new WeatherSystem(scene);
+    const dayNightCycle = new DayNightCycle(scene);
+    const floatingText = new FloatingTextSystem(scene);
+    const screenShake = new ScreenShake(camera);
 
     const world = new World(scene, assetManager, allMaps.village);
     const spawnPoint = world.getSpawnPoint();
