@@ -466,8 +466,8 @@ export class AssetManager {
       for (const state of states) {
         const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' ? 1 : 2;
         for (let f = 0; f < maxFrames; f++) {
-          const tex = this.createChibiCharacter(dir, state, f, heroPalette);
-          this.textures.set(`player_${dir}_${state}_${f}`, tex);
+          const d = dir, s = state, fr = f;
+          this.registerTexture(`player_${d}_${s}_${fr}`, () => this.createChibiCharacter(d, s, fr, heroPalette));
         }
       }
     }
@@ -481,8 +481,8 @@ export class AssetManager {
       for (const state of states) {
         const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' ? 1 : 2;
         for (let f = 0; f < maxFrames; f++) {
-          const src = this.textures.get(`player_${base}_${state}_${f}`);
-          if (src) this.textures.set(`player_${dDir}_${state}_${f}`, src);
+          const dd = dDir, b = base, s = state, fr = f;
+          this.registerTexture(`player_${dd}_${s}_${fr}`, () => this.getTexture(`player_${b}_${s}_${fr}`)!);
         }
       }
     }
