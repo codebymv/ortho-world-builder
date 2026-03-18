@@ -120,7 +120,7 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
 
       switch (def.baseTerrain) {
         case 'grassland':
-          if (n1 < 0.15) {
+          if (n1 < 0.05 && n2 > 0.6) {
             tile = createTile('flower', true);
           } else if (n1 > 0.85 && n2 > 0.5) {
             tile = createTile('tree', false);
@@ -336,7 +336,12 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 
 const HOUSE_VARIANTS: TileType[] = ['house', 'house_blue', 'house_green', 'house_thatch'];
 const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch']);
-const MIN_BUILDING_SPACING = 12; // minimum tiles between any two buildings
+// All tile types that indicate a structure is present (for spacing checks)
+const STRUCTURE_TYPES: Set<TileType> = new Set([
+  'house', 'house_blue', 'house_green', 'house_thatch',
+  'destroyed_house', 'statue', 'mossy_stone', 'well',
+]);
+const MIN_BUILDING_SPACING = 16; // minimum tiles between any two buildings (increased from 12)
 
 function isBuildingNearby(tiles: Tile[][], fx: number, fy: number, fw: number, fh: number): boolean {
   const checkPad = MIN_BUILDING_SPACING;
@@ -349,7 +354,7 @@ function isBuildingNearby(tiles: Tile[][], fx: number, fy: number, fw: number, f
       const tx = fx + dx;
       const ty = fy + dy;
       if (ty >= 0 && ty < h && tx >= 0 && tx < w) {
-        if (HOUSE_TYPES.has(tiles[ty][tx].type)) return true;
+        if (STRUCTURE_TYPES.has(tiles[ty][tx].type)) return true;
       }
     }
   }
