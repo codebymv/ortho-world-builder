@@ -354,7 +354,7 @@ function isBuildingNearby(tiles: Tile[][], fx: number, fy: number, fw: number, f
       const tx = fx + dx;
       const ty = fy + dy;
       if (ty >= 0 && ty < h && tx >= 0 && tx < w) {
-        if (HOUSE_TYPES.has(tiles[ty][tx].type)) return true;
+        if (STRUCTURE_TYPES.has(tiles[ty][tx].type)) return true;
       }
     }
   }

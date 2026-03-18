@@ -1371,13 +1371,28 @@ const Game = () => {
         }
       }
 
-      // Project active NPC world pos to screen for chat bubble
+      // Project active NPC world pos to screen for chat bubble + walk-away detection
       if (activeNpcWorldPos.current && state.dialogueActive) {
-        _worldPosVec3.set(activeNpcWorldPos.current.x, activeNpcWorldPos.current.y + 1.2, 0);
-        _worldPosVec3.project(camera);
-        const sx = (_worldPosVec3.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-        const sy = (-_worldPosVec3.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
-        setNpcScreenPos({ x: sx, y: sy });
+        // Close dialogue if player walks too far from NPC
+        const nwx = activeNpcWorldPos.current.x;
+        const nwy = activeNpcWorldPos.current.y;
+        const pdx = state.player.position.x - nwx;
+        const pdy = state.player.position.y - nwy;
+        const npcDistSq = pdx * pdx + pdy * pdy;
+        const DIALOGUE_BREAK_DIST = 4; // tiles
+        if (npcDistSq > DIALOGUE_BREAK_DIST * DIALOGUE_BREAK_DIST) {
+          state.dialogueActive = false;
+          state.currentDialogue = null;
+          activeNpcWorldPos.current = null;
+          setCurrentDialogue(null);
+          setNpcScreenPos(null);
+        } else {
+          _worldPosVec3.set(nwx, nwy + 1.2, 0);
+          _worldPosVec3.project(camera);
+          const sx = (_worldPosVec3.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+          const sy = (-_worldPosVec3.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+          setNpcScreenPos({ x: sx, y: sy });
+        }
       }
 
       // Update systems
