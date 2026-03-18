@@ -273,17 +273,15 @@ export class AssetManager {
       const GUARD = p.trimColor;
       const GRIP = 0x5D4037;
       if (atkFrame >= 1) {
-        // Swing pose - sword sweeping across
-        cell(2, 1 + bob, BLADE_H); cell(3, 2 + bob, BLADE_H); cell(3, 3 + bob, BLADE);
-        cell(3, 4 + bob, BLADE); cell(3, 5 + bob, BLADE_E); cell(3, 6 + bob, GUARD);
-        cell(3, 7 + bob, GRIP);
-        cell(1, 1 + bob, BLADE_E); // tip glint
+        // Swing pose - sword straight up
+        cell(3, 1 + bob, BLADE_H); cell(3, 2 + bob, BLADE); cell(3, 3 + bob, BLADE);
+        cell(3, 4 + bob, BLADE_E); cell(3, 5 + bob, GUARD);
+        cell(3, 6 + bob, GRIP);
       } else {
-        // Resting - long blade at side
+        // Resting - straight vertical blade at side
         cell(4, 4 + bob, BLADE_H); cell(4, 5 + bob, BLADE); cell(4, 6 + bob, BLADE);
         cell(4, 7 + bob, BLADE_E); cell(4, 8 + bob, GUARD);
         cell(4, 9 + bob, GRIP); cell(4, 10 + bob, GRIP);
-        cell(3, 5 + bob, BLADE_E); // edge glint
       }
 
       // Hair (top rows)
