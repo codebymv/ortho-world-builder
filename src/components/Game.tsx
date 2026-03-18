@@ -864,11 +864,27 @@ const Game = () => {
         }
       }
 
-      // === NPC WANDERING ===
+    // === NPC WANDERING ===
       for (let ni = 0; ni < npcData.length; ni++) {
         const npc = npcData[ni];
         const wander = npcWander[npc.id];
         if (!wander) continue;
+
+        // Freeze NPC in place when player is in conversation with them
+        const isTalkingToThisNpc = state.dialogueActive && state.currentDialogue === npc.dialogueId;
+        if (isTalkingToThisNpc) {
+          // Update mesh position without moving
+          const npcMesh = npcMeshes[ni];
+          if (npcMesh) {
+            const npcScale = NPC_SCALE_BY_ID[npc.id] ?? 1;
+            const breathe = Math.sin(currentTime / 800 + ni * 2.1) * 0.03;
+            npcMesh.position.set(npc.position.x, npc.position.y + breathe, 0.2);
+            npcMesh.scale.set(npcScale, npcScale, 1);
+            npcMesh.rotation.z = 0;
+            npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET);
+          }
+          continue;
+        }
 
         if (wander.isPaused) {
           wander.pauseTimer -= deltaTime;
