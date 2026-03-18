@@ -830,11 +830,54 @@ const Game = () => {
         // Smooth camera follow
         cameraTarget.x = state.player.position.x;
         cameraTarget.y = state.player.position.y;
-        const lerpFactor = 1 - Math.pow(0.001, deltaTime);
-        camera.position.x += (cameraTarget.x - camera.position.x) * lerpFactor;
-        camera.position.y += (cameraTarget.y - camera.position.y) * lerpFactor;
 
-        // Update combat system — pass dodge state for i-frames
+        // === INTERACTION INDICATOR ===
+        let showIndicator = false;
+        let indicatorX = 0, indicatorY = 0;
+        const interactionRange = 1.5;
+
+        // Check NPC proximity
+        for (const npc of state.npcs) {
+          const dist = Math.sqrt(
+            Math.pow(state.player.position.x - npc.position.x, 2) +
+            Math.pow(state.player.position.y - npc.position.y, 2)
+          );
+          if (dist < interactionRange) {
+            showIndicator = true;
+            indicatorX = npc.position.x;
+            indicatorY = npc.position.y;
+            break;
+          }
+        }
+
+        // Check tile interactables
+        if (!showIndicator) {
+          const directions = [
+            { x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
+          ];
+          for (const dir of directions) {
+            const cx = state.player.position.x + dir.x * 0.5;
+            const cy = state.player.position.y + dir.y * 0.5;
+            const intId = world.getInteractableAt(cx, cy);
+            if (intId) {
+              showIndicator = true;
+              indicatorX = state.player.position.x + dir.x * 0.5;
+              indicatorY = state.player.position.y + dir.y * 0.5;
+              break;
+            }
+          }
+        }
+
+        if (showIndicator) {
+          indicatorMesh.visible = true;
+          const bobY = Math.sin(currentTime / 200) * 0.12;
+          const pulse = 0.7 + Math.sin(currentTime / 300) * 0.3;
+          indicatorMesh.position.set(indicatorX, indicatorY + 0.8 + bobY, 0.5);
+          indicatorMaterial.opacity = pulse;
+          indicatorMesh.scale.set(0.8 + Math.sin(currentTime / 250) * 0.15, 0.8 + Math.sin(currentTime / 250) * 0.15, 1);
+        } else {
+          indicatorMesh.visible = false;
+        }
         combatSystem.updateEnemies(deltaTime, state.player.position, state.player.isDodging);
 
         // === ENEMY RENDERING WITH HP BARS ===
