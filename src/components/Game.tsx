@@ -1795,6 +1795,13 @@ const Game = () => {
                   enemyShadows.delete(enemy.id);
                 }
 
+                const eOutlineDeath = enemyOutlines.get(enemy.id);
+                if (eOutlineDeath) {
+                  scene.remove(eOutlineDeath);
+                  (eOutlineDeath.material as THREE.Material).dispose();
+                  enemyOutlines.delete(enemy.id);
+                }
+
                 fullyDeadEnemyIds.add(enemy.id);
               }
             } else {
