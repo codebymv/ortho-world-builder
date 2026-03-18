@@ -1482,21 +1482,15 @@ const Game = () => {
 
   const handleDeathComplete = useCallback(() => {
     setDeathActive(false);
+    playerDeadRef.current = false;
     if (gameStateRef.current) {
       const state = gameStateRef.current;
       state.player.health = state.player.maxHealth;
       state.player.stamina = state.player.maxStamina;
       state.player.isDodging = false;
-      // Reset position handled by getting spawn from world - simplified
       state.player.position = { x: 0, y: 0 };
       triggerUIUpdate();
     }
-    // The animate loop will pick up playerDead = false via a ref approach
-    // We need to communicate back - use a simple approach
-    setTimeout(() => {
-      // playerDead flag is inside the effect closure, so we trigger a re-mount
-      // Instead, let's use a ref
-    }, 100);
   }, []);
 
   // Unlock and play music on first user interaction
