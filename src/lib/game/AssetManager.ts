@@ -99,374 +99,344 @@ export class AssetManager {
   loadDefaultAssets() {
     const C = 0; // transparent
 
-    // ===== ENHANCED PLAYER PALETTE =====
-    const SKIN = 0xF5C8A0;
-    const SKIN_S = 0xD4A574;
-    const SKIN_H = 0xFFDCC0;
-    const HAIR = 0x3E1F0D;
-    const HAIR_H = 0x5C3317;
-    const HAIR_S = 0x2A1508;
-    const EYE_W = 0xFFFFFF; // eye white
-    const EYE = 0x1565C0;   // iris
-    const EYE_S = 0x0D47A1;
-    const PUPIL = 0x0A0A0A;
-    const MOUTH = 0xC0755A;
-    const BROW = 0x2A1508;
-    // Hurt face
-    const EYE_HURT = 0xFF6B6B;
-    const MOUTH_HURT = 0xE74C3C;
-    // Charge face
-    const EYE_CHARGE = 0xFFD700;
-    const MOUTH_CHARGE = 0xFF8C00;
-
-    // Armor / tunic
-    const TUNIC = 0x1B5E20;
-    const TUNIC_H = 0x2E7D32;
-    const TUNIC_S = 0x0D3B10;
-    const ARMOR = 0x90A4AE;
-    const ARMOR_H = 0xB0BEC5;
-    const ARMOR_S = 0x607D8B;
-    const BELT = 0x6D4C41;
-    const BELT_B = 0xFFB300; // belt buckle
-    const PANTS = 0x37474F;
-    const PANTS_S = 0x263238;
-    const BOOTS = 0x3E2723;
-    const BOOTS_H = 0x5D4037;
-    const BOOTS_S = 0x2C1B14;
-
-    // Cape/cloak
-    const CAPE = 0xB71C1C;
-    const CAPE_H = 0xD32F2F;
-    const CAPE_S = 0x7F0000;
-    const CAPE_TRIM = 0xFFD700;
-
-    // Scarf
-    const SCARF = 0xE53935;
-    const SCARF_H = 0xEF5350;
-    const SCARF_S = 0xC62828;
-
-    // Sword
-    const BLADE = 0xCFD8DC;
-    const BLADE_H = 0xECEFF1;
-    const BLADE_S = 0xB0BEC5;
-    const BLADE_E = 0x90CAF9; // enchant glow
-    const GUARD = 0xFFB300;
-    const GUARD_H = 0xFFD54F;
-    const GRIP = 0x5D4037;
-    const POMMEL = 0xE65100;
-
-    // Charge glow
-    const CHARGE_G = 0xFFD700;
-    const CHARGE_G2 = 0xFFA000;
-    const CHARGE_BLADE = 0xFFE082;
-
     const mirrorSprite = (sprite: number[][]): number[][] => {
       return sprite.map(row => [...row].reverse());
     };
 
-    // ========== PLAYER DOWN - Facing camera (14x14) ==========
-    const downIdle0 = [
-      [C,  C,  C,  C,    HAIR_S,HAIR, HAIR, HAIR_H,HAIR, HAIR_S,C,    C,  C,  C],
-      [C,  C,  C,  HAIR_S,HAIR, HAIR_H,HAIR_H,HAIR, HAIR, HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  HAIR, HAIR_H,HAIR, HAIR, HAIR, HAIR_H,HAIR,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN_H,SKIN, SKIN, SKIN, SKIN_H,SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, EYE_W, EYE,  SKIN, SKIN, EYE,  EYE_W, SKIN, C,  C,  C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,SKIN, SKIN, SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  C,    C,     SKIN, MOUTH, SKIN, SKIN, C,     C,    C,  C,  C],
-      [C,  C,  SCARF,SCARF_H,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF_H,SCARF,C, C,  C],
-      [C,  CAPE,ARMOR_S,TUNIC, TUNIC_H,BELT, BELT_B,BELT, TUNIC_H,TUNIC, ARMOR_S,CAPE,C, C],
-      [C,  CAPE_S,ARMOR,TUNIC, TUNIC_S,TUNIC,TUNIC, TUNIC,TUNIC_S,TUNIC, ARMOR, CAPE_S,C,C],
-      [C,  C,  BLADE_H,BLADE,SKIN, TUNIC_S,TUNIC, TUNIC_S,TUNIC, SKIN, C,    C,  C,  C],
-      [C,  C,  GUARD,BLADE_S,C,  PANTS, PANTS, PANTS, PANTS, C,    C,    C,  C,  C],
-      [C,  C,  POMMEL,C, C,  PANTS_S,C,    C,    PANTS_S,C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,BOOTS, BOOTS_H,BOOTS_H,BOOTS, BOOTS_S,C,  C,  C,  C],
+    // ===== CHIBI ANIME PALETTE =====
+    // Skin
+    const SK   = 0xFDE8D0;  // skin base
+    const SK_H = 0xFFF0E0;  // skin highlight
+    const SK_S = 0xE8C4A0;  // skin shadow
+    const SK_D = 0xD4A070;  // skin deep shadow
+    // Blush
+    const BLUSH = 0xF8A0A0;
+    // Hair - silver/white with blue tint for cool anime look
+    const HR   = 0xC0D0E8;  // hair base
+    const HR_H = 0xE0E8F8;  // hair highlight
+    const HR_S = 0x8898B8;  // hair shadow
+    const HR_D = 0x607090;  // hair deep shadow
+    const HR_T = 0xA0B0D0;  // hair mid-tone
+    // Eyes - large anime eyes, vivid blue
+    const EY_W = 0xFFFFFF;  // eye white
+    const EY   = 0x3388FF;  // iris
+    const EY_H = 0x66AAFF;  // iris highlight
+    const EY_D = 0x1155CC;  // iris dark
+    const EY_P = 0x0A0A18;  // pupil
+    const EY_G = 0xCCEEFF;  // eye shine/glint
+    // Hurt eyes
+    const EY_HURT = 0xFF5555;
+    // Charge eyes
+    const EY_CHG = 0xFFD700;
+    const EY_CHG2 = 0xFFA000;
+    // Mouth
+    const MOUTH = 0xE08070;
+    const MOUTH_H = 0xCC5555; // hurt
+    const MOUTH_C = 0xFF8C00; // charge
+    // Brows
+    const BROW = 0x607090;
+
+    // Outfit - dark blue coat with gold trim
+    const COAT   = 0x283860;
+    const COAT_H = 0x384878;
+    const COAT_S = 0x182848;
+    const COAT_D = 0x101830;
+    // Gold trim/buttons
+    const GOLD   = 0xFFD700;
+    const GOLD_H = 0xFFE850;
+    const GOLD_S = 0xCCA800;
+    // Inner shirt
+    const SHIRT = 0xF0F0F0;
+    const SHIRT_S = 0xD0D0D0;
+    // Belt
+    const BELT   = 0x4A3020;
+    const BELT_B = 0xFFD700;
+    // Pants
+    const PANT   = 0x202838;
+    const PANT_S = 0x181E28;
+    // Boots
+    const BOOT   = 0x282020;
+    const BOOT_H = 0x3A3030;
+    const BOOT_S = 0x1A1414;
+    const BOOT_G = 0xCCA800; // boot gold trim
+
+    // Scarf - flowing red scarf
+    const SCF   = 0xDD3333;
+    const SCF_H = 0xEE5555;
+    const SCF_S = 0xAA2222;
+
+    // Sword
+    const BL   = 0xD8E0F0;  // blade
+    const BL_H = 0xF0F4FF;  // blade highlight
+    const BL_S = 0xA0A8C0;  // blade shadow
+    const BL_E = 0x88CCFF;  // blade enchant
+    const GRD  = 0xFFD700;  // guard
+    const GRD_H = 0xFFE850;
+    const GRP  = 0x4A3020;  // grip
+    const POM  = 0xEE5500;  // pommel
+
+    // Charge glow
+    const CG   = 0xFFD700;
+    const CG2  = 0xFFA000;
+    const CG_B = 0xFFE082;
+
+    // Cape
+    const CAPE   = 0x1A1A40;
+    const CAPE_H = 0x282860;
+    const CAPE_S = 0x101030;
+
+    // ========== PLAYER DOWN - Chibi anime (16x20) ==========
+    // Big head, small body, long flowing hair, large expressive eyes
+    const downIdle0: number[][] = [
+      // Row 0-3: Hair top
+      [C,  C,  C,  C,  C,  HR_D,HR_S,HR, HR, HR_H,HR, HR_S,C,  C,  C,  C ],
+      [C,  C,  C,  C,  HR_D,HR_S,HR, HR_H,HR_H,HR, HR_T,HR_S,HR_D,C,  C,  C ],
+      [C,  C,  C,  HR_D,HR_S,HR, HR_H,HR, HR, HR_H,HR, HR, HR_S,HR_D,C,  C ],
+      [C,  C,  HR_D,HR_S,HR_T,HR_H,HR, HR, HR, HR, HR_H,HR_T,HR_S,HR_D,C,  C ],
+      // Row 4-5: Hair + forehead
+      [C,  C,  HR_S,HR, HR_H,HR, SK, SK, SK, SK, HR, HR_H,HR, HR_S,C,  C ],
+      [C,  C,  HR_S,HR, HR_S,SK, SK_H,SK, SK, SK_H,SK, HR_S,HR, HR_S,C,  C ],
+      // Row 6: Eyes - big anime style
+      [C,  C,  HR_D,SK, EY_W,EY_H,EY, EY_P,SK, EY_P,EY, EY_H,EY_W,SK, HR_D,C ],
+      // Row 7: Eye shine + nose
+      [C,  C,  C,  SK, EY_W,EY_G,EY_H,EY_D,SK, EY_D,EY_H,EY_G,EY_W,SK, C,  C ],
+      // Row 8: Cheeks + nose
+      [C,  C,  C,  C,  SK, BLUSH,SK, SK_S,SK_S,SK, SK, BLUSH,SK, C,  C,  C ],
+      // Row 9: Mouth
+      [C,  C,  C,  C,  C,  SK, SK, MOUTH,SK, SK, SK, C,  C,  C,  C,  C ],
+      // Row 10: Chin + scarf
+      [C,  C,  C,  SCF_S,SCF,SCF_H,SCF,SCF,SCF,SCF,SCF_H,SCF,SCF_S,C,  C,  C ],
+      // Row 11: Shoulders + coat top
+      [C,  C,  CAPE_S,COAT_S,COAT,GOLD,SHIRT,SHIRT_S,SHIRT,GOLD,COAT,COAT_S,CAPE_S,C,  C,  C ],
+      // Row 12: Torso + belt
+      [C,  C,  CAPE,COAT,COAT_H,BELT,BELT_B,BELT,BELT,BELT_B,BELT,COAT_H,COAT,CAPE,C,  C ],
+      // Row 13: Lower torso + arms
+      [C,  BL_H,BL,COAT_S,SK_S,COAT,COAT_S,COAT,COAT,COAT_S,COAT,SK_S,COAT_S,C,  C,  C ],
+      // Row 14: Sword + hands
+      [C,  GRD,BL_S,C,  SK, COAT_D,COAT_S,COAT_D,COAT_S,COAT_D,SK, C,  C,  C,  C,  C ],
+      // Row 15: Pommel + pants
+      [C,  POM,C,  C,  C,  PANT,PANT, PANT,PANT,PANT, PANT,C,  C,  C,  C,  C ],
+      // Row 16: Upper legs
+      [C,  C,  C,  C,  C,  PANT_S,PANT,C,  C,  PANT,PANT_S,C,  C,  C,  C,  C ],
+      // Row 17: Boots
+      [C,  C,  C,  C,  BOOT_S,BOOT,BOOT_G,BOOT_H,BOOT_H,BOOT_G,BOOT,BOOT_S,C,  C,  C,  C ],
+      // Row 18-19: Hair flowing down sides
+      [C,  C,  HR_D,HR_S,C,  C,  C,  C,  C,  C,  C,  C,  HR_S,HR_D,C,  C ],
+      [C,  C,  C,  HR_D,C,  C,  C,  C,  C,  C,  C,  C,  HR_D,C,  C,  C ],
     ];
-    const downIdle1 = [
-      [C,  C,  C,  C,    HAIR_S,HAIR, HAIR, HAIR_H,HAIR, HAIR_S,C,    C,  C,  C],
-      [C,  C,  C,  HAIR_S,HAIR, HAIR_H,HAIR_H,HAIR, HAIR, HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  HAIR, HAIR_H,HAIR, HAIR, HAIR, HAIR_H,HAIR,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN_H,SKIN, SKIN, SKIN, SKIN_H,SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, EYE_W, EYE,  SKIN, SKIN, EYE,  EYE_W, SKIN, C,  C,  C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,SKIN, SKIN, SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  C,    C,     SKIN, MOUTH, SKIN, SKIN, C,     C,    C,  C,  C],
-      [C,  C,  SCARF_S,SCARF,SCARF_H,SCARF,SCARF,SCARF,SCARF_H,SCARF,SCARF_S,C,C, C],
-      [CAPE_H,CAPE,ARMOR_S,TUNIC,TUNIC_H,BELT,BELT_B,BELT,TUNIC_H,TUNIC,ARMOR_S,CAPE,CAPE_H,C],
-      [CAPE_S,CAPE_S,ARMOR,TUNIC,TUNIC_S,TUNIC,TUNIC,TUNIC,TUNIC_S,TUNIC,ARMOR,CAPE_S,CAPE_S,C],
-      [C,  C,  BLADE_H,BLADE,SKIN,TUNIC_S,TUNIC,TUNIC_S,TUNIC,SKIN,C,   C,  C,  C],
-      [C,  C,  GUARD,BLADE_S,C, PANTS, PANTS, PANTS, PANTS, C,   C,    C,  C,  C],
-      [C,  C,  POMMEL,C, C,  PANTS_S,C,    C,    PANTS_S,C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,BOOTS, BOOTS_H,BOOTS_H,BOOTS, BOOTS_S,C,  C,  C,  C],
-    ];
+
+    const downIdle1 = downIdle0.map((row, i) => {
+      // Slight cape flutter on idle frame 1
+      if (i === 11 || i === 12) {
+        const r = [...row];
+        r[2] = CAPE_H;
+        r[13] = CAPE_H;
+        return r;
+      }
+      // Hair sway
+      if (i === 18) return [C, C, HR_S,HR_D,C, C, C, C, C, C, C, C, HR_D,HR_S,C, C];
+      if (i === 19) return [C, C, HR_D,C,  C, C, C, C, C, C, C, C, C,  HR_D,C, C];
+      return row;
+    });
 
     this.textures.set('player_down_idle_0', this.createSpriteTexture(downIdle0, 3));
     this.textures.set('player_down_idle_1', this.createSpriteTexture(downIdle1, 3));
 
-    // Walk frames (leg animation)
-    const downWalk0 = [
-      [C,  C,  C,  C,    HAIR_S,HAIR, HAIR, HAIR_H,HAIR, HAIR_S,C,    C,  C,  C],
-      [C,  C,  C,  HAIR_S,HAIR, HAIR_H,HAIR_H,HAIR, HAIR, HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  HAIR, HAIR_H,HAIR, HAIR, HAIR, HAIR_H,HAIR,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN_H,SKIN, SKIN, SKIN, SKIN_H,SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, EYE_W, EYE,  SKIN, SKIN, EYE,  EYE_W, SKIN, C,  C,  C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,SKIN, SKIN, SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  C,    C,     SKIN, MOUTH, SKIN, SKIN, C,     C,    C,  C,  C],
-      [C,  C,  SCARF,SCARF_H,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF_H,SCARF,C, C,  C],
-      [C,  CAPE,ARMOR_S,TUNIC, TUNIC_H,BELT, BELT_B,BELT, TUNIC_H,TUNIC, ARMOR_S,CAPE,C, C],
-      [C,  CAPE_S,ARMOR,TUNIC, TUNIC_S,TUNIC,TUNIC, TUNIC,TUNIC_S,TUNIC, ARMOR, CAPE_S,C,C],
-      [C,  C,  BLADE_H,BLADE,SKIN, TUNIC_S,TUNIC, TUNIC_S,TUNIC, SKIN, C,    C,  C,  C],
-      [C,  C,  GUARD,BLADE_S,BOOTS,PANTS, C,    C,    PANTS, PANTS, C,   C,  C,  C],
-      [C,  C,  POMMEL,C, C,   PANTS_S,C,   C,    C,    BOOTS, C,    C,  C,  C],
-      [C,  C,  C,  C,  C,    BOOTS_H,C,    C,    C,    BOOTS_S,C,    C,  C,  C],
-    ];
-    const downWalk1 = [
-      [C,  C,  C,  C,    HAIR_S,HAIR, HAIR, HAIR_H,HAIR, HAIR_S,C,    C,  C,  C],
-      [C,  C,  C,  HAIR_S,HAIR, HAIR_H,HAIR_H,HAIR, HAIR, HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  HAIR, HAIR_H,HAIR, HAIR, HAIR, HAIR_H,HAIR,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN_H,SKIN, SKIN, SKIN, SKIN_H,SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, EYE_W, EYE,  SKIN, SKIN, EYE,  EYE_W, SKIN, C,  C,  C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,SKIN, SKIN, SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  C,    C,     SKIN, MOUTH, SKIN, SKIN, C,     C,    C,  C,  C],
-      [C,  C,  SCARF,SCARF_H,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF_H,SCARF,C, C,  C],
-      [C,  CAPE,ARMOR_S,TUNIC, TUNIC_H,BELT, BELT_B,BELT, TUNIC_H,TUNIC, ARMOR_S,CAPE,C, C],
-      [C,  CAPE_S,ARMOR,TUNIC, TUNIC_S,TUNIC,TUNIC, TUNIC,TUNIC_S,TUNIC, ARMOR, CAPE_S,C,C],
-      [C,  C,  BLADE_H,BLADE,SKIN, TUNIC_S,TUNIC, TUNIC_S,TUNIC, SKIN, C,    C,  C,  C],
-      [C,  C,  GUARD,BLADE_S,PANTS,PANTS, C,    C,    BOOTS, PANTS, C,   C,  C,  C],
-      [C,  C,  POMMEL,C, BOOTS, C,   C,    C,    C,    PANTS_S,C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,C,   C,    C,    C,    BOOTS_H,C,    C,  C,  C],
-    ];
+    // Walk frames - leg animation
+    const downWalk0 = downIdle0.map((row, i) => {
+      if (i === 16) return [C,C,C,C,C,PANT_S,BOOT,C,C,C,PANT,PANT_S,C,C,C,C];
+      if (i === 17) return [C,C,C,C,C,BOOT_S,BOOT_G,C,C,C,BOOT_S,BOOT,C,C,C,C];
+      return row;
+    });
+    const downWalk1 = downIdle0.map((row, i) => {
+      if (i === 16) return [C,C,C,C,PANT,PANT_S,C,C,C,C,BOOT,PANT,C,C,C,C];
+      if (i === 17) return [C,C,C,C,BOOT,BOOT_S,C,C,C,C,BOOT_G,BOOT_S,C,C,C,C];
+      return row;
+    });
 
     this.textures.set('player_down_walk_0', this.createSpriteTexture(downWalk0, 3));
     this.textures.set('player_down_walk_1', this.createSpriteTexture(downWalk1, 3));
 
-    // Attack frames (3-frame: windup, slash, followthrough)
-    this.textures.set('player_down_attack_0', this.createSpriteTexture([
-      [C,  C,  POMMEL,GUARD,BLADE_S,HAIR, HAIR, HAIR_H,HAIR, HAIR_S,C,    C,  C,  C],
-      [C,  C,  C,  GRIP, BLADE,HAIR_H,HAIR_H,HAIR, HAIR, HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  C,    BLADE_H,HAIR, HAIR, HAIR, HAIR_H,HAIR,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN_H,SKIN, SKIN, SKIN, SKIN_H,SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, EYE_W, EYE,  SKIN, SKIN, EYE,  EYE_W, SKIN, C,  C,  C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,SKIN, SKIN, SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  C,    C,     SKIN, MOUTH, SKIN, SKIN, C,     C,    C,  C,  C],
-      [C,  C,  SCARF,SCARF_H,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF_H,SCARF,C, C,  C],
-      [C,  CAPE,ARMOR_S,TUNIC, TUNIC_H,BELT, BELT_B,BELT, TUNIC_H,TUNIC, ARMOR_S,CAPE,C, C],
-      [C,  CAPE_S,ARMOR,TUNIC, TUNIC_S,TUNIC,TUNIC, TUNIC,TUNIC_S,TUNIC, ARMOR, CAPE_S,C,C],
-      [C,  C,  SKIN, SKIN, SKIN, TUNIC_S,TUNIC, TUNIC_S,TUNIC, SKIN, C,    C,  C,  C],
-      [C,  C,  C,  C,  C,  PANTS, PANTS, PANTS, PANTS, C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  C,  PANTS_S,C,    C,    PANTS_S,C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,BOOTS, BOOTS_H,BOOTS_H,BOOTS, BOOTS_S,C,  C,  C,  C],
-    ], 3));
-    this.textures.set('player_down_attack_1', this.createSpriteTexture([
-      [C,  C,  C,  C,    HAIR_S,HAIR, HAIR, HAIR_H,HAIR, HAIR_S,C,    C,  C,  C],
-      [C,  C,  C,  HAIR_S,HAIR, HAIR_H,HAIR_H,HAIR, HAIR, HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  HAIR, HAIR_H,HAIR, HAIR, HAIR, HAIR_H,HAIR,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN_H,SKIN, SKIN, SKIN, SKIN_H,SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, EYE_W, EYE_S,SKIN, SKIN, EYE_S,EYE_W, SKIN, C,  C,  C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,SKIN, SKIN, SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  C,    C,     BROW, MOUTH, BROW, C,    C,     C,    C,  C,  C],
-      [C,  C,  SCARF,SCARF_H,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF_H,SCARF,C, C,  C],
-      [C,  CAPE,ARMOR_S,TUNIC, TUNIC_H,BELT, BELT_B,BELT, TUNIC_H,TUNIC, ARMOR_S,CAPE,C, C],
-      [C,  CAPE_S,ARMOR,TUNIC, TUNIC_S,TUNIC,TUNIC, TUNIC,TUNIC_S,TUNIC, ARMOR, CAPE_S,C,C],
-      [BLADE_H,BLADE,BLADE_S,GUARD,SKIN,TUNIC_S,TUNIC,TUNIC_S,TUNIC,SKIN,C,   C,  C,  C],
-      [C,  C,  C,  C,  C,  PANTS, PANTS, PANTS, PANTS, C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  C,  PANTS_S,C,    C,    PANTS_S,C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,BOOTS, BOOTS_H,BOOTS_H,BOOTS, BOOTS_S,C,  C,  C,  C],
-    ], 3));
-    this.textures.set('player_down_attack_2', this.createSpriteTexture([
-      [C,  C,  C,  C,    HAIR_S,HAIR, HAIR, HAIR_H,HAIR, HAIR_S,C,    C,  C,  C],
-      [C,  C,  C,  HAIR_S,HAIR, HAIR_H,HAIR_H,HAIR, HAIR, HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  HAIR, HAIR_H,HAIR, HAIR, HAIR, HAIR_H,HAIR,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN_H,SKIN, SKIN, SKIN, SKIN_H,SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, EYE_W, EYE,  SKIN, SKIN, EYE,  EYE_W, SKIN, C,  C,  C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,SKIN, SKIN, SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  C,    C,     SKIN, MOUTH, SKIN, SKIN, C,     C,    C,  C,  C],
-      [C,  C,  SCARF,SCARF_H,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF_H,SCARF,C, C,  C],
-      [C,  CAPE,ARMOR_S,TUNIC, TUNIC_H,BELT, BELT_B,BELT, TUNIC_H,TUNIC, ARMOR_S,CAPE,C, C],
-      [C,  CAPE_S,ARMOR,TUNIC, TUNIC_S,TUNIC,TUNIC, TUNIC,TUNIC_S,TUNIC, ARMOR, CAPE_S,C,C],
-      [C,  C,  SKIN, SKIN, SKIN, TUNIC_S,TUNIC, TUNIC_S,TUNIC, SKIN, C,    C,  C,  C],
-      [C,  C,  C,  C,  C,  PANTS, PANTS, PANTS, PANTS, C,   C,    C,  C,  C],
-      [POMMEL,GUARD,BLADE_S,BLADE,BLADE_H,PANTS_S,C,C,PANTS_S,C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,BOOTS, BOOTS_H,BOOTS_H,BOOTS, BOOTS_S,C,  C,  C,  C],
-    ], 3));
+    // Attack frames - 3 frames
+    const downAtk0 = downIdle0.map((row, i) => {
+      // Sword raised above head
+      if (i === 0) return [C,C,POM,GRD,BL_S,HR_D,HR_S,HR,HR,HR_H,HR,HR_S,C,C,C,C];
+      if (i === 1) return [C,C,C,GRP,BL,HR_S,HR,HR_H,HR_H,HR,HR_T,HR_S,HR_D,C,C,C];
+      if (i === 2) return [C,C,C,C,BL_H,HR_S,HR_H,HR,HR,HR_H,HR,HR,HR_S,HR_D,C,C];
+      // Determined face
+      if (i === 6) return [C,C,HR_D,SK,EY_W,EY_H,EY_D,EY_P,SK,EY_P,EY_D,EY_H,EY_W,SK,HR_D,C];
+      if (i === 9) return [C,C,C,C,C,SK,BROW,MOUTH,BROW,SK,SK,C,C,C,C,C];
+      // Arms up
+      if (i === 13) return [C,C,C,COAT_S,SK_S,COAT,COAT_S,COAT,COAT,COAT_S,COAT,SK_S,COAT_S,C,C,C];
+      if (i === 14) return [C,C,C,C,SK,COAT_D,COAT_S,COAT_D,COAT_S,COAT_D,SK,C,C,C,C,C];
+      return row;
+    });
 
-    // Charge attack frames (glowing blade)
-    this.textures.set('player_down_charge_0', this.createSpriteTexture([
-      [C,  C,  POMMEL,GUARD_H,CHARGE_BLADE,HAIR, HAIR,HAIR_H,HAIR,HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  GRIP, CHARGE_BLADE,HAIR_H,HAIR_H,HAIR,HAIR,HAIR_S,C,  C,  C,  C],
-      [C,  C,  C,  C,    CHARGE_G,HAIR,HAIR,HAIR,HAIR_H,HAIR,C,       C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN_H,SKIN, SKIN, SKIN, SKIN_H,SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, EYE_W,EYE_CHARGE,SKIN,SKIN,EYE_CHARGE,EYE_W,SKIN,C, C, C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,SKIN, SKIN, SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  C,    C,     BROW, MOUTH_CHARGE,BROW,C, C,   C,    C,  C,  C],
-      [C,  C,  SCARF,SCARF_H,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF_H,SCARF,C, C,  C],
-      [C,  CAPE,ARMOR_S,TUNIC, TUNIC_H,BELT, BELT_B,BELT, TUNIC_H,TUNIC, ARMOR_S,CAPE,C, C],
-      [C,  CAPE_S,ARMOR,TUNIC, TUNIC_S,TUNIC,TUNIC, TUNIC,TUNIC_S,TUNIC, ARMOR, CAPE_S,C,C],
-      [C,  C,  SKIN, SKIN, SKIN, TUNIC_S,TUNIC, TUNIC_S,TUNIC, SKIN, C,    C,  C,  C],
-      [C,  C,  C,  C,  C,  PANTS, PANTS, PANTS, PANTS, C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  C,  PANTS_S,C,    C,    PANTS_S,C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,BOOTS, BOOTS_H,BOOTS_H,BOOTS, BOOTS_S,C,  C,  C,  C],
-    ], 3));
-    this.textures.set('player_down_charge_1', this.createSpriteTexture([
-      [C,  C,  C,  C,    HAIR_S,HAIR, HAIR, HAIR_H,HAIR, HAIR_S,C,    C,  C,  C],
-      [C,  C,  C,  HAIR_S,HAIR, HAIR_H,HAIR_H,HAIR, HAIR, HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  HAIR, HAIR_H,HAIR, HAIR, HAIR, HAIR_H,HAIR,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN_H,SKIN, SKIN, SKIN, SKIN_H,SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, EYE_W,EYE_CHARGE,SKIN,SKIN,EYE_CHARGE,EYE_W,SKIN,C, C, C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,SKIN, SKIN, SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  C,    C,     BROW, MOUTH_CHARGE,BROW,C, C,   C,    C,  C,  C],
-      [C,  C,  SCARF,SCARF_H,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF_H,SCARF,C, C,  C],
-      [C,  CAPE,ARMOR_S,TUNIC, TUNIC_H,BELT, BELT_B,BELT, TUNIC_H,TUNIC, ARMOR_S,CAPE,C, C],
-      [C,  CAPE_S,ARMOR,TUNIC, TUNIC_S,TUNIC,TUNIC, TUNIC,TUNIC_S,TUNIC, ARMOR, CAPE_S,C,C],
-      [CHARGE_G,CHARGE_BLADE,CHARGE_BLADE,GUARD_H,SKIN,TUNIC_S,TUNIC,TUNIC_S,TUNIC,SKIN,C,C,C,C],
-      [C,  C,  C,  C,  C,  PANTS, PANTS, PANTS, PANTS, C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  C,  PANTS_S,C,    C,    PANTS_S,C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,BOOTS, BOOTS_H,BOOTS_H,BOOTS, BOOTS_S,C,  C,  C,  C],
-    ], 3));
-    this.textures.set('player_down_charge_2', this.createSpriteTexture([
-      [C,  C,  C,  C,    HAIR_S,HAIR, HAIR, HAIR_H,HAIR, HAIR_S,C,    C,  C,  C],
-      [C,  C,  C,  HAIR_S,HAIR, HAIR_H,HAIR_H,HAIR, HAIR, HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  HAIR, HAIR_H,HAIR, HAIR, HAIR, HAIR_H,HAIR,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN_H,SKIN, SKIN, SKIN, SKIN_H,SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, EYE_W,EYE_CHARGE,SKIN,SKIN,EYE_CHARGE,EYE_W,SKIN,C, C, C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,SKIN, SKIN, SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  C,    C,     BROW, MOUTH_CHARGE,BROW,C, C,   C,    C,  C,  C],
-      [C,  C,  SCARF,SCARF_H,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF_H,SCARF,C, C,  C],
-      [C,  CAPE,ARMOR_S,TUNIC, TUNIC_H,BELT, BELT_B,BELT, TUNIC_H,TUNIC, ARMOR_S,CAPE,C, C],
-      [C,  CAPE_S,ARMOR,TUNIC, TUNIC_S,TUNIC,TUNIC, TUNIC,TUNIC_S,TUNIC, ARMOR, CAPE_S,C,C],
-      [C,  C,  SKIN, SKIN, SKIN, TUNIC_S,TUNIC, TUNIC_S,TUNIC, SKIN, C,    C,  C,  C],
-      [C,  C,  C,  C,  C,  PANTS, PANTS, PANTS, PANTS, C,   C,    C,  C,  C],
-      [POMMEL,GUARD_H,CHARGE_BLADE,CHARGE_G,CHARGE_G2,PANTS_S,C,C,PANTS_S,C,C,C, C,  C],
-      [C,  C,  C,  C,  BOOTS_S,BOOTS, BOOTS_H,BOOTS_H,BOOTS, BOOTS_S,C,  C,  C,  C],
-    ], 3));
+    const downAtk1 = downIdle0.map((row, i) => {
+      // Sword slashing down-left
+      if (i === 6) return [C,C,HR_D,SK,EY_W,EY_H,EY_D,EY_P,SK,EY_P,EY_D,EY_H,EY_W,SK,HR_D,C];
+      if (i === 9) return [C,C,C,C,C,BROW,SK,MOUTH,SK,BROW,C,C,C,C,C,C];
+      if (i === 13) return [BL_H,BL,BL_S,GRD,SK_S,COAT,COAT_S,COAT,COAT,COAT_S,COAT,SK_S,COAT_S,C,C,C];
+      if (i === 14) return [C,C,C,C,SK,COAT_D,COAT_S,COAT_D,COAT_S,COAT_D,SK,C,C,C,C,C];
+      return row;
+    });
 
-    // Hurt sprite (down)
-    this.textures.set('player_down_hurt_0', this.createSpriteTexture([
-      [C,  C,  C,  C,    HAIR_S,HAIR, HAIR, HAIR_H,HAIR, HAIR_S,C,    C,  C,  C],
-      [C,  C,  C,  HAIR_S,HAIR, HAIR_H,HAIR_H,HAIR, HAIR, HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  HAIR, HAIR_H,HAIR, HAIR, HAIR, HAIR_H,HAIR,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN_H,SKIN, SKIN, SKIN, SKIN_H,SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, EYE_HURT,BROW,SKIN,SKIN,BROW,EYE_HURT,SKIN,  C,  C,  C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,SKIN, SKIN, SKIN,  C,    C,  C,  C],
-      [C,  C,  C,  C,    C,     SKIN, MOUTH_HURT,SKIN,SKIN,C,   C,    C,  C,  C],
-      [C,  C,  SCARF,SCARF_H,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF_H,SCARF,C, C,  C],
-      [C,  CAPE,ARMOR_S,TUNIC, TUNIC_H,BELT, BELT_B,BELT, TUNIC_H,TUNIC, ARMOR_S,CAPE,C, C],
-      [C,  CAPE_S,ARMOR,TUNIC, TUNIC_S,TUNIC,TUNIC, TUNIC,TUNIC_S,TUNIC, ARMOR, CAPE_S,C,C],
-      [C,  C,  BLADE_H,BLADE,SKIN,TUNIC_S,TUNIC,TUNIC_S,TUNIC,SKIN,C,   C,  C,  C],
-      [C,  C,  GUARD,BLADE_S,C, PANTS, PANTS, PANTS, PANTS, C,   C,    C,  C,  C],
-      [C,  C,  POMMEL,C, C,  PANTS_S,C,    C,    PANTS_S,C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,BOOTS, BOOTS_H,BOOTS_H,BOOTS, BOOTS_S,C,  C,  C,  C],
-    ], 3));
+    const downAtk2 = downIdle0.map((row, i) => {
+      // Sword follow-through low
+      if (i === 15) return [POM,GRD,BL_S,BL,BL_H,PANT,PANT,PANT,PANT,PANT,PANT,C,C,C,C,C];
+      return row;
+    });
 
-    // ========== PLAYER UP - Back view (14x14) ==========
-    const upIdle0 = [
-      [C,  C,  C,  C,    HAIR_S,HAIR, HAIR, HAIR_H,HAIR, HAIR_S,C,    C,  C,  C],
-      [C,  C,  C,  HAIR_S,HAIR, HAIR_H,HAIR_H,HAIR, HAIR, HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  HAIR, HAIR, HAIR_S,HAIR_S,HAIR, HAIR, HAIR,  C,    C,  C,  C],
-      [C,  C,  C,  HAIR, HAIR_S,HAIR, HAIR, HAIR_S,HAIR, HAIR,  C,    C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN, SKIN, SKIN, SKIN, SKIN, SKIN,   C,    C,  C,  C],
-      [C,  C,  C,  C,    SKIN, SKIN, SKIN, SKIN, SKIN, C,      C,    C,  C,  C],
-      [C,  C,  C,  C,    C,    SKIN, SKIN, SKIN, C,    C,      C,    C,  C,  C],
-      [C,  C,  SCARF_S,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF_S,C,C, C],
-      [C,  CAPE,ARMOR_S,TUNIC, TUNIC, BELT, BELT_B,BELT, TUNIC, TUNIC, ARMOR_S,CAPE,C, C],
-      [C,  CAPE_S,ARMOR,TUNIC_S,TUNIC_S,TUNIC,TUNIC,TUNIC,TUNIC_S,TUNIC_S,ARMOR,CAPE_S,C,C],
-      [C,  C,  BLADE_H,BLADE,SKIN,TUNIC_S,TUNIC,TUNIC_S,TUNIC,SKIN,C,   C,  C,  C],
-      [C,  C,  GUARD,BLADE_S,C, PANTS, PANTS, PANTS, PANTS, C,   C,    C,  C,  C],
-      [C,  C,  POMMEL,C, C,  PANTS_S,C,    C,    PANTS_S,C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,BOOTS, BOOTS_H,BOOTS_H,BOOTS, BOOTS_S,C,  C,  C,  C],
+    this.textures.set('player_down_attack_0', this.createSpriteTexture(downAtk0, 3));
+    this.textures.set('player_down_attack_1', this.createSpriteTexture(downAtk1, 3));
+    this.textures.set('player_down_attack_2', this.createSpriteTexture(downAtk2, 3));
+
+    // Charge frames - glowing sword
+    const downChg0 = downAtk0.map((row, i) => {
+      if (i === 0) return [C,C,POM,GRD_H,CG_B,HR_D,HR_S,HR,HR,HR_H,HR,HR_S,C,C,C,C];
+      if (i === 1) return [C,C,C,GRP,CG_B,HR_S,HR,HR_H,HR_H,HR,HR_T,HR_S,HR_D,C,C,C];
+      if (i === 2) return [C,C,C,C,CG,HR_S,HR_H,HR,HR,HR_H,HR,HR,HR_S,HR_D,C,C];
+      if (i === 6) return [C,C,HR_D,SK,EY_W,EY_CHG,EY_CHG2,EY_P,SK,EY_P,EY_CHG2,EY_CHG,EY_W,SK,HR_D,C];
+      if (i === 9) return [C,C,C,C,C,BROW,SK,MOUTH_C,SK,BROW,C,C,C,C,C,C];
+      return row;
+    });
+    const downChg1 = downAtk1.map((row, i) => {
+      if (i === 6) return [C,C,HR_D,SK,EY_W,EY_CHG,EY_CHG2,EY_P,SK,EY_P,EY_CHG2,EY_CHG,EY_W,SK,HR_D,C];
+      if (i === 9) return [C,C,C,C,C,BROW,SK,MOUTH_C,SK,BROW,C,C,C,C,C,C];
+      if (i === 13) return [CG,CG_B,CG_B,GRD_H,SK_S,COAT,COAT_S,COAT,COAT,COAT_S,COAT,SK_S,COAT_S,C,C,C];
+      return row;
+    });
+    const downChg2 = downAtk2.map((row, i) => {
+      if (i === 15) return [POM,GRD_H,CG_B,CG,CG2,PANT,PANT,PANT,PANT,PANT,PANT,C,C,C,C,C];
+      return row;
+    });
+
+    this.textures.set('player_down_charge_0', this.createSpriteTexture(downChg0, 3));
+    this.textures.set('player_down_charge_1', this.createSpriteTexture(downChg1, 3));
+    this.textures.set('player_down_charge_2', this.createSpriteTexture(downChg2, 3));
+
+    // Hurt frame
+    const downHurt = downIdle0.map((row, i) => {
+      if (i === 6) return [C,C,HR_D,SK,EY_W,EY_HURT,BROW,EY_P,SK,EY_P,BROW,EY_HURT,EY_W,SK,HR_D,C];
+      if (i === 9) return [C,C,C,C,C,SK,SK,MOUTH_H,SK,SK,SK,C,C,C,C,C];
+      return row;
+    });
+    this.textures.set('player_down_hurt_0', this.createSpriteTexture(downHurt, 3));
+
+    // ========== PLAYER UP - Back view (16x20) ==========
+    const upIdle0: number[][] = [
+      [C,  C,  C,  C,  C,  HR_D,HR_S,HR, HR, HR_H,HR, HR_S,C,  C,  C,  C ],
+      [C,  C,  C,  C,  HR_D,HR_S,HR, HR_H,HR_H,HR, HR_T,HR_S,HR_D,C,  C,  C ],
+      [C,  C,  C,  HR_D,HR_S,HR, HR_H,HR, HR, HR_H,HR, HR, HR_S,HR_D,C,  C ],
+      [C,  C,  HR_D,HR_S,HR_T,HR_H,HR, HR, HR, HR, HR_H,HR_T,HR_S,HR_D,C,  C ],
+      [C,  C,  HR_S,HR, HR_T,HR_S,HR, HR, HR, HR, HR_S,HR_T,HR, HR_S,C,  C ],
+      [C,  C,  HR_S,HR, HR_S,HR, HR_S,HR, HR, HR_S,HR, HR_S,HR, HR_S,C,  C ],
+      [C,  C,  HR_D,HR, HR, HR_S,HR, HR, HR, HR, HR_S,HR, HR, HR_D,C,  C ],
+      [C,  C,  C,  HR_S,HR, HR, HR_S,HR, HR, HR_S,HR, HR, HR_S,C,  C,  C ],
+      [C,  C,  C,  C,  SK, SK, SK, SK, SK, SK, SK, SK, C,  C,  C,  C ],
+      [C,  C,  C,  C,  C,  SK, SK, SK, SK, SK, C,  C,  C,  C,  C,  C ],
+      [C,  C,  C,  SCF_S,SCF,SCF,SCF,SCF,SCF,SCF,SCF,SCF,SCF_S,C,  C,  C ],
+      [C,  C,  CAPE_S,COAT_S,COAT,COAT,COAT,COAT_S,COAT_S,COAT,COAT,COAT_S,CAPE_S,C,  C,  C ],
+      [C,  C,  CAPE,COAT,COAT_H,BELT,BELT,BELT,BELT,BELT,BELT,COAT_H,COAT,CAPE,C,  C ],
+      [C,  BL_H,BL,COAT_S,SK_S,COAT_S,COAT,COAT,COAT,COAT_S,SK_S,COAT_S,C,  C,  C,  C ],
+      [C,  GRD,BL_S,C,  SK, COAT_D,COAT_S,COAT_D,COAT_S,COAT_D,SK, C,  C,  C,  C,  C ],
+      [C,  POM,C,  C,  C,  PANT,PANT,PANT,PANT,PANT,PANT,C,  C,  C,  C,  C ],
+      [C,  C,  C,  C,  C,  PANT_S,PANT,C,  C,  PANT,PANT_S,C,  C,  C,  C,  C ],
+      [C,  C,  C,  C,  BOOT_S,BOOT,BOOT_G,BOOT_H,BOOT_H,BOOT_G,BOOT,BOOT_S,C,  C,  C,  C ],
+      // Long hair flowing down back
+      [C,  C,  HR_D,HR_S,HR, HR, HR_T,HR, HR, HR_T,HR, HR, HR_S,HR_D,C,  C ],
+      [C,  C,  C,  HR_D,HR_S,HR, HR_S,HR, HR, HR_S,HR, HR_S,HR_D,C,  C,  C ],
     ];
 
     this.textures.set('player_up_idle_0', this.createSpriteTexture(upIdle0, 3));
     this.textures.set('player_up_idle_1', this.createSpriteTexture(upIdle0, 3));
 
-    const upWalk0 = [...upIdle0.slice(0, 11),
-      [C,  C,  GUARD,BLADE_S,BOOTS,PANTS, C,    C,    PANTS, PANTS, C,   C,  C,  C],
-      [C,  C,  POMMEL,C, C,   PANTS_S,C,   C,    C,    BOOTS, C,    C,  C,  C],
-      [C,  C,  C,  C,  C,    BOOTS_H,C,    C,    C,    BOOTS_S,C,    C,  C,  C],
-    ];
-    const upWalk1 = [...upIdle0.slice(0, 11),
-      [C,  C,  GUARD,BLADE_S,PANTS,PANTS, C,    C,    BOOTS, PANTS, C,   C,  C,  C],
-      [C,  C,  POMMEL,C, BOOTS, C,   C,    C,    C,    PANTS_S,C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,C,   C,    C,    C,    BOOTS_H,C,    C,  C,  C],
-    ];
+    const upWalk0 = upIdle0.map((row, i) => {
+      if (i === 16) return [C,C,C,C,C,PANT_S,BOOT,C,C,C,PANT,PANT_S,C,C,C,C];
+      if (i === 17) return [C,C,C,C,C,BOOT_S,BOOT_G,C,C,C,BOOT_S,BOOT,C,C,C,C];
+      return row;
+    });
+    const upWalk1 = upIdle0.map((row, i) => {
+      if (i === 16) return [C,C,C,C,PANT,PANT_S,C,C,C,C,BOOT,PANT,C,C,C,C];
+      if (i === 17) return [C,C,C,C,BOOT,BOOT_S,C,C,C,C,BOOT_G,BOOT_S,C,C,C,C];
+      return row;
+    });
 
     this.textures.set('player_up_walk_0', this.createSpriteTexture(upWalk0, 3));
     this.textures.set('player_up_walk_1', this.createSpriteTexture(upWalk1, 3));
 
-    // Up attack (sword swings overhead)
-    this.textures.set('player_up_attack_0', this.createSpriteTexture([
-      [C,  C,  POMMEL,GUARD,BLADE_S,HAIR, HAIR, HAIR_H,HAIR, HAIR_S,C,    C,  C,  C],
-      [C,  C,  C,  GRIP,BLADE_H,HAIR_H,HAIR_H,HAIR,HAIR,HAIR_S,C,   C,  C,  C],
-      [C,  C,  C,  C,   BLADE,HAIR_S,HAIR_S,HAIR,HAIR,HAIR,   C,    C,  C,  C],
-      [C,  C,  C,  HAIR,HAIR_S,HAIR,HAIR,HAIR_S,HAIR,HAIR,    C,    C,  C,  C],
-      [C,  C,  C,  SKIN,SKIN,SKIN,SKIN,SKIN,SKIN,SKIN,        C,    C,  C,  C],
-      [C,  C,  C,  C,   SKIN,SKIN,SKIN,SKIN,SKIN,C,           C,    C,  C,  C],
-      [C,  C,  C,  C,   C,   SKIN,SKIN,SKIN,C,   C,           C,    C,  C,  C],
-      [C,  C,  SCARF_S,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF,SCARF_S,C,C,C],
-      [C,  CAPE,ARMOR_S,TUNIC,TUNIC,BELT,BELT_B,BELT,TUNIC,TUNIC,ARMOR_S,CAPE,C,C],
-      [C,  CAPE_S,ARMOR,TUNIC_S,TUNIC_S,TUNIC,TUNIC,TUNIC,TUNIC_S,TUNIC_S,ARMOR,CAPE_S,C,C],
-      [C,  C,  SKIN,SKIN,SKIN,TUNIC_S,TUNIC,TUNIC_S,TUNIC,SKIN,C,   C,  C,  C],
-      [C,  C,  C,  C,  C,  PANTS,PANTS,PANTS,PANTS,C,   C,    C,  C,  C],
-      [C,  C,  C,  C,  C,  PANTS_S,C,  C,   PANTS_S,C,  C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,BOOTS,BOOTS_H,BOOTS_H,BOOTS,BOOTS_S,C,C, C,  C],
-    ], 3));
+    // Up attack
+    const upAtk0 = upIdle0.map((row, i) => {
+      if (i === 0) return [C,C,POM,GRD,BL_S,HR_D,HR_S,HR,HR,HR_H,HR,HR_S,C,C,C,C];
+      if (i === 1) return [C,C,C,GRP,BL,HR_S,HR,HR_H,HR_H,HR,HR_T,HR_S,HR_D,C,C,C];
+      if (i === 2) return [C,C,C,C,BL_H,HR_S,HR_H,HR,HR,HR_H,HR,HR,HR_S,HR_D,C,C];
+      if (i === 13) return [C,C,C,COAT_S,SK_S,COAT_S,COAT,COAT,COAT,COAT_S,SK_S,COAT_S,C,C,C,C];
+      if (i === 14) return [C,C,C,C,SK,COAT_D,COAT_S,COAT_D,COAT_S,COAT_D,SK,C,C,C,C,C];
+      return row;
+    });
+    this.textures.set('player_up_attack_0', this.createSpriteTexture(upAtk0, 3));
     this.textures.set('player_up_attack_1', this.textures.get('player_up_attack_0')!);
-    this.textures.set('player_up_attack_2', this.createSpriteTexture([
-      ...upIdle0.slice(0, 11),
-      [C,  C,  C,  C,  C,  PANTS,PANTS,PANTS,PANTS,C,   C,    C,  C,  C],
-      [POMMEL,GUARD,BLADE_S,BLADE,BLADE_H,PANTS_S,C,C,PANTS_S,C,C,C,C,C],
-      [C,  C,  C,  C,  BOOTS_S,BOOTS,BOOTS_H,BOOTS_H,BOOTS,BOOTS_S,C,C,C,C],
-    ], 3));
+    const upAtk2 = upIdle0.map((row, i) => {
+      if (i === 15) return [POM,GRD,BL_S,BL,BL_H,PANT,PANT,PANT,PANT,PANT,PANT,C,C,C,C,C];
+      return row;
+    });
+    this.textures.set('player_up_attack_2', this.createSpriteTexture(upAtk2, 3));
 
-    // Charge sprites for up
+    // Up charge/hurt reuse down
     this.textures.set('player_up_charge_0', this.textures.get('player_down_charge_0')!);
     this.textures.set('player_up_charge_1', this.textures.get('player_down_charge_1')!);
     this.textures.set('player_up_charge_2', this.textures.get('player_down_charge_2')!);
     this.textures.set('player_up_hurt_0', this.textures.get('player_down_hurt_0')!);
 
-    // ========== PLAYER LEFT (14x14) ==========
-    const leftIdle0 = [
-      [C,  C,  C,  C,    HAIR_S,HAIR, HAIR, HAIR_H,C,    C,    C,    C,  C,  C],
-      [C,  C,  C,  HAIR_S,HAIR, HAIR_H,HAIR, HAIR, HAIR, C,    C,    C,  C,  C],
-      [C,  C,  C,  HAIR, HAIR, HAIR_S,HAIR, HAIR, C,     C,    C,    C,  C,  C],
-      [C,  C,  C,  SKIN, SKIN_H,SKIN, SKIN, SKIN, C,     C,    C,    C,  C,  C],
-      [C,  C,  C,  SKIN, EYE_W, EYE,  SKIN, SKIN_S,C,    C,    C,    C,  C,  C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,C,    C,    C,    C,    C,  C,  C],
-      [C,  C,  C,  C,    C,     SKIN, MOUTH, C,    C,    C,    C,    C,  C,  C],
-      [C,  C,  C,  SCARF,SCARF_H,SCARF,SCARF,SCARF,SCARF_S,C,  C,    C,  C,  C],
-      [C,  C,  C,  TUNIC, TUNIC_H,BELT, BELT_B,TUNIC, CAPE,  CAPE_S,C,  C,  C,  C],
-      [C,  C,  C,  TUNIC, TUNIC_S,TUNIC,TUNIC, TUNIC, CAPE_S,C,    C,    C,  C,  C],
-      [C,  BLADE_H,BLADE,C,SKIN, TUNIC, TUNIC_S,C,    C,     C,    C,    C,  C,  C],
-      [C,  GUARD,BLADE_S,C,C,   PANTS, PANTS, C,     C,     C,    C,    C,  C,  C],
-      [C,  POMMEL,C, C,  C,    PANTS_S,C,    C,     C,     C,    C,    C,  C,  C],
-      [C,  C,  C,  C,    BOOTS_S,BOOTS, BOOTS_H,C,   C,     C,    C,    C,  C,  C],
+    // ========== PLAYER LEFT (16x20) ==========
+    const leftIdle0: number[][] = [
+      [C,  C,  C,  C,  C,  HR_D,HR_S,HR, HR_H,C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  C,  C,  HR_D,HR_S,HR, HR_H,HR, HR, C,  C,  C,  C,  C,  C ],
+      [C,  C,  C,  HR_D,HR_S,HR, HR_H,HR, HR, C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  HR_D,HR_S,HR_T,HR_H,HR, HR, HR, C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  HR_S,HR, HR_H,SK, SK, SK, C,  C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  HR_S,HR, SK, SK_H,SK, SK, C,  C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  HR_D,SK, EY_W,EY_H,EY, EY_P,SK_S,C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  C,  SK, EY_W,EY_G,EY_H,SK, C,  C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  C,  C,  SK, BLUSH,SK, SK_S,C,  C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  C,  C,  C,  SK, MOUTH,C,  C,  C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  C,  SCF_S,SCF,SCF_H,SCF,SCF,SCF_S,C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  C,  COAT_S,COAT,GOLD,COAT,COAT,CAPE,CAPE_S,C,  C,  C,  C,  C,  C ],
+      [C,  C,  C,  COAT,COAT_H,BELT,BELT_B,COAT,CAPE,C,  C,  C,  C,  C,  C,  C ],
+      [C,  BL_H,BL,C,  SK_S,COAT,COAT_S,C,  C,  C,  C,  C,  C,  C,  C,  C ],
+      [C,  GRD,BL_S,C,  SK,COAT_D,C,  C,  C,  C,  C,  C,  C,  C,  C,  C ],
+      [C,  POM,C,  C,  C,  PANT,PANT,C,  C,  C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  C,  C,  C,  PANT_S,PANT,C,  C,  C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  C,  C,  BOOT_S,BOOT,BOOT_G,C,  C,  C,  C,  C,  C,  C,  C,  C ],
+      // Hair flows down left side
+      [C,  C,  HR_D,HR_S,HR,C,  C,  C,  C,  C,  C,  C,  C,  C,  C,  C ],
+      [C,  C,  C,  HR_D,C,  C,  C,  C,  C,  C,  C,  C,  C,  C,  C,  C ],
     ];
 
     this.textures.set('player_left_idle_0', this.createSpriteTexture(leftIdle0, 3));
     this.textures.set('player_left_idle_1', this.createSpriteTexture(leftIdle0, 3));
 
-    const leftWalk0 = [...leftIdle0.slice(0, 11),
-      [C,  GUARD,BLADE_S,C,BOOTS,PANTS, C,    PANTS, C,    C,    C,    C,  C,  C],
-      [C,  POMMEL,C, C,  C,   PANTS_S,C,    BOOTS, C,    C,    C,    C,  C,  C],
-      [C,  C,  C,  C,  C,    BOOTS_H,C,    BOOTS_S,C,   C,    C,    C,  C,  C],
-    ];
-    const leftWalk1 = [...leftIdle0.slice(0, 11),
-      [C,  GUARD,BLADE_S,C,PANTS,PANTS, C,    BOOTS, C,    C,    C,    C,  C,  C],
-      [C,  POMMEL,C, C,  BOOTS, C,    C,    PANTS_S,C,   C,    C,    C,  C,  C],
-      [C,  C,  C,  C,  BOOTS_S,C,    C,    BOOTS_H,C,   C,    C,    C,  C,  C],
-    ];
+    const leftWalk0 = leftIdle0.map((row, i) => {
+      if (i === 16) return [C,C,C,C,BOOT,PANT_S,C,PANT,C,C,C,C,C,C,C,C];
+      if (i === 17) return [C,C,C,C,BOOT_S,BOOT_G,C,BOOT_S,C,C,C,C,C,C,C,C];
+      return row;
+    });
+    const leftWalk1 = leftIdle0.map((row, i) => {
+      if (i === 16) return [C,C,C,C,PANT,PANT_S,C,BOOT,C,C,C,C,C,C,C,C];
+      if (i === 17) return [C,C,C,C,BOOT_S,C,C,BOOT_G,C,C,C,C,C,C,C,C];
+      return row;
+    });
 
     this.textures.set('player_left_walk_0', this.createSpriteTexture(leftWalk0, 3));
     this.textures.set('player_left_walk_1', this.createSpriteTexture(leftWalk1, 3));
 
     // Left attack
-    this.textures.set('player_left_attack_0', this.createSpriteTexture([
-      ...leftIdle0.slice(0, 4),
-      [C,  C,  C,  SKIN, EYE_W, EYE_S,SKIN, SKIN_S,C,    C,    C,    C,  C,  C],
-      [C,  C,  C,  C,    SKIN,  SKIN, SKIN_S,C,    C,    C,    C,    C,  C,  C],
-      [C,  C,  C,  C,    SKIN,  BROW, MOUTH, C,    C,    C,    C,    C,  C,  C],
-      ...leftIdle0.slice(7, 10),
-      [BLADE_H,BLADE,BLADE_S,GUARD,SKIN,TUNIC,TUNIC_S,C,   C,    C,    C,    C,  C,  C],
-      ...leftIdle0.slice(11),
-    ], 3));
+    const leftAtk0 = leftIdle0.map((row, i) => {
+      if (i === 6) return [C,C,HR_D,SK,EY_W,EY_H,EY_D,EY_P,SK_S,C,C,C,C,C,C,C];
+      if (i === 13) return [BL_H,BL,BL_S,GRD,SK_S,COAT,COAT_S,C,C,C,C,C,C,C,C,C];
+      return row;
+    });
+    this.textures.set('player_left_attack_0', this.createSpriteTexture(leftAtk0, 3));
     this.textures.set('player_left_attack_1', this.textures.get('player_left_attack_0')!);
     this.textures.set('player_left_attack_2', this.textures.get('player_left_attack_0')!);
 
@@ -481,16 +451,15 @@ export class AssetManager {
     this.textures.set('player_right_idle_1', this.createSpriteTexture(mirrorSprite(leftIdle0), 3));
     this.textures.set('player_right_walk_0', this.createSpriteTexture(mirrorSprite(leftWalk0), 3));
     this.textures.set('player_right_walk_1', this.createSpriteTexture(mirrorSprite(leftWalk1), 3));
-    this.textures.set('player_right_attack_0', this.textures.get('player_left_attack_0')!);
-    this.textures.set('player_right_attack_1', this.textures.get('player_left_attack_0')!);
-    this.textures.set('player_right_attack_2', this.textures.get('player_left_attack_0')!);
+    this.textures.set('player_right_attack_0', this.createSpriteTexture(mirrorSprite(leftAtk0.map(r => [...r])), 3));
+    this.textures.set('player_right_attack_1', this.textures.get('player_right_attack_0')!);
+    this.textures.set('player_right_attack_2', this.textures.get('player_right_attack_0')!);
     this.textures.set('player_right_charge_0', this.textures.get('player_down_charge_0')!);
     this.textures.set('player_right_charge_1', this.textures.get('player_down_charge_1')!);
     this.textures.set('player_right_charge_2', this.textures.get('player_down_charge_2')!);
     this.textures.set('player_right_hurt_0', this.textures.get('player_down_hurt_0')!);
 
     // ========== DIAGONAL SPRITES ==========
-    // Reuse cardinal for diagonals with fallback
     const diagDirs = ['down_left', 'down_right', 'up_left', 'up_right'] as const;
     const diagBase = { down_left: 'left', down_right: 'right', up_left: 'left', up_right: 'right' } as const;
     
@@ -503,7 +472,6 @@ export class AssetManager {
           if (src) this.textures.set(`player_${dDir}_${state}_${f}`, src);
         }
       }
-      // charge and hurt
       for (let f = 0; f < 3; f++) {
         const src = this.textures.get(`player_${base}_charge_${f}`);
         if (src) this.textures.set(`player_${dDir}_charge_${f}`, src);
@@ -518,65 +486,74 @@ export class AssetManager {
     this.textures.set('player_left', this.textures.get('player_left_idle_0')!);
     this.textures.set('player_right', this.textures.get('player_right_idle_0')!);
 
-    // ========== NPC SPRITES ==========
-    const ELDER_ROBE = 0x6A1B9A;
-    const ELDER_ROBE_H = 0x8E24AA;
-    const ELDER_ROBE_S = 0x4A148C;
-    const BEARD = 0xE0E0E0;
-    const STAFF = 0xFFB300;
+    // ========== NPC SPRITES - Chibi Anime Style ==========
+    // Elder - wise old man with long white beard, purple robes, staff
+    const ELD_ROBE = 0x5A1A8A;
+    const ELD_ROBE_H = 0x7828AA;
+    const ELD_ROBE_S = 0x3A0A6A;
+    const ELD_HAIR = 0xE8E8F0;
+    const ELD_HAIR_S = 0xC0C0D0;
+    const ELD_BEARD = 0xE0E0E8;
+    const ELD_STAFF = 0xCCA800;
+    const ELD_STAFF_S = 0x997700;
+    const ELD_GEM = 0x44BBFF;
 
     this.textures.set('npc_elder', this.createSpriteTexture([
-      [C,  C,    C,     BEARD, BEARD, BEARD,  C,     C,     C,   C],
-      [C,  C,    BEARD, SKIN,  SKIN,  SKIN,   BEARD, C,     C,   C],
-      [C,  C,    SKIN,  0x5D4037,SKIN,0x5D4037,SKIN,  C,     C,   C],
-      [C,  C,    C,     SKIN,  SKIN_S,SKIN,   C,     C,     C,   C],
-      [C,  C,    C,     BEARD, BEARD, BEARD,  C,     C,     C,   C],
-      [C,  STAFF,ELDER_ROBE,ELDER_ROBE_H,ELDER_ROBE,ELDER_ROBE_H,ELDER_ROBE,C,C,C],
-      [C,  STAFF,ELDER_ROBE_S,ELDER_ROBE,ELDER_ROBE_S,ELDER_ROBE,ELDER_ROBE_S,C,C,C],
-      [C,  STAFF,ELDER_ROBE,ELDER_ROBE,ELDER_ROBE,ELDER_ROBE,ELDER_ROBE,C,C,C],
-      [C,  C,    C,     ELDER_ROBE_S,C,ELDER_ROBE_S,C,C,    C,   C],
-      [C,  C,    BOOTS, BOOTS, C,    C,      BOOTS, BOOTS,  C,   C],
-    ]));
+      [C,  C,  C,  C,  ELD_HAIR_S,ELD_HAIR,ELD_HAIR,ELD_HAIR,ELD_HAIR_S,C,  C,  C,  C,  C],
+      [C,  C,  C,  ELD_HAIR_S,ELD_HAIR,ELD_HAIR,ELD_HAIR,ELD_HAIR,ELD_HAIR_S,C,  C,  C,  C,  C],
+      [C,  C,  C,  ELD_HAIR,SK, SK, SK, SK, ELD_HAIR,C,  C,  C,  C,  C],
+      [C,  C,  C,  SK, EY_W,0x5D4037,SK, 0x5D4037,EY_W,SK, C,  C,  C,  C],
+      [C,  C,  C,  C,  SK, SK, SK_S,SK, SK, C,  C,  C,  C,  C],
+      [C,  C,  C,  C,  ELD_BEARD,ELD_BEARD,ELD_BEARD,ELD_BEARD,C,  C,  C,  C,  C,  C],
+      [C,  C,  C,  C,  ELD_BEARD,ELD_BEARD,ELD_BEARD,ELD_BEARD,C,  C,  C,  C,  C,  C],
+      [C,  ELD_STAFF,ELD_GEM,ELD_ROBE,ELD_ROBE_H,ELD_ROBE,ELD_ROBE_H,ELD_ROBE,ELD_ROBE,C,  C,  C,  C,  C],
+      [C,  ELD_STAFF,C,  ELD_ROBE_S,ELD_ROBE,ELD_ROBE_S,ELD_ROBE,ELD_ROBE_S,ELD_ROBE,C,  C,  C,  C,  C],
+      [C,  ELD_STAFF_S,C,  ELD_ROBE,ELD_ROBE,ELD_ROBE,ELD_ROBE,ELD_ROBE,ELD_ROBE,C,  C,  C,  C,  C],
+      [C,  C,  C,  C,  ELD_ROBE_S,C,  C,  ELD_ROBE_S,C,  C,  C,  C,  C,  C],
+      [C,  C,  C,  BOOT_S,BOOT,C,  C,  BOOT,BOOT_S,C,  C,  C,  C,  C],
+    ], 3));
 
-    const MERCHANT_VEST = 0xE65100;
-    const MERCHANT_VEST_H = 0xFF8F00;
-    const MERCHANT_VEST_S = 0xBF360C;
-    const HAT = 0x795548;
-    const HAT_H = 0x8D6E63;
-    const GOLD = 0xFFD700;
+    // Merchant - jolly with hat, orange vest, gold accents
+    const MCH_VEST = 0xE06000;
+    const MCH_VEST_H = 0xFF8800;
+    const MCH_VEST_S = 0xBB4400;
+    const MCH_HAT = 0x6D4C41;
+    const MCH_HAT_H = 0x8D6E63;
 
     this.textures.set('npc_merchant', this.createSpriteTexture([
-      [C,  C,    HAT,   HAT_H, HAT,   HAT_H,  HAT,   C,     C,   C],
-      [C,  HAT,  HAT,   HAT,   HAT,   HAT,    HAT,   HAT,   C,   C],
-      [C,  C,    SKIN,  SKIN,  SKIN,  SKIN,   SKIN,  C,     C,   C],
-      [C,  C,    SKIN,  0x5D4037,SKIN,0x5D4037,SKIN,  C,     C,   C],
-      [C,  C,    C,     SKIN,  SKIN_S,SKIN,   C,     C,     C,   C],
-      [C,  C,    MERCHANT_VEST,MERCHANT_VEST_H,GOLD,MERCHANT_VEST_H,MERCHANT_VEST,C,C,C],
-      [C,  C,    MERCHANT_VEST_S,MERCHANT_VEST,MERCHANT_VEST_S,MERCHANT_VEST,MERCHANT_VEST_S,C,C,C],
-      [C,  SKIN, C,     MERCHANT_VEST,MERCHANT_VEST,MERCHANT_VEST,C,SKIN,C,C],
-      [C,  C,    C,     PANTS, C,     PANTS,  C,     C,     C,   C],
-      [C,  C,    BOOTS, BOOTS_H,C,    C,      BOOTS_H,BOOTS, C,   C],
-    ]));
+      [C,  C,  C,  MCH_HAT,MCH_HAT_H,MCH_HAT,MCH_HAT_H,MCH_HAT,MCH_HAT,C,  C,  C,  C,  C],
+      [C,  C,  MCH_HAT,MCH_HAT,MCH_HAT,MCH_HAT,MCH_HAT,MCH_HAT,MCH_HAT,MCH_HAT,C,  C,  C,  C],
+      [C,  C,  C,  SK, SK_H,SK, SK, SK_H,SK, C,  C,  C,  C,  C],
+      [C,  C,  C,  SK, EY_W,0x5D4037,SK, 0x5D4037,EY_W,SK, C,  C,  C,  C],
+      [C,  C,  C,  C,  SK, SK, SK_S,SK, SK, C,  C,  C,  C,  C],
+      [C,  C,  C,  C,  C,  SK, MOUTH,SK, C,  C,  C,  C,  C,  C],
+      [C,  C,  MCH_VEST,MCH_VEST_H,GOLD,MCH_VEST,GOLD_H,MCH_VEST_H,MCH_VEST,MCH_VEST,C,  C,  C,  C],
+      [C,  C,  MCH_VEST_S,MCH_VEST,MCH_VEST_S,MCH_VEST,MCH_VEST_S,MCH_VEST,MCH_VEST_S,C,  C,  C,  C,  C],
+      [C,  SK, C,  MCH_VEST,MCH_VEST,MCH_VEST,MCH_VEST,MCH_VEST,C,  SK, C,  C,  C,  C],
+      [C,  C,  C,  C,  PANT,C,  C,  PANT,C,  C,  C,  C,  C,  C],
+      [C,  C,  C,  BOOT_S,BOOT_H,C,  C,  BOOT_H,BOOT_S,C,  C,  C,  C,  C],
+    ], 3));
 
-    const G_ARMOR = 0x78909C;
-    const G_ARMOR_H = 0x90A4AE;
-    const G_ARMOR_S = 0x546E7A;
-    const HELMET = 0x607D8B;
-    const HELMET_H = 0x78909C;
-    const G_SWORD = 0xB0BEC5;
+    // Guard - armored, helmet, stern
+    const G_ARM = 0x607080;
+    const G_ARM_H = 0x788898;
+    const G_ARM_S = 0x485060;
+    const G_HELM = 0x506070;
+    const G_HELM_H = 0x687888;
+    const G_SWD = 0xB0BEC5;
 
     this.textures.set('npc_guard', this.createSpriteTexture([
-      [C,  C,    HELMET,HELMET_H,HELMET,HELMET_H,HELMET,C,   C,   C],
-      [C,  C,    HELMET,HELMET,HELMET_H,HELMET,HELMET,  C,   C,   C],
-      [C,  C,    SKIN,  SKIN,  SKIN,  SKIN,   SKIN,  C,     C,   C],
-      [C,  C,    SKIN,  0x37474F,SKIN,0x37474F,SKIN,  C,     C,   C],
-      [C,  C,    C,     SKIN,  SKIN_S,SKIN,   C,     C,     C,   C],
-      [C,  G_SWORD,G_ARMOR, G_ARMOR_H,G_ARMOR, G_ARMOR_H,G_ARMOR, C,     C,   C],
-      [C,  G_SWORD,G_ARMOR_S,G_ARMOR, G_ARMOR_S,G_ARMOR, G_ARMOR_S,C,    C,   C],
-      [C,  C,    G_ARMOR, G_ARMOR, G_ARMOR, G_ARMOR,  G_ARMOR, C,     C,   C],
-      [C,  C,    C,     PANTS, C,     PANTS,  C,     C,     C,   C],
-      [C,  C,    G_ARMOR_S,G_ARMOR_S,C,   C,      G_ARMOR_S,G_ARMOR_S,C, C],
-    ]));
+      [C,  C,  C,  G_HELM,G_HELM_H,G_HELM,G_HELM_H,G_HELM,G_HELM,C,  C,  C,  C,  C],
+      [C,  C,  C,  G_HELM,G_HELM,G_HELM_H,G_HELM,G_HELM,G_HELM,C,  C,  C,  C,  C],
+      [C,  C,  C,  SK, SK, SK, SK, SK, SK, C,  C,  C,  C,  C],
+      [C,  C,  C,  SK, EY_W,0x37474F,SK,0x37474F,EY_W,SK, C,  C,  C,  C],
+      [C,  C,  C,  C,  SK, SK, SK_S,SK, SK, C,  C,  C,  C,  C],
+      [C,  G_SWD,G_ARM,G_ARM_H,G_ARM,G_ARM_H,G_ARM,G_ARM_H,G_ARM,G_ARM,C,  C,  C,  C],
+      [C,  G_SWD,G_ARM_S,G_ARM,G_ARM_S,G_ARM,G_ARM_S,G_ARM,G_ARM_S,C,  C,  C,  C,  C],
+      [C,  C,  G_ARM,G_ARM,G_ARM,G_ARM,G_ARM,G_ARM,G_ARM,C,  C,  C,  C,  C],
+      [C,  C,  C,  C,  PANT,C,  C,  PANT,C,  C,  C,  C,  C,  C],
+      [C,  C,  C,  G_ARM_S,G_ARM_S,C,  C,  G_ARM_S,G_ARM_S,C,  C,  C,  C,  C],
+    ], 3));
 
     // ========== ENEMY SPRITES ==========
     const WOLF_FUR = 0x616161;
@@ -663,6 +640,30 @@ export class AssetManager {
       [C,          SHADOW_WISP, C,           C,           SHADOW_WISP, C,           C,          SHADOW_WISP,C,         C],
     ]));
 
+    // ========== FIELD BOSS: Golem ==========
+    const GOL = 0x607060;
+    const GOL_H = 0x788878;
+    const GOL_S = 0x485048;
+    const GOL_D = 0x303830;
+    const GOL_EYE = 0xFF4400;
+    const GOL_RUNE = 0x44FFAA;
+
+    this.textures.set('enemy_golem', this.createSpriteTexture([
+      [C,    C,    C,    GOL_S,GOL, GOL_H,GOL, GOL_S,C,    C,    C,    C],
+      [C,    C,    GOL_S,GOL,  GOL_H,GOL, GOL, GOL_H,GOL, GOL_S,C,    C],
+      [C,    GOL_S,GOL,  GOL_EYE,GOL_D,GOL,GOL,GOL_D,GOL_EYE,GOL,GOL_S,C],
+      [C,    GOL,  GOL_D,GOL,  GOL_RUNE,GOL_D,GOL_D,GOL_RUNE,GOL,GOL_D,GOL,C],
+      [GOL_S,GOL,  GOL_H,GOL_D,GOL, GOL, GOL, GOL, GOL_D,GOL_H,GOL,GOL_S],
+      [GOL,  GOL_H,GOL,  GOL,  GOL_RUNE,GOL_D,GOL_D,GOL_RUNE,GOL,GOL,GOL_H,GOL],
+      [GOL_S,GOL,  GOL_D,GOL,  GOL, GOL, GOL, GOL, GOL, GOL_D,GOL,GOL_S],
+      [C,    GOL_D,GOL,  GOL_D,GOL, GOL_D,GOL_D,GOL, GOL_D,GOL,GOL_D,C],
+      [C,    C,    GOL_S,GOL,  GOL_D,C,   C,   GOL_D,GOL, GOL_S,C,    C],
+      [C,    C,    GOL_D,GOL_S,GOL,  C,   C,   GOL, GOL_S,GOL_D,C,    C],
+    ]));
+
+    this.textures.set('enemy_golem_telegraph', this.textures.get('enemy_golem')!);
+    this.textures.set('enemy_golem_attack', this.textures.get('enemy_golem')!);
+
     // ========== TERRAIN ==========
     this.textures.set('grass', this.createColorTexture(0x4CAF50, 32, 32, 'noise'));
     this.textures.set('dirt', this.createColorTexture(0x8D6E63, 32, 32, 'noise'));
@@ -692,17 +693,22 @@ export class AssetManager {
     const LEAF_H = 0x66BB6A;
     const LEAF_S = 0x1B5E20;
 
+    // Tree - bigger, more detailed (12x14)
     this.textures.set('tree', this.createSpriteTexture([
-      [C,     C,     C,     LEAF_H,LEAF,  LEAF_H,LEAF,  C,     C,     C],
-      [C,     C,     LEAF,  LEAF,  LEAF_H,LEAF,  LEAF,  LEAF,  C,     C],
-      [C,     LEAF,  LEAF_H,LEAF,  LEAF,  LEAF,  LEAF_H,LEAF,  LEAF,  C],
-      [LEAF_S,LEAF,  LEAF,  LEAF_S,LEAF_H,LEAF,  LEAF,  LEAF,  LEAF,  LEAF_S],
-      [C,     LEAF_S,LEAF,  LEAF,  LEAF,  LEAF_S,LEAF,  LEAF,  LEAF_S,C],
-      [C,     C,     LEAF_S,LEAF,  LEAF_S,LEAF,  LEAF_S,LEAF_S,C,     C],
-      [C,     C,     C,     LEAF_S,LEAF,  LEAF_S,LEAF_S,C,     C,     C],
-      [C,     C,     C,     C,     TRUNK, TRUNK_S,C,    C,     C,     C],
-      [C,     C,     C,     C,     TRUNK_S,TRUNK,C,     C,     C,     C],
-      [C,     C,     C,     TRUNK_S,TRUNK,TRUNK_S,TRUNK,C,     C,     C],
+      [C,     C,     C,     C,     LEAF_H,LEAF,  LEAF_H,LEAF,  C,     C,     C,     C],
+      [C,     C,     C,     LEAF,  LEAF_H,LEAF,  LEAF,  LEAF_H,LEAF,  C,     C,     C],
+      [C,     C,     LEAF,  LEAF_H,LEAF,  LEAF_H,LEAF,  LEAF,  LEAF_H,LEAF,  C,     C],
+      [C,     LEAF,  LEAF_H,LEAF,  LEAF,  LEAF,  LEAF_H,LEAF,  LEAF,  LEAF_H,LEAF,  C],
+      [LEAF_S,LEAF,  LEAF,  LEAF_H,LEAF,  LEAF,  LEAF,  LEAF_H,LEAF,  LEAF,  LEAF,  LEAF_S],
+      [LEAF_S,LEAF,  LEAF_S,LEAF,  LEAF_H,LEAF,  LEAF,  LEAF,  LEAF_H,LEAF_S,LEAF,  LEAF_S],
+      [C,     LEAF_S,LEAF,  LEAF_S,LEAF,  LEAF,  LEAF_S,LEAF,  LEAF_S,LEAF,  LEAF_S,C],
+      [C,     C,     LEAF_S,LEAF,  LEAF_S,LEAF,  LEAF_S,LEAF,  LEAF_S,LEAF_S,C,     C],
+      [C,     C,     C,     LEAF_S,LEAF,  LEAF_S,LEAF_S,LEAF_S,LEAF_S,C,     C,     C],
+      [C,     C,     C,     C,     C,     TRUNK, TRUNK_S,C,    C,     C,     C,     C],
+      [C,     C,     C,     C,     C,     TRUNK_S,TRUNK,C,     C,     C,     C,     C],
+      [C,     C,     C,     C,     C,     TRUNK, TRUNK_S,C,    C,     C,     C,     C],
+      [C,     C,     C,     C,     TRUNK_S,TRUNK,TRUNK_S,TRUNK,C,     C,     C,     C],
+      [C,     C,     C,     TRUNK_S,TRUNK, TRUNK,TRUNK, TRUNK_S,C,    C,     C,     C],
     ]));
 
     // Dead tree
@@ -731,6 +737,7 @@ export class AssetManager {
       [C,     C,     STATUE_S,STATUE_S,STATUE_S,STATUE_S, C,     C],
     ]));
 
+    // House - bigger (14x12)
     const WALL = 0x8D6E63;
     const WALL_H = 0xA1887F;
     const WALL_S = 0x6D4C41;
@@ -741,16 +748,16 @@ export class AssetManager {
     const DOOR = 0x4E342E;
 
     this.textures.set('house', this.createSpriteTexture([
-      [C,     C,     C,     ROOF_S,ROOF,  ROOF_H,ROOF,  C,     C,     C],
-      [C,     C,     ROOF_S,ROOF,  ROOF_H,ROOF,  ROOF,  ROOF_S,C,     C],
-      [C,     ROOF_S,ROOF,  ROOF,  ROOF,  ROOF,  ROOF,  ROOF,  ROOF_S,C],
-      [C,     WALL,  WALL_H,WALL,  WALL,  WALL,  WALL_H,WALL,  WALL,  C],
-      [C,     WALL,  WINDOW,WINDOW,WALL,  WALL,  WINDOW,WINDOW,WALL,  C],
-      [C,     WALL_S,WINDOW,WINDOW,WALL_S,WALL_S,WINDOW,WINDOW,WALL_S,C],
-      [C,     WALL,  WALL,  WALL,  DOOR,  DOOR,  WALL,  WALL,  WALL,  C],
-      [C,     WALL_S,WALL,  WALL,  DOOR,  DOOR,  WALL,  WALL,  WALL_S,C],
-      [C,     WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,C],
-      [C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
+      [C,     C,     C,     C,     C,     ROOF_S,ROOF, ROOF_H,ROOF, C,     C,     C,     C,     C],
+      [C,     C,     C,     C,     ROOF_S,ROOF,  ROOF_H,ROOF, ROOF, ROOF_S,C,     C,     C,     C],
+      [C,     C,     C,     ROOF_S,ROOF,  ROOF,  ROOF, ROOF,  ROOF, ROOF,  ROOF_S,C,     C,     C],
+      [C,     C,     ROOF_S,ROOF,  ROOF,  ROOF_H,ROOF, ROOF,  ROOF_H,ROOF, ROOF,  ROOF_S,C,     C],
+      [C,     C,     WALL,  WALL_H,WALL,  WALL,  WALL, WALL,  WALL, WALL,  WALL_H,WALL,  C,     C],
+      [C,     C,     WALL,  WINDOW,WINDOW,WALL,  WALL_H,WALL, WINDOW,WINDOW,WALL,  WALL,  C,     C],
+      [C,     C,     WALL_S,WINDOW,WINDOW,WALL_S,WALL, WALL_S,WINDOW,WINDOW,WALL_S,WALL_S,C,     C],
+      [C,     C,     WALL,  WALL,  WALL,  WALL,  DOOR, DOOR,  WALL, WALL,  WALL,  WALL,  C,     C],
+      [C,     C,     WALL_S,WALL,  WALL,  WALL,  DOOR, DOOR,  WALL, WALL,  WALL,  WALL_S,C,     C],
+      [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,C,   C],
     ]));
 
     // Destroyed house
@@ -816,7 +823,7 @@ export class AssetManager {
       [C,           C,           PORTAL_OUTER,PORTAL_OUTER,PORTAL_MID,  PORTAL_OUTER,PORTAL_OUTER,C,           C,           C],
     ]));
 
-    // Environmental sprites
+    // Small environmental sprites
     const PETAL = 0xF48FB1;
     const PETAL_H = 0xF8BBD0;
     const STEM = 0x388E3C;

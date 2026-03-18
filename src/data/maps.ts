@@ -58,6 +58,12 @@ const villageDef: MapDefinition = {
     { x: 200, y: 15, width: 16, height: 12, type: 'camp', interactionId: 'bandit_camp' },
     { x: 10, y: 135, width: 10, height: 8, type: 'camp', interactionId: 'goblin_camp' },
 
+    // === ABANDONED CAMP (south-west) ===
+    { x: 15, y: 120, width: 14, height: 10, type: 'abandoned_camp', interactionId: 'old_camp' },
+
+    // === CEMETERY (north) ===
+    { x: 80, y: 15, width: 18, height: 14, type: 'cemetery' },
+
     // === DESTROYED OUTPOST (north-west) ===
     { x: 10, y: 50, width: 18, height: 14, type: 'destroyed_town' },
 
@@ -174,6 +180,20 @@ const forestDef: MapDefinition = {
     // === VOLCANO (far north-east) ===
     { x: 260, y: 20, width: 28, height: 24, type: 'volcano' },
 
+    // === FIELD BOSS ARENA (central-east) ===
+    { x: 220, y: 150, width: 24, height: 24, type: 'boss_arena', interactionId: 'golem_boss' },
+
+    // === ABANDONED CAMPS scattered ===
+    { x: 100, y: 200, width: 16, height: 12, type: 'abandoned_camp', interactionId: 'lost_expedition' },
+    { x: 50, y: 80, width: 12, height: 10, type: 'abandoned_camp', interactionId: 'hunters_camp' },
+    { x: 270, y: 200, width: 14, height: 10, type: 'abandoned_camp', interactionId: 'hermit_camp' },
+
+    // === CEMETERY (deep in forest) ===
+    { x: 120, y: 240, width: 22, height: 16, type: 'cemetery' },
+
+    // === ADDITIONAL DESTROYED VILLAGE ===
+    { x: 180, y: 200, width: 24, height: 18, type: 'destroyed_town' },
+
     // === MAIN PATHS ===
     { x: 146, y: 260, width: 8, height: 40, type: 'path', fill: 'dirt' },
     { x: 146, y: 160, width: 8, height: 100, type: 'path', fill: 'dirt' },
@@ -186,6 +206,7 @@ const forestDef: MapDefinition = {
     { x: 220, y: 220, width: 50, height: 4, type: 'path', fill: 'dirt' },
     { x: 20, y: 210, width: 60, height: 4, type: 'path', fill: 'dirt' },
     { x: 250, y: 140, width: 4, height: 40, type: 'path', fill: 'dirt' },
+    { x: 220, y: 150, width: 30, height: 4, type: 'path', fill: 'dirt' },
   ],
   portals: [
     { x: 150, y: 297, targetMap: 'village', targetX: 120, targetY: 6 },
@@ -239,6 +260,12 @@ const forestDef: MapDefinition = {
     { x: 100, y: 250, width: 25, height: 20, enemyType: 'wolf', count: 4 },
     { x: 250, y: 50, width: 25, height: 20, enemyType: 'wolf', count: 4 },
     { x: 160, y: 40, width: 30, height: 20, enemyType: 'wolf', count: 3 },
+    // Field boss zone
+    { x: 215, y: 145, width: 30, height: 30, enemyType: 'golem', count: 1 },
+    // Cemetery undead
+    { x: 118, y: 238, width: 26, height: 20, enemyType: 'shadow', count: 5 },
+    // Abandoned areas
+    { x: 175, y: 195, width: 30, height: 25, enemyType: 'wolf', count: 5 },
   ],
 };
 
@@ -283,6 +310,16 @@ const deepWoodsDef: MapDefinition = {
 
     // === TREANT GROVE ===
     { x: 160, y: 160, width: 15, height: 12, type: 'garden' },
+
+    // === BOSS ARENA - Shadow Lord ===
+    { x: 90, y: 40, width: 20, height: 20, type: 'boss_arena', interactionId: 'shadow_lord' },
+
+    // === ABANDONED EXPEDITION CAMPS ===
+    { x: 30, y: 160, width: 12, height: 10, type: 'abandoned_camp', interactionId: 'lost_scholars' },
+    { x: 210, y: 120, width: 14, height: 10, type: 'abandoned_camp', interactionId: 'fallen_knights' },
+
+    // === CURSED CEMETERY ===
+    { x: 150, y: 100, width: 18, height: 14, type: 'cemetery' },
 
     // === PATHS ===
     { x: 116, y: 160, width: 8, height: 36, type: 'path', fill: 'dirt' },
