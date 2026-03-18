@@ -878,6 +878,12 @@ const Game = () => {
         } else {
           indicatorMesh.visible = false;
         }
+
+        const lerpFactor = 1 - Math.pow(0.001, deltaTime);
+        camera.position.x += (cameraTarget.x - camera.position.x) * lerpFactor;
+        camera.position.y += (cameraTarget.y - camera.position.y) * lerpFactor;
+
+        // Update combat system — pass dodge state for i-frames
         combatSystem.updateEnemies(deltaTime, state.player.position, state.player.isDodging);
 
         // === ENEMY RENDERING WITH HP BARS ===
