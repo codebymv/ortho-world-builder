@@ -818,6 +818,95 @@ function placeForestGrove(tiles: Tile[][], f: MapFeature) {
   }
 }
 
+function placeFort(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        // Outer stone walls
+        if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
+          if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
+            tiles[ty][tx] = createTile('gate', true);
+          } else {
+            tiles[ty][tx] = createTile('stone', false);
+          }
+        }
+        // Inner wall ring
+        else if (dx === 1 || dx === f.width - 2 || dy === 1 || dy === f.height - 2) {
+          if ((dx + dy) % 4 === 0) {
+            tiles[ty][tx] = createTile('stone', false);
+          } else {
+            tiles[ty][tx] = createTile('cobblestone', true);
+          }
+        }
+        // Corner towers
+        else if ((dx <= 3 && dy <= 3) || (dx >= f.width - 4 && dy <= 3) || 
+                 (dx <= 3 && dy >= f.height - 4) || (dx >= f.width - 4 && dy >= f.height - 4)) {
+          tiles[ty][tx] = createTile('stone', false);
+        }
+        // Interior
+        else {
+          if (dx === Math.floor(f.width / 2) && dy === Math.floor(f.height / 2)) {
+            tiles[ty][tx] = createTile('campfire', false, { interactable: true, interactionId: f.interactionId || 'fort_campfire' });
+          } else if ((dx + dy * 3) % 11 === 0) {
+            tiles[ty][tx] = createTile('barrel', false);
+          } else if ((dx * 2 + dy) % 13 === 0) {
+            tiles[ty][tx] = createTile('crate', false);
+          } else {
+            tiles[ty][tx] = createTile('cobblestone', true);
+          }
+        }
+      }
+    }
+  }
+}
+
+function placeEnchantedGrove(tiles: Tile[][], f: MapFeature) {
+  const cx = f.x + f.width / 2;
+  const cy = f.y + f.height / 2;
+  const rx = f.width / 2;
+  const ry = f.height / 2;
+  for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++) {
+    for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
+      const tx = Math.floor(cx + dx);
+      const ty = Math.floor(cy + dy);
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        const dist = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+        if (dist < 0.15) {
+          // Center clearing with flowers
+          if ((dx + dy) % 3 === 0) {
+            tiles[ty][tx] = createTile('flower', true);
+          } else {
+            tiles[ty][tx] = createTile('dark_grass', true);
+          }
+        } else if (dist < 0.4) {
+          // Mushroom ring
+          if ((dx + dy) % 5 === 0) {
+            tiles[ty][tx] = createTile('mushroom', true, { interactable: true, interactionId: 'healing_mushroom' });
+          } else {
+            tiles[ty][tx] = createTile('dark_grass', true);
+          }
+        } else if (dist < 0.7) {
+          // Dense magical trees
+          if ((dx + dy) % 2 === 0) {
+            tiles[ty][tx] = createTile('tree', false);
+          } else {
+            tiles[ty][tx] = createTile('dark_grass', true);
+          }
+        } else if (dist < 1.0) {
+          // Outer ring - thick canopy
+          if ((dx + dy) % 3 !== 0) {
+            tiles[ty][tx] = createTile('tree', false);
+          } else {
+            tiles[ty][tx] = createTile('tall_grass', true);
+          }
+        }
+      }
+    }
+  }
+}
+
 function placePortals(tiles: Tile[][], def: MapDefinition) {
   for (const portal of def.portals) {
     if (portal.y < tiles.length && portal.x < tiles[0].length) {
