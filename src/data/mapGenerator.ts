@@ -1234,7 +1234,7 @@ export function generateMap(def: MapDefinition): WorldMap {
   placeSecretAreas(tiles, def);
 
   // Clean up illogical placements (flowers in water, etc.)
-  cleanupIllogicalPlacements(tiles);
+  cleanupIllogicalPlacements(tiles, def);
 
   // Ensure spawn point is walkable
   const sp = def.spawnPoint;
