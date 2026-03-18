@@ -511,13 +511,14 @@ const Game = () => {
     state.npcs = npcData;
     const npcMeshes: THREE.Mesh[] = [];
     const npcShadows: THREE.Mesh[] = [];
+    const npcOutlines: THREE.Mesh[] = [];
 
     npcData.forEach(npc => {
       // NPC shadow
       const npcShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
-      npcShadow.position.set(npc.position.x, npc.position.y - 0.35, -0.01);
-      npcShadow.scale.set(0.9, 0.4, 1);
-      npcShadow.renderOrder = 0;
+      npcShadow.position.set(npc.position.x, npc.position.y - 0.3, 0.05);
+      npcShadow.scale.set(0.8, 0.35, 1);
+      npcShadow.renderOrder = 1;
       scene.add(npcShadow);
       npcShadows.push(npcShadow);
 
@@ -536,6 +537,14 @@ const Game = () => {
       npcMesh.userData = { npcId: npc.id };
       scene.add(npcMesh);
       npcMeshes.push(npcMesh);
+
+      // NPC outline
+      const npcOutline = createOutlineMesh(npcGeometry, 0xffe066, 1.06);
+      npcOutline.position.set(npc.position.x, npc.position.y, 0.19);
+      npcOutline.scale.set(npcScale * 1.06, npcScale * 1.06, 1);
+      npcOutline.renderOrder = npcMesh.renderOrder - 1;
+      scene.add(npcOutline);
+      npcOutlines.push(npcOutline);
     });
 
     const keys: { [key: string]: boolean } = {};
