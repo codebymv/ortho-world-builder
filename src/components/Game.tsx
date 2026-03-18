@@ -1736,7 +1736,7 @@ const Game = () => {
           const eOutline = enemyOutlines.get(enemy.id);
           if (eOutline) {
             eOutline.position.set(finalEnemyX, finalEnemyY, 0.19);
-            eOutline.scale.set(scaleX * 1.06, scaleY * 1.06, 1);
+            eOutline.scale.set(scaleX * OUTLINE_PAD, scaleY * OUTLINE_PAD, 1);
             eOutline.rotation.z = rotation;
             eOutline.renderOrder = enemyMesh.renderOrder - 1;
           }
