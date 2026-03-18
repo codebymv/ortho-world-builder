@@ -569,6 +569,7 @@ const Game = () => {
       if (currentTime - state.player.lastAttackTime < state.player.attackCooldown) return;
       if (state.player.isDodging) return;
       playSwordSwing();
+      swooshTimer = SWOOSH_DURATION; // trigger swoosh effect
 
       state.player.lastAttackTime = currentTime;
       playerAnimState = 'attack';
