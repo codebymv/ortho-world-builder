@@ -1253,6 +1253,14 @@ const PATH_BLOCKERS: Set<TileType> = new Set([
   'tree', 'rock', 'stump', 'dead_tree', 'hedge',
 ]);
 
+// Minimum spacing between decoration overlays (trees, rocks, etc.)
+const MIN_DECORATION_SPACING = 2;
+const SPACED_DECORATIONS: Set<TileType> = new Set([
+  'tree', 'dead_tree', 'rock', 'stump', 'tombstone', 'statue',
+  'scarecrow', 'hay_bale', 'well', 'campfire', 'barrel', 'crate',
+  'mushroom', 'bones', 'lantern',
+]);
+
 function cleanupIllogicalPlacements(tiles: Tile[][], def: MapDefinition) {
   const h = tiles.length;
   const w = tiles[0].length;
@@ -1317,6 +1325,32 @@ function cleanupIllogicalPlacements(tiles: Tile[][], def: MapDefinition) {
       // Remove any decoration directly ON water/lava
       if (INCOMPATIBLE_BASE.has(tile.type) && LAND_DECORATIONS.has(tile.type)) {
         tiles[y][x] = createTile('water', false);
+      }
+    }
+  }
+
+  // Second pass: enforce minimum spacing between decoration overlays
+  // Scan left-to-right, top-to-bottom; when two decorations are too close, remove the later one
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const tile = tiles[y][x];
+      if (!SPACED_DECORATIONS.has(tile.type)) continue;
+      // Check neighborhood for other decorations (only previously visited cells)
+      for (let dy = -MIN_DECORATION_SPACING; dy <= MIN_DECORATION_SPACING; dy++) {
+        for (let dx = -MIN_DECORATION_SPACING; dx <= MIN_DECORATION_SPACING; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = x + dx;
+          const ny = y + dy;
+          if (ny < 0 || ny >= h || nx < 0 || nx >= w) continue;
+          // Only check tiles that come AFTER in scan order (remove duplicates going forward)
+          if (ny < y || (ny === y && nx <= x)) continue;
+          if (SPACED_DECORATIONS.has(tiles[ny][nx].type)) {
+            // Remove the neighbor (keep the first one encountered)
+            const baseTerrain = def.baseTerrain === 'forest' ? 'grass' : 
+                               def.baseTerrain === 'ruins' ? 'stone' : 'grass';
+            tiles[ny][nx] = createTile(baseTerrain as TileType, true);
+          }
+        }
       }
     }
   }
