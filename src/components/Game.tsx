@@ -1559,7 +1559,7 @@ const Game = () => {
             enemyShadows.set(enemy.id, eShadow);
 
             // Enemy outline
-            const eOutline = createOutlineMesh(enemyGeometry, 0xff6666, 1.06);
+            const eOutline = createOutlineMesh(enemyGeometry, enemyTexture);
             eOutline.position.z = 0.19;
             scene.add(eOutline);
             enemyOutlines.set(enemy.id, eOutline);
