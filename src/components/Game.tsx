@@ -367,6 +367,16 @@ const Game = () => {
         (mesh.material as THREE.Material).dispose();
       });
       enemyMeshes.clear();
+      enemyShadows.forEach(mesh => {
+        scene.remove(mesh);
+        (mesh.material as THREE.Material).dispose();
+      });
+      enemyShadows.clear();
+      enemyOutlines.forEach(mesh => {
+        scene.remove(mesh);
+        (mesh.material as THREE.Material).dispose();
+      });
+      enemyOutlines.clear();
       enemyHPBars.forEach(({ bg, fill }) => {
         scene.remove(bg);
         scene.remove(fill);
@@ -655,13 +665,20 @@ const Game = () => {
       triggerUIUpdate();
     };
 
-    // Pre-load sword swing sound
-    const swordSwingAudio = new Audio('/audio/sword_swing.mp3');
-    swordSwingAudio.volume = 0.3;
+    // Pre-load sword swing sound with pooling to prevent memory leaks
+    const SFX_POOL_SIZE = 4;
+    const swordSwingPool: HTMLAudioElement[] = [];
+    for (let i = 0; i < SFX_POOL_SIZE; i++) {
+      const a = new Audio('/audio/sword_swing.mp3');
+      a.volume = 0.3;
+      swordSwingPool.push(a);
+    }
+    let swordSwingIdx = 0;
 
     const playSwordSwing = () => {
-      const sfx = swordSwingAudio.cloneNode() as HTMLAudioElement;
-      sfx.volume = 0.3;
+      const sfx = swordSwingPool[swordSwingIdx % SFX_POOL_SIZE];
+      swordSwingIdx++;
+      sfx.currentTime = 0;
       sfx.play().catch(() => {});
     };
 
@@ -1906,11 +1923,29 @@ const Game = () => {
       if (mountRef.current && renderer.domElement.parentNode === mountRef.current) {
         mountRef.current.removeChild(renderer.domElement);
       }
+      // Dispose all enemy objects
+      enemyMeshes.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      enemyShadows.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      enemyOutlines.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      enemyHPBars.forEach(({ bg, fill }) => {
+        scene.remove(bg); scene.remove(fill);
+        (bg.material as THREE.Material).dispose();
+        (fill.material as THREE.Material).dispose();
+      });
+      // Dispose player + NPC objects
+      scene.remove(playerMesh); (playerMesh.material as THREE.Material).dispose();
+      scene.remove(playerShadow); (playerShadow.material as THREE.Material).dispose();
+      scene.remove(playerOutline); (playerOutline.material as THREE.Material).dispose();
+      npcMeshes.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      npcShadows.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      npcOutlines.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      // Dispose systems
       particleSystem.cleanup();
       biomeAmbience.cleanup();
       weatherSystem.cleanup();
       dayNightCycle.cleanup();
       floatingText.cleanup();
+      world.dispose();
       renderer.dispose();
     };
   }, []);
