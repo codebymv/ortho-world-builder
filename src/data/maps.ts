@@ -260,6 +260,12 @@ const forestDef: MapDefinition = {
     { x: 100, y: 250, width: 25, height: 20, enemyType: 'wolf', count: 4 },
     { x: 250, y: 50, width: 25, height: 20, enemyType: 'wolf', count: 4 },
     { x: 160, y: 40, width: 30, height: 20, enemyType: 'wolf', count: 3 },
+    // Field boss zone
+    { x: 215, y: 145, width: 30, height: 30, enemyType: 'golem', count: 1 },
+    // Cemetery undead
+    { x: 118, y: 238, width: 26, height: 20, enemyType: 'shadow', count: 5 },
+    // Abandoned areas
+    { x: 175, y: 195, width: 30, height: 25, enemyType: 'wolf', count: 5 },
   ],
 };
 
