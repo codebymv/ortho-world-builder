@@ -3,7 +3,7 @@ import { AssetManager } from './AssetManager';
 
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'stone' | 'wood' 
-  | 'tree' | 'house' | 'rock' | 'chest' | 'portal' | 'flower'
+  | 'tree' | 'house' | 'house_blue' | 'house_green' | 'house_thatch' | 'rock' | 'chest' | 'portal' | 'flower'
   | 'tall_grass' | 'bridge' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
   | 'campfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
@@ -48,7 +48,7 @@ interface ChunkMesh {
 const RENDER_RADIUS = 28;
 const CULL_RADIUS = 38;
 const OVERLAY_TYPES: Set<TileType> = new Set([
-  'tree', 'house', 'rock', 'chest', 'portal', 'flower',
+  'tree', 'house', 'house_blue', 'house_green', 'house_thatch', 'rock', 'chest', 'portal', 'flower',
   'push_block', 'campfire', 'sign', 'well', 'tombstone', 'mushroom', 'stump',
   'fence', 'gate', 'barrel', 'crate', 'spike_trap', 'bones',
   'dead_tree', 'destroyed_house', 'statue',
@@ -76,6 +76,9 @@ const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
   spike_trap: 'stone',
   bones: 'dirt',
   house: 'dirt',
+  house_blue: 'dirt',
+  house_green: 'dirt',
+  house_thatch: 'dirt',
   destroyed_house: 'ruins_floor',
   statue: 'stone',
   iron_fence: 'cobblestone',
@@ -88,6 +91,9 @@ const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
 // Scale multipliers for overlay objects to make them proportionally correct
 const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
   house: 2.2,
+  house_blue: 2.2,
+  house_green: 2.2,
+  house_thatch: 2.0,
   destroyed_house: 2.0,
   tree: 1.8,
   dead_tree: 1.5,

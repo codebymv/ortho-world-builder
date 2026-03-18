@@ -22,26 +22,26 @@ const villageDef: MapDefinition = {
     // ====== TOWN HALL (center of plaza) ======
     { x: 110, y: 58, width: 16, height: 10, type: 'building', interactionId: 'town_hall' },
 
-    // ====== RESIDENTIAL DISTRICT (west) - dense housing ======
-    { x: 28, y: 50, width: 8, height: 6, type: 'building', interactionId: 'house_1' },
-    { x: 28, y: 62, width: 8, height: 6, type: 'building', interactionId: 'house_2' },
-    { x: 42, y: 55, width: 8, height: 6, type: 'building', interactionId: 'house_3' },
-    { x: 42, y: 70, width: 8, height: 6, type: 'building', interactionId: 'house_4' },
-    { x: 56, y: 50, width: 8, height: 6, type: 'building', interactionId: 'house_5' },
-    { x: 56, y: 65, width: 8, height: 6, type: 'building', interactionId: 'house_6' },
-    { x: 28, y: 78, width: 8, height: 6, type: 'building', interactionId: 'house_7' },
-    { x: 42, y: 85, width: 8, height: 6, type: 'building', interactionId: 'house_8' },
-    { x: 70, y: 55, width: 8, height: 6, type: 'building', interactionId: 'house_9' },
-    { x: 70, y: 70, width: 8, height: 6, type: 'building', interactionId: 'house_10' },
+    // ====== RESIDENTIAL DISTRICT (west) - organic village layout with yards ======
+    { x: 25, y: 48, width: 8, height: 6, type: 'building', interactionId: 'house_1' },
+    { x: 40, y: 52, width: 8, height: 6, type: 'building', interactionId: 'house_2' },
+    { x: 28, y: 65, width: 8, height: 6, type: 'building', interactionId: 'house_3' },
+    { x: 50, y: 60, width: 8, height: 6, type: 'building', interactionId: 'house_4' },
+    { x: 35, y: 78, width: 8, height: 6, type: 'building', interactionId: 'house_5' },
+    { x: 55, y: 72, width: 8, height: 6, type: 'building', interactionId: 'house_6' },
+    { x: 68, y: 50, width: 8, height: 6, type: 'building', interactionId: 'house_7' },
+    { x: 22, y: 88, width: 8, height: 6, type: 'building', interactionId: 'house_8' },
+    { x: 48, y: 88, width: 8, height: 6, type: 'building', interactionId: 'house_9' },
+    { x: 72, y: 65, width: 8, height: 6, type: 'building', interactionId: 'house_10' },
 
     // ====== MARKET DISTRICT (east) - shops with cobblestone ======
     { x: 155, y: 65, width: 30, height: 18, type: 'cobble_plaza' },
-    { x: 158, y: 60, width: 8, height: 6, type: 'building', interactionId: 'shop_weapons' },
-    { x: 172, y: 60, width: 8, height: 6, type: 'building', interactionId: 'shop_potions' },
-    { x: 158, y: 84, width: 8, height: 6, type: 'building', interactionId: 'shop_armor' },
-    { x: 172, y: 84, width: 8, height: 6, type: 'building', interactionId: 'inn' },
-    { x: 188, y: 68, width: 8, height: 6, type: 'building', interactionId: 'shop_magic' },
-    { x: 188, y: 80, width: 8, height: 6, type: 'building', interactionId: 'tavern' },
+    { x: 155, y: 58, width: 8, height: 6, type: 'building', interactionId: 'shop_weapons' },
+    { x: 175, y: 56, width: 8, height: 6, type: 'building', interactionId: 'shop_potions' },
+    { x: 155, y: 86, width: 8, height: 6, type: 'building', interactionId: 'shop_armor' },
+    { x: 175, y: 88, width: 8, height: 6, type: 'building', interactionId: 'inn' },
+    { x: 192, y: 64, width: 8, height: 6, type: 'building', interactionId: 'shop_magic' },
+    { x: 192, y: 80, width: 8, height: 6, type: 'building', interactionId: 'tavern' },
 
     // ====== FARM DISTRICT (south) - wheat fields with fences ======
     { x: 20, y: 105, width: 30, height: 18, type: 'farm' },

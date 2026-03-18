@@ -942,6 +942,60 @@ export class AssetManager {
       [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,C,   C],
     ]));
 
+    // House Blue Roof variant (14x10)
+    const BROOF = 0x1565C0;
+    const BROOF_H = 0x1E88E5;
+    const BROOF_S = 0x0D47A1;
+    this.textures.set('house_blue', this.createSpriteTexture([
+      [C,     C,     C,     C,     C,     BROOF_S,BROOF,BROOF_H,BROOF,C,     C,     C,     C,     C],
+      [C,     C,     C,     C,     BROOF_S,BROOF, BROOF_H,BROOF,BROOF,BROOF_S,C,     C,     C,     C],
+      [C,     C,     C,     BROOF_S,BROOF, BROOF, BROOF,BROOF, BROOF,BROOF, BROOF_S,C,     C,     C],
+      [C,     C,     BROOF_S,BROOF, BROOF, BROOF_H,BROOF,BROOF,BROOF_H,BROOF,BROOF,BROOF_S,C,    C],
+      [C,     C,     WALL,  WALL_H,WALL,  WALL,  WALL, WALL,  WALL, WALL,  WALL_H,WALL,  C,     C],
+      [C,     C,     WALL,  WINDOW,WINDOW,WALL,  WALL_H,WALL, WINDOW,WINDOW,WALL,  WALL,  C,     C],
+      [C,     C,     WALL_S,WINDOW,WINDOW,WALL_S,WALL, WALL_S,WINDOW,WINDOW,WALL_S,WALL_S,C,     C],
+      [C,     C,     WALL,  WALL,  WALL,  WALL,  DOOR, DOOR,  WALL, WALL,  WALL,  WALL,  C,     C],
+      [C,     C,     WALL_S,WALL,  WALL,  WALL,  DOOR, DOOR,  WALL, WALL,  WALL,  WALL_S,C,     C],
+      [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,C,   C],
+    ]));
+
+    // House Green Roof variant (14x10)
+    const GROOF = 0x2E7D32;
+    const GROOF_H = 0x43A047;
+    const GROOF_S = 0x1B5E20;
+    this.textures.set('house_green', this.createSpriteTexture([
+      [C,     C,     C,     C,     C,     GROOF_S,GROOF,GROOF_H,GROOF,C,     C,     C,     C,     C],
+      [C,     C,     C,     C,     GROOF_S,GROOF, GROOF_H,GROOF,GROOF,GROOF_S,C,     C,     C,     C],
+      [C,     C,     C,     GROOF_S,GROOF, GROOF, GROOF,GROOF, GROOF,GROOF, GROOF_S,C,     C,     C],
+      [C,     C,     GROOF_S,GROOF, GROOF, GROOF_H,GROOF,GROOF,GROOF_H,GROOF,GROOF,GROOF_S,C,    C],
+      [C,     C,     WALL,  WALL_H,WALL,  WALL,  WALL, WALL,  WALL, WALL,  WALL_H,WALL,  C,     C],
+      [C,     C,     WALL,  WINDOW,WINDOW,WALL,  WALL_H,WALL, WINDOW,WINDOW,WALL,  WALL,  C,     C],
+      [C,     C,     WALL_S,WINDOW,WINDOW,WALL_S,WALL, WALL_S,WINDOW,WINDOW,WALL_S,WALL_S,C,     C],
+      [C,     C,     WALL,  WALL,  WALL,  WALL,  DOOR, DOOR,  WALL, WALL,  WALL,  WALL,  C,     C],
+      [C,     C,     WALL_S,WALL,  WALL,  WALL,  DOOR, DOOR,  WALL, WALL,  WALL,  WALL_S,C,     C],
+      [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,C,   C],
+    ]));
+
+    // Thatched cottage variant (12x10) - more rustic
+    const THATCH = 0xBCA065;
+    const THATCH_H = 0xD4B878;
+    const THATCH_S = 0x8D7540;
+    const CWALL = 0xD7CCC8;
+    const CWALL_S = 0xBCAAA4;
+    const CWALL_H = 0xEFEBE9;
+    this.textures.set('house_thatch', this.createSpriteTexture([
+      [C,      C,      C,      C,      THATCH_S,THATCH, THATCH_H,THATCH, C,      C,      C,      C],
+      [C,      C,      C,      THATCH_S,THATCH, THATCH_H,THATCH, THATCH, THATCH_S,C,      C,      C],
+      [C,      C,      THATCH_S,THATCH, THATCH, THATCH, THATCH_H,THATCH, THATCH, THATCH_S,C,      C],
+      [C,      THATCH_S,THATCH, THATCH_H,THATCH, THATCH, THATCH, THATCH, THATCH_H,THATCH, THATCH_S,C],
+      [C,      CWALL,  CWALL_H,CWALL,  CWALL,  CWALL,  CWALL,  CWALL,  CWALL,  CWALL_H,CWALL,  C],
+      [C,      CWALL,  WINDOW, WINDOW, CWALL,  CWALL_H,CWALL,  WINDOW, WINDOW, CWALL,  CWALL,  C],
+      [C,      CWALL_S,WINDOW, WINDOW, CWALL_S,CWALL,  CWALL_S,WINDOW, WINDOW, CWALL_S,CWALL_S,C],
+      [C,      CWALL,  CWALL,  CWALL,  CWALL,  DOOR,   DOOR,   CWALL,  CWALL,  CWALL,  CWALL,  C],
+      [C,      CWALL_S,CWALL,  CWALL,  CWALL,  DOOR,   DOOR,   CWALL,  CWALL,  CWALL,  CWALL_S,C],
+      [C,      CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,C],
+    ]));
+
     // Destroyed house
     const RUBBLE = 0x795548;
     const RUBBLE_S = 0x5D4037;
