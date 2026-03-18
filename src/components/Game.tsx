@@ -1462,6 +1462,9 @@ const Game = () => {
         className: "rpg-toast",
         duration: 5000,
       });
+      // Extract markers from quest description
+      addMarkersFromText(quest.description, gameState.currentMap);
+      quest.objectives.forEach(obj => addMarkersFromText(obj, gameState.currentMap));
       triggerUIUpdate();
     }
 
