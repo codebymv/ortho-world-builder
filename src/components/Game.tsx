@@ -224,8 +224,8 @@ const Game = () => {
     const _tmpVec3 = new THREE.Vector3();
     const _worldPosVec3 = new THREE.Vector3();
 
-    // Sword swoosh trail effect
-    const swooshGeometry = new THREE.RingGeometry(0.3, 0.9, 16, 1, 0, Math.PI * 0.75);
+    // Sword swoosh trail effect — normal attack
+    const swooshGeometry = new THREE.RingGeometry(0.2, 0.8, 16, 1, 0, Math.PI * 0.75);
     const swooshMaterial = new THREE.MeshBasicMaterial({
       color: 0xccddff,
       transparent: true,
@@ -238,7 +238,23 @@ const Game = () => {
     swooshMesh.renderOrder = 20000;
     scene.add(swooshMesh);
     let swooshTimer = 0;
-    const SWOOSH_DURATION = 0.25;
+    const SWOOSH_DURATION = 0.22;
+
+    // Spin attack swoosh — larger, more aggressive
+    const spinSwooshGeometry = new THREE.RingGeometry(0.3, 1.2, 24, 1, 0, Math.PI * 2);
+    const spinSwooshMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffd700,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const spinSwooshMesh = new THREE.Mesh(spinSwooshGeometry, spinSwooshMaterial);
+    spinSwooshMesh.visible = false;
+    spinSwooshMesh.renderOrder = 20000;
+    scene.add(spinSwooshMesh);
+    let spinSwooshTimer = 0;
+    const SPIN_SWOOSH_DURATION = 0.35;
 
     // Animation state
     let animFrame = 0;
@@ -522,6 +538,7 @@ const Game = () => {
       }
       if (e.key === 'Shift' && !state.dialogueActive) {
         dodgeBuffered = true;
+        keys['shift'] = true;
       }
     };
 
@@ -672,6 +689,7 @@ const Game = () => {
       const currentTime = Date.now();
       if (state.player.isDodging) return;
       playSwordSwing();
+      spinSwooshTimer = SPIN_SWOOSH_DURATION; // trigger spin swoosh
 
       state.player.lastAttackTime = currentTime;
       playerAnimState = 'spin_attack';
@@ -1054,7 +1072,17 @@ const Game = () => {
           currentDir8 = rawDir;
           state.player.direction = dir8to4(rawDir);
 
-          const frameSpeed = state.player.speed * deltaTime * 60;
+          // Sprint: hold shift while moving (not dodging)
+          const wantsSprint = keys['shift'] && !dodgeBuffered && state.player.stamina > 0;
+          state.player.isSprinting = wantsSprint;
+          const currentSpeed = wantsSprint ? state.player.sprintSpeed : state.player.speed;
+          if (wantsSprint) {
+            state.player.stamina = Math.max(0, state.player.stamina - 20 * deltaTime);
+            state.player.lastStaminaUseTime = currentTime / 1000;
+            if (state.player.stamina <= 0) state.player.isSprinting = false;
+          }
+
+          const frameSpeed = currentSpeed * deltaTime * 60;
           const newPos = {
             x: state.player.position.x + moveX * frameSpeed,
             y: state.player.position.y + moveY * frameSpeed,
@@ -1210,8 +1238,9 @@ const Game = () => {
         let attackOffsetX = 0;
         let attackOffsetY = 0;
         const facing4 = dir8to4(currentDir8);
+        const walkCycleSpeed = state.player.isSprinting ? 70 : 95;
         const moveWave = playerAnimState === 'walk' || state.player.isDodging
-          ? Math.sin(currentTime / 95)
+          ? Math.sin(currentTime / walkCycleSpeed)
           : 0;
         const stride = Math.abs(moveWave);
 
@@ -1236,12 +1265,13 @@ const Game = () => {
         let visualRotation = 0;
 
         if (playerAnimState === 'walk') {
-          attackOffsetY += stride * 0.06;
-          if (facing4 === 'left') attackOffsetX -= stride * 0.04;
-          else if (facing4 === 'right') attackOffsetX += stride * 0.04;
-          visualScaleX *= 1 - stride * 0.035;
-          visualScaleY *= 1 + stride * 0.07;
-          visualRotation = moveWave * (facing4 === 'left' ? -0.035 : facing4 === 'right' ? 0.035 : 0.018);
+          const sprintMult = state.player.isSprinting ? 1.4 : 1.0;
+          attackOffsetY += stride * 0.06 * sprintMult;
+          if (facing4 === 'left') attackOffsetX -= stride * 0.04 * sprintMult;
+          else if (facing4 === 'right') attackOffsetX += stride * 0.04 * sprintMult;
+          visualScaleX *= 1 - stride * 0.035 * sprintMult;
+          visualScaleY *= 1 + stride * 0.07 * sprintMult;
+          visualRotation = moveWave * (facing4 === 'left' ? -0.035 : facing4 === 'right' ? 0.035 : 0.018) * sprintMult;
         }
 
         if (state.player.isDodging) {
@@ -1252,11 +1282,13 @@ const Game = () => {
           visualScaleY *= dodgeScaleY;
           visualRotation = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? -1 : 1);
         } else if (isChargingAttack) {
-          const pulse = 1 + chargeLevel * 0.15;
-          const shake = chargeLevel * Math.sin(currentTime / 30) * 0.02;
-          visualScaleX *= pulse;
-          visualScaleY *= pulse;
-          attackOffsetX += shake;
+          // Movement-based charge: crouch down and vibrate, no glow
+          const crouchAmount = 0.08 * chargeLevel;
+          const shakeAmt = chargeLevel * Math.sin(currentTime / 30) * 0.025;
+          visualScaleX *= 1 + chargeLevel * 0.06;
+          visualScaleY *= 1 - crouchAmount;
+          attackOffsetX += shakeAmt;
+          attackOffsetY -= crouchAmount * 0.3;
           visualRotation = 0;
         }
 
@@ -1271,16 +1303,17 @@ const Game = () => {
         // Dynamic Y-sorting for player
         playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
 
-        // === SWORD SWOOSH TRAIL ===
+        // === NORMAL SWORD SWOOSH (synced to attackRange) ===
         if (swooshTimer > 0) {
           swooshTimer -= deltaTime;
           const progress = 1 - (swooshTimer / SWOOSH_DURATION);
           swooshMesh.visible = true;
-          swooshMaterial.opacity = (1 - progress) * 0.6;
-          const swooshScale = 0.6 + progress * 0.8;
+          swooshMaterial.opacity = (1 - progress) * 0.35; // subtle
+          // Scale to match attackRange
+          const rangeScale = state.player.attackRange * 0.5;
+          const swooshScale = rangeScale * (0.5 + progress * 0.7);
           swooshMesh.scale.set(swooshScale, swooshScale, 1);
 
-          // Position and rotate based on facing direction
           const swooshDirAngles: Record<string, number> = {
             up: Math.PI * 0.5,
             down: -Math.PI * 0.5,
@@ -1290,9 +1323,10 @@ const Game = () => {
           const baseAngle = swooshDirAngles[facing4] ?? 0;
           swooshMesh.rotation.z = baseAngle + progress * Math.PI * 0.5 - Math.PI * 0.25;
 
+          const swooshDist = state.player.attackRange * 0.4;
           const swooshOffsets: Record<string, {x: number, y: number}> = {
-            up: {x: 0, y: 0.6}, down: {x: 0, y: -0.6},
-            left: {x: -0.6, y: 0}, right: {x: 0.6, y: 0},
+            up: {x: 0, y: swooshDist}, down: {x: 0, y: -swooshDist},
+            left: {x: -swooshDist, y: 0}, right: {x: swooshDist, y: 0},
           };
           const sOff = swooshOffsets[facing4] ?? {x: 0, y: 0};
           swooshMesh.position.set(
@@ -1302,6 +1336,25 @@ const Game = () => {
           );
         } else {
           swooshMesh.visible = false;
+        }
+
+        // === SPIN ATTACK SWOOSH (full circle, synced to chargeRange) ===
+        if (spinSwooshTimer > 0) {
+          spinSwooshTimer -= deltaTime;
+          const progress = 1 - (spinSwooshTimer / SPIN_SWOOSH_DURATION);
+          spinSwooshMesh.visible = true;
+          spinSwooshMaterial.opacity = (1 - progress) * 0.5;
+          const chargeRange = state.player.attackRange * 1.5;
+          const spinScale = chargeRange * (0.3 + progress * 0.7);
+          spinSwooshMesh.scale.set(spinScale, spinScale, 1);
+          spinSwooshMesh.rotation.z = progress * Math.PI * 2;
+          spinSwooshMesh.position.set(
+            state.player.position.x + attackOffsetX,
+            state.player.position.y + attackOffsetY,
+            0.3
+          );
+        } else {
+          spinSwooshMesh.visible = false;
         }
         // Player damage flash
         if (state.player.damageFlashTimer > 0) {
@@ -1320,8 +1373,8 @@ const Game = () => {
           playerMaterial.color.setHex(0xaaaaff);
           playerMaterial.opacity = 0.6;
         } else if (isChargingAttack && chargeLevel > 0) {
-          const glow = Math.sin(currentTime / 100) > 0 ? 0xFFD700 : 0xFFA000;
-          playerMaterial.color.setHex(glow);
+          // No glow — keep natural color during charge
+          playerMaterial.color.setHex(0xffffff);
           playerMaterial.opacity = 1;
         } else {
           playerMaterial.color.setHex(0xffffff);
@@ -1500,19 +1553,28 @@ const Game = () => {
                 break;
             }
           } else if (enemy.state === 'telegraphing') {
+            // Movement-based telegraph: wind-up crouch + lean toward player
             const telegraphProgress = 1 - (enemy.telegraphTimer / enemy.telegraphDuration);
-            const shakeIntensity = 0.06 * telegraphProgress;
-            finalEnemyX += Math.sin(currentTime / 35 + seed) * shakeIntensity;
-            finalEnemyY += Math.cos(currentTime / 42 + seed) * shakeIntensity;
-            scaleX *= 1 + telegraphProgress * 0.18;
-            scaleY *= 1 + telegraphProgress * 0.2;
-            rotation = Math.sin(currentTime / 55 + seed) * 0.03;
-
-            if (Math.sin(currentTime / 50) > 0) {
-              mat.color.setHex(0xffaa00);
-            } else {
-              mat.color.setHex(0xffffff);
-            }
+            const dx = state.player.position.x - enemy.position.x;
+            const dy = state.player.position.y - enemy.position.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            
+            // Crouch down (squash vertically, widen)
+            scaleX *= 1 + telegraphProgress * 0.15;
+            scaleY *= 1 - telegraphProgress * 0.12;
+            
+            // Lean toward player (wind-up)
+            const windUpDist = telegraphProgress * 0.15;
+            finalEnemyX += (dx / dist) * -windUpDist; // pull BACK first
+            finalEnemyY += (dy / dist) * -windUpDist;
+            
+            // Increasing vibration
+            const shakeIntensity = 0.03 * telegraphProgress * telegraphProgress;
+            finalEnemyX += Math.sin(currentTime / 25 + seed) * shakeIntensity;
+            finalEnemyY += Math.cos(currentTime / 30 + seed) * shakeIntensity;
+            
+            // Tilt toward player
+            rotation = Math.atan2(dy, dx) * 0.08 * telegraphProgress;
           } else if (enemy.state === 'recovering') {
             if (enemy.attackAnimationTimer > 0) {
               enemy.attackAnimationTimer -= deltaTime;
@@ -1530,9 +1592,7 @@ const Game = () => {
             scaleX *= 0.92 + recoverProgress * 0.08;
             scaleY *= 0.88 + recoverProgress * 0.12;
             rotation = Math.sin(currentTime / 90 + seed) * 0.02;
-            if (!enemy.damageFlashTimer || enemy.damageFlashTimer <= 0) {
-              mat.color.setHex(0x8888ff);
-            }
+            // No glow — just show the recoil posture
           } else {
             const breathe = Math.sin(currentTime / 800 + seed * 3);
             if (enemyType === 'shadow') {

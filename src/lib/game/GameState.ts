@@ -5,6 +5,8 @@ export interface PlayerState {
   direction: 'up' | 'down' | 'left' | 'right';
   isMoving: boolean;
   speed: number;
+  sprintSpeed: number;
+  isSprinting: boolean;
   health: number;
   maxHealth: number;
   gold: number;
@@ -80,7 +82,9 @@ export class GameState {
       position: { x: 0, y: 0 },
       direction: 'down',
       isMoving: false,
-      speed: 0.08,
+      speed: 0.055,
+      sprintSpeed: 0.10,
+      isSprinting: false,
       health: 100,
       maxHealth: 100,
       gold: 0,
