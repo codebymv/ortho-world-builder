@@ -42,7 +42,8 @@ interface ChunkMesh {
   active: boolean;
 }
 
-const RENDER_RADIUS = 18;
+const RENDER_RADIUS = 22;
+const CULL_RADIUS = 26;
 const OVERLAY_TYPES: Set<TileType> = new Set([
   'tree', 'house', 'rock', 'chest', 'portal', 'flower',
   'push_block', 'campfire', 'sign', 'well', 'tombstone', 'mushroom', 'stump',
