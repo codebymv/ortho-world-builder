@@ -42,7 +42,8 @@ interface ChunkMesh {
   active: boolean;
 }
 
-const RENDER_RADIUS = 18;
+const RENDER_RADIUS = 22;
+const CULL_RADIUS = 26;
 const OVERLAY_TYPES: Set<TileType> = new Set([
   'tree', 'house', 'rock', 'chest', 'portal', 'flower',
   'push_block', 'campfire', 'sign', 'well', 'tombstone', 'mushroom', 'stump',
@@ -85,7 +86,7 @@ export class World {
   private meshPool: THREE.Mesh[] = [];
   private overlayPool: THREE.Group[] = [];
   private lastChunkCenter: { x: number; y: number } = { x: -9999, y: -9999 };
-  private readonly CHUNK_UPDATE_THRESHOLD = 2;
+  private readonly CHUNK_UPDATE_THRESHOLD = 4;
 
   constructor(scene: THREE.Scene, assetManager: AssetManager, map: WorldMap) {
     this.scene = scene;
@@ -178,8 +179,10 @@ export class World {
       }
     }
 
+    // Cull with a larger radius than render to prevent flicker at edges
     for (const [key, object] of this.activeMeshes) {
-      if (!neededKeys.has(key)) {
+      const [kx, ky] = key.split(',').map(Number);
+      if (Math.abs(kx - centerTileX) > CULL_RADIUS || Math.abs(ky - centerTileY) > CULL_RADIUS) {
         this.scene.remove(object);
         this.recycleObject(object);
         this.activeMeshes.delete(key);
