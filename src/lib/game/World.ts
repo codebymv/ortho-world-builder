@@ -170,7 +170,7 @@ export class World {
     return mesh;
   }
 
-  private createTileObject(tile: Tile): THREE.Object3D | null {
+  private createTileObject(tile: Tile, tileX?: number, tileY?: number): THREE.Object3D | null {
     const isOverlay = OVERLAY_TYPES.has(tile.type);
 
     if (!isOverlay) {
@@ -179,7 +179,31 @@ export class World {
     }
 
     const overlayTexture = this.assetManager.getTexture(tile.type);
-    const baseType = OVERLAY_BASE_TILE[tile.type] ?? 'grass';
+    
+    // Determine base tile: check surrounding terrain for context, fall back to default
+    let baseType = OVERLAY_BASE_TILE[tile.type] ?? 'grass';
+    if (tileX !== undefined && tileY !== undefined) {
+      // Sample adjacent tiles to find the dominant ground type
+      const neighbors: TileType[] = [];
+      for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+        const nx = tileX + dx, ny = tileY + dy;
+        if (ny >= 0 && ny < this.map.height && nx >= 0 && nx < this.map.width) {
+          const neighbor = this.map.tiles[ny][nx];
+          if (!OVERLAY_TYPES.has(neighbor.type)) {
+            neighbors.push(neighbor.type);
+          }
+        }
+      }
+      if (neighbors.length > 0) {
+        // Use the most common neighbor as base
+        const counts = new Map<TileType, number>();
+        for (const n of neighbors) counts.set(n, (counts.get(n) || 0) + 1);
+        let best = neighbors[0], bestCount = 0;
+        for (const [t, c] of counts) { if (c > bestCount) { best = t; bestCount = c; } }
+        baseType = best;
+      }
+    }
+    
     const baseTexture = this.assetManager.getTexture(baseType);
     if (!overlayTexture || !baseTexture) return null;
 
@@ -233,7 +257,7 @@ export class World {
         const tile = this.map.tiles[y]?.[x];
         if (!tile || tile.hidden) continue;
 
-        const object = this.createTileObject(tile);
+        const object = this.createTileObject(tile, x, y);
         if (!object) continue;
 
         const isOverlay = OVERLAY_TYPES.has(tile.type);
@@ -311,7 +335,7 @@ export class World {
       const tile = this.map.tiles[y]?.[x];
       if (!tile || tile.hidden) continue;
 
-      const object = this.createTileObject(tile);
+      const object = this.createTileObject(tile, x, y);
       if (!object) continue;
 
       const isOverlay = OVERLAY_TYPES.has(tile.type);

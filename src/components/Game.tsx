@@ -1096,9 +1096,11 @@ const Game = () => {
             const enemyMaterial = new THREE.MeshBasicMaterial({
               map: enemyTexture,
               transparent: true,
+              depthWrite: false,
             });
             enemyMesh = new THREE.Mesh(enemyGeometry, enemyMaterial);
             enemyMesh.position.z = 0.2;
+            enemyMesh.renderOrder = 9997;
             scene.add(enemyMesh);
             enemyMeshes.set(enemy.id, enemyMesh);
           }
@@ -1128,7 +1130,18 @@ const Game = () => {
           let finalEnemyY = enemy.position.y;
 
           if (enemy.state === 'chasing') {
-            finalEnemyY += Math.sin(currentTime / 100 + parseFloat(enemy.id.split('_')[1] || "0")) * 0.05;
+            // Walk animation: leg bob + body sway
+            const walkCycle = Math.sin(currentTime / 120 + parseFloat(enemy.id.split('_')[1] || "0") * 2);
+            const strideBob = Math.abs(walkCycle) * 0.04;
+            finalEnemyY += strideBob;
+            // Lean into movement direction
+            const dx = state.player.position.x - enemy.position.x;
+            const lean = dx > 0 ? 0.08 : dx < 0 ? -0.08 : 0;
+            enemyMesh.rotation.z = lean * walkCycle * 0.5;
+            // Squash & stretch for walk feel
+            const squash = 1 + Math.abs(walkCycle) * 0.06;
+            const stretch = 1 - Math.abs(walkCycle) * 0.04;
+            enemyMesh.scale.set(stretch, squash, 1);
           } else if (enemy.state === 'telegraphing') {
             const shakeIntensity = 0.06 * (1 - enemy.telegraphTimer / enemy.telegraphDuration);
             finalEnemyX += (Math.random() - 0.5) * shakeIntensity;
@@ -1162,8 +1175,11 @@ const Game = () => {
               mat.color.setHex(0x8888ff);
             }
           } else if (enemy.state === 'idle') {
-            finalEnemyY += Math.sin(currentTime / 500 + parseFloat(enemy.id.split('_')[1] || "0") * 3) * 0.03;
-            enemyMesh.scale.set(1, 1, 1);
+            // Gentle breathing animation
+            const breathe = Math.sin(currentTime / 800 + parseFloat(enemy.id.split('_')[1] || "0") * 3);
+            finalEnemyY += breathe * 0.02;
+            enemyMesh.scale.set(1 + breathe * 0.015, 1 - breathe * 0.015, 1);
+            enemyMesh.rotation.z = 0;
           }
 
           enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
