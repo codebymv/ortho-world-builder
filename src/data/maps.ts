@@ -311,6 +311,16 @@ const deepWoodsDef: MapDefinition = {
     // === TREANT GROVE ===
     { x: 160, y: 160, width: 15, height: 12, type: 'garden' },
 
+    // === BOSS ARENA - Shadow Lord ===
+    { x: 90, y: 40, width: 20, height: 20, type: 'boss_arena', interactionId: 'shadow_lord' },
+
+    // === ABANDONED EXPEDITION CAMPS ===
+    { x: 30, y: 160, width: 12, height: 10, type: 'abandoned_camp', interactionId: 'lost_scholars' },
+    { x: 210, y: 120, width: 14, height: 10, type: 'abandoned_camp', interactionId: 'fallen_knights' },
+
+    // === CURSED CEMETERY ===
+    { x: 150, y: 100, width: 18, height: 14, type: 'cemetery' },
+
     // === PATHS ===
     { x: 116, y: 160, width: 8, height: 36, type: 'path', fill: 'dirt' },
     { x: 60, y: 100, width: 60, height: 6, type: 'path', fill: 'dirt' },
