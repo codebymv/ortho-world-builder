@@ -2,6 +2,7 @@ import { GameState } from '@/lib/game/GameState';
 import { Button } from '@/components/ui/button';
 import { Heart, Coins, Package, ScrollText, Zap } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface GameUIProps {
   gameState: GameState;
