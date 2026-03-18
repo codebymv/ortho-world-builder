@@ -55,6 +55,10 @@ export class AssetManager {
     return texture;
   }
 
+  private hex(c: number): string {
+    return `rgb(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255})`;
+  }
+
   createSpriteTexture(
     colors: number[][],
     cellSize: number = 4
@@ -85,6 +89,492 @@ export class AssetManager {
         }
       }
     }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    return texture;
+  }
+
+  // Canvas-drawn chibi character sprite
+  createChibiCharacter(
+    dir: 'down' | 'up' | 'left' | 'right',
+    state: 'idle' | 'walk' | 'attack' | 'charge' | 'hurt' = 'idle',
+    frame: number = 0,
+    palette: {
+      hair: number; hairLight: number; hairDark: number;
+      skin: number; skinLight: number; skinShadow: number;
+      eyeIris: number; eyeIrisDark: number;
+      tunicMain: number; tunicLight: number; tunicDark: number;
+      trimColor: number; trimLight: number;
+      capeMain: number; capeDark: number;
+      pantColor: number; pantDark: number;
+      bootColor: number; bootDark: number;
+    }
+  ): THREE.Texture {
+    const W = 64, H = 80;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+    const p = palette;
+    const hex = this.hex.bind(this);
+
+    const isLeft = dir === 'left';
+    const isRight = dir === 'right';
+    const isSide = isLeft || isRight;
+    const isUp = dir === 'up';
+
+    // Animation offsets
+    let legOffset = 0;
+    let bodyBob = 0;
+    let armAngle = 0;
+    let swordVisible = true;
+    let swordAngle = 0;
+    let squishX = 1, squishY = 1;
+
+    if (state === 'walk') {
+      legOffset = frame === 0 ? -3 : 3;
+      bodyBob = Math.abs(legOffset) > 1 ? -1 : 0;
+    } else if (state === 'attack') {
+      if (frame === 0) { swordAngle = -0.8; armAngle = -0.5; }
+      else if (frame === 1) { swordAngle = 0.5; armAngle = 0.3; }
+      else { swordAngle = 1.5; armAngle = 0.6; }
+    } else if (state === 'charge') {
+      squishX = 1.05; squishY = 0.97;
+      swordAngle = -0.5;
+    }
+
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(squishX, squishY);
+    ctx.translate(-W / 2, -H / 2);
+
+    const cx = W / 2 + (isSide ? (isLeft ? 2 : -2) : 0);
+    const headY = 20 + bodyBob;
+    const bodyY = 42 + bodyBob;
+
+    // ---- CAPE (behind character) ----
+    if (!isUp || state !== 'idle') {
+      ctx.fillStyle = hex(p.capeMain);
+      if (isSide) {
+        const capeX = isLeft ? cx + 6 : cx - 14;
+        ctx.beginPath();
+        ctx.moveTo(capeX, bodyY - 6);
+        ctx.quadraticCurveTo(capeX + 4, bodyY + 20 + (state === 'walk' ? legOffset : 0), capeX + 2, bodyY + 28);
+        ctx.quadraticCurveTo(capeX - 2, bodyY + 20, capeX + 2, bodyY - 6);
+        ctx.fill();
+      } else if (isUp) {
+        // Full cape visible from back
+        ctx.beginPath();
+        ctx.moveTo(cx - 12, bodyY - 6);
+        ctx.quadraticCurveTo(cx - 14, bodyY + 24, cx - 8, bodyY + 30);
+        ctx.lineTo(cx + 8, bodyY + 30);
+        ctx.quadraticCurveTo(cx + 14, bodyY + 24, cx + 12, bodyY - 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = hex(p.capeDark);
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, bodyY + 10);
+        ctx.quadraticCurveTo(cx, bodyY + 14, cx + 8, bodyY + 10);
+        ctx.quadraticCurveTo(cx, bodyY + 18, cx - 8, bodyY + 10);
+        ctx.fill();
+      } else {
+        // Small cape peeks from behind (front view)
+        ctx.fillStyle = hex(p.capeDark);
+        ctx.fillRect(cx - 14, bodyY - 4, 3, 20);
+        ctx.fillRect(cx + 11, bodyY - 4, 3, 20);
+      }
+    }
+
+    // ---- SWORD (behind for some frames) ----
+    if (swordVisible && !isUp) {
+      ctx.save();
+      const swordX = isSide ? (isLeft ? cx - 14 : cx + 14) : cx - 14;
+      const swordY = bodyY + 2;
+      ctx.translate(swordX, swordY);
+      ctx.rotate(swordAngle * (isRight ? -1 : 1));
+      // Blade
+      ctx.fillStyle = hex(0xD8E0E8);
+      ctx.fillRect(-1, -22, 3, 18);
+      ctx.fillStyle = hex(0xF0F4FF);
+      ctx.fillRect(0, -22, 1, 18);
+      // Guard
+      ctx.fillStyle = hex(p.trimColor);
+      ctx.fillRect(-3, -4, 7, 2);
+      // Grip
+      ctx.fillStyle = hex(0x5A3020);
+      ctx.fillRect(0, -2, 2, 6);
+      // Pommel
+      ctx.fillStyle = hex(p.trimColor);
+      ctx.beginPath();
+      ctx.arc(1, 5, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ---- LEGS ----
+    const legSpread = isSide ? 2 : 5;
+    const leftLegX = cx - legSpread;
+    const rightLegX = cx + legSpread - (isSide ? 1 : 0);
+    const legTop = bodyY + 14;
+
+    // Left leg
+    ctx.fillStyle = hex(p.pantColor);
+    ctx.fillRect(leftLegX - 2, legTop + (state === 'walk' ? legOffset : 0), 5, 10);
+    ctx.fillStyle = hex(p.bootColor);
+    ctx.fillRect(leftLegX - 3, legTop + 9 + (state === 'walk' ? legOffset : 0), 7, 5);
+    ctx.fillStyle = hex(p.trimColor);
+    ctx.fillRect(leftLegX - 3, legTop + 9 + (state === 'walk' ? legOffset : 0), 7, 1);
+
+    if (!isSide) {
+      // Right leg
+      ctx.fillStyle = hex(p.pantColor);
+      ctx.fillRect(rightLegX - 2, legTop + (state === 'walk' ? -legOffset : 0), 5, 10);
+      ctx.fillStyle = hex(p.bootColor);
+      ctx.fillRect(rightLegX - 3, legTop + 9 + (state === 'walk' ? -legOffset : 0), 7, 5);
+      ctx.fillStyle = hex(p.trimColor);
+      ctx.fillRect(rightLegX - 3, legTop + 9 + (state === 'walk' ? -legOffset : 0), 7, 1);
+    }
+
+    // ---- BODY / TUNIC ----
+    // Tunic body
+    ctx.fillStyle = hex(p.tunicMain);
+    const tunicW = isSide ? 14 : 18;
+    const tunicX = cx - tunicW / 2;
+    ctx.beginPath();
+    ctx.moveTo(tunicX, bodyY - 4);
+    ctx.lineTo(tunicX + tunicW, bodyY - 4);
+    ctx.lineTo(tunicX + tunicW + 2, bodyY + 16);
+    ctx.lineTo(tunicX - 2, bodyY + 16);
+    ctx.closePath();
+    ctx.fill();
+
+    // Tunic highlight
+    ctx.fillStyle = hex(p.tunicLight);
+    ctx.fillRect(cx - 3, bodyY - 2, 6, 12);
+
+    // Gold trim lines
+    ctx.fillStyle = hex(p.trimColor);
+    ctx.fillRect(tunicX, bodyY - 4, tunicW, 2); // top trim
+    ctx.fillRect(cx - 1, bodyY - 2, 2, 14); // center seam
+
+    // Belt
+    ctx.fillStyle = hex(p.bootDark);
+    ctx.fillRect(tunicX + 1, bodyY + 10, tunicW - 2, 3);
+    ctx.fillStyle = hex(p.trimColor);
+    ctx.fillRect(cx - 2, bodyY + 10, 4, 3); // buckle
+
+    // ---- ARMS ----
+    if (!isUp) {
+      // Left arm
+      ctx.fillStyle = hex(p.tunicDark);
+      const armX1 = isSide ? (isLeft ? cx - tunicW/2 - 3 : cx - tunicW/2 + 1) : cx - tunicW/2 - 4;
+      ctx.fillRect(armX1, bodyY - 2, 5, 12);
+      ctx.fillStyle = hex(p.skinShadow);
+      ctx.fillRect(armX1 + 1, bodyY + 9, 3, 4);
+
+      if (!isSide) {
+        // Right arm
+        ctx.fillStyle = hex(p.tunicDark);
+        ctx.fillRect(cx + tunicW/2 - 1, bodyY - 2, 5, 12);
+        ctx.fillStyle = hex(p.skinShadow);
+        ctx.fillRect(cx + tunicW/2, bodyY + 9, 3, 4);
+      }
+    }
+
+    // ---- HEAD ----
+    const headR = 14;
+
+    // Hair back volume (behind head)
+    ctx.fillStyle = hex(p.hairDark);
+    ctx.beginPath();
+    ctx.ellipse(cx, headY - 2, headR + 3, headR + 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head shape (skin circle)
+    if (!isUp) {
+      ctx.fillStyle = hex(p.skin);
+      ctx.beginPath();
+      ctx.ellipse(cx, headY, headR - 1, headR, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Skin highlight
+      ctx.fillStyle = hex(p.skinLight);
+      ctx.beginPath();
+      ctx.ellipse(cx - 2, headY - 3, headR - 5, headR - 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // ---- HAIR ----
+    ctx.fillStyle = hex(p.hair);
+    // Top hair volume
+    ctx.beginPath();
+    ctx.ellipse(cx, headY - 6, headR + 1, 10, 0, Math.PI, Math.PI * 2);
+    ctx.fill();
+
+    // Hair highlight
+    ctx.fillStyle = hex(p.hairLight);
+    ctx.beginPath();
+    ctx.ellipse(cx + 2, headY - 9, 6, 4, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Spiky hair tufts
+    ctx.fillStyle = hex(p.hair);
+    // Center spike
+    ctx.beginPath();
+    ctx.moveTo(cx - 3, headY - 14);
+    ctx.lineTo(cx + 1, headY - 20);
+    ctx.lineTo(cx + 4, headY - 14);
+    ctx.fill();
+    // Left spike
+    ctx.beginPath();
+    ctx.moveTo(cx - 8, headY - 11);
+    ctx.lineTo(cx - 6, headY - 18);
+    ctx.lineTo(cx - 2, headY - 13);
+    ctx.fill();
+    // Right spike
+    ctx.beginPath();
+    ctx.moveTo(cx + 2, headY - 13);
+    ctx.lineTo(cx + 7, headY - 17);
+    ctx.lineTo(cx + 9, headY - 10);
+    ctx.fill();
+
+    // Bangs
+    if (!isUp) {
+      ctx.fillStyle = hex(p.hair);
+      if (isSide) {
+        const bangDir = isLeft ? -1 : 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - bangDir * 10, headY - 8);
+        ctx.quadraticCurveTo(cx - bangDir * 8, headY + 2, cx - bangDir * 4, headY + 4);
+        ctx.lineTo(cx - bangDir * 2, headY - 2);
+        ctx.quadraticCurveTo(cx - bangDir * 6, headY - 4, cx - bangDir * 10, headY - 8);
+        ctx.fill();
+        // Side hair strand
+        ctx.fillStyle = hex(p.hairDark);
+        ctx.beginPath();
+        ctx.moveTo(cx + bangDir * 8, headY - 2);
+        ctx.quadraticCurveTo(cx + bangDir * 12, headY + 10, cx + bangDir * 10, headY + 20);
+        ctx.lineTo(cx + bangDir * 8, headY + 18);
+        ctx.quadraticCurveTo(cx + bangDir * 10, headY + 8, cx + bangDir * 6, headY);
+        ctx.fill();
+      } else {
+        // Front bangs - swept
+        ctx.beginPath();
+        ctx.moveTo(cx - 12, headY - 6);
+        ctx.quadraticCurveTo(cx - 10, headY + 3, cx - 6, headY + 4);
+        ctx.lineTo(cx - 4, headY - 1);
+        ctx.quadraticCurveTo(cx - 8, headY - 2, cx - 12, headY - 6);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(cx + 12, headY - 6);
+        ctx.quadraticCurveTo(cx + 10, headY + 2, cx + 7, headY + 3);
+        ctx.lineTo(cx + 5, headY - 1);
+        ctx.quadraticCurveTo(cx + 8, headY - 2, cx + 12, headY - 6);
+        ctx.fill();
+        
+        // Center bang wisps
+        ctx.fillStyle = hex(p.hairDark);
+        ctx.beginPath();
+        ctx.moveTo(cx - 3, headY - 6);
+        ctx.quadraticCurveTo(cx, headY - 2, cx + 3, headY - 6);
+        ctx.lineTo(cx + 1, headY - 8);
+        ctx.lineTo(cx - 1, headY - 8);
+        ctx.fill();
+      }
+    } else {
+      // Back of head - full hair coverage
+      ctx.fillStyle = hex(p.hair);
+      ctx.beginPath();
+      ctx.ellipse(cx, headY, headR, headR + 1, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Hair texture lines
+      ctx.strokeStyle = hex(p.hairDark);
+      ctx.lineWidth = 1;
+      for (let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(cx + i * 4, headY - 10);
+        ctx.quadraticCurveTo(cx + i * 3, headY + 5, cx + i * 5, headY + 14);
+        ctx.stroke();
+      }
+    }
+
+    // ---- FACE (front/side only) ----
+    if (!isUp) {
+      if (isSide) {
+        // ONE big eye
+        const eyeX = isLeft ? cx - 5 : cx + 5;
+        const eyeDir = isLeft ? -1 : 1;
+
+        // Eye white
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.ellipse(eyeX - eyeDir * 1, headY, 5, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Iris
+        const irisColor = state === 'charge' ? hex(0xFFD700) : state === 'hurt' ? hex(0x888888) : hex(p.eyeIris);
+        ctx.fillStyle = irisColor;
+        ctx.beginPath();
+        ctx.ellipse(eyeX - eyeDir * 2, headY + 1, 3.5, 4.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pupil
+        if (state !== 'hurt') {
+          ctx.fillStyle = hex(p.eyeIrisDark);
+          ctx.beginPath();
+          ctx.ellipse(eyeX - eyeDir * 2, headY + 1.5, 2, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Eye sparkle
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(eyeX - eyeDir * 3.5, headY - 1.5, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(eyeX - eyeDir * 1, headY + 2.5, 0.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyebrow
+        ctx.strokeStyle = hex(p.hairDark);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(eyeX + eyeDir * 3, headY - 6);
+        ctx.quadraticCurveTo(eyeX, headY - 7.5, eyeX - eyeDir * 4, headY - 5);
+        ctx.stroke();
+
+        // Blush
+        ctx.fillStyle = 'rgba(255, 150, 150, 0.35)';
+        ctx.beginPath();
+        ctx.ellipse(eyeX - eyeDir * 1, headY + 6, 4, 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mouth
+        if (state === 'attack' || state === 'charge') {
+          ctx.fillStyle = hex(0xC04030);
+          ctx.beginPath();
+          ctx.ellipse(eyeX - eyeDir * 3, headY + 9, 2.5, 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (state === 'hurt') {
+          ctx.strokeStyle = hex(0xCC4444);
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(eyeX - eyeDir * 5, headY + 8);
+          ctx.quadraticCurveTo(eyeX - eyeDir * 3, headY + 10, eyeX - eyeDir * 1, headY + 8);
+          ctx.stroke();
+        } else {
+          // Small happy mouth
+          ctx.fillStyle = hex(0xD06050);
+          ctx.beginPath();
+          ctx.arc(eyeX - eyeDir * 3, headY + 8, 2, 0, Math.PI);
+          ctx.fill();
+        }
+
+        // Nose
+        ctx.fillStyle = hex(p.skinShadow);
+        ctx.beginPath();
+        ctx.arc(eyeX - eyeDir * 6, headY + 3, 1, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else {
+        // FRONT VIEW - Two big eyes
+        const eyeSpacing = 7;
+        const eyeY = headY;
+
+        for (let side = -1; side <= 1; side += 2) {
+          const eyeX = cx + side * eyeSpacing;
+
+          // Eye white
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.ellipse(eyeX, eyeY, 5, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Iris
+          const irisColor = state === 'charge' ? hex(0xFFD700) : state === 'hurt' ? hex(0x888888) : hex(p.eyeIris);
+          ctx.fillStyle = irisColor;
+          ctx.beginPath();
+          ctx.ellipse(eyeX, eyeY + 1, 3.5, 4.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Pupil
+          if (state !== 'hurt') {
+            ctx.fillStyle = hex(p.eyeIrisDark);
+            ctx.beginPath();
+            ctx.ellipse(eyeX, eyeY + 1.5, 2, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Sparkle highlights
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(eyeX - 1.5, eyeY - 1.5, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(eyeX + 1, eyeY + 2.5, 0.8, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Eyebrow
+          ctx.strokeStyle = hex(p.hairDark);
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(eyeX - 4, headY - 6);
+          ctx.quadraticCurveTo(eyeX, headY - 8, eyeX + 4, headY - 6);
+          ctx.stroke();
+
+          // Blush
+          ctx.fillStyle = 'rgba(255, 150, 150, 0.3)';
+          ctx.beginPath();
+          ctx.ellipse(eyeX, headY + 7, 4, 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Nose (tiny dot)
+        ctx.fillStyle = hex(p.skinShadow);
+        ctx.beginPath();
+        ctx.arc(cx, headY + 4, 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mouth
+        if (state === 'attack' || state === 'charge') {
+          // Open yelling mouth
+          ctx.fillStyle = hex(0xC04030);
+          ctx.beginPath();
+          ctx.ellipse(cx, headY + 9, 4, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = hex(0x801818);
+          ctx.beginPath();
+          ctx.ellipse(cx, headY + 9, 2.5, 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (state === 'hurt') {
+          ctx.strokeStyle = hex(0xCC4444);
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(cx - 4, headY + 9);
+          ctx.quadraticCurveTo(cx, headY + 11, cx + 4, headY + 9);
+          ctx.stroke();
+        } else {
+          // Happy smile
+          ctx.fillStyle = hex(0xD06050);
+          ctx.beginPath();
+          ctx.arc(cx, headY + 8, 3, 0, Math.PI);
+          ctx.fill();
+          // Inner mouth
+          ctx.fillStyle = hex(0x801818);
+          ctx.beginPath();
+          ctx.arc(cx, headY + 8, 2, 0.1, Math.PI - 0.1);
+          ctx.fill();
+        }
+      }
+    }
+
+    // ---- NECK ----
+    ctx.fillStyle = hex(p.skinShadow);
+    ctx.fillRect(cx - 3, headY + headR - 4, 6, 6);
+
+    ctx.restore();
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.magFilter = THREE.NearestFilter;
