@@ -28,11 +28,9 @@ const Game = () => {
   useEffect(() => {
     if (!mountRef.current) return;
 
-    // Scene setup
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
 
-    // Orthographic camera for 2D view
     const aspect = window.innerWidth / window.innerHeight;
     const frustumSize = 12;
     const camera = new THREE.OrthographicCamera(
@@ -45,13 +43,11 @@ const Game = () => {
     );
     camera.position.z = 5;
 
-    // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     mountRef.current.appendChild(renderer.domElement);
 
-    // Initialize game systems
     const assetManager = new AssetManager();
     assetManager.loadDefaultAssets();
 
@@ -62,37 +58,37 @@ const Game = () => {
     const particleSystem = new ParticleSystem(scene);
     const combatSystem = new CombatSystem(state);
 
-    // Load world
     const world = new World(scene, assetManager, allMaps.village);
     const spawnPoint = world.getSpawnPoint();
     state.player.position = { x: spawnPoint.x, y: spawnPoint.y };
-    // Initial chunk render
     world.updateChunks(spawnPoint.x, spawnPoint.y);
 
-    // Enemy meshes storage
     const enemyMeshes = new Map<string, THREE.Mesh>();
-
-    // Smooth camera variables
     const cameraTarget = { x: state.player.position.x, y: state.player.position.y };
 
-    // Footstep timer
     let footstepTimer = 0;
     const footstepInterval = 0.3;
-
-    // Delta time smoothing
     let lastTime = performance.now();
-    const dtAccumulator = 0;
-    const FIXED_STEP = 1 / 60;
     const MAX_DELTA = 0.1;
-    let portalCooldown = 0; // Prevent instant re-transition
+    let portalCooldown = 0;
 
-    // Map transition handler
+    // Animation state
+    let animFrame = 0;
+    let animTimer = 0;
+    const IDLE_FRAME_DURATION = 0.8; // slow idle breathing
+    const WALK_FRAME_DURATION = 0.18; // fast walk cycle
+    let playerAnimState: 'idle' | 'walk' | 'attack' = 'idle';
+    let attackFrameTimer = 0;
+    let attackFrame = 0;
+    const ATTACK_FRAME_DURATION = 0.1; // 100ms per attack frame (3 frames = 300ms total)
+
+    const getPlayerTextureName = (dir: string, animState: string, frame: number): string => {
+      return `player_${dir}_${animState}_${frame}`;
+    };
+
     const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
       const newMap = allMaps[targetMap];
-      if (!newMap) {
-        console.error(`Map ${targetMap} not found`);
-        return;
-      }
+      if (!newMap) return;
 
       state.currentMap = targetMap;
       world.loadMap(newMap);
@@ -106,11 +102,8 @@ const Game = () => {
       cameraTarget.y = worldY;
       camera.position.x = worldX;
       camera.position.y = worldY;
-
-      // Initial chunk render at new position
       world.updateChunks(worldX, worldY);
 
-      // Clear enemies when changing maps
       combatSystem.clearAllEnemies();
       enemyMeshes.forEach(mesh => {
         scene.remove(mesh);
@@ -119,7 +112,6 @@ const Game = () => {
       });
       enemyMeshes.clear();
 
-      // Spawn enemies based on map definition
       const mapDef = mapDefinitions[targetMap];
       if (mapDef?.enemyZones) {
         for (const zone of mapDef.enemyZones) {
@@ -145,9 +137,8 @@ const Game = () => {
       portalCooldown = 0.5;
     };
 
-    // Create player mesh
     const playerGeometry = new THREE.PlaneGeometry(0.7, 0.7);
-    const playerTexture = assetManager.getTexture('player_down');
+    const playerTexture = assetManager.getTexture('player_down_idle_0');
     const playerMaterial = new THREE.MeshBasicMaterial({
       map: playerTexture,
       transparent: true,
@@ -156,7 +147,6 @@ const Game = () => {
     playerMesh.position.set(spawnPoint.x, spawnPoint.y, 0.2);
     scene.add(playerMesh);
 
-    // Add NPCs (positioned relative to village center)
     const npcData: NPC[] = [
       { id: 'elder', name: 'Village Elder', position: { x: -18, y: -10 }, dialogueId: 'elder', sprite: 'npc_elder', questGiver: true },
       { id: 'merchant', name: 'Traveling Merchant', position: { x: 20, y: -2 }, dialogueId: 'merchant', sprite: 'npc_merchant' },
@@ -180,18 +170,15 @@ const Game = () => {
       npcMeshes.push(npcMesh);
     });
 
-    // Keyboard controls with input buffering
     const keys: { [key: string]: boolean } = {};
     let interactBuffered = false;
     let attackBuffered = false;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       keys[e.key.toLowerCase()] = true;
-      
       if (e.key.toLowerCase() === 'e' && !state.dialogueActive) {
         interactBuffered = true;
       }
-
       if (e.key === ' ' && !state.dialogueActive) {
         e.preventDefault();
         attackBuffered = true;
@@ -204,21 +191,22 @@ const Game = () => {
 
     const performAttack = () => {
       const currentTime = Date.now();
-      if (currentTime - state.player.lastAttackTime < state.player.attackCooldown) {
-        return;
-      }
+      if (currentTime - state.player.lastAttackTime < state.player.attackCooldown) return;
 
       state.player.lastAttackTime = currentTime;
+
+      // Start attack animation
+      playerAnimState = 'attack';
+      attackFrame = 0;
+      attackFrameTimer = ATTACK_FRAME_DURATION;
+      state.player.attackAnimationTimer = ATTACK_FRAME_DURATION * 3;
 
       const enemiesInRange = combatSystem.getEnemiesInRange(
         state.player.position,
         state.player.attackRange
       );
 
-      state.player.attackAnimationTimer = 0.2; // 200ms weapon swing/lunge
-
       if (enemiesInRange.length > 0) {
-        // Target closest enemy in facing direction first, fallback to closest overall
         let target = enemiesInRange[0];
         const dirOffsets: Record<string, {x: number, y: number}> = {
           up: {x: 0, y: 1}, down: {x: 0, y: -1},
@@ -226,15 +214,21 @@ const Game = () => {
         };
         const dir = dirOffsets[state.player.direction];
         
-        // Prefer enemies in facing direction
         const facingEnemies = enemiesInRange.filter(e => {
-          const dx = e.position.x - state.player.position.x;
-          const dy = e.position.y - state.player.position.y;
-          return (dx * dir.x + dy * dir.y) > 0;
+          const edx = e.position.x - state.player.position.x;
+          const edy = e.position.y - state.player.position.y;
+          return (edx * dir.x + edy * dir.y) > 0;
         });
         if (facingEnemies.length > 0) target = facingEnemies[0];
 
         const died = combatSystem.playerAttack(target, state.player.attackDamage);
+
+        // Show bonus damage text if recovering
+        if (target.state === 'recovering' || (target.health > 0 && target.damageFlashTimer > 0)) {
+          particleSystem.emitDamage(
+            new THREE.Vector3(target.position.x, target.position.y + 0.5, 0.5)
+          );
+        }
 
         particleSystem.emitDamage(
           new THREE.Vector3(target.position.x, target.position.y, 0.3)
@@ -268,7 +262,6 @@ const Game = () => {
           Math.pow(state.player.position.x - npc.position.x, 2) +
           Math.pow(state.player.position.y - npc.position.y, 2)
         );
-
         if (distance < interactionRange) {
           startDialogue(npc.dialogueId, npc.name);
           return;
@@ -277,7 +270,6 @@ const Game = () => {
 
       const checkX = state.player.position.x;
       const checkY = state.player.position.y;
-      
       const directions = [
         { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
       ];
@@ -289,7 +281,6 @@ const Game = () => {
         );
         
         if (interactionId) {
-          // Generic chest handler
           if (interactionId.includes('chest') && !state.getFlag(`${interactionId}_opened`)) {
             const goldAmount = interactionId.includes('ancient') ? 100 : 
                              interactionId.includes('ruins') ? 75 :
@@ -308,7 +299,6 @@ const Game = () => {
             return;
           }
           
-          // Healing sources
           if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'healing_mushroom' || interactionId === 'campfire') {
             state.player.health = Math.min(state.player.maxHealth, state.player.health + 25);
             particleSystem.emitHeal(new THREE.Vector3(checkX, checkY, 0.3));
@@ -368,15 +358,13 @@ const Game = () => {
 
     window.addEventListener('resize', handleResize);
 
-    // Animation loop
+    // ============= ANIMATION LOOP =============
     const animate = () => {
       requestAnimationFrame(animate);
 
       const currentTime = performance.now();
       let deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
-
-      // Cap delta time to prevent physics explosion after tab-away
       if (deltaTime > MAX_DELTA) deltaTime = MAX_DELTA;
 
       // Process buffered inputs
@@ -400,7 +388,6 @@ const Game = () => {
         if (keys['a'] || keys['arrowleft']) { moveX -= 1; newDirection = 'left'; moved = true; }
         if (keys['d'] || keys['arrowright']) { moveX += 1; newDirection = 'right'; moved = true; }
 
-        // Normalize diagonal movement
         if (moveX !== 0 && moveY !== 0) {
           const length = Math.sqrt(moveX * moveX + moveY * moveY);
           moveX /= length;
@@ -408,14 +395,12 @@ const Game = () => {
         }
 
         if (moved) {
-          // Delta-time based movement (speed * 60 to normalize around 60fps feel)
           const frameSpeed = state.player.speed * deltaTime * 60;
           const newPos = {
             x: state.player.position.x + moveX * frameSpeed,
             y: state.player.position.y + moveY * frameSpeed,
           };
 
-          // Try full movement, then axis-separated (wall sliding)
           if (world.isWalkable(newPos.x, newPos.y)) {
             state.player.position = newPos;
           } else if (world.isWalkable(newPos.x, state.player.position.y)) {
@@ -424,20 +409,15 @@ const Game = () => {
             state.player.position.y = newPos.y;
           }
 
-          // Update chunk rendering based on new player position
           world.updateChunks(state.player.position.x, state.player.position.y);
-
           state.player.direction = newDirection;
           state.player.isMoving = true;
 
-          // Update player texture
-          const directionTexture = assetManager.getTexture(`player_${newDirection}`);
-          if (directionTexture && playerMaterial.map !== directionTexture) {
-            playerMaterial.map = directionTexture;
-            playerMaterial.needsUpdate = true;
+          // Walk animation if not attacking
+          if (playerAnimState !== 'attack') {
+            playerAnimState = 'walk';
           }
 
-          // Footstep particles
           footstepTimer += deltaTime;
           if (footstepTimer >= footstepInterval) {
             particleSystem.emitDust(
@@ -446,7 +426,6 @@ const Game = () => {
             footstepTimer = 0;
           }
 
-          // Track visited tiles for minimap (use ref to avoid stale closure)
           const currentMap = world.getCurrentMap();
           const tileX = Math.floor(state.player.position.x + currentMap.width / 2);
           const tileY = Math.floor(state.player.position.y + currentMap.height / 2);
@@ -456,7 +435,6 @@ const Game = () => {
             setVisitedTilesVersion(v => v + 1);
           }
 
-          // Check for map transitions (with cooldown)
           if (portalCooldown > 0) {
             portalCooldown -= deltaTime;
           } else {
@@ -468,53 +446,86 @@ const Game = () => {
         } else {
           state.player.isMoving = false;
           footstepTimer = 0;
+          if (playerAnimState !== 'attack') {
+            playerAnimState = 'idle';
+          }
         }
 
-        // --- Animations & Visual Effects ---
-        // Player bobbing animation while moving
-        let bobbingOffset = 0;
-        if (state.player.isMoving) {
-          bobbingOffset = Math.sin(currentTime / 100) * 0.05;
+        // === PLAYER ANIMATION FRAME MANAGEMENT ===
+        if (playerAnimState === 'attack') {
+          attackFrameTimer -= deltaTime;
+          if (attackFrameTimer <= 0) {
+            attackFrame++;
+            if (attackFrame >= 3) {
+              // Attack animation done
+              playerAnimState = moved ? 'walk' : 'idle';
+              attackFrame = 0;
+            } else {
+              attackFrameTimer = ATTACK_FRAME_DURATION;
+            }
+          }
+          state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
         }
 
-        // Player attack lunge animation
+        // Cycle idle/walk frames
+        if (playerAnimState !== 'attack') {
+          const frameDuration = playerAnimState === 'walk' ? WALK_FRAME_DURATION : IDLE_FRAME_DURATION;
+          animTimer += deltaTime;
+          if (animTimer >= frameDuration) {
+            animFrame = (animFrame + 1) % 2;
+            animTimer = 0;
+          }
+        }
+
+        // Update player texture based on animation state
+        const texName = playerAnimState === 'attack'
+          ? getPlayerTextureName(state.player.direction, 'attack', Math.min(attackFrame, 2))
+          : getPlayerTextureName(state.player.direction, playerAnimState, animFrame);
+        
+        const newTex = assetManager.getTexture(texName);
+        if (newTex && playerMaterial.map !== newTex) {
+          playerMaterial.map = newTex;
+          playerMaterial.needsUpdate = true;
+        }
+
+        // === PLAYER POSITION WITH ANIMATION OFFSETS ===
         let attackOffsetX = 0;
         let attackOffsetY = 0;
-        if (state.player.attackAnimationTimer > 0) {
-          state.player.attackAnimationTimer -= deltaTime;
-          const lungeAmount = Math.sin((state.player.attackAnimationTimer / 0.2) * Math.PI) * 0.3;
+        if (playerAnimState === 'attack' && attackFrame === 1) {
+          // Lunge forward on the slash frame
+          const lungeAmount = 0.15;
           if (state.player.direction === 'up') attackOffsetY = lungeAmount;
           else if (state.player.direction === 'down') attackOffsetY = -lungeAmount;
           else if (state.player.direction === 'left') attackOffsetX = -lungeAmount;
           else if (state.player.direction === 'right') attackOffsetX = lungeAmount;
         }
 
-        // Update player mesh position with animation offsets
         playerMesh.position.set(
           state.player.position.x + attackOffsetX,
-          state.player.position.y + bobbingOffset + attackOffsetY,
+          state.player.position.y + attackOffsetY,
           0.2
         );
 
         // Player damage flash
         if (state.player.damageFlashTimer > 0) {
           state.player.damageFlashTimer -= deltaTime;
-          playerMaterial.color.setHex(0xff0000); // Red flash
+          const flashIntensity = Math.sin(state.player.damageFlashTimer * 30) > 0 ? 0xff0000 : 0xff6666;
+          playerMaterial.color.setHex(flashIntensity);
         } else {
-          playerMaterial.color.setHex(0xffffff); // Normal color
+          playerMaterial.color.setHex(0xffffff);
         }
 
-        // Smooth camera follow (delta-time based lerp)
+        // Smooth camera follow
         cameraTarget.x = state.player.position.x;
         cameraTarget.y = state.player.position.y;
-        const lerpFactor = 1 - Math.pow(0.001, deltaTime); // frame-rate independent lerp
+        const lerpFactor = 1 - Math.pow(0.001, deltaTime);
         camera.position.x += (cameraTarget.x - camera.position.x) * lerpFactor;
         camera.position.y += (cameraTarget.y - camera.position.y) * lerpFactor;
 
         // Update combat system
         combatSystem.updateEnemies(deltaTime, state.player.position);
 
-        // Update/create enemy meshes
+        // === ENEMY RENDERING WITH STATE-BASED SPRITES ===
         const enemies = combatSystem.getEnemies();
         for (const enemy of enemies) {
           let enemyMesh = enemyMeshes.get(enemy.id);
@@ -532,49 +543,82 @@ const Game = () => {
             enemyMeshes.set(enemy.id, enemyMesh);
           }
 
-          // Enemy bobbing animation while chasing
-          let enemyBobbingOffset = 0;
-          if (enemy.state === 'chasing') {
-            enemyBobbingOffset = Math.sin(currentTime / 100 + parseFloat(enemy.id.split('_')[1] || "0")) * 0.05;
+          const mat = enemyMesh.material as THREE.MeshBasicMaterial;
+
+          // Choose sprite based on enemy state
+          let spriteKey = enemy.sprite; // default idle
+          if (enemy.state === 'telegraphing') {
+            spriteKey = `${enemy.sprite}_telegraph`;
+          } else if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) {
+            spriteKey = `${enemy.sprite}_attack`;
+          }
+
+          const enemyTex = assetManager.getTexture(spriteKey);
+          if (enemyTex && mat.map !== enemyTex) {
+            mat.map = enemyTex;
+            mat.needsUpdate = true;
           }
 
           // Enemy damage flash
           if (enemy.damageFlashTimer > 0) {
             enemy.damageFlashTimer -= deltaTime;
-            (enemyMesh.material as THREE.MeshBasicMaterial).color.setHex(0xff0000);
+            mat.color.setHex(0xff0000);
           } else {
-            (enemyMesh.material as THREE.MeshBasicMaterial).color.setHex(0xffffff);
+            mat.color.setHex(0xffffff);
           }
 
           let finalEnemyX = enemy.position.x;
-          let finalEnemyY = enemy.position.y + enemyBobbingOffset;
+          let finalEnemyY = enemy.position.y;
 
-          // Enemy attack lunge animation
-          if (enemy.attackAnimationTimer && enemy.attackAnimationTimer > 0) {
-            enemy.attackAnimationTimer -= deltaTime * 1000;
-            const progress = enemy.attackAnimationTimer / 200; // 200ms animation
-            if (progress > 0) {
-              const lungeDistance = Math.sin(progress * Math.PI) * 0.3; // Lunge distance
+          // State-based animations
+          if (enemy.state === 'chasing') {
+            // Bobbing while chasing
+            finalEnemyY += Math.sin(currentTime / 100 + parseFloat(enemy.id.split('_')[1] || "0")) * 0.05;
+          } else if (enemy.state === 'telegraphing') {
+            // Shake/vibrate during telegraph (warning!)
+            const shakeIntensity = 0.06 * (1 - enemy.telegraphTimer / enemy.telegraphDuration);
+            finalEnemyX += (Math.random() - 0.5) * shakeIntensity;
+            finalEnemyY += (Math.random() - 0.5) * shakeIntensity;
+            
+            // Scale up slightly during telegraph
+            const telegraphProgress = 1 - (enemy.telegraphTimer / enemy.telegraphDuration);
+            const scale = 1 + telegraphProgress * 0.2;
+            enemyMesh.scale.set(scale, scale, 1);
 
-              // Calculate direction to player
+            // Pulsing glow
+            if (Math.sin(currentTime / 50) > 0) {
+              mat.color.setHex(0xffaa00);
+            } else {
+              mat.color.setHex(0xffffff);
+            }
+          } else if (enemy.state === 'recovering') {
+            // Attack lunge then recoil
+            if (enemy.attackAnimationTimer > 0) {
+              enemy.attackAnimationTimer -= deltaTime;
               const dx = state.player.position.x - enemy.position.x;
               const dy = state.player.position.y - enemy.position.y;
-              const dist = Math.sqrt(dx*dx + dy*dy);
-
+              const dist = Math.sqrt(dx * dx + dy * dy);
               if (dist > 0) {
+                const lungeProgress = enemy.attackAnimationTimer / 0.3;
+                const lungeDistance = Math.sin(lungeProgress * Math.PI) * 0.4;
                 finalEnemyX += (dx / dist) * lungeDistance;
                 finalEnemyY += (dy / dist) * lungeDistance;
               }
-            } else {
-              enemy.attackAnimationTimer = 0;
             }
+            // Shrink slightly during recovery (vulnerable)
+            const recoverProgress = enemy.recoverTimer / enemy.recoverDuration;
+            enemyMesh.scale.set(0.9 + recoverProgress * 0.1, 0.9 + recoverProgress * 0.1, 1);
+            // Tint slightly blue to show vulnerability
+            if (!enemy.damageFlashTimer || enemy.damageFlashTimer <= 0) {
+              mat.color.setHex(0x8888ff);
+            }
+          } else if (enemy.state === 'idle') {
+            // Gentle floating
+            finalEnemyY += Math.sin(currentTime / 500 + parseFloat(enemy.id.split('_')[1] || "0") * 3) * 0.03;
+            enemyMesh.scale.set(1, 1, 1);
           }
 
-          enemyMesh.position.set(
-            finalEnemyX,
-            finalEnemyY,
-            0.2
-          );
+          enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
         }
 
         // Handle dying enemies
@@ -585,29 +629,26 @@ const Game = () => {
           if (enemy.state === 'dead') {
             const mesh = enemyMeshes.get(enemy.id);
             if (mesh) {
-              // Death animation: fade out and shrink
               mesh.scale.x *= 0.9;
               mesh.scale.y *= 0.9;
-              const mat = mesh.material as THREE.MeshBasicMaterial;
-              mat.opacity -= 0.05;
+              const deadMat = mesh.material as THREE.MeshBasicMaterial;
+              deadMat.opacity -= 0.05;
 
-              if (mat.opacity <= 0) {
+              if (deadMat.opacity <= 0) {
                 scene.remove(mesh);
                 mesh.geometry.dispose();
-                mat.dispose();
+                deadMat.dispose();
                 enemyMeshes.delete(enemy.id);
                 fullyDeadEnemyIds.add(enemy.id);
               }
             } else {
-               // If mesh is already gone but enemy is still in state, mark for removal
-               fullyDeadEnemyIds.add(enemy.id);
+              fullyDeadEnemyIds.add(enemy.id);
             }
           }
         }
 
-        // Remove completely dead enemies from logical state only after animation completes
         if (fullyDeadEnemyIds.size > 0) {
-           combatSystem.removeDeadEnemiesByIds(Array.from(fullyDeadEnemyIds));
+          combatSystem.removeDeadEnemiesByIds(Array.from(fullyDeadEnemyIds));
         }
 
         // Check if player died
@@ -622,15 +663,12 @@ const Game = () => {
         }
       }
 
-      // Update particle system
       particleSystem.update(deltaTime);
-
       renderer.render(scene, camera);
     };
 
     animate();
 
-    // Initial narrative hook instead of generic toast
     setTimeout(() => {
       toast("The Village Elder looks deeply troubled...", {
         description: "Perhaps you should speak with him. (Press E to interact)",
