@@ -198,6 +198,7 @@ const Game = () => {
 
     const enemyMeshes = new Map<string, THREE.Mesh>();
     const enemyShadows = new Map<string, THREE.Mesh>();
+    const enemyOutlines = new Map<string, THREE.Mesh>();
     const enemyHPBars = new Map<string, { bg: THREE.Mesh; fill: THREE.Mesh }>();
     const cameraTarget = { x: state.player.position.x, y: state.player.position.y };
 
@@ -432,20 +433,33 @@ const Game = () => {
     };
 
     // === SHADOW SYSTEM ===
-    const shadowGeometry = new THREE.CircleGeometry(0.4, 16);
+    const shadowGeometry = new THREE.CircleGeometry(0.25, 12);
     const shadowMaterial = new THREE.MeshBasicMaterial({
       color: 0x000000,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.18,
       depthWrite: false,
     });
 
     // Player shadow
     const playerShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
-    playerShadow.position.z = -0.01;
-    playerShadow.scale.set(1.1, 0.5, 1);
-    playerShadow.renderOrder = 0;
+    playerShadow.position.z = 0.05;
+    playerShadow.scale.set(1.0, 0.4, 1);
+    playerShadow.renderOrder = 1;
     scene.add(playerShadow);
+
+    // === OUTLINE SYSTEM — thin colored silhouette behind each sprite ===
+    const createOutlineMesh = (geometry: THREE.BufferGeometry, color: number, outlineScale: number = 1.08) => {
+      const outlineMat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.5,
+        depthWrite: false,
+      });
+      const outline = new THREE.Mesh(geometry, outlineMat);
+      outline.scale.setScalar(outlineScale);
+      return outline;
+    };
 
     const playerGeometry = SharedGeometry.player;
     const playerTexture = assetManager.getTexture('player_down_idle_0');
@@ -459,6 +473,11 @@ const Game = () => {
     playerMesh.scale.setScalar(PLAYER_BASE_SCALE);
     playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
     scene.add(playerMesh);
+
+    // Player outline
+    const playerOutline = createOutlineMesh(playerGeometry, 0xaaddff, 1.06);
+    playerOutline.position.z = 0.19;
+    scene.add(playerOutline);
 
     const npcData: NPC[] = [
       { id: 'elder', name: 'Village Elder', position: { x: -18, y: -10 }, dialogueId: 'elder', sprite: 'npc_elder', questGiver: true },
@@ -493,13 +512,14 @@ const Game = () => {
     state.npcs = npcData;
     const npcMeshes: THREE.Mesh[] = [];
     const npcShadows: THREE.Mesh[] = [];
+    const npcOutlines: THREE.Mesh[] = [];
 
     npcData.forEach(npc => {
       // NPC shadow
       const npcShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
-      npcShadow.position.set(npc.position.x, npc.position.y - 0.35, -0.01);
-      npcShadow.scale.set(0.9, 0.4, 1);
-      npcShadow.renderOrder = 0;
+      npcShadow.position.set(npc.position.x, npc.position.y - 0.3, 0.05);
+      npcShadow.scale.set(0.8, 0.35, 1);
+      npcShadow.renderOrder = 1;
       scene.add(npcShadow);
       npcShadows.push(npcShadow);
 
@@ -518,6 +538,14 @@ const Game = () => {
       npcMesh.userData = { npcId: npc.id };
       scene.add(npcMesh);
       npcMeshes.push(npcMesh);
+
+      // NPC outline
+      const npcOutline = createOutlineMesh(npcGeometry, 0xffe066, 1.06);
+      npcOutline.position.set(npc.position.x, npc.position.y, 0.19);
+      npcOutline.scale.set(npcScale * 1.06, npcScale * 1.06, 1);
+      npcOutline.renderOrder = npcMesh.renderOrder - 1;
+      scene.add(npcOutline);
+      npcOutlines.push(npcOutline);
     });
 
     const keys: { [key: string]: boolean } = {};
@@ -1047,7 +1075,14 @@ const Game = () => {
           // Update NPC shadow
           const npcShadow = npcShadows[ni];
           if (npcShadow) {
-            npcShadow.position.set(npc.position.x, npc.position.y - 0.35, -0.01);
+            npcShadow.position.set(npc.position.x, npc.position.y - 0.3, 0.05);
+          }
+          // Update NPC outline
+          const npcOutline = npcOutlines[ni];
+          if (npcOutline) {
+            npcOutline.position.set(npc.position.x, npc.position.y + bob, 0.19);
+            npcOutline.rotation.z = lean;
+            npcOutline.renderOrder = npcMesh.renderOrder - 1;
           }
         }
       }
@@ -1342,9 +1377,19 @@ const Game = () => {
         // Update player shadow
         playerShadow.position.set(
           state.player.position.x + attackOffsetX,
-          state.player.position.y + attackOffsetY - 0.4,
-          -0.01
+          state.player.position.y + attackOffsetY - 0.35,
+          0.05
         );
+
+        // Update player outline
+        playerOutline.position.set(
+          state.player.position.x + attackOffsetX,
+          state.player.position.y + attackOffsetY,
+          0.19
+        );
+        playerOutline.scale.set(visualScaleX * 1.06, visualScaleY * 1.06, 1);
+        playerOutline.rotation.z = visualRotation;
+        playerOutline.renderOrder = playerMesh.renderOrder - 1;
 
         // Dynamic Y-sorting for player
         playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
@@ -1507,10 +1552,16 @@ const Game = () => {
             const eShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
             const enemyType2 = enemy.sprite.replace('enemy_', '');
             const eVisual = ENEMY_VISUALS[enemyType2] ?? ENEMY_VISUALS.wolf;
-            eShadow.scale.set(eVisual.baseScale * 0.8, eVisual.baseScale * 0.35, 1);
-            eShadow.renderOrder = 0;
+            eShadow.scale.set(eVisual.baseScale * 0.6, eVisual.baseScale * 0.25, 1);
+            eShadow.renderOrder = 1;
             scene.add(eShadow);
             enemyShadows.set(enemy.id, eShadow);
+
+            // Enemy outline
+            const eOutline = createOutlineMesh(enemyGeometry, 0xff6666, 1.06);
+            eOutline.position.z = 0.19;
+            scene.add(eOutline);
+            enemyOutlines.set(enemy.id, eOutline);
           }
 
           const mat = enemyMesh.material as THREE.MeshBasicMaterial;
@@ -1677,7 +1728,16 @@ const Game = () => {
           // Update enemy shadow
           const eShadow = enemyShadows.get(enemy.id);
           if (eShadow) {
-            eShadow.position.set(finalEnemyX, finalEnemyY - visual.footOffset * 0.8, -0.01);
+            eShadow.position.set(finalEnemyX, finalEnemyY - visual.footOffset * 0.7, 0.05);
+          }
+
+          // Update enemy outline
+          const eOutline = enemyOutlines.get(enemy.id);
+          if (eOutline) {
+            eOutline.position.set(finalEnemyX, finalEnemyY, 0.19);
+            eOutline.scale.set(scaleX * 1.06, scaleY * 1.06, 1);
+            eOutline.rotation.z = rotation;
+            eOutline.renderOrder = enemyMesh.renderOrder - 1;
           }
 
           // === HP BAR ===
@@ -1735,6 +1795,13 @@ const Game = () => {
                   enemyShadows.delete(enemy.id);
                 }
 
+                const eOutlineDeath = enemyOutlines.get(enemy.id);
+                if (eOutlineDeath) {
+                  scene.remove(eOutlineDeath);
+                  (eOutlineDeath.material as THREE.Material).dispose();
+                  enemyOutlines.delete(enemy.id);
+                }
+
                 fullyDeadEnemyIds.add(enemy.id);
               }
             } else {
@@ -1750,6 +1817,10 @@ const Game = () => {
             const eShadow = enemyShadows.get(enemy.id);
             if (eShadow) {
               eShadow.visible = false;
+            }
+            const eOutlineDead = enemyOutlines.get(enemy.id);
+            if (eOutlineDead) {
+              eOutlineDead.visible = false;
             }
           }
         }
