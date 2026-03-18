@@ -1940,14 +1940,16 @@ const Game = () => {
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const musicStarted = useRef(false);
   const currentTrackRef = useRef<string>('');
+  const switchMusicTrackRef = useRef<(mapId: string) => void>(() => {});
 
-  const MAP_MUSIC: Record<string, string> = {
+  const MAP_MUSIC_MAP: Record<string, string> = {
     forest: '/audio/wood_theme.mp3',
   };
-  const DEFAULT_MUSIC = '/audio/ortho_loop2.mp3';
+  const DEFAULT_MUSIC_TRACK = '/audio/ortho_loop2.mp3';
 
-  const switchMusicTrack = useCallback((mapId: string) => {
-    const track = MAP_MUSIC[mapId] || DEFAULT_MUSIC;
+  // Keep the ref always up to date
+  switchMusicTrackRef.current = (mapId: string) => {
+    const track = MAP_MUSIC_MAP[mapId] || DEFAULT_MUSIC_TRACK;
     if (currentTrackRef.current === track) return;
     currentTrackRef.current = track;
     const audio = musicRef.current;
@@ -1961,6 +1963,11 @@ const Game = () => {
     if (musicStarted.current) {
       audio.play().catch(() => {});
     }
+  };
+
+  // Stable reference for use in effects
+  const switchMusicTrack = useCallback((mapId: string) => {
+    switchMusicTrackRef.current(mapId);
   }, []);
 
   useEffect(() => {
