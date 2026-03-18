@@ -377,22 +377,20 @@ export class World {
       if (object instanceof THREE.Group) {
         for (const child of object.children) {
           if (child instanceof THREE.Mesh) {
-            child.geometry.dispose();
             (child.material as THREE.Material).dispose();
           }
         }
       } else if (object instanceof THREE.Mesh) {
-        object.geometry.dispose();
         (object.material as THREE.Material).dispose();
       }
     }
     this.activeMeshes.clear();
     
     for (const mesh of this.meshPool) {
-      mesh.geometry.dispose();
       (mesh.material as THREE.Material).dispose();
     }
     this.meshPool = [];
     this.overlayPool = [];
+    this.sharedTileGeometry.dispose();
   }
 }
