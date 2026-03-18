@@ -1140,6 +1140,8 @@ const Game = () => {
       gameState.currentDialogue = null;
     }
     setCurrentDialogue(null);
+    setNpcScreenPos(null);
+    activeNpcWorldPos.current = null;
   };
 
   return (
