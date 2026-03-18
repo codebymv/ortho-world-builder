@@ -197,6 +197,7 @@ const Game = () => {
     const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
 
     const enemyMeshes = new Map<string, THREE.Mesh>();
+    const enemyShadows = new Map<string, THREE.Mesh>();
     const enemyHPBars = new Map<string, { bg: THREE.Mesh; fill: THREE.Mesh }>();
     const cameraTarget = { x: state.player.position.x, y: state.player.position.y };
 
@@ -429,6 +430,22 @@ const Game = () => {
       portalCooldown = 0.5;
     };
 
+    // === SHADOW SYSTEM ===
+    const shadowGeometry = new THREE.CircleGeometry(0.4, 16);
+    const shadowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.3,
+      depthWrite: false,
+    });
+
+    // Player shadow
+    const playerShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
+    playerShadow.position.z = -0.01;
+    playerShadow.scale.set(1.1, 0.5, 1);
+    playerShadow.renderOrder = 0;
+    scene.add(playerShadow);
+
     const playerGeometry = SharedGeometry.player;
     const playerTexture = assetManager.getTexture('player_down_idle_0');
     const playerMaterial = new THREE.MeshBasicMaterial({
@@ -474,8 +491,17 @@ const Game = () => {
 
     state.npcs = npcData;
     const npcMeshes: THREE.Mesh[] = [];
+    const npcShadows: THREE.Mesh[] = [];
 
     npcData.forEach(npc => {
+      // NPC shadow
+      const npcShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
+      npcShadow.position.set(npc.position.x, npc.position.y - 0.35, -0.01);
+      npcShadow.scale.set(0.9, 0.4, 1);
+      npcShadow.renderOrder = 0;
+      scene.add(npcShadow);
+      npcShadows.push(npcShadow);
+
       const npcGeometry = SharedGeometry.player;
       const npcTexture = assetManager.getTexture(npc.sprite);
       const npcMaterial = new THREE.MeshBasicMaterial({
@@ -1016,6 +1042,12 @@ const Game = () => {
           );
           npcMesh.rotation.z = lean;
           npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET);
+
+          // Update NPC shadow
+          const npcShadow = npcShadows[ni];
+          if (npcShadow) {
+            npcShadow.position.set(npc.position.x, npc.position.y - 0.35, -0.01);
+          }
         }
       }
 
@@ -1306,6 +1338,13 @@ const Game = () => {
           0.2
         );
 
+        // Update player shadow
+        playerShadow.position.set(
+          state.player.position.x + attackOffsetX,
+          state.player.position.y + attackOffsetY - 0.4,
+          -0.01
+        );
+
         // Dynamic Y-sorting for player
         playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
 
@@ -1462,6 +1501,15 @@ const Game = () => {
             enemyMesh.renderOrder = getYRenderOrder(enemy.position.y);
             scene.add(enemyMesh);
             enemyMeshes.set(enemy.id, enemyMesh);
+
+            // Enemy shadow
+            const eShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
+            const enemyType2 = enemy.sprite.replace('enemy_', '');
+            const eVisual = ENEMY_VISUALS[enemyType2] ?? ENEMY_VISUALS.wolf;
+            eShadow.scale.set(eVisual.baseScale * 0.8, eVisual.baseScale * 0.35, 1);
+            eShadow.renderOrder = 0;
+            scene.add(eShadow);
+            enemyShadows.set(enemy.id, eShadow);
           }
 
           const mat = enemyMesh.material as THREE.MeshBasicMaterial;
@@ -1625,6 +1673,12 @@ const Game = () => {
           enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
           enemyMesh.renderOrder = getYRenderOrder(enemy.position.y, visual.footOffset);
 
+          // Update enemy shadow
+          const eShadow = enemyShadows.get(enemy.id);
+          if (eShadow) {
+            eShadow.position.set(finalEnemyX, finalEnemyY - visual.footOffset * 0.8, -0.01);
+          }
+
           // === HP BAR ===
           const hpBar = getOrCreateHPBar(enemy);
           const hpRatio = enemy.health / enemy.maxHealth;
@@ -1673,6 +1727,13 @@ const Game = () => {
                   enemyHPBars.delete(enemy.id);
                 }
 
+                const eShadow = enemyShadows.get(enemy.id);
+                if (eShadow) {
+                  scene.remove(eShadow);
+                  (eShadow.material as THREE.Material).dispose();
+                  enemyShadows.delete(enemy.id);
+                }
+
                 fullyDeadEnemyIds.add(enemy.id);
               }
             } else {
@@ -1683,6 +1744,11 @@ const Game = () => {
             if (hpBar) {
               hpBar.bg.visible = false;
               hpBar.fill.visible = false;
+            }
+
+            const eShadow = enemyShadows.get(enemy.id);
+            if (eShadow) {
+              eShadow.visible = false;
             }
           }
         }

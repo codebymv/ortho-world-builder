@@ -153,6 +153,27 @@ const OVERLAY_FOOT_OFFSET: Partial<Record<TileType, number>> = {
   lantern: 0.12,
 };
 
+// Seeded hash for deterministic detail placement
+function tileHash(x: number, y: number, seed: number = 0): number {
+  let h = (x * 374761393 + y * 668265263 + seed * 1274126177) | 0;
+  h = (h ^ (h >> 13)) * 1274126177;
+  h = h ^ (h >> 16);
+  return (h & 0x7fffffff) / 0x7fffffff; // 0..1
+}
+
+// Detail decal types per terrain
+const DETAIL_CONFIG: Partial<Record<TileType, { chance: number; types: string[]; scale: number; opacity: number }>> = {
+  grass: { chance: 0.18, types: ['detail_grass_tuft', 'detail_leaf', 'detail_pebble'], scale: 0.25, opacity: 0.5 },
+  dirt: { chance: 0.12, types: ['detail_pebble', 'detail_crack', 'detail_twig'], scale: 0.22, opacity: 0.45 },
+  dark_grass: { chance: 0.22, types: ['detail_leaf', 'detail_grass_tuft', 'detail_mushroom_small'], scale: 0.28, opacity: 0.55 },
+  cobblestone: { chance: 0.08, types: ['detail_crack', 'detail_pebble'], scale: 0.2, opacity: 0.35 },
+  sand: { chance: 0.06, types: ['detail_pebble'], scale: 0.18, opacity: 0.3 },
+  farmland: { chance: 0.1, types: ['detail_grass_tuft', 'detail_pebble'], scale: 0.2, opacity: 0.4 },
+  stone: { chance: 0.1, types: ['detail_crack', 'detail_pebble'], scale: 0.2, opacity: 0.4 },
+  wooden_path: { chance: 0.08, types: ['detail_crack', 'detail_leaf'], scale: 0.2, opacity: 0.35 },
+  mossy_stone: { chance: 0.15, types: ['detail_leaf', 'detail_mushroom_small'], scale: 0.25, opacity: 0.5 },
+};
+
 export class World {
   private map: WorldMap;
   private tileSize: number = 1;
@@ -168,11 +189,75 @@ export class World {
   private pendingTiles: Array<{ x: number; y: number; key: string }> = [];
   private isInitialLoad: boolean = true;
   private materialCache: Map<string, THREE.MeshBasicMaterial> = new Map();
+  private detailGeometry: THREE.PlaneGeometry;
+  private detailTextures: Map<string, THREE.Texture> = new Map();
 
   constructor(scene: THREE.Scene, assetManager: AssetManager, map: WorldMap) {
     this.scene = scene;
     this.assetManager = assetManager;
     this.map = map;
+    this.detailGeometry = new THREE.PlaneGeometry(0.3, 0.3);
+    this.generateDetailTextures();
+  }
+
+  private generateDetailTextures() {
+    const makeCanvas = (draw: (ctx: CanvasRenderingContext2D) => void): THREE.Texture => {
+      const c = document.createElement('canvas');
+      c.width = 16; c.height = 16;
+      const ctx = c.getContext('2d')!;
+      ctx.clearRect(0, 0, 16, 16);
+      draw(ctx);
+      const tex = new THREE.CanvasTexture(c);
+      tex.magFilter = THREE.NearestFilter;
+      tex.minFilter = THREE.NearestFilter;
+      return tex;
+    };
+
+    this.detailTextures.set('detail_grass_tuft', makeCanvas(ctx => {
+      ctx.fillStyle = '#3a6b28';
+      ctx.fillRect(6, 8, 2, 6); ctx.fillRect(4, 6, 2, 5); ctx.fillRect(9, 7, 2, 5);
+      ctx.fillStyle = '#4a8b38';
+      ctx.fillRect(7, 6, 1, 4); ctx.fillRect(5, 5, 1, 3); ctx.fillRect(10, 6, 1, 3);
+    }));
+
+    this.detailTextures.set('detail_leaf', makeCanvas(ctx => {
+      ctx.fillStyle = '#8B6914';
+      ctx.fillRect(5, 6, 6, 4);
+      ctx.fillStyle = '#A07828';
+      ctx.fillRect(6, 7, 4, 2);
+      ctx.fillRect(7, 5, 2, 1);
+      ctx.fillRect(7, 10, 2, 1);
+    }));
+
+    this.detailTextures.set('detail_pebble', makeCanvas(ctx => {
+      ctx.fillStyle = '#888';
+      ctx.beginPath(); ctx.arc(6, 9, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#999';
+      ctx.beginPath(); ctx.arc(10, 7, 2, 0, Math.PI * 2); ctx.fill();
+    }));
+
+    this.detailTextures.set('detail_crack', makeCanvas(ctx => {
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(4, 4); ctx.lineTo(8, 8); ctx.lineTo(6, 12); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(8, 8); ctx.lineTo(12, 10); ctx.stroke();
+    }));
+
+    this.detailTextures.set('detail_twig', makeCanvas(ctx => {
+      ctx.strokeStyle = '#6B4226';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(3, 10); ctx.lineTo(12, 6); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(8, 7); ctx.lineTo(10, 4); ctx.stroke();
+    }));
+
+    this.detailTextures.set('detail_mushroom_small', makeCanvas(ctx => {
+      ctx.fillStyle = '#C8A882';
+      ctx.fillRect(7, 9, 2, 4);
+      ctx.fillStyle = '#CC4444';
+      ctx.fillRect(5, 7, 6, 3);
+      ctx.fillStyle = '#EE6666';
+      ctx.fillRect(6, 7, 4, 2);
+    }));
   }
 
   // Shared geometry for all tile meshes
@@ -200,12 +285,69 @@ export class World {
     return mesh;
   }
 
+  private createDetailDecal(tileX: number, tileY: number, tileType: TileType): THREE.Mesh | null {
+    const config = DETAIL_CONFIG[tileType];
+    if (!config) return null;
+
+    const h = tileHash(tileX, tileY);
+    if (h > config.chance) return null;
+
+    const typeIndex = Math.floor(tileHash(tileX, tileY, 7) * config.types.length);
+    const detailType = config.types[typeIndex];
+    const tex = this.detailTextures.get(detailType);
+    if (!tex) return null;
+
+    const cacheKey = `detail_${detailType}_${Math.floor(config.opacity * 10)}`;
+    let mat = this.materialCache.get(cacheKey);
+    if (!mat) {
+      mat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        opacity: config.opacity,
+        depthWrite: false,
+      });
+      this.materialCache.set(cacheKey, mat);
+    }
+
+    const mesh = new THREE.Mesh(this.detailGeometry, mat);
+    mesh.frustumCulled = false;
+    mesh.matrixAutoUpdate = false;
+
+    const offsetX = (tileHash(tileX, tileY, 3) - 0.5) * 0.5;
+    const offsetY = (tileHash(tileX, tileY, 5) - 0.5) * 0.5;
+    const rot = tileHash(tileX, tileY, 11) * Math.PI * 2;
+    const s = config.scale * (0.8 + tileHash(tileX, tileY, 13) * 0.4);
+
+    mesh.position.set(offsetX, offsetY, -0.3);
+    mesh.rotation.z = rot;
+    mesh.scale.set(s, s, 1);
+
+    return mesh;
+  }
+
   private createTileObject(tile: Tile, tileX?: number, tileY?: number): THREE.Object3D | null {
     const isOverlay = OVERLAY_TYPES.has(tile.type);
 
     if (!isOverlay) {
       const texture = this.assetManager.getTexture(tile.type);
-      return texture ? this.createPlaneMesh(texture, -0.5, `base_${tile.type}`) : null;
+      if (!texture) return null;
+      
+      // Check for detail decal
+      if (tileX !== undefined && tileY !== undefined && tile.walkable) {
+        const decal = this.createDetailDecal(tileX, tileY, tile.type);
+        if (decal) {
+          const group = this.overlayPool.pop() ?? new THREE.Group();
+          group.clear();
+          group.matrixAutoUpdate = false;
+          const baseMesh = this.createPlaneMesh(texture, -0.5, `base_${tile.type}`);
+          baseMesh.updateMatrix();
+          decal.updateMatrix();
+          group.add(baseMesh, decal);
+          return group;
+        }
+      }
+      
+      return this.createPlaneMesh(texture, -0.5, `base_${tile.type}`);
     }
 
     const overlayTexture = this.assetManager.getTexture(tile.type);
@@ -517,7 +659,12 @@ export class World {
       material.dispose();
     }
     this.materialCache.clear();
+    for (const [, tex] of this.detailTextures) {
+      tex.dispose();
+    }
+    this.detailTextures.clear();
     this.overlayPool = [];
     this.sharedTileGeometry.dispose();
+    this.detailGeometry.dispose();
   }
 }
