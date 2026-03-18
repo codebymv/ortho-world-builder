@@ -541,9 +541,9 @@ const Game = () => {
       npcMeshes.push(npcMesh);
 
       // NPC outline
-      const npcOutline = createOutlineMesh(npcGeometry, 0xffe066, 1.06);
+      const npcOutline = createOutlineMesh(npcGeometry, npcTexture);
       npcOutline.position.set(npc.position.x, npc.position.y, 0.19);
-      npcOutline.scale.set(npcScale * 1.06, npcScale * 1.06, 1);
+      npcOutline.scale.set(npcScale * OUTLINE_PAD, npcScale * OUTLINE_PAD, 1);
       npcOutline.renderOrder = npcMesh.renderOrder - 1;
       scene.add(npcOutline);
       npcOutlines.push(npcOutline);
