@@ -248,8 +248,14 @@ export class World {
         if (!object) continue;
 
         object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, 0);
+        object.renderOrder = y * 10;
         object.updateMatrix();
-        if (object instanceof THREE.Group) object.updateMatrixWorld(true);
+        if (object instanceof THREE.Group) {
+          for (const child of object.children) {
+            child.renderOrder = y * 10;
+          }
+          object.updateMatrixWorld(true);
+        }
 
         this.scene.add(object);
         this.activeMeshes.set(key, object);
