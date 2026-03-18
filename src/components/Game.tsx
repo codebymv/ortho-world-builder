@@ -346,6 +346,7 @@ const Game = () => {
       state.currentMap = targetMap;
       world.loadMap(newMap);
       biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
+      switchMusicTrack(targetMap);
       triggerSave(); // Save on map transition
       
       const worldX = targetX - newMap.width / 2;
