@@ -274,6 +274,9 @@ export class World {
           0
         );
         object.updateMatrix();
+        if (object instanceof THREE.Group) {
+          object.updateMatrixWorld(true);
+        }
 
         this.scene.add(object);
         this.activeMeshes.set(key, object);
