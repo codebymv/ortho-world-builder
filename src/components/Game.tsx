@@ -160,11 +160,43 @@ const Game = () => {
     const floatingText = new FloatingTextSystem(scene);
     const screenShake = new ScreenShake(camera);
 
-    const world = new World(scene, assetManager, allMaps.village);
-    const spawnPoint = world.getSpawnPoint();
-    state.player.position = { x: spawnPoint.x, y: spawnPoint.y };
-    world.updateChunks(spawnPoint.x, spawnPoint.y);
-    biomeAmbience.setBiome('grassland');
+    // Load saved data or start fresh
+    const savedData = SaveManager.load();
+    const startMap = savedData?.currentMap || 'village';
+    const world = new World(scene, assetManager, allMaps[startMap] || allMaps.village);
+    
+    if (savedData) {
+      state.currentMap = savedData.currentMap;
+      state.player.position = { ...savedData.player.position };
+      state.player.direction = savedData.player.direction as any;
+      state.player.health = savedData.player.health;
+      state.player.maxHealth = savedData.player.maxHealth;
+      state.player.gold = savedData.player.gold;
+      state.player.attackDamage = savedData.player.attackDamage;
+      state.player.stamina = savedData.player.stamina;
+      state.player.maxStamina = savedData.player.maxStamina;
+      state.inventory = savedData.inventory;
+      state.quests = savedData.quests;
+      state.gameFlags = savedData.gameFlags;
+      // Restore map markers
+      mapMarkersRef.current = savedData.mapMarkers || [];
+      setMapMarkers(mapMarkersRef.current);
+      // Restore visited tiles
+      if (savedData.visitedTiles) {
+        savedData.visitedTiles.forEach(t => visitedTilesRef.current.add(t));
+      }
+      console.log('[SaveManager] Loaded save from', new Date(savedData.timestamp).toLocaleString());
+    } else {
+      const spawnPoint = world.getSpawnPoint();
+      state.player.position = { x: spawnPoint.x, y: spawnPoint.y };
+    }
+    
+    world.updateChunks(state.player.position.x, state.player.position.y);
+    const startBiome = mapBiomes[startMap] || 'grassland';
+    biomeAmbience.setBiome(startBiome);
+    
+    let lastAutoSaveTime = performance.now();
+    const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
 
     const enemyMeshes = new Map<string, THREE.Mesh>();
     const enemyHPBars = new Map<string, { bg: THREE.Mesh; fill: THREE.Mesh }>();
