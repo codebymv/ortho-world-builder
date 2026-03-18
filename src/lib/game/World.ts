@@ -659,7 +659,12 @@ export class World {
       material.dispose();
     }
     this.materialCache.clear();
+    for (const [, tex] of this.detailTextures) {
+      tex.dispose();
+    }
+    this.detailTextures.clear();
     this.overlayPool = [];
     this.sharedTileGeometry.dispose();
+    this.detailGeometry.dispose();
   }
 }
