@@ -73,11 +73,16 @@ export class CombatSystem {
     };
 
     this.enemies.push(enemy);
+    this._enemiesDirty = true;
     return enemy;
   }
 
   getEnemies(): Enemy[] {
-    return this.enemies.filter(e => e.state !== 'dead');
+    if (this._enemiesDirty) {
+      this._cachedLiveEnemies = this.enemies.filter(e => e.state !== 'dead');
+      this._enemiesDirty = false;
+    }
+    return this._cachedLiveEnemies;
   }
 
   getAllEnemies(): Enemy[] {
