@@ -1322,7 +1322,7 @@ const Game = () => {
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
-      <audio src="/audio/ortho_loop.mp3" autoPlay loop style={{ display: 'none' }} ref={(el) => { if (el) el.volume = 0.15; }} />
+      <audio src="/audio/ortho_loop2.mp3" autoPlay loop style={{ display: 'none' }} ref={(el) => { if (el) el.volume = 0.15; }} />
       <div ref={mountRef} className="w-full h-full" />
       
       {gameState && (
