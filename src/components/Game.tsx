@@ -714,6 +714,13 @@ const Game = () => {
             mesh.position.set(npc.position.x, npc.position.y, 0.2);
           }
         }
+
+        // Idle bob for all NPCs
+        const npcMesh = npcMeshes[ni];
+        if (npcMesh) {
+          const bob = Math.sin(currentTime / 800 + ni * 2.1) * 0.03;
+          npcMesh.position.y = npc.position.y + bob;
+        }
       }
 
       // Process buffered inputs
