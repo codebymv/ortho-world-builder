@@ -192,8 +192,6 @@ const Game = () => {
     }
     
     world.updateChunks(state.player.position.x, state.player.position.y);
-    const startBiome = mapBiomes[startMap] || 'grassland';
-    biomeAmbience.setBiome(startBiome);
     
     let lastAutoSaveTime = performance.now();
     const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
