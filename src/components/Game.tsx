@@ -1302,14 +1302,42 @@ const Game = () => {
 
           const mat = enemyMesh.material as THREE.MeshBasicMaterial;
 
+          const enemyType = enemy.sprite.replace('enemy_', '');
+          const visual = ENEMY_VISUALS[enemyType] ?? ENEMY_VISUALS.wolf;
+          const seed = parseFloat(enemy.id.split('_')[1] || "0") * 0.001;
+
           let spriteKey = enemy.sprite;
-          if (enemy.state === 'telegraphing') {
+          if (enemyType === 'bandit') {
+            const banditState = enemy.state === 'telegraphing'
+              ? 'charge'
+              : enemy.state === 'recovering' && enemy.attackAnimationTimer > 0
+                ? 'attack'
+                : enemy.moveBlend > 0.25
+                  ? 'walk'
+                  : 'idle';
+            const banditFrame = banditState === 'walk'
+              ? Math.floor(enemy.moveCycle * 2.4) % 2
+              : banditState === 'charge'
+                ? Math.min(2, Math.floor((1 - enemy.telegraphTimer / enemy.telegraphDuration) * 3))
+                : banditState === 'attack'
+                  ? 1
+                  : 0;
+            spriteKey = `enemy_bandit_${enemy.facing as CardinalDirection}_${banditState}_${banditFrame}`;
+          } else if (enemy.state === 'telegraphing') {
             spriteKey = `${enemy.sprite}_telegraph`;
           } else if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) {
             spriteKey = `${enemy.sprite}_attack`;
           }
 
-          const enemyTex = assetManager.getTexture(spriteKey);
+          let enemyTex = assetManager.getTexture(spriteKey);
+          if (!enemyTex) {
+            const fallbackKey = enemy.state === 'telegraphing'
+              ? `${enemy.sprite}_telegraph`
+              : enemy.state === 'recovering' && enemy.attackAnimationTimer > 0
+                ? `${enemy.sprite}_attack`
+                : enemy.sprite;
+            enemyTex = assetManager.getTexture(fallbackKey);
+          }
           if (enemyTex && mat.map !== enemyTex) {
             mat.map = enemyTex;
           }
@@ -1323,25 +1351,57 @@ const Game = () => {
 
           let finalEnemyX = enemy.position.x;
           let finalEnemyY = enemy.position.y;
+          let scaleX = visual.baseScale;
+          let scaleY = visual.baseScale;
+          let rotation = 0;
+          const moveWave = Math.sin(enemy.moveCycle);
+          const stride = Math.abs(moveWave) * enemy.moveBlend;
+          const lateralBias = Math.abs(enemy.velocity.x) > 0.001 ? Math.sign(enemy.velocity.x) : 0;
 
-          if (enemy.state === 'chasing') {
-            const walkCycle = Math.sin(currentTime / 120 + parseFloat(enemy.id.split('_')[1] || "0") * 2);
-            const strideBob = Math.abs(walkCycle) * 0.04;
-            finalEnemyY += strideBob;
-            const dx = state.player.position.x - enemy.position.x;
-            const lean = dx > 0 ? 0.08 : dx < 0 ? -0.08 : 0;
-            enemyMesh.rotation.z = lean * walkCycle * 0.5;
-            const squash = 1 + Math.abs(walkCycle) * 0.06;
-            const stretch = 1 - Math.abs(walkCycle) * 0.04;
-            enemyMesh.scale.set(stretch, squash, 1);
+          if (enemy.state === 'chasing' || enemy.moveBlend > 0.2) {
+            finalEnemyY += stride * visual.bobAmp;
+            finalEnemyX += moveWave * visual.strideAmp * (enemyType === 'spider' ? 1 : lateralBias * 0.5);
+            scaleX *= 1 - stride * visual.squashAmp;
+            scaleY *= 1 + stride * visual.squashAmp * 1.35;
+            rotation = moveWave * visual.leanAmp * (lateralBias !== 0 ? lateralBias : 1);
+
+            switch (enemyType) {
+              case 'shadow':
+                finalEnemyY += Math.sin(currentTime / 180 + seed) * 0.05;
+                finalEnemyX += Math.cos(currentTime / 220 + seed) * 0.025;
+                scaleX *= 1 + stride * 0.02;
+                scaleY *= 1 - stride * 0.02;
+                rotation *= 0.4;
+                break;
+              case 'slime':
+                finalEnemyY += stride * 0.02;
+                scaleX *= 1 + stride * 0.08;
+                scaleY *= 1 - stride * 0.08;
+                rotation = moveWave * 0.015;
+                break;
+              case 'spider':
+                finalEnemyY += Math.sin(enemy.moveCycle * 2) * 0.012;
+                rotation = moveWave * 0.03;
+                break;
+              case 'golem':
+                finalEnemyY += stride * 0.03;
+                scaleX *= 1 + stride * 0.03;
+                scaleY *= 1 - stride * 0.04;
+                rotation *= 0.35;
+                break;
+              case 'plant':
+                finalEnemyX += Math.sin(currentTime / 260 + seed) * 0.02;
+                rotation = moveWave * 0.025;
+                break;
+            }
           } else if (enemy.state === 'telegraphing') {
-            const shakeIntensity = 0.06 * (1 - enemy.telegraphTimer / enemy.telegraphDuration);
-            finalEnemyX += (Math.random() - 0.5) * shakeIntensity;
-            finalEnemyY += (Math.random() - 0.5) * shakeIntensity;
-            
             const telegraphProgress = 1 - (enemy.telegraphTimer / enemy.telegraphDuration);
-            const scale = 1 + telegraphProgress * 0.2;
-            enemyMesh.scale.set(scale, scale, 1);
+            const shakeIntensity = 0.06 * telegraphProgress;
+            finalEnemyX += Math.sin(currentTime / 35 + seed) * shakeIntensity;
+            finalEnemyY += Math.cos(currentTime / 42 + seed) * shakeIntensity;
+            scaleX *= 1 + telegraphProgress * 0.18;
+            scaleY *= 1 + telegraphProgress * 0.2;
+            rotation = Math.sin(currentTime / 55 + seed) * 0.03;
 
             if (Math.sin(currentTime / 50) > 0) {
               mat.color.setHex(0xffaa00);
@@ -1362,25 +1422,42 @@ const Game = () => {
               }
             }
             const recoverProgress = enemy.recoverTimer / enemy.recoverDuration;
-            enemyMesh.scale.set(0.9 + recoverProgress * 0.1, 0.9 + recoverProgress * 0.1, 1);
+            scaleX *= 0.92 + recoverProgress * 0.08;
+            scaleY *= 0.88 + recoverProgress * 0.12;
+            rotation = Math.sin(currentTime / 90 + seed) * 0.02;
             if (!enemy.damageFlashTimer || enemy.damageFlashTimer <= 0) {
               mat.color.setHex(0x8888ff);
             }
-          } else if (enemy.state === 'idle') {
-            const breathe = Math.sin(currentTime / 800 + parseFloat(enemy.id.split('_')[1] || "0") * 3);
-            finalEnemyY += breathe * 0.02;
-            enemyMesh.scale.set(1 + breathe * 0.015, 1 - breathe * 0.015, 1);
-            enemyMesh.rotation.z = 0;
+          } else {
+            const breathe = Math.sin(currentTime / 800 + seed * 3);
+            if (enemyType === 'shadow') {
+              finalEnemyY += breathe * 0.05;
+              finalEnemyX += Math.cos(currentTime / 900 + seed) * 0.02;
+              scaleX *= 1 + breathe * 0.012;
+              scaleY *= 1 - breathe * 0.012;
+            } else if (enemyType === 'slime') {
+              finalEnemyY += Math.abs(breathe) * 0.025;
+              scaleX *= 1 + Math.abs(breathe) * 0.04;
+              scaleY *= 1 - Math.abs(breathe) * 0.04;
+            } else if (enemyType === 'spider') {
+              finalEnemyX += breathe * 0.015;
+              rotation = breathe * 0.02;
+            } else {
+              finalEnemyY += breathe * 0.02;
+              scaleX *= 1 + breathe * 0.015;
+              scaleY *= 1 - breathe * 0.015;
+            }
           }
 
+          enemyMesh.rotation.z = rotation;
+          enemyMesh.scale.set(scaleX, scaleY, 1);
           enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
-          // Dynamic Y-sorting for enemies
-          enemyMesh.renderOrder = getYRenderOrder(enemy.position.y);
+          enemyMesh.renderOrder = getYRenderOrder(enemy.position.y, visual.footOffset);
 
           // === HP BAR ===
           const hpBar = getOrCreateHPBar(enemy);
           const hpRatio = enemy.health / enemy.maxHealth;
-          const barY = finalEnemyY + 0.5;
+          const barY = finalEnemyY + visual.hpBarOffset;
           
           hpBar.bg.position.set(finalEnemyX, barY, 0.35);
           hpBar.fill.position.set(finalEnemyX - 0.29 * (1 - hpRatio), barY, 0.36);

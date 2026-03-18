@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { GameState } from './GameState';
 
+type CardinalDirection = 'up' | 'down' | 'left' | 'right';
+
 export interface Enemy {
   id: string;
   name: string;
@@ -26,6 +28,10 @@ export interface Enemy {
   patrolOrigin: { x: number; y: number };
   patrolAngle: number;
   patrolRadius: number;
+  facing: CardinalDirection;
+  moveCycle: number;
+  moveBlend: number;
+  velocity: { x: number; y: number };
 }
 
 export class CombatSystem {
@@ -70,6 +76,10 @@ export class CombatSystem {
       patrolOrigin: { ...position },
       patrolAngle: Math.random() * Math.PI * 2,
       patrolRadius: 2 + Math.random() * 2,
+      facing: 'down',
+      moveCycle: Math.random() * Math.PI * 2,
+      moveBlend: 0,
+      velocity: { x: 0, y: 0 },
     };
 
     this.enemies.push(enemy);
@@ -90,6 +100,26 @@ export class CombatSystem {
   }
 
   updateEnemies(deltaTime: number, playerPosition: { x: number; y: number }, playerDodging: boolean = false): void {
+    const updateMovementVisuals = (enemy: Enemy, vx: number, vy: number, moving: boolean, cadence: number) => {
+      if (moving) {
+        enemy.velocity.x = vx;
+        enemy.velocity.y = vy;
+        enemy.moveCycle += deltaTime * cadence;
+        enemy.moveBlend = Math.min(1, enemy.moveBlend + deltaTime * 5);
+
+        if (Math.abs(vx) > Math.abs(vy)) {
+          enemy.facing = vx >= 0 ? 'right' : 'left';
+        } else if (Math.abs(vy) > 0.001) {
+          enemy.facing = vy >= 0 ? 'up' : 'down';
+        }
+      } else {
+        const damp = Math.max(0, 1 - deltaTime * 8);
+        enemy.velocity.x *= damp;
+        enemy.velocity.y *= damp;
+        enemy.moveBlend = Math.max(0, enemy.moveBlend - deltaTime * 4);
+      }
+    };
+
     for (const enemy of this.enemies) {
       if (enemy.state === 'dead') continue;
 
@@ -107,11 +137,17 @@ export class CombatSystem {
           const pdx = px - enemy.position.x;
           const pdy = py - enemy.position.y;
           const pdistSq = pdx * pdx + pdy * pdy;
+
           if (pdistSq > 0.01) {
             const pdist = Math.sqrt(pdistSq);
             const moveSpeed = enemy.speed * 0.4 * deltaTime * 60;
-            enemy.position.x += (pdx / pdist) * moveSpeed;
-            enemy.position.y += (pdy / pdist) * moveSpeed;
+            const nvx = pdx / pdist;
+            const nvy = pdy / pdist;
+            enemy.position.x += nvx * moveSpeed;
+            enemy.position.y += nvy * moveSpeed;
+            updateMovementVisuals(enemy, nvx, nvy, true, 7);
+          } else {
+            updateMovementVisuals(enemy, 0, 0, false, 0);
           }
 
           if (distSq <= chaseRangeSq) {
@@ -121,35 +157,43 @@ export class CombatSystem {
         }
 
         case 'chasing': {
-          const leashRangeSq = chaseRangeSq * 2.25; // 1.5x chase range squared
+          const leashRangeSq = chaseRangeSq * 2.25;
           if (distSq > leashRangeSq) {
             enemy.state = 'idle';
+            updateMovementVisuals(enemy, 0, 0, false, 0);
             break;
           }
 
           if (distSq <= attackRangeSq) {
             enemy.state = 'telegraphing';
             enemy.telegraphTimer = enemy.telegraphDuration;
+            updateMovementVisuals(enemy, 0, 0, false, 0);
             break;
           }
 
           if (distSq > 0) {
             const dist = Math.sqrt(distSq);
             const moveSpeed = enemy.speed * deltaTime * 60;
-            enemy.position.x += (dx / dist) * moveSpeed;
-            enemy.position.y += (dy / dist) * moveSpeed;
+            const nvx = dx / dist;
+            const nvy = dy / dist;
+            enemy.position.x += nvx * moveSpeed;
+            enemy.position.y += nvy * moveSpeed;
+            updateMovementVisuals(enemy, nvx, nvy, true, 10);
+          } else {
+            updateMovementVisuals(enemy, 0, 0, false, 0);
           }
           break;
         }
 
         case 'telegraphing': {
           enemy.telegraphTimer -= deltaTime;
+          updateMovementVisuals(enemy, 0, 0, false, 0);
 
           if (enemy.telegraphTimer <= 0) {
             const newDx = playerPosition.x - enemy.position.x;
             const newDy = playerPosition.y - enemy.position.y;
             const newDistSq = newDx * newDx + newDy * newDy;
-            const extAttackRangeSq = attackRangeSq * 1.69; // 1.3x range squared
+            const extAttackRangeSq = attackRangeSq * 1.69;
 
             if (newDistSq <= extAttackRangeSq && !playerDodging) {
               this.attackPlayer(enemy);
@@ -164,11 +208,13 @@ export class CombatSystem {
         case 'attacking': {
           enemy.state = 'recovering';
           enemy.recoverTimer = enemy.recoverDuration;
+          updateMovementVisuals(enemy, 0, 0, false, 0);
           break;
         }
 
         case 'recovering': {
           enemy.recoverTimer -= deltaTime;
+          updateMovementVisuals(enemy, 0, 0, false, 0);
           if (enemy.recoverTimer <= 0) {
             enemy.state = distSq <= chaseRangeSq ? 'chasing' : 'idle';
           }
