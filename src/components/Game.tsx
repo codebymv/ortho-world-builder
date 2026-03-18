@@ -72,6 +72,20 @@ const Game = () => {
     const enemyHPBars = new Map<string, { bg: THREE.Mesh; fill: THREE.Mesh }>();
     const cameraTarget = { x: state.player.position.x, y: state.player.position.y };
 
+    // Interaction indicator
+    const indicatorTexture = assetManager.getTexture('interact_indicator');
+    const indicatorGeometry = new THREE.PlaneGeometry(0.4, 0.4);
+    const indicatorMaterial = new THREE.MeshBasicMaterial({
+      map: indicatorTexture,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+    const indicatorMesh = new THREE.Mesh(indicatorGeometry, indicatorMaterial);
+    indicatorMesh.position.z = 0.5;
+    indicatorMesh.visible = false;
+    scene.add(indicatorMesh);
+
     let footstepTimer = 0;
     const footstepInterval = 0.3;
     let lastTime = performance.now();
@@ -168,10 +182,27 @@ const Game = () => {
       const mapDef = mapDefinitions[targetMap];
       if (mapDef?.enemyZones) {
         for (const zone of mapDef.enemyZones) {
-          const enemySprite = zone.enemyType === 'wolf' ? 'enemy_wolf' : 'enemy_shadow';
-          const enemyName = zone.enemyType === 'wolf' ? 'Forest Wolf' : 'Shadow Creature';
-          const hp = zone.enemyType === 'wolf' ? 40 : 60;
-          const dmg = zone.enemyType === 'wolf' ? 10 : 15;
+          let enemySprite: string;
+          let enemyName: string;
+          let hp: number;
+          let dmg: number;
+
+          switch (zone.enemyType) {
+            case 'wolf':
+              enemySprite = 'enemy_wolf'; enemyName = 'Forest Wolf'; hp = 40; dmg = 10; break;
+            case 'shadow':
+              enemySprite = 'enemy_shadow'; enemyName = 'Shadow Creature'; hp = 60; dmg = 15; break;
+            case 'plant':
+              enemySprite = 'enemy_plant'; enemyName = 'Vine Terror'; hp = 50; dmg = 12; break;
+            case 'skeleton':
+              enemySprite = 'enemy_skeleton'; enemyName = 'Skeleton Warrior'; hp = 55; dmg = 14; break;
+            case 'bandit':
+              enemySprite = 'enemy_bandit'; enemyName = 'Bandit'; hp = 45; dmg = 11; break;
+            case 'golem':
+              enemySprite = 'enemy_golem'; enemyName = 'Stone Golem'; hp = 200; dmg = 25; break;
+            default:
+              enemySprite = 'enemy_wolf'; enemyName = 'Wild Beast'; hp = 40; dmg = 10;
+          }
           
           for (let i = 0; i < zone.count; i++) {
             const ex = (zone.x + Math.random() * zone.width) - newMap.width / 2;
@@ -799,6 +830,55 @@ const Game = () => {
         // Smooth camera follow
         cameraTarget.x = state.player.position.x;
         cameraTarget.y = state.player.position.y;
+
+        // === INTERACTION INDICATOR ===
+        let showIndicator = false;
+        let indicatorX = 0, indicatorY = 0;
+        const interactionRange = 1.5;
+
+        // Check NPC proximity
+        for (const npc of state.npcs) {
+          const dist = Math.sqrt(
+            Math.pow(state.player.position.x - npc.position.x, 2) +
+            Math.pow(state.player.position.y - npc.position.y, 2)
+          );
+          if (dist < interactionRange) {
+            showIndicator = true;
+            indicatorX = npc.position.x;
+            indicatorY = npc.position.y;
+            break;
+          }
+        }
+
+        // Check tile interactables
+        if (!showIndicator) {
+          const directions = [
+            { x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
+          ];
+          for (const dir of directions) {
+            const cx = state.player.position.x + dir.x * 0.5;
+            const cy = state.player.position.y + dir.y * 0.5;
+            const intId = world.getInteractableAt(cx, cy);
+            if (intId) {
+              showIndicator = true;
+              indicatorX = state.player.position.x + dir.x * 0.5;
+              indicatorY = state.player.position.y + dir.y * 0.5;
+              break;
+            }
+          }
+        }
+
+        if (showIndicator) {
+          indicatorMesh.visible = true;
+          const bobY = Math.sin(currentTime / 200) * 0.12;
+          const pulse = 0.7 + Math.sin(currentTime / 300) * 0.3;
+          indicatorMesh.position.set(indicatorX, indicatorY + 0.8 + bobY, 0.5);
+          indicatorMaterial.opacity = pulse;
+          indicatorMesh.scale.set(0.8 + Math.sin(currentTime / 250) * 0.15, 0.8 + Math.sin(currentTime / 250) * 0.15, 1);
+        } else {
+          indicatorMesh.visible = false;
+        }
+
         const lerpFactor = 1 - Math.pow(0.001, deltaTime);
         camera.position.x += (cameraTarget.x - camera.position.x) * lerpFactor;
         camera.position.y += (cameraTarget.y - camera.position.y) * lerpFactor;

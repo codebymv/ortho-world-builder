@@ -78,6 +78,10 @@ const villageDef: MapDefinition = {
     { x: 215, y: 12, width: 16, height: 12, type: 'camp', interactionId: 'bandit_camp' },
     { x: 5, y: 130, width: 12, height: 10, type: 'camp', interactionId: 'goblin_camp' },
 
+    // ====== FORTS ======
+    { x: 190, y: 18, width: 20, height: 16, type: 'fort', interactionId: 'north_fort' },
+    { x: 8, y: 40, width: 16, height: 14, type: 'fort', interactionId: 'west_fort' },
+
     // ====== DESTROYED OUTPOST (north-west, near cemetery) ======
     { x: 45, y: 15, width: 18, height: 14, type: 'destroyed_town' },
 
@@ -141,10 +145,16 @@ const villageDef: MapDefinition = {
   secretAreas: [
     { x: 5, y: 20, width: 6, height: 4, fill: 'stone' },
     { x: 220, y: 140, width: 5, height: 4, fill: 'stone' },
+    { x: 75, y: 45, width: 4, height: 4, fill: 'grass' },
+    { x: 200, y: 50, width: 5, height: 3, fill: 'stone' },
+    { x: 95, y: 135, width: 6, height: 4, fill: 'grass' },
+    { x: 160, y: 130, width: 4, height: 4, fill: 'stone' },
   ],
   enemyZones: [
-    { x: 210, y: 8, width: 25, height: 20, enemyType: 'wolf', count: 5 },
+    { x: 210, y: 8, width: 25, height: 20, enemyType: 'bandit', count: 5 },
     { x: 3, y: 125, width: 15, height: 15, enemyType: 'wolf', count: 3 },
+    { x: 190, y: 18, width: 20, height: 16, enemyType: 'bandit', count: 4 },
+    { x: 8, y: 40, width: 16, height: 14, enemyType: 'skeleton', count: 3 },
   ],
 };
 
@@ -221,6 +231,16 @@ const forestDef: MapDefinition = {
     // === FIELD BOSS ARENA (central-east) ===
     { x: 220, y: 150, width: 24, height: 24, type: 'boss_arena', interactionId: 'golem_boss' },
 
+    // === ENCHANTED GROVES with plant monsters ===
+    { x: 70, y: 140, width: 30, height: 26, type: 'enchanted_grove' },
+    { x: 240, y: 240, width: 24, height: 22, type: 'enchanted_grove' },
+    { x: 50, y: 260, width: 26, height: 22, type: 'enchanted_grove' },
+
+    // === FORTS (strategic positions) ===
+    { x: 130, y: 120, width: 22, height: 18, type: 'fort', interactionId: 'forest_fort' },
+    { x: 200, y: 60, width: 18, height: 16, type: 'fort', interactionId: 'north_fort' },
+    { x: 60, y: 190, width: 20, height: 16, type: 'fort', interactionId: 'south_fort' },
+
     // === ABANDONED CAMPS scattered ===
     { x: 100, y: 200, width: 16, height: 12, type: 'abandoned_camp', interactionId: 'lost_expedition' },
     { x: 50, y: 80, width: 12, height: 10, type: 'abandoned_camp', interactionId: 'hunters_camp' },
@@ -269,6 +289,13 @@ const forestDef: MapDefinition = {
     { x: 160, y: 20, interactionId: 'waterfall_chest' },
     { x: 258, y: 148, interactionId: 'temple_chest' },
     { x: 268, y: 28, interactionId: 'volcano_chest' },
+    // New chests in enchanted groves and forts
+    { x: 80, y: 150, interactionId: 'enchanted_chest_1' },
+    { x: 248, y: 250, interactionId: 'enchanted_chest_2' },
+    { x: 58, y: 268, interactionId: 'enchanted_chest_3' },
+    { x: 138, y: 128, interactionId: 'fort_chest_1' },
+    { x: 208, y: 66, interactionId: 'fort_chest_2' },
+    { x: 68, y: 196, interactionId: 'fort_chest_3' },
   ],
   interactables: [
     { x: 140, y: 170, type: 'sign', walkable: false, interactionId: 'ranger_sign' },
@@ -288,20 +315,33 @@ const forestDef: MapDefinition = {
     { x: 256, y: 184, width: 8, height: 6, fill: 'grass' },
     { x: 24, y: 24, width: 6, height: 6, fill: 'stone' },
     { x: 280, y: 270, width: 5, height: 5, fill: 'grass' },
+    { x: 90, y: 145, width: 6, height: 5, fill: 'grass' },
+    { x: 195, y: 175, width: 5, height: 5, fill: 'stone' },
+    { x: 145, y: 270, width: 6, height: 4, fill: 'grass' },
+    { x: 55, y: 195, width: 5, height: 5, fill: 'stone' },
+    { x: 270, y: 130, width: 4, height: 5, fill: 'grass' },
   ],
   enemyZones: [
     { x: 30, y: 30, width: 30, height: 24, enemyType: 'wolf', count: 8 },
-    { x: 210, y: 36, width: 30, height: 24, enemyType: 'wolf', count: 6 },
+    { x: 210, y: 36, width: 30, height: 24, enemyType: 'bandit', count: 6 },
     { x: 60, y: 120, width: 40, height: 30, enemyType: 'wolf', count: 5 },
     { x: 200, y: 160, width: 40, height: 40, enemyType: 'wolf', count: 6 },
     { x: 20, y: 240, width: 35, height: 30, enemyType: 'shadow', count: 7 },
-    { x: 100, y: 250, width: 25, height: 20, enemyType: 'wolf', count: 4 },
+    { x: 100, y: 250, width: 25, height: 20, enemyType: 'skeleton', count: 4 },
     { x: 250, y: 50, width: 25, height: 20, enemyType: 'wolf', count: 4 },
-    { x: 160, y: 40, width: 30, height: 20, enemyType: 'wolf', count: 3 },
+    { x: 160, y: 40, width: 30, height: 20, enemyType: 'bandit', count: 3 },
+    // Plant monster zones in enchanted groves
+    { x: 70, y: 140, width: 30, height: 26, enemyType: 'plant', count: 6 },
+    { x: 240, y: 240, width: 24, height: 22, enemyType: 'plant', count: 5 },
+    { x: 50, y: 260, width: 26, height: 22, enemyType: 'plant', count: 4 },
+    // Fort defenders
+    { x: 130, y: 120, width: 22, height: 18, enemyType: 'bandit', count: 5 },
+    { x: 200, y: 60, width: 18, height: 16, enemyType: 'skeleton', count: 4 },
+    { x: 60, y: 190, width: 20, height: 16, enemyType: 'bandit', count: 4 },
     // Field boss zone
     { x: 215, y: 145, width: 30, height: 30, enemyType: 'golem', count: 1 },
     // Cemetery undead
-    { x: 118, y: 238, width: 26, height: 20, enemyType: 'shadow', count: 5 },
+    { x: 118, y: 238, width: 26, height: 20, enemyType: 'skeleton', count: 5 },
     // Abandoned areas
     { x: 175, y: 195, width: 30, height: 25, enemyType: 'wolf', count: 5 },
   ],
