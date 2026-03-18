@@ -1,20 +1,29 @@
 import { GameState } from '@/lib/game/GameState';
 import { Button } from '@/components/ui/button';
-import { Heart, Coins, Package, ScrollText, Zap } from 'lucide-react';
+import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
 interface GameUIProps {
   gameState: GameState;
   refreshToken: number;
+  musicRef: React.RefObject<HTMLAudioElement | null>;
 }
 
-export const GameUI = ({ gameState, refreshToken }: GameUIProps) => {
+export const GameUI = ({ gameState, refreshToken, musicRef }: GameUIProps) => {
   const [showInventory, setShowInventory] = useState(false);
   const [showQuests, setShowQuests] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const activeQuests = gameState.quests.filter(q => q.active && !q.completed);
   void refreshToken;
+
+  const toggleMute = () => {
+    if (musicRef.current) {
+      musicRef.current.muted = !musicRef.current.muted;
+      setIsMuted(musicRef.current.muted);
+    }
+  };
 
   return (
     <>
@@ -66,6 +75,16 @@ export const GameUI = ({ gameState, refreshToken }: GameUIProps) => {
 
         {/* Right Side: Toggles */}
         <div className="flex items-center gap-2">
+          <Button
+            onClick={toggleMute}
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent rounded-sm transition-colors"
+            title={isMuted ? 'Unmute' : 'Mute'}
+          >
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </Button>
+
           <Button
             onClick={() => {
               setShowInventory(!showInventory);
@@ -133,8 +152,8 @@ export const GameUI = ({ gameState, refreshToken }: GameUIProps) => {
                           description: 'Restored 50 health.',
                           className: 'rpg-toast',
                         });
-                        refreshToken; // force re-render trigger
-                        setShowInventory(true); // keep open
+                        refreshToken;
+                        setShowInventory(true);
                       }
                     }}
                   >
