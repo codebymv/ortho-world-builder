@@ -1916,11 +1916,29 @@ const Game = () => {
       if (mountRef.current && renderer.domElement.parentNode === mountRef.current) {
         mountRef.current.removeChild(renderer.domElement);
       }
+      // Dispose all enemy objects
+      enemyMeshes.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      enemyShadows.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      enemyOutlines.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      enemyHPBars.forEach(({ bg, fill }) => {
+        scene.remove(bg); scene.remove(fill);
+        (bg.material as THREE.Material).dispose();
+        (fill.material as THREE.Material).dispose();
+      });
+      // Dispose player + NPC objects
+      scene.remove(playerMesh); (playerMesh.material as THREE.Material).dispose();
+      scene.remove(playerShadow); (playerShadow.material as THREE.Material).dispose();
+      scene.remove(playerOutline); (playerOutline.material as THREE.Material).dispose();
+      npcMeshes.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      npcShadows.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      npcOutlines.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      // Dispose systems
       particleSystem.cleanup();
       biomeAmbience.cleanup();
       weatherSystem.cleanup();
       dayNightCycle.cleanup();
       floatingText.cleanup();
+      world.dispose();
       renderer.dispose();
     };
   }, []);
