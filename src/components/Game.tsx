@@ -471,6 +471,7 @@ const Game = () => {
     const performChargeAttack = (level: number) => {
       const currentTime = Date.now();
       if (state.player.isDodging) return;
+      playSwordSwing();
 
       state.player.lastAttackTime = currentTime;
       // Use spin_attack animation: rapidly cycle through directional attack frames
