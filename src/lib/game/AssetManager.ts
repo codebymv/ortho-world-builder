@@ -516,7 +516,7 @@ export class AssetManager {
       pantColor: 0x5A4030, pantDark: 0x3E2818,
       bootColor: 0x6B4428, bootDark: 0x503018,
     };
-    this.textures.set('npc_merchant', this.createChibiCharacter('down', 'idle', 0, merchantPalette));
+    this.registerTexture('npc_merchant', () => this.createChibiCharacter('down', 'idle', 0, merchantPalette));
 
     const guardPalette = {
       hair: 0x506070, hairLight: 0x687888, hairDark: 0x37474F,
