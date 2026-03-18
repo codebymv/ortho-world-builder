@@ -336,7 +336,12 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 
 const HOUSE_VARIANTS: TileType[] = ['house', 'house_blue', 'house_green', 'house_thatch'];
 const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch']);
-const MIN_BUILDING_SPACING = 12; // minimum tiles between any two buildings
+// All tile types that indicate a structure is present (for spacing checks)
+const STRUCTURE_TYPES: Set<TileType> = new Set([
+  'house', 'house_blue', 'house_green', 'house_thatch',
+  'destroyed_house', 'statue', 'mossy_stone', 'well',
+]);
+const MIN_BUILDING_SPACING = 16; // minimum tiles between any two buildings (increased from 12)
 
 function isBuildingNearby(tiles: Tile[][], fx: number, fy: number, fw: number, fh: number): boolean {
   const checkPad = MIN_BUILDING_SPACING;
