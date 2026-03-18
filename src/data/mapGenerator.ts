@@ -385,7 +385,7 @@ function placeBuilding(tiles: Tile[][], f: MapFeature) {
   const variant = HOUSE_VARIANTS[(f.x * 7 + f.y * 13) % HOUSE_VARIANTS.length];
   
   // First, clear a yard around the building (3-tile border of grass)
-  const yardPad = 3;
+  const yardPad = 4;
   for (let dy = -yardPad; dy < f.height + yardPad; dy++) {
     for (let dx = -yardPad; dx < f.width + yardPad; dx++) {
       const tx = f.x + dx;
