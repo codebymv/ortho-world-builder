@@ -538,6 +538,7 @@ const Game = () => {
       }
       if (e.key === 'Shift' && !state.dialogueActive) {
         dodgeBuffered = true;
+        keys['shift'] = true;
       }
     };
 
