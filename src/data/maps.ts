@@ -267,6 +267,28 @@ const forestDef: MapDefinition = {
     { x: 200, y: 60, width: 18, height: 16, type: 'fort', interactionId: 'north_fort' },
     { x: 60, y: 190, width: 20, height: 16, type: 'fort', interactionId: 'south_fort' },
 
+    // === RUINED FORTS (collapsed, overrun) ===
+    { x: 110, y: 30, width: 18, height: 16, type: 'ruined_fort', interactionId: 'ruined_north_fort' },
+    { x: 260, y: 170, width: 16, height: 14, type: 'ruined_fort', interactionId: 'ruined_east_fort' },
+    { x: 30, y: 170, width: 16, height: 14, type: 'ruined_fort', interactionId: 'ruined_west_fort' },
+
+    // === FOREST CHURCHES (ancient, overgrown) ===
+    { x: 180, y: 130, width: 12, height: 16, type: 'church', interactionId: 'forest_church' },
+    { x: 50, y: 100, width: 10, height: 14, type: 'church', interactionId: 'old_chapel' },
+
+    // === SCATTERED COTTAGES (hermits, woodcutters) ===
+    { x: 90, y: 180, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage' },
+    { x: 230, y: 130, width: 6, height: 6, type: 'cottage', interactionId: 'witch_cottage' },
+    { x: 140, y: 240, width: 6, height: 6, type: 'cottage', interactionId: 'hunter_cottage' },
+    { x: 170, y: 80, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage' },
+    { x: 80, y: 50, width: 6, height: 6, type: 'cottage', interactionId: 'ruin_cottage' },
+    { x: 210, y: 200, width: 6, height: 6, type: 'cottage', interactionId: 'hidden_cottage' },
+
+    // === WATCHTOWERS ===
+    { x: 150, y: 130, width: 6, height: 6, type: 'watchtower' },
+    { x: 100, y: 70, width: 6, height: 6, type: 'watchtower' },
+    { x: 230, y: 90, width: 6, height: 6, type: 'watchtower' },
+
     // === ABANDONED CAMPS scattered ===
     { x: 100, y: 200, width: 16, height: 12, type: 'abandoned_camp', interactionId: 'lost_expedition' },
     { x: 50, y: 80, width: 12, height: 10, type: 'abandoned_camp', interactionId: 'hunters_camp' },
@@ -291,6 +313,10 @@ const forestDef: MapDefinition = {
     { x: 20, y: 210, width: 60, height: 4, type: 'path', fill: 'dirt' },
     { x: 250, y: 140, width: 4, height: 40, type: 'path', fill: 'dirt' },
     { x: 220, y: 150, width: 30, height: 4, type: 'path', fill: 'dirt' },
+    // Extra connectors to new landmarks
+    { x: 110, y: 30, width: 40, height: 4, type: 'path', fill: 'dirt' },
+    { x: 180, y: 130, width: 4, height: 30, type: 'path', fill: 'dirt' },
+    { x: 50, y: 100, width: 10, height: 4, type: 'path', fill: 'dirt' },
   ],
   portals: [
     { x: 150, y: 297, targetMap: 'village', targetX: 120, targetY: 6 },
