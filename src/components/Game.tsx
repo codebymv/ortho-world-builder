@@ -118,7 +118,7 @@ const Game = () => {
     let chargeLevel = 0; // 0-1
 
     // Spin attack animation state
-    const SPIN_DIRECTIONS: Direction8[] = ['down', 'left', 'up', 'right', 'down', 'left', 'up', 'right'];
+    const SPIN_DIRECTIONS: Direction8[] = ['down', 'left', 'up', 'right'];
     let spinDirIndex = 0;
     let spinFrameTimer = 0;
     const SPIN_FRAME_DURATION = 0.06; // Very fast frame cycling for spin
