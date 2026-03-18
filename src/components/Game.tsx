@@ -1047,6 +1047,7 @@ const Game = () => {
           if (npcShadow) {
             npcShadow.position.set(npc.position.x, npc.position.y - 0.35, -0.01);
           }
+        }
       }
 
       // Process buffered inputs
