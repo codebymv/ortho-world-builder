@@ -225,11 +225,7 @@ export class AssetManager {
       // Re-draw skin highlight on forehead
       cell(m(7), 1, p.skinLight);
       // Mouth
-      if (state === 'attack') {
-        cell(m(6), 5, 0xB03020);
-      } else {
-        cell(m(6), 5, p.skinShadow);
-      }
+      cell(m(6), 5, p.skinShadow);
       // Neck
       cell(m(7), 6, p.skinShadow); cell(m(8), 6, p.skinShadow);
       // Body
@@ -310,14 +306,8 @@ export class AssetManager {
       // Nose
       cell(8, 4, p.skinShadow);
 
-      // Mouth
-      if (state === 'attack' || state === 'charge') {
-        cell(7, 5, 0xB03020); cell(8, 5, 0xB03020);
-      } else if (state === 'hurt') {
-        cell(7, 5, p.skinShadow); cell(8, 5, p.skinShadow);
-      } else {
-        cell(7, 5, p.skinShadow); cell(8, 5, p.skinShadow);
-      }
+      // Mouth - stoic firm line, no open mouth
+      cell(7, 5, p.skinShadow); cell(8, 5, p.skinShadow);
 
       // Neck
       cell(7, 6, p.skinShadow); cell(8, 6, p.skinShadow);
