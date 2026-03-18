@@ -742,7 +742,7 @@ const Game = () => {
 
         particleSystem.emit(
           new THREE.Vector3(attackPos.x, attackPos.y, 0.3),
-          8, 0xFFD700, 0.5, 1.5, 2
+          4, 0xcccccc, 0.3, 1, 1
         );
       }
     };
