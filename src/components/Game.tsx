@@ -11,6 +11,7 @@ import { DayNightCycle } from '@/lib/game/DayNightCycle';
 import { FloatingTextSystem } from '@/lib/game/FloatingText';
 import { ScreenShake } from '@/lib/game/ScreenShake';
 import { MapMarker, extractMarkersFromText } from '@/lib/game/MapMarkers';
+import { SaveManager } from '@/lib/game/SaveManager';
 import { allMaps, mapDefinitions } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
 import { quests } from '@/data/quests';
@@ -159,11 +160,41 @@ const Game = () => {
     const floatingText = new FloatingTextSystem(scene);
     const screenShake = new ScreenShake(camera);
 
-    const world = new World(scene, assetManager, allMaps.village);
-    const spawnPoint = world.getSpawnPoint();
-    state.player.position = { x: spawnPoint.x, y: spawnPoint.y };
-    world.updateChunks(spawnPoint.x, spawnPoint.y);
-    biomeAmbience.setBiome('grassland');
+    // Load saved data or start fresh
+    const savedData = SaveManager.load();
+    const startMap = savedData?.currentMap || 'village';
+    const world = new World(scene, assetManager, allMaps[startMap] || allMaps.village);
+    
+    if (savedData) {
+      state.currentMap = savedData.currentMap;
+      state.player.position = { ...savedData.player.position };
+      state.player.direction = savedData.player.direction as any;
+      state.player.health = savedData.player.health;
+      state.player.maxHealth = savedData.player.maxHealth;
+      state.player.gold = savedData.player.gold;
+      state.player.attackDamage = savedData.player.attackDamage;
+      state.player.stamina = savedData.player.stamina;
+      state.player.maxStamina = savedData.player.maxStamina;
+      state.inventory = savedData.inventory;
+      state.quests = savedData.quests;
+      state.gameFlags = savedData.gameFlags;
+      // Restore map markers
+      mapMarkersRef.current = savedData.mapMarkers || [];
+      setMapMarkers(mapMarkersRef.current);
+      // Restore visited tiles
+      if (savedData.visitedTiles) {
+        savedData.visitedTiles.forEach(t => visitedTilesRef.current.add(t));
+      }
+      console.log('[SaveManager] Loaded save from', new Date(savedData.timestamp).toLocaleString());
+    } else {
+      const spawnPoint = world.getSpawnPoint();
+      state.player.position = { x: spawnPoint.x, y: spawnPoint.y };
+    }
+    
+    world.updateChunks(state.player.position.x, state.player.position.y);
+    
+    let lastAutoSaveTime = performance.now();
+    const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
 
     const enemyMeshes = new Map<string, THREE.Mesh>();
     const enemyHPBars = new Map<string, { bg: THREE.Mesh; fill: THREE.Mesh }>();
@@ -244,6 +275,14 @@ const Game = () => {
       ruins: 'ruins',
     };
 
+    // Set biome for loaded map
+    biomeAmbience.setBiome(mapBiomes[startMap] || 'grassland');
+
+    // Save helper
+    const triggerSave = () => {
+      SaveManager.save(state, mapMarkersRef.current, visitedTilesRef.current);
+    };
+
     // Kill tracker for quests
     let killCount = 0;
 
@@ -290,6 +329,7 @@ const Game = () => {
       state.currentMap = targetMap;
       world.loadMap(newMap);
       biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
+      triggerSave(); // Save on map transition
       
       const worldX = targetX - newMap.width / 2;
       const worldY = targetY - newMap.height / 2;
@@ -381,9 +421,9 @@ const Game = () => {
       depthWrite: false,
     });
     const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
-    playerMesh.position.set(spawnPoint.x, spawnPoint.y, 0.2);
+    playerMesh.position.set(state.player.position.x, state.player.position.y, 0.2);
     playerMesh.scale.setScalar(PLAYER_BASE_SCALE);
-    playerMesh.renderOrder = getYRenderOrder(spawnPoint.y, PLAYER_FOOT_OFFSET);
+    playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
     scene.add(playerMesh);
 
     const npcData: NPC[] = [
@@ -1626,21 +1666,32 @@ const Game = () => {
       dayNightCycle.update(deltaTime, state.player.position.x, state.player.position.y);
       floatingText.update(deltaTime);
       particleSystem.update(deltaTime);
+      
+      // Auto-save every 30 seconds
+      if (currentTime - lastAutoSaveTime >= AUTO_SAVE_INTERVAL) {
+        lastAutoSaveTime = currentTime;
+        triggerSave();
+      }
+      
       renderer.render(scene, camera);
     };
 
     animate();
 
-    setTimeout(() => {
-      toast("The Village Elder looks deeply troubled...", {
-        description: "Perhaps you should speak with him. (Press E to interact)",
-        icon: "📜",
-        duration: 8000,
-        className: "rpg-toast",
-      });
-      // Ping the Elder's location on the minimap
-      addMarkersFromText("Village Elder", state.currentMap);
-    }, 1000);
+    if (!savedData) {
+      setTimeout(() => {
+        toast("The Village Elder looks deeply troubled...", {
+          description: "Perhaps you should speak with him. (Press E to interact)",
+          icon: "📜",
+          duration: 8000,
+          className: "rpg-toast",
+        });
+        // Ping the Elder's location on the minimap
+        addMarkersFromText("Village Elder", state.currentMap);
+      }, 1000);
+    } else {
+      toast("Progress restored.", { icon: "💾", duration: 3000, className: "rpg-toast" });
+    }
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
@@ -1674,6 +1725,8 @@ const Game = () => {
       addMarkersFromText(quest.description, gameState.currentMap);
       quest.objectives.forEach(obj => addMarkersFromText(obj, gameState.currentMap));
       triggerUIUpdate();
+      // Save on quest accept
+      SaveManager.save(gameState, mapMarkersRef.current, visitedTilesRef.current);
     }
 
     // Merchant buy logic
@@ -1712,6 +1765,8 @@ const Game = () => {
       activeNpcWorldPos.current = null;
       gameState.dialogueActive = false;
       gameState.currentDialogue = null;
+      // Save on dialogue end
+      SaveManager.save(gameState, mapMarkersRef.current, visitedTilesRef.current);
       return;
     }
 
