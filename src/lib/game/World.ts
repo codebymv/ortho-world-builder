@@ -134,6 +134,9 @@ export class World {
     this.map = map;
   }
 
+  // Shared geometry for all tile meshes
+  private readonly sharedTileGeometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
+
   private createPlaneMesh(texture: THREE.Texture, z: number): THREE.Mesh {
     let mesh: THREE.Mesh;
 
@@ -144,12 +147,11 @@ export class World {
       material.transparent = true;
       material.needsUpdate = true;
     } else {
-      const geometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
       const material = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
       });
-      mesh = new THREE.Mesh(geometry, material);
+      mesh = new THREE.Mesh(this.sharedTileGeometry, material);
     }
 
     mesh.position.z = z;

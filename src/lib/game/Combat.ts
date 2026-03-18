@@ -31,6 +31,8 @@ export interface Enemy {
 export class CombatSystem {
   private enemies: Enemy[] = [];
   private gameState: GameState;
+  private _cachedLiveEnemies: Enemy[] = [];
+  private _enemiesDirty: boolean = true;
 
   constructor(gameState: GameState) {
     this.gameState = gameState;
