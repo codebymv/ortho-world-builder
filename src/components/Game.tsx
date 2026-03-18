@@ -1282,11 +1282,13 @@ const Game = () => {
           visualScaleY *= dodgeScaleY;
           visualRotation = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? -1 : 1);
         } else if (isChargingAttack) {
-          const pulse = 1 + chargeLevel * 0.15;
-          const shake = chargeLevel * Math.sin(currentTime / 30) * 0.02;
-          visualScaleX *= pulse;
-          visualScaleY *= pulse;
-          attackOffsetX += shake;
+          // Movement-based charge: crouch down and vibrate, no glow
+          const crouchAmount = 0.08 * chargeLevel;
+          const shakeAmt = chargeLevel * Math.sin(currentTime / 30) * 0.025;
+          visualScaleX *= 1 + chargeLevel * 0.06;
+          visualScaleY *= 1 - crouchAmount;
+          attackOffsetX += shakeAmt;
+          attackOffsetY -= crouchAmount * 0.3;
           visualRotation = 0;
         }
 
