@@ -403,165 +403,120 @@ export class AssetManager {
     // ---- FACE (front/side only) ----
     if (!isUp) {
       if (isSide) {
-        // ONE eye - stoic warrior style
         const eyeX = isLeft ? cx - 4 : cx + 4;
         const eyeDir = isLeft ? -1 : 1;
 
-        // Eye white (smaller, more angular)
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath();
-        ctx.ellipse(eyeX - eyeDir * 1, headY - 1, 4, 3.5, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Eye - sharp angular style
+        // Outer eye shape (dark outline)
+        ctx.fillStyle = hex(p.hairDark);
+        ctx.fillRect(eyeX - eyeDir * 5, headY - 4, 8, 1); // top lid line
+        ctx.fillRect(eyeX - eyeDir * 5, headY + 3, 8, 1); // bottom lid line
 
-        // Iris (compact)
-        const irisColor = state === 'charge' ? hex(0xFFD700) : state === 'hurt' ? hex(0x888888) : hex(p.eyeIris);
-        ctx.fillStyle = irisColor;
-        ctx.beginPath();
-        ctx.ellipse(eyeX - eyeDir * 1.5, headY - 0.5, 2.5, 3, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Eye white
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(eyeX - eyeDir * 4, headY - 3, 6, 6);
+
+        // Iris - positioned slightly forward
+        ctx.fillStyle = state === 'charge' ? hex(0xFFD700) : state === 'hurt' ? hex(0x666666) : hex(p.eyeIris);
+        ctx.fillRect(eyeX - eyeDir * 3, headY - 2, 4, 5);
 
         // Pupil
         if (state !== 'hurt') {
-          ctx.fillStyle = '#111111';
-          ctx.beginPath();
-          ctx.ellipse(eyeX - eyeDir * 1.5, headY, 1.5, 2, 0, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(eyeX - eyeDir * 2, headY - 1, 2, 3);
         }
 
-        // Single small sparkle
+        // Highlight pixel
         ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath();
-        ctx.arc(eyeX - eyeDir * 3, headY - 2, 1.2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillRect(eyeX - eyeDir * 3, headY - 2, 1, 1);
 
-        // Upper eyelid line (gives definition)
-        ctx.strokeStyle = hex(p.hairDark);
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(eyeX + eyeDir * 3, headY - 4);
-        ctx.lineTo(eyeX - eyeDir * 5, headY - 3.5);
-        ctx.stroke();
+        // Eyebrow - thick, angled down (fierce)
+        ctx.fillStyle = hex(p.hairDark);
+        ctx.fillRect(eyeX + eyeDir * 2, headY - 8, 2, 2);
+        ctx.fillRect(eyeX + eyeDir * 0, headY - 7, 2, 2);
+        ctx.fillRect(eyeX - eyeDir * 2, headY - 6, 2, 2);
+        ctx.fillRect(eyeX - eyeDir * 4, headY - 6, 2, 2);
 
-        // Determined eyebrow (angled down toward nose = fierce)
-        ctx.strokeStyle = hex(p.hairDark);
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(eyeX + eyeDir * 3, headY - 7);
-        ctx.lineTo(eyeX - eyeDir * 4, headY - 5.5);
-        ctx.stroke();
-
-        // Stoic mouth - firm line
-        if (state === 'attack' || state === 'charge') {
-          ctx.fillStyle = hex(0xC04030);
-          ctx.beginPath();
-          ctx.ellipse(eyeX - eyeDir * 3, headY + 8, 2, 1.5, 0, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (state === 'hurt') {
-          ctx.strokeStyle = hex(0xCC4444);
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(eyeX - eyeDir * 5, headY + 8);
-          ctx.quadraticCurveTo(eyeX - eyeDir * 3, headY + 10, eyeX - eyeDir * 1, headY + 8);
-          ctx.stroke();
-        } else {
-          // Firm straight mouth
-          ctx.strokeStyle = hex(p.skinShadow);
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(eyeX - eyeDir * 5, headY + 8);
-          ctx.lineTo(eyeX - eyeDir * 1, headY + 8);
-          ctx.stroke();
-        }
-
-        // Nose
+        // Nose - small angular
         ctx.fillStyle = hex(p.skinShadow);
-        ctx.beginPath();
-        ctx.arc(eyeX - eyeDir * 6, headY + 3, 1, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillRect(eyeX - eyeDir * 6, headY + 2, 2, 2);
+
+        // Mouth - firm, determined
+        if (state === 'attack' || state === 'charge') {
+          ctx.fillStyle = hex(0xB03020);
+          ctx.fillRect(eyeX - eyeDir * 5, headY + 7, 4, 2);
+          ctx.fillStyle = hex(0x801818);
+          ctx.fillRect(eyeX - eyeDir * 4, headY + 8, 2, 1);
+        } else if (state === 'hurt') {
+          ctx.fillStyle = hex(p.skinShadow);
+          ctx.fillRect(eyeX - eyeDir * 5, headY + 7, 2, 1);
+          ctx.fillRect(eyeX - eyeDir * 2, headY + 8, 2, 1);
+        } else {
+          // Firm straight mouth - 2px line
+          ctx.fillStyle = hex(p.skinShadow);
+          ctx.fillRect(eyeX - eyeDir * 5, headY + 7, 5, 1);
+        }
 
       } else {
-        // FRONT VIEW - Two eyes, stoic warrior
+        // FRONT VIEW - Two eyes, stoic warrior pixel style
         const eyeSpacing = 7;
         const eyeY = headY - 1;
 
         for (let side = -1; side <= 1; side += 2) {
           const eyeX = cx + side * eyeSpacing;
 
-          // Eye white (smaller, slightly angular)
+          // Eye outline (top and bottom lid)
+          ctx.fillStyle = hex(p.hairDark);
+          ctx.fillRect(eyeX - 4, eyeY - 4, 8, 1);
+          ctx.fillRect(eyeX - 4, eyeY + 3, 8, 1);
+
+          // Eye white
           ctx.fillStyle = '#FFFFFF';
-          ctx.beginPath();
-          ctx.ellipse(eyeX, eyeY, 4, 3.5, 0, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillRect(eyeX - 3, eyeY - 3, 6, 6);
 
           // Iris
-          const irisColor = state === 'charge' ? hex(0xFFD700) : state === 'hurt' ? hex(0x888888) : hex(p.eyeIris);
-          ctx.fillStyle = irisColor;
-          ctx.beginPath();
-          ctx.ellipse(eyeX, eyeY + 0.5, 2.5, 3, 0, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillStyle = state === 'charge' ? hex(0xFFD700) : state === 'hurt' ? hex(0x666666) : hex(p.eyeIris);
+          ctx.fillRect(eyeX - 2, eyeY - 2, 4, 5);
 
           // Pupil
           if (state !== 'hurt') {
-            ctx.fillStyle = '#111111';
-            ctx.beginPath();
-            ctx.ellipse(eyeX, eyeY + 1, 1.5, 2, 0, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(eyeX - 1, eyeY - 1, 2, 3);
           }
 
-          // Small sparkle
+          // Highlight pixel (top-left of iris)
           ctx.fillStyle = '#FFFFFF';
-          ctx.beginPath();
-          ctx.arc(eyeX - 1.5, eyeY - 1.5, 1.2, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillRect(eyeX - 2, eyeY - 2, 1, 1);
 
-          // Upper eyelid line
-          ctx.strokeStyle = hex(p.hairDark);
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(eyeX - 4, eyeY - 3);
-          ctx.lineTo(eyeX + 4, eyeY - 3);
-          ctx.stroke();
-
-          // Determined eyebrow (angled inward = stoic/fierce)
-          ctx.strokeStyle = hex(p.hairDark);
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(eyeX - side * 4, headY - 7);
-          ctx.lineTo(eyeX + side * 3, headY - 5.5);
-          ctx.stroke();
+          // Eyebrow - angled inward (fierce/determined)
+          ctx.fillStyle = hex(p.hairDark);
+          ctx.fillRect(eyeX - side * 4, headY - 8, 2, 2);
+          ctx.fillRect(eyeX - side * 2, headY - 7, 2, 2);
+          ctx.fillRect(eyeX + side * 0, headY - 7, 2, 2);
+          ctx.fillRect(eyeX + side * 2, headY - 6, 2, 2);
         }
 
-        // Nose
+        // Nose - small triangle
         ctx.fillStyle = hex(p.skinShadow);
-        ctx.beginPath();
-        ctx.arc(cx, headY + 3, 1, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillRect(cx - 1, headY + 2, 2, 2);
 
-        // Mouth - stoic warrior expression
+        // Mouth
         if (state === 'attack' || state === 'charge') {
-          ctx.fillStyle = hex(0xC04030);
-          ctx.beginPath();
-          ctx.ellipse(cx, headY + 8, 3, 2, 0, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillStyle = hex(0xB03020);
+          ctx.fillRect(cx - 3, headY + 7, 6, 3);
           ctx.fillStyle = hex(0x801818);
-          ctx.beginPath();
-          ctx.ellipse(cx, headY + 8, 2, 1.5, 0, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillRect(cx - 2, headY + 8, 4, 2);
         } else if (state === 'hurt') {
-          ctx.strokeStyle = hex(0xCC4444);
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(cx - 3, headY + 8);
-          ctx.quadraticCurveTo(cx, headY + 10, cx + 3, headY + 8);
-          ctx.stroke();
+          ctx.fillStyle = hex(p.skinShadow);
+          ctx.fillRect(cx - 3, headY + 8, 2, 1);
+          ctx.fillRect(cx + 1, headY + 8, 2, 1);
         } else {
-          // Firm straight mouth - determined look
-          ctx.strokeStyle = hex(p.skinShadow);
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(cx - 4, headY + 8);
-          ctx.lineTo(cx + 4, headY + 8);
-          ctx.stroke();
+          // Firm straight mouth
+          ctx.fillStyle = hex(p.skinShadow);
+          ctx.fillRect(cx - 3, headY + 7, 6, 1);
+          // Slight shadow below
+          ctx.fillStyle = `rgba(0,0,0,0.1)`;
+          ctx.fillRect(cx - 2, headY + 8, 4, 1);
         }
       }
     }
