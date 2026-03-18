@@ -46,7 +46,7 @@ export interface MapFeature {
   y: number;
   width: number;
   height: number;
-  type: 'building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'secret_cave' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano' | 'boss_arena' | 'abandoned_camp' | 'cemetery';
+  type: 'building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'secret_cave' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano' | 'boss_arena' | 'abandoned_camp' | 'cemetery' | 'cliff_face' | 'farm' | 'iron_fence_border' | 'hedge_maze' | 'cobble_plaza' | 'forest_grove';
   tiles?: Partial<Record<string, Tile>>; // specific tile overrides by "dx,dy"
   fill?: TileType;
   border?: TileType;
@@ -293,6 +293,24 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
         break;
       case 'cemetery':
         placeCemetery(tiles, feature);
+        break;
+      case 'cliff_face':
+        placeCliffFace(tiles, feature);
+        break;
+      case 'farm':
+        placeFarm(tiles, feature);
+        break;
+      case 'iron_fence_border':
+        placeIronFenceBorder(tiles, feature);
+        break;
+      case 'hedge_maze':
+        placeHedgeMaze(tiles, feature);
+        break;
+      case 'cobble_plaza':
+        placeCobblePlaza(tiles, feature);
+        break;
+      case 'forest_grove':
+        placeForestGrove(tiles, feature);
         break;
     }
   }
@@ -651,6 +669,143 @@ function placeCemetery(tiles: Tile[][], f: MapFeature) {
           tiles[ty][tx] = createTile('bones', true);
         } else {
           tiles[ty][tx] = createTile('dirt', true);
+        }
+      }
+    }
+  }
+}
+
+function placeCliffFace(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        if (dy < 2) {
+          tiles[ty][tx] = createTile('cliff_edge', false);
+        } else {
+          tiles[ty][tx] = createTile('cliff', false);
+        }
+      }
+    }
+  }
+}
+
+function placeFarm(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        // Fence border
+        if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
+          if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
+            tiles[ty][tx] = createTile('gate', true);
+          } else {
+            tiles[ty][tx] = createTile('fence', false);
+          }
+        } else if (dy % 3 === 1 && dx > 1 && dx < f.width - 2) {
+          tiles[ty][tx] = createTile('wheat', true);
+        } else if (dx === Math.floor(f.width / 2) && dy === Math.floor(f.height / 2)) {
+          tiles[ty][tx] = createTile('scarecrow', false);
+        } else if ((dx + dy * 5) % 17 === 0) {
+          tiles[ty][tx] = createTile('hay_bale', false);
+        } else {
+          tiles[ty][tx] = createTile('farmland', true);
+        }
+      }
+    }
+  }
+}
+
+function placeIronFenceBorder(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
+          if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
+            tiles[ty][tx] = createTile('gate', true);
+          } else {
+            tiles[ty][tx] = createTile('iron_fence', false);
+          }
+        } else {
+          tiles[ty][tx] = createTile(f.fill || 'dirt', true);
+        }
+      }
+    }
+  }
+}
+
+function placeHedgeMaze(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        // Create maze-like hedge pattern
+        if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
+          if (dx === Math.floor(f.width / 2) && (dy === 0 || dy === f.height - 1)) {
+            tiles[ty][tx] = createTile('grass', true);
+          } else {
+            tiles[ty][tx] = createTile('hedge', false);
+          }
+        } else if ((dx % 4 === 0 && dy > 1 && dy < f.height - 2) || (dy % 4 === 0 && dx > 1 && dx < f.width - 2)) {
+          if ((dx + dy) % 8 !== 0) {
+            tiles[ty][tx] = createTile('hedge', false);
+          } else {
+            tiles[ty][tx] = createTile('grass', true);
+          }
+        } else {
+          tiles[ty][tx] = createTile('grass', true);
+        }
+      }
+    }
+  }
+}
+
+function placeCobblePlaza(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        if ((dx + dy) % 12 === 0) {
+          tiles[ty][tx] = createTile('lantern', false);
+        } else {
+          tiles[ty][tx] = createTile('cobblestone', true);
+        }
+      }
+    }
+  }
+}
+
+function placeForestGrove(tiles: Tile[][], f: MapFeature) {
+  const cx = f.x + f.width / 2;
+  const cy = f.y + f.height / 2;
+  const rx = f.width / 2;
+  const ry = f.height / 2;
+  for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++) {
+    for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
+      const tx = Math.floor(cx + dx);
+      const ty = Math.floor(cy + dy);
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        const dist = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+        if (dist < 0.3) {
+          tiles[ty][tx] = createTile('dark_grass', true);
+        } else if (dist < 0.6) {
+          if ((dx + dy) % 3 === 0) {
+            tiles[ty][tx] = createTile('tree', false);
+          } else {
+            tiles[ty][tx] = createTile('dark_grass', true);
+          }
+        } else if (dist < 1.0) {
+          if ((dx + dy) % 2 === 0) {
+            tiles[ty][tx] = createTile('tree', false);
+          } else {
+            tiles[ty][tx] = createTile('tall_grass', true);
+          }
         }
       }
     }

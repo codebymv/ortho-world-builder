@@ -1,7 +1,7 @@
 import { WorldMap } from '@/lib/game/World';
 import { generateMap, MapDefinition } from './mapGenerator';
 
-// ============= VILLAGE: 240x160 Expanded Starting Town =============
+// ============= VILLAGE: 240x160 Dense Interconnected Starting Town =============
 const villageDef: MapDefinition = {
   name: 'Greenleaf Village',
   width: 240,
@@ -11,68 +11,100 @@ const villageDef: MapDefinition = {
   baseTerrain: 'grassland',
   borderTile: 'tree',
   features: [
-    // === CENTRAL TOWN SQUARE ===
-    { x: 100, y: 70, width: 40, height: 30, type: 'clearing', fill: 'stone' },
-    // Town hall
-    { x: 112, y: 60, width: 16, height: 10, type: 'building', interactionId: 'town_hall' },
+    // ====== CLIFFSIDE (north edge) - creates elevation/depth ======
+    { x: 3, y: 3, width: 234, height: 6, type: 'cliff_face' },
+    { x: 3, y: 140, width: 100, height: 5, type: 'cliff_face' },
+    { x: 150, y: 145, width: 87, height: 5, type: 'cliff_face' },
 
-    // === RESIDENTIAL DISTRICT (west) ===
-    { x: 30, y: 55, width: 8, height: 6, type: 'building', interactionId: 'house_1' },
-    { x: 30, y: 70, width: 8, height: 6, type: 'building', interactionId: 'house_2' },
-    { x: 45, y: 60, width: 8, height: 6, type: 'building', interactionId: 'house_3' },
-    { x: 45, y: 78, width: 8, height: 6, type: 'building', interactionId: 'house_4' },
-    { x: 30, y: 88, width: 8, height: 6, type: 'building', interactionId: 'house_5' },
-    { x: 60, y: 55, width: 8, height: 6, type: 'building', interactionId: 'house_6' },
-    { x: 60, y: 70, width: 8, height: 6, type: 'building', interactionId: 'house_7' },
-    { x: 20, y: 100, width: 8, height: 6, type: 'building', interactionId: 'house_8' },
+    // ====== CENTRAL COBBLESTONE PLAZA ======
+    { x: 95, y: 68, width: 50, height: 34, type: 'cobble_plaza' },
 
-    // === MARKET DISTRICT (east) ===
-    { x: 156, y: 70, width: 8, height: 6, type: 'building', interactionId: 'shop_weapons' },
-    { x: 156, y: 84, width: 8, height: 6, type: 'building', interactionId: 'shop_potions' },
-    { x: 170, y: 76, width: 8, height: 6, type: 'building', interactionId: 'shop_armor' },
-    { x: 170, y: 90, width: 8, height: 6, type: 'building', interactionId: 'inn' },
-    { x: 185, y: 70, width: 8, height: 6, type: 'building', interactionId: 'shop_magic' },
-    { x: 185, y: 84, width: 8, height: 6, type: 'building', interactionId: 'tavern' },
+    // ====== TOWN HALL (center of plaza) ======
+    { x: 110, y: 58, width: 16, height: 10, type: 'building', interactionId: 'town_hall' },
 
-    // === GARDENS & PARKS ===
-    { x: 25, y: 110, width: 28, height: 20, type: 'garden' },
-    { x: 80, y: 120, width: 20, height: 15, type: 'garden' },
+    // ====== RESIDENTIAL DISTRICT (west) - dense housing ======
+    { x: 28, y: 50, width: 8, height: 6, type: 'building', interactionId: 'house_1' },
+    { x: 28, y: 62, width: 8, height: 6, type: 'building', interactionId: 'house_2' },
+    { x: 42, y: 55, width: 8, height: 6, type: 'building', interactionId: 'house_3' },
+    { x: 42, y: 70, width: 8, height: 6, type: 'building', interactionId: 'house_4' },
+    { x: 56, y: 50, width: 8, height: 6, type: 'building', interactionId: 'house_5' },
+    { x: 56, y: 65, width: 8, height: 6, type: 'building', interactionId: 'house_6' },
+    { x: 28, y: 78, width: 8, height: 6, type: 'building', interactionId: 'house_7' },
+    { x: 42, y: 85, width: 8, height: 6, type: 'building', interactionId: 'house_8' },
+    { x: 70, y: 55, width: 8, height: 6, type: 'building', interactionId: 'house_9' },
+    { x: 70, y: 70, width: 8, height: 6, type: 'building', interactionId: 'house_10' },
 
-    // === TRAINING GROUNDS (north-east) ===
-    { x: 170, y: 30, width: 30, height: 20, type: 'clearing', fill: 'dirt' },
+    // ====== MARKET DISTRICT (east) - shops with cobblestone ======
+    { x: 155, y: 65, width: 30, height: 18, type: 'cobble_plaza' },
+    { x: 158, y: 60, width: 8, height: 6, type: 'building', interactionId: 'shop_weapons' },
+    { x: 172, y: 60, width: 8, height: 6, type: 'building', interactionId: 'shop_potions' },
+    { x: 158, y: 84, width: 8, height: 6, type: 'building', interactionId: 'shop_armor' },
+    { x: 172, y: 84, width: 8, height: 6, type: 'building', interactionId: 'inn' },
+    { x: 188, y: 68, width: 8, height: 6, type: 'building', interactionId: 'shop_magic' },
+    { x: 188, y: 80, width: 8, height: 6, type: 'building', interactionId: 'tavern' },
 
-    // === VILLAGE LAKE (south-east) ===
-    { x: 170, y: 110, width: 36, height: 24, type: 'lake' },
+    // ====== FARM DISTRICT (south) - wheat fields with fences ======
+    { x: 20, y: 105, width: 30, height: 18, type: 'farm' },
+    { x: 55, y: 110, width: 26, height: 16, type: 'farm' },
+    { x: 130, y: 115, width: 28, height: 16, type: 'farm' },
 
-    // === GRAVEYARD (far west) ===
-    { x: 10, y: 25, width: 24, height: 18, type: 'graveyard' },
+    // ====== CEMETERY with IRON FENCING (north-west) ======
+    { x: 10, y: 15, width: 28, height: 22, type: 'iron_fence_border', fill: 'dirt' },
+    // Tombstones inside cemetery (placed after iron fence)
+    { x: 12, y: 17, width: 24, height: 18, type: 'graveyard' },
 
-    // === ELDER'S GARDEN ===
-    { x: 76, y: 40, width: 16, height: 12, type: 'garden' },
+    // ====== HEDGE GARDEN/MAZE (east of plaza) ======
+    { x: 200, y: 30, width: 28, height: 22, type: 'hedge_maze' },
 
-    // === FARM FIELDS (south) ===
-    { x: 110, y: 130, width: 40, height: 15, type: 'clearing', fill: 'dirt' },
-    { x: 60, y: 135, width: 30, height: 10, type: 'clearing', fill: 'dirt' },
+    // ====== FOREST GROVES scattered for natural feel ======
+    { x: 5, y: 90, width: 18, height: 16, type: 'forest_grove' },
+    { x: 210, y: 110, width: 22, height: 20, type: 'forest_grove' },
+    { x: 85, y: 12, width: 20, height: 14, type: 'forest_grove' },
 
-    // === ENEMY CAMPS (outskirts) ===
-    { x: 200, y: 15, width: 16, height: 12, type: 'camp', interactionId: 'bandit_camp' },
-    { x: 10, y: 135, width: 10, height: 8, type: 'camp', interactionId: 'goblin_camp' },
+    // ====== VILLAGE LAKE with surrounding trees ======
+    { x: 170, y: 110, width: 30, height: 20, type: 'lake' },
 
-    // === ABANDONED CAMP (south-west) ===
-    { x: 15, y: 120, width: 14, height: 10, type: 'abandoned_camp', interactionId: 'old_camp' },
+    // ====== TRAINING GROUNDS (north-east) ======
+    { x: 170, y: 20, width: 24, height: 16, type: 'clearing', fill: 'dirt' },
 
-    // === CEMETERY (north) ===
-    { x: 80, y: 15, width: 18, height: 14, type: 'cemetery' },
+    // ====== ELDER'S GARDEN (fenced, north of plaza) ======
+    { x: 105, y: 42, width: 14, height: 12, type: 'garden' },
 
-    // === DESTROYED OUTPOST (north-west) ===
-    { x: 10, y: 50, width: 18, height: 14, type: 'destroyed_town' },
+    // ====== PARKS & GREEN SPACES filling gaps ======
+    { x: 82, y: 95, width: 12, height: 10, type: 'garden' },
+    { x: 200, y: 95, width: 14, height: 12, type: 'garden' },
 
-    // === MAIN ROADS ===
-    { x: 116, y: 100, width: 8, height: 50, type: 'path', fill: 'dirt' },
-    { x: 30, y: 74, width: 150, height: 4, type: 'path', fill: 'dirt' },
-    { x: 116, y: 40, width: 8, height: 30, type: 'path', fill: 'dirt' },
-    { x: 60, y: 60, width: 40, height: 3, type: 'path', fill: 'dirt' },
-    { x: 150, y: 74, width: 50, height: 4, type: 'path', fill: 'dirt' },
+    // ====== ENEMY OUTPOSTS (edges) ======
+    { x: 215, y: 12, width: 16, height: 12, type: 'camp', interactionId: 'bandit_camp' },
+    { x: 5, y: 130, width: 12, height: 10, type: 'camp', interactionId: 'goblin_camp' },
+
+    // ====== DESTROYED OUTPOST (north-west, near cemetery) ======
+    { x: 45, y: 15, width: 18, height: 14, type: 'destroyed_town' },
+
+    // ====== COBBLESTONE ROADS connecting everything ======
+    // Main N-S road through center
+    { x: 116, y: 10, width: 6, height: 130, type: 'path', fill: 'cobblestone' },
+    // Main E-W road through town
+    { x: 20, y: 72, width: 200, height: 4, type: 'path', fill: 'cobblestone' },
+    // Market road
+    { x: 145, y: 72, width: 60, height: 4, type: 'path', fill: 'cobblestone' },
+    // South farm connector
+    { x: 40, y: 100, width: 100, height: 3, type: 'path', fill: 'dirt' },
+    // Residential side streets
+    { x: 28, y: 58, width: 50, height: 2, type: 'path', fill: 'dirt' },
+    { x: 28, y: 76, width: 50, height: 2, type: 'path', fill: 'dirt' },
+    // Cemetery approach
+    { x: 38, y: 25, width: 78, height: 3, type: 'path', fill: 'dirt' },
+    // North path to forest
+    { x: 116, y: 8, width: 6, height: 6, type: 'path', fill: 'cobblestone' },
+    // East path
+    { x: 196, y: 72, width: 42, height: 4, type: 'path', fill: 'dirt' },
+    // Lake path
+    { x: 160, y: 100, width: 20, height: 3, type: 'path', fill: 'dirt' },
+    // Training grounds path
+    { x: 170, y: 36, width: 24, height: 3, type: 'path', fill: 'dirt' },
+    // Garden path connecting north
+    { x: 112, y: 38, width: 4, height: 20, type: 'path', fill: 'cobblestone' },
   ],
   portals: [
     { x: 120, y: 4, targetMap: 'forest', targetX: 150, targetY: 294 },
@@ -81,32 +113,38 @@ const villageDef: MapDefinition = {
   ],
   chests: [
     { x: 70, y: 100, interactionId: 'chest_1' },
-    { x: 190, y: 45, interactionId: 'training_chest' },
-    { x: 20, y: 120, interactionId: 'garden_chest' },
+    { x: 190, y: 35, interactionId: 'training_chest' },
+    { x: 25, y: 120, interactionId: 'garden_chest' },
     { x: 140, y: 85, interactionId: 'market_chest' },
-    { x: 205, y: 20, interactionId: 'bandit_chest' },
-    { x: 50, y: 45, interactionId: 'village_hidden_chest' },
-    { x: 115, y: 140, interactionId: 'farm_chest' },
-    { x: 175, y: 120, interactionId: 'lake_chest' },
+    { x: 220, y: 18, interactionId: 'bandit_chest' },
+    { x: 50, y: 40, interactionId: 'village_hidden_chest' },
+    { x: 115, y: 130, interactionId: 'farm_chest' },
+    { x: 175, y: 115, interactionId: 'lake_chest' },
+    { x: 212, y: 42, interactionId: 'hedge_chest' },
+    { x: 35, y: 28, interactionId: 'cemetery_chest' },
   ],
   interactables: [
-    { x: 120, y: 84, type: 'well', walkable: false, interactionId: 'fountain' },
-    { x: 110, y: 100, type: 'sign', walkable: false, interactionId: 'village_sign' },
-    { x: 150, y: 74, type: 'sign', walkable: false, interactionId: 'market_sign' },
-    { x: 40, y: 68, type: 'well', walkable: false, interactionId: 'well' },
+    { x: 119, y: 82, type: 'well', walkable: false, interactionId: 'fountain' },
+    { x: 108, y: 100, type: 'sign', walkable: false, interactionId: 'village_sign' },
+    { x: 155, y: 72, type: 'sign', walkable: false, interactionId: 'market_sign' },
+    { x: 38, y: 60, type: 'well', walkable: false, interactionId: 'well' },
     { x: 180, y: 100, type: 'well', walkable: false, interactionId: 'well' },
-    { x: 80, y: 120, type: 'stump', walkable: false, interactionId: 'stump_lore' },
-    { x: 170, y: 40, type: 'sign', walkable: false, interactionId: 'training_sign' },
-    { x: 15, y: 30, type: 'tombstone', walkable: false, interactionId: 'tombstone' },
-    { x: 120, y: 135, type: 'campfire', walkable: false, interactionId: 'campfire' },
+    { x: 170, y: 30, type: 'sign', walkable: false, interactionId: 'training_sign' },
+    { x: 20, y: 30, type: 'tombstone', walkable: false, interactionId: 'tombstone' },
+    { x: 119, y: 125, type: 'campfire', walkable: false, interactionId: 'campfire' },
+    // Lanterns along main road
+    { x: 115, y: 50, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 115, y: 90, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 50, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 145, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
   ],
   secretAreas: [
     { x: 5, y: 20, width: 6, height: 4, fill: 'stone' },
     { x: 220, y: 140, width: 5, height: 4, fill: 'stone' },
   ],
   enemyZones: [
-    { x: 195, y: 10, width: 30, height: 25, enemyType: 'wolf', count: 5 },
-    { x: 5, y: 130, width: 15, height: 15, enemyType: 'wolf', count: 3 },
+    { x: 210, y: 8, width: 25, height: 20, enemyType: 'wolf', count: 5 },
+    { x: 3, y: 125, width: 15, height: 15, enemyType: 'wolf', count: 3 },
   ],
 };
 

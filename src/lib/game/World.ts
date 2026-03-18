@@ -9,7 +9,10 @@ export type TileType =
   | 'campfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
   | 'fence' | 'gate' | 'barrel' | 'crate' | 'spike_trap' | 'bones'
   | 'volcanic_rock' | 'ash' | 'ruins_floor' | 'waterfall' | 'snow'
-  | 'dead_tree' | 'destroyed_house' | 'statue';
+  | 'dead_tree' | 'destroyed_house' | 'statue'
+  | 'cliff' | 'cliff_edge' | 'cobblestone' | 'farmland' | 'wheat'
+  | 'iron_fence' | 'hedge' | 'scarecrow' | 'hay_bale' | 'lantern'
+  | 'dark_grass' | 'mossy_stone' | 'wooden_path';
 
 export interface Tile {
   type: TileType;
@@ -48,7 +51,8 @@ const OVERLAY_TYPES: Set<TileType> = new Set([
   'tree', 'house', 'rock', 'chest', 'portal', 'flower',
   'push_block', 'campfire', 'sign', 'well', 'tombstone', 'mushroom', 'stump',
   'fence', 'gate', 'barrel', 'crate', 'spike_trap', 'bones',
-  'dead_tree', 'destroyed_house', 'statue'
+  'dead_tree', 'destroyed_house', 'statue',
+  'iron_fence', 'hedge', 'scarecrow', 'hay_bale', 'lantern'
 ]);
 
 const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
@@ -74,6 +78,11 @@ const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
   house: 'dirt',
   destroyed_house: 'ruins_floor',
   statue: 'stone',
+  iron_fence: 'cobblestone',
+  hedge: 'grass',
+  scarecrow: 'farmland',
+  hay_bale: 'farmland',
+  lantern: 'cobblestone',
 };
 
 // Scale multipliers for overlay objects to make them proportionally correct
@@ -100,6 +109,11 @@ const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
   gate: 1.0,
   push_block: 1.0,
   spike_trap: 0.8,
+  iron_fence: 1.1,
+  hedge: 0.9,
+  scarecrow: 1.4,
+  hay_bale: 0.7,
+  lantern: 0.9,
 };
 
 export class World {
