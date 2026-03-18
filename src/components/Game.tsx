@@ -711,7 +711,12 @@ const Game = () => {
 
         // Update player texture based on animation state
         let texName: string;
-        if (playerAnimState === 'attack') {
+        if (state.player.damageFlashTimer > 0) {
+          // Hurt face while taking damage
+          texName = getPlayerTextureName(currentDir8, 'hurt', 0);
+        } else if (playerAnimState === 'charge') {
+          texName = getPlayerTextureName(currentDir8, 'charge', Math.min(animFrame, 2));
+        } else if (playerAnimState === 'attack') {
           texName = getPlayerTextureName(currentDir8, 'attack', Math.min(attackFrame, 2));
         } else if (playerAnimState === 'dodge') {
           texName = getPlayerTextureName(currentDir8, 'walk', animFrame);
@@ -723,8 +728,11 @@ const Game = () => {
         let newTex = assetManager.getTexture(texName);
         if (!newTex) {
           const fallbackDir = dir8to4(currentDir8);
-          const fallbackState = playerAnimState === 'dodge' ? 'walk' : playerAnimState;
-          const fallbackFrame = playerAnimState === 'attack' ? Math.min(attackFrame, 2) : animFrame;
+          const fallbackState = playerAnimState === 'dodge' ? 'walk' : 
+                               playerAnimState === 'charge' ? 'charge' : 
+                               playerAnimState === 'hurt' ? 'hurt' : playerAnimState;
+          const fallbackFrame = playerAnimState === 'attack' ? Math.min(attackFrame, 2) : 
+                               playerAnimState === 'charge' ? Math.min(animFrame, 2) : animFrame;
           texName = `player_${fallbackDir}_${fallbackState}_${fallbackFrame}`;
           newTex = assetManager.getTexture(texName);
         }
