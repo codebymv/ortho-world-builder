@@ -96,7 +96,7 @@ export class AssetManager {
     return texture;
   }
 
-  // Canvas-drawn chibi character sprite
+  // Unified pixel-art character sprite - pure fillRect, no curves
   createChibiCharacter(
     dir: 'down' | 'up' | 'left' | 'right',
     state: 'idle' | 'walk' | 'attack' | 'charge' | 'hurt' = 'idle',
@@ -112,7 +112,9 @@ export class AssetManager {
       bootColor: number; bootDark: number;
     }
   ): THREE.Texture {
-    const W = 64, H = 80;
+    // Grid-based pixel art: 16 cols x 20 rows, 4px per cell = 64x80
+    const G = 4; // grid cell size
+    const W = 16 * G, H = 20 * G;
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d')!;
@@ -124,408 +126,247 @@ export class AssetManager {
     const isSide = isLeft || isRight;
     const isUp = dir === 'up';
 
-    // Animation offsets
-    let legOffset = 0;
-    let bodyBob = 0;
-    let armAngle = 0;
-    let swordVisible = true;
-    let swordAngle = 0;
-    let squishX = 1, squishY = 1;
+    // Helper: draw a cell at grid position
+    const cell = (gx: number, gy: number, color: number) => {
+      ctx.fillStyle = hex(color);
+      ctx.fillRect(gx * G, gy * G, G, G);
+    };
 
-    if (state === 'walk') {
-      legOffset = frame === 0 ? -3 : 3;
-      bodyBob = Math.abs(legOffset) > 1 ? -1 : 0;
-    } else if (state === 'attack') {
-      if (frame === 0) { swordAngle = -0.8; armAngle = -0.5; }
-      else if (frame === 1) { swordAngle = 0.5; armAngle = 0.3; }
-      else { swordAngle = 1.5; armAngle = 0.6; }
-    } else if (state === 'charge') {
-      squishX = 1.05; squishY = 0.97;
-      swordAngle = -0.5;
-    }
+    // Animation
+    const walkLeg = state === 'walk' ? (frame === 0 ? -1 : 1) : 0;
+    const bob = state === 'walk' && Math.abs(walkLeg) > 0 ? -1 : 0;
+    const atkFrame = state === 'attack' ? frame : -1;
 
-    ctx.save();
-    ctx.translate(W / 2, H / 2);
-    ctx.scale(squishX, squishY);
-    ctx.translate(-W / 2, -H / 2);
+    // Mirror helper for side views
+    const mx = (gx: number) => isLeft ? gx : (15 - gx);
 
-    const cx = W / 2 + (isSide ? (isLeft ? 2 : -2) : 0);
-    const headY = 20 + bodyBob;
-    const bodyY = 42 + bodyBob;
-
-    // ---- CAPE (behind character) ----
-    if (!isUp || state !== 'idle') {
-      ctx.fillStyle = hex(p.capeMain);
-      if (isSide) {
-        const capeX = isLeft ? cx + 6 : cx - 14;
-        ctx.beginPath();
-        ctx.moveTo(capeX, bodyY - 6);
-        ctx.quadraticCurveTo(capeX + 4, bodyY + 20 + (state === 'walk' ? legOffset : 0), capeX + 2, bodyY + 28);
-        ctx.quadraticCurveTo(capeX - 2, bodyY + 20, capeX + 2, bodyY - 6);
-        ctx.fill();
-      } else if (isUp) {
-        // Full cape visible from back
-        ctx.beginPath();
-        ctx.moveTo(cx - 12, bodyY - 6);
-        ctx.quadraticCurveTo(cx - 14, bodyY + 24, cx - 8, bodyY + 30);
-        ctx.lineTo(cx + 8, bodyY + 30);
-        ctx.quadraticCurveTo(cx + 14, bodyY + 24, cx + 12, bodyY - 6);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = hex(p.capeDark);
-        ctx.beginPath();
-        ctx.moveTo(cx - 8, bodyY + 10);
-        ctx.quadraticCurveTo(cx, bodyY + 14, cx + 8, bodyY + 10);
-        ctx.quadraticCurveTo(cx, bodyY + 18, cx - 8, bodyY + 10);
-        ctx.fill();
+    if (isUp) {
+      // ===== BACK VIEW =====
+      // Cape
+      for (let dy = 7; dy <= 16; dy++) {
+        for (let dx = 4; dx <= 11; dx++) {
+          cell(dx, dy + bob, (dx + dy) % 3 === 0 ? p.capeDark : p.capeMain);
+        }
+      }
+      // Hair (back of head fills most)
+      for (let dy = 0; dy <= 5; dy++) {
+        const inset = dy < 2 ? 2 : 1;
+        for (let dx = 4 + inset; dx <= 11 - inset; dx++) {
+          cell(dx, dy, (dx + dy) % 4 === 0 ? p.hairLight : p.hair);
+        }
+      }
+      // Hair dark stripes
+      cell(6, 2, p.hairDark); cell(9, 3, p.hairDark); cell(7, 4, p.hairDark);
+      // Spikes
+      cell(6, 0, p.hair); cell(7, 0, p.hairLight); cell(9, 0, p.hair);
+      // Neck
+      cell(7, 6, p.skinShadow); cell(8, 6, p.skinShadow);
+      // Body
+      for (let dx = 5; dx <= 10; dx++) {
+        cell(dx, 7 + bob, p.tunicDark);
+        cell(dx, 8 + bob, p.tunicMain);
+        cell(dx, 9 + bob, p.tunicMain);
+      }
+      // Belt
+      for (let dx = 5; dx <= 10; dx++) cell(dx, 10 + bob, p.bootDark);
+      cell(7, 10 + bob, p.trimColor); cell(8, 10 + bob, p.trimColor);
+      // Tunic skirt
+      for (let dx = 5; dx <= 10; dx++) cell(dx, 11 + bob, p.tunicDark);
+      // Legs
+      const lo = walkLeg;
+      cell(6, 12 + bob, p.pantColor); cell(7, 12 + bob, p.pantColor);
+      cell(6, 13 + lo + bob, p.pantColor); cell(7, 13 + lo + bob, p.pantColor);
+      cell(6, 14 + lo + bob, p.bootColor); cell(7, 14 + lo + bob, p.bootColor);
+      cell(8, 12 + bob, p.pantColor); cell(9, 12 + bob, p.pantColor);
+      cell(8, 13 - lo + bob, p.pantColor); cell(9, 13 - lo + bob, p.pantColor);
+      cell(8, 14 - lo + bob, p.bootColor); cell(9, 14 - lo + bob, p.bootColor);
+    } else if (isSide) {
+      // ===== SIDE VIEW =====
+      const m = mx;
+      // Cape behind
+      for (let dy = 7; dy <= 14; dy++) {
+        cell(m(10), dy + bob, p.capeMain);
+        cell(m(11), dy + bob, p.capeDark);
+        if (dy > 9) cell(m(12), dy + bob, p.capeDark);
+      }
+      // Sword
+      if (atkFrame >= 1) {
+        cell(m(3), 4 + bob, 0xD8E0E8); cell(m(3), 3 + bob, 0xD8E0E8); cell(m(3), 2 + bob, 0xF0F4FF);
+        cell(m(3), 5 + bob, p.trimColor);
       } else {
-        // Small cape peeks from behind (front view)
-        ctx.fillStyle = hex(p.capeDark);
-        ctx.fillRect(cx - 14, bodyY - 4, 3, 20);
-        ctx.fillRect(cx + 11, bodyY - 4, 3, 20);
+        cell(m(4), 8 + bob, 0xD8E0E8); cell(m(4), 7 + bob, 0xD8E0E8); cell(m(4), 6 + bob, 0xF0F4FF);
+        cell(m(4), 9 + bob, p.trimColor);
       }
-    }
-
-    // ---- SWORD (behind for some frames) ----
-    if (swordVisible && !isUp) {
-      ctx.save();
-      const swordX = isSide ? (isLeft ? cx - 14 : cx + 14) : cx - 14;
-      const swordY = bodyY + 2;
-      ctx.translate(swordX, swordY);
-      ctx.rotate(swordAngle * (isRight ? -1 : 1));
-      // Blade
-      ctx.fillStyle = hex(0xD8E0E8);
-      ctx.fillRect(-1, -22, 3, 18);
-      ctx.fillStyle = hex(0xF0F4FF);
-      ctx.fillRect(0, -22, 1, 18);
-      // Guard
-      ctx.fillStyle = hex(p.trimColor);
-      ctx.fillRect(-3, -4, 7, 2);
-      // Grip
-      ctx.fillStyle = hex(0x5A3020);
-      ctx.fillRect(0, -2, 2, 6);
-      // Pommel
-      ctx.fillStyle = hex(p.trimColor);
-      ctx.beginPath();
-      ctx.arc(1, 5, 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // ---- LEGS ----
-    const legSpread = isSide ? 2 : 5;
-    const leftLegX = cx - legSpread;
-    const rightLegX = cx + legSpread - (isSide ? 1 : 0);
-    const legTop = bodyY + 14;
-
-    // Left leg
-    ctx.fillStyle = hex(p.pantColor);
-    ctx.fillRect(leftLegX - 2, legTop + (state === 'walk' ? legOffset : 0), 5, 10);
-    ctx.fillStyle = hex(p.bootColor);
-    ctx.fillRect(leftLegX - 3, legTop + 9 + (state === 'walk' ? legOffset : 0), 7, 5);
-    ctx.fillStyle = hex(p.trimColor);
-    ctx.fillRect(leftLegX - 3, legTop + 9 + (state === 'walk' ? legOffset : 0), 7, 1);
-
-    if (!isSide) {
-      // Right leg
-      ctx.fillStyle = hex(p.pantColor);
-      ctx.fillRect(rightLegX - 2, legTop + (state === 'walk' ? -legOffset : 0), 5, 10);
-      ctx.fillStyle = hex(p.bootColor);
-      ctx.fillRect(rightLegX - 3, legTop + 9 + (state === 'walk' ? -legOffset : 0), 7, 5);
-      ctx.fillStyle = hex(p.trimColor);
-      ctx.fillRect(rightLegX - 3, legTop + 9 + (state === 'walk' ? -legOffset : 0), 7, 1);
-    }
-
-    // ---- BODY / TUNIC ----
-    // Tunic body
-    ctx.fillStyle = hex(p.tunicMain);
-    const tunicW = isSide ? 14 : 18;
-    const tunicX = cx - tunicW / 2;
-    ctx.beginPath();
-    ctx.moveTo(tunicX, bodyY - 4);
-    ctx.lineTo(tunicX + tunicW, bodyY - 4);
-    ctx.lineTo(tunicX + tunicW + 2, bodyY + 16);
-    ctx.lineTo(tunicX - 2, bodyY + 16);
-    ctx.closePath();
-    ctx.fill();
-
-    // Tunic highlight
-    ctx.fillStyle = hex(p.tunicLight);
-    ctx.fillRect(cx - 3, bodyY - 2, 6, 12);
-
-    // Gold trim lines
-    ctx.fillStyle = hex(p.trimColor);
-    ctx.fillRect(tunicX, bodyY - 4, tunicW, 2); // top trim
-    ctx.fillRect(cx - 1, bodyY - 2, 2, 14); // center seam
-
-    // Belt
-    ctx.fillStyle = hex(p.bootDark);
-    ctx.fillRect(tunicX + 1, bodyY + 10, tunicW - 2, 3);
-    ctx.fillStyle = hex(p.trimColor);
-    ctx.fillRect(cx - 2, bodyY + 10, 4, 3); // buckle
-
-    // ---- ARMS ----
-    if (!isUp) {
-      // Left arm
-      ctx.fillStyle = hex(p.tunicDark);
-      const armX1 = isSide ? (isLeft ? cx - tunicW/2 - 3 : cx - tunicW/2 + 1) : cx - tunicW/2 - 4;
-      ctx.fillRect(armX1, bodyY - 2, 5, 12);
-      ctx.fillStyle = hex(p.skinShadow);
-      ctx.fillRect(armX1 + 1, bodyY + 9, 3, 4);
-
-      if (!isSide) {
-        // Right arm
-        ctx.fillStyle = hex(p.tunicDark);
-        ctx.fillRect(cx + tunicW/2 - 1, bodyY - 2, 5, 12);
-        ctx.fillStyle = hex(p.skinShadow);
-        ctx.fillRect(cx + tunicW/2, bodyY + 9, 3, 4);
+      // Hair back
+      cell(m(9), 0, p.hairDark); cell(m(10), 1, p.hairDark); cell(m(10), 2, p.hairDark);
+      // Head
+      for (let dy = 1; dy <= 5; dy++) {
+        for (let dx = 5; dx <= 9; dx++) cell(m(dx), dy, p.skin);
       }
-    }
-
-    // ---- HEAD ----
-    const headR = 14;
-
-    // Hair back volume (behind head)
-    ctx.fillStyle = hex(p.hairDark);
-    ctx.beginPath();
-    ctx.ellipse(cx, headY - 2, headR + 3, headR + 2, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Head shape (skin circle)
-    if (!isUp) {
-      ctx.fillStyle = hex(p.skin);
-      ctx.beginPath();
-      ctx.ellipse(cx, headY, headR - 1, headR, 0, 0, Math.PI * 2);
-      ctx.fill();
-
       // Skin highlight
-      ctx.fillStyle = hex(p.skinLight);
-      ctx.beginPath();
-      ctx.ellipse(cx - 2, headY - 3, headR - 5, headR - 5, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // ---- HAIR ----
-    ctx.fillStyle = hex(p.hair);
-    // Top hair volume
-    ctx.beginPath();
-    ctx.ellipse(cx, headY - 6, headR + 1, 10, 0, Math.PI, Math.PI * 2);
-    ctx.fill();
-
-    // Hair highlight
-    ctx.fillStyle = hex(p.hairLight);
-    ctx.beginPath();
-    ctx.ellipse(cx + 2, headY - 9, 6, 4, 0.2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Spiky hair tufts
-    ctx.fillStyle = hex(p.hair);
-    // Center spike
-    ctx.beginPath();
-    ctx.moveTo(cx - 3, headY - 14);
-    ctx.lineTo(cx + 1, headY - 20);
-    ctx.lineTo(cx + 4, headY - 14);
-    ctx.fill();
-    // Left spike
-    ctx.beginPath();
-    ctx.moveTo(cx - 8, headY - 11);
-    ctx.lineTo(cx - 6, headY - 18);
-    ctx.lineTo(cx - 2, headY - 13);
-    ctx.fill();
-    // Right spike
-    ctx.beginPath();
-    ctx.moveTo(cx + 2, headY - 13);
-    ctx.lineTo(cx + 7, headY - 17);
-    ctx.lineTo(cx + 9, headY - 10);
-    ctx.fill();
-
-    // Bangs
-    if (!isUp) {
-      ctx.fillStyle = hex(p.hair);
-      if (isSide) {
-        const bangDir = isLeft ? -1 : 1;
-        ctx.beginPath();
-        ctx.moveTo(cx - bangDir * 10, headY - 8);
-        ctx.quadraticCurveTo(cx - bangDir * 8, headY + 2, cx - bangDir * 4, headY + 4);
-        ctx.lineTo(cx - bangDir * 2, headY - 2);
-        ctx.quadraticCurveTo(cx - bangDir * 6, headY - 4, cx - bangDir * 10, headY - 8);
-        ctx.fill();
-        // Side hair strand
-        ctx.fillStyle = hex(p.hairDark);
-        ctx.beginPath();
-        ctx.moveTo(cx + bangDir * 8, headY - 2);
-        ctx.quadraticCurveTo(cx + bangDir * 12, headY + 10, cx + bangDir * 10, headY + 20);
-        ctx.lineTo(cx + bangDir * 8, headY + 18);
-        ctx.quadraticCurveTo(cx + bangDir * 10, headY + 8, cx + bangDir * 6, headY);
-        ctx.fill();
+      cell(m(6), 2, p.skinLight); cell(m(7), 2, p.skinLight);
+      // Hair top
+      for (let dx = 5; dx <= 9; dx++) cell(m(dx), 0, (dx % 2 === 0) ? p.hairLight : p.hair);
+      cell(m(6), 0, p.hairLight);
+      // Spike
+      cell(m(7), -1 < 0 ? 0 : 0, p.hair);
+      // Hair front bang
+      cell(m(5), 1, p.hair); cell(m(5), 2, p.hair); cell(m(5), 3, p.hairDark);
+      // Hair back
+      cell(m(9), 1, p.hair); cell(m(9), 2, p.hairDark); cell(m(9), 3, p.hairDark);
+      cell(m(9), 4, p.hairDark);
+      // Eye
+      cell(m(6), 3, 0xFFFFFF); cell(m(7), 3, p.eyeIris);
+      if (state === 'charge') cell(m(7), 3, 0xFFD700);
+      if (state !== 'hurt') cell(m(7), 3, p.eyeIrisDark);
+      cell(m(6), 3, 0xFFFFFF); // white visible
+      // Eyebrow
+      cell(m(6), 2, p.hairDark); cell(m(7), 2, p.hairDark);
+      // Re-draw skin highlight on forehead
+      cell(m(7), 1, p.skinLight);
+      // Mouth
+      if (state === 'attack') {
+        cell(m(6), 5, 0xB03020);
       } else {
-        // Front bangs - swept
-        ctx.beginPath();
-        ctx.moveTo(cx - 12, headY - 6);
-        ctx.quadraticCurveTo(cx - 10, headY + 3, cx - 6, headY + 4);
-        ctx.lineTo(cx - 4, headY - 1);
-        ctx.quadraticCurveTo(cx - 8, headY - 2, cx - 12, headY - 6);
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(cx + 12, headY - 6);
-        ctx.quadraticCurveTo(cx + 10, headY + 2, cx + 7, headY + 3);
-        ctx.lineTo(cx + 5, headY - 1);
-        ctx.quadraticCurveTo(cx + 8, headY - 2, cx + 12, headY - 6);
-        ctx.fill();
-        
-        // Center bang wisps
-        ctx.fillStyle = hex(p.hairDark);
-        ctx.beginPath();
-        ctx.moveTo(cx - 3, headY - 6);
-        ctx.quadraticCurveTo(cx, headY - 2, cx + 3, headY - 6);
-        ctx.lineTo(cx + 1, headY - 8);
-        ctx.lineTo(cx - 1, headY - 8);
-        ctx.fill();
+        cell(m(6), 5, p.skinShadow);
       }
+      // Neck
+      cell(m(7), 6, p.skinShadow); cell(m(8), 6, p.skinShadow);
+      // Body
+      for (let dy = 7; dy <= 10; dy++) {
+        for (let dx = 6; dx <= 9; dx++) {
+          cell(m(dx), dy + bob, dy === 7 ? p.tunicLight : p.tunicMain);
+        }
+      }
+      // Trim
+      cell(m(7), 7 + bob, p.trimColor); cell(m(8), 7 + bob, p.trimColor);
+      cell(m(7), 8 + bob, p.trimColor); // center seam
+      // Belt
+      for (let dx = 6; dx <= 9; dx++) cell(m(dx), 10 + bob, p.bootDark);
+      cell(m(7), 10 + bob, p.trimColor);
+      // Arm
+      cell(m(5), 7 + bob, p.tunicDark); cell(m(5), 8 + bob, p.tunicDark);
+      cell(m(5), 9 + bob, p.skinShadow);
+      // Tunic skirt
+      cell(m(6), 11 + bob, p.tunicDark); cell(m(7), 11 + bob, p.tunicDark);
+      cell(m(8), 11 + bob, p.tunicDark);
+      // Legs
+      cell(m(7), 12 + bob, p.pantColor); cell(m(8), 12 + bob, p.pantColor);
+      cell(m(7), 13 + walkLeg + bob, p.pantColor); cell(m(8), 13 - walkLeg + bob, p.pantColor);
+      cell(m(7), 14 + walkLeg + bob, p.bootColor); cell(m(8), 14 - walkLeg + bob, p.bootColor);
     } else {
-      // Back of head - full hair coverage
-      ctx.fillStyle = hex(p.hair);
-      ctx.beginPath();
-      ctx.ellipse(cx, headY, headR, headR + 1, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // Hair texture lines
-      ctx.strokeStyle = hex(p.hairDark);
-      ctx.lineWidth = 1;
-      for (let i = -2; i <= 2; i++) {
-        ctx.beginPath();
-        ctx.moveTo(cx + i * 4, headY - 10);
-        ctx.quadraticCurveTo(cx + i * 3, headY + 5, cx + i * 5, headY + 14);
-        ctx.stroke();
-      }
-    }
+      // ===== FRONT VIEW =====
+      // Cape peeks behind
+      cell(4, 8 + bob, p.capeDark); cell(11, 8 + bob, p.capeDark);
+      cell(4, 9 + bob, p.capeDark); cell(11, 9 + bob, p.capeDark);
+      cell(4, 10 + bob, p.capeDark); cell(11, 10 + bob, p.capeDark);
 
-    // ---- FACE (front/side only) ----
-    if (!isUp) {
-      if (isSide) {
-        const eyeX = isLeft ? cx - 4 : cx + 4;
-        const eyeDir = isLeft ? -1 : 1;
-
-        // Eye - sharp angular style
-        // Outer eye shape (dark outline)
-        ctx.fillStyle = hex(p.hairDark);
-        ctx.fillRect(eyeX - eyeDir * 5, headY - 4, 8, 1); // top lid line
-        ctx.fillRect(eyeX - eyeDir * 5, headY + 3, 8, 1); // bottom lid line
-
-        // Eye white
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(eyeX - eyeDir * 4, headY - 3, 6, 6);
-
-        // Iris - positioned slightly forward
-        ctx.fillStyle = state === 'charge' ? hex(0xFFD700) : state === 'hurt' ? hex(0x666666) : hex(p.eyeIris);
-        ctx.fillRect(eyeX - eyeDir * 3, headY - 2, 4, 5);
-
-        // Pupil
-        if (state !== 'hurt') {
-          ctx.fillStyle = '#000000';
-          ctx.fillRect(eyeX - eyeDir * 2, headY - 1, 2, 3);
-        }
-
-        // Highlight pixel
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(eyeX - eyeDir * 3, headY - 2, 1, 1);
-
-        // Eyebrow - thick, angled down (fierce)
-        ctx.fillStyle = hex(p.hairDark);
-        ctx.fillRect(eyeX + eyeDir * 2, headY - 8, 2, 2);
-        ctx.fillRect(eyeX + eyeDir * 0, headY - 7, 2, 2);
-        ctx.fillRect(eyeX - eyeDir * 2, headY - 6, 2, 2);
-        ctx.fillRect(eyeX - eyeDir * 4, headY - 6, 2, 2);
-
-        // Nose - small angular
-        ctx.fillStyle = hex(p.skinShadow);
-        ctx.fillRect(eyeX - eyeDir * 6, headY + 2, 2, 2);
-
-        // Mouth - firm, determined
-        if (state === 'attack' || state === 'charge') {
-          ctx.fillStyle = hex(0xB03020);
-          ctx.fillRect(eyeX - eyeDir * 5, headY + 7, 4, 2);
-          ctx.fillStyle = hex(0x801818);
-          ctx.fillRect(eyeX - eyeDir * 4, headY + 8, 2, 1);
-        } else if (state === 'hurt') {
-          ctx.fillStyle = hex(p.skinShadow);
-          ctx.fillRect(eyeX - eyeDir * 5, headY + 7, 2, 1);
-          ctx.fillRect(eyeX - eyeDir * 2, headY + 8, 2, 1);
-        } else {
-          // Firm straight mouth - 2px line
-          ctx.fillStyle = hex(p.skinShadow);
-          ctx.fillRect(eyeX - eyeDir * 5, headY + 7, 5, 1);
-        }
-
+      // Sword (left side)
+      if (atkFrame >= 1) {
+        cell(3, 3 + bob, 0xF0F4FF); cell(3, 4 + bob, 0xD8E0E8); cell(3, 5 + bob, 0xD8E0E8);
+        cell(3, 6 + bob, p.trimColor);
       } else {
-        // FRONT VIEW - Two eyes, stoic warrior pixel style
-        const eyeSpacing = 7;
-        const eyeY = headY - 1;
+        cell(4, 7 + bob, 0xD8E0E8); cell(4, 6 + bob, 0xF0F4FF);
+        cell(4, 8 + bob, p.trimColor);
+      }
 
-        for (let side = -1; side <= 1; side += 2) {
-          const eyeX = cx + side * eyeSpacing;
+      // Hair (top rows)
+      for (let dx = 5; dx <= 10; dx++) cell(dx, 0, p.hair);
+      cell(6, 0, p.hairLight); cell(8, 0, p.hairLight);
+      // Spikes
+      cell(6, 0, p.hairLight); cell(9, 0, p.hair);
+      // Hair volume row 1
+      for (let dx = 4; dx <= 11; dx++) cell(dx, 1, (dx % 3 === 0) ? p.hairLight : p.hair);
 
-          // Eye outline (top and bottom lid)
-          ctx.fillStyle = hex(p.hairDark);
-          ctx.fillRect(eyeX - 4, eyeY - 4, 8, 1);
-          ctx.fillRect(eyeX - 4, eyeY + 3, 8, 1);
-
-          // Eye white
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(eyeX - 3, eyeY - 3, 6, 6);
-
-          // Iris
-          ctx.fillStyle = state === 'charge' ? hex(0xFFD700) : state === 'hurt' ? hex(0x666666) : hex(p.eyeIris);
-          ctx.fillRect(eyeX - 2, eyeY - 2, 4, 5);
-
-          // Pupil
-          if (state !== 'hurt') {
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(eyeX - 1, eyeY - 1, 2, 3);
-          }
-
-          // Highlight pixel (top-left of iris)
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(eyeX - 2, eyeY - 2, 1, 1);
-
-          // Eyebrow - angled inward (fierce/determined)
-          ctx.fillStyle = hex(p.hairDark);
-          ctx.fillRect(eyeX - side * 4, headY - 8, 2, 2);
-          ctx.fillRect(eyeX - side * 2, headY - 7, 2, 2);
-          ctx.fillRect(eyeX + side * 0, headY - 7, 2, 2);
-          ctx.fillRect(eyeX + side * 2, headY - 6, 2, 2);
+      // Face
+      for (let dy = 2; dy <= 5; dy++) {
+        const inset = dy === 2 ? 1 : 0;
+        for (let dx = 5 + inset; dx <= 10 - inset; dx++) {
+          cell(dx, dy, p.skin);
         }
+      }
+      // Skin highlight
+      cell(6, 2, p.skinLight); cell(7, 2, p.skinLight); cell(8, 2, p.skinLight);
+      // Hair sides
+      cell(4, 2, p.hair); cell(11, 2, p.hair);
+      cell(4, 3, p.hairDark); cell(11, 3, p.hairDark);
+      cell(4, 4, p.hairDark); cell(11, 4, p.hairDark);
 
-        // Nose - small triangle
-        ctx.fillStyle = hex(p.skinShadow);
-        ctx.fillRect(cx - 1, headY + 2, 2, 2);
+      // Eyes (row 3)
+      cell(6, 3, 0xFFFFFF); cell(7, 3, state === 'charge' ? 0xFFD700 : p.eyeIris);
+      cell(9, 3, state === 'charge' ? 0xFFD700 : p.eyeIris); cell(8, 3, 0xFFFFFF);
+      // Pupils
+      if (state !== 'hurt') {
+        cell(7, 3, p.eyeIrisDark);
+        cell(9, 3, p.eyeIrisDark);
+      }
+      // Re-draw whites to be visible
+      cell(6, 3, 0xFFFFFF); cell(10, 3, 0xFFFFFF);
 
-        // Mouth
-        if (state === 'attack' || state === 'charge') {
-          ctx.fillStyle = hex(0xB03020);
-          ctx.fillRect(cx - 3, headY + 7, 6, 3);
-          ctx.fillStyle = hex(0x801818);
-          ctx.fillRect(cx - 2, headY + 8, 4, 2);
-        } else if (state === 'hurt') {
-          ctx.fillStyle = hex(p.skinShadow);
-          ctx.fillRect(cx - 3, headY + 8, 2, 1);
-          ctx.fillRect(cx + 1, headY + 8, 2, 1);
-        } else {
-          // Firm straight mouth
-          ctx.fillStyle = hex(p.skinShadow);
-          ctx.fillRect(cx - 3, headY + 7, 6, 1);
-          // Slight shadow below
-          ctx.fillStyle = `rgba(0,0,0,0.1)`;
-          ctx.fillRect(cx - 2, headY + 8, 4, 1);
+      // Eyebrows (row 2, over skin)
+      cell(6, 2, p.hairDark); cell(7, 2, p.hairDark);
+      cell(9, 2, p.hairDark); cell(10, 2, p.hairDark);
+
+      // Nose
+      cell(8, 4, p.skinShadow);
+
+      // Mouth
+      if (state === 'attack' || state === 'charge') {
+        cell(7, 5, 0xB03020); cell(8, 5, 0xB03020);
+      } else if (state === 'hurt') {
+        cell(7, 5, p.skinShadow); cell(8, 5, p.skinShadow);
+      } else {
+        cell(7, 5, p.skinShadow); cell(8, 5, p.skinShadow);
+      }
+
+      // Neck
+      cell(7, 6, p.skinShadow); cell(8, 6, p.skinShadow);
+
+      // Body / Tunic
+      for (let dx = 5; dx <= 10; dx++) {
+        cell(dx, 7 + bob, p.tunicLight);
+        cell(dx, 8 + bob, p.tunicMain);
+        cell(dx, 9 + bob, p.tunicMain);
+      }
+      // Trim
+      cell(7, 7 + bob, p.trimColor); cell(8, 7 + bob, p.trimColor);
+      cell(7, 8 + bob, p.trimColor); cell(8, 8 + bob, p.trimColor);
+      // Arms
+      cell(4, 7 + bob, p.tunicDark); cell(4, 8 + bob, p.tunicDark); cell(4, 9 + bob, p.skinShadow);
+      cell(11, 7 + bob, p.tunicDark); cell(11, 8 + bob, p.tunicDark); cell(11, 9 + bob, p.skinShadow);
+      // Belt
+      for (let dx = 5; dx <= 10; dx++) cell(dx, 10 + bob, p.bootDark);
+      cell(7, 10 + bob, p.trimColor); cell(8, 10 + bob, p.trimColor);
+      // Tunic skirt
+      for (let dx = 5; dx <= 10; dx++) cell(dx, 11 + bob, p.tunicDark);
+
+      // Legs
+      const lo = walkLeg;
+      cell(6, 12 + bob, p.pantColor); cell(7, 12 + bob, p.pantColor);
+      cell(6, 13 + lo + bob, p.pantColor); cell(7, 13 + lo + bob, p.pantColor);
+      cell(6, 14 + lo + bob, p.bootColor); cell(7, 14 + lo + bob, p.bootColor);
+      cell(8, 12 + bob, p.pantColor); cell(9, 12 + bob, p.pantColor);
+      cell(8, 13 - lo + bob, p.pantColor); cell(9, 13 - lo + bob, p.pantColor);
+      cell(8, 14 - lo + bob, p.bootColor); cell(9, 14 - lo + bob, p.bootColor);
+      // Boot trim
+      cell(6, 14 + lo + bob, p.bootDark); cell(9, 14 - lo + bob, p.bootDark);
+    }
+
+    // Per-pixel highlight/shadow pass
+    const imgData = ctx.getImageData(0, 0, W, H);
+    for (let y = 0; y < H; y += G) {
+      for (let x = 0; x < W; x += G) {
+        const i = (y * W + x) * 4;
+        if (imgData.data[i + 3] > 0) {
+          // Top-left highlight
+          ctx.fillStyle = 'rgba(255,255,255,0.12)';
+          ctx.fillRect(x, y, 1, 1);
+          // Bottom-right shadow
+          ctx.fillStyle = 'rgba(0,0,0,0.1)';
+          ctx.fillRect(x + G - 1, y + G - 1, 1, 1);
         }
       }
     }
-
-    // ---- NECK ----
-    ctx.fillStyle = hex(p.skinShadow);
-    ctx.fillRect(cx - 3, headY + headR - 4, 6, 6);
-
-    ctx.restore();
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.magFilter = THREE.NearestFilter;
