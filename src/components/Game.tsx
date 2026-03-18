@@ -1678,16 +1678,20 @@ const Game = () => {
 
     animate();
 
-    setTimeout(() => {
-      toast("The Village Elder looks deeply troubled...", {
-        description: "Perhaps you should speak with him. (Press E to interact)",
-        icon: "📜",
-        duration: 8000,
-        className: "rpg-toast",
-      });
-      // Ping the Elder's location on the minimap
-      addMarkersFromText("Village Elder", state.currentMap);
-    }, 1000);
+    if (!savedData) {
+      setTimeout(() => {
+        toast("The Village Elder looks deeply troubled...", {
+          description: "Perhaps you should speak with him. (Press E to interact)",
+          icon: "📜",
+          duration: 8000,
+          className: "rpg-toast",
+        });
+        // Ping the Elder's location on the minimap
+        addMarkersFromText("Village Elder", state.currentMap);
+      }, 1000);
+    } else {
+      toast("Progress restored.", { icon: "💾", duration: 3000, className: "rpg-toast" });
+    }
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
