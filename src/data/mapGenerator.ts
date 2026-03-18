@@ -335,39 +335,80 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 }
 
 const HOUSE_VARIANTS: TileType[] = ['house', 'house_blue', 'house_green', 'house_thatch'];
+const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch']);
+const MIN_BUILDING_SPACING = 5; // minimum tiles between any two buildings
+
+function isBuildingNearby(tiles: Tile[][], fx: number, fy: number, fw: number, fh: number): boolean {
+  const checkPad = MIN_BUILDING_SPACING;
+  const h = tiles.length;
+  const w = tiles[0].length;
+  for (let dy = -checkPad; dy < fh + checkPad; dy++) {
+    for (let dx = -checkPad; dx < fw + checkPad; dx++) {
+      // Skip the building's own footprint
+      if (dx >= 0 && dx < fw && dy >= 0 && dy < fh) continue;
+      const tx = fx + dx;
+      const ty = fy + dy;
+      if (ty >= 0 && ty < h && tx >= 0 && tx < w) {
+        if (HOUSE_TYPES.has(tiles[ty][tx].type)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function isOnInvalidTerrain(tiles: Tile[][], fx: number, fy: number, fw: number, fh: number): boolean {
+  const h = tiles.length;
+  const w = tiles[0].length;
+  const BAD_TERRAIN: Set<TileType> = new Set(['water', 'lava', 'swamp', 'ice', 'waterfall']);
+  let badCount = 0;
+  let total = 0;
+  for (let dy = -1; dy < fh + 1; dy++) {
+    for (let dx = -1; dx < fw + 1; dx++) {
+      const tx = fx + dx;
+      const ty = fy + dy;
+      if (ty >= 0 && ty < h && tx >= 0 && tx < w) {
+        total++;
+        if (BAD_TERRAIN.has(tiles[ty][tx].type)) badCount++;
+      }
+    }
+  }
+  // Skip if more than 20% of footprint+border is bad terrain
+  return badCount / total > 0.2;
+}
 
 function placeBuilding(tiles: Tile[][], f: MapFeature) {
+  // Skip if this building would be on water/lava or too close to another building
+  if (isOnInvalidTerrain(tiles, f.x, f.y, f.width, f.height)) return;
+  if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
+
   // Pick a deterministic house variant based on position
   const variant = HOUSE_VARIANTS[(f.x * 7 + f.y * 13) % HOUSE_VARIANTS.length];
   
-  // First, clear a yard around the building (2-tile border of grass)
-  const yardPad = 2;
+  // First, clear a yard around the building (3-tile border of grass)
+  const yardPad = 3;
   for (let dy = -yardPad; dy < f.height + yardPad; dy++) {
     for (let dx = -yardPad; dx < f.width + yardPad; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         const existing = tiles[ty][tx];
-        // Don't overwrite other buildings, portals, chests, or interactables
-        if (existing.type === 'house' || existing.type === 'house_blue' || 
-            existing.type === 'house_green' || existing.type === 'house_thatch' ||
-            existing.type === 'portal' || existing.type === 'chest' || existing.interactable) continue;
-        // Clear water, trees, rocks from yard
-        if (!existing.walkable || existing.type === 'water' || existing.type === 'tree' || existing.type === 'rock') {
+        if (HOUSE_TYPES.has(existing.type) || existing.type === 'portal' || 
+            existing.type === 'chest' || existing.interactable) continue;
+        if (!existing.walkable || existing.type === 'water' || existing.type === 'tree' || 
+            existing.type === 'rock' || existing.type === 'swamp') {
           tiles[ty][tx] = createTile('grass', true);
         }
       }
     }
   }
 
-  // Place the actual building
+  // Place the actual building (only top rows are house tiles)
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
-          // Door - walkable dirt tile in front
           tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId });
         } else if (dy === 0 || dy === 1) {
           tiles[ty][tx] = createTile(variant, false);
@@ -378,12 +419,13 @@ function placeBuilding(tiles: Tile[][], f: MapFeature) {
     }
   }
 
-  // Place a small dirt path leading from the door
+  // Place a dirt path leading from the door
   const doorX = f.x + Math.floor(f.width / 2);
-  for (let dy = 1; dy <= 3; dy++) {
+  for (let dy = 1; dy <= 4; dy++) {
     const ty = f.y + f.height - 1 + dy;
     if (ty >= 0 && ty < tiles.length && doorX >= 0 && doorX < tiles[0].length) {
-      if (tiles[ty][doorX].walkable || tiles[ty][doorX].type === 'grass') {
+      const existing = tiles[ty][doorX];
+      if (existing.walkable || existing.type === 'grass' || existing.type === 'tall_grass') {
         tiles[ty][doorX] = createTile('dirt', true);
       }
     }
