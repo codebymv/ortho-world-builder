@@ -45,7 +45,7 @@ const RENDER_RADIUS = 18; // tiles around the player to render
 const OVERLAY_TYPES: Set<TileType> = new Set([
   'tree', 'house', 'rock', 'chest', 'portal', 'flower',
   'push_block', 'campfire', 'sign', 'well', 'tombstone', 'mushroom', 'stump',
-  'fence', 'gate', 'barrel', 'crate'
+  'fence', 'gate', 'barrel', 'crate', 'spike_trap', 'bones'
 ]);
 
 export class World {
