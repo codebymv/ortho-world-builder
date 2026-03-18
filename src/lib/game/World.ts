@@ -179,8 +179,10 @@ export class World {
       }
     }
 
+    // Cull with a larger radius than render to prevent flicker at edges
     for (const [key, object] of this.activeMeshes) {
-      if (!neededKeys.has(key)) {
+      const [kx, ky] = key.split(',').map(Number);
+      if (Math.abs(kx - centerTileX) > CULL_RADIUS || Math.abs(ky - centerTileY) > CULL_RADIUS) {
         this.scene.remove(object);
         this.recycleObject(object);
         this.activeMeshes.delete(key);
