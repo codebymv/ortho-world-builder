@@ -10,10 +10,77 @@ interface DialogueBoxProps {
   onClose: () => void;
 }
 
+// Renders text with **bold** and __underline__ markup
+const RichText = ({ text }: { text: string }) => {
+  // Parse **bold** and __underline__ markers
+  const parts: { text: string; bold?: boolean; underline?: boolean }[] = [];
+  let remaining = text;
+
+  while (remaining.length > 0) {
+    // Find next marker
+    const boldIdx = remaining.indexOf('**');
+    const underIdx = remaining.indexOf('__');
+
+    let nextIdx = -1;
+    let marker = '';
+    if (boldIdx >= 0 && (underIdx < 0 || boldIdx <= underIdx)) {
+      nextIdx = boldIdx;
+      marker = '**';
+    } else if (underIdx >= 0) {
+      nextIdx = underIdx;
+      marker = '__';
+    }
+
+    if (nextIdx < 0) {
+      parts.push({ text: remaining });
+      break;
+    }
+
+    // Text before marker
+    if (nextIdx > 0) {
+      parts.push({ text: remaining.slice(0, nextIdx) });
+    }
+
+    // Find closing marker
+    const closeIdx = remaining.indexOf(marker, nextIdx + marker.length);
+    if (closeIdx < 0) {
+      parts.push({ text: remaining.slice(nextIdx) });
+      break;
+    }
+
+    const inner = remaining.slice(nextIdx + marker.length, closeIdx);
+    parts.push({
+      text: inner,
+      bold: marker === '**',
+      underline: marker === '__',
+    });
+
+    remaining = remaining.slice(closeIdx + marker.length);
+    continue;
+  }
+
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.bold) {
+          return <span key={i} className="font-bold text-[#FFD700]">{part.text}</span>;
+        }
+        if (part.underline) {
+          return <span key={i} className="underline decoration-[#DAA520] underline-offset-2 text-[#E8D5B5]">{part.text}</span>;
+        }
+        return <span key={i}>{part.text}</span>;
+      })}
+    </>
+  );
+};
+
 export const DialogueBox = ({ node, npcName, npcScreenPos, onResponse, onClose }: DialogueBoxProps) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Strip markers for character counting during typewriter
+  const stripMarkers = (text: string) => text.replace(/\*\*|__/g, '');
 
   useEffect(() => {
     if (!node) return;
@@ -24,13 +91,27 @@ export const DialogueBox = ({ node, npcName, npcScreenPos, onResponse, onClose }
 
   useEffect(() => {
     if (!node || !isTyping) return;
-    if (currentIndex < node.text.length) {
+    const fullText = node.text;
+    const stripped = stripMarkers(fullText);
+    if (currentIndex < stripped.length) {
       const timeout = setTimeout(() => {
-        setDisplayedText(node.text.slice(0, currentIndex + 1));
+        // Map stripped index back to raw text position
+        let rawPos = 0;
+        let visibleCount = 0;
+        while (visibleCount <= currentIndex && rawPos < fullText.length) {
+          if (fullText.startsWith('**', rawPos) || fullText.startsWith('__', rawPos)) {
+            rawPos += 2;
+            continue;
+          }
+          visibleCount++;
+          rawPos++;
+        }
+        setDisplayedText(fullText.slice(0, rawPos));
         setCurrentIndex(currentIndex + 1);
-      }, 15); // Faster typing
+      }, 15);
       return () => clearTimeout(timeout);
     } else {
+      setDisplayedText(fullText);
       setIsTyping(false);
     }
   }, [currentIndex, isTyping, node]);
@@ -88,7 +169,7 @@ export const DialogueBox = ({ node, npcName, npcScreenPos, onResponse, onClose }
           
           <div className="px-4 py-3 cursor-pointer" onClick={skipTyping}>
             <p className="text-[#F5DEB3] text-sm leading-relaxed">
-              {displayedText}
+              <RichText text={displayedText} />
               {isTyping && <span className="animate-pulse text-[#DAA520] ml-1">▼</span>}
             </p>
           </div>
