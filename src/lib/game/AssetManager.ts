@@ -593,412 +593,45 @@ export class AssetManager {
       return sprite.map(row => [...row].reverse());
     };
 
-    // ===== VANILLA FANTASY HERO PALETTE =====
-    // Skin
-    const SK   = 0xFFE0BD;
-    const SK_H = 0xFFF0D8;
-    const SK_S = 0xE8C4A0;
-    const SK_D = 0xD4A878;
-    const BLUSH = 0xFFA8A8;
-    // Hair - warm chestnut brown
-    const HR   = 0x8B6040;
-    const HR_H = 0xA87850;
-    const HR_S = 0x6B4428;
-    const HR_D = 0x503018;
-    const HR_T = 0x7A5238;
-    const HR_B = 0xC09060;
-    // Eyes - big expressive
-    const EY_W = 0xFFFFFF; // white sclera
-    const EY   = 0x7B5B3A; // iris
-    const EY_H = 0x9B7B50; // iris highlight
-    const EY_D = 0x5A3E20; // iris dark
-    const EY_P = 0x2A1A08; // pupil
-    const EY_G = 0xFFFFFF; // sparkle
-    const EY_L = 0xE8E8F0; // lower white
-    const EY_HURT = 0x888888;
-    const EY_CHG = 0xFFD700;
-    const EY_CHG2 = 0xFFA000;
-    const MOUTH = 0xD06050;
-    const MOUTH_O = 0xC04030;
-    const MOUTH_I = 0x801818; // inner mouth
-    const MOUTH_H = 0xCC4444;
-    const MOUTH_C = 0xFF8C00;
-    const BROW = 0x503018;
-    // Outfit - blue tunic with gold trim
-    const TUN   = 0x3A8AC0;
-    const TUN_H = 0x50A0D8;
-    const TUN_S = 0x286890;
-    const TUN_D = 0x1A5070;
-    const GOLD  = 0xE8C030;
-    const GOLD_H = 0xFFD850;
-    const GOLD_S = 0xB89820;
-    const SHIRT = 0x404048;
-    const SHIRT_H = 0x505058;
-    const BELT   = 0x6B4428;
-    const BELT_B = 0xE8C030;
-    const PANT   = 0x5A4030;
-    const PANT_S = 0x3E2818;
-    const PANT_H = 0x6E5040;
-    const BOOT   = 0x6B4428;
-    const BOOT_H = 0x8B6040;
-    const BOOT_S = 0x503018;
-    const BOOT_T = 0xE8C030;
-    const GLV  = 0x6B4428;
-    const GLV_H = 0x8B6040;
-    // Cape
-    const CAPE  = 0x3080B8;
-    const CAPE_H = 0x4898D0;
-    const CAPE_S = 0x206898;
-    const CAPE_D = 0x185078;
-    // Sword
-    const BL   = 0xD0D8E0;
-    const BL_H = 0xF0F4FF;
-    const BL_S = 0xA0A8B8;
-    const GRD  = 0xE8C030;
-    const GRD_H = 0xFFD850;
-    const GRP  = 0x5A3020;
-    const POM  = 0xE8C030;
-    // Charge glow
-    const CG   = 0x50B8FF;
-    const CG2  = 0x3090DD;
-    const CG_B = 0x80D0FF;
+    // ===== HERO PALETTE for canvas-drawn chibi =====
+    const heroPalette = {
+      hair: 0x8B6040, hairLight: 0xC09060, hairDark: 0x503018,
+      skin: 0xFFE0BD, skinLight: 0xFFF0D8, skinShadow: 0xE8C4A0,
+      eyeIris: 0x5B8B3A, eyeIrisDark: 0x2A5A08,
+      tunicMain: 0x3A8AC0, tunicLight: 0x50A0D8, tunicDark: 0x286890,
+      trimColor: 0xE8C030, trimLight: 0xFFD850,
+      capeMain: 0x3080B8, capeDark: 0x185078,
+      pantColor: 0x5A4030, pantDark: 0x3E2818,
+      bootColor: 0x6B4428, bootDark: 0x503018,
+    };
 
-    // ========== PLAYER DOWN - 24x28 grid ==========
-    const downIdle0: number[][] = [
-      // Row 0-4: Hair top (fluffy, tousled)
-      [C, C, C, C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR_H,HR, HR_S,HR_D,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR_H,HR, HR_B,HR_H,HR, HR_S,HR_D,C, C, C, C, C, C],
-      [C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR, HR, HR, HR, HR_B,HR_H,HR, HR_S,HR_D,C, C, C, C, C],
-      [C, C, C, C, HR_D,HR_S,HR, HR_B,HR_H,HR, HR, HR, HR, HR, HR, HR_H,HR_B,HR, HR_S,HR_D,C, C, C, C],
-      [C, C, C, C, HR_S,HR, HR_B,HR_H,HR, HR, HR_H,HR, HR, HR_H,HR, HR, HR_H,HR_B,HR, HR_S,C, C, C, C],
-      // Row 5-6: Bangs frame forehead
-      [C, C, C, C, HR_D,HR, HR_S,SK_H,SK, SK, SK_H,SK, SK, SK_H,SK, SK, SK_H,HR_S,HR, HR_D,C, C, C, C],
-      [C, C, C, C, HR_S,HR_D,SK, SK_H,SK, SK, SK, SK_H,SK, SK, SK, SK, SK_H,SK, HR_D,HR_S,C, C, C, C],
-      // Row 7-9: Eyes - BIG with clear whites, iris, pupil, sparkle (3 rows tall!)
-      [C, C, C, C, HR_D,SK, BROW,BROW,EY_W,EY_W,EY_H,EY, SK, SK, EY, EY_H,EY_W,EY_W,BROW,BROW,SK, HR_D,C, C],
-      [C, C, C, C, C, SK, SK, EY_W,EY_W,EY_G,EY, EY_P,SK, SK, EY_P,EY, EY_G,EY_W,EY_W,SK, SK, C, C, C],
-      [C, C, C, C, C, SK, SK, SK, EY_L,EY_D,EY_D,EY_D,SK_S,SK_S,EY_D,EY_D,EY_D,EY_L,SK, SK, SK, C, C, C],
-      // Row 10: Nose + blush
-      [C, C, C, C, C, C, SK, BLUSH,SK, SK, SK, SK_S,SK_D,SK, SK, SK, BLUSH,SK, C, C, C, C, C, C],
-      // Row 11: Open mouth
-      [C, C, C, C, C, C, C, SK, SK, SK_S,MOUTH_O,MOUTH_I,MOUTH_O,SK_S,SK, SK, C, C, C, C, C, C, C, C],
-      // Row 12: Chin
-      [C, C, C, C, C, C, C, C, SK, SK_S,SK, SK, SK, SK_S,SK, C, C, C, C, C, C, C, C, C],
-      // Row 13: Neck
-      [C, C, C, C, C, C, C, C, SK_S,SK_D,SHIRT,SHIRT_H,SHIRT,SK_D,SK_S,C, C, C, C, C, C, C, C, C],
-      // Row 14-15: Shoulders - tunic with gold trim, cape behind
-      [C, C, C, C, CAPE_S,CAPE_S,TUN_S,TUN, GOLD,TUN, TUN_H,TUN, TUN_H,TUN, GOLD,TUN, TUN_S,CAPE_S,CAPE_S,C, C, C, C, C],
-      [C, C, C, C, CAPE, TUN_S,TUN, TUN_H,GOLD_S,TUN_H,TUN, TUN_H,TUN, TUN_H,GOLD_S,TUN_H,TUN, TUN_S,CAPE, C, C, C, C, C],
-      // Row 16: Belt
-      [C, C, C, C, CAPE, TUN, TUN_S,BELT,BELT,BELT_B,BELT,BELT,BELT,BELT_B,BELT,BELT,TUN_S,TUN, CAPE, C, C, C, C, C],
-      // Row 17: Arms + sword
-      [C, BL_H,BL, GLV, GLV_H,TUN_S,TUN, TUN_S,TUN_D,TUN, TUN, TUN, TUN_D,TUN_S,TUN, TUN_S,GLV_H,GLV, C, C, C, C, C, C],
-      [C, GRD,BL_S,C, GLV, GLV_H,TUN_D,TUN_S,TUN_D,TUN_S,TUN_D,TUN_S,TUN_D,TUN_S,TUN_D,GLV_H,GLV, C, C, C, C, C, C, C],
-      // Row 19: Cape tails + upper legs
-      [C, POM, C, C, C, CAPE_D,CAPE_S,PANT,PANT_H,PANT, PANT, PANT, PANT, PANT_H,PANT, CAPE_S,CAPE_D,C, C, C, C, C, C, C],
-      // Row 20-21: Legs
-      [C, C, C, C, C, C, C, PANT_S,PANT,PANT_H,C, C, C, PANT_H,PANT,PANT_S,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, PANT_S,PANT,C, C, C, PANT, PANT_S,C, C, C, C, C, C, C, C, C],
-      // Row 22-23: Boots
-      [C, C, C, C, C, C, BOOT_S,BOOT,BOOT, BOOT_T,BOOT_H,C, BOOT_H,BOOT_T,BOOT, BOOT,BOOT_S,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, BOOT_S,BOOT_S,BOOT, BOOT_H,C, BOOT_H,BOOT, BOOT_S,BOOT_S,C, C, C, C, C, C, C, C],
-      // Row 24-25: Hair tips at sides
-      [C, C, C, C, C, HR_D,HR_S,HR, C, C, C, C, C, C, C, C, HR, HR_S,HR_D,C, C, C, C, C],
-      [C, C, C, C, C, C, HR_D,HR_S,C, C, C, C, C, C, C, C, HR_S,HR_D,C, C, C, C, C, C],
-      // Row 26-27: Cape bottom
-      [C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-    ];
+    // Generate all player sprites using canvas drawing
+    const dirs: Array<'down' | 'up' | 'left' | 'right'> = ['down', 'up', 'left', 'right'];
+    const states: Array<'idle' | 'walk' | 'attack' | 'charge' | 'hurt'> = ['idle', 'walk', 'attack', 'charge', 'hurt'];
 
-    const downIdle1 = downIdle0.map((row, i) => {
-      if (i === 14) return [C,C,C,C,CAPE_H,CAPE_H,TUN_S,TUN,GOLD,TUN,TUN_H,TUN,TUN_H,TUN,GOLD,TUN,TUN_S,CAPE_H,CAPE_H,C,C,C,C,C];
-      if (i === 24) return [C,C,C,C,C,HR_S,HR_D,HR,C,C,C,C,C,C,C,C,HR,HR_D,HR_S,C,C,C,C,C];
-      return row;
-    });
+    for (const dir of dirs) {
+      for (const state of states) {
+        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' ? 1 : 2;
+        for (let f = 0; f < maxFrames; f++) {
+          const tex = this.createChibiCharacter(dir, state, f, heroPalette);
+          this.textures.set(`player_${dir}_${state}_${f}`, tex);
+        }
+      }
+    }
 
-    this.textures.set('player_down_idle_0', this.createSpriteTexture(downIdle0, 3));
-    this.textures.set('player_down_idle_1', this.createSpriteTexture(downIdle1, 3));
-
-    // Walk frames
-    const downWalk0 = downIdle0.map((row, i) => {
-      if (i === 20) return [C,C,C,C,C,C,BOOT,PANT_S,PANT,C,C,C,C,C,PANT,PANT_S,BOOT,C,C,C,C,C,C,C];
-      if (i === 21) return [C,C,C,C,C,C,BOOT_S,BOOT,C,C,C,C,C,C,C,BOOT,BOOT_S,C,C,C,C,C,C,C];
-      if (i === 22) return [C,C,C,C,C,BOOT_S,BOOT_T,BOOT_H,C,C,C,C,C,C,C,BOOT_H,BOOT_T,BOOT_S,C,C,C,C,C,C];
-      if (i === 23) return [C,C,C,C,C,C,BOOT_S,C,C,C,C,C,C,C,C,C,BOOT_S,C,C,C,C,C,C,C];
-      return row;
-    });
-    const downWalk1 = downIdle0.map((row, i) => {
-      if (i === 20) return [C,C,C,C,C,C,C,PANT,PANT_S,BOOT,C,C,BOOT,PANT_S,PANT,C,C,C,C,C,C,C,C,C];
-      if (i === 21) return [C,C,C,C,C,C,C,BOOT,BOOT_S,C,C,C,C,BOOT_S,BOOT,C,C,C,C,C,C,C,C,C];
-      if (i === 22) return [C,C,C,C,C,C,BOOT_H,BOOT_T,BOOT_S,C,C,C,C,BOOT_S,BOOT_T,BOOT_H,C,C,C,C,C,C,C,C];
-      if (i === 23) return [C,C,C,C,C,C,C,BOOT_S,C,C,C,C,C,C,BOOT_S,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-
-    this.textures.set('player_down_walk_0', this.createSpriteTexture(downWalk0, 3));
-    this.textures.set('player_down_walk_1', this.createSpriteTexture(downWalk1, 3));
-
-    // Attack frames
-    const downAtk0 = downIdle0.map((row, i) => {
-      if (i === 0) return [C,C,POM,GRD,BL_S,C,C,C,HR_D,HR_S,HR,HR_H,HR_B,HR_H,HR,HR_S,HR_D,C,C,C,C,C,C,C];
-      if (i === 1) return [C,C,C,GRP,BL,BL_H,C,HR_S,HR,HR_H,HR_B,HR_H,HR,HR_B,HR_H,HR,HR_S,HR_D,C,C,C,C,C,C];
-      if (i === 7) return [C,C,C,C,HR_D,SK,BROW,BROW,EY_W,EY_W,EY_D,EY_P,SK,SK,EY_P,EY_D,EY_W,EY_W,BROW,BROW,SK,HR_D,C,C];
-      if (i === 11) return [C,C,C,C,C,C,C,SK,BROW,SK_S,MOUTH_O,MOUTH_I,MOUTH_O,SK_S,BROW,SK,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    const downAtk1 = downIdle0.map((row, i) => {
-      if (i === 7) return [C,C,C,C,HR_D,SK,BROW,BROW,EY_W,EY_W,EY_D,EY_P,SK,SK,EY_P,EY_D,EY_W,EY_W,BROW,BROW,SK,HR_D,C,C];
-      if (i === 11) return [C,C,C,C,C,C,C,SK,BROW,SK_S,MOUTH_O,MOUTH_I,MOUTH_O,SK_S,BROW,SK,C,C,C,C,C,C,C,C];
-      if (i === 17) return [BL_H,BL,BL_S,GRD,GLV_H,TUN_S,TUN,TUN_S,TUN_D,TUN,TUN,TUN,TUN_D,TUN_S,TUN,TUN_S,GLV_H,GLV,C,C,C,C,C,C];
-      return row;
-    });
-    const downAtk2 = downIdle0.map((row, i) => {
-      if (i === 19) return [POM,GRD,BL_S,BL,BL_H,CAPE_D,CAPE_S,PANT,PANT_H,PANT,PANT,PANT,PANT,PANT_H,PANT,CAPE_S,CAPE_D,C,C,C,C,C,C,C];
-      return row;
-    });
-
-    this.textures.set('player_down_attack_0', this.createSpriteTexture(downAtk0, 3));
-    this.textures.set('player_down_attack_1', this.createSpriteTexture(downAtk1, 3));
-    this.textures.set('player_down_attack_2', this.createSpriteTexture(downAtk2, 3));
-
-    // Charge frames
-    const downChg0 = downAtk0.map((row, i) => {
-      if (i === 0) return [C,C,POM,GRD_H,CG_B,C,C,C,HR_D,HR_S,HR,HR_H,HR_B,HR_H,HR,HR_S,HR_D,C,C,C,C,C,C,C];
-      if (i === 1) return [C,C,C,GRP,CG,CG_B,C,HR_S,HR,HR_H,HR_B,HR_H,HR,HR_B,HR_H,HR,HR_S,HR_D,C,C,C,C,C,C];
-      if (i === 7) return [C,C,C,C,HR_D,SK,BROW,BROW,EY_W,EY_W,EY_CHG,EY_CHG2,SK,SK,EY_CHG2,EY_CHG,EY_W,EY_W,BROW,BROW,SK,HR_D,C,C];
-      if (i === 11) return [C,C,C,C,C,C,C,SK,BROW,SK_S,MOUTH_C,MOUTH_I,MOUTH_C,SK_S,BROW,SK,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    const downChg1 = downAtk1.map((row, i) => {
-      if (i === 7) return [C,C,C,C,HR_D,SK,BROW,BROW,EY_W,EY_W,EY_CHG,EY_CHG2,SK,SK,EY_CHG2,EY_CHG,EY_W,EY_W,BROW,BROW,SK,HR_D,C,C];
-      if (i === 17) return [CG,CG_B,CG_B,GRD_H,GLV_H,TUN_S,TUN,TUN_S,TUN_D,TUN,TUN,TUN,TUN_D,TUN_S,TUN,TUN_S,GLV_H,GLV,C,C,C,C,C,C];
-      return row;
-    });
-    const downChg2 = downAtk2.map((row, i) => {
-      if (i === 19) return [POM,GRD_H,CG_B,CG,CG2,CAPE_D,CAPE_S,PANT,PANT_H,PANT,PANT,PANT,PANT,PANT_H,PANT,CAPE_S,CAPE_D,C,C,C,C,C,C,C];
-      return row;
-    });
-
-    this.textures.set('player_down_charge_0', this.createSpriteTexture(downChg0, 3));
-    this.textures.set('player_down_charge_1', this.createSpriteTexture(downChg1, 3));
-    this.textures.set('player_down_charge_2', this.createSpriteTexture(downChg2, 3));
-
-    // Hurt frame
-    const downHurt = downIdle0.map((row, i) => {
-      if (i === 7) return [C,C,C,C,HR_D,SK,BROW,BROW,EY_W,EY_HURT,BROW,BROW,SK,SK,BROW,BROW,EY_HURT,EY_W,BROW,BROW,SK,HR_D,C,C];
-      if (i === 8) return [C,C,C,C,C,SK,SK,EY_W,EY_HURT,EY_HURT,EY_HURT,BROW,SK_S,SK_S,BROW,EY_HURT,EY_HURT,EY_HURT,EY_W,SK,SK,C,C,C];
-      if (i === 11) return [C,C,C,C,C,C,C,SK,SK_S,SK,MOUTH_H,MOUTH_H,MOUTH_H,SK,SK_S,SK,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    this.textures.set('player_down_hurt_0', this.createSpriteTexture(downHurt, 3));
-
-    // ========== PLAYER UP - Back view (24x28) ==========
-    const upIdle0: number[][] = [
-      [C, C, C, C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR_H,HR, HR_S,HR_D,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR_H,HR, HR_B,HR_H,HR, HR_S,HR_D,C, C, C, C, C, C],
-      [C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR, HR, HR, HR, HR_B,HR_H,HR, HR_S,HR_D,C, C, C, C, C],
-      [C, C, C, C, HR_D,HR_S,HR, HR_B,HR_H,HR, HR, HR, HR, HR, HR, HR_H,HR_B,HR, HR_S,HR_D,C, C, C, C],
-      [C, C, C, C, HR_S,HR, HR_B,HR_H,HR, HR_S,HR, HR_S,HR_S,HR, HR_S,HR, HR_H,HR_B,HR, HR_S,C, C, C, C],
-      [C, C, C, C, HR_D,HR, HR_S,HR, HR_T,HR_S,HR, HR, HR, HR, HR_S,HR_T,HR, HR_S,HR, HR_D,C, C, C, C],
-      [C, C, C, C, HR_S,HR, HR, HR_S,HR, HR, HR_S,HR, HR, HR_S,HR, HR, HR_S,HR, HR, HR_S,C, C, C, C],
-      [C, C, C, C, HR_D,HR, HR, HR, HR_S,HR, HR, HR_S,HR_S,HR, HR, HR_S,HR, HR, HR, HR_D,C, C, C, C],
-      [C, C, C, C, C, HR_S,HR, HR, HR, HR_S,HR, HR, HR, HR, HR_S,HR, HR, HR, HR_S,C, C, C, C, C],
-      [C, C, C, C, C, C, HR_D,HR_S,HR, HR, HR, HR_S,HR_S,HR, HR, HR, HR_S,HR_D,C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, SK_S,SK, SK, SK_S,SK_S,SK, SK, SK_S,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, SK_D,SK_S,SK, SK_S,SK_S,SK, SK_S,SK_D,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, SK_S,SK_D,SHIRT,SHIRT_H,SHIRT,SK_D,SK_S,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, SK_D,SK_D,SHIRT,SHIRT_H,SHIRT,SK_D,SK_D,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, CAPE_S,CAPE_S,TUN_S,TUN, TUN, TUN, TUN_S,TUN, TUN_S,TUN, TUN, TUN, TUN_S,CAPE_S,CAPE_S,C, C, C, C, C],
-      [C, C, C, C, CAPE, TUN_S,TUN, TUN_H,TUN, TUN_H,TUN, TUN_H,TUN, TUN_H,TUN, TUN_H,TUN, TUN_S,CAPE, C, C, C, C, C],
-      [C, C, C, C, CAPE, TUN, TUN_S,BELT,BELT,BELT,BELT,BELT,BELT,BELT,BELT,BELT,TUN_S,TUN, CAPE, C, C, C, C, C],
-      [C, BL_H,BL, GLV, GLV_H,TUN_S,TUN, TUN_S,TUN_D,TUN, TUN, TUN, TUN_D,TUN_S,TUN, TUN_S,GLV_H,GLV, C, C, C, C, C, C],
-      [C, GRD,BL_S,C, GLV, GLV_H,TUN_D,TUN_S,TUN_D,TUN_S,TUN_D,TUN_S,TUN_D,TUN_S,TUN_D,GLV_H,GLV, C, C, C, C, C, C, C],
-      [C, POM, C, C, C, CAPE_D,CAPE_S,PANT,PANT_H,PANT, PANT, PANT, PANT, PANT_H,PANT, CAPE_S,CAPE_D,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, PANT_S,PANT,PANT_H,C, C, C, PANT_H,PANT,PANT_S,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, PANT_S,PANT,C, C, C, PANT, PANT_S,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, BOOT_S,BOOT,BOOT, BOOT_T,BOOT_H,C, BOOT_H,BOOT_T,BOOT, BOOT,BOOT_S,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, BOOT_S,BOOT_S,BOOT, BOOT_H,C, BOOT_H,BOOT, BOOT_S,BOOT_S,C, C, C, C, C, C, C, C],
-      // Cape flows down back
-      [C, C, C, C, C, CAPE_D,CAPE_S,CAPE, CAPE_H,CAPE, CAPE, CAPE, CAPE, CAPE_H,CAPE, CAPE_S,CAPE_D,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, CAPE_D,CAPE_S,CAPE, CAPE_H,CAPE_S,CAPE,CAPE_S,CAPE_H,CAPE, CAPE_S,CAPE_D,C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, CAPE_D,CAPE_S,CAPE, CAPE_S,C, CAPE_S,CAPE, CAPE_S,CAPE_D,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-    ];
-
-    this.textures.set('player_up_idle_0', this.createSpriteTexture(upIdle0, 3));
-    this.textures.set('player_up_idle_1', this.createSpriteTexture(upIdle0, 3));
-
-    const upWalk0 = upIdle0.map((row, i) => {
-      if (i === 20) return [C,C,C,C,C,C,BOOT,PANT_S,PANT,C,C,C,C,C,PANT,PANT_S,BOOT,C,C,C,C,C,C,C];
-      if (i === 21) return [C,C,C,C,C,C,BOOT_S,BOOT,C,C,C,C,C,C,C,BOOT,BOOT_S,C,C,C,C,C,C,C];
-      if (i === 22) return [C,C,C,C,C,BOOT_S,BOOT_T,BOOT_H,C,C,C,C,C,C,C,BOOT_H,BOOT_T,BOOT_S,C,C,C,C,C,C];
-      return row;
-    });
-    const upWalk1 = upIdle0.map((row, i) => {
-      if (i === 20) return [C,C,C,C,C,C,C,PANT,PANT_S,BOOT,C,C,BOOT,PANT_S,PANT,C,C,C,C,C,C,C,C,C];
-      if (i === 21) return [C,C,C,C,C,C,C,BOOT,BOOT_S,C,C,C,C,BOOT_S,BOOT,C,C,C,C,C,C,C,C,C];
-      if (i === 22) return [C,C,C,C,C,C,BOOT_H,BOOT_T,BOOT_S,C,C,C,C,BOOT_S,BOOT_T,BOOT_H,C,C,C,C,C,C,C,C];
-      return row;
-    });
-
-    this.textures.set('player_up_walk_0', this.createSpriteTexture(upWalk0, 3));
-    this.textures.set('player_up_walk_1', this.createSpriteTexture(upWalk1, 3));
-
-    const upAtk0 = upIdle0.map((row, i) => {
-      if (i === 0) return [C,C,POM,GRD,BL_S,C,C,C,HR_D,HR_S,HR,HR_H,HR_B,HR_H,HR,HR_S,HR_D,C,C,C,C,C,C,C];
-      if (i === 1) return [C,C,C,GRP,BL,BL_H,C,HR_S,HR,HR_H,HR_B,HR_H,HR,HR_B,HR_H,HR,HR_S,HR_D,C,C,C,C,C,C];
-      return row;
-    });
-    this.textures.set('player_up_attack_0', this.createSpriteTexture(upAtk0, 3));
-    this.textures.set('player_up_attack_1', this.textures.get('player_up_attack_0')!);
-    const upAtk2 = upIdle0.map((row, i) => {
-      if (i === 19) return [POM,GRD,BL_S,BL,BL_H,CAPE_D,CAPE_S,PANT,PANT_H,PANT,PANT,PANT,PANT,PANT_H,PANT,CAPE_S,CAPE_D,C,C,C,C,C,C,C];
-      return row;
-    });
-    this.textures.set('player_up_attack_2', this.createSpriteTexture(upAtk2, 3));
-
-    this.textures.set('player_up_charge_0', this.textures.get('player_down_charge_0')!);
-    this.textures.set('player_up_charge_1', this.textures.get('player_down_charge_1')!);
-    this.textures.set('player_up_charge_2', this.textures.get('player_down_charge_2')!);
-    this.textures.set('player_up_hurt_0', this.textures.get('player_down_hurt_0')!);
-
-    // ========== PLAYER LEFT - Side view (24x28) ==========
-    const leftIdle0: number[][] = [
-      [C, C, C, C, C, C, C, C, HR_D,HR_S,HR, HR_H,HR_B,HR, HR_S,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, HR_D,HR, HR_H,HR_B,HR, HR, HR_H,HR_S,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, HR_D,HR, HR_H,HR_B,HR, HR, HR, HR, HR_H,HR_S,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, HR_D,HR, HR_B,HR_H,HR, HR, HR, HR, HR_T,HR, HR_S,C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, HR_S,HR, HR_H,HR, HR, HR_H,HR, HR_T,HR, HR, HR_S,HR_D,C, C, C, C, C, C, C],
-      // Side face
-      [C, C, C, C, C, HR_D,HR, SK, SK_H,SK, SK, SK, SK_S,HR, HR_S,HR_T,HR_D,C, C, C, C, C, C, C],
-      [C, C, C, C, C, HR_S,SK, SK_H,SK, SK, SK, SK_S,HR_S,HR, HR_D,C, C, C, C, C, C, C, C, C],
-      // Eye row - big visible eye with clear white
-      [C, C, C, C, C, SK, BROW,BROW,EY_W,EY_W,EY_H,EY, EY_P,SK_S,HR_D,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, SK, SK, EY_W,EY_W,EY_G,EY, EY_D,SK, SK_S,C, C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, SK, SK, SK, EY_L,EY_D,EY_D,SK_S,SK, C, C, C, C, C, C, C, C, C, C, C],
-      // Nose + blush
-      [C, C, C, C, C, C, SK, SK, BLUSH,SK_S,SK, SK, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Mouth
-      [C, C, C, C, C, C, C, SK, SK_S,MOUTH_O,SK, C, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Chin
-      [C, C, C, C, C, C, C, C, SK_S,SK, SK, C, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Neck
-      [C, C, C, C, C, C, C, C, SK_D,SHIRT,SK_D,C, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Shoulder - body 10px wide with cape
-      [C, C, C, C, C, CAPE_S,TUN_S,TUN, GOLD,TUN, TUN_H,TUN, TUN_S,CAPE, CAPE_H,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, CAPE, TUN, TUN_H,GOLD_S,TUN_H,TUN, TUN, TUN_S,CAPE_S,CAPE, C, C, C, C, C, C, C, C, C],
-      // Belt
-      [C, C, C, C, C, CAPE, TUN_S,BELT,BELT_B,BELT,TUN, TUN_S,TUN_D,CAPE_S,C, C, C, C, C, C, C, C, C, C],
-      // Arms
-      [C, BL_H,BL, GLV, GLV_H,TUN_S,TUN, TUN_S,TUN_D,TUN, TUN_S,CAPE_D,C, C, C, C, C, C, C, C, C, C, C, C],
-      [C, GRD,BL_S,C, GLV, GLV_H,TUN_D,TUN_S,TUN_D,TUN_S,CAPE_D,C, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Cape + pants
-      [C, POM, C, C, C, CAPE_D,PANT,PANT_H,PANT, PANT,CAPE_S,CAPE_H,CAPE, C, C, C, C, C, C, C, C, C, C, C],
-      // Legs
-      [C, C, C, C, C, C, C, PANT_S,PANT,PANT_H,PANT_S,C, C, C, C, C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, PANT_S,PANT,C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Boots
-      [C, C, C, C, C, C, BOOT_S,BOOT,BOOT_T,BOOT_H,BOOT_S,C, C, C, C, C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, BOOT_S,BOOT, BOOT_H,C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-      // Hair trailing behind
-      [C, C, C, C, C, C, C, C, C, C, C, C, HR, HR_S,HR_D,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, C, C, C, C, C, HR_D,HR_S,C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-      [C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C],
-    ];
-
-    this.textures.set('player_left_idle_0', this.createSpriteTexture(leftIdle0, 3));
-    this.textures.set('player_left_idle_1', this.createSpriteTexture(leftIdle0.map((row, i) => {
-      if (i === 19) return [C,POM,C,C,C,CAPE_D,PANT,PANT_H,PANT,PANT,CAPE_H,CAPE_S,CAPE_H,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    }), 3));
-
-    const leftWalk0 = leftIdle0.map((row, i) => {
-      if (i === 20) return [C,C,C,C,C,C,BOOT,PANT_S,PANT,C,PANT,PANT_S,C,C,C,C,C,C,C,C,C,C,C,C];
-      if (i === 21) return [C,C,C,C,C,C,BOOT_S,BOOT,C,C,C,BOOT,C,C,C,C,C,C,C,C,C,C,C,C];
-      if (i === 22) return [C,C,C,C,C,BOOT_S,BOOT_T,BOOT_H,C,C,C,BOOT_H,BOOT_S,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    const leftWalk1 = leftIdle0.map((row, i) => {
-      if (i === 20) return [C,C,C,C,C,C,PANT,PANT_S,C,BOOT,C,PANT_S,C,C,C,C,C,C,C,C,C,C,C,C];
-      if (i === 21) return [C,C,C,C,C,C,BOOT,C,C,BOOT_S,C,C,BOOT,C,C,C,C,C,C,C,C,C,C,C];
-      if (i === 22) return [C,C,C,C,C,BOOT_H,BOOT_T,C,C,BOOT_S,C,C,BOOT_T,BOOT_S,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-
-    this.textures.set('player_left_walk_0', this.createSpriteTexture(leftWalk0, 3));
-    this.textures.set('player_left_walk_1', this.createSpriteTexture(leftWalk1, 3));
-
-    // Left attack
-    const leftAtk0 = leftIdle0.map((row, i) => {
-      if (i === 7) return [C,C,C,C,C,SK,BROW,BROW,EY_W,EY_W,EY_D,EY_P,SK_S,HR_D,C,C,C,C,C,C,C,C,C,C];
-      if (i === 17) return [BL_H,BL,BL_S,GRD,GLV_H,TUN_S,TUN,TUN_S,TUN_D,TUN,TUN_S,CAPE_D,C,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    const leftAtk1 = leftIdle0.map((row, i) => {
-      if (i === 7) return [C,C,C,C,C,SK,BROW,BROW,EY_W,EY_W,EY_D,EY_P,SK_S,HR_D,C,C,C,C,C,C,C,C,C,C];
-      if (i === 17) return [BL_H,BL,BL_S,BL,BL,GRD,GLV_H,TUN_S,TUN_D,TUN,TUN_S,CAPE_D,C,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    const leftAtk2 = leftIdle0.map((row, i) => {
-      if (i === 19) return [POM,GRD,BL_S,BL,BL_H,CAPE_D,PANT,PANT_H,PANT,PANT,CAPE_S,CAPE_H,CAPE,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-
-    this.textures.set('player_left_attack_0', this.createSpriteTexture(leftAtk0, 3));
-    this.textures.set('player_left_attack_1', this.createSpriteTexture(leftAtk1, 3));
-    this.textures.set('player_left_attack_2', this.createSpriteTexture(leftAtk2, 3));
-
-    // Left charge
-    const leftChg0 = leftAtk0.map((row, i) => {
-      if (i === 7) return [C,C,C,C,C,SK,BROW,BROW,EY_W,EY_W,EY_CHG,EY_CHG2,SK_S,HR_D,C,C,C,C,C,C,C,C,C,C];
-      if (i === 17) return [CG,CG_B,CG_B,GRD_H,GLV_H,TUN_S,TUN,TUN_S,TUN_D,TUN,TUN_S,CAPE_D,C,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    this.textures.set('player_left_charge_0', this.createSpriteTexture(leftChg0, 3));
-    this.textures.set('player_left_charge_1', this.createSpriteTexture(leftChg0, 3));
-    this.textures.set('player_left_charge_2', this.createSpriteTexture(leftChg0, 3));
-    
-    // Left hurt
-    const leftHurt = leftIdle0.map((row, i) => {
-      if (i === 7) return [C,C,C,C,C,SK,BROW,BROW,EY_W,EY_HURT,BROW,BROW,SK_S,HR_D,C,C,C,C,C,C,C,C,C,C];
-      if (i === 11) return [C,C,C,C,C,C,C,SK,SK_S,MOUTH_H,SK,C,C,C,C,C,C,C,C,C,C,C,C,C];
-      return row;
-    });
-    this.textures.set('player_left_hurt_0', this.createSpriteTexture(leftHurt, 3));
-
-    // ========== PLAYER RIGHT (mirror of left) ==========
-    this.textures.set('player_right_idle_0', this.createSpriteTexture(mirrorSprite(leftIdle0), 3));
-    this.textures.set('player_right_idle_1', this.textures.get('player_right_idle_0')!);
-    this.textures.set('player_right_walk_0', this.createSpriteTexture(mirrorSprite(leftWalk0), 3));
-    this.textures.set('player_right_walk_1', this.createSpriteTexture(mirrorSprite(leftWalk1), 3));
-    this.textures.set('player_right_attack_0', this.createSpriteTexture(mirrorSprite(leftAtk0.map(r => [...r])), 3));
-    this.textures.set('player_right_attack_1', this.createSpriteTexture(mirrorSprite(leftAtk1.map(r => [...r])), 3));
-    this.textures.set('player_right_attack_2', this.createSpriteTexture(mirrorSprite(leftAtk2.map(r => [...r])), 3));
-    this.textures.set('player_right_charge_0', this.createSpriteTexture(mirrorSprite(leftChg0.map(r => [...r])), 3));
-    this.textures.set('player_right_charge_1', this.textures.get('player_right_charge_0')!);
-    this.textures.set('player_right_charge_2', this.textures.get('player_right_charge_0')!);
-    this.textures.set('player_right_hurt_0', this.createSpriteTexture(mirrorSprite(leftHurt.map(r => [...r])), 3));
-
-    // ========== DIAGONAL SPRITES ==========
+    // Diagonal sprites reuse side views
     const diagDirs = ['down_left', 'down_right', 'up_left', 'up_right'] as const;
     const diagBase = { down_left: 'left', down_right: 'right', up_left: 'left', up_right: 'right' } as const;
     
     for (const dDir of diagDirs) {
       const base = diagBase[dDir];
-      for (const state of ['idle', 'walk', 'attack']) {
-        const frames = state === 'attack' ? 3 : 2;
-        for (let f = 0; f < frames; f++) {
+      for (const state of states) {
+        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' ? 1 : 2;
+        for (let f = 0; f < maxFrames; f++) {
           const src = this.textures.get(`player_${base}_${state}_${f}`);
           if (src) this.textures.set(`player_${dDir}_${state}_${f}`, src);
         }
       }
-      for (let f = 0; f < 3; f++) {
-        const src = this.textures.get(`player_${base}_charge_${f}`);
-        if (src) this.textures.set(`player_${dDir}_charge_${f}`, src);
-      }
-      const hurtSrc = this.textures.get(`player_${base}_hurt_0`);
-      if (hurtSrc) this.textures.set(`player_${dDir}_hurt_0`, hurtSrc);
     }
 
     // Legacy aliases
