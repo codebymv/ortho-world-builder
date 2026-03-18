@@ -109,6 +109,11 @@ const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
   gate: 1.0,
   push_block: 1.0,
   spike_trap: 0.8,
+  iron_fence: 1.1,
+  hedge: 0.9,
+  scarecrow: 1.4,
+  hay_bale: 0.7,
+  lantern: 0.9,
 };
 
 export class World {
