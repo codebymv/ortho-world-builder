@@ -367,6 +367,16 @@ const Game = () => {
         (mesh.material as THREE.Material).dispose();
       });
       enemyMeshes.clear();
+      enemyShadows.forEach(mesh => {
+        scene.remove(mesh);
+        (mesh.material as THREE.Material).dispose();
+      });
+      enemyShadows.clear();
+      enemyOutlines.forEach(mesh => {
+        scene.remove(mesh);
+        (mesh.material as THREE.Material).dispose();
+      });
+      enemyOutlines.clear();
       enemyHPBars.forEach(({ bg, fill }) => {
         scene.remove(bg);
         scene.remove(fill);
