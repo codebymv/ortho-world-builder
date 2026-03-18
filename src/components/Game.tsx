@@ -1074,7 +1074,14 @@ const Game = () => {
           // Update NPC shadow
           const npcShadow = npcShadows[ni];
           if (npcShadow) {
-            npcShadow.position.set(npc.position.x, npc.position.y - 0.35, -0.01);
+            npcShadow.position.set(npc.position.x, npc.position.y - 0.3, 0.05);
+          }
+          // Update NPC outline
+          const npcOutline = npcOutlines[ni];
+          if (npcOutline) {
+            npcOutline.position.set(npc.position.x, npc.position.y + bob, 0.19);
+            npcOutline.rotation.z = lean;
+            npcOutline.renderOrder = npcMesh.renderOrder - 1;
           }
         }
       }
