@@ -402,16 +402,24 @@ function placeBuilding(tiles: Tile[][], f: MapFeature) {
     }
   }
 
-  // Place the actual building (only top rows are house tiles)
+  // Place the actual building - limit house sprites to a centered cluster
+  const houseWidth = Math.min(f.width, 3); // max 3 house tiles wide
+  const houseStartX = Math.floor((f.width - houseWidth) / 2);
+  
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
+          // Door
           tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId });
-        } else if (dy === 0 || dy === 1) {
+        } else if ((dy === 0 || dy === 1) && dx >= houseStartX && dx < houseStartX + houseWidth) {
+          // House sprite only in center cluster
           tiles[ty][tx] = createTile(variant, false);
+        } else if (dy === 0 || dy === 1) {
+          // Stone walls flanking the house
+          tiles[ty][tx] = createTile('stone', false);
         } else {
           tiles[ty][tx] = createTile('stone', false);
         }
