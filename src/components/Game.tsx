@@ -658,10 +658,63 @@ const Game = () => {
       lastTime = currentTime;
       if (deltaTime > MAX_DELTA) deltaTime = MAX_DELTA;
 
+      // Hit-stop: freeze game logic when active
+      const frozen = screenShake.update(deltaTime);
+      if (frozen) {
+        floatingText.update(deltaTime);
+        renderer.render(scene, camera);
+        return;
+      }
+
       // Stamina regen
       const nowSec = currentTime / 1000;
       if (nowSec - state.player.lastStaminaUseTime > state.player.staminaRegenDelay) {
         state.player.stamina = Math.min(state.player.maxStamina, state.player.stamina + state.player.staminaRegenRate * deltaTime);
+      }
+
+      // === NPC WANDERING ===
+      for (let ni = 0; ni < npcData.length; ni++) {
+        const npc = npcData[ni];
+        const wander = npcWander[npc.id];
+        if (!wander) continue;
+
+        if (wander.isPaused) {
+          wander.pauseTimer -= deltaTime;
+          if (wander.pauseTimer <= 0) {
+            wander.isPaused = false;
+            wander.angle += (Math.random() - 0.5) * Math.PI;
+          }
+        } else {
+          const targetX = wander.origin.x + Math.cos(wander.angle) * wander.radius;
+          const targetY = wander.origin.y + Math.sin(wander.angle) * wander.radius;
+          const dx = targetX - npc.position.x;
+          const dy = targetY - npc.position.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist > 0.1) {
+            const moveSpeed = wander.speed * deltaTime;
+            const nx = npc.position.x + (dx / dist) * moveSpeed;
+            const ny = npc.position.y + (dy / dist) * moveSpeed;
+            // Only move if tile is walkable
+            if (world.isWalkable(nx, ny)) {
+              npc.position.x = nx;
+              npc.position.y = ny;
+            } else {
+              wander.angle += Math.PI * 0.5; // turn away from wall
+            }
+          } else {
+            wander.isPaused = true;
+            wander.pauseTimer = 1.5 + Math.random() * 3;
+            wander.angle += (Math.random() - 0.5) * Math.PI * 1.5;
+          }
+
+          // Update mesh
+          const mesh = npcMeshes[ni];
+          if (mesh) {
+            mesh.position.set(npc.position.x, npc.position.y, 0.2);
+          }
+        }
+      }
       }
 
       // Process buffered inputs
