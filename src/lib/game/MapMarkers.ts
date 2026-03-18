@@ -140,7 +140,7 @@ export function extractMarkersFromText(
             map: currentMap,
             type: 'portal',
             color: '#9370DB',
-            pulseUntil: now + 20000,
+            pulseUntil: now + 120000, // portal pulses for 2 minutes
             createdAt: now,
             permanent: true,
           });
