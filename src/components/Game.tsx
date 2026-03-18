@@ -372,8 +372,17 @@ const Game = () => {
     let potionBuffered = false;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Pause toggle
+      // ESC: close dialogue first, then toggle pause
       if (e.key === 'Escape') {
+        if (state.dialogueActive) {
+          // Close dialogue immediately
+          state.dialogueActive = false;
+          state.currentDialogue = null;
+          activeNpcWorldPos.current = null;
+          setCurrentDialogue(null);
+          setNpcScreenPos(null);
+          return;
+        }
         pausedRef.current = !pausedRef.current;
         setIsPaused(pausedRef.current);
         return;
