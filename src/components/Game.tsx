@@ -703,9 +703,8 @@ const Game = () => {
 
           footstepTimer += deltaTime;
           if (footstepTimer >= footstepInterval) {
-            particleSystem.emitDust(
-              new THREE.Vector3(state.player.position.x, state.player.position.y, 0)
-            );
+          _tmpVec3.set(state.player.position.x, state.player.position.y, 0);
+          particleSystem.emitDust(_tmpVec3);
             footstepTimer = 0;
           }
 
