@@ -329,6 +329,7 @@ const Game = () => {
       state.currentMap = targetMap;
       world.loadMap(newMap);
       biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
+      triggerSave(); // Save on map transition
       
       const worldX = targetX - newMap.width / 2;
       const worldY = targetY - newMap.height / 2;
