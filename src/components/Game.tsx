@@ -483,6 +483,10 @@ const Game = () => {
         for (const target of enemiesInRange) {
           const died = combatSystem.playerAttack(target, chargeDamage);
 
+          floatingText.spawnDamage(target.position.x, target.position.y, chargeDamage, true);
+          screenShake.shake(0.25, 0.2);
+          screenShake.hitStop(0.06);
+
           particleSystem.emitDamage(
             new THREE.Vector3(target.position.x, target.position.y, 0.3)
           );
