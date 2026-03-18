@@ -715,7 +715,6 @@ const Game = () => {
           }
         }
       }
-      }
 
       // Process buffered inputs
       if (interactBuffered && !state.dialogueActive) {
