@@ -1727,6 +1727,13 @@ const Game = () => {
                   enemyHPBars.delete(enemy.id);
                 }
 
+                const eShadow = enemyShadows.get(enemy.id);
+                if (eShadow) {
+                  scene.remove(eShadow);
+                  (eShadow.material as THREE.Material).dispose();
+                  enemyShadows.delete(enemy.id);
+                }
+
                 fullyDeadEnemyIds.add(enemy.id);
               }
             } else {
@@ -1737,6 +1744,11 @@ const Game = () => {
             if (hpBar) {
               hpBar.bg.visible = false;
               hpBar.fill.visible = false;
+            }
+
+            const eShadow = enemyShadows.get(enemy.id);
+            if (eShadow) {
+              eShadow.visible = false;
             }
           }
         }
