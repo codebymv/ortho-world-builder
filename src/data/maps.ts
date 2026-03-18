@@ -162,6 +162,18 @@ const forestDef: MapDefinition = {
     { x: 270, y: 260, width: 8, height: 6, type: 'building', interactionId: 'hermit_hut' },
     { x: 265, y: 255, width: 20, height: 16, type: 'clearing', fill: 'grass' },
 
+    // === DESTROYED TOWN (south-west) ===
+    { x: 20, y: 200, width: 30, height: 22, type: 'destroyed_town' },
+
+    // === WATERFALL (north) ===
+    { x: 155, y: 15, width: 12, height: 18, type: 'waterfall' },
+
+    // === TEMPLE (east) ===
+    { x: 250, y: 140, width: 20, height: 16, type: 'temple' },
+
+    // === VOLCANO (far north-east) ===
+    { x: 260, y: 20, width: 28, height: 24, type: 'volcano' },
+
     // === MAIN PATHS ===
     { x: 146, y: 260, width: 8, height: 40, type: 'path', fill: 'dirt' },
     { x: 146, y: 160, width: 8, height: 100, type: 'path', fill: 'dirt' },
@@ -172,6 +184,8 @@ const forestDef: MapDefinition = {
     { x: 200, y: 100, width: 6, height: 60, type: 'path', fill: 'dirt' },
     { x: 80, y: 230, width: 70, height: 4, type: 'path', fill: 'dirt' },
     { x: 220, y: 220, width: 50, height: 4, type: 'path', fill: 'dirt' },
+    { x: 20, y: 210, width: 60, height: 4, type: 'path', fill: 'dirt' },
+    { x: 250, y: 140, width: 4, height: 40, type: 'path', fill: 'dirt' },
   ],
   portals: [
     { x: 150, y: 297, targetMap: 'village', targetX: 120, targetY: 6 },
