@@ -229,7 +229,37 @@ export class World {
 
     const dx = centerTileX - this.lastChunkCenter.x;
     const dy = centerTileY - this.lastChunkCenter.y;
-    if (Math.abs(dx) < this.CHUNK_UPDATE_THRESHOLD && Math.abs(dy) < this.CHUNK_UPDATE_THRESHOLD) return;
+    
+    const needsFullUpdate = Math.abs(dx) >= this.CHUNK_UPDATE_THRESHOLD || Math.abs(dy) >= this.CHUNK_UPDATE_THRESHOLD;
+
+    // Process pending tiles from previous frames (batched loading)
+    if (this.pendingTiles.length > 0) {
+      const batchSize = this.isInitialLoad ? this.pendingTiles.length : MAX_TILES_PER_FRAME;
+      const batch = this.pendingTiles.splice(0, batchSize);
+      const worldOffsetX = -this.map.width / 2;
+      const worldOffsetY = -this.map.height / 2;
+
+      for (const { x, y, key } of batch) {
+        if (this.activeMeshes.has(key)) continue;
+        const tile = this.map.tiles[y]?.[x];
+        if (!tile || tile.hidden) continue;
+
+        const object = this.createTileObject(tile);
+        if (!object) continue;
+
+        object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, 0);
+        object.updateMatrix();
+        if (object instanceof THREE.Group) object.updateMatrixWorld(true);
+
+        this.scene.add(object);
+        this.activeMeshes.set(key, object);
+      }
+
+      if (this.pendingTiles.length === 0) this.isInitialLoad = false;
+      if (!needsFullUpdate) return;
+    }
+
+    if (!needsFullUpdate) return;
 
     // Track movement direction for preloading
     if (dx !== 0 || dy !== 0) {
@@ -238,7 +268,7 @@ export class World {
     }
     this.lastChunkCenter = { x: centerTileX, y: centerTileY };
 
-    // Extend render radius in movement direction for seamless preloading
+    // Extend render radius in movement direction
     const preX = this.lastMoveDir.x * this.PRELOAD_EXTRA;
     const preY = this.lastMoveDir.y * this.PRELOAD_EXTRA;
     const startX = Math.max(0, centerTileX - RENDER_RADIUS + Math.min(0, preX));
@@ -246,14 +276,7 @@ export class World {
     const startY = Math.max(0, centerTileY - RENDER_RADIUS + Math.min(0, preY));
     const endY = Math.min(this.map.height - 1, centerTileY + RENDER_RADIUS + Math.max(0, preY));
 
-    const neededKeys = new Set<string>();
-    for (let y = startY; y <= endY; y++) {
-      for (let x = startX; x <= endX; x++) {
-        neededKeys.add(`${x},${y}`);
-      }
-    }
-
-    // Cull with a larger radius than render to prevent flicker at edges
+    // Cull distant tiles (keep anything within cull radius to prevent flicker)
     for (const [key, object] of this.activeMeshes) {
       const [kx, ky] = key.split(',').map(Number);
       if (Math.abs(kx - centerTileX) > CULL_RADIUS || Math.abs(ky - centerTileY) > CULL_RADIUS) {
@@ -263,34 +286,47 @@ export class World {
       }
     }
 
-    const worldOffsetX = -this.map.width / 2;
-    const worldOffsetY = -this.map.height / 2;
-
+    // Collect new tiles to create
+    this.pendingTiles = [];
     for (let y = startY; y <= endY; y++) {
       for (let x = startX; x <= endX; x++) {
         const key = `${x},${y}`;
-        if (this.activeMeshes.has(key)) continue;
-
-        const tile = this.map.tiles[y]?.[x];
-        if (!tile || tile.hidden) continue;
-
-        const object = this.createTileObject(tile);
-        if (!object) continue;
-
-        object.position.set(
-          worldOffsetX + x * this.tileSize,
-          worldOffsetY + y * this.tileSize,
-          0
-        );
-        object.updateMatrix();
-        if (object instanceof THREE.Group) {
-          object.updateMatrixWorld(true);
+        if (!this.activeMeshes.has(key)) {
+          this.pendingTiles.push({ x, y, key });
         }
-
-        this.scene.add(object);
-        this.activeMeshes.set(key, object);
       }
     }
+
+    // Sort pending tiles by distance to player (closest first) for better visual loading
+    this.pendingTiles.sort((a, b) => {
+      const da = Math.abs(a.x - centerTileX) + Math.abs(a.y - centerTileY);
+      const db = Math.abs(b.x - centerTileX) + Math.abs(b.y - centerTileY);
+      return da - db;
+    });
+
+    // Process first batch immediately (initial load gets all at once)
+    const immediateBatch = this.isInitialLoad ? this.pendingTiles.length : MAX_TILES_PER_FRAME;
+    const batch = this.pendingTiles.splice(0, immediateBatch);
+    const worldOffsetX = -this.map.width / 2;
+    const worldOffsetY = -this.map.height / 2;
+
+    for (const { x, y, key } of batch) {
+      if (this.activeMeshes.has(key)) continue;
+      const tile = this.map.tiles[y]?.[x];
+      if (!tile || tile.hidden) continue;
+
+      const object = this.createTileObject(tile);
+      if (!object) continue;
+
+      object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, 0);
+      object.updateMatrix();
+      if (object instanceof THREE.Group) object.updateMatrixWorld(true);
+
+      this.scene.add(object);
+      this.activeMeshes.set(key, object);
+    }
+
+    if (this.pendingTiles.length === 0) this.isInitialLoad = false;
   }
 
   rebuildChunks() {
