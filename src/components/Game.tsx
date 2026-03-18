@@ -691,11 +691,20 @@ const Game = () => {
         }
 
         // Cycle idle/walk frames
-        if (playerAnimState !== 'attack' && playerAnimState !== 'dodge') {
+        if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge') {
           const frameDuration = playerAnimState === 'walk' ? WALK_FRAME_DURATION : IDLE_FRAME_DURATION;
           animTimer += deltaTime;
           if (animTimer >= frameDuration) {
             animFrame = (animFrame + 1) % 2;
+            animTimer = 0;
+          }
+        }
+
+        // Update charge animation frame
+        if (playerAnimState === 'charge') {
+          animTimer += deltaTime;
+          if (animTimer >= 0.15) {
+            animFrame = (animFrame + 1) % 3;
             animTimer = 0;
           }
         }
