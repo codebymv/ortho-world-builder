@@ -417,12 +417,12 @@ const Game = () => {
       if (state.player.isDodging) return;
 
       state.player.lastAttackTime = currentTime;
-      playerAnimState = 'attack';
-      attackFrame = 0;
-      attackFrameTimer = ATTACK_FRAME_DURATION * 1.5;
-      state.player.attackAnimationTimer = ATTACK_FRAME_DURATION * 4;
-      // Reset rotation from spin
-      // (will be smoothly handled in render loop)
+      // Use spin_attack animation: rapidly cycle through directional attack frames
+      playerAnimState = 'spin_attack';
+      spinDirIndex = 0;
+      spinFrameTimer = SPIN_FRAME_DURATION;
+      attackFrame = 1; // mid-swing frame
+      state.player.attackAnimationTimer = SPIN_FRAME_DURATION * SPIN_DIRECTIONS.length;
 
       const dmgMult = 1 + (CHARGE_DAMAGE_MULT - 1) * level;
       const chargeDamage = Math.floor(state.player.attackDamage * dmgMult);
