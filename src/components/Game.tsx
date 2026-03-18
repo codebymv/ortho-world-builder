@@ -22,6 +22,10 @@ const Game = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [, forceUpdate] = useState(0);
   const [currentDialogue, setCurrentDialogue] = useState<{ node: DialogueNode; npcName: string } | null>(null);
+  const [npcScreenPos, setNpcScreenPos] = useState<{ x: number; y: number } | null>(null);
+  const activeNpcWorldPos = useRef<{ x: number; y: number } | null>(null);
+  const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const visitedTilesRef = useRef<Set<string>>(new Set());
   const [visitedTilesVersion, setVisitedTilesVersion] = useState(0);
   const gameStateRef = useRef<GameState | null>(null);
