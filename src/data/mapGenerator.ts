@@ -336,7 +336,7 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 
 const HOUSE_VARIANTS: TileType[] = ['house', 'house_blue', 'house_green', 'house_thatch'];
 const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch']);
-const MIN_BUILDING_SPACING = 8; // minimum tiles between any two buildings
+const MIN_BUILDING_SPACING = 12; // minimum tiles between any two buildings
 
 function isBuildingNearby(tiles: Tile[][], fx: number, fy: number, fw: number, fh: number): boolean {
   const checkPad = MIN_BUILDING_SPACING;
