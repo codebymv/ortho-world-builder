@@ -198,6 +198,7 @@ const Game = () => {
 
     const enemyMeshes = new Map<string, THREE.Mesh>();
     const enemyShadows = new Map<string, THREE.Mesh>();
+    const enemyOutlines = new Map<string, THREE.Mesh>();
     const enemyHPBars = new Map<string, { bg: THREE.Mesh; fill: THREE.Mesh }>();
     const cameraTarget = { x: state.player.position.x, y: state.player.position.y };
 
