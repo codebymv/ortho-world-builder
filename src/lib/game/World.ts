@@ -9,7 +9,10 @@ export type TileType =
   | 'campfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
   | 'fence' | 'gate' | 'barrel' | 'crate' | 'spike_trap' | 'bones'
   | 'volcanic_rock' | 'ash' | 'ruins_floor' | 'waterfall' | 'snow'
-  | 'dead_tree' | 'destroyed_house' | 'statue';
+  | 'dead_tree' | 'destroyed_house' | 'statue'
+  | 'cliff' | 'cliff_edge' | 'cobblestone' | 'farmland' | 'wheat'
+  | 'iron_fence' | 'hedge' | 'scarecrow' | 'hay_bale' | 'lantern'
+  | 'dark_grass' | 'mossy_stone' | 'wooden_path';
 
 export interface Tile {
   type: TileType;
