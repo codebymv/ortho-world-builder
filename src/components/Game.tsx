@@ -1235,6 +1235,8 @@ const Game = () => {
       const currentBiome = mapBiomes[state.currentMap] || 'grassland';
       biomeAmbience.update(deltaTime, state.player.position.x, state.player.position.y);
       weatherSystem.update(deltaTime, state.player.position.x, state.player.position.y, currentBiome);
+      dayNightCycle.update(deltaTime, state.player.position.x, state.player.position.y);
+      floatingText.update(deltaTime);
       particleSystem.update(deltaTime);
       renderer.render(scene, camera);
     };
