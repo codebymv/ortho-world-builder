@@ -1175,8 +1175,11 @@ const Game = () => {
               mat.color.setHex(0x8888ff);
             }
           } else if (enemy.state === 'idle') {
-            finalEnemyY += Math.sin(currentTime / 500 + parseFloat(enemy.id.split('_')[1] || "0") * 3) * 0.03;
-            enemyMesh.scale.set(1, 1, 1);
+            // Gentle breathing animation
+            const breathe = Math.sin(currentTime / 800 + parseFloat(enemy.id.split('_')[1] || "0") * 3);
+            finalEnemyY += breathe * 0.02;
+            enemyMesh.scale.set(1 + breathe * 0.015, 1 - breathe * 0.015, 1);
+            enemyMesh.rotation.z = 0;
           }
 
           enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
