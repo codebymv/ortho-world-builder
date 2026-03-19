@@ -154,8 +154,10 @@ export class World {
     if (!material) {
       material = new THREE.MeshBasicMaterial({
         map: texture,
-        transparent: true,
+        transparent: false, // Use alpha-tested cutouts instead of transparent sorting for world sprites
         depthWrite: false,
+        depthTest: false, // Disable depth test completely for proper transparency
+        alphaTest: 0.5, // Discard empty pixels so sprite cutouts don't hide the player
       });
       this.materialCache.set(cacheKey, material);
     }
@@ -191,6 +193,8 @@ export class World {
         transparent: true,
         opacity: config.opacity,
         depthWrite: false,
+        depthTest: false, // Disable depth test completely for proper transparency
+        alphaTest: 0.5, // Keep detail decals as cutout sprites too
       });
       this.materialCache.set(cacheKey, mat);
     }
@@ -337,7 +341,8 @@ export class World {
         if (isOverlay) {
           const sortAnchorY = object.userData?.sortAnchorY ?? 0;
           const worldY = worldOffsetY + y * this.tileSize + sortAnchorY;
-          const ySort = Math.round(1000 + (this.map.height - (worldY + this.map.height / 2)) * 10);
+          // Environmental overlays get much lower render order to stay behind characters
+          const ySort = Math.round(50000 + (this.map.height - (worldY + this.map.height / 2)) * 10);
           object.renderOrder = ySort;
           if (object instanceof THREE.Group) {
             for (const child of object.children) child.renderOrder = ySort;
@@ -464,12 +469,45 @@ export class World {
       const tile = this.getTile(x, y);
       if (!tile) return false;
       if (tile.transition) return true;
+      
+      // Only allow walking over truly non-blocking decorative items
+      const nonBlockingOverlays = new Set([
+        'bones', 'wheat', 'hay_bale'
+        // Removed: flower, tall_grass, mushroom, scarecrow, lantern, tombstone, barrel, crate, campfire, sign, well, destroyed_house, statue, volcanic_rock, dead_tree
+        // These should block the player
+      ]);
+      
+      // For overlay tiles, check if they should be walkable
+      const metadata = TILE_METADATA[tile.type];
+      if (metadata?.isOverlay) {
+        // If it's an overlay that shouldn't block, treat as walkable
+        if (nonBlockingOverlays.has(tile.type)) {
+          return true;
+        }
+        // For all other overlays, check the base tile's walkability
+        const baseTileType = metadata.baseTile;
+        if (baseTileType) {
+          const baseTileWalkable = this.getBaseTileWalkability(baseTileType);
+          return baseTileWalkable;
+        }
+      }
+      
       return tile.walkable;
     }
     return this.isWalkable(x - r, y - r) &&
            this.isWalkable(x + r, y - r) &&
            this.isWalkable(x - r, y + r) &&
            this.isWalkable(x + r, y + r);
+  }
+
+  private getBaseTileWalkability(tileType: TileType): boolean {
+    // Define walkability for base tile types
+    const walkableBaseTiles = new Set([
+      'grass', 'dirt', 'stone', 'wood', 'sand', 'swamp', 'ice', 
+      'cobblestone', 'farmland', 'ash', 'ruins_floor', 'dark_grass', 
+      'mossy_stone', 'wooden_path'
+    ]);
+    return walkableBaseTiles.has(tileType);
   }
 
   getSpawnPoint(): { x: number; y: number } {

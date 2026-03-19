@@ -136,13 +136,13 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
       switch (def.baseTerrain) {
         case 'grassland':
           if (n1 < 0.05 && n2 > 0.6) {
-            tile = createTile('flower', true);
+            tile = createTile('flower', false); // Flowers should not be walkable
           } else if (n1 > 0.85 && n2 > 0.5) {
             tile = createTile('tree', false);
           } else if (n2 < 0.1) {
             tile = createTile('rock', false);
           } else if (n3 > 0.7 && n1 > 0.6) {
-            tile = createTile('tall_grass', true);
+            tile = createTile('tall_grass', false); // Tall grass should not be walkable
           } else {
             tile = createTile('grass', true);
           }
@@ -154,9 +154,9 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
           } else if (n1 > 0.35 && n2 > 0.5) {
             tile = createTile('tree', false);
           } else if (n2 < 0.08) {
-            tile = createTile('mushroom', true);
+            tile = createTile('mushroom', false); // Mushrooms should not be walkable
           } else if (n1 < 0.15) {
-            tile = createTile('tall_grass', true);
+            tile = createTile('tall_grass', false); // Tall grass should not be walkable
           } else {
             tile = createTile('grass', true);
           }
@@ -170,7 +170,7 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
           } else if (n1 > 0.8) {
             tile = createTile('tree', false);
           } else if (n2 < 0.1) {
-            tile = createTile('mushroom', true);
+            tile = createTile('mushroom', false); // Mushrooms should not be walkable
           } else {
             tile = createTile('grass', true);
           }

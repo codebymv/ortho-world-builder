@@ -80,6 +80,53 @@ const Game = () => {
   const textureCacheRef = useRef<Map<string, THREE.Texture>>(new Map());
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
 
+  // Audio processing system for compression and gain
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const compressorRef = useRef<DynamicsCompressorNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const masterGainRef = useRef<GainNode | null>(null);
+
+  const initializeAudioContext = () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Create compressor for dynamic range compression
+      compressorRef.current = audioContextRef.current.createDynamicsCompressor();
+      compressorRef.current.threshold.value = -24; // Start compression at -24dB
+      compressorRef.current.knee.value = 30; // Soft knee
+      compressorRef.current.ratio.value = 12; // 12:1 compression ratio
+      compressorRef.current.attack.value = 0.003; // 3ms attack
+      compressorRef.current.release.value = 0.25; // 250ms release
+      
+      // Create gain node for output boost
+      gainNodeRef.current = audioContextRef.current.createGain();
+      gainNodeRef.current.gain.value = 1.4; // Boost output by 40%
+      
+      // Create master gain for overall volume control
+      masterGainRef.current = audioContextRef.current.createGain();
+      masterGainRef.current.gain.value = 0.85; // Slightly reduce to prevent clipping
+      
+      // Connect the audio processing chain
+      compressorRef.current.connect(gainNodeRef.current);
+      gainNodeRef.current.connect(masterGainRef.current);
+      masterGainRef.current.connect(audioContextRef.current.destination);
+    }
+    return audioContextRef.current;
+  };
+
+  const processAudioElement = (audio: HTMLAudioElement) => {
+    const ctx = initializeAudioContext();
+    if (!ctx || !compressorRef.current || !gainNodeRef.current || !masterGainRef.current) return;
+    
+    // Create source from audio element
+    const source = ctx.createMediaElementSource(audio);
+    
+    // Disconnect direct connection and route through processing chain
+    source.connect(compressorRef.current);
+    
+    return source;
+  };
+
   // New state for overlays
   const [isPaused, setIsPaused] = useState(false);
   const [transitionActive, setTransitionActive] = useState(false);
@@ -143,7 +190,11 @@ const Game = () => {
     camera.position.z = 5;
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      alpha: true, // Enable transparency support
+      premultipliedAlpha: false // Disable premultiplied alpha
+    });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     rendererRef.current = renderer;
@@ -348,10 +399,11 @@ const Game = () => {
     };
 
     // Helper: get Y-based render order using the entity foot point with sub-tile precision
-    const getYRenderOrder = (worldY: number, footOffset: number = 0): number => {
+    const getYRenderOrder = (worldY: number, footOffset: number = 0, isCharacter: boolean = false): number => {
       const footY = worldY - footOffset;
-      // ensure we never go negative so we never sort behind base tiles
-      return Math.round(100000 - footY * 10);
+      // Characters get a much higher base render order to ensure they're always in front of environmental assets
+      const baseOrder = isCharacter ? 200000 : 100000;
+      return Math.round(baseOrder - footY * 10);
     };
 
     const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
@@ -480,17 +532,22 @@ const Game = () => {
       map: playerTexture,
       transparent: true,
       depthWrite: false,
-      depthTest: false,
+      depthTest: false, // Disable depth test completely for proper transparency
+      alphaTest: 0, // Disable alpha test to allow full transparency
+      side: THREE.DoubleSide,
     });
     const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
-    playerMesh.position.set(state.player.position.x, state.player.position.y, 0.2);
+    playerMesh.position.set(state.player.position.x, state.player.position.y, 0.8); // Higher Z to be above world objects
     playerMesh.scale.setScalar(PLAYER_BASE_SCALE);
-    playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
+    // Set player render order higher than any Y-sorted character (200000 + maxWorldY * 10)
+    // Assuming max world Y of 1000, this gives us 200000 + 10000 = 210000 max for other characters
+    playerMesh.renderOrder = 999999; // Much higher than any possible Y-sorted character
     scene.add(playerMesh);
 
     // Player outline
     const playerOutline = createOutlineMesh(playerGeometry, playerTexture);
-    playerOutline.position.z = 0.19;
+    playerOutline.position.z = 0.79; // Just below player
+    playerOutline.renderOrder = 999998; // Just below player
     scene.add(playerOutline);
 
     const npcData: NPC[] = [
@@ -548,7 +605,7 @@ const Game = () => {
       const npcScale = NPC_SCALE_BY_ID[npc.id] ?? 1;
       npcMesh.position.set(npc.position.x, npc.position.y, 0.2);
       npcMesh.scale.set(npcScale, npcScale, 1);
-      npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET);
+      npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET, true);
       npcMesh.userData = { npcId: npc.id };
       scene.add(npcMesh);
       npcMeshes.push(npcMesh);
@@ -714,6 +771,7 @@ const Game = () => {
     for (let i = 0; i < SFX_POOL_SIZE; i++) {
       const a = new Audio('./audio/sword_swing.mp3');
       a.volume = 0.3;
+      processAudioElement(a);
       swordSwingPool.push(a);
     }
     let swordSwingIdx = 0;
@@ -730,6 +788,7 @@ const Game = () => {
     for (let i = 0; i < SFX_POOL_SIZE; i++) {
       const a = new Audio('./audio/blade_sheath.mp3');
       a.volume = 0.2;
+      processAudioElement(a);
       bladePool.push(a);
     }
     let bladeIdx = 0;
@@ -748,10 +807,16 @@ const Game = () => {
     for (let variant = 1; variant <= 3; variant++) {
       for (let i = 0; i < FOOTSTEP_POOL_SIZE; i++) {
         const walkSfx = new Audio(`./audio/fs_${variant}_walk.mp3`);
-        walkSfx.volume = 0.15;
+        walkSfx.volume = 0.3;
+        processAudioElement(walkSfx);
+        walkSfx.addEventListener('error', () => console.error(`Failed to load walk footstep ${variant}`));
+        walkSfx.addEventListener('loadeddata', () => console.log(`Walk footstep ${variant} loaded successfully`));
         walkFootstepPool.push(walkSfx);
         const sprintSfx = new Audio(`./audio/fs_${variant}_sprint.mp3`);
-        sprintSfx.volume = 0.2;
+        sprintSfx.volume = 0.4;
+        processAudioElement(sprintSfx);
+        sprintSfx.addEventListener('error', () => console.error(`Failed to load sprint footstep ${variant}`));
+        sprintSfx.addEventListener('loadeddata', () => console.log(`Sprint footstep ${variant} loaded successfully`));
         sprintFootstepPool.push(sprintSfx);
       }
     }
@@ -763,14 +828,40 @@ const Game = () => {
       const randomIdx = Math.floor(Math.random() * pool.length);
       const sfx = pool[randomIdx];
       sfx.currentTime = 0;
-      sfx.play().catch(() => {});
+      console.log('Playing footstep, isSprinting:', isSprinting, 'pool length:', pool.length);
+      sfx.play().then(() => {
+        console.log('Footstep played successfully');
+      }).catch(err => {
+        console.error('Failed to play footstep:', err);
+      });
     };
+
+    // Debug: Add manual audio test
+    const testAudio = () => {
+      console.log('Testing audio...');
+      if (walkFootstepPool.length > 0) {
+        const testSfx = walkFootstepPool[0];
+        console.log('Test audio ready state:', testSfx.readyState);
+        console.log('Test audio src:', testSfx.src);
+        testSfx.play().then(() => {
+          console.log('Test audio played successfully');
+        }).catch(err => {
+          console.error('Test audio failed:', err);
+        });
+      } else {
+        console.error('No audio in pool');
+      }
+    };
+
+    // Expose test function to window for debugging
+    (window as any).testAudio = testAudio;
 
     // Pre-load death sound
     const deathPool: HTMLAudioElement[] = [];
     for (let i = 0; i < 3; i++) {
       const a = new Audio('./audio/mob_die.mp3');
       a.volume = 0.35;
+      processAudioElement(a);
       deathPool.push(a);
     }
     let deathIdx = 0;
@@ -1171,7 +1262,7 @@ const Game = () => {
             npcMesh.position.set(npc.position.x, npc.position.y + breathe, 0.2);
             npcMesh.scale.set(npcScale, npcScale, 1);
             npcMesh.rotation.z = 0;
-            npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET);
+            npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET, true);
           }
           continue;
         }
@@ -1224,7 +1315,7 @@ const Game = () => {
             1
           );
           npcMesh.rotation.z = lean;
-          npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET);
+          npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET, true);
 
           // Update NPC shadow
           const npcShadow = npcShadows[ni];
@@ -1557,8 +1648,11 @@ const Game = () => {
         playerMesh.position.set(
           state.player.position.x + attackOffsetX,
           state.player.position.y + attackOffsetY,
-          0.2
+          0.8 // Higher Z to be above world objects
         );
+
+        // FORCE player render order every frame to prevent any overrides
+        playerMesh.renderOrder = 999999;
 
         // Update player shadow
         playerShadow.position.set(
@@ -1567,18 +1661,18 @@ const Game = () => {
           0.05
         );
 
-        // Dynamic Y-sorting for player
-        playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
+        // Dynamic Y-sorting for player (disabled - player always on top)
+        // playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET, true);
 
         // Update player outline
         playerOutline.position.set(
-          state.player.position.x + attackOffsetX,
-          state.player.position.y + attackOffsetY,
-          0.19
+          state.player.position.x,
+          state.player.position.y,
+          0.79 // Just below player
         );
         playerOutline.scale.set(visualScaleX * OUTLINE_PAD, visualScaleY * OUTLINE_PAD, 1);
         playerOutline.rotation.z = visualRotation;
-        playerOutline.renderOrder = playerMesh.renderOrder - 1;
+        playerOutline.renderOrder = 999998; // Just below player
 
         // === NORMAL SWORD SWOOSH (synced to attackRange) ===
         if (swooshTimer > 0) {
@@ -1729,7 +1823,7 @@ const Game = () => {
             });
             enemyMesh = new THREE.Mesh(enemyGeometry, enemyMaterial);
             enemyMesh.position.z = 0.2;
-            enemyMesh.renderOrder = getYRenderOrder(enemy.position.y);
+            enemyMesh.renderOrder = getYRenderOrder(enemy.position.y, 0, true);
             scene.add(enemyMesh);
             enemyMeshes.set(enemy.id, enemyMesh);
 
@@ -1908,7 +2002,7 @@ const Game = () => {
           enemyMesh.rotation.z = rotation;
           enemyMesh.scale.set(scaleX, scaleY, 1);
           enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
-          enemyMesh.renderOrder = getYRenderOrder(enemy.position.y, visual.footOffset);
+          enemyMesh.renderOrder = getYRenderOrder(enemy.position.y, visual.footOffset, true);
 
           // Update enemy shadow
           const eShadow = enemyShadows.get(enemy.id);
@@ -2241,6 +2335,10 @@ const Game = () => {
     audio.loop = true;
     audio.volume = 0.15;
     audio.muted = wasMuted;
+    
+    // Process new audio through compression and gain chain
+    processAudioElement(audio);
+    
     if (musicStarted.current) {
       audio.play().catch(() => {});
     }
@@ -2257,6 +2355,10 @@ const Game = () => {
     const audio = new Audio(startTrack);
     audio.loop = true;
     audio.volume = 0.15;
+    
+    // Process audio through compression and gain chain
+    processAudioElement(audio);
+    
     musicRef.current = audio;
     currentTrackRef.current = startTrack;
 
@@ -2296,7 +2398,16 @@ const Game = () => {
     };
     document.addEventListener('visibilitychange', onVisibility);
 
+    // Cleanup function
     return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      if (musicRef.current) {
+        musicRef.current.pause();
+        musicRef.current = null;
+      }
       audio.pause();
       audio.src = '';
       window.removeEventListener('click', startMusic);

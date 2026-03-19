@@ -90,6 +90,9 @@ export class AssetManager {
     canvas.height = height;
     const ctx = canvas.getContext('2d')!;
 
+    // Clear canvas with transparent background
+    ctx.clearRect(0, 0, width, height);
+
     for (let y = 0; y < colors.length; y++) {
       for (let x = 0; x < colors[y].length; x++) {
         const color = colors[y][x];
@@ -101,11 +104,12 @@ export class AssetManager {
           ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
           ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
           
-          ctx.fillStyle = `rgba(255,255,255,0.18)`;
-          ctx.fillRect(x * cellSize, y * cellSize, 1, 1);
+          // Remove automatic highlight/shadow effects to prevent transparency issues
+          // ctx.fillStyle = `rgba(255,255,255,0.18)`;
+          // ctx.fillRect(x * cellSize, y * cellSize, 1, 1);
           
-          ctx.fillStyle = `rgba(0,0,0,0.12)`;
-          ctx.fillRect(x * cellSize + cellSize - 1, y * cellSize + cellSize - 1, 1, 1);
+          // ctx.fillStyle = `rgba(0,0,0,0.12)`;
+          // ctx.fillRect(x * cellSize + cellSize - 1, y * cellSize + cellSize - 1, 1, 1);
         }
       }
     }
@@ -113,6 +117,9 @@ export class AssetManager {
     const texture = new THREE.CanvasTexture(canvas);
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.premultiplyAlpha = false; // Disable premultiplied alpha for proper transparency
 
     if (spriteId) {
       this.textureDataUrls.set(spriteId, canvas.toDataURL());
@@ -215,45 +222,44 @@ export class AssetManager {
         cell(m(11), dy + bob, p.capeDark);
         if (dy > 9) cell(m(12), dy + bob, p.capeDark);
       }
-      // Sword - thicker, more imposing buster-style blade
+      // Sword - traditional short sword
       const BLADE = 0xC0D0E0;
       const BLADE_H = 0xF0F4FF;
       const BLADE_E = 0x90A8C0;
-      const GUARD = p.trimColor;
+      const GUARD = 0xE8C030;
       const GRIP = 0x5D4037;
       if (atkFrame === 0) {
-        // Wind-up: sword raised high behind head, thicker
-        cell(m(7), 0 + bob, BLADE_H); cell(m(8), 1 + bob, BLADE); cell(m(9), 2 + bob, BLADE);
-        cell(m(8), 0 + bob, BLADE_H); cell(m(9), 1 + bob, BLADE); cell(m(10), 2 + bob, BLADE);
-        cell(m(9), 2 + bob, BLADE_E); cell(m(10), 3 + bob, BLADE_E); 
-        cell(m(9), 3 + bob, GUARD); cell(m(8), 3 + bob, GUARD);
-        cell(m(8), 4 + bob, GRIP); cell(m(7), 5 + bob, GRIP);
+        // Wind-up: sword raised high behind head
+        cell(m(7), 0 + bob, BLADE_H); cell(m(8), 1 + bob, BLADE); cell(m(9), 2 + bob, BLADE_E);
+        cell(m(8), 0 + bob, BLADE_H); cell(m(9), 1 + bob, BLADE);
+        cell(m(8), 2 + bob, GUARD); cell(m(7), 2 + bob, GUARD);
+        cell(m(7), 3 + bob, GRIP); cell(m(7), 4 + bob, GRIP);
       } else if (atkFrame === 1) {
-        // Mid-swing: sword thick coming down
-        cell(m(2), 2 + bob, BLADE_H); cell(m(2), 3 + bob, BLADE); cell(m(3), 4 + bob, BLADE);
-        cell(m(3), 2 + bob, BLADE_H); cell(m(3), 3 + bob, BLADE); cell(m(4), 4 + bob, BLADE);
-        cell(m(4), 5 + bob, BLADE_E); cell(m(5), 5 + bob, GUARD); cell(m(4), 6 + bob, GUARD);
-        cell(m(5), 6 + bob, GRIP);
+        // Mid-swing: sword coming down
+        cell(m(2), 2 + bob, BLADE_H); cell(m(3), 3 + bob, BLADE); cell(m(4), 4 + bob, BLADE_E);
+        cell(m(3), 2 + bob, BLADE_H); cell(m(4), 3 + bob, BLADE);
+        cell(m(4), 5 + bob, GUARD); cell(m(3), 5 + bob, GUARD);
+        cell(m(3), 6 + bob, GRIP);
       } else if (atkFrame === 2) {
-        // Follow-through: swept low, thick
-        cell(m(1), 7 + bob, BLADE_H); cell(m(2), 7 + bob, BLADE); cell(m(3), 7 + bob, BLADE);
-        cell(m(1), 8 + bob, BLADE_H); cell(m(2), 8 + bob, BLADE); cell(m(3), 8 + bob, BLADE);
-        cell(m(4), 7 + bob, BLADE_E); cell(m(4), 8 + bob, BLADE_E); 
-        cell(m(5), 8 + bob, GUARD); cell(m(5), 7 + bob, GUARD);
-        cell(m(5), 9 + bob, GRIP);
+        // Follow-through: swept low
+        cell(m(1), 7 + bob, BLADE_H); cell(m(2), 8 + bob, BLADE); cell(m(3), 9 + bob, BLADE_E);
+        cell(m(2), 7 + bob, BLADE_H); cell(m(3), 8 + bob, BLADE);
+        cell(m(3), 10 + bob, GUARD); cell(m(2), 10 + bob, GUARD);
+        cell(m(2), 11 + bob, GRIP);
       } else {
-        // Idle: resting at side, wide blade
-        // Main blade
-        cell(m(3), 3 + bob, BLADE_H); cell(m(4), 3 + bob, BLADE_H);
-        cell(m(3), 4 + bob, BLADE_H); cell(m(4), 4 + bob, BLADE); 
-        cell(m(3), 5 + bob, BLADE_H); cell(m(4), 5 + bob, BLADE); 
-        cell(m(3), 6 + bob, BLADE_E); cell(m(4), 6 + bob, BLADE_E);
+        // Idle: resting at side, traditional short sword
+        // Blade
+        cell(m(3), 3 + bob, BLADE_H); cell(m(4), 4 + bob, BLADE); cell(m(5), 5 + bob, BLADE_E);
+        cell(m(3), 4 + bob, BLADE_H); cell(m(4), 5 + bob, BLADE);
+        cell(m(3), 5 + bob, BLADE_H); cell(m(4), 6 + bob, BLADE);
         
-        // Guard (crossguard)
+        // Guard
         cell(m(2), 7 + bob, GUARD); cell(m(3), 7 + bob, GUARD); cell(m(4), 7 + bob, GUARD); cell(m(5), 7 + bob, GUARD);
         
         // Grip & Pommel
         cell(m(4), 8 + bob, GRIP);
+        cell(m(4), 9 + bob, GRIP);
+        cell(m(4), 10 + bob, GUARD);
         cell(m(4), 9 + bob, GRIP);
         cell(m(4), 10 + bob, GUARD); // Pommel
       }
@@ -317,44 +323,38 @@ export class AssetManager {
       cell(4, 9 + bob, p.capeDark); cell(11, 9 + bob, p.capeDark);
       cell(4, 10 + bob, p.capeDark); cell(11, 10 + bob, p.capeDark);
 
-      // Sword (left side) - thicker buster-style blade for front view
+      // Sword (front view) - traditional short sword
       const BLADE = 0xC0D0E0;
       const BLADE_H = 0xF0F4FF;
       const BLADE_E = 0x90A8C0;
-      const GUARD = p.trimColor;
+      const GUARD = 0xE8C030;
       const GRIP = 0x5D4037;
       if (atkFrame === 0) {
-        // Wind-up: sword raised overhead, thick
-        cell(5, 0 + bob, BLADE_H); cell(6, 0 + bob, BLADE); cell(7, 0 + bob, BLADE);
-        cell(5, 1 + bob, BLADE_H); cell(6, 1 + bob, BLADE); cell(7, 1 + bob, BLADE);
-        cell(8, 0 + bob, BLADE_E); cell(9, 0 + bob, BLADE_E);
-        cell(8, 1 + bob, GUARD); cell(7, 1 + bob, GUARD);
-        cell(7, 2 + bob, GRIP);
+        // Wind-up: sword raised overhead
+        cell(5, 0 + bob, BLADE_H); cell(6, 0 + bob, BLADE); cell(7, 0 + bob, BLADE_E);
+        cell(5, 1 + bob, BLADE_H); cell(6, 1 + bob, BLADE);
+        cell(8, 0 + bob, GUARD); cell(7, 0 + bob, GUARD);
+        cell(7, 1 + bob, GRIP);
       } else if (atkFrame === 1) {
-        // Mid-swing: thick sword coming down
-        cell(1, 3 + bob, BLADE_H); cell(2, 4 + bob, BLADE); cell(2, 5 + bob, BLADE);
-        cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE); cell(3, 5 + bob, BLADE);
-        cell(3, 6 + bob, BLADE_E); cell(4, 6 + bob, GUARD); cell(3, 7 + bob, GUARD);
-        cell(4, 7 + bob, GRIP);
+        // Mid-swing: sword coming down
+        cell(1, 3 + bob, BLADE_H); cell(2, 4 + bob, BLADE); cell(3, 5 + bob, BLADE_E);
+        cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE);
+        cell(4, 6 + bob, GUARD); cell(3, 6 + bob, GUARD);
+        cell(3, 7 + bob, GRIP);
       } else if (atkFrame === 2) {
-        // Follow-through: thick sword swept low
-        cell(1, 9 + bob, BLADE_H); cell(2, 9 + bob, BLADE); cell(3, 9 + bob, BLADE);
-        cell(1, 10 + bob, BLADE_H); cell(2, 10 + bob, BLADE); cell(3, 10 + bob, BLADE);
-        cell(4, 9 + bob, BLADE_E); cell(5, 9 + bob, BLADE_E);
-        cell(4, 10 + bob, GUARD); cell(4, 11 + bob, GUARD);
-        cell(5, 11 + bob, GRIP);
+        // Follow-through: sword swept low
+        cell(1, 9 + bob, BLADE_H); cell(2, 10 + bob, BLADE); cell(3, 11 + bob, BLADE_E);
+        cell(2, 9 + bob, BLADE_H); cell(3, 10 + bob, BLADE);
+        cell(4, 12 + bob, GUARD); cell(3, 12 + bob, GUARD);
+        cell(3, 13 + bob, GRIP);
       } else {
-        // Idle: resting at left side, much thicker and visible!
-        // Right now the body is drawn at x=5 to 10.
-        // We will draw the sword at x=2,3 (blade) and crossguard at x=1,2,3,4 to ensure it pops out
-        
+        // Idle: resting at left side, traditional short sword
         // Blade
-        cell(2, 4 + bob, BLADE_H); cell(3, 4 + bob, BLADE_H);
-        cell(2, 5 + bob, BLADE_H); cell(3, 5 + bob, BLADE);
-        cell(2, 6 + bob, BLADE_H); cell(3, 6 + bob, BLADE);
-        cell(2, 7 + bob, BLADE_H); cell(3, 7 + bob, BLADE_E);
+        cell(2, 4 + bob, BLADE_H); cell(3, 5 + bob, BLADE); cell(4, 6 + bob, BLADE_E);
+        cell(2, 5 + bob, BLADE_H); cell(3, 6 + bob, BLADE);
+        cell(2, 6 + bob, BLADE_H); cell(3, 7 + bob, BLADE);
         
-        // Guard (crossguard) spanning wider
+        // Guard
         cell(1, 8 + bob, GUARD); cell(2, 8 + bob, GUARD); cell(3, 8 + bob, GUARD); cell(4, 8 + bob, GUARD);
         
         // Grip & Pommel
