@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GameState } from './GameState';
+import { SpatialHash } from './SpatialHash';
 
 type CardinalDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -39,9 +40,11 @@ export class CombatSystem {
   private gameState: GameState;
   private _cachedLiveEnemies: Enemy[] = [];
   private _enemiesDirty: boolean = true;
+  private spatialHash: SpatialHash<Enemy>;
 
   constructor(gameState: GameState) {
     this.gameState = gameState;
+    this.spatialHash = new SpatialHash<Enemy>(4); // 4x4 grid cells
   }
 
   spawnEnemy(
@@ -83,6 +86,7 @@ export class CombatSystem {
     };
 
     this.enemies.push(enemy);
+    this.spatialHash.insert(enemy);
     this._enemiesDirty = true;
     return enemy;
   }
@@ -139,12 +143,14 @@ export class CombatSystem {
           const pdistSq = pdx * pdx + pdy * pdy;
 
           if (pdistSq > 0.01) {
+            const oldPos = { ...enemy.position };
             const pdist = Math.sqrt(pdistSq);
             const moveSpeed = enemy.speed * 0.4 * deltaTime * 60;
             const nvx = pdx / pdist;
             const nvy = pdy / pdist;
             enemy.position.x += nvx * moveSpeed;
             enemy.position.y += nvy * moveSpeed;
+            this.updateEnemyHash(enemy, oldPos);
             updateMovementVisuals(enemy, nvx, nvy, true, 7);
           } else {
             updateMovementVisuals(enemy, 0, 0, false, 0);
@@ -172,12 +178,14 @@ export class CombatSystem {
           }
 
           if (distSq > 0) {
+            const oldPos = { ...enemy.position };
             const dist = Math.sqrt(distSq);
             const moveSpeed = enemy.speed * deltaTime * 60;
             const nvx = dx / dist;
             const nvy = dy / dist;
             enemy.position.x += nvx * moveSpeed;
             enemy.position.y += nvy * moveSpeed;
+            this.updateEnemyHash(enemy, oldPos);
             updateMovementVisuals(enemy, nvx, nvy, true, 10);
           } else {
             updateMovementVisuals(enemy, 0, 0, false, 0);
@@ -252,17 +260,16 @@ export class CombatSystem {
   }
 
   getEnemiesInRange(position: { x: number; y: number }, range: number): Enemy[] {
-    const rangeSq = range * range;
-    return this.enemies.filter(enemy => {
-      if (enemy.state === 'dead') return false;
-      const dx = position.x - enemy.position.x;
-      const dy = position.y - enemy.position.y;
-      return (dx * dx + dy * dy) <= rangeSq;
-    });
+    return this.spatialHash.query(position.x, position.y, range);
+  }
+
+  updateEnemyHash(enemy: Enemy, oldPos: { x: number, y: number }) {
+    this.spatialHash.update(enemy, oldPos);
   }
 
   removeDeadEnemies(): Enemy[] {
     const dead = this.enemies.filter(e => e.state === 'dead');
+    dead.forEach(e => this.spatialHash.remove(e));
     this.enemies = this.enemies.filter(e => e.state !== 'dead');
     this._enemiesDirty = true;
     return dead;
@@ -271,6 +278,7 @@ export class CombatSystem {
   removeDeadEnemiesByIds(ids: string[]): Enemy[] {
     const toRemove = new Set(ids);
     const removed = this.enemies.filter(e => toRemove.has(e.id));
+    removed.forEach(e => this.spatialHash.remove(e));
     this.enemies = this.enemies.filter(e => !toRemove.has(e.id));
     this._enemiesDirty = true;
     return removed;
@@ -278,6 +286,7 @@ export class CombatSystem {
 
   clearAllEnemies(): void {
     this.enemies = [];
+    this.spatialHash.clear();
     this._enemiesDirty = true;
   }
 }

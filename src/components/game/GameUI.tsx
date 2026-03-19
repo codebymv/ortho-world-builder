@@ -1,23 +1,166 @@
 import { GameState } from '@/lib/game/GameState';
+import { AssetManager } from '@/lib/game/AssetManager';
 import { Button } from '@/components/ui/button';
-import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield } from 'lucide-react';
-import { useState } from 'react';
+import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield, Sword, FlaskRound, Map as MapIcon, Key } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 
 interface GameUIProps {
   gameState: GameState;
+  assetManager?: AssetManager | null;
   refreshToken: number;
+  triggerUIUpdate: () => void;
   musicRef: React.RefObject<HTMLAudioElement | null>;
   showControls?: boolean;
 }
 
-export const GameUI = ({ gameState, refreshToken, musicRef, showControls = true }: GameUIProps) => {
+// --- Helpers ---
+
+const getItemIcon = (item: any, className: string, assetManager?: AssetManager | null) => {
+  if (!item) return <div className={className} />;
+  if (assetManager) {
+    const url = assetManager.getTextureURL(item.sprite);
+    if (url) {
+      return <img src={url} alt={item.name} className={`${className} [image-rendering:pixelated] object-contain drop-shadow-sm`} />;
+    }
+  }
+  if (item.sprite === 'sword') return <Sword className={className} />;
+  if (item.sprite === 'potion') return <FlaskRound className={className} />;
+  if (item.sprite === 'red_potion') return <FlaskRound className={className} />; // Fallback for red potion
+  if (item.sprite === 'map') return <MapIcon className={className} />;
+  if (item.sprite === 'key') return <Key className={className} />;
+  if (item.sprite === 'flower') return <Zap className={className} />;
+  return <Package className={className} />;
+};
+
+// --- Memoized Sub-components ---
+
+const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold }: { 
+  health: number, maxHealth: number, stamina: number, maxStamina: number, gold: number 
+}) => (
+  <div className="flex items-center gap-4">
+    {/* Health */}
+    <div className="flex items-center gap-2">
+      <Heart className="w-4 h-4 text-red-500 drop-shadow" />
+      <div className="w-28 h-2.5 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
+        <div
+          className="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all"
+          style={{ width: `${(health / maxHealth) * 100}%` }}
+        />
+      </div>
+      <span className="text-[10px] font-bold text-[#F5DEB3] tracking-wide">
+        {health}/{maxHealth}
+      </span>
+    </div>
+
+    {/* Stamina */}
+    <div className="flex items-center gap-2">
+      <Shield className="w-3.5 h-3.5 text-emerald-400 drop-shadow" />
+      <div className="w-20 h-2 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
+        <div
+          className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all"
+          style={{ width: `${(stamina / maxStamina) * 100}%` }}
+        />
+      </div>
+    </div>
+
+    <div className="flex items-center gap-1.5">
+      <Coins className="w-4 h-4 text-yellow-400 drop-shadow" />
+      <span className="text-xs font-bold text-[#F5DEB3] tracking-wide">{gold}</span>
+    </div>
+  </div>
+));
+
+const CurrentObjective = React.memo(({ title }: { title: string }) => (
+  <div className="flex items-center gap-2 bg-[#2D1B11]/50 px-3 py-1 rounded-full border border-[#5C3A21]">
+    <span className="text-[#DAA520] text-xs font-bold uppercase tracking-wider">Objective:</span>
+    <span className="text-[#F5DEB3] text-xs truncate max-w-[200px]">{title}</span>
+  </div>
+));
+
+const ActiveItemWheel = React.memo(({ 
+  inventory, activeItemIndex, groupedInventory, assetManager 
+}: { 
+  inventory: any[], activeItemIndex: number, groupedInventory: any[], assetManager?: AssetManager | null 
+}) => {
+  if (inventory.length === 0) return null;
+  const activeIdx = activeItemIndex || 0;
+  
+  const uniqueItems = groupedInventory;
+  const activeItemRaw = inventory[activeIdx];
+  const uniqueActiveIdx = Math.max(0, uniqueItems.findIndex(u => u.item.id === activeItemRaw?.id));
+  
+  const activeEntry = uniqueItems[uniqueActiveIdx];
+  const hasMultipleDistinct = uniqueItems.length > 1;
+  const prevEntry = hasMultipleDistinct ? uniqueItems[(uniqueActiveIdx - 1 + uniqueItems.length) % uniqueItems.length] : null;
+  const nextEntry = uniqueItems.length > 2 ? uniqueItems[(uniqueActiveIdx + 1) % uniqueItems.length] : null;
+
+  return (
+    <div className="fixed bottom-4 right-4 z-30 pointer-events-auto flex items-end gap-3 transition-all duration-300">
+      <div className={`flex flex-col items-center transition-opacity ${hasMultipleDistinct ? 'opacity-80 hover:opacity-100' : 'opacity-[0.85]'}`}>
+        <span className="text-[10px] text-[#DAA520]/60 font-bold mb-1 font-mono drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,1)]">Q</span>
+        {prevEntry ? (
+          <div className="w-11 h-11 bg-[#1A0F0A]/90 backdrop-blur-md border border-[#5C3A21] rounded-md shadow-lg flex flex-col items-center justify-center p-1 relative overflow-hidden">
+            {getItemIcon(prevEntry.item, "w-6 h-6 mb-1", assetManager)}
+            {prevEntry.count > 1 && (
+              <span className="absolute top-0 right-0.5 text-[8px] font-bold text-[#F5DEB3] drop-shadow-md">x{prevEntry.count}</span>
+            )}
+            <span className="text-[7px] text-[#D3D3D3] text-center w-full truncate absolute bottom-0.5 leading-none">{prevEntry.item.name.split(' ')[0]}</span>
+          </div>
+        ) : (
+          <div className="w-11 h-11 bg-[#2D1B11]/40 rounded-lg shadow-inner pointer-events-none" />
+        )}
+      </div>
+
+      <div className="flex flex-col items-center transform scale-100 translate-y-[-4px]">
+        <span className="text-[11px] text-[#F5DEB3] font-bold mb-1.5 uppercase tracking-wider text-center drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">{activeEntry?.item?.name || 'Empty'}</span>
+        <div className="w-16 h-16 bg-[#1A0F0A]/95 backdrop-blur-md border-[1.5px] border-[#DAA520] rounded-lg flex items-center justify-center shadow-xl relative overflow-hidden group">
+          {activeEntry && getItemIcon(activeEntry.item, "w-12 h-12 transform group-hover:scale-110 transition-transform", assetManager)}
+          {activeEntry && activeEntry.count > 1 && (
+            <span className="absolute top-1 right-1.5 text-[10px] font-bold text-[#F5DEB3] drop-shadow-[0_1px_1px_rgba(0,0,0,1)] bg-[#1A0F0A]/60 px-1 rounded-sm border border-[#5C3A21]/50">x{activeEntry.count}</span>
+          )}
+        </div>
+        <span className="text-[9px] text-[#F5DEB3] mt-2 font-mono bg-[#1A0F0A]/95 backdrop-blur border border-[#5C3A21] px-2.5 py-0.5 rounded-md uppercase tracking-widest shadow-lg drop-shadow-md">Space</span>
+      </div>
+
+      <div className={`flex flex-col items-center transition-opacity ${hasMultipleDistinct ? 'opacity-80 hover:opacity-100' : 'opacity-[0.85]'}`}>
+        <span className="text-[10px] text-[#DAA520]/60 font-bold mb-1 font-mono drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,1)]">E</span>
+        {nextEntry ? (
+          <div className="w-11 h-11 bg-[#1A0F0A]/90 backdrop-blur-md border border-[#5C3A21] rounded-md shadow-lg flex flex-col items-center justify-center p-1 relative overflow-hidden">
+            {getItemIcon(nextEntry.item, "w-6 h-6 mb-1", assetManager)}
+            {nextEntry.count > 1 && (
+              <span className="absolute top-0 right-0.5 text-[8px] font-bold text-[#F5DEB3] drop-shadow-md">x{nextEntry.count}</span>
+            )}
+            <span className="text-[7px] text-[#D3D3D3] text-center w-full truncate absolute bottom-0.5 leading-none">{nextEntry.item.name.split(' ')[0]}</span>
+          </div>
+        ) : (
+          <div className="w-11 h-11 bg-[#2D1B11]/40 rounded-lg shadow-inner pointer-events-none" />
+        )}
+      </div>
+    </div>
+  );
+});
+
+export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate, musicRef, showControls = true }: GameUIProps) => {
   const [showInventory, setShowInventory] = useState(false);
   const [showQuests, setShowQuests] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
   const activeQuests = gameState.quests.filter(q => q.active && !q.completed);
   void refreshToken;
+
+  const groupedInventory = useMemo(() => {
+    const groups = new Map<string, { item: any; count: number }>();
+    gameState.inventory.forEach(item => {
+      const existing = groups.get(item.id);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        groups.set(item.id, { item, count: 1 });
+      }
+    });
+    return Array.from(groups.values());
+  }, [gameState.inventory]);
 
   const toggleMute = () => {
     if (musicRef.current) {
@@ -32,45 +175,18 @@ export const GameUI = ({ gameState, refreshToken, musicRef, showControls = true 
       <div className="fixed top-0 left-0 right-0 h-12 bg-[#1A0F0A]/85 backdrop-blur-sm border-b border-[#5C3A21] z-50 flex justify-between items-center px-4 pointer-events-auto shadow-md">
 
         {/* Left Side: Health, Stamina & Gold */}
-        <div className="flex items-center gap-4">
-          {/* Health */}
-          <div className="flex items-center gap-2">
-            <Heart className="w-4 h-4 text-red-500 drop-shadow" />
-            <div className="w-28 h-2.5 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
-              <div
-                className="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all"
-                style={{ width: `${(gameState.player.health / gameState.player.maxHealth) * 100}%` }}
-              />
-            </div>
-            <span className="text-[10px] font-bold text-[#F5DEB3] tracking-wide">
-              {gameState.player.health}/{gameState.player.maxHealth}
-            </span>
-          </div>
-
-          {/* Stamina */}
-          <div className="flex items-center gap-2">
-            <Shield className="w-3.5 h-3.5 text-emerald-400 drop-shadow" />
-            <div className="w-20 h-2 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
-              <div
-                className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all"
-                style={{ width: `${(gameState.player.stamina / gameState.player.maxStamina) * 100}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <Coins className="w-4 h-4 text-yellow-400 drop-shadow" />
-            <span className="text-xs font-bold text-[#F5DEB3] tracking-wide">{gameState.player.gold}</span>
-          </div>
-        </div>
+        <StatMeters 
+          health={gameState.player.health} 
+          maxHealth={gameState.player.maxHealth} 
+          stamina={gameState.player.stamina} 
+          maxStamina={gameState.player.maxStamina} 
+          gold={gameState.player.gold} 
+        />
 
         {/* Center: Current Objective */}
         <div className="flex-1 flex justify-center">
           {activeQuests.length > 0 && (
-            <div className="flex items-center gap-2 bg-[#2D1B11]/50 px-3 py-1 rounded-full border border-[#5C3A21]">
-              <span className="text-[#DAA520] text-xs font-bold uppercase tracking-wider">Objective:</span>
-              <span className="text-[#F5DEB3] text-xs truncate max-w-[200px]">{activeQuests[0].title}</span>
-            </div>
+            <CurrentObjective title={activeQuests[0].title} />
           )}
         </div>
 
@@ -135,7 +251,7 @@ export const GameUI = ({ gameState, refreshToken, musicRef, showControls = true 
               <p className="text-[#A0522D] text-center py-6 text-sm font-semibold">Your pack is empty</p>
             ) : (
               <div className="space-y-2">
-                {gameState.inventory.map((item, idx) => (
+                {groupedInventory.map(({ item, count }, idx) => (
                   <div
                     key={`${item.id}_${idx}`}
                     className={`p-2 bg-[#2D1B11]/80 border border-[#5C3A21] rounded-sm transition-colors ${
@@ -153,19 +269,33 @@ export const GameUI = ({ gameState, refreshToken, musicRef, showControls = true 
                           description: 'Restored 50 health.',
                           className: 'rpg-toast',
                         });
-                        refreshToken;
+                        triggerUIUpdate();
                         setShowInventory(true);
                       }
                     }}
                   >
                     <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-[#F5DEB3] text-sm">{item.name}</h4>
-                      <span className="text-[9px] text-[#DAA520] uppercase bg-[#1A0F0A] px-1.5 py-0.5 rounded-sm border border-[#5C3A21]">{item.type}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#1A0F0A]/60 rounded border border-[#5C3A21]/50 flex items-center justify-center shadow-inner relative">
+                          {getItemIcon(item, "w-8 h-8", assetManager)}
+                          {count > 1 && (
+                            <div className="absolute -top-1 -right-1 bg-[#1A0F0A] border border-[#DAA520] rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center border border-[#DAA520]/50 shadow-sm z-10">
+                              <span className="text-[8px] font-bold text-[#DAA520]">x{count}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-[#F5DEB3] text-sm leading-tight">{item.name}</h4>
+                          <p className="text-xs text-[#D3D3D3] mt-0.5 leading-tight opacity-80">{item.description}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[9px] text-[#DAA520] uppercase bg-[#1A0F0A]/80 px-1.5 py-0.5 rounded-sm border border-[#5C3A21]">{item.type}</span>
+                        {item.type === 'consumable' && (
+                          <span className="text-[8px] text-[#DAA520] uppercase tracking-wider bg-[#2D1B11] px-1 rounded-sm border border-[#DAA520]/30 animate-pulse">Use</span>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-xs text-[#D3D3D3] mt-1 leading-tight opacity-80">{item.description}</p>
-                    {item.type === 'consumable' && (
-                      <p className="text-[10px] text-[#DAA520] mt-1 uppercase tracking-wider">Click to use</p>
-                    )}
                   </div>
                 ))}
               </div>
@@ -238,16 +368,24 @@ export const GameUI = ({ gameState, refreshToken, musicRef, showControls = true 
         <div className="fixed bottom-4 left-4 bg-[#1A0F0A]/80 backdrop-blur-sm border border-[#5C3A21] rounded-sm p-2 z-40 shadow-sm pointer-events-auto transition-opacity duration-1000">
           <div className="flex gap-3 items-center">
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">WASD</kbd> Move</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Attack</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Use/Attack</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">HOLD</kbd> Charge</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">CTRL</kbd> Dodge</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SHIFT</kbd> Sprint</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">E</kbd> Interact</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Q</kbd> Potion</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">F</kbd> Interact</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Q/E</kbd> Item</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">ESC</kbd> Pause</p>
           </div>
         </div>
       )}
+
+      {/* Active Item Wheel */}
+      <ActiveItemWheel 
+        inventory={gameState.inventory} 
+        activeItemIndex={gameState.activeItemIndex} 
+        groupedInventory={groupedInventory} 
+        assetManager={assetManager} 
+      />
     </>
   );
 };

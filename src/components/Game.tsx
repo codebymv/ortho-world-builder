@@ -7,6 +7,7 @@ import { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { BiomeAmbience } from '@/lib/game/BiomeAmbience';
 import { WeatherSystem } from '@/lib/game/WeatherSystem';
 import { CombatSystem, Enemy } from '@/lib/game/Combat';
+import { ENEMY_BLUEPRINTS, DEFAULT_ENEMY } from '@/data/enemies';
 import { DayNightCycle } from '@/lib/game/DayNightCycle';
 import { FloatingTextSystem } from '@/lib/game/FloatingText';
 import { ScreenShake } from '@/lib/game/ScreenShake';
@@ -70,11 +71,14 @@ const Game = () => {
   const [npcScreenPos, setNpcScreenPos] = useState<{ x: number; y: number } | null>(null);
   const activeNpcWorldPos = useRef<{ x: number; y: number } | null>(null);
   const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const visitedTilesRef = useRef<Set<string>>(new Set());
   const [minimapVersion, setMinimapVersion] = useState(0);
   const lastMinimapRefreshRef = useRef(0);
   const gameStateRef = useRef<GameState | null>(null);
+  const assetManagerRef = useRef<AssetManager | null>(null);
+  const worldRef = useRef<World | null>(null);
+  const textureCacheRef = useRef<Map<string, THREE.Texture>>(new Map());
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
 
   // New state for overlays
   const [isPaused, setIsPaused] = useState(false);
@@ -146,6 +150,7 @@ const Game = () => {
     mountRef.current.appendChild(renderer.domElement);
 
     const assetManager = new AssetManager();
+    assetManagerRef.current = assetManager;
     assetManager.loadDefaultAssets();
 
     const state = new GameState(scene, camera);
@@ -164,6 +169,7 @@ const Game = () => {
     const savedData = SaveManager.load();
     const startMap = savedData?.currentMap || 'village';
     const world = new World(scene, assetManager, allMaps[startMap] || allMaps.village);
+    worldRef.current = world;
     
     if (savedData) {
       state.currentMap = savedData.currentMap;
@@ -176,6 +182,19 @@ const Game = () => {
       state.player.stamina = savedData.player.stamina;
       state.player.maxStamina = savedData.player.maxStamina;
       state.inventory = savedData.inventory;
+      
+      const hasMeekSword = state.inventory.some(i => i.id === 'meek_short_sword');
+      if (!hasMeekSword && !state.inventory.some(i => i.type === 'equipment')) {
+        state.inventory.unshift({
+          id: 'meek_short_sword',
+          name: 'Meek Short Sword',
+          description: 'A simple, reliable starting blade. Press space to swing.',
+          type: 'equipment',
+          sprite: 'sword',
+        });
+      }
+      state.activeItemIndex = 0;
+
       state.quests = savedData.quests;
       state.gameFlags = savedData.gameFlags;
       // Restore map markers
@@ -240,6 +259,7 @@ const Game = () => {
     swooshMesh.renderOrder = 20000;
     scene.add(swooshMesh);
     let swooshTimer = 0;
+    let swooshFacing: 'up' | 'down' | 'left' | 'right' = 'down';
     const SWOOSH_DURATION = 0.22;
 
     // Spin attack swoosh — same arc style as normal but full circle
@@ -329,10 +349,9 @@ const Game = () => {
 
     // Helper: get Y-based render order using the entity foot point with sub-tile precision
     const getYRenderOrder = (worldY: number, footOffset: number = 0): number => {
-      const currentMap = world.getCurrentMap();
       const footY = worldY - footOffset;
-      const tileYFloat = footY + currentMap.height / 2;
-      return Math.round(1000 + (currentMap.height - tileYFloat) * 10);
+      // ensure we never go negative so we never sort behind base tiles
+      return Math.round(100000 - footY * 10);
     };
 
     const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
@@ -342,7 +361,7 @@ const Game = () => {
       // Show transition overlay
       setTransitionMapName(newMap.name);
       setTransitionActive(true);
-      setTimeout(() => setTransitionActive(false), 100); // trigger re-render
+      setTimeout(() => setTransitionActive(false), 800); // trigger re-render
 
       state.currentMap = targetMap;
       world.loadMap(newMap);
@@ -388,36 +407,18 @@ const Game = () => {
       const mapDef = mapDefinitions[targetMap];
       if (mapDef?.enemyZones) {
         for (const zone of mapDef.enemyZones) {
-          let enemySprite: string;
-          let enemyName: string;
-          let hp: number;
-          let dmg: number;
-
-          switch (zone.enemyType) {
-            case 'wolf':
-              enemySprite = 'enemy_wolf'; enemyName = 'Forest Wolf'; hp = 40; dmg = 10; break;
-            case 'shadow':
-              enemySprite = 'enemy_shadow'; enemyName = 'Shadow Creature'; hp = 60; dmg = 15; break;
-            case 'plant':
-              enemySprite = 'enemy_plant'; enemyName = 'Vine Terror'; hp = 50; dmg = 12; break;
-            case 'skeleton':
-              enemySprite = 'enemy_skeleton'; enemyName = 'Skeleton Warrior'; hp = 55; dmg = 14; break;
-            case 'bandit':
-              enemySprite = 'enemy_bandit'; enemyName = 'Bandit'; hp = 45; dmg = 11; break;
-            case 'golem':
-              enemySprite = 'enemy_golem'; enemyName = 'Stone Golem'; hp = 200; dmg = 25; break;
-            case 'spider':
-              enemySprite = 'enemy_spider'; enemyName = 'Giant Spider'; hp = 35; dmg = 8; break;
-            case 'slime':
-              enemySprite = 'enemy_slime'; enemyName = 'Green Slime'; hp = 25; dmg = 5; break;
-            default:
-              enemySprite = 'enemy_wolf'; enemyName = 'Wild Beast'; hp = 40; dmg = 10;
-          }
+          const blueprint = ENEMY_BLUEPRINTS[zone.enemyType] || DEFAULT_ENEMY;
           
           for (let i = 0; i < zone.count; i++) {
             const ex = (zone.x + Math.random() * zone.width) - newMap.width / 2;
             const ey = (zone.y + Math.random() * zone.height) - newMap.height / 2;
-            combatSystem.spawnEnemy(enemyName, { x: ex, y: ey }, hp, dmg, enemySprite);
+            combatSystem.spawnEnemy(
+              blueprint.name, 
+              { x: ex, y: ey }, 
+              blueprint.hp, 
+              blueprint.damage, 
+              blueprint.sprite
+            );
           }
         }
       }
@@ -462,10 +463,11 @@ const Game = () => {
     const createOutlineMesh = (geometry: THREE.BufferGeometry, texture: THREE.Texture | null) => {
       const outlineMat = new THREE.MeshBasicMaterial({
         map: texture,
-        color: 0x222222,
+        color: 0x000000,
         transparent: true,
         opacity: 0.45,
         depthWrite: false,
+        depthTest: false,
       });
       return new THREE.Mesh(geometry, outlineMat);
     };
@@ -478,6 +480,7 @@ const Game = () => {
       map: playerTexture,
       transparent: true,
       depthWrite: false,
+      depthTest: false,
     });
     const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
     playerMesh.position.set(state.player.position.x, state.player.position.y, 0.2);
@@ -583,22 +586,62 @@ const Game = () => {
       if (pausedRef.current) return;
 
       keys[e.key.toLowerCase()] = true;
-      if (e.key.toLowerCase() === 'e' && !state.dialogueActive) {
+      if (e.key.toLowerCase() === 'f' && !state.dialogueActive) {
         interactBuffered = true;
       }
-      // Q = use potion hotkey
-      if (e.key.toLowerCase() === 'q' && !state.dialogueActive) {
-        potionBuffered = true;
+      // Switch Active Item (Q / E) - skip duplicates
+      if (e.key.toLowerCase() === 'q' && !state.dialogueActive && state.inventory.length > 0) {
+        let prevIdx = (state.activeItemIndex - 1 + state.inventory.length) % state.inventory.length;
+        const startId = state.inventory[state.activeItemIndex]?.id;
+        let count = 0;
+        while (state.inventory[prevIdx]?.id === startId && count < state.inventory.length) {
+          prevIdx = (prevIdx - 1 + state.inventory.length) % state.inventory.length;
+          count++;
+        }
+        if (state.activeItemIndex !== prevIdx) {
+          state.activeItemIndex = prevIdx;
+          triggerUIUpdate();
+        }
+      }
+      if (e.key.toLowerCase() === 'e' && !state.dialogueActive && state.inventory.length > 0) {
+        let nextIdx = (state.activeItemIndex + 1) % state.inventory.length;
+        const startId = state.inventory[state.activeItemIndex]?.id;
+        let count = 0;
+        while (state.inventory[nextIdx]?.id === startId && count < state.inventory.length) {
+          nextIdx = (nextIdx + 1) % state.inventory.length;
+          count++;
+        }
+        if (state.activeItemIndex !== nextIdx) {
+          state.activeItemIndex = nextIdx;
+          triggerUIUpdate();
+        }
       }
       if (e.key === ' ' && !state.dialogueActive) {
         e.preventDefault();
-        if (!isChargingAttack && !state.player.isDodging && playerAnimState !== 'attack') {
-          const currentTime = Date.now();
-          if (currentTime - state.player.lastAttackTime >= state.player.attackCooldown) {
-            isChargingAttack = true;
-            chargeTimer = 0;
-            chargeLevel = 0;
-            playerAnimState = 'charge';
+        const activeItem = state.inventory[state.activeItemIndex];
+        if (activeItem?.type === 'consumable') {
+          if (activeItem.id === 'health_potion') {
+            if (state.player.health >= state.player.maxHealth) {
+              toast('Already at full health!', { className: 'rpg-toast' });
+              return;
+            }
+            state.player.health = Math.min(state.player.maxHealth, state.player.health + 50);
+            state.removeItem(activeItem.id);
+            toast.success('Used Health Potion!', { description: 'Restored 50 health.', className: 'rpg-toast' });
+            if (state.activeItemIndex >= state.inventory.length) {
+              state.activeItemIndex = Math.max(0, state.inventory.length - 1);
+            }
+            triggerUIUpdate();
+          }
+        } else {
+          if (!isChargingAttack && !state.player.isDodging && playerAnimState !== 'attack') {
+            const currentTime = Date.now();
+            if (currentTime - state.player.lastAttackTime >= state.player.attackCooldown) {
+              isChargingAttack = true;
+              chargeTimer = 0;
+              chargeLevel = 0;
+              playerAnimState = 'charge';
+            }
           }
         }
       }
@@ -669,7 +712,7 @@ const Game = () => {
     const SFX_POOL_SIZE = 4;
     const swordSwingPool: HTMLAudioElement[] = [];
     for (let i = 0; i < SFX_POOL_SIZE; i++) {
-      const a = new Audio('/audio/sword_swing.mp3');
+      const a = new Audio('./audio/sword_swing.mp3');
       a.volume = 0.3;
       swordSwingPool.push(a);
     }
@@ -682,8 +725,66 @@ const Game = () => {
       sfx.play().catch(() => {});
     };
 
+    // Pre-load blade sheath sound (layered with sword swing)
+    const bladePool: HTMLAudioElement[] = [];
+    for (let i = 0; i < SFX_POOL_SIZE; i++) {
+      const a = new Audio('./audio/blade_sheath.mp3');
+      a.volume = 0.2;
+      bladePool.push(a);
+    }
+    let bladeIdx = 0;
+
+    const playBladeSheath = () => {
+      const sfx = bladePool[bladeIdx % SFX_POOL_SIZE];
+      bladeIdx++;
+      sfx.currentTime = 0;
+      sfx.play().catch(() => {});
+    };
+
+    // Pre-load footstep sounds (3 walk + 3 sprint variants)
+    const FOOTSTEP_POOL_SIZE = 2; // 2 copies per variant to allow overlap
+    const walkFootstepPool: HTMLAudioElement[] = [];
+    const sprintFootstepPool: HTMLAudioElement[] = [];
+    for (let variant = 1; variant <= 3; variant++) {
+      for (let i = 0; i < FOOTSTEP_POOL_SIZE; i++) {
+        const walkSfx = new Audio(`./audio/fs_${variant}_walk.mp3`);
+        walkSfx.volume = 0.15;
+        walkFootstepPool.push(walkSfx);
+        const sprintSfx = new Audio(`./audio/fs_${variant}_sprint.mp3`);
+        sprintSfx.volume = 0.2;
+        sprintFootstepPool.push(sprintSfx);
+      }
+    }
+    let footstepPoolIdx = 0;
+
+    const playFootstep = (isSprinting: boolean) => {
+      const pool = isSprinting ? sprintFootstepPool : walkFootstepPool;
+      // Pick a random sound from the pool
+      const randomIdx = Math.floor(Math.random() * pool.length);
+      const sfx = pool[randomIdx];
+      sfx.currentTime = 0;
+      sfx.play().catch(() => {});
+    };
+
+    // Pre-load death sound
+    const deathPool: HTMLAudioElement[] = [];
+    for (let i = 0; i < 3; i++) {
+      const a = new Audio('./audio/mob_die.mp3');
+      a.volume = 0.35;
+      deathPool.push(a);
+    }
+    let deathIdx = 0;
+
+    const playDeathSound = () => {
+      const sfx = deathPool[deathIdx % deathPool.length];
+      deathIdx++;
+      sfx.currentTime = 0;
+      sfx.play().catch(() => {});
+    };
+
     const onEnemyKilled = (enemy: Enemy) => {
       killCount++;
+      playDeathSound();
       // Update guard_duty quest kill counter
       const guardQuest = state.quests.find(q => q.id === 'guard_duty' && q.active && !q.completed);
       if (guardQuest) {
@@ -705,7 +806,9 @@ const Game = () => {
       if (currentTime - state.player.lastAttackTime < state.player.attackCooldown) return;
       if (state.player.isDodging) return;
       playSwordSwing();
-      swooshTimer = SWOOSH_DURATION; // trigger swoosh effect
+      playBladeSheath();
+      swooshTimer = SWOOSH_DURATION;
+      swooshFacing = dir8to4(currentDir8); // Capture direction at the moment of the attack
 
       state.player.lastAttackTime = currentTime;
       playerAnimState = 'attack';
@@ -768,6 +871,7 @@ const Game = () => {
       const currentTime = Date.now();
       if (state.player.isDodging) return;
       playSwordSwing();
+      playBladeSheath();
       spinSwooshTimer = SPIN_SWOOSH_DURATION; // trigger spin swoosh
 
       state.player.lastAttackTime = currentTime;
@@ -838,7 +942,7 @@ const Game = () => {
     };
 
     const checkInteraction = () => {
-      const interactionRange = 2.0;
+      const interactionRange = 3.0; // expanded from 2.0 so wandering NPCs are reachable
       const interactionRangeSq = interactionRange * interactionRange;
       for (const npc of state.npcs) {
         const dx = state.player.position.x - npc.position.x;
@@ -852,6 +956,21 @@ const Game = () => {
 
       const checkX = state.player.position.x;
       const checkY = state.player.position.y;
+
+      // Check nearby portal tiles and trigger transition on F press
+      for (const dir of [
+        { x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
+      ]) {
+        const portalTransition = world.getTransitionAt(
+          checkX + dir.x * 0.7,
+          checkY + dir.y * 0.7
+        );
+        if (portalTransition) {
+          handleMapTransition(portalTransition.targetMap, portalTransition.targetX, portalTransition.targetY);
+          return;
+        }
+      }
+
       const directions = [
         { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
       ];
@@ -879,6 +998,23 @@ const Game = () => {
             });
             triggerUIUpdate();
             return;
+          }
+
+          // Potion ground pickups
+          if (interactionId === 'potion_pickup') {
+            const pickupKey = `potion_${state.currentMap}_${Math.round(checkX + dir.x * 0.5)}_${Math.round(checkY + dir.y * 0.5)}`;
+            if (!state.getFlag(pickupKey)) {
+              state.setFlag(pickupKey, true);
+              if (items.health_potion) state.addItem(items.health_potion);
+              particleSystem.emitSparkles(new THREE.Vector3(checkX + dir.x * 0.5, checkY + dir.y * 0.5, 0.3));
+              toast.success('Found a Health Potion!', {
+                description: 'Added to your inventory.',
+                className: "rpg-toast",
+              });
+              triggerUIUpdate();
+              SaveManager.save(state, mapMarkersRef.current, visitedTilesRef.current);
+              return;
+            }
           }
           
           // Healing sources with cooldown
@@ -1150,7 +1286,7 @@ const Game = () => {
             x: state.player.position.x + state.player.dodgeDirection.x * dodgeFrameSpeed,
             y: state.player.position.y + state.player.dodgeDirection.y * dodgeFrameSpeed,
           };
-          if (world.isWalkable(newPos.x, newPos.y)) {
+          if (world.isWalkable(newPos.x, newPos.y, 0.2)) {
             state.player.position = newPos;
           }
           world.updateChunks(state.player.position.x, state.player.position.y);
@@ -1180,11 +1316,11 @@ const Game = () => {
             y: state.player.position.y + moveY * frameSpeed,
           };
 
-          if (world.isWalkable(newPos.x, newPos.y)) {
+          if (world.isWalkable(newPos.x, newPos.y, 0.2)) {
             state.player.position = newPos;
-          } else if (world.isWalkable(newPos.x, state.player.position.y)) {
+          } else if (world.isWalkable(newPos.x, state.player.position.y, 0.2)) {
             state.player.position.x = newPos.x;
-          } else if (world.isWalkable(state.player.position.x, newPos.y)) {
+          } else if (world.isWalkable(state.player.position.x, newPos.y, 0.2)) {
             state.player.position.y = newPos.y;
           }
 
@@ -1196,9 +1332,11 @@ const Game = () => {
           }
 
           footstepTimer += deltaTime;
-          if (footstepTimer >= footstepInterval) {
-          _tmpVec3.set(state.player.position.x, state.player.position.y, 0);
-          particleSystem.emitDust(_tmpVec3);
+          const actualFootstepInterval = state.player.isSprinting ? footstepInterval * 0.65 : footstepInterval;
+          if (footstepTimer >= actualFootstepInterval) {
+            _tmpVec3.set(state.player.position.x, state.player.position.y, 0);
+            particleSystem.emitDust(_tmpVec3);
+            playFootstep(state.player.isSprinting);
             footstepTimer = 0;
           }
 
@@ -1319,7 +1457,22 @@ const Game = () => {
                                playerAnimState === 'spin_attack' ? 1 :
                                playerAnimState === 'charge' ? Math.min(animFrame, 2) : animFrame;
           texName = `player_${fallbackDir}_${fallbackState}_${fallbackFrame}`;
-          newTex = assetManager.getTexture(texName);
+          
+          // Use cache for texture lookups
+          if (textureCacheRef.current.has(texName)) {
+            newTex = textureCacheRef.current.get(texName)!;
+          } else {
+            newTex = assetManager.getTexture(texName);
+            if (newTex) textureCacheRef.current.set(texName, newTex);
+          }
+        } else {
+          // Check cache for the initial texName too
+          if (textureCacheRef.current.has(texName)) {
+            newTex = textureCacheRef.current.get(texName)!;
+          } else {
+            newTex = assetManager.getTexture(texName);
+            if (newTex) textureCacheRef.current.set(texName, newTex);
+          }
         }
         
         if (newTex && playerMaterial.map !== newTex) {
@@ -1385,6 +1538,20 @@ const Game = () => {
           visualRotation = 0;
         }
 
+        // Color tinting for animations
+        const outlineMat = playerOutline.material as THREE.MeshBasicMaterial;
+        if (state.player.damageFlashTimer > 0) {
+          playerMaterial.color.setHex(0xffaaaa);
+          outlineMat.color.setHex(0xff0000);
+        } else if (isChargingAttack) {
+          const tint = new THREE.Color().setHSL(0.12, 1.0, 1.0 - (chargeLevel * 0.3)); // Shift to gold
+          playerMaterial.color.copy(tint);
+          outlineMat.color.setHex(0xffaa00);
+        } else {
+          playerMaterial.color.setHex(0xffffff);
+          outlineMat.color.setHex(0x000000);
+        }
+
         playerMesh.rotation.z = visualRotation;
         playerMesh.scale.set(visualScaleX, visualScaleY, 1);
         playerMesh.position.set(
@@ -1400,6 +1567,9 @@ const Game = () => {
           0.05
         );
 
+        // Dynamic Y-sorting for player
+        playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
+
         // Update player outline
         playerOutline.position.set(
           state.player.position.x + attackOffsetX,
@@ -1409,9 +1579,6 @@ const Game = () => {
         playerOutline.scale.set(visualScaleX * OUTLINE_PAD, visualScaleY * OUTLINE_PAD, 1);
         playerOutline.rotation.z = visualRotation;
         playerOutline.renderOrder = playerMesh.renderOrder - 1;
-
-        // Dynamic Y-sorting for player
-        playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET);
 
         // === NORMAL SWORD SWOOSH (synced to attackRange) ===
         if (swooshTimer > 0) {
@@ -1430,15 +1597,18 @@ const Game = () => {
             left: Math.PI,
             right: 0,
           };
-          const baseAngle = swooshDirAngles[facing4] ?? 0;
-          swooshMesh.rotation.z = baseAngle + progress * Math.PI * 0.5 - Math.PI * 0.25;
+          const baseAngle = swooshDirAngles[swooshFacing] ?? 0;
+          // perfectly center the 135-deg arc (PI*0.75) across the facing direction:
+          // start the geometry halfway back (-PI*0.375) so the arc's center matches baseAngle
+          // add a minor 20% sweep progress to give it a swinging motion
+          swooshMesh.rotation.z = baseAngle - Math.PI * 0.375 + (progress * 0.2);
 
           const swooshDist = state.player.attackRange * 0.4;
           const swooshOffsets: Record<string, {x: number, y: number}> = {
             up: {x: 0, y: swooshDist}, down: {x: 0, y: -swooshDist},
             left: {x: -swooshDist, y: 0}, right: {x: swooshDist, y: 0},
           };
-          const sOff = swooshOffsets[facing4] ?? {x: 0, y: 0};
+          const sOff = swooshOffsets[swooshFacing] ?? {x: 0, y: 0};
           swooshMesh.position.set(
             state.player.position.x + attackOffsetX + sOff.x,
             state.player.position.y + attackOffsetY + sOff.y,
@@ -1480,14 +1650,10 @@ const Game = () => {
             // Show the damage amount the first frame
           }
         } else if (state.player.isDodging) {
-          playerMaterial.color.setHex(0xaaaaff);
           playerMaterial.opacity = 0.6;
         } else if (isChargingAttack && chargeLevel > 0) {
-          // No glow — keep natural color during charge
-          playerMaterial.color.setHex(0xffffff);
           playerMaterial.opacity = 1;
         } else {
-          playerMaterial.color.setHex(0xffffff);
           playerMaterial.opacity = 1;
         }
 
@@ -1851,6 +2017,7 @@ const Game = () => {
         // Check if player died — death penalty
         if (state.player.health <= 0 && !playerDeadRef.current) {
           playerDeadRef.current = true;
+          playDeathSound();
           const goldLoss = Math.floor(state.player.gold * 0.1);
           state.player.gold -= goldLoss;
           setDeathGoldLost(goldLoss);
@@ -2039,7 +2206,13 @@ const Game = () => {
       state.player.health = state.player.maxHealth;
       state.player.stamina = state.player.maxStamina;
       state.player.isDodging = false;
-      state.player.position = { x: 0, y: 0 };
+      
+      const spawn = worldRef.current?.getSpawnPoint() || { x: 0, y: 0 };
+      state.player.position = { x: spawn.x, y: spawn.y };
+      
+      worldRef.current?.rebuildChunks();
+      worldRef.current?.updateChunks(spawn.x, spawn.y);
+      
       triggerUIUpdate();
     }
   }, []);
@@ -2051,9 +2224,9 @@ const Game = () => {
   const switchMusicTrackRef = useRef<(mapId: string) => void>(() => {});
 
   const MAP_MUSIC_MAP: Record<string, string> = {
-    forest: '/audio/wood_theme.mp3',
+    forest: './audio/wood_theme.mp3',
   };
-  const DEFAULT_MUSIC_TRACK = '/audio/ortho_loop2.mp3';
+  const DEFAULT_MUSIC_TRACK = './audio/ortho_loop2.mp3';
 
   // Keep the ref always up to date
   switchMusicTrackRef.current = (mapId: string) => {
@@ -2087,29 +2260,48 @@ const Game = () => {
     musicRef.current = audio;
     currentTrackRef.current = startTrack;
 
+    const tryPlay = () => {
+      if (!musicRef.current) return;
+      const a = musicRef.current;
+      if (a.paused) {
+        a.play().catch(() => {});
+      }
+    };
+
     const startMusic = () => {
-      if (musicStarted.current) return;
       musicStarted.current = true;
-      // On first interaction, also sync to the correct track for current map
+      // Sync to the correct track for current map
       const map = gameStateRef.current?.currentMap || 'village';
       const correctTrack = MAP_MUSIC_MAP[map] || DEFAULT_MUSIC_TRACK;
       if (currentTrackRef.current !== correctTrack) {
         audio.src = correctTrack;
         currentTrackRef.current = correctTrack;
       }
-      audio.play().catch(() => {});
+      tryPlay();
     };
 
-    audio.play().catch(() => {
+    // Attempt autoplay immediately; browsers may block this inside iframes.
+    // If blocked, we attach interaction listeners to kick it off on first user input.
+    audio.play().then(() => {
+      musicStarted.current = true;
+    }).catch(() => {
       window.addEventListener('click', startMusic, { once: true });
       window.addEventListener('keydown', startMusic, { once: true });
+      window.addEventListener('pointerdown', startMusic, { once: true });
     });
+
+    // Kick audio if it stops due to browser throttling when tab regains focus
+    const onVisibility = () => {
+      if (!document.hidden) tryPlay();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       audio.pause();
       audio.src = '';
       window.removeEventListener('click', startMusic);
       window.removeEventListener('keydown', startMusic);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
 
@@ -2121,7 +2313,7 @@ const Game = () => {
       
       {gameState && (
         <>
-          <GameUI gameState={gameState} refreshToken={uiVersion} musicRef={musicRef} showControls={showControls} />
+          <GameUI gameState={gameState} assetManager={assetManagerRef.current} refreshToken={uiVersion} triggerUIUpdate={triggerUIUpdate} musicRef={musicRef} showControls={showControls} />
           <Minimap
             currentMap={allMaps[gameState.currentMap]}
             currentMapId={gameState.currentMap}

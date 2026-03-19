@@ -19,11 +19,13 @@ export class AssetManager {
   private textures: Map<string, THREE.Texture>;
   private textureGenerators: Map<string, () => THREE.Texture>;
   private textureLoader: THREE.TextureLoader;
+  private textureDataUrls: Map<string, string>;
 
   constructor() {
     this.textures = new Map();
     this.textureGenerators = new Map();
     this.textureLoader = new THREE.TextureLoader();
+    this.textureDataUrls = new Map();
   }
 
   createColorTexture(color: number, width: number = 32, height: number = 32, pattern?: 'noise' | 'checker' | 'gradient'): THREE.Texture {
@@ -78,7 +80,8 @@ export class AssetManager {
 
   createSpriteTexture(
     colors: number[][],
-    cellSize: number = 4
+    cellSize: number = 4,
+    spriteId?: string
   ): THREE.Texture {
     const width = colors[0].length * cellSize;
     const height = colors.length * cellSize;
@@ -110,6 +113,11 @@ export class AssetManager {
     const texture = new THREE.CanvasTexture(canvas);
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
+
+    if (spriteId) {
+      this.textureDataUrls.set(spriteId, canvas.toDataURL());
+    }
+
     return texture;
   }
 
@@ -127,7 +135,8 @@ export class AssetManager {
       capeMain: number; capeDark: number;
       pantColor: number; pantDark: number;
       bootColor: number; bootDark: number;
-    }
+    },
+    spriteId?: string
   ): THREE.Texture {
     // Grid-based pixel art: 16 cols x 20 rows, 4px per cell = 64x80
     const G = 4; // grid cell size
@@ -206,32 +215,47 @@ export class AssetManager {
         cell(m(11), dy + bob, p.capeDark);
         if (dy > 9) cell(m(12), dy + bob, p.capeDark);
       }
-      // Sword - long imposing blade with 3-frame swing
+      // Sword - thicker, more imposing buster-style blade
       const BLADE = 0xC0D0E0;
       const BLADE_H = 0xF0F4FF;
       const BLADE_E = 0x90A8C0;
       const GUARD = p.trimColor;
       const GRIP = 0x5D4037;
       if (atkFrame === 0) {
-        // Wind-up: sword raised high behind head
+        // Wind-up: sword raised high behind head, thicker
+        cell(m(7), 0 + bob, BLADE_H); cell(m(8), 1 + bob, BLADE); cell(m(9), 2 + bob, BLADE);
         cell(m(8), 0 + bob, BLADE_H); cell(m(9), 1 + bob, BLADE); cell(m(10), 2 + bob, BLADE);
-        cell(m(10), 3 + bob, BLADE_E); cell(m(9), 3 + bob, GUARD);
-        cell(m(8), 4 + bob, GRIP);
+        cell(m(9), 2 + bob, BLADE_E); cell(m(10), 3 + bob, BLADE_E); 
+        cell(m(9), 3 + bob, GUARD); cell(m(8), 3 + bob, GUARD);
+        cell(m(8), 4 + bob, GRIP); cell(m(7), 5 + bob, GRIP);
       } else if (atkFrame === 1) {
-        // Mid-swing: sword diagonal coming down
+        // Mid-swing: sword thick coming down
+        cell(m(2), 2 + bob, BLADE_H); cell(m(2), 3 + bob, BLADE); cell(m(3), 4 + bob, BLADE);
         cell(m(3), 2 + bob, BLADE_H); cell(m(3), 3 + bob, BLADE); cell(m(4), 4 + bob, BLADE);
-        cell(m(4), 5 + bob, BLADE_E); cell(m(5), 5 + bob, GUARD);
+        cell(m(4), 5 + bob, BLADE_E); cell(m(5), 5 + bob, GUARD); cell(m(4), 6 + bob, GUARD);
         cell(m(5), 6 + bob, GRIP);
       } else if (atkFrame === 2) {
-        // Follow-through: sword low and forward
-        cell(m(2), 7 + bob, BLADE_H); cell(m(3), 7 + bob, BLADE); cell(m(4), 7 + bob, BLADE);
-        cell(m(5), 7 + bob, BLADE_E); cell(m(5), 8 + bob, GUARD);
+        // Follow-through: swept low, thick
+        cell(m(1), 7 + bob, BLADE_H); cell(m(2), 7 + bob, BLADE); cell(m(3), 7 + bob, BLADE);
+        cell(m(1), 8 + bob, BLADE_H); cell(m(2), 8 + bob, BLADE); cell(m(3), 8 + bob, BLADE);
+        cell(m(4), 7 + bob, BLADE_E); cell(m(4), 8 + bob, BLADE_E); 
+        cell(m(5), 8 + bob, GUARD); cell(m(5), 7 + bob, GUARD);
         cell(m(5), 9 + bob, GRIP);
       } else {
-        // Idle: resting at side
-        cell(m(4), 4 + bob, BLADE_H); cell(m(4), 5 + bob, BLADE); cell(m(4), 6 + bob, BLADE);
-        cell(m(4), 7 + bob, BLADE_E); cell(m(4), 8 + bob, GUARD);
-        cell(m(4), 9 + bob, GRIP); cell(m(4), 10 + bob, GRIP);
+        // Idle: resting at side, wide blade
+        // Main blade
+        cell(m(3), 3 + bob, BLADE_H); cell(m(4), 3 + bob, BLADE_H);
+        cell(m(3), 4 + bob, BLADE_H); cell(m(4), 4 + bob, BLADE); 
+        cell(m(3), 5 + bob, BLADE_H); cell(m(4), 5 + bob, BLADE); 
+        cell(m(3), 6 + bob, BLADE_E); cell(m(4), 6 + bob, BLADE_E);
+        
+        // Guard (crossguard)
+        cell(m(2), 7 + bob, GUARD); cell(m(3), 7 + bob, GUARD); cell(m(4), 7 + bob, GUARD); cell(m(5), 7 + bob, GUARD);
+        
+        // Grip & Pommel
+        cell(m(4), 8 + bob, GRIP);
+        cell(m(4), 9 + bob, GRIP);
+        cell(m(4), 10 + bob, GUARD); // Pommel
       }
       // Hair back
       cell(m(9), 0, p.hairDark); cell(m(10), 1, p.hairDark); cell(m(10), 2, p.hairDark);
@@ -293,32 +317,50 @@ export class AssetManager {
       cell(4, 9 + bob, p.capeDark); cell(11, 9 + bob, p.capeDark);
       cell(4, 10 + bob, p.capeDark); cell(11, 10 + bob, p.capeDark);
 
-      // Sword (left side) - long imposing blade
+      // Sword (left side) - thicker buster-style blade for front view
       const BLADE = 0xC0D0E0;
       const BLADE_H = 0xF0F4FF;
       const BLADE_E = 0x90A8C0;
       const GUARD = p.trimColor;
       const GRIP = 0x5D4037;
       if (atkFrame === 0) {
-        // Wind-up: sword raised overhead
-        cell(6, 0 + bob, BLADE_H); cell(7, 0 + bob, BLADE); cell(8, 0 + bob, BLADE);
-        cell(9, 0 + bob, BLADE_E); cell(8, 1 + bob, GUARD);
-        cell(7, 1 + bob, GRIP);
+        // Wind-up: sword raised overhead, thick
+        cell(5, 0 + bob, BLADE_H); cell(6, 0 + bob, BLADE); cell(7, 0 + bob, BLADE);
+        cell(5, 1 + bob, BLADE_H); cell(6, 1 + bob, BLADE); cell(7, 1 + bob, BLADE);
+        cell(8, 0 + bob, BLADE_E); cell(9, 0 + bob, BLADE_E);
+        cell(8, 1 + bob, GUARD); cell(7, 1 + bob, GUARD);
+        cell(7, 2 + bob, GRIP);
       } else if (atkFrame === 1) {
-        // Mid-swing: sword coming down diagonally
+        // Mid-swing: thick sword coming down
+        cell(1, 3 + bob, BLADE_H); cell(2, 4 + bob, BLADE); cell(2, 5 + bob, BLADE);
         cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE); cell(3, 5 + bob, BLADE);
-        cell(3, 6 + bob, BLADE_E); cell(4, 6 + bob, GUARD);
+        cell(3, 6 + bob, BLADE_E); cell(4, 6 + bob, GUARD); cell(3, 7 + bob, GUARD);
         cell(4, 7 + bob, GRIP);
       } else if (atkFrame === 2) {
-        // Follow-through: sword swept low
-        cell(2, 9 + bob, BLADE_H); cell(3, 9 + bob, BLADE); cell(4, 9 + bob, BLADE);
-        cell(5, 9 + bob, BLADE_E); cell(4, 10 + bob, GUARD);
-        cell(4, 11 + bob, GRIP);
+        // Follow-through: thick sword swept low
+        cell(1, 9 + bob, BLADE_H); cell(2, 9 + bob, BLADE); cell(3, 9 + bob, BLADE);
+        cell(1, 10 + bob, BLADE_H); cell(2, 10 + bob, BLADE); cell(3, 10 + bob, BLADE);
+        cell(4, 9 + bob, BLADE_E); cell(5, 9 + bob, BLADE_E);
+        cell(4, 10 + bob, GUARD); cell(4, 11 + bob, GUARD);
+        cell(5, 11 + bob, GRIP);
       } else {
-        // Idle: resting at left side
-        cell(4, 4 + bob, BLADE_H); cell(4, 5 + bob, BLADE); cell(4, 6 + bob, BLADE);
-        cell(4, 7 + bob, BLADE_E); cell(4, 8 + bob, GUARD);
-        cell(4, 9 + bob, GRIP); cell(4, 10 + bob, GRIP);
+        // Idle: resting at left side, much thicker and visible!
+        // Right now the body is drawn at x=5 to 10.
+        // We will draw the sword at x=2,3 (blade) and crossguard at x=1,2,3,4 to ensure it pops out
+        
+        // Blade
+        cell(2, 4 + bob, BLADE_H); cell(3, 4 + bob, BLADE_H);
+        cell(2, 5 + bob, BLADE_H); cell(3, 5 + bob, BLADE);
+        cell(2, 6 + bob, BLADE_H); cell(3, 6 + bob, BLADE);
+        cell(2, 7 + bob, BLADE_H); cell(3, 7 + bob, BLADE_E);
+        
+        // Guard (crossguard) spanning wider
+        cell(1, 8 + bob, GUARD); cell(2, 8 + bob, GUARD); cell(3, 8 + bob, GUARD); cell(4, 8 + bob, GUARD);
+        
+        // Grip & Pommel
+        cell(3, 9 + bob, GRIP);
+        cell(3, 10 + bob, GRIP);
+        cell(3, 11 + bob, GUARD); // Pommel
       }
 
       // Hair (top rows)
@@ -416,6 +458,11 @@ export class AssetManager {
     const texture = new THREE.CanvasTexture(canvas);
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
+
+    if (spriteId) {
+      this.textureDataUrls.set(spriteId, canvas.toDataURL());
+    }
+
     return texture;
   }
 
@@ -437,6 +484,16 @@ export class AssetManager {
       return tex;
     }
     return undefined;
+  }
+
+  getTextureURL(id: string): string | null {
+    return this.textureDataUrls.get(id) || null;
+  }
+
+  getPalette(id: string): Record<string, number> {
+    // This method was added by the user's diff, but its implementation was not provided.
+    // Returning an empty object as a placeholder to maintain syntactical correctness.
+    return {};
   }
 
   loadDefaultAssets() {
@@ -467,7 +524,8 @@ export class AssetManager {
         const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' ? 1 : 2;
         for (let f = 0; f < maxFrames; f++) {
           const d = dir, s = state, fr = f;
-          this.registerTexture(`player_${d}_${s}_${fr}`, () => this.createChibiCharacter(d, s, fr, heroPalette));
+          const spriteId = `player_${d}_${s}_${fr}`;
+          this.registerTexture(spriteId, () => this.createChibiCharacter(d, s, fr, heroPalette, spriteId));
         }
       }
     }
@@ -482,7 +540,15 @@ export class AssetManager {
         const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' ? 1 : 2;
         for (let f = 0; f < maxFrames; f++) {
           const dd = dDir, b = base, s = state, fr = f;
-          this.registerTexture(`player_${dd}_${s}_${fr}`, () => this.getTexture(`player_${b}_${s}_${fr}`)!);
+          const spriteId = `player_${dd}_${s}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const baseTexture = this.getTexture(`player_${b}_${s}_${fr}`)!;
+            // If the base texture is a CanvasTexture, we can capture its data URL
+            if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
+              this.textureDataUrls.set(spriteId, baseTexture.image.toDataURL());
+            }
+            return baseTexture;
+          });
         }
       }
     }
@@ -490,7 +556,14 @@ export class AssetManager {
     // Legacy aliases
     for (const d of ['down', 'up', 'left', 'right']) {
       const dd = d;
-      this.registerTexture(`player_${dd}`, () => this.getTexture(`player_${dd}_idle_0`)!);
+      const spriteId = `player_${dd}`;
+      this.registerTexture(spriteId, () => {
+        const baseTexture = this.getTexture(`player_${dd}_idle_0`)!;
+        if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
+          this.textureDataUrls.set(spriteId, baseTexture.image.toDataURL());
+        }
+        return baseTexture;
+      });
     }
 
     // ========== NPC SPRITES - Using same chibi system ==========
@@ -504,7 +577,7 @@ export class AssetManager {
       pantColor: 0x5A1A8A, pantDark: 0x3A0A6A,
       bootColor: 0x6B4428, bootDark: 0x503018,
     };
-    this.registerTexture('npc_elder', () => this.createChibiCharacter('down', 'idle', 0, elderPalette));
+    this.registerTexture('npc_elder', () => this.createChibiCharacter('down', 'idle', 0, elderPalette, 'npc_elder'));
 
     const merchantPalette = {
       hair: 0x6D4C41, hairLight: 0x8D6E63, hairDark: 0x4E342E,
@@ -516,7 +589,7 @@ export class AssetManager {
       pantColor: 0x5A4030, pantDark: 0x3E2818,
       bootColor: 0x6B4428, bootDark: 0x503018,
     };
-    this.registerTexture('npc_merchant', () => this.createChibiCharacter('down', 'idle', 0, merchantPalette));
+    this.registerTexture('npc_merchant', () => this.createChibiCharacter('down', 'idle', 0, merchantPalette, 'npc_merchant'));
 
     const guardPalette = {
       hair: 0x506070, hairLight: 0x687888, hairDark: 0x37474F,
@@ -528,7 +601,7 @@ export class AssetManager {
       pantColor: 0x5A4030, pantDark: 0x3E2818,
       bootColor: 0x485060, bootDark: 0x37474F,
     };
-    this.registerTexture('npc_guard', () => this.createChibiCharacter('down', 'idle', 0, guardPalette));
+    this.registerTexture('npc_guard', () => this.createChibiCharacter('down', 'idle', 0, guardPalette, 'npc_guard'));
 
     // ========== NEW NPCs ==========
     const blacksmithPalette = {
@@ -541,7 +614,7 @@ export class AssetManager {
       pantColor: 0x3E2723, pantDark: 0x2C1B0E,
       bootColor: 0x3E2723, bootDark: 0x212121,
     };
-    this.registerTexture('npc_blacksmith', () => this.createChibiCharacter('down', 'idle', 0, blacksmithPalette));
+    this.registerTexture('npc_blacksmith', () => this.createChibiCharacter('down', 'idle', 0, blacksmithPalette, 'npc_blacksmith'));
 
     const healerPalette = {
       hair: 0xFFF9C4, hairLight: 0xFFFFFF, hairDark: 0xFFF176,
@@ -553,7 +626,7 @@ export class AssetManager {
       pantColor: 0xE0E0E0, pantDark: 0xBDBDBD,
       bootColor: 0xA5D6A7, bootDark: 0x81C784,
     };
-    this.registerTexture('npc_healer', () => this.createChibiCharacter('down', 'idle', 0, healerPalette));
+    this.registerTexture('npc_healer', () => this.createChibiCharacter('down', 'idle', 0, healerPalette, 'npc_healer'));
 
     const farmerPalette = {
       hair: 0x8D6E63, hairLight: 0xA1887F, hairDark: 0x6D4C41,
@@ -565,7 +638,7 @@ export class AssetManager {
       pantColor: 0x5D4037, pantDark: 0x4E342E,
       bootColor: 0x5D4037, bootDark: 0x3E2723,
     };
-    this.registerTexture('npc_farmer', () => this.createChibiCharacter('down', 'idle', 0, farmerPalette));
+    this.registerTexture('npc_farmer', () => this.createChibiCharacter('down', 'idle', 0, farmerPalette, 'npc_farmer'));
 
     const childPalette = {
       hair: 0xFFB74D, hairLight: 0xFFCC80, hairDark: 0xFFA726,
@@ -577,7 +650,7 @@ export class AssetManager {
       pantColor: 0x5D4037, pantDark: 0x4E342E,
       bootColor: 0x6D4C41, bootDark: 0x5D4037,
     };
-    this.registerTexture('npc_child', () => this.createChibiCharacter('down', 'idle', 0, childPalette));
+    this.registerTexture('npc_child', () => this.createChibiCharacter('down', 'idle', 0, childPalette, 'npc_child'));
 
     // ========== NEW ENEMY: Spider ==========
     const SPIDER_BODY = 0x212121;
@@ -595,7 +668,7 @@ export class AssetManager {
       [SPIDER_LEG, C,         SPIDER_BODY,SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY,C,     SPIDER_LEG, C,         C],
       [C,          SPIDER_LEG,C,          SPIDER_BODY,SPIDER_BODY,C,          SPIDER_LEG,C,          C,         C],
       [SPIDER_LEG, C,         C,          C,          C,          C,          C,         SPIDER_LEG, C,         C],
-    ]));
+    ], 4, 'enemy_spider'));
     this.registerTexture('enemy_spider_telegraph', () => this.getTexture('enemy_spider')!);
     this.registerTexture('enemy_spider_attack', () => this.getTexture('enemy_spider')!);
 
@@ -614,7 +687,7 @@ export class AssetManager {
       [SLIME_S,   SLIME_BODY,SLIME_PUPIL,SLIME_BODY,SLIME_PUPIL,SLIME_BODY,SLIME_S,  C],
       [C,          SLIME_BODY,SLIME_BODY,SLIME_BODY,SLIME_BODY,SLIME_BODY,C,          C],
       [C,          SLIME_S,   SLIME_BODY,SLIME_S,   SLIME_BODY,SLIME_S,   C,          C],
-    ]));
+    ], 4, 'enemy_slime'));
     this.registerTexture('enemy_slime_telegraph', () => this.getTexture('enemy_slime')!);
     this.registerTexture('enemy_slime_attack', () => this.getTexture('enemy_slime')!);
 
@@ -635,7 +708,7 @@ export class AssetManager {
       [WOLF_FUR_S,WOLF_FUR,WOLF_FUR,WOLF_FUR_H,WOLF_FUR,WOLF_FUR_H,WOLF_FUR,WOLF_FUR,WOLF_FUR_S,C],
       [C,        WOLF_FUR_S,WOLF_FUR,WOLF_FUR, WOLF_FUR_S,WOLF_FUR,WOLF_FUR,WOLF_FUR_S,C,       C],
       [C,        C,        WOLF_FUR_S,C,       WOLF_FUR_S,C,       WOLF_FUR_S,C,       C,        C],
-    ]));
+    ], 4, 'enemy_wolf'));
 
     const WOLF_EYE_GLOW = 0xFFFF00;
     const WOLF_WARN = 0xFF5722;
@@ -648,7 +721,7 @@ export class AssetManager {
       [WOLF_FUR_S,WOLF_FUR,WOLF_FUR,WOLF_FUR_H,WOLF_FUR_S,WOLF_FUR_H,WOLF_FUR,WOLF_FUR,WOLF_FUR_S,C],
       [C,        WOLF_FUR_S,WOLF_FUR_S,WOLF_FUR_S,WOLF_FUR_S,WOLF_FUR_S,WOLF_FUR_S,WOLF_FUR_S,C,C],
       [C,        WOLF_FUR_S,C,       WOLF_FUR_S,C,       WOLF_FUR_S,C,       WOLF_FUR_S,C,      C],
-    ]));
+    ], 4, 'enemy_wolf_telegraph'));
 
     this.textures.set('enemy_wolf_attack', this.createSpriteTexture([
       [C,        C,        WOLF_FUR_H,WOLF_FUR_H,C,       C,        WOLF_FUR_H,WOLF_FUR_H,C,    C],
@@ -659,7 +732,7 @@ export class AssetManager {
       [WOLF_FUR_S,WOLF_FUR,WOLF_FUR,WOLF_FUR_H,WOLF_FUR,WOLF_FUR_H,WOLF_FUR,WOLF_FUR,WOLF_FUR_S,C],
       [C,        WOLF_FUR_S,WOLF_FUR,WOLF_FUR, WOLF_FUR_S,WOLF_FUR,WOLF_FUR,WOLF_FUR_S,C,       C],
       [C,        C,        WOLF_FUR_S,C,       WOLF_FUR_S,C,       WOLF_FUR_S,C,       C,        C],
-    ]));
+    ], 4, 'enemy_wolf_attack'));
 
     const SHADOW_BODY = 0x311B92;
     const SHADOW_BODY_H = 0x4527A0;
@@ -677,7 +750,7 @@ export class AssetManager {
       [C,          C,           SHADOW_BODY_S,SHADOW_BODY, SHADOW_BODY_S,SHADOW_BODY, SHADOW_BODY_S,C,          C,         C],
       [C,          C,           SHADOW_WISP, SHADOW_BODY_S,SHADOW_BODY,  SHADOW_BODY_S,SHADOW_WISP,C,          C,         C],
       [C,          SHADOW_WISP, C,           C,            SHADOW_WISP,  C,            C,          SHADOW_WISP,C,         C],
-    ]));
+    ], 4, 'enemy_shadow'));
 
     const SHADOW_EYE_GLOW = 0xFF5252;
     const SHADOW_CHARGE = 0xEA80FC;
@@ -690,7 +763,7 @@ export class AssetManager {
       [C,          C,           SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,C,        C,     C],
       [C,          C,           SHADOW_WISP, SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,SHADOW_WISP,C,         C,     C],
       [C,          SHADOW_WISP, C,           C,           SHADOW_WISP, C,           C,          SHADOW_WISP,C,     C],
-    ]));
+    ], 4, 'enemy_shadow_telegraph'));
 
     this.textures.set('enemy_shadow_attack', this.createSpriteTexture([
       [C,          SHADOW_WISP, SHADOW_CHARGE,SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_CHARGE,SHADOW_WISP,C,C],
@@ -701,7 +774,7 @@ export class AssetManager {
       [C,          C,           SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,C,        C,         C],
       [C,          C,           SHADOW_WISP, SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,SHADOW_WISP,C,         C,         C],
       [C,          SHADOW_WISP, C,           C,           SHADOW_WISP, C,           C,          SHADOW_WISP,C,         C],
-    ]));
+    ], 4, 'enemy_shadow_attack'));
 
     // ========== NEW ENEMY: Plant Monster ==========
     const VINE = 0x2E7D32;
@@ -722,7 +795,7 @@ export class AssetManager {
       [C,       VINE_S,  VINE,    VINE_S,  VINE_S,  VINE,    VINE_S,  C,       C,       C],
       [C,       C,       VINE_S,  VINE,    VINE,    VINE_S,  C,       C,       C,       C],
       [C,       VINE_S,  C,       VINE_S,  VINE_S,  C,       VINE_S,  C,       C,       C],
-    ]));
+    ], 4, 'enemy_plant'));
 
     this.textures.set('enemy_plant_telegraph', this.createSpriteTexture([
       [PETAL_EH,C,       PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, C,       PETAL_EH,C,       C],
@@ -733,7 +806,7 @@ export class AssetManager {
       [C,       VINE,    VINE_S,  VINE,    VINE,    VINE_S,  VINE,    C,       C,       C],
       [C,       C,       VINE_S,  VINE,    VINE,    VINE_S,  C,       C,       C,       C],
       [C,       VINE_S,  C,       VINE_S,  VINE_S,  C,       VINE_S,  C,       C,       C],
-    ]));
+    ], 4, 'enemy_plant_telegraph'));
 
     this.textures.set('enemy_plant_attack', this.createSpriteTexture([
       [PETAL_E, PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, PETAL_EH,C,       C],
@@ -744,7 +817,7 @@ export class AssetManager {
       [C,       VINE,    VINE_S,  VINE,    VINE,    VINE_S,  VINE,    C,       C,       C],
       [C,       C,       VINE_S,  VINE,    VINE,    VINE_S,  C,       C,       C,       C],
       [C,       VINE_S,  C,       VINE_S,  VINE_S,  C,       VINE_S,  C,       C,       C],
-    ]));
+    ], 4, 'enemy_plant_attack'));
 
     // ========== NEW ENEMY: Skeleton Warrior ==========
     const skeletonPalette = {
@@ -766,7 +839,8 @@ export class AssetManager {
           const d = dir;
           const s = state;
           const f = frame;
-          this.registerTexture(`enemy_skeleton_${d}_${s}_${f}`, () => this.createChibiCharacter(d, s, f, skeletonPalette));
+          const spriteId = `enemy_skeleton_${d}_${s}_${f}`;
+          this.registerTexture(spriteId, () => this.createChibiCharacter(d, s, f, skeletonPalette, spriteId));
         }
       }
     }
@@ -794,7 +868,8 @@ export class AssetManager {
           const d = dir;
           const s = state;
           const f = frame;
-          this.registerTexture(`enemy_bandit_${d}_${s}_${f}`, () => this.createChibiCharacter(d, s, f, banditPalette));
+          const spriteId = `enemy_bandit_${d}_${s}_${f}`;
+          this.registerTexture(spriteId, () => this.createChibiCharacter(d, s, f, banditPalette, spriteId));
         }
       }
     }
@@ -821,7 +896,7 @@ export class AssetManager {
       [C,    GOL_D,GOL,  GOL_D,GOL, GOL_D,GOL_D,GOL, GOL_D,GOL,GOL_D,C],
       [C,    C,    GOL_S,GOL,  GOL_D,C,   C,   GOL_D,GOL, GOL_S,C,    C],
       [C,    C,    GOL_D,GOL_S,GOL,  C,   C,   GOL, GOL_S,GOL_D,C,    C],
-    ]));
+    ], 4, 'enemy_golem'));
 
     this.registerTexture('enemy_golem_telegraph', () => this.getTexture('enemy_golem')!);
     this.registerTexture('enemy_golem_attack', () => this.getTexture('enemy_golem')!);
@@ -834,7 +909,7 @@ export class AssetManager {
       [0xFFD700,0xFFF9C4,0xFFFFFF,0xFFFFFF,0xFFF9C4,0xFFD700],
       [C,       0xFFD700,0xFFF9C4,0xFFF9C4,0xFFD700,C],
       [C,       C,       0xFFD700,0xFFD700,C,       C],
-    ]));
+    ], 4, 'interact_indicator'));
 
     // ========== TERRAIN ==========
     this.textures.set('grass', this.createColorTexture(0x4CAF50, 32, 32, 'noise'));
@@ -1226,6 +1301,55 @@ export class AssetManager {
       [C,      C,      C,      0x5D4037,0x5D4037,C,      C,      C],
       [C,      C,      C,      0x5D4037,0x5D4037,C,      C,      C],
     ]));
+
+    // Sword (Matches Player Buster Blade — fully diagonal, tip top-right to pommel bottom-left)
+    // Every element (blade, guard, grip, pommel) follows the same 45° angle.
+    const SW_B  = 0xC0D0E0;  // blade mid
+    const SW_H  = 0xF0F4FF;  // blade highlight (bright edge)
+    const SW_E  = 0x90A8C0;  // blade shadow edge
+    const SW_G  = 0xE8C030;  // gold guard / pommel
+    const SW_GR = 0x5D4037;  // brown grip
+
+    const swordTex = this.createSpriteTexture([
+      //       0      1      2      3      4      5      6      7
+      /* 0 */ [C,     C,     C,     C,     C,     SW_H,  SW_H,  C    ],  // tip
+      /* 1 */ [C,     C,     C,     C,     SW_H,  SW_B,  SW_H,  C    ],  // blade
+      /* 2 */ [C,     C,     C,     SW_H,  SW_B,  SW_H,  C,     C    ],  // blade
+      /* 3 */ [C,     C,     SW_H,  SW_B,  SW_E,  C,     C,     C    ],  // blade
+      /* 4 */ [C,     SW_G,  SW_B,  SW_E,  SW_G,  C,     C,     C    ],  // guard crossing diagonal
+      /* 5 */ [SW_G,  SW_GR, SW_E,  SW_G,  C,     C,     C,     C    ],  // guard center + grip start
+      /* 6 */ [C,     SW_GR, SW_GR, C,     C,     C,     C,     C    ],  // grip
+      /* 7 */ [SW_GR, SW_G,  C,     C,     C,     C,     C,     C    ],  // pommel
+    ]);
+    this.textures.set('sword', swordTex);
+    if (swordTex.image instanceof HTMLCanvasElement) {
+      this.textureDataUrls.set('sword', swordTex.image.toDataURL());
+    }
+
+    // Health Potion Sprite
+    const P_G  = 0xA0B0C0;  // glass color
+    const P_R  = 0xCC2222;  // red liquid
+    const P_RH = 0xFF4444;  // red highlight
+    const P_RS = 0x991111;  // red shadow
+    const P_K  = 0x6B4423;  // cork brown
+    const P_W  = 0x8D6E63;  // cork highlight
+
+    const potionTex = this.createSpriteTexture([
+      //       0      1      2      3      4      5      6      7
+      /* 0 */ [C,     C,     C,     P_W,   P_W,   C,     C,     C    ],
+      /* 1 */ [C,     C,     P_K,   P_K,   P_K,   P_K,   C,     C    ],
+      /* 2 */ [C,     C,     P_G,   P_G,   P_G,   P_G,   C,     C    ],
+      /* 3 */ [C,     P_G,   P_RH,  P_R,   P_R,   P_R,   P_G,   C    ],
+      /* 4 */ [P_G,   P_RH,  P_R,   P_R,   P_R,   P_R,   P_R,   P_G  ],
+      /* 5 */ [P_G,   P_R,   P_R,   P_RS,  P_RS,  P_R,   P_R,   P_G  ],
+      /* 6 */ [P_G,   P_R,   P_R,   P_R,   P_R,   P_R,   P_R,   P_G  ],
+      /* 7 */ [C,     P_G,   P_G,   P_G,   P_G,   P_G,   P_G,   C    ],
+    ]);
+    this.textures.set('potion', potionTex);
+    if (potionTex.image instanceof HTMLCanvasElement) {
+      this.textureDataUrls.set('potion', potionTex.image.toDataURL());
+    }
+
 
     // Hay bale
     const HAY = 0xD4A017;

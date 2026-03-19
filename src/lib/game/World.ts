@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager';
+import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
 
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'stone' | 'wood' 
@@ -48,120 +49,6 @@ interface ChunkMesh {
 const RENDER_RADIUS = 32;
 const CULL_RADIUS = 42;
 const MAX_TILES_PER_FRAME = 200; // batch tile creation to prevent frame drops
-const OVERLAY_TYPES: Set<TileType> = new Set([
-  'tree', 'house', 'house_blue', 'house_green', 'house_thatch', 'rock', 'chest', 'portal', 'flower',
-  'push_block', 'campfire', 'sign', 'well', 'tombstone', 'mushroom', 'stump',
-  'fence', 'gate', 'barrel', 'crate', 'spike_trap', 'bones',
-  'dead_tree', 'destroyed_house', 'statue',
-  'iron_fence', 'hedge', 'scarecrow', 'hay_bale', 'lantern',
-  'tall_grass', 'wheat'
-]);
-
-const OVERLAY_BASE_TILE: Partial<Record<TileType, TileType>> = {
-  flower: 'grass',
-  mushroom: 'grass',
-  stump: 'grass',
-  tree: 'grass',
-  tall_grass: 'grass',
-  dead_tree: 'ash',
-  rock: 'stone',
-  chest: 'grass',
-  portal: 'stone',
-  push_block: 'stone',
-  campfire: 'dirt',
-  sign: 'dirt',
-  well: 'stone',
-  tombstone: 'grass',
-  fence: 'grass',
-  gate: 'dirt',
-  barrel: 'wood',
-  crate: 'wood',
-  spike_trap: 'stone',
-  bones: 'dirt',
-  house: 'dirt',
-  house_blue: 'dirt',
-  house_green: 'dirt',
-  house_thatch: 'dirt',
-  destroyed_house: 'ruins_floor',
-  statue: 'stone',
-  iron_fence: 'cobblestone',
-  hedge: 'grass',
-  scarecrow: 'farmland',
-  hay_bale: 'farmland',
-  lantern: 'cobblestone',
-  wheat: 'farmland',
-};
-
-// Scale multipliers for overlay objects to make them proportionally correct
-const OVERLAY_SCALE: Partial<Record<TileType, number>> = {
-  house: 2.2,
-  house_blue: 2.2,
-  house_green: 2.2,
-  house_thatch: 2.0,
-  destroyed_house: 2.0,
-  tree: 1.8,
-  tall_grass: 0.9,
-  dead_tree: 1.5,
-  statue: 1.4,
-  well: 1.2,
-  portal: 1.3,
-  rock: 1.0,
-  chest: 0.8,
-  campfire: 0.8,
-  sign: 0.8,
-  tombstone: 0.7,
-  barrel: 0.7,
-  crate: 0.7,
-  stump: 0.6,
-  flower: 0.5,
-  mushroom: 0.7,
-  bones: 0.5,
-  fence: 1.0,
-  gate: 1.0,
-  push_block: 1.0,
-  spike_trap: 0.8,
-  iron_fence: 1.1,
-  hedge: 0.9,
-  scarecrow: 1.4,
-  hay_bale: 0.7,
-  lantern: 0.9,
-  wheat: 0.95,
-};
-
-const OVERLAY_SORT_TRIM: Partial<Record<TileType, number>> = {
-  tree: 0.12,
-  dead_tree: 0.1,
-  house: 0.14,
-  house_blue: 0.14,
-  house_green: 0.14,
-  house_thatch: 0.12,
-  destroyed_house: 0.1,
-  statue: 0.08,
-  well: 0.18,
-  portal: 0.2,
-  rock: 0.18,
-  chest: 0.16,
-  campfire: 0.2,
-  sign: 0.16,
-  tombstone: 0.16,
-  barrel: 0.16,
-  crate: 0.16,
-  stump: 0.16,
-  flower: 0.22,
-  mushroom: 0.2,
-  bones: 0.18,
-  fence: 0.22,
-  gate: 0.22,
-  push_block: 0.16,
-  spike_trap: 0.2,
-  iron_fence: 0.22,
-  hedge: 0.2,
-  scarecrow: 0.12,
-  hay_bale: 0.18,
-  lantern: 0.14,
-  tall_grass: 0.24,
-  wheat: 0.24,
-};
 
 // Seeded hash for deterministic detail placement
 function tileHash(x: number, y: number, seed: number = 0): number {
@@ -171,18 +58,7 @@ function tileHash(x: number, y: number, seed: number = 0): number {
   return (h & 0x7fffffff) / 0x7fffffff; // 0..1
 }
 
-// Detail decal types per terrain
-const DETAIL_CONFIG: Partial<Record<TileType, { chance: number; types: string[]; scale: number; opacity: number }>> = {
-  grass: { chance: 0.18, types: ['detail_grass_tuft', 'detail_leaf', 'detail_pebble'], scale: 0.25, opacity: 0.5 },
-  dirt: { chance: 0.12, types: ['detail_pebble', 'detail_crack', 'detail_twig'], scale: 0.22, opacity: 0.45 },
-  dark_grass: { chance: 0.22, types: ['detail_leaf', 'detail_grass_tuft', 'detail_mushroom_small'], scale: 0.28, opacity: 0.55 },
-  cobblestone: { chance: 0.08, types: ['detail_crack', 'detail_pebble'], scale: 0.2, opacity: 0.35 },
-  sand: { chance: 0.06, types: ['detail_pebble'], scale: 0.18, opacity: 0.3 },
-  farmland: { chance: 0.1, types: ['detail_grass_tuft', 'detail_pebble'], scale: 0.2, opacity: 0.4 },
-  stone: { chance: 0.1, types: ['detail_crack', 'detail_pebble'], scale: 0.2, opacity: 0.4 },
-  wooden_path: { chance: 0.08, types: ['detail_crack', 'detail_leaf'], scale: 0.2, opacity: 0.35 },
-  mossy_stone: { chance: 0.15, types: ['detail_leaf', 'detail_mushroom_small'], scale: 0.25, opacity: 0.5 },
-};
+// detail Decals - now imported from data/tiles.ts
 
 export class World {
   private map: WorldMap;
@@ -336,7 +212,7 @@ export class World {
   }
 
   private createTileObject(tile: Tile, tileX?: number, tileY?: number): THREE.Object3D | null {
-    const isOverlay = OVERLAY_TYPES.has(tile.type);
+    const isOverlay = TILE_METADATA[tile.type]?.isOverlay;
 
     if (!isOverlay) {
       const texture = this.assetManager.getTexture(tile.type);
@@ -367,14 +243,14 @@ export class World {
     const overlayTexture = this.assetManager.getTexture(tile.type);
     
     // Determine base tile: check surrounding terrain for context, fall back to default
-    let baseType = OVERLAY_BASE_TILE[tile.type] ?? 'grass';
+    let baseType = TILE_METADATA[tile.type]?.baseTile ?? 'grass';
     if (tileX !== undefined && tileY !== undefined) {
       const neighbors: TileType[] = [];
       for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
         const nx = tileX + dx, ny = tileY + dy;
         if (ny >= 0 && ny < this.map.height && nx >= 0 && nx < this.map.width) {
           const neighbor = this.map.tiles[ny][nx];
-          if (!OVERLAY_TYPES.has(neighbor.type)) {
+          if (!TILE_METADATA[neighbor.type]?.isOverlay) {
             neighbors.push(neighbor.type);
           }
         }
@@ -399,8 +275,8 @@ export class World {
     const group = this.overlayPool.pop() ?? new THREE.Group();
     group.clear();
     group.matrixAutoUpdate = false;
-    const scale = OVERLAY_SCALE[tile.type] ?? 1.0;
-    const sortTrim = OVERLAY_SORT_TRIM[tile.type] ?? 0.16;
+    const scale = TILE_METADATA[tile.type]?.scale ?? 1.0;
+    const sortTrim = TILE_METADATA[tile.type]?.sortTrim ?? 0.16;
     const sortAnchorY = ((scale - 1) * this.tileSize * 0.3) - (scale * 0.5) + sortTrim;
 
     group.userData = {
@@ -455,8 +331,9 @@ export class World {
         const object = this.createTileObject(tile, x, y);
         if (!object) continue;
 
-        const isOverlay = OVERLAY_TYPES.has(tile.type);
-        object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, 0);
+        const isOverlay = TILE_METADATA[tile.type]?.isOverlay;
+        const baseZ = isOverlay ? 0.01 : 0.0;
+        object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, baseZ);
         if (isOverlay) {
           const sortAnchorY = object.userData?.sortAnchorY ?? 0;
           const worldY = worldOffsetY + y * this.tileSize + sortAnchorY;
@@ -536,12 +413,14 @@ export class World {
       const object = this.createTileObject(tile, x, y);
       if (!object) continue;
 
-      const isOverlay = OVERLAY_TYPES.has(tile.type);
-      object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, 0);
+      const isOverlay = TILE_METADATA[tile.type]?.isOverlay;
+      // Ground tiles at z=0, overlay objects slightly above to fix depth-fighting
+      const baseZ = isOverlay ? 0.01 : 0.0;
+      object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, baseZ);
       if (isOverlay) {
         const sortAnchorY = object.userData?.sortAnchorY ?? 0;
         const worldY = worldOffsetY + y * this.tileSize + sortAnchorY;
-        const ySort = Math.round(1000 + (this.map.height - (worldY + this.map.height / 2)) * 10);
+        const ySort = Math.round(100000 - worldY * 10);
         object.renderOrder = ySort;
         if (object instanceof THREE.Group) {
           for (const child of object.children) child.renderOrder = ySort;
@@ -580,9 +459,17 @@ export class World {
     return this.map.tiles[tileY][tileX];
   }
 
-  isWalkable(x: number, y: number): boolean {
-    const tile = this.getTile(x, y);
-    return tile ? tile.walkable : false;
+  isWalkable(x: number, y: number, r: number = 0): boolean {
+    if (r === 0) {
+      const tile = this.getTile(x, y);
+      if (!tile) return false;
+      if (tile.transition) return true;
+      return tile.walkable;
+    }
+    return this.isWalkable(x - r, y - r) &&
+           this.isWalkable(x + r, y - r) &&
+           this.isWalkable(x - r, y + r) &&
+           this.isWalkable(x + r, y + r);
   }
 
   getSpawnPoint(): { x: number; y: number } {

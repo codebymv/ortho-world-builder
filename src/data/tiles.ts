@@ -1,0 +1,55 @@
+import { TileType } from '@/lib/game/World';
+
+export interface TileMetadata {
+  isOverlay: boolean;
+  baseTile?: TileType;
+  scale?: number;
+  sortTrim?: number;
+}
+
+export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
+  tree: { isOverlay: true, baseTile: 'grass', scale: 1.8, sortTrim: 0.12 },
+  house: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14 },
+  house_blue: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14 },
+  house_green: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14 },
+  house_thatch: { isOverlay: true, baseTile: 'dirt', scale: 2.0, sortTrim: 0.12 },
+  rock: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.18 },
+  chest: { isOverlay: true, baseTile: 'grass', scale: 0.8, sortTrim: 0.16 },
+  portal: { isOverlay: true, baseTile: 'stone', scale: 1.3, sortTrim: 0.2 },
+  flower: { isOverlay: true, baseTile: 'grass', scale: 0.5, sortTrim: 0.22 },
+  push_block: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.16 },
+  campfire: { isOverlay: true, baseTile: 'dirt', scale: 0.8, sortTrim: 0.2 },
+  sign: { isOverlay: true, baseTile: 'dirt', scale: 0.8, sortTrim: 0.16 },
+  well: { isOverlay: true, baseTile: 'stone', scale: 1.2, sortTrim: 0.18 },
+  tombstone: { isOverlay: true, baseTile: 'grass', scale: 0.7, sortTrim: 0.16 },
+  mushroom: { isOverlay: true, baseTile: 'grass', scale: 0.7, sortTrim: 0.2 },
+  stump: { isOverlay: true, baseTile: 'grass', scale: 0.6, sortTrim: 0.16 },
+  fence: { isOverlay: true, baseTile: 'grass', scale: 1.0, sortTrim: 0.22 },
+  gate: { isOverlay: true, baseTile: 'dirt', scale: 1.0, sortTrim: 0.22 },
+  barrel: { isOverlay: true, baseTile: 'wood', scale: 0.7, sortTrim: 0.16 },
+  crate: { isOverlay: true, baseTile: 'wood', scale: 0.7, sortTrim: 0.16 },
+  spike_trap: { isOverlay: true, baseTile: 'stone', scale: 0.8, sortTrim: 0.2 },
+  bones: { isOverlay: true, baseTile: 'dirt', scale: 0.5, sortTrim: 0.18 },
+  dead_tree: { isOverlay: true, baseTile: 'ash', scale: 1.5, sortTrim: 0.1 },
+  destroyed_house: { isOverlay: true, baseTile: 'ruins_floor', scale: 2.0, sortTrim: 0.1 },
+  statue: { isOverlay: true, baseTile: 'stone', scale: 1.4, sortTrim: 0.08 },
+  iron_fence: { isOverlay: true, baseTile: 'cobblestone', scale: 1.1, sortTrim: 0.22 },
+  hedge: { isOverlay: true, baseTile: 'grass', scale: 0.9, sortTrim: 0.2 },
+  scarecrow: { isOverlay: true, baseTile: 'farmland', scale: 1.4, sortTrim: 0.12 },
+  hay_bale: { isOverlay: true, baseTile: 'farmland', scale: 0.7, sortTrim: 0.18 },
+  lantern: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.14 },
+  tall_grass: { isOverlay: true, baseTile: 'grass', scale: 0.9, sortTrim: 0.24 },
+  wheat: { isOverlay: true, baseTile: 'farmland', scale: 0.95, sortTrim: 0.24 },
+};
+
+export const DETAIL_CONFIG: Partial<Record<TileType, { chance: number; types: string[]; scale: number; opacity: number }>> = {
+  grass: { chance: 0.18, types: ['detail_grass_tuft', 'detail_leaf', 'detail_pebble'], scale: 0.25, opacity: 0.5 },
+  dirt: { chance: 0.12, types: ['detail_pebble', 'detail_crack', 'detail_twig'], scale: 0.22, opacity: 0.45 },
+  dark_grass: { chance: 0.22, types: ['detail_leaf', 'detail_grass_tuft', 'detail_mushroom_small'], scale: 0.28, opacity: 0.55 },
+  cobblestone: { chance: 0.08, types: ['detail_crack', 'detail_pebble'], scale: 0.2, opacity: 0.35 },
+  sand: { chance: 0.06, types: ['detail_pebble'], scale: 0.18, opacity: 0.3 },
+  farmland: { chance: 0.1, types: ['detail_grass_tuft', 'detail_pebble'], scale: 0.2, opacity: 0.4 },
+  stone: { chance: 0.1, types: ['detail_crack', 'detail_pebble'], scale: 0.2, opacity: 0.4 },
+  wooden_path: { chance: 0.08, types: ['detail_crack', 'detail_leaf'], scale: 0.2, opacity: 0.35 },
+  mossy_stone: { chance: 0.15, types: ['detail_leaf', 'detail_mushroom_small'], scale: 0.25, opacity: 0.5 },
+};

@@ -37,7 +37,15 @@ export const items: Record<string, Item> = {
     id: 'iron_sword',
     name: 'Iron Sword',
     description: 'A well-crafted blade of sturdy iron. Reliable and sharp.',
-    type: 'quest',
+    type: 'equipment',
+    sprite: 'sword',
+  },
+  
+  meek_short_sword: {
+    id: 'meek_short_sword',
+    name: 'Meek Short Sword',
+    description: 'A simple, reliable starting blade.',
+    type: 'equipment',
     sprite: 'sword',
   },
 };

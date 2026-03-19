@@ -44,7 +44,7 @@ export interface Item {
   id: string;
   name: string;
   description: string;
-  type: 'consumable' | 'key' | 'quest';
+  type: 'consumable' | 'key' | 'quest' | 'equipment';
   sprite: string;
 }
 
@@ -61,6 +61,7 @@ export interface Quest {
 export class GameState {
   player: PlayerState;
   inventory: Item[];
+  activeItemIndex: number;
   quests: Quest[];
   npcs: NPC[];
   scene: THREE.Scene;
@@ -109,17 +110,30 @@ export class GameState {
       lastStaminaUseTime: 0,
     };
 
-    this.inventory = [];
+    this.inventory = [{
+      id: 'meek_short_sword',
+      name: 'Meek Short Sword',
+      description: 'A simple, reliable starting blade. Press space to swing.',
+      type: 'equipment',
+      sprite: 'sword',
+    }];
+    this.activeItemIndex = 0;
     this.quests = [];
     this.npcs = [];
   }
 
   addItem(item: Item) {
-    this.inventory.push(item);
+    this.inventory = [...this.inventory, item];
   }
 
   removeItem(itemId: string) {
-    this.inventory = this.inventory.filter(item => item.id !== itemId);
+    const index = this.inventory.findIndex(item => item.id === itemId);
+    if (index !== -1) {
+      this.inventory = [
+        ...this.inventory.slice(0, index),
+        ...this.inventory.slice(index + 1)
+      ];
+    }
   }
 
   hasItem(itemId: string): boolean {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import { WorldMap } from '@/lib/game/World';
 import { MapMarker } from '@/lib/game/MapMarkers';
 
@@ -20,7 +20,7 @@ const MARKER_TYPE_ICONS: Record<string, string> = {
   portal: '▸',
 };
 
-export const Minimap = ({ currentMap, currentMapId, playerPosition, visitedTiles, npcs, markers, refreshToken }: MinimapProps) => {
+export const Minimap = memo(({ currentMap, currentMapId, playerPosition, visitedTiles, npcs, markers, refreshToken }: MinimapProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
 
@@ -204,7 +204,7 @@ export const Minimap = ({ currentMap, currentMapId, playerPosition, visitedTiles
   const recentMarkers = currentMarkers.filter(m => m.permanent || now - m.createdAt < 120000 || now < m.pulseUntil);
 
   return (
-    <div className="fixed top-16 right-4 bg-[#1A0F0A]/90 backdrop-blur-sm p-2 rounded-sm border-2 border-[#5C3A21] shadow-lg z-30 font-sans pointer-events-auto" style={{ maxWidth: '220px' }}>
+    <div className="fixed top-16 right-4 bg-[#1A0F0A]/90 backdrop-blur-sm p-2 rounded-sm border-2 border-[#5C3A21] shadow-lg z-30 font-sans pointer-events-auto" style={{ maxWidth: '220px', maxHeight: '340px', overflowY: 'auto' }}>
       <div className="text-[#DAA520] text-xs mb-1.5 text-center font-bold uppercase tracking-wider">{currentMap.name}</div>
       <canvas
         ref={canvasRef}
@@ -213,20 +213,19 @@ export const Minimap = ({ currentMap, currentMapId, playerPosition, visitedTiles
       />
       {/* Marker legend */}
       {recentMarkers.length > 0 && (
-        <div className="mt-1.5 space-y-0.5 max-h-20 overflow-y-auto">
-          {recentMarkers.slice(0, 5).map(m => {
+        <div className="mt-2 space-y-1">
+          {recentMarkers.slice(0, 8).map(m => {
             const isPulsing = Date.now() < m.pulseUntil;
             return (
-              <div key={m.id} className="flex items-center gap-1.5 text-[10px] leading-tight">
+              <div key={m.id} className="flex items-center gap-2 text-[11px] leading-tight">
                 <span
-                  className={`inline-block w-2.5 h-2.5 flex-shrink-0 ${isPulsing ? 'animate-pulse' : ''}`}
+                  className={`inline-block w-3 h-3 flex-shrink-0 rounded-sm ${isPulsing ? 'animate-pulse' : ''}`}
                   style={{
                     backgroundColor: m.color,
-                    transform: 'rotate(45deg)',
-                    boxShadow: isPulsing ? `0 0 6px ${m.color}, 0 0 2px ${m.color}` : `0 0 2px ${m.color}`,
+                    boxShadow: isPulsing ? `0 0 6px ${m.color}` : `0 0 2px ${m.color}80`,
                   }}
                 />
-                <span className="text-[#DAA520] font-bold text-[9px]">{MARKER_TYPE_ICONS[m.type] || '◆'}</span>
+                <span className="text-[#DAA520] font-bold text-[10px] w-3 flex-shrink-0">{MARKER_TYPE_ICONS[m.type] || '◆'}</span>
                 <span className="text-[#F5DEB3] truncate font-medium">{m.label}</span>
               </div>
             );
@@ -235,4 +234,4 @@ export const Minimap = ({ currentMap, currentMapId, playerPosition, visitedTiles
       )}
     </div>
   );
-};
+});
