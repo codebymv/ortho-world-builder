@@ -1,14 +1,15 @@
 import { Quest } from '@/lib/game/GameState';
 
 export const quests: Record<string, Quest> = {
+  // FIRST QUEST - Takes place in Whispering Woods
   find_hunter: {
     id: 'find_hunter',
     title: 'The Missing Hunter',
-    description: 'The village elder has asked you to find the missing hunter who went into the Deep Woods to investigate strange occurrences.',
+    description: 'The village elder has asked you to find the missing hunter who went into the Whispering Woods to investigate strange occurrences.',
     objectives: [
-      'Travel to the Deep Woods',
-      'Find signs of the missing hunter',
-      'Investigate the mysterious lights',
+      'Travel to the Whispering Woods',
+      'Search the northern area for clues',
+      'Defeat the forest threat',
       'Return to the elder with your findings',
     ],
     completed: false,
@@ -18,7 +19,26 @@ export const quests: Record<string, Quest> = {
       items: ['ancient_map'],
     },
   },
-  
+
+  // SECOND QUEST - Unlocks Deep Woods
+  clear_deep_woods: {
+    id: 'clear_deep_woods',
+    title: 'Into the Depths',
+    description: 'With the forest threat eliminated, the elder reveals the path to the Deep Woods is now open. Find the witch and learn what caused the disturbances.',
+    objectives: [
+      'Travel to the Deep Woods',
+      'Find the witch\'s hut',
+      'Learn about the dark magic',
+      'Return to the elder',
+    ],
+    completed: false,
+    active: false,
+    reward: {
+      gold: 150,
+      items: ['magic_wand'],
+    },
+  },
+
   merchants_request: {
     id: 'merchants_request',
     title: "Merchant's Rare Goods",

@@ -114,12 +114,18 @@ const Game = () => {
     return audioContextRef.current;
   };
 
+  const audioSourcesConnectedRef = useRef<Set<HTMLAudioElement>>(new Set());
+  
   const processAudioElement = (audio: HTMLAudioElement) => {
+    // Skip if already connected to avoid InvalidStateError
+    if (audioSourcesConnectedRef.current.has(audio)) return;
+    
     const ctx = initializeAudioContext();
     if (!ctx || !compressorRef.current || !gainNodeRef.current || !masterGainRef.current) return;
     
     // Create source from audio element
     const source = ctx.createMediaElementSource(audio);
+    audioSourcesConnectedRef.current.add(audio);
     
     // Disconnect direct connection and route through processing chain
     source.connect(compressorRef.current);
@@ -263,6 +269,29 @@ const Game = () => {
     
     world.updateChunks(state.player.position.x, state.player.position.y);
     
+    // Spawn enemies for the initial map
+    const initialMapDef = mapDefinitions[state.currentMap];
+    if (initialMapDef?.enemyZones) {
+      console.log(`[Spawn] Loading enemies for initial map ${state.currentMap}, zones: ${initialMapDef.enemyZones.length}`);
+      for (const zone of initialMapDef.enemyZones) {
+        const blueprint = ENEMY_BLUEPRINTS[zone.enemyType] || DEFAULT_ENEMY;
+        console.log(`[Spawn] Zone: ${zone.enemyType}, count: ${zone.count}, pos: (${zone.x}, ${zone.y})`);
+        
+        for (let i = 0; i < zone.count; i++) {
+          const ex = (zone.x + Math.random() * zone.width) - initialMapDef.width / 2;
+          const ey = (zone.y + Math.random() * zone.height) - initialMapDef.height / 2;
+          combatSystem.spawnEnemy(
+            blueprint.name, 
+            { x: ex, y: ey }, 
+            blueprint.hp, 
+            blueprint.damage, 
+            blueprint.sprite
+          );
+        }
+      }
+      console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
+    }
+    
     let lastAutoSaveTime = performance.now();
     const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
 
@@ -334,7 +363,9 @@ const Game = () => {
     let animTimer = 0;
     const IDLE_FRAME_DURATION = 0.8;
     const WALK_FRAME_DURATION = 0.18;
-    let playerAnimState: 'idle' | 'walk' | 'attack' | 'dodge' | 'charge' | 'hurt' | 'spin_attack' = 'idle';
+    let playerAnimState: 'idle' | 'walk' | 'attack' | 'dodge' | 'charge' | 'hurt' | 'spin_attack' | 'drinking' = 'idle';
+    let drinkTimer = 0;
+    const DRINK_DURATION = 0.8; // seconds to drink potion
     let attackFrameTimer = 0;
     let attackFrame = 0;
     const ATTACK_FRAME_DURATION = 0.1;
@@ -353,6 +384,18 @@ const Game = () => {
     let spinDirIndex = 0;
     let spinFrameTimer = 0;
     const SPIN_FRAME_DURATION = 0.06;
+
+    // Blocking state
+    let isBlocking = false;
+    let isRMBHeld = false; // Track if right mouse button is held
+    let blockAngle = 0; // For smooth block animation
+    const BLOCK_DAMAGE_REDUCTION = 0.6; // Reduce incoming damage by 60% when blocking
+    const BLOCK_STAMINA_COST = 2; // Stamina cost per second while blocking
+
+    // LMB charge attack state
+    let isLMBHeld = false;
+    let lmbHoldStartTime = 0;
+    const LMB_CHARGE_TIME = 0.4; // Time to hold LMB to start charging
 
     // Death state - use ref so callback can reset it
 
@@ -407,8 +450,25 @@ const Game = () => {
     };
 
     const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
+      console.log(`[MapTransition] Starting transition to ${targetMap} at (${targetX}, ${targetY})`);
+      
+      // Block deep_woods portal unless clear_deep_woods quest is active
+      if (targetMap === 'deep_woods') {
+        const deepQuest = state.quests.find(q => q.id === 'clear_deep_woods' && q.active);
+        if (!deepQuest) {
+          toast("You sense a magical barrier blocking the path. The ancient magic must be stronger elsewhere first.", {
+            className: "rpg-toast font-bold text-lg",
+          });
+          return;
+        }
+      }
+
       const newMap = allMaps[targetMap];
-      if (!newMap) return;
+      if (!newMap) {
+        console.log(`[MapTransition] ERROR: Map ${targetMap} not found!`);
+        return;
+      }
+      console.log(`[MapTransition] Map loaded: ${newMap.name}, size: ${newMap.width}x${newMap.height}`);
 
       // Show transition overlay
       setTransitionMapName(newMap.name);
@@ -457,9 +517,12 @@ const Game = () => {
       enemyHPBars.clear();
 
       const mapDef = mapDefinitions[targetMap];
+      console.log(`[Spawn] mapDefinitions[${targetMap}] = `, mapDef);
       if (mapDef?.enemyZones) {
+        console.log(`[Spawn] Loading enemies for ${targetMap}, zones: ${mapDef.enemyZones.length}`);
         for (const zone of mapDef.enemyZones) {
           const blueprint = ENEMY_BLUEPRINTS[zone.enemyType] || DEFAULT_ENEMY;
+          console.log(`[Spawn] Zone: ${zone.enemyType}, count: ${zone.count}, pos: (${zone.x}, ${zone.y})`);
           
           for (let i = 0; i < zone.count; i++) {
             const ex = (zone.x + Math.random() * zone.width) - newMap.width / 2;
@@ -473,6 +536,9 @@ const Game = () => {
             );
           }
         }
+        console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
+      } else {
+        console.log(`[Spawn] No enemy zones defined for ${targetMap}`);
       }
 
       // Quest objective: track map entry
@@ -480,9 +546,28 @@ const Game = () => {
       if (guardQuest && targetMap === 'forest') {
         guardQuest.objectives[0] = 'Patrol the northern forest border ✓';
       }
+      
+      // First quest: track entering Whispering Woods (forest)
       const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
-      if (hunterQuest && targetMap === 'deep_woods') {
-        hunterQuest.objectives[0] = 'Travel to the Deep Woods ✓';
+      if (hunterQuest && targetMap === 'forest') {
+        hunterQuest.objectives[0] = 'Travel to the Whispering Woods ✓';
+        hunterQuest.objectives[1] = 'Search the northern area for clues ✓';
+      }
+      
+      // When returning to village after completing first quest, start second quest
+      if (targetMap === 'village') {
+        const completedHunter = state.quests.find(q => q.id === 'find_hunter' && q.completed);
+        const deepQuest = state.quests.find(q => q.id === 'clear_deep_woods');
+        
+        if (completedHunter && deepQuest && !deepQuest.active && !deepQuest.completed) {
+          // Start the second quest
+          deepQuest.active = true;
+          triggerUIUpdate();
+          toast("New quest available: Into the Depths", {
+            className: "rpg-toast font-bold text-lg",
+            duration: 5000,
+          });
+        }
       }
 
       toast(`Entered ${newMap.name}`, {
@@ -549,6 +634,19 @@ const Game = () => {
     playerOutline.position.z = 0.79; // Just below player
     playerOutline.renderOrder = 999998; // Just below player
     scene.add(playerOutline);
+
+    // Held item mesh (for showing potion instead of sword)
+    const potionGeometry = new THREE.PlaneGeometry(0.3, 0.3);
+    const potionMaterial = new THREE.MeshBasicMaterial({
+      map: assetManager.getTexture('potion'),
+      transparent: true,
+      depthWrite: false,
+    });
+    const heldItemMesh = new THREE.Mesh(potionGeometry, potionMaterial);
+    heldItemMesh.position.z = 0.85;
+    heldItemMesh.renderOrder = 1000000;
+    heldItemMesh.visible = false;
+    scene.add(heldItemMesh);
 
     const npcData: NPC[] = [
       { id: 'elder', name: 'Village Elder', position: { x: -18, y: -10 }, dialogueId: 'elder', sprite: 'npc_elder', questGiver: true },
@@ -682,6 +780,9 @@ const Game = () => {
               toast('Already at full health!', { className: 'rpg-toast' });
               return;
             }
+            // Start drinking animation and restore health
+            playerAnimState = 'drinking';
+            drinkTimer = DRINK_DURATION;
             state.player.health = Math.min(state.player.maxHealth, state.player.health + 50);
             state.removeItem(activeItem.id);
             toast.success('Used Health Potion!', { description: 'Restored 50 health.', className: 'rpg-toast' });
@@ -691,19 +792,18 @@ const Game = () => {
             triggerUIUpdate();
           }
         } else {
-          if (!isChargingAttack && !state.player.isDodging && playerAnimState !== 'attack') {
-            const currentTime = Date.now();
-            if (currentTime - state.player.lastAttackTime >= state.player.attackCooldown) {
-              isChargingAttack = true;
-              chargeTimer = 0;
-              chargeLevel = 0;
-              playerAnimState = 'charge';
-            }
-          }
+          // Space now triggers dodge roll
+          dodgeBuffered = true;
         }
       }
       if (e.key === 'Control' && !state.dialogueActive) {
-        dodgeBuffered = true;
+        // Ctrl now triggers block
+        if (!isBlocking && !state.player.isDodging && state.player.stamina > 0) {
+          isBlocking = true;
+          if (playerAnimState !== 'attack' && playerAnimState !== 'spin_attack' && playerAnimState !== 'drinking' && playerAnimState !== 'block') {
+            playerAnimState = 'block';
+          }
+        }
         keys['control'] = true;
       }
       if (e.key === 'Shift') {
@@ -719,16 +819,13 @@ const Game = () => {
       }
       if (e.key === 'Control') {
         keys['control'] = false;
-      }
-      if (e.key === ' ' && isChargingAttack) {
-        if (chargeTimer >= CHARGE_TIME_MIN) {
-          performChargeAttack(chargeLevel);
-        } else {
-          performAttack();
+        // Release block when Ctrl is released
+        if (isBlocking) {
+          isBlocking = false;
+          if (playerAnimState === 'block') {
+            playerAnimState = 'idle';
+          }
         }
-        isChargingAttack = false;
-        chargeTimer = 0;
-        chargeLevel = 0;
       }
     };
 
@@ -831,6 +928,11 @@ const Game = () => {
       console.log('Playing footstep, isSprinting:', isSprinting, 'pool length:', pool.length);
       sfx.play().then(() => {
         console.log('Footstep played successfully');
+        // Start music on first footstep - this is a guaranteed user interaction
+        if (!musicStarted.current && musicRef.current) {
+          musicStarted.current = true;
+          musicRef.current.play().catch(() => {});
+        }
       }).catch(err => {
         console.error('Failed to play footstep:', err);
       });
@@ -896,6 +998,10 @@ const Game = () => {
       const currentTime = Date.now();
       if (currentTime - state.player.lastAttackTime < state.player.attackCooldown) return;
       if (state.player.isDodging) return;
+      if (isBlocking) {
+        // Cancel block when attacking
+        isBlocking = false;
+      }
       playSwordSwing();
       playBladeSheath();
       swooshTimer = SWOOSH_DURATION;
@@ -1177,6 +1283,101 @@ const Game = () => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
+    // Mouse event handlers for LMB (attack/charge) and RMB (block)
+    const handleMouseDown = (e: MouseEvent) => {
+      if (pausedRef.current) return;
+      
+      if (e.button === 0) {
+        // Left click - attack/charge
+        if (!state.dialogueActive && !state.player.isDodging) {
+          const activeItem = state.inventory[state.activeItemIndex];
+          if (activeItem?.type === 'consumable') {
+            // LMB with consumable selected - use it
+            if (activeItem.id === 'health_potion') {
+              if (state.player.health >= state.player.maxHealth) {
+                toast('Already at full health!', { className: 'rpg-toast' });
+                return;
+              }
+              playerAnimState = 'drinking';
+              drinkTimer = DRINK_DURATION;
+              state.player.health = Math.min(state.player.maxHealth, state.player.health + 50);
+              state.removeItem(activeItem.id);
+              toast.success('Used Health Potion!', { description: 'Restored 50 health.', className: 'rpg-toast' });
+              if (state.activeItemIndex >= state.inventory.length) {
+                state.activeItemIndex = Math.max(0, state.inventory.length - 1);
+              }
+              triggerUIUpdate();
+            }
+          } else {
+            // Attack with weapon - start charge tracking
+            const currentTime = Date.now();
+            if (currentTime - state.player.lastAttackTime >= state.player.attackCooldown) {
+              isLMBHeld = true;
+              lmbHoldStartTime = currentTime;
+              // Start charging
+              if (!isChargingAttack && playerAnimState !== 'attack' && playerAnimState !== 'spin_attack' && playerAnimState !== 'drinking' && playerAnimState !== 'block') {
+                isChargingAttack = true;
+                chargeTimer = 0;
+                chargeLevel = 0;
+                playerAnimState = 'charge';
+              }
+            }
+          }
+        }
+      } else if (e.button === 2) {
+        // Right click - block
+        isRMBHeld = true;
+        if (!isBlocking && !state.player.isDodging && state.player.stamina > 0) {
+          isBlocking = true;
+          if (playerAnimState !== 'attack' && playerAnimState !== 'spin_attack' && playerAnimState !== 'drinking' && playerAnimState !== 'block') {
+            playerAnimState = 'block';
+          }
+        }
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 0) {
+        // LMB released - perform charge attack if charged enough
+        if (isLMBHeld) {
+          isLMBHeld = false;
+          const currentTime = Date.now();
+          const holdDuration = (currentTime - lmbHoldStartTime) / 1000;
+          
+          if (isChargingAttack) {
+            if (holdDuration >= CHARGE_TIME_MIN) {
+              // Charged enough - release charge attack
+              performChargeAttack(chargeLevel);
+            } else {
+              // Too short - perform quick attack
+              performAttack();
+            }
+            isChargingAttack = false;
+            chargeTimer = 0;
+            chargeLevel = 0;
+          }
+        }
+      } else if (e.button === 2) {
+        // Release block on RMB release
+        isRMBHeld = false;
+        if (isBlocking) {
+          isBlocking = false;
+          if (playerAnimState === 'block') {
+            playerAnimState = 'idle';
+          }
+        }
+      }
+    };
+
+    // Prevent context menu on right click
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    renderer.domElement.addEventListener('mousedown', handleMouseDown);
+    renderer.domElement.addEventListener('mouseup', handleMouseUp);
+    renderer.domElement.addEventListener('contextmenu', handleContextMenu);
+
     const handleResize = () => {
       const aspect = window.innerWidth / window.innerHeight;
       camera.left = frustumSize * aspect / -2;
@@ -1244,6 +1445,25 @@ const Game = () => {
           triggerUIUpdate();
         }
       }
+
+      // Blocking stamina drain
+      if (isBlocking) {
+        if (state.player.stamina <= 0) {
+          // Out of stamina - release block
+          isBlocking = false;
+          if (playerAnimState === 'block') {
+            playerAnimState = 'idle';
+          }
+        } else {
+          // Drain stamina while blocking
+          state.player.stamina = Math.max(0, state.player.stamina - BLOCK_STAMINA_COST * deltaTime);
+          state.player.lastStaminaUseTime = nowSec;
+        }
+      }
+
+      // Smooth block angle animation
+      const targetBlockAngle = isBlocking ? 0.3 : 0;
+      blockAngle += (targetBlockAngle - blockAngle) * Math.min(1, deltaTime * 15);
 
     // === NPC WANDERING ===
       for (let ni = 0; ni < npcData.length; ni++) {
@@ -1358,7 +1578,7 @@ const Game = () => {
         if (keys['a'] || keys['arrowleft']) { moveX -= 1; moved = true; }
         if (keys['d'] || keys['arrowright']) { moveX += 1; moved = true; }
 
-        if (dodgeBuffered && !state.dialogueActive) {
+        if (dodgeBuffered && !state.dialogueActive && !isBlocking) {
           performDodge(moveX, moveY);
           dodgeBuffered = false;
         }
@@ -1418,7 +1638,7 @@ const Game = () => {
           world.updateChunks(state.player.position.x, state.player.position.y);
           state.player.isMoving = true;
 
-          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge') {
+          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge' && playerAnimState !== 'drinking' && playerAnimState !== 'block') {
             playerAnimState = 'walk';
           }
 
@@ -1466,7 +1686,7 @@ const Game = () => {
         } else {
           state.player.isMoving = false;
           footstepTimer = 0;
-          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge' && playerAnimState !== 'spin_attack') {
+          if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge' && playerAnimState !== 'spin_attack' && playerAnimState !== 'block') {
             playerAnimState = 'idle';
           }
         }
@@ -1500,8 +1720,21 @@ const Game = () => {
           state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
         }
 
-        // Cycle idle/walk frames
-        if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge' && playerAnimState !== 'spin_attack') {
+        // Handle drinking state
+        if (playerAnimState === 'drinking') {
+          drinkTimer -= deltaTime;
+          // Emit heal particles while drinking
+          if (Math.random() < 0.3) {
+            _tmpVec3.set(state.player.position.x, state.player.position.y + 0.5, 0.3);
+            particleSystem.emitHeal(_tmpVec3);
+          }
+          if (drinkTimer <= 0) {
+            playerAnimState = 'idle';
+          }
+        }
+
+        // Cycle idle/walk frames (drinking and blocking pause animation)
+        if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge' && playerAnimState !== 'spin_attack' && playerAnimState !== 'drinking' && playerAnimState !== 'block') {
           const frameDuration = playerAnimState === 'walk' ? WALK_FRAME_DURATION : IDLE_FRAME_DURATION;
           animTimer += deltaTime;
           if (animTimer >= frameDuration) {
@@ -1531,8 +1764,17 @@ const Game = () => {
           texName = getPlayerTextureName(currentDir8, 'attack', Math.min(attackFrame, 2));
         } else if (playerAnimState === 'dodge') {
           texName = getPlayerTextureName(currentDir8, 'walk', animFrame);
+        } else if (playerAnimState === 'drinking') {
+          texName = getPlayerTextureName(currentDir8, 'attack', 2); // Use attack frame as holding pose
         } else {
-          texName = getPlayerTextureName(currentDir8, playerAnimState, animFrame);
+          // Check if player is holding a consumable (show potion instead of sword)
+          const activeItem = state.inventory[state.activeItemIndex];
+          if (activeItem?.type === 'consumable') {
+            // Show drinking hold pose when holding consumable
+            texName = getPlayerTextureName(currentDir8, 'attack', 2);
+          } else {
+            texName = getPlayerTextureName(currentDir8, playerAnimState, animFrame);
+          }
         }
         
         let newTex = assetManager.getTexture(texName);
@@ -1654,6 +1896,46 @@ const Game = () => {
         // FORCE player render order every frame to prevent any overrides
         playerMesh.renderOrder = 999999;
 
+        // Update held item mesh (show potion when holding consumable)
+        const activeItem = state.inventory[state.activeItemIndex];
+        const isHoldingConsumable = activeItem?.type === 'consumable' && playerAnimState !== 'drinking';
+        
+        if (isHoldingConsumable) {
+          // Position the potion in the SAME hand as sword (left hand, offset to the right of player body)
+          // Sword is held on the right side of the player, so use the same offset
+          let itemOffsetX = 0.25;
+          let itemOffsetY = 0.05;
+          
+          // Adjust position based on direction - same as sword positioning
+          if (currentDir8 === 'left' || currentDir8 === 'up_left' || currentDir8 === 'down_left') {
+            itemOffsetX = -0.25;
+          }
+          if (currentDir8 === 'up' || currentDir8 === 'up_left' || currentDir8 === 'up_right') {
+            itemOffsetY = 0.35;
+          }
+          if (currentDir8 === 'down' || currentDir8 === 'down_left' || currentDir8 === 'down_right') {
+            itemOffsetY = -0.15;
+          }
+          
+          // Position held item on same arm as sword (attached to player body)
+          heldItemMesh.position.set(
+            state.player.position.x + itemOffsetX,
+            state.player.position.y + itemOffsetY,
+            0.85
+          );
+          heldItemMesh.visible = true;
+          
+          // Update potion texture if it's a health potion
+          if (activeItem.id === 'health_potion') {
+            const potionTex = assetManager.getTexture('potion');
+            if (potionTex !== potionMaterial.map) {
+              potionMaterial.map = potionTex;
+            }
+          }
+        } else {
+          heldItemMesh.visible = false;
+        }
+
         // Update player shadow
         playerShadow.position.set(
           state.player.position.x + attackOffsetX,
@@ -1730,6 +2012,7 @@ const Game = () => {
         } else {
           spinSwooshMesh.visible = false;
         }
+
         // Player damage flash
         if (state.player.damageFlashTimer > 0) {
           if (state.player.damageFlashTimer > 0.28) {
@@ -1782,6 +2065,14 @@ const Game = () => {
             const cy = state.player.position.y + dir.y * 0.5;
             const intId = world.getInteractableAt(cx, cy);
             if (intId) {
+              // Don't show indicator for already-looted chests
+              if (intId.includes('chest') && state.getFlag(`${intId}_opened`)) {
+                continue;
+              }
+              // Don't show indicator for already-collected pickups
+              if (intId === 'potion_pickup' && state.getFlag('potion_pickup_collected')) {
+                continue;
+              }
               showIndicator = true;
               indicatorX = state.player.position.x + dir.x * 0.5;
               indicatorY = state.player.position.y + dir.y * 0.5;
@@ -1806,7 +2097,7 @@ const Game = () => {
         camera.position.y += (cameraTarget.y - camera.position.y) * lerpFactor;
 
         // Update combat system
-        combatSystem.updateEnemies(deltaTime, state.player.position, state.player.isDodging);
+        combatSystem.updateEnemies(deltaTime, state.player.position, state.player.isDodging, isBlocking);
 
         // === ENEMY RENDERING WITH HP BARS ===
         const enemies = combatSystem.getEnemies();
@@ -2035,7 +2326,8 @@ const Game = () => {
           else if (hpRatio > 0.25) fillMat.color.setHex(0xFFC107);
           else fillMat.color.setHex(0xF44336);
 
-          const showBar = enemy.state !== 'idle' || enemy.health < enemy.maxHealth;
+          // Always show HP bar when enemy is in range and visible
+          const showBar = true;
           hpBar.bg.visible = showBar;
           hpBar.fill.visible = showBar;
         }
@@ -2181,6 +2473,9 @@ const Game = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('resize', handleResize);
+      renderer.domElement.removeEventListener('mousedown', handleMouseDown);
+      renderer.domElement.removeEventListener('mouseup', handleMouseUp);
+      renderer.domElement.removeEventListener('contextmenu', handleContextMenu);
       if (mountRef.current && renderer.domElement.parentNode === mountRef.current) {
         mountRef.current.removeChild(renderer.domElement);
       }
@@ -2197,6 +2492,9 @@ const Game = () => {
       scene.remove(playerMesh); (playerMesh.material as THREE.Material).dispose();
       scene.remove(playerShadow); (playerShadow.material as THREE.Material).dispose();
       scene.remove(playerOutline); (playerOutline.material as THREE.Material).dispose();
+      scene.remove(heldItemMesh); (heldItemMesh.material as THREE.Material).dispose();
+      scene.remove(swooshMesh); swooshMaterial.dispose();
+      scene.remove(spinSwooshMesh); spinSwooshMaterial.dispose();
       npcMeshes.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
       npcShadows.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
       npcOutlines.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
@@ -2252,6 +2550,25 @@ const Game = () => {
           toast.error("Not enough gold!", { className: 'rpg-toast' });
         }
         triggerUIUpdate();
+      }
+    }
+
+    // Quest completion from hunter_clue dialogue
+    if (gameState.currentDialogue === 'hunter_clue' && nextId === 'complete_quest') {
+      const hunterQuest = gameState.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
+      if (hunterQuest) {
+        hunterQuest.objectives[2] = 'Defeat the forest threat ✓';
+        hunterQuest.completed = true;
+        toast.success("Quest Completed: The Missing Hunter!", {
+          description: "Return to the Elder to report your findings.",
+          icon: "📜",
+          className: "rpg-toast",
+          duration: 5000,
+        });
+        // Add marker for village
+        addMarkersFromText("Village Elder", "village");
+        triggerUIUpdate();
+        triggerMinimapUpdate(true);
       }
     }
 
@@ -2318,13 +2635,22 @@ const Game = () => {
   const switchMusicTrackRef = useRef<(mapId: string) => void>(() => {});
 
   const MAP_MUSIC_MAP: Record<string, string> = {
-    forest: './audio/wood_theme.mp3',
+    village: './audio/ortho_loop2.mp3',  // Village theme
+    forest: './audio/wood_theme.mp3',    // Whispering Woods
+    deep_woods: './audio/wood_theme.mp3',
+    ruins: './audio/wood_theme.mp3',
   };
   const DEFAULT_MUSIC_TRACK = './audio/ortho_loop2.mp3';
 
-  // Keep the ref always up to date
+  // Debug: Log music switching
   switchMusicTrackRef.current = (mapId: string) => {
+    console.log(`[Music] Switching to: ${mapId}`);
     const track = MAP_MUSIC_MAP[mapId] || DEFAULT_MUSIC_TRACK;
+    console.log(`[Music] Track: ${track}`);
+    if (currentTrackRef.current === track) {
+      console.log(`[Music] Same track, skipping`);
+      return;
+    }
     if (currentTrackRef.current === track) return;
     currentTrackRef.current = track;
     const audio = musicRef.current;
@@ -2383,13 +2709,52 @@ const Game = () => {
     };
 
     // Attempt autoplay immediately; browsers may block this inside iframes.
-    // If blocked, we attach interaction listeners to kick it off on first user input.
+    // If blocked, we try again on any game interaction
+    const startMusicOnAction = () => {
+      if (!musicStarted.current && musicRef.current) {
+        musicStarted.current = true;
+        musicRef.current.play().catch(() => {});
+      }
+    };
+    
     audio.play().then(() => {
       musicStarted.current = true;
     }).catch(() => {
-      window.addEventListener('click', startMusic, { once: true });
-      window.addEventListener('keydown', startMusic, { once: true });
-      window.addEventListener('pointerdown', startMusic, { once: true });
+      // If autoplay fails, attach listeners to iframe and parent for better coverage
+      const iframe = document.querySelector('iframe');
+      const container = document.getElementById('game-container');
+      
+      const startOnInteraction = () => {
+        if (!musicStarted.current) {
+          startMusicOnAction();
+        }
+      };
+      
+      // Listen on various targets for maximum coverage
+      if (window) {
+        window.addEventListener('click', startOnInteraction, { once: true });
+        window.addEventListener('keydown', startOnInteraction, { once: true });
+        window.addEventListener('touchstart', startOnInteraction, { once: true });
+      }
+      if (document) {
+        document.addEventListener('click', startOnInteraction, { once: true });
+        document.addEventListener('keydown', startOnInteraction, { once: true });
+      }
+      if (container) {
+        container.addEventListener('click', startOnInteraction, { once: true });
+        container.addEventListener('keydown', startOnInteraction, { once: true });
+      }
+      if (iframe) {
+        iframe.addEventListener('load', startOnInteraction, { once: true });
+      }
+      
+      // Also try on first player movement/attack which triggers sound
+      const originalHandleInput = handleInput;
+      handleInput = (...args) => {
+        const result = originalHandleInput(...args);
+        startOnInteraction();
+        return result;
+      };
     });
 
     // Kick audio if it stops due to browser throttling when tab regains focus

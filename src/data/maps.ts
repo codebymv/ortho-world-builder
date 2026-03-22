@@ -177,25 +177,7 @@ const villageDef: MapDefinition = {
     { x: 95, y: 135, width: 6, height: 4, fill: 'grass' },
     { x: 160, y: 130, width: 4, height: 4, fill: 'stone' },
   ],
-  enemyZones: [
-    { x: 210, y: 8, width: 25, height: 20, enemyType: 'bandit', count: 6 },
-    { x: 3, y: 125, width: 15, height: 15, enemyType: 'wolf', count: 4 },
-    { x: 190, y: 18, width: 20, height: 16, enemyType: 'bandit', count: 5 },
-    { x: 8, y: 40, width: 16, height: 14, enemyType: 'skeleton', count: 4 },
-    { x: 55, y: 115, width: 20, height: 14, enemyType: 'slime', count: 8 },
-    { x: 130, y: 120, width: 20, height: 12, enemyType: 'slime', count: 5 },
-    { x: 210, y: 115, width: 18, height: 16, enemyType: 'spider', count: 4 },
-    // Wandering wolves near forest edges
-    { x: 85, y: 10, width: 30, height: 20, enemyType: 'wolf', count: 4 },
-    { x: 200, y: 30, width: 28, height: 22, enemyType: 'spider', count: 3 },
-    // Graveyard undead
-    { x: 10, y: 15, width: 28, height: 22, enemyType: 'skeleton', count: 5 },
-    // Field boss - Giant Bandit Chief near north fort
-    { x: 192, y: 20, width: 16, height: 12, enemyType: 'golem', count: 1 },
-    // Cottage area wanderers
-    { x: 80, y: 108, width: 20, height: 16, enemyType: 'slime', count: 4 },
-    { x: 160, y: 35, width: 14, height: 12, enemyType: 'wolf', count: 3 },
-  ],
+  enemyZones: [],
 };
 
 // ============= FOREST: 300x300 Massive Explorable Forest =============
@@ -368,6 +350,8 @@ const forestDef: MapDefinition = {
     { x: 120, y: 90, type: 'sign', walkable: false, interactionId: 'bridge_sign' },
     { x: 76, y: 36, type: 'sign', walkable: false, interactionId: 'danger_sign' },
     { x: 150, y: 260, type: 'sign', walkable: false, interactionId: 'forest_entry_sign' },
+    // Quest objective: Hunter's last known location in the north
+    { x: 120, y: 40, type: 'sign', walkable: false, interactionId: 'hunter_clue' },
     { x: 90, y: 230, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 250, y: 190, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 45, y: 145, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
@@ -401,43 +385,39 @@ const forestDef: MapDefinition = {
     { x: 270, y: 130, width: 4, height: 5, fill: 'grass' },
   ],
   enemyZones: [
-    { x: 30, y: 30, width: 30, height: 24, enemyType: 'wolf', count: 10 },
-    { x: 210, y: 36, width: 30, height: 24, enemyType: 'bandit', count: 8 },
-    { x: 60, y: 120, width: 40, height: 30, enemyType: 'wolf', count: 6 },
-    { x: 200, y: 160, width: 40, height: 40, enemyType: 'wolf', count: 7 },
-    { x: 20, y: 240, width: 35, height: 30, enemyType: 'shadow', count: 9 },
-    { x: 100, y: 250, width: 25, height: 20, enemyType: 'skeleton', count: 6 },
-    { x: 250, y: 50, width: 25, height: 20, enemyType: 'wolf', count: 5 },
-    { x: 160, y: 40, width: 30, height: 20, enemyType: 'bandit', count: 5 },
-    // Plant monster zones in enchanted groves
-    { x: 70, y: 140, width: 30, height: 26, enemyType: 'plant', count: 8 },
-    { x: 240, y: 240, width: 24, height: 22, enemyType: 'plant', count: 6 },
-    { x: 50, y: 260, width: 26, height: 22, enemyType: 'plant', count: 5 },
-    // Fort defenders
-    { x: 130, y: 120, width: 22, height: 18, enemyType: 'bandit', count: 6 },
-    { x: 200, y: 60, width: 18, height: 16, enemyType: 'skeleton', count: 5 },
-    { x: 60, y: 190, width: 20, height: 16, enemyType: 'bandit', count: 5 },
-    // Field bosses (golem in arena + wandering)
-    { x: 215, y: 145, width: 30, height: 30, enemyType: 'golem', count: 1 },
-    { x: 110, y: 30, width: 18, height: 16, enemyType: 'golem', count: 1 }, // ruined fort boss
-    { x: 260, y: 170, width: 16, height: 14, enemyType: 'golem', count: 1 }, // ruined east fort boss
-    // Cemetery undead
-    { x: 118, y: 238, width: 26, height: 20, enemyType: 'skeleton', count: 7 },
-    // Abandoned areas
-    { x: 175, y: 195, width: 30, height: 25, enemyType: 'wolf', count: 6 },
-    // Spider nests & slimes
-    { x: 25, y: 245, width: 20, height: 20, enemyType: 'spider', count: 7 },
-    { x: 80, y: 220, width: 18, height: 14, enemyType: 'slime', count: 8 },
-    { x: 240, y: 180, width: 16, height: 14, enemyType: 'spider', count: 4 },
-    { x: 40, y: 200, width: 14, height: 10, enemyType: 'slime', count: 5 },
-    // Church area undead
-    { x: 175, y: 125, width: 20, height: 20, enemyType: 'skeleton', count: 4 },
-    { x: 45, y: 95, width: 16, height: 18, enemyType: 'shadow', count: 3 },
-    // Ruined fort overrun
-    { x: 28, y: 168, width: 20, height: 16, enemyType: 'bandit', count: 5 },
-    // Wide wandering packs across open areas
-    { x: 140, y: 140, width: 50, height: 50, enemyType: 'wolf', count: 6 },
-    { x: 80, y: 80, width: 40, height: 40, enemyType: 'spider', count: 4 },
+    // === GUARDED POIs - Purposeful placement for better UX ===
+    
+    // Bandit Camp (north-east) - major content
+    { x: 210, y: 25, width: 20, height: 18, enemyType: 'bandit', count: 7 },
+    
+    // Spider Nest (south-west) - dangerous area
+    { x: 20, y: 240, width: 25, height: 20, enemyType: 'spider', count: 6 },
+    
+    // Ancient Ruins (north-west) - mysterious danger
+    { x: 65, y: 25, width: 20, height: 14, enemyType: 'skeleton', count: 4 },
+    
+    // Ranger Camp area (central) - friendly, light enemies
+    { x: 145, y: 155, width: 15, height: 12, enemyType: 'wolf', count: 3 },
+    
+    // Deep Woods transition path (north) - progression challenge
+    { x: 115, y: 5, width: 20, height: 15, enemyType: 'wolf', count: 4 },
+    { x: 145, y: 8, width: 18, height: 12, enemyType: 'wolf', count: 3 },
+    
+    // Hidden Grove (west) - mysterious plant monsters
+    { x: 20, y: 125, width: 20, height: 16, enemyType: 'plant', count: 4 },
+    
+    // Eastern Lake area
+    { x: 235, y: 175, width: 18, height: 14, enemyType: 'spider', count: 3 },
+    
+    // Southern lake crossing - enemies near village portal entrance
+    { x: 160, y: 260, width: 25, height: 20, enemyType: 'wolf', count: 5 },
+    { x: 130, y: 270, width: 20, height: 15, enemyType: 'slime', count: 4 },
+    
+    // Near spawn area (south-west corner)
+    { x: 120, y: 280, width: 18, height: 15, enemyType: 'wolf', count: 3 },
+    
+    // === BOSSES at notable locations ===
+    { x: 215, y: 140, width: 20, height: 16, enemyType: 'golem', count: 1 }, // arena boss
   ],
 };
 
@@ -541,21 +521,31 @@ const deepWoodsDef: MapDefinition = {
     { x: 225, y: 175, width: 6, height: 5, fill: 'stone' },
   ],
   enemyZones: [
-    { x: 175, y: 75, width: 40, height: 35, enemyType: 'shadow', count: 12 },
-    { x: 30, y: 110, width: 40, height: 40, enemyType: 'shadow', count: 9 },
-    { x: 80, y: 30, width: 30, height: 25, enemyType: 'shadow', count: 7 },
-    { x: 15, y: 15, width: 35, height: 30, enemyType: 'shadow', count: 10 },
-    { x: 195, y: 155, width: 30, height: 25, enemyType: 'shadow', count: 8 },
-    { x: 150, y: 155, width: 20, height: 15, enemyType: 'wolf', count: 5 },
-    // Field boss - Shadow Lord
-    { x: 88, y: 38, width: 24, height: 24, enemyType: 'golem', count: 1 },
-    // Skeleton packs near cursed cemetery
-    { x: 148, y: 98, width: 22, height: 18, enemyType: 'skeleton', count: 6 },
-    // Spiders in dark hollow
-    { x: 18, y: 18, width: 32, height: 28, enemyType: 'spider', count: 6 },
-    // Wide wandering shadows
-    { x: 60, y: 60, width: 80, height: 80, enemyType: 'shadow', count: 8 },
-    { x: 120, y: 120, width: 60, height: 60, enemyType: 'spider', count: 4 },
+    // === Strategic placement for exploration UX ===
+    
+    // Witch's Hut clearing (quest area)
+    { x: 50, y: 55, width: 20, height: 16, enemyType: 'shadow', count: 4 },
+    
+    // Ancient Shrine (mysterious danger)
+    { x: 155, y: 35, width: 22, height: 16, enemyType: 'shadow', count: 3 },
+    
+    // Cursed Cemetery (south-east)
+    { x: 145, y: 95, width: 20, height: 16, enemyType: 'skeleton', count: 5 },
+    
+    // Dark hollow area (south-west)
+    { x: 25, y: 160, width: 18, height: 14, enemyType: 'spider', count: 4 },
+    
+    // Northern dark forest (harder zone)
+    { x: 80, y: 20, width: 30, height: 24, enemyType: 'shadow', count: 6 },
+    
+    // Eastern shadowy grove
+    { x: 190, y: 150, width: 16, height: 14, enemyType: 'shadow', count: 3 },
+    
+    // Western swamp border
+    { x: 20, y: 100, width: 18, height: 14, enemyType: 'spider', count: 3 },
+    
+    // === Boss at notable location ===
+    { x: 85, y: 35, width: 18, height: 14, enemyType: 'golem', count: 1 }, // Shadow Lord near shrine
   ],
 };
 

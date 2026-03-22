@@ -71,8 +71,12 @@ const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold }:
   </div>
 ));
 
-const CurrentObjective = React.memo(({ title }: { title: string }) => (
-  <div className="flex items-center gap-2 bg-[#2D1B11]/50 px-3 py-1 rounded-full border border-[#5C3A21]">
+const CurrentObjective = React.memo(({ title, onObjectiveClick }: { title: string, onObjectiveClick?: () => void }) => (
+  <div 
+    className="flex items-center gap-2 bg-[#2D1B11]/50 px-3 py-1 rounded-full border border-[#5C3A21] cursor-pointer hover:bg-[#3D2B21]/50 transition-colors animate-pulse"
+    onClick={onObjectiveClick}
+    title="Click to view on minimap"
+  >
     <span className="text-[#DAA520] text-xs font-bold uppercase tracking-wider">Objective:</span>
     <span className="text-[#F5DEB3] text-xs truncate max-w-[200px]">{title}</span>
   </div>
@@ -190,8 +194,8 @@ export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate,
           )}
         </div>
 
-        {/* Right Side: Toggles */}
-        <div className="flex items-center gap-2">
+        {/* Right Side: Toggles - pushed left more to avoid fullscreen button */}
+        <div className="flex items-center gap-1 mr-8">
           <Button
             onClick={toggleMute}
             variant="ghost"
@@ -209,13 +213,13 @@ export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate,
             }}
             variant="ghost"
             size="sm"
-            className={`h-8 px-3 text-xs font-bold tracking-wider rounded-sm transition-colors ${
+            className={`h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors ${
               showInventory
                 ? 'bg-[#3D2B21] text-[#DAA520] border border-[#DAA520]'
                 : 'text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent'
             }`}
           >
-            <Package className="w-4 h-4 mr-2" />
+            <Package className="w-4 h-4 mr-1" />
             INVENTORY
           </Button>
 
@@ -226,13 +230,13 @@ export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate,
             }}
             variant="ghost"
             size="sm"
-            className={`h-8 px-3 text-xs font-bold tracking-wider rounded-sm transition-colors relative ${
+            className={`h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors relative ${
               showQuests
                 ? 'bg-[#3D2B21] text-[#DAA520] border border-[#DAA520]'
                 : 'text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent'
             }`}
           >
-            <ScrollText className="w-4 h-4 mr-2" />
+            <ScrollText className="w-4 h-4 mr-1" />
             QUESTS
             {activeQuests.length > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border border-[#1A0F0A]">
@@ -245,7 +249,7 @@ export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate,
 
       {/* Inventory Dropdown Menu */}
       {showInventory && (
-        <div className="fixed top-12 right-24 w-72 bg-[#1A0F0A]/95 backdrop-blur-md border border-[#5C3A21] border-t-0 rounded-b-md shadow-xl z-40 flex flex-col pointer-events-auto">
+        <div className="fixed top-12 right-8 w-72 bg-[#1A0F0A]/95 backdrop-blur-md border border-[#5C3A21] border-t-0 rounded-b-md shadow-xl z-40 flex flex-col pointer-events-auto">
           <div className="p-3 overflow-y-auto max-h-[400px]">
             {gameState.inventory.length === 0 ? (
               <p className="text-[#A0522D] text-center py-6 text-sm font-semibold">Your pack is empty</p>

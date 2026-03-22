@@ -4,6 +4,8 @@ import { SpatialHash } from './SpatialHash';
 
 type CardinalDirection = 'up' | 'down' | 'left' | 'right';
 
+const BLOCK_DAMAGE_REDUCTION = 0.6;
+
 export interface Enemy {
   id: string;
   name: string;
@@ -103,7 +105,7 @@ export class CombatSystem {
     return this.enemies;
   }
 
-  updateEnemies(deltaTime: number, playerPosition: { x: number; y: number }, playerDodging: boolean = false): void {
+  updateEnemies(deltaTime: number, playerPosition: { x: number; y: number }, playerDodging: boolean = false, playerBlocking: boolean = false): void {
     const updateMovementVisuals = (enemy: Enemy, vx: number, vy: number, moving: boolean, cadence: number) => {
       if (moving) {
         enemy.velocity.x = vx;
@@ -204,7 +206,7 @@ export class CombatSystem {
             const extAttackRangeSq = attackRangeSq * 1.69;
 
             if (newDistSq <= extAttackRangeSq && !playerDodging) {
-              this.attackPlayer(enemy);
+              this.attackPlayer(enemy, playerBlocking);
             }
             enemy.state = 'recovering';
             enemy.recoverTimer = enemy.recoverDuration;
@@ -232,8 +234,12 @@ export class CombatSystem {
     }
   }
 
-  private attackPlayer(enemy: Enemy): void {
-    this.gameState.player.health = Math.max(0, this.gameState.player.health - enemy.damage);
+  private attackPlayer(enemy: Enemy, isBlocking: boolean = false): void {
+    let damage = enemy.damage;
+    if (isBlocking) {
+      damage = Math.floor(damage * (1 - BLOCK_DAMAGE_REDUCTION));
+    }
+    this.gameState.player.health = Math.max(0, this.gameState.player.health - damage);
     this.gameState.player.damageFlashTimer = 0.3;
     enemy.attackAnimationTimer = 0.3;
   }

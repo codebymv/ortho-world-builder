@@ -32,7 +32,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'accept',
-        text: "Thank you, brave soul! The **hunter** was last seen heading north into the **Deep Woods**. Please, find him and discover what troubles our forest. Take this __map__ - it will guide you.",
+        text: "Thank you, brave soul! The **hunter** was last seen heading into the **Whispering Woods**. Please, find him and discover what troubles our forest. Take this __map__ - it will guide you.",
         responses: [
           { text: "I'll return with news.", nextId: 'end', givesQuest: 'find_hunter' },
         ],
@@ -53,9 +53,16 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'quest_complete',
-        text: "You've returned! And with such dire news. The **Ancient Ruins** awakening... This is worse than I feared. You've done well. Take this __reward__ and my eternal gratitude.",
+        text: "You've returned! And with such dire news about the forest. The **Deep Woods**... I sense the magical barrier has weakened. I need you to travel there and find the **witch**. She knows the source of this darkness. The path is now open to you.",
         responses: [
-          { text: "Thank you, elder.", nextId: 'end' },
+          { text: "I'll go to the Deep Woods.", nextId: 'give_second_quest' },
+        ],
+      },
+      {
+        id: 'give_second_quest',
+        text: "Take this __magic wand__ for protection. Find the witch at her hut in the Deep Woods. Learn what has awakened, and return with that knowledge. The fate of our village depends on it!",
+        responses: [
+          { text: "I won't let you down.", nextId: 'end', givesQuest: 'clear_deep_woods' },
         ],
       },
       {
@@ -259,6 +266,22 @@ export const dialogues: Record<string, Dialogue> = {
   forest_entry_sign: {
     id: 'forest_entry_sign',
     nodes: [{ id: 'start', text: "A carved wooden sign: '**Welcome to the Whispering Woods**. Stay on the __paths__, traveler.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  hunter_clue: {
+    id: 'hunter_clue',
+    nodes: [
+      { 
+        id: 'start', 
+        text: "You find the hunter's final journal entry pinned to a tree: '**Defeated by shadow creatures** near the northern perimeter. The forest is not safe. I must return to warn the village...'",
+        responses: [{ text: "Return to Elder with this news", nextId: 'complete_quest' }]
+      },
+      { 
+        id: 'complete_quest', 
+        text: "You now have enough information to return to the village elder.", 
+        responses: [{ text: "[Continue]", nextId: 'end' }] 
+      },
+      { id: 'end', text: "", responses: [] }
+    ],
   },
   witch_sign: {
     id: 'witch_sign',
