@@ -35,7 +35,6 @@ export const quests: Record<string, Quest> = {
     active: false,
     reward: {
       gold: 150,
-      items: ['magic_wand'],
     },
   },
 

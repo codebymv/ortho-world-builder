@@ -38,7 +38,23 @@ export function createTile(
   walkable: boolean = true,
   options?: Partial<Tile>
 ): Tile {
-  return { type, walkable, ...options };
+  return { type, walkable, elevation: 0, ...options };
+}
+
+export interface ElevationZone {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  elevation: number;
+}
+
+export interface Stairway {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  elevation: number;
 }
 
 export interface MapFeature {
@@ -46,11 +62,15 @@ export interface MapFeature {
   y: number;
   width: number;
   height: number;
-  type: 'building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'secret_cave' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano' | 'boss_arena' | 'abandoned_camp' | 'cemetery' | 'cliff_face' | 'farm' | 'iron_fence_border' | 'hedge_maze' | 'cobble_plaza' | 'forest_grove' | 'fort' | 'enchanted_grove' | 'church' | 'ruined_fort' | 'cottage' | 'watchtower';
+  type: 'building' | 'inn_building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'secret_cave' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano' | 'boss_arena' | 'abandoned_camp' | 'cemetery' | 'cliff_face' | 'farm' | 'iron_fence_border' | 'hedge_maze' | 'cobble_plaza' | 'forest_grove' | 'fort' | 'enchanted_grove' | 'church' | 'ruined_fort' | 'cottage' | 'watchtower' | 'broken_wagon' | 'market_stall_row';
   tiles?: Partial<Record<string, Tile>>; // specific tile overrides by "dx,dy"
   fill?: TileType;
   border?: TileType;
   interactionId?: string;
+  /** Door becomes a portal into this map (inn_building / optional cottage) */
+  interiorMap?: string;
+  interiorSpawnX?: number;
+  interiorSpawnY?: number;
 }
 
 export interface MapDefinition {
@@ -61,6 +81,9 @@ export interface MapDefinition {
   seed: number;
   baseTerrain: 'grassland' | 'forest' | 'swamp' | 'ruins' | 'dungeon';
   borderTile: TileType;
+  autoRoads?: boolean;
+  /** When false, south map edge uses normal borderTile (e.g. inn rooms). Default: large overworld maps use sea cliff + ocean on the south edge. */
+  coastalSouthBorder?: boolean;
   features: MapFeature[];
   portals: Array<{
     x: number;
@@ -81,6 +104,13 @@ export interface MapDefinition {
     walkable: boolean;
     interactionId: string;
   }>;
+  /** Static props (no interaction) — furniture, décor */
+  props?: Array<{
+    x: number;
+    y: number;
+    type: TileType;
+    walkable: boolean;
+  }>;
   secretAreas?: Array<{
     x: number;
     y: number;
@@ -88,6 +118,8 @@ export interface MapDefinition {
     height: number;
     fill: TileType;
   }>;
+  elevationZones?: ElevationZone[];
+  stairways?: Stairway[];
   enemyZones?: Array<{
     x: number;
     y: number;
@@ -98,8 +130,16 @@ export interface MapDefinition {
   }>;
 }
 
+/** Number of tile rows reserved for the south coastal cliff + ocean. Must match stampCliffs protection. */
+const COASTAL_SOUTH_ROWS = 6; // 1 cliff_edge cap + 3 cliff body + 2 water rows
+
+function useCoastalSouthBorder(def: MapDefinition): boolean {
+  if (def.coastalSouthBorder === false) return false;
+  return def.width >= 48 && def.height >= 48;
+}
+
 const STRUCTURE_FEATURE_TYPES: Set<MapFeature['type']> = new Set([
-  'building', 'cottage', 'watchtower', 'church', 'temple', 'fort', 'ruined_fort', 'farm', 'cemetery'
+  'building', 'inn_building', 'cottage', 'watchtower', 'church', 'temple', 'fort', 'ruined_fort', 'farm', 'cemetery'
 ]);
 const STRUCTURE_FEATURE_SPACING = 8;
 
@@ -120,8 +160,19 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
   for (let y = 0; y < def.height; y++) {
     const row: Tile[] = [];
     for (let x = 0; x < def.width; x++) {
-      // Border
       const borderSize = 2;
+      // South edge (low y = screen bottom): dramatic sea cliff + ocean, full width on large maps.
+      // Layout from south: y=0,1 = deep water; y=2..COASTAL_SOUTH_ROWS-2 = cliff body; y=COASTAL_SOUTH_ROWS-1 = cliff_edge cap.
+      if (useCoastalSouthBorder(def) && y < COASTAL_SOUTH_ROWS) {
+        if (y <= 1) {
+          row.push(createTile('water', false));
+        } else if (y === COASTAL_SOUTH_ROWS - 1) {
+          row.push(createTile('cliff_edge', false));
+        } else {
+          row.push(createTile('cliff', false));
+        }
+        continue;
+      }
       if (x < borderSize || x >= def.width - borderSize || y < borderSize || y >= def.height - borderSize) {
         row.push(createTile(def.borderTile, false));
         continue;
@@ -136,13 +187,13 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
       switch (def.baseTerrain) {
         case 'grassland':
           if (n1 < 0.05 && n2 > 0.6) {
-            tile = createTile('flower', false); // Flowers should not be walkable
+            tile = createTile('flower', true);
           } else if (n1 > 0.85 && n2 > 0.5) {
             tile = createTile('tree', false);
           } else if (n2 < 0.1) {
             tile = createTile('rock', false);
           } else if (n3 > 0.7 && n1 > 0.6) {
-            tile = createTile('tall_grass', false); // Tall grass should not be walkable
+            tile = createTile('tall_grass', true);
           } else {
             tile = createTile('grass', true);
           }
@@ -154,9 +205,9 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
           } else if (n1 > 0.35 && n2 > 0.5) {
             tile = createTile('tree', false);
           } else if (n2 < 0.08) {
-            tile = createTile('mushroom', false); // Mushrooms should not be walkable
+            tile = createTile('mushroom', true);
           } else if (n1 < 0.15) {
-            tile = createTile('tall_grass', false); // Tall grass should not be walkable
+            tile = createTile('tall_grass', true);
           } else {
             tile = createTile('grass', true);
           }
@@ -170,7 +221,7 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
           } else if (n1 > 0.8) {
             tile = createTile('tree', false);
           } else if (n2 < 0.1) {
-            tile = createTile('mushroom', false); // Mushrooms should not be walkable
+            tile = createTile('mushroom', true);
           } else {
             tile = createTile('grass', true);
           }
@@ -269,7 +320,16 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 
     switch (feature.type) {
       case 'building':
-        placeBuilding(tiles, feature);
+        placeBuilding(tiles, feature, false);
+        break;
+      case 'inn_building':
+        placeBuilding(tiles, feature, true);
+        break;
+      case 'broken_wagon':
+        placeBrokenWagon(tiles, feature);
+        break;
+      case 'market_stall_row':
+        placeMarketStallRow(tiles, feature);
         break;
       case 'lake':
         placeLake(tiles, feature);
@@ -410,10 +470,14 @@ function isOnInvalidTerrain(tiles: Tile[][], fx: number, fy: number, fw: number,
   return badCount / total > 0.2;
 }
 
-function placeBuilding(tiles: Tile[][], f: MapFeature) {
+function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean) {
   // Skip if this building would be on water/lava or too close to another building
   if (isOnInvalidTerrain(tiles, f.x, f.y, f.width, f.height)) return;
   if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
+
+  if (interiorPortal && (!f.interiorMap || f.interiorSpawnX === undefined || f.interiorSpawnY === undefined)) {
+    return;
+  }
 
   // Pick a deterministic house variant based on position
   const variant = HOUSE_VARIANTS[(f.x * 7 + f.y * 13) % HOUSE_VARIANTS.length];
@@ -436,26 +500,41 @@ function placeBuilding(tiles: Tile[][], f: MapFeature) {
     }
   }
 
-  // Place the actual building - limit house sprites to a centered cluster
-  const houseWidth = Math.min(f.width, 3); // max 3 house tiles wide
-  const houseStartX = Math.floor((f.width - houseWidth) / 2);
-  
+  // One centered house sprite per building — each sprite is scale 2.2 so it visually
+  // spans the full facade. Multiple side-by-side sprites produce a "stacked houses" look.
+  const houseWidth = 1;
+  const houseStartX = Math.floor(f.width / 2);
+  // The "body" rows are 0..bodyRows-1 (solid stone wall, no entry).
+  // The "apron" rows are bodyRows..height-1 (walkable stone floor in front of building).
+  const bodyRows = Math.max(2, Math.ceil(f.height * 0.5));
+
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
-          // Door
-          tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId });
-        } else if ((dy === 0 || dy === 1) && dx >= houseStartX && dx < houseStartX + houseWidth) {
-          // House sprite only in center cluster
+          // Door / portal — always on the bottom-centre tile
+          if (interiorPortal && f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined) {
+            tiles[ty][tx] = createTile('portal', true, {
+              transition: { targetMap: f.interiorMap, targetX: f.interiorSpawnX, targetY: f.interiorSpawnY },
+            });
+          } else {
+            tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId });
+          }
+        } else if (dy === 0 && dx >= houseStartX && dx < houseStartX + houseWidth) {
+          // House sprite on the FIRST row only — scale 2.2 extends visually down over row 1,
+          // placing sprites on both rows 0 and 1 produces a double-stacked appearance.
           tiles[ty][tx] = createTile(variant, false);
-        } else if (dy === 0 || dy === 1) {
-          // Stone walls flanking the house
-          tiles[ty][tx] = createTile('stone', false);
+        } else if (dy < bodyRows) {
+          // Solid wooden wall — warm brown rather than cold grey stone
+          tiles[ty][tx] = createTile('wood', false);
+        } else if (dy === f.height - 1 && (dx === Math.floor(f.width / 2) - 1 || dx === Math.floor(f.width / 2) + 1) && f.width >= 4) {
+          // Lantern gate posts flanking the door — visually mark the entrance
+          tiles[ty][tx] = createTile('lantern', false);
         } else {
-          tiles[ty][tx] = createTile('stone', false);
+          // Dirt path apron — earthy and walkable so players can approach freely
+          tiles[ty][tx] = createTile('dirt', true);
         }
       }
     }
@@ -470,6 +549,50 @@ function placeBuilding(tiles: Tile[][], f: MapFeature) {
       if (existing.walkable || existing.type === 'grass' || existing.type === 'tall_grass') {
         tiles[ty][doorX] = createTile('dirt', true);
       }
+    }
+  }
+}
+
+function placeBrokenWagon(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        tiles[ty][tx] = createTile('dirt', true);
+      }
+    }
+  }
+  const cx = f.x + Math.floor(f.width / 2);
+  const cy = f.y + Math.floor(f.height / 2);
+  if (cy < tiles.length && cx >= 0 && cx < tiles[0].length) {
+    tiles[cy][cx] = createTile('wagon', false);
+  }
+  if (cy < tiles.length && cx - 1 >= f.x && cx - 1 < tiles[0].length) {
+    tiles[cy][cx - 1] = createTile('crate', false);
+  }
+  if (cy < tiles.length && cx + 1 < f.x + f.width && cx + 1 < tiles[0].length) {
+    tiles[cy][cx + 1] = createTile('bones', true);
+  }
+  if (f.height >= 2 && cy - 1 >= f.y) {
+    tiles[cy - 1][cx] = createTile('cart', false);
+  }
+}
+
+function placeMarketStallRow(tiles: Tile[][], f: MapFeature) {
+  for (let dx = 0; dx < f.width; dx++) {
+    const tx = f.x + dx;
+    const ty = f.y;
+    if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+      tiles[ty][tx] = createTile('market_stall', false);
+    }
+  }
+}
+
+function placeProps(tiles: Tile[][], def: MapDefinition) {
+  for (const p of def.props ?? []) {
+    if (p.y >= 0 && p.y < tiles.length && p.x >= 0 && p.x < tiles[0].length) {
+      tiles[p.y][p.x] = createTile(p.type, p.walkable);
     }
   }
 }
@@ -681,19 +804,75 @@ function placeTemple(tiles: Tile[][], f: MapFeature) {
 }
 
 function placeWaterfall(tiles: Tile[][], f: MapFeature) {
-  const cx = f.x + Math.floor(f.width / 2);
-  for (let dy = 0; dy < f.height; dy++) {
-    for (let dx = 0; dx < f.width; dx++) {
+  const fw = f.width;
+  const fh = f.height;
+  const cx = f.x + Math.floor(fw / 2);
+  const grand = fh >= 18 || fw >= 16;
+  const halfFall = grand ? 3 : 2;
+  const cascadeDepth = grand
+    ? Math.min(Math.max(6, Math.floor(fh * 0.34)), Math.max(fh - 5, 4))
+    : 3;
+  const splashBand = grand ? 2 : 1;
+  const poolPhaseStart = cascadeDepth + splashBand;
+
+  for (let dy = 0; dy < fh; dy++) {
+    for (let dx = 0; dx < fw; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
-      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-        const distFromCenter = Math.abs(tx - cx);
-        if (distFromCenter <= 2) {
-          tiles[ty][tx] = createTile(dy < 3 ? 'waterfall' : 'water', false);
-        } else if (distFromCenter <= 3) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+
+      const dist = Math.abs(tx - cx);
+
+      if (dy === 0) {
+        if (dist <= halfFall + 1) {
+          tiles[ty][tx] = createTile(dist <= halfFall ? 'mossy_stone' : 'rock', false);
+        } else {
+          tiles[ty][tx] = createTile(grand ? 'dark_grass' : 'grass', true);
+          if (grand && (dx + tx + ty) % 7 === 0) {
+            tiles[ty][tx] = createTile('dead_tree', false);
+          }
+        }
+        continue;
+      }
+
+      if (dy < cascadeDepth) {
+        if (dist <= halfFall) {
+          tiles[ty][tx] = createTile('waterfall', false);
+        } else if (dist <= halfFall + 2) {
+          tiles[ty][tx] = createTile((dx + dy) % 3 === 0 ? 'waterfall' : 'rock', false);
+        } else if (dist <= halfFall + (grand ? 6 : 4)) {
           tiles[ty][tx] = createTile('rock', false);
         } else {
-          tiles[ty][tx] = createTile('grass', true);
+          tiles[ty][tx] = createTile(grand ? 'dark_grass' : 'grass', true);
+          if (grand && (dx * 3 + dy * 5) % 13 === 0) {
+            tiles[ty][tx] = createTile('tall_grass', true);
+          }
+        }
+        continue;
+      }
+
+      if (dy < poolPhaseStart) {
+        if (dist <= halfFall + 3) {
+          tiles[ty][tx] = createTile('rock', false);
+        } else {
+          tiles[ty][tx] = createTile('mossy_stone', dist > halfFall + 5);
+        }
+        continue;
+      }
+
+      const poolH = fh - poolPhaseStart;
+      const yn = poolH > 1 ? (dy - poolPhaseStart) / (poolH - 1) : 0;
+      const xn = dist / Math.max(fw * 0.42, 1);
+      const inPool = xn * xn + yn * yn <= 0.92;
+
+      if (inPool && dist <= halfFall + 5 + Math.floor(yn * 4)) {
+        tiles[ty][tx] = createTile('water', false);
+      } else if (dist <= halfFall + 6 + Math.floor(yn * 5)) {
+        tiles[ty][tx] = createTile('rock', false);
+      } else {
+        tiles[ty][tx] = createTile('mossy_stone', true);
+        if (grand && (dx + dy) % 5 === 0) {
+          tiles[ty][tx] = createTile('tall_grass', true);
         }
       }
     }
@@ -1136,26 +1315,52 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
 
 function placeCottage(tiles: Tile[][], f: MapFeature) {
   if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
+
+  const cx = Math.floor(f.width / 2);
+  // Body rows = solid wooden walls; apron rows = garden out front
+  const bodyRows = Math.max(2, Math.ceil(f.height * 0.45));
+
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
-      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-        if (dx >= 1 && dx <= f.width - 2 && dy >= 0 && dy <= 2) {
-          tiles[ty][tx] = createTile('house', false);
-        } else if (dx === Math.floor(f.width / 2) && dy === 3) {
-          tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId || 'cottage' });
-        } else if (dy >= 3) {
-          // Small garden around cottage
-          if ((dx + dy) % 4 === 0) {
-            tiles[ty][tx] = createTile('flower', true);
-          } else {
-            tiles[ty][tx] = createTile('grass', true);
-          }
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+
+      if (dx === cx && dy === f.height - 1) {
+        // Door / portal on bottom-centre tile
+        if (f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined) {
+          tiles[ty][tx] = createTile('portal', true, {
+            transition: { targetMap: f.interiorMap, targetX: f.interiorSpawnX, targetY: f.interiorSpawnY },
+          });
         } else {
-          tiles[ty][tx] = createTile('wood', false);
+          tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId || 'cottage' });
+        }
+      } else if (dy === 0 && dx === cx) {
+        // Single centred thatch-roof sprite — one per cottage to avoid stacking
+        tiles[ty][tx] = createTile('house_thatch', false);
+      } else if (dy < bodyRows) {
+        // Wooden wall body
+        tiles[ty][tx] = createTile('wood', false);
+      } else if (dy === f.height - 1 && (dx === cx - 1 || dx === cx + 1) && f.width >= 4) {
+        // Lantern gate posts flanking the cottage door
+        tiles[ty][tx] = createTile('lantern', false);
+      } else {
+        // Small garden / front yard
+        if ((dx + dy) % 4 === 0) {
+          tiles[ty][tx] = createTile('flower', true);
+        } else {
+          tiles[ty][tx] = createTile('grass', true);
         }
       }
+    }
+  }
+
+  // Dirt path from the door outward
+  const doorX = f.x + cx;
+  for (let step = 1; step <= 3; step++) {
+    const ty = f.y + f.height - 1 + step;
+    if (ty >= 0 && ty < tiles.length && doorX >= 0 && doorX < tiles[0].length) {
+      tiles[ty][doorX] = createTile('dirt', true);
     }
   }
 }
@@ -1261,6 +1466,8 @@ function placeSecretAreas(tiles: Tile[][], def: MapDefinition) {
 // Tiles that should not have decoration overlays on or adjacent to them
 const INCOMPATIBLE_BASE: Set<TileType> = new Set([
   'water', 'lava', 'ice', 'swamp', 'waterfall', 'bridge',
+  // Cliff faces: trees growing out of vertical rock walls look wrong
+  'cliff', 'cliff_edge',
 ]);
 
 // Decoration overlay types that should only appear on land
@@ -1271,7 +1478,7 @@ const LAND_DECORATIONS: Set<TileType> = new Set([
 
 // Path-type tiles that trees/rocks should be cleared away from
 const PATH_TILES: Set<TileType> = new Set([
-  'dirt', 'cobblestone', 'wooden_path', 'bridge', 'sand',
+  'dirt', 'cobblestone', 'wooden_path', 'wood_floor', 'bridge', 'sand',
 ]);
 
 // How far from paths to clear blocking objects (trees, rocks)
@@ -1286,7 +1493,7 @@ const PATH_BLOCKERS: Set<TileType> = new Set([
 const MIN_DECORATION_SPACING = 2;
 const SPACED_DECORATIONS: Set<TileType> = new Set([
   'tree', 'dead_tree', 'rock', 'stump', 'tombstone', 'statue',
-  'scarecrow', 'hay_bale', 'well', 'campfire', 'barrel', 'crate',
+  'scarecrow', 'hay_bale', 'well', 'campfire', 'bonfire', 'barrel', 'crate',
   'mushroom', 'bones', 'lantern',
 ]);
 
@@ -1385,18 +1592,97 @@ function cleanupIllogicalPlacements(tiles: Tile[][], def: MapDefinition) {
   }
 }
 
+function applyElevationZones(tiles: Tile[][], def: MapDefinition) {
+  for (const zone of def.elevationZones ?? []) {
+    for (let dy = 0; dy < zone.height; dy++) {
+      for (let dx = 0; dx < zone.width; dx++) {
+        const tx = zone.x + dx;
+        const ty = zone.y + dy;
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        tiles[ty][tx].elevation = zone.elevation;
+      }
+    }
+  }
+}
+
+// Vertical cliff art: only when the tile to the NORTH (smaller y) is higher than the tile to the SOUTH.
+// The complementary “south/east neighbor higher” case is filled at render time in World.appendTerrainSeamFillers
+// so paths and portal rows do not show sky gaps.
+function stampCliffs(tiles: Tile[][], protectSouthCoastRows: boolean) {
+  const h = tiles.length;
+  const w = tiles[0].length;
+  const elevations = tiles.map(row => row.map(tile => tile.elevation ?? 0));
+  // Protect the coastal zone at low y values (south = bottom of screen).
+  const coastProtectMaxY = protectSouthCoastRows ? COASTAL_SOUTH_ROWS : 0;
+
+  for (let y = 1; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const upperElevation = elevations[y - 1][x];
+      const lowerElevation = elevations[y][x];
+      if (upperElevation <= lowerElevation) continue;
+
+      const upperTile = tiles[y - 1][x];
+      const lowerTile = tiles[y][x];
+      if (upperTile.transition || lowerTile.transition || upperTile.interactable || lowerTile.interactable) continue;
+      if (upperTile.type === 'stairs' || lowerTile.type === 'stairs') continue;
+      // Never overwrite roads/paths with cliff tiles — elevation changes on roads are
+      // handled by the walkability system's "visible height indicator" heuristic.
+      if (PATH_TILES.has(upperTile.type) || PATH_TILES.has(lowerTile.type)) continue;
+
+      // Skip if the cliff_edge cap row falls inside the protected coastal zone.
+      if (y - 1 < coastProtectMaxY) continue;
+      tiles[y - 1][x] = createTile('cliff_edge', false, { elevation: upperElevation });
+
+      // Extra wall tiles proportional to elevation drop — a 2-step drop gets 3 cliff tiles
+      const elevDrop = upperElevation - lowerElevation;
+      const wallDepth = Math.min(2 + elevDrop, h - y);
+      for (let depth = 0; depth < wallDepth; depth++) {
+        const cy = y + depth;
+        if (cy >= h) break;
+        if (cy < coastProtectMaxY) continue; // skip rows inside coastal zone
+        const targetTile = tiles[cy][x];
+        if (targetTile.transition || targetTile.interactable || targetTile.type === 'stairs') continue;
+        tiles[cy][x] = createTile('cliff', false, { elevation: lowerElevation });
+      }
+    }
+  }
+}
+
+function placeStairways(tiles: Tile[][], def: MapDefinition) {
+  for (const stair of def.stairways ?? []) {
+    for (let dy = 0; dy < stair.height; dy++) {
+      for (let dx = 0; dx < stair.width; dx++) {
+        const tx = stair.x + dx;
+        const ty = stair.y + dy;
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        const existing = tiles[ty][tx];
+        tiles[ty][tx] = createTile('stairs', true, {
+          elevation: stair.elevation,
+          transition: existing.transition,
+          interactable: existing.interactable,
+          interactionId: existing.interactionId,
+          hidden: existing.hidden,
+        });
+      }
+    }
+  }
+}
+
 export function generateMap(def: MapDefinition): WorldMap {
   const tiles = generateBaseTerrain(def);
 
   // Place features first (buildings, lakes, etc)
   placeFeatures(tiles, def);
 
-  // Carve roads between key points
-  carveRoads(tiles, def);
+  // Carve roads between key points unless the map opts into fully authored routing
+  if (def.autoRoads !== false) {
+    carveRoads(tiles, def);
+  }
 
   // Place specific objects
   placePortals(tiles, def);
   placeChests(tiles, def);
+  placeProps(tiles, def);
   placeInteractables(tiles, def);
   placeSecretAreas(tiles, def);
 
@@ -1417,11 +1703,16 @@ export function generateMap(def: MapDefinition): WorldMap {
     }
   }
 
+  applyElevationZones(tiles, def);
+  stampCliffs(tiles, useCoastalSouthBorder(def));
+  placeStairways(tiles, def);
+
   return {
     name: def.name,
     width: def.width,
     height: def.height,
     tiles,
     spawnPoint: def.spawnPoint,
+    coastalSouthBackdrop: useCoastalSouthBorder(def),
   };
 }

@@ -66,6 +66,27 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
+        id: 'deep_woods_active',
+        text: "The **Deep Woods** are treacherous. Find the **witch's hut**, learn what __shadow magic__ stirs below, and return to me with that knowledge.",
+        responses: [
+          { text: "I'm still investigating.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'deep_woods_report',
+        text: "You're back—and your face says you've seen something grave. What did the witch reveal?",
+        responses: [
+          { text: "Ancient shadow magic is waking beneath the woods.", nextId: 'elder_deep_done' },
+        ],
+      },
+      {
+        id: 'elder_deep_done',
+        text: "Then we must act quickly. You've done the village a great service. Take this reward, and stay sharp.",
+        responses: [
+          { text: "I'll be ready.", nextId: 'end' },
+        ],
+      },
+      {
         id: 'end',
         text: "May fortune smile upon you, traveler.",
         responses: [],
@@ -82,6 +103,7 @@ export const dialogues: Record<string, Dialogue> = {
         responses: [
           { text: "What do you have for sale?", nextId: 'shop' },
           { text: "Tell me about your travels.", nextId: 'travels' },
+          { text: "I heard you're looking for rare herbs.", nextId: 'merchant_herb_pitch' },
           { text: "Nothing today, thanks.", nextId: 'end' },
         ],
       },
@@ -150,6 +172,7 @@ export const dialogues: Record<string, Dialogue> = {
         responses: [
           { text: "Just passing through.", nextId: 'passing' },
           { text: "I'm here to help with the trouble in the forest.", nextId: 'helping', requiresQuest: 'find_hunter' },
+          { text: "I could help you patrol.", nextId: 'patrol_offer' },
           { text: "What are you guarding against?", nextId: 'guarding' },
         ],
       },
@@ -286,6 +309,25 @@ export const dialogues: Record<string, Dialogue> = {
   witch_sign: {
     id: 'witch_sign',
     nodes: [{ id: 'start', text: "Scrawled on a rotting plank: '**The Witch** sees all. Leave __offerings__ or leave quickly.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+
+  witch_hut_lore: {
+    id: 'witch_hut_lore',
+    nodes: [
+      {
+        id: 'start',
+        text: "Charred notes and rune-carved bark cover the table. One line is underlined three times: '__Shadow roots__ drink old magic below the temple hill. The seal is __fraying__.'",
+        responses: [
+          { text: "Study the writings closely.", nextId: 'lore' },
+        ],
+      },
+      {
+        id: 'lore',
+        text: "You understand the danger: a **well of shadow magic** is waking, twisting creature and forest alike. The witch has been holding the line for years.",
+        responses: [{ text: "[Continue]", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
   },
   temple_sign: {
     id: 'temple_sign',

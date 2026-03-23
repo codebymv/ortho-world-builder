@@ -39,13 +39,33 @@ export const items: Record<string, Item> = {
     description: 'A well-crafted blade of sturdy iron. Reliable and sharp.',
     type: 'equipment',
     sprite: 'sword',
+    stats: {
+      damage: 28,
+      range: 2.15,
+    },
   },
   
   meek_short_sword: {
     id: 'meek_short_sword',
     name: 'Meek Short Sword',
-    description: 'A simple, reliable starting blade.',
+    description: 'A simple, reliable starting blade. Attack with left click.',
     type: 'equipment',
     sprite: 'sword',
+    stats: {
+      damage: 20,
+      range: 2,
+    },
+  },
+
+  magic_wand: {
+    id: 'magic_wand',
+    name: 'Elder\'s Wand',
+    description: 'A simple focus carved with protective runes. Lighter strikes, slightly longer reach.',
+    type: 'equipment',
+    sprite: 'sword',
+    stats: {
+      damage: 24,
+      range: 2.15,
+    },
   },
 };

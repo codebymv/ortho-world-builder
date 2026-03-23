@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 
 interface DeathOverlayProps {
   active: boolean;
-  goldLost: number;
+  essenceLost: number;
   onComplete: () => void;
 }
 
-export const DeathOverlay = ({ active, goldLost, onComplete }: DeathOverlayProps) => {
+export const DeathOverlay = ({ active, essenceLost, onComplete }: DeathOverlayProps) => {
   const [phase, setPhase] = useState<'hidden' | 'fadein' | 'show' | 'fadeout'>('hidden');
 
   useEffect(() => {
@@ -31,11 +31,19 @@ export const DeathOverlay = ({ active, goldLost, onComplete }: DeathOverlayProps
       }`}
       style={{ backgroundColor: 'rgba(80,0,0,0.85)' }}
     >
-      <h2 className="text-4xl font-bold text-red-500 uppercase tracking-[0.4em] mb-4">
-        Defeated
+      <h2 className="text-4xl font-bold text-red-500 uppercase tracking-[0.35em] mb-4">
+        You Died
       </h2>
-      {goldLost > 0 && (
-        <p className="text-lg text-[#F5DEB3]">Lost <span className="text-yellow-400 font-bold">{goldLost}</span> gold</p>
+      <p className="text-sm text-[#D7CCC8] max-w-md text-center px-6 mb-2">
+        You return to the last bonfire. Your essence remains where you fell—recover it before it is lost again.
+      </p>
+      {essenceLost > 0 && (
+        <p className="text-lg text-[#F5DEB3]">
+          Bloodstain: <span className="text-violet-300 font-bold">{essenceLost}</span> essence
+        </p>
+      )}
+      {essenceLost === 0 && (
+        <p className="text-sm text-[#A1887F]">You carried no essence to lose.</p>
       )}
     </div>
   );

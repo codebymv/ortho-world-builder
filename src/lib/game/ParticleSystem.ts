@@ -95,6 +95,20 @@ export class ParticleSystem {
     this.emit(position, 8, 0x00FF00, 1, 1, 1.5);
   }
 
+  /** Purple / cyan swirl while charging a map portal (charge 0..1). */
+  emitPortalWarp(position: THREE.Vector3, charge: number) {
+    const n = Math.max(2, Math.floor(3 + charge * 12));
+    this.emit(position, Math.max(1, Math.floor(n * 0.4)), 0xaa66ff, 0.45 + charge * 0.35, 1.4 + charge * 1.2, 2.2);
+    this.emit(position, Math.max(1, Math.floor(n * 0.35)), 0x44ffdd, 0.4 + charge * 0.3, 1.1 + charge, 2);
+    this.emit(position, Math.max(1, Math.floor(n * 0.25)), 0xff88ee, 0.35 + charge * 0.25, 1.6 + charge * 0.8, 1.6);
+  }
+
+  /** Dim sparks when a portal is warded / unusable. */
+  emitPortalBlocked(position: THREE.Vector3) {
+    this.emit(position, 4, 0x661133, 0.55, 0.7, 1.4);
+    this.emit(position, 3, 0x330066, 0.5, 0.5, 1.2);
+  }
+
   update(deltaTime: number) {
     for (const particle of this.particles) {
       if (particle.active) {

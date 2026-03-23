@@ -7,17 +7,20 @@ export type TileType =
   | 'tree' | 'house' | 'house_blue' | 'house_green' | 'house_thatch' | 'rock' | 'chest' | 'portal' | 'flower'
   | 'tall_grass' | 'bridge' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
-  | 'campfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
+  | 'campfire' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
   | 'fence' | 'gate' | 'barrel' | 'crate' | 'spike_trap' | 'bones'
   | 'volcanic_rock' | 'ash' | 'ruins_floor' | 'waterfall' | 'snow'
   | 'dead_tree' | 'destroyed_house' | 'statue'
   | 'cliff' | 'cliff_edge' | 'cobblestone' | 'farmland' | 'wheat'
   | 'iron_fence' | 'hedge' | 'scarecrow' | 'hay_bale' | 'lantern'
-  | 'dark_grass' | 'mossy_stone' | 'wooden_path';
+  | 'dark_grass' | 'mossy_stone' | 'wooden_path' | 'stairs'
+  | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
+  | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter';
 
 export interface Tile {
   type: TileType;
   walkable: boolean;
+  elevation?: number;
   interactable?: boolean;
   interactionId?: string;
   transition?: {
@@ -37,6 +40,8 @@ export interface WorldMap {
   height: number;
   tiles: Tile[][];
   spawnPoint: { x: number; y: number };
+  /** When true, World draws an extra south backdrop (cliff/ocean) below the tile grid so the camera does not show empty void past the coast. */
+  coastalSouthBackdrop?: boolean;
 }
 
 interface ChunkMesh {
@@ -49,6 +54,17 @@ interface ChunkMesh {
 const RENDER_RADIUS = 32;
 const CULL_RADIUS = 42;
 const MAX_TILES_PER_FRAME = 200; // batch tile creation to prevent frame drops
+const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'stairs']);
+const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
+  'bones',
+  'flower',
+  'hay_bale',
+  'mushroom',
+  'pot',
+  'rug',
+  'tall_grass',
+  'wheat',
+]);
 
 // Seeded hash for deterministic detail placement
 function tileHash(x: number, y: number, seed: number = 0): number {
@@ -61,6 +77,8 @@ function tileHash(x: number, y: number, seed: number = 0): number {
 // detail Decals - now imported from data/tiles.ts
 
 export class World {
+  static readonly ELEVATION_Y_OFFSET = 0.58;
+
   private map: WorldMap;
   private tileSize: number = 1;
   private scene: THREE.Scene;
@@ -74,8 +92,16 @@ export class World {
   private readonly PRELOAD_EXTRA = 10; // extra tiles in movement direction
   private pendingTiles: Array<{ x: number; y: number; key: string }> = [];
   private isInitialLoad: boolean = true;
+  /** Meshes below the south coast tiles; not part of chunk streaming. */
+  private southCoastBackdrop: THREE.Group | null = null;
+  private southCoastBackdropDisposables: Array<{
+    geometry: THREE.BufferGeometry;
+    material: THREE.Material;
+    texture?: THREE.Texture;
+  }> = [];
   private materialCache: Map<string, THREE.MeshBasicMaterial> = new Map();
   private detailGeometry: THREE.PlaneGeometry;
+  private shadowGeometry: THREE.PlaneGeometry;
   private detailTextures: Map<string, THREE.Texture> = new Map();
 
   constructor(scene: THREE.Scene, assetManager: AssetManager, map: WorldMap) {
@@ -83,7 +109,9 @@ export class World {
     this.assetManager = assetManager;
     this.map = map;
     this.detailGeometry = new THREE.PlaneGeometry(0.3, 0.3);
+    this.shadowGeometry = new THREE.PlaneGeometry(1, 1);
     this.generateDetailTextures();
+    this.rebuildSouthCoastBackdrop();
   }
 
   private generateDetailTextures() {
@@ -144,10 +172,33 @@ export class World {
       ctx.fillStyle = '#EE6666';
       ctx.fillRect(6, 7, 4, 2);
     }));
+
+    this.detailTextures.set('height_shadow_top', makeCanvas(ctx => {
+      for (let y = 0; y < 16; y++) {
+        const alpha = Math.max(0, 0.5 - y * 0.055);
+        if (alpha <= 0) continue;
+        ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+        ctx.fillRect(0, y, 16, 1);
+      }
+    }));
+
+    this.detailTextures.set('height_shadow_side', makeCanvas(ctx => {
+      for (let x = 0; x < 16; x++) {
+        const alpha = Math.max(0, 0.34 - x * 0.04);
+        if (alpha <= 0) continue;
+        ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+        ctx.fillRect(x, 0, 1, 16);
+      }
+    }));
   }
 
   // Shared geometry for all tile meshes
   private readonly sharedTileGeometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
+  /** Shared 1×1 plane; scaled per edge to plug elevation gaps (see appendTerrainSeamFillers). */
+  private readonly elevationFillerGeometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
+  /** Cached gradient strips: kind + variant → texture/material (disposed in dispose()). */
+  private seamFillTextureByKey = new Map<string, THREE.CanvasTexture>();
+  private seamFillMaterialByKey = new Map<string, THREE.MeshBasicMaterial>();
 
   private getCachedMaterial(texture: THREE.Texture, cacheKey: string): THREE.MeshBasicMaterial {
     let material = this.materialCache.get(cacheKey);
@@ -215,17 +266,335 @@ export class World {
     return mesh;
   }
 
+  private createShadowMesh(textureKey: string, opacity: number, rotation: number = 0, flipX: boolean = false): THREE.Mesh | null {
+    const tex = this.detailTextures.get(textureKey);
+    if (!tex) return null;
+
+    const cacheKey = `shadow_${textureKey}_${Math.round(opacity * 100)}`;
+    let mat = this.materialCache.get(cacheKey);
+    if (!mat) {
+      mat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+        depthTest: false,
+        alphaTest: 0.02,
+      });
+      this.materialCache.set(cacheKey, mat);
+    }
+
+    const mesh = new THREE.Mesh(this.shadowGeometry, mat);
+    mesh.frustumCulled = false;
+    mesh.matrixAutoUpdate = false;
+    mesh.position.set(0, 0, -0.32);
+    mesh.rotation.z = rotation;
+    mesh.scale.set(flipX ? -1 : 1, 1, 1);
+    return mesh;
+  }
+
+  private createElevationShadow(tileX: number, tileY: number, tile: Tile): THREE.Object3D | null {
+    const currentElevation = tile.elevation ?? 0;
+    const shadowGroup = this.overlayPool.pop() ?? new THREE.Group();
+    shadowGroup.clear();
+    shadowGroup.matrixAutoUpdate = false;
+
+    let hasShadow = false;
+    const northElevation = tileY > 0 ? (this.map.tiles[tileY - 1]?.[tileX]?.elevation ?? 0) : currentElevation;
+    const westElevation = tileX > 0 ? (this.map.tiles[tileY]?.[tileX - 1]?.elevation ?? 0) : currentElevation;
+    const eastElevation = tileX < this.map.width - 1 ? (this.map.tiles[tileY]?.[tileX + 1]?.elevation ?? 0) : currentElevation;
+
+    if (northElevation > currentElevation) {
+      const mesh = this.createShadowMesh('height_shadow_top', Math.min(0.34, 0.18 + (northElevation - currentElevation) * 0.1));
+      if (mesh) {
+        mesh.updateMatrix();
+        shadowGroup.add(mesh);
+        hasShadow = true;
+      }
+    }
+
+    if (westElevation > currentElevation) {
+      const mesh = this.createShadowMesh('height_shadow_side', Math.min(0.22, 0.1 + (westElevation - currentElevation) * 0.06));
+      if (mesh) {
+        mesh.position.z = -0.31;
+        mesh.updateMatrix();
+        shadowGroup.add(mesh);
+        hasShadow = true;
+      }
+    }
+
+    if (eastElevation > currentElevation) {
+      const mesh = this.createShadowMesh('height_shadow_side', Math.min(0.22, 0.1 + (eastElevation - currentElevation) * 0.06), 0, true);
+      if (mesh) {
+        mesh.position.z = -0.31;
+        mesh.updateMatrix();
+        shadowGroup.add(mesh);
+        hasShadow = true;
+      }
+    }
+
+    if (!hasShadow) {
+      this.overlayPool.push(shadowGroup);
+      return null;
+    }
+
+    shadowGroup.userData = {
+      tileType: `${tile.type}_shadow`,
+      sortAnchorY: null,
+    };
+    return shadowGroup;
+  }
+
+  private isOverlayTileType(type: TileType): boolean {
+    return Boolean(TILE_METADATA[type]?.isOverlay) || HEIGHT_TILE_TYPES.has(type);
+  }
+
+  private resolveBaseTileType(tileX: number, tileY: number, fallback: TileType = 'dirt'): TileType {
+    const neighbors: TileType[] = [];
+    for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]] as const) {
+      const nx = tileX + dx;
+      const ny = tileY + dy;
+      if (ny < 0 || ny >= this.map.height || nx < 0 || nx >= this.map.width) continue;
+      const neighborType = this.map.tiles[ny][nx]?.type;
+      if (!neighborType) continue;
+      if (!this.isOverlayTileType(neighborType)) neighbors.push(neighborType);
+    }
+
+    if (neighbors.length === 0) return fallback;
+
+    const counts = new Map<TileType, number>();
+    for (const neighborType of neighbors) {
+      counts.set(neighborType, (counts.get(neighborType) || 0) + 1);
+    }
+
+    let best = neighbors[0];
+    let bestCount = 0;
+    for (const [type, count] of counts) {
+      if (count > bestCount) {
+        best = type;
+        bestCount = count;
+      }
+    }
+
+    return best;
+  }
+
+  private createHeightTileObject(tile: Tile, tileX?: number, tileY?: number): THREE.Object3D | null {
+    const overlayTexture = this.assetManager.getTexture(tile.type);
+    if (!overlayTexture) return null;
+
+    const baseType = tileX !== undefined && tileY !== undefined
+      ? this.resolveBaseTileType(tileX, tileY, tile.type === 'stairs' ? 'dirt' : 'grass')
+      : (tile.type === 'stairs' ? 'dirt' : 'grass');
+    const baseTexture = this.assetManager.getTexture(baseType);
+    if (!baseTexture) return null;
+
+    const group = this.overlayPool.pop() ?? new THREE.Group();
+    group.clear();
+    group.matrixAutoUpdate = false;
+
+    let scale = 1.0;
+    let yOffset = 0;
+    let sortTrim = 0.16;
+
+    if (tile.type === 'cliff') {
+      scale = 2.4;
+      yOffset = 0.76;
+      sortTrim = 0.04;
+    } else if (tile.type === 'cliff_edge') {
+      scale = 2.0;
+      yOffset = 0.55;
+      sortTrim = 0.05;
+    } else {
+      scale = 1.42;
+      yOffset = 0.16;
+      sortTrim = 0.12;
+    }
+
+    const sortAnchorY = yOffset - scale * 0.5 + sortTrim;
+    group.userData = {
+      tileType: tile.type,
+      sortAnchorY,
+    };
+
+    const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
+    const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1, `height_${tile.type}`);
+    overlayMesh.scale.set(1, scale, 1);
+    overlayMesh.position.y = yOffset;
+
+    baseMesh.updateMatrix();
+    overlayMesh.updateMatrix();
+    group.add(baseMesh, overlayMesh);
+    return group;
+  }
+
+  /**
+   * Elevation UX: stampCliffs only covers “north tile higher than south”. Offset-based drawing still
+   * leaves gaps when a neighbor to the south OR east is higher. We only add strips from the **lower**
+   * tile toward the higher one (south edge or east edge) so each internal boundary is drawn once.
+   * Textures are small vertical gradients + noise per terrain family so seams read as soil/rock, not UI.
+   */
+  private seamTerrainKind(tile: Tile, tileX: number, tileY: number): string {
+    const base: TileType = TILE_METADATA[tile.type]?.isOverlay
+      ? this.resolveBaseTileType(tileX, tileY, TILE_METADATA[tile.type]?.baseTile ?? 'grass')
+      : tile.type;
+    if (base === 'water' || base === 'waterfall') return 'swamp';
+    if (base === 'swamp') return 'swamp';
+    if (base === 'snow' || base === 'ice') return 'snow';
+    if (base === 'ruins_floor') return 'ruins';
+    if (base === 'mossy_stone' || base === 'cobblestone' || base === 'stone' || base === 'wooden_path') return 'stone';
+    if (base === 'dirt' || base === 'sand' || base === 'wood' || base === 'wood_floor' || base === 'farmland' || base === 'ash') return 'dirt';
+    if (base === 'dark_grass' || base === 'tall_grass') return 'forest_floor';
+    return 'grass';
+  }
+
+  private createSeamGradientCanvasTexture(kind: string, variant: number): THREE.CanvasTexture {
+    const W = 8;
+    const H = 48;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+    const PAL: Record<string, [[number, number, number], [number, number, number]]> = {
+      grass: [
+        [82, 148, 88],
+        [32, 58, 38],
+      ],
+      forest_floor: [
+        [54, 104, 62],
+        [24, 44, 30],
+      ],
+      dirt: [
+        [124, 96, 70],
+        [56, 42, 30],
+      ],
+      stone: [
+        [102, 104, 108],
+        [46, 48, 52],
+      ],
+      swamp: [
+        [62, 102, 84],
+        [28, 52, 44],
+      ],
+      ruins: [
+        [92, 88, 108],
+        [40, 38, 52],
+      ],
+      snow: [
+        [220, 228, 236],
+        [148, 162, 176],
+      ],
+    };
+    const pair = PAL[kind] ?? PAL.grass;
+    const top = pair[0];
+    const bot = pair[1];
+    const vr = variant * 19.1;
+    const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
+    for (let y = 0; y < H; y++) {
+      const u = y / (H - 1);
+      const n =
+        Math.sin(y * 0.55 + vr) * 7 +
+        Math.sin(y * 1.4 + vr * 1.7) * 5 +
+        (tileHash(variant, y, 2) - 0.5) * 12;
+      const r = top[0] * (1 - u) + bot[0] * u + n;
+      const g = top[1] * (1 - u) + bot[1] * u + n * 0.92;
+      const b = top[2] * (1 - u) + bot[2] * u + n * 0.88;
+      ctx.fillStyle = `rgb(${clamp(r)},${clamp(g)},${clamp(b)})`;
+      ctx.fillRect(0, y, W, 1);
+    }
+    for (let s = 0; s < 6; s++) {
+      const yy = Math.floor(tileHash(variant, s, 11) * H);
+      ctx.fillStyle = `rgba(0,0,0,${0.06 + tileHash(s, variant, 5) * 0.12})`;
+      ctx.fillRect(0, yy, W, 1);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  private getSeamFillMaterial(kind: string, variant: number): THREE.MeshBasicMaterial {
+    const key = `${kind}_v${variant}`;
+    let mat = this.seamFillMaterialByKey.get(key);
+    if (!mat) {
+      let tex = this.seamFillTextureByKey.get(key);
+      if (!tex) {
+        tex = this.createSeamGradientCanvasTexture(kind, variant);
+        this.seamFillTextureByKey.set(key, tex);
+      }
+      mat = new THREE.MeshBasicMaterial({
+        map: tex,
+        depthWrite: true,
+        depthTest: true,
+      });
+      this.seamFillMaterialByKey.set(key, mat);
+    }
+    return mat;
+  }
+
+  private appendTerrainSeamFillers(parent: THREE.Group, tile: Tile, tileX: number, tileY: number): void {
+    if (HEIGHT_TILE_TYPES.has(tile.type)) return;
+    const me = tile.elevation ?? 0;
+    const kind = this.seamTerrainKind(tile, tileX, tileY);
+
+    const addSouth = () => {
+      if (tileY >= this.map.height - 1) return;
+      const nb = this.map.tiles[tileY + 1]?.[tileX];
+      if (!nb || HEIGHT_TILE_TYPES.has(nb.type)) return;
+      const ne = nb.elevation ?? 0;
+      if (ne <= me) return;
+      const gap = (ne - me) * World.ELEVATION_Y_OFFSET;
+      if (gap < 0.02) return;
+      const variant = Math.floor(tileHash(tileX, tileY, 201) * 6);
+      const mesh = new THREE.Mesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
+      mesh.scale.set(1, gap, 1);
+      mesh.position.set(0, this.tileSize * 0.5 + gap * 0.5, 0.04);
+      mesh.frustumCulled = false;
+      mesh.matrixAutoUpdate = false;
+      mesh.updateMatrix();
+      parent.add(mesh);
+    };
+
+    const addEast = () => {
+      if (tileX >= this.map.width - 1) return;
+      const nb = this.map.tiles[tileY]?.[tileX + 1];
+      if (!nb || HEIGHT_TILE_TYPES.has(nb.type)) return;
+      const ne = nb.elevation ?? 0;
+      if (ne <= me) return;
+      const gap = (ne - me) * World.ELEVATION_Y_OFFSET;
+      if (gap < 0.02) return;
+      const variant = Math.floor(tileHash(tileX, tileY, 307) * 6);
+      const mesh = new THREE.Mesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
+      mesh.scale.set(gap, 1, 1);
+      mesh.position.set(this.tileSize * 0.5 + gap * 0.5, 0, 0.04);
+      mesh.frustumCulled = false;
+      mesh.matrixAutoUpdate = false;
+      mesh.updateMatrix();
+      parent.add(mesh);
+    };
+
+    addSouth();
+    addEast();
+  }
+
   private createTileObject(tile: Tile, tileX?: number, tileY?: number): THREE.Object3D | null {
+    if (HEIGHT_TILE_TYPES.has(tile.type)) {
+      return this.createHeightTileObject(tile, tileX, tileY);
+    }
+
     const isOverlay = TILE_METADATA[tile.type]?.isOverlay;
 
     if (!isOverlay) {
       const texture = this.assetManager.getTexture(tile.type);
       if (!texture) return null;
       
-      // Check for detail decal
       if (tileX !== undefined && tileY !== undefined && tile.walkable) {
+        const shadow = this.createElevationShadow(tileX, tileY, tile);
         const decal = this.createDetailDecal(tileX, tileY, tile.type);
-        if (decal) {
+        if (shadow || decal) {
           const group = this.overlayPool.pop() ?? new THREE.Group();
           group.clear();
           group.matrixAutoUpdate = false;
@@ -235,43 +604,47 @@ export class World {
           };
           const baseMesh = this.createPlaneMesh(texture, -0.5, `base_${tile.type}`);
           baseMesh.updateMatrix();
-          decal.updateMatrix();
-          group.add(baseMesh, decal);
+          group.add(baseMesh);
+          this.appendTerrainSeamFillers(group, tile, tileX, tileY);
+          if (shadow instanceof THREE.Group) {
+            for (const child of shadow.children) {
+              group.add(child);
+            }
+            shadow.clear();
+            this.overlayPool.push(shadow);
+          } else if (shadow) {
+            shadow.updateMatrix();
+            group.add(shadow);
+          }
+          if (decal) {
+            decal.updateMatrix();
+            group.add(decal);
+          }
           return group;
         }
       }
-      
+
+      if (tileX !== undefined && tileY !== undefined) {
+        const group = this.overlayPool.pop() ?? new THREE.Group();
+        group.clear();
+        group.matrixAutoUpdate = false;
+        group.userData = { tileType: tile.type, sortAnchorY: null };
+        const baseMesh = this.createPlaneMesh(texture, -0.5, `base_${tile.type}`);
+        baseMesh.updateMatrix();
+        group.add(baseMesh);
+        this.appendTerrainSeamFillers(group, tile, tileX, tileY);
+        return group;
+      }
+
       return this.createPlaneMesh(texture, -0.5, `base_${tile.type}`);
     }
 
     const overlayTexture = this.assetManager.getTexture(tile.type);
     
     // Determine base tile: check surrounding terrain for context, fall back to default
-    let baseType = TILE_METADATA[tile.type]?.baseTile ?? 'grass';
-    if (tileX !== undefined && tileY !== undefined) {
-      const neighbors: TileType[] = [];
-      for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
-        const nx = tileX + dx, ny = tileY + dy;
-        if (ny >= 0 && ny < this.map.height && nx >= 0 && nx < this.map.width) {
-          const neighbor = this.map.tiles[ny][nx];
-          if (!TILE_METADATA[neighbor.type]?.isOverlay) {
-            neighbors.push(neighbor.type);
-          }
-        }
-      }
-      if (neighbors.length > 0) {
-        const counts = new Map<TileType, number>();
-        for (const n of neighbors) counts.set(n, (counts.get(n) || 0) + 1);
-        let best = neighbors[0], bestCount = 0;
-        for (const [t, c] of counts) {
-          if (c > bestCount) {
-            best = t;
-            bestCount = c;
-          }
-        }
-        baseType = best;
-      }
-    }
+    const baseType = tileX !== undefined && tileY !== undefined
+      ? this.resolveBaseTileType(tileX, tileY, TILE_METADATA[tile.type]?.baseTile ?? 'grass')
+      : (TILE_METADATA[tile.type]?.baseTile ?? 'grass');
     
     const baseTexture = this.assetManager.getTexture(baseType);
     if (!overlayTexture || !baseTexture) return null;
@@ -299,6 +672,9 @@ export class World {
     overlayMesh.updateMatrix();
 
     group.add(baseMesh, overlayMesh);
+    if (tileX !== undefined && tileY !== undefined) {
+      this.appendTerrainSeamFillers(group, tile, tileX, tileY);
+    }
     return group;
   }
 
@@ -309,6 +685,80 @@ export class World {
       return;
     }
     // Meshes with shared materials just get removed from scene — no disposal needed
+  }
+
+  private disposeSouthCoastBackdrop() {
+    if (this.southCoastBackdrop) {
+      this.scene.remove(this.southCoastBackdrop);
+      this.southCoastBackdrop.clear();
+      this.southCoastBackdrop = null;
+    }
+    for (const d of this.southCoastBackdropDisposables) {
+      d.geometry.dispose();
+      d.material.dispose();
+      d.texture?.dispose();
+    }
+    this.southCoastBackdropDisposables = [];
+  }
+
+  /**
+   * Fills the view south of the map with deep ocean so the camera does not show empty
+   * void past the water tiles. The cliff drama is provided by the COASTAL_SOUTH_ROWS tile
+   * rows stamped by the map generator; the backdrop just continues the ocean indefinitely.
+   */
+  private rebuildSouthCoastBackdrop() {
+    this.disposeSouthCoastBackdrop();
+    if (!this.map.coastalSouthBackdrop) return;
+
+    const w = this.map.width;
+    const h = this.map.height;
+    const ts = this.tileSize;
+    const worldOffsetY = -h / 2;
+    // South = low y = low world Y. The backdrop fills the void below row 0 (the southernmost water row).
+    const southEdgeY = worldOffsetY - ts * 0.5; // bottom edge of row 0
+
+    const group = new THREE.Group();
+    group.name = 'southCoastBackdrop';
+
+    // Deep-ocean canvas: subtle depth gradient, same hue family as water tile (0x1E88E5)
+    // but darker/deeper so it reads as ocean depth rather than more flat terrain.
+    const cw = 4;
+    const ch = 64;
+    const c = document.createElement('canvas');
+    c.width = cw; c.height = ch;
+    const ctx = c.getContext('2d')!;
+    for (let py = 0; py < ch; py++) {
+      const t = py / (ch - 1);
+      const r = Math.round(18 + t * 10);
+      const g = Math.round(90 + t * 20 + (py % 6 < 1 ? 8 : 0));
+      const b = Math.round(155 + t * 30);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(0, py, cw, 1);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.colorSpace = THREE.SRGBColorSpace;
+
+    // Wide, tall plane — enough to fill any camera view below the tile grid.
+    const planeW = w * ts + 20;
+    const planeH = 32;
+    const geom = new THREE.PlaneGeometry(planeW, planeH);
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(0, southEdgeY - planeH * 0.5, -0.15);
+    mesh.renderOrder = -4000;
+    group.add(mesh);
+    this.southCoastBackdropDisposables.push({ geometry: geom, material: mat, texture: tex });
+
+    this.scene.add(group);
+    this.southCoastBackdrop = group;
   }
 
   updateChunks(playerWorldX: number, playerWorldY: number) {
@@ -335,12 +785,13 @@ export class World {
         const object = this.createTileObject(tile, x, y);
         if (!object) continue;
 
-        const isOverlay = TILE_METADATA[tile.type]?.isOverlay;
+        const isOverlay = this.isOverlayTileType(tile.type);
         const baseZ = isOverlay ? 0.01 : 0.0;
-        object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, baseZ);
+        const visualYOffset = (tile.elevation ?? 0) * World.ELEVATION_Y_OFFSET;
+        object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize + visualYOffset, baseZ);
         if (isOverlay) {
           const sortAnchorY = object.userData?.sortAnchorY ?? 0;
-          const worldY = worldOffsetY + y * this.tileSize + sortAnchorY;
+          const worldY = worldOffsetY + y * this.tileSize + visualYOffset + sortAnchorY;
           // Environmental overlays get much lower render order to stay behind characters
           const ySort = Math.round(50000 + (this.map.height - (worldY + this.map.height / 2)) * 10);
           object.renderOrder = ySort;
@@ -378,7 +829,9 @@ export class World {
 
     // Cull distant tiles (keep anything within cull radius to prevent flicker)
     for (const [key, object] of this.activeMeshes) {
-      const [kx, ky] = key.split(',').map(Number);
+      const comma = key.indexOf(',');
+      const kx = comma > 0 ? +key.slice(0, comma) : NaN;
+      const ky = comma > 0 ? +key.slice(comma + 1) : NaN;
       if (Math.abs(kx - centerTileX) > CULL_RADIUS || Math.abs(ky - centerTileY) > CULL_RADIUS) {
         this.scene.remove(object);
         this.recycleObject(object);
@@ -418,13 +871,14 @@ export class World {
       const object = this.createTileObject(tile, x, y);
       if (!object) continue;
 
-      const isOverlay = TILE_METADATA[tile.type]?.isOverlay;
+      const isOverlay = this.isOverlayTileType(tile.type);
       // Ground tiles at z=0, overlay objects slightly above to fix depth-fighting
       const baseZ = isOverlay ? 0.01 : 0.0;
-      object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize, baseZ);
+      const visualYOffset = (tile.elevation ?? 0) * World.ELEVATION_Y_OFFSET;
+      object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize + visualYOffset, baseZ);
       if (isOverlay) {
         const sortAnchorY = object.userData?.sortAnchorY ?? 0;
-        const worldY = worldOffsetY + y * this.tileSize + sortAnchorY;
+        const worldY = worldOffsetY + y * this.tileSize + visualYOffset + sortAnchorY;
         const ySort = Math.round(100000 - worldY * 10);
         object.renderOrder = ySort;
         if (object instanceof THREE.Group) {
@@ -442,6 +896,7 @@ export class World {
   }
 
   rebuildChunks() {
+    this.disposeSouthCoastBackdrop();
     for (const [, object] of this.activeMeshes) {
       this.scene.remove(object);
       this.recycleObject(object);
@@ -451,6 +906,7 @@ export class World {
     this.lastChunkCenter = { x: -9999, y: -9999 };
     this.lastMoveDir = { x: 0, y: 0 };
     this.isInitialLoad = true;
+    this.rebuildSouthCoastBackdrop();
   }
 
   getTile(x: number, y: number): Tile | null {
@@ -464,35 +920,49 @@ export class World {
     return this.map.tiles[tileY][tileX];
   }
 
+  getElevationAt(x: number, y: number): number {
+    return this.getTile(x, y)?.elevation ?? 0;
+  }
+
+  getVisualY(x: number, y: number): number {
+    return y + this.getElevationAt(x, y) * World.ELEVATION_Y_OFFSET;
+  }
+
+  private isTileWalkable(tile: Tile | null): boolean {
+    if (!tile) return false;
+    if (tile.transition) return true;
+
+    const metadata = TILE_METADATA[tile.type];
+    if (metadata?.isOverlay) {
+      if (NON_BLOCKING_OVERLAYS.has(tile.type)) return true;
+      return tile.walkable;
+    }
+
+    return tile.walkable;
+  }
+
+  private canStepBetween(fromTile: Tile | null, toTile: Tile | null): boolean {
+    if (!toTile || !this.isTileWalkable(toTile)) return false;
+
+    const fromElevation = fromTile?.elevation ?? 0;
+    const toElevation = toTile.elevation ?? 0;
+    if (fromElevation === toElevation) return true;
+
+    const connectsLevels = fromTile?.type === 'stairs' || toTile.type === 'stairs';
+    if (connectsLevels) {
+      return Math.abs(toElevation - fromElevation) <= 1;
+    }
+
+    // Only treat height changes as blocking when the map actually draws a height tile.
+    // This keeps collision aligned with visible cliffs while side seams are still flat-art.
+    const fromShowsHeight = !!fromTile && HEIGHT_TILE_TYPES.has(fromTile.type);
+    const toShowsHeight = HEIGHT_TILE_TYPES.has(toTile.type);
+    return !fromShowsHeight && !toShowsHeight;
+  }
+
   isWalkable(x: number, y: number, r: number = 0): boolean {
     if (r === 0) {
-      const tile = this.getTile(x, y);
-      if (!tile) return false;
-      if (tile.transition) return true;
-      
-      // Only allow walking over truly non-blocking decorative items
-      const nonBlockingOverlays = new Set([
-        'bones', 'wheat', 'hay_bale'
-        // Removed: flower, tall_grass, mushroom, scarecrow, lantern, tombstone, barrel, crate, campfire, sign, well, destroyed_house, statue, volcanic_rock, dead_tree
-        // These should block the player
-      ]);
-      
-      // For overlay tiles, check if they should be walkable
-      const metadata = TILE_METADATA[tile.type];
-      if (metadata?.isOverlay) {
-        // If it's an overlay that shouldn't block, treat as walkable
-        if (nonBlockingOverlays.has(tile.type)) {
-          return true;
-        }
-        // For all other overlays, check the base tile's walkability
-        const baseTileType = metadata.baseTile;
-        if (baseTileType) {
-          const baseTileWalkable = this.getBaseTileWalkability(baseTileType);
-          return baseTileWalkable;
-        }
-      }
-      
-      return tile.walkable;
+      return this.isTileWalkable(this.getTile(x, y));
     }
     return this.isWalkable(x - r, y - r) &&
            this.isWalkable(x + r, y - r) &&
@@ -500,12 +970,23 @@ export class World {
            this.isWalkable(x + r, y + r);
   }
 
+  canMoveTo(fromX: number, fromY: number, toX: number, toY: number, r: number = 0): boolean {
+    if (r === 0) {
+      return this.canStepBetween(this.getTile(fromX, fromY), this.getTile(toX, toY));
+    }
+
+    return this.canMoveTo(fromX - r, fromY - r, toX - r, toY - r) &&
+           this.canMoveTo(fromX + r, fromY - r, toX + r, toY - r) &&
+           this.canMoveTo(fromX - r, fromY + r, toX - r, toY + r) &&
+           this.canMoveTo(fromX + r, fromY + r, toX + r, toY + r);
+  }
+
   private getBaseTileWalkability(tileType: TileType): boolean {
     // Define walkability for base tile types
     const walkableBaseTiles = new Set([
       'grass', 'dirt', 'stone', 'wood', 'sand', 'swamp', 'ice', 
       'cobblestone', 'farmland', 'ash', 'ruins_floor', 'dark_grass', 
-      'mossy_stone', 'wooden_path'
+      'mossy_stone', 'wooden_path', 'wood_floor'
     ]);
     return walkableBaseTiles.has(tileType);
   }
@@ -592,6 +1073,7 @@ export class World {
   }
 
   dispose() {
+    this.disposeSouthCoastBackdrop();
     for (const [, object] of this.activeMeshes) {
       this.scene.remove(object);
     }
@@ -606,7 +1088,16 @@ export class World {
     }
     this.detailTextures.clear();
     this.overlayPool = [];
+    for (const [, m] of this.seamFillMaterialByKey) {
+      m.dispose();
+    }
+    this.seamFillMaterialByKey.clear();
+    for (const [, t] of this.seamFillTextureByKey) {
+      t.dispose();
+    }
+    this.seamFillTextureByKey.clear();
     this.sharedTileGeometry.dispose();
+    this.elevationFillerGeometry.dispose();
     this.detailGeometry.dispose();
   }
 }

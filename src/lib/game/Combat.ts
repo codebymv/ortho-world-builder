@@ -1,10 +1,48 @@
 import * as THREE from 'three';
 import { GameState } from './GameState';
 import { SpatialHash } from './SpatialHash';
+import { World } from './World';
 
 type CardinalDirection = 'up' | 'down' | 'left' | 'right';
 
 const BLOCK_DAMAGE_REDUCTION = 0.6;
+const ENEMY_MOVE_RADIUS = 0.15;
+
+/** Axis-aligned slide (same idea as player corner nudging) so enemies do not freeze on oblique walls. */
+function trySlideEnemyMove(
+  world: World,
+  ox: number,
+  oy: number,
+  nx: number,
+  ny: number,
+  r: number
+): { x: number; y: number; moved: boolean; vx: number; vy: number } {
+  if (world.canMoveTo(ox, oy, nx, ny, r)) {
+    const dx = nx - ox;
+    const dy = ny - oy;
+    const len = Math.hypot(dx, dy) || 1;
+    return { x: nx, y: ny, moved: true, vx: dx / len, vy: dy / len };
+  }
+  if (world.canMoveTo(ox, oy, nx, oy, r)) {
+    const sx = nx - ox;
+    return { x: nx, y: oy, moved: true, vx: sx >= 0 ? 1 : -1, vy: 0 };
+  }
+  if (world.canMoveTo(ox, oy, ox, ny, r)) {
+    const sy = ny - oy;
+    return { x: ox, y: ny, moved: true, vx: 0, vy: sy >= 0 ? 1 : -1 };
+  }
+  return { x: ox, y: oy, moved: false, vx: 0, vy: 0 };
+}
+
+interface SpawnEnemyOptions {
+  speed?: number;
+  attackRange?: number;
+  chaseRange?: number;
+  /** Essence granted on kill (combat currency) */
+  essenceReward?: number;
+  telegraphDuration?: number;
+  recoverDuration?: number;
+}
 
 export interface Enemy {
   id: string;
@@ -14,7 +52,7 @@ export interface Enemy {
   maxHealth: number;
   damage: number;
   xpReward: number;
-  goldReward: number;
+  essenceReward: number;
   sprite: string;
   speed: number;
   attackRange: number;
@@ -54,7 +92,8 @@ export class CombatSystem {
     position: { x: number; y: number },
     health: number,
     damage: number,
-    sprite: string
+    sprite: string,
+    options: SpawnEnemyOptions = {}
   ): Enemy {
     const enemy: Enemy = {
       id: `enemy_${Date.now()}_${Math.random()}`,
@@ -64,20 +103,20 @@ export class CombatSystem {
       maxHealth: health,
       damage,
       xpReward: health * 2,
-      goldReward: Math.floor(health / 2),
+      essenceReward: options.essenceReward ?? Math.floor(health / 2),
       sprite,
-      speed: 0.04,
-      attackRange: 1.5,
-      chaseRange: 6,
+      speed: options.speed ?? 0.04,
+      attackRange: options.attackRange ?? 1.5,
+      chaseRange: options.chaseRange ?? 6,
       state: 'idle',
       lastAttackTime: 0,
       attackCooldown: 2000,
       damageFlashTimer: 0,
       attackAnimationTimer: 0,
       telegraphTimer: 0,
-      telegraphDuration: 0.8,
+      telegraphDuration: options.telegraphDuration ?? 0.8,
       recoverTimer: 0,
-      recoverDuration: 0.6,
+      recoverDuration: options.recoverDuration ?? 0.6,
       patrolOrigin: { ...position },
       patrolAngle: Math.random() * Math.PI * 2,
       patrolRadius: 2 + Math.random() * 2,
@@ -105,7 +144,13 @@ export class CombatSystem {
     return this.enemies;
   }
 
-  updateEnemies(deltaTime: number, playerPosition: { x: number; y: number }, playerDodging: boolean = false, playerBlocking: boolean = false): void {
+  updateEnemies(
+    deltaTime: number,
+    playerPosition: { x: number; y: number },
+    playerInvulnerable: boolean = false,
+    playerBlocking: boolean = false,
+    world?: World
+  ): void {
     const updateMovementVisuals = (enemy: Enemy, vx: number, vy: number, moving: boolean, cadence: number) => {
       if (moving) {
         enemy.velocity.x = vx;
@@ -150,10 +195,16 @@ export class CombatSystem {
             const moveSpeed = enemy.speed * 0.4 * deltaTime * 60;
             const nvx = pdx / pdist;
             const nvy = pdy / pdist;
-            enemy.position.x += nvx * moveSpeed;
-            enemy.position.y += nvy * moveSpeed;
-            this.updateEnemyHash(enemy, oldPos);
-            updateMovementVisuals(enemy, nvx, nvy, true, 7);
+            const nextX = enemy.position.x + nvx * moveSpeed;
+            const nextY = enemy.position.y + nvy * moveSpeed;
+            if (!world || world.canMoveTo(enemy.position.x, enemy.position.y, nextX, nextY, 0.15)) {
+              enemy.position.x = nextX;
+              enemy.position.y = nextY;
+              this.updateEnemyHash(enemy, oldPos);
+              updateMovementVisuals(enemy, nvx, nvy, true, 7);
+            } else {
+              updateMovementVisuals(enemy, 0, 0, false, 0);
+            }
           } else {
             updateMovementVisuals(enemy, 0, 0, false, 0);
           }
@@ -185,10 +236,24 @@ export class CombatSystem {
             const moveSpeed = enemy.speed * deltaTime * 60;
             const nvx = dx / dist;
             const nvy = dy / dist;
-            enemy.position.x += nvx * moveSpeed;
-            enemy.position.y += nvy * moveSpeed;
-            this.updateEnemyHash(enemy, oldPos);
-            updateMovementVisuals(enemy, nvx, nvy, true, 10);
+            const nextX = enemy.position.x + nvx * moveSpeed;
+            const nextY = enemy.position.y + nvy * moveSpeed;
+            if (!world) {
+              enemy.position.x = nextX;
+              enemy.position.y = nextY;
+              this.updateEnemyHash(enemy, oldPos);
+              updateMovementVisuals(enemy, nvx, nvy, true, 10);
+            } else {
+              const step = trySlideEnemyMove(world, enemy.position.x, enemy.position.y, nextX, nextY, ENEMY_MOVE_RADIUS);
+              if (step.moved) {
+                enemy.position.x = step.x;
+                enemy.position.y = step.y;
+                this.updateEnemyHash(enemy, oldPos);
+                updateMovementVisuals(enemy, step.vx, step.vy, true, 10);
+              } else {
+                updateMovementVisuals(enemy, 0, 0, false, 0);
+              }
+            }
           } else {
             updateMovementVisuals(enemy, 0, 0, false, 0);
           }
@@ -205,7 +270,7 @@ export class CombatSystem {
             const newDistSq = newDx * newDx + newDy * newDy;
             const extAttackRangeSq = attackRangeSq * 1.69;
 
-            if (newDistSq <= extAttackRangeSq && !playerDodging) {
+            if (newDistSq <= extAttackRangeSq && !playerInvulnerable) {
               this.attackPlayer(enemy, playerBlocking);
             }
             enemy.state = 'recovering';
@@ -258,7 +323,7 @@ export class CombatSystem {
     if (targetEnemy.health <= 0) {
       targetEnemy.state = 'dead';
       this._enemiesDirty = true;
-      this.gameState.player.gold += targetEnemy.goldReward;
+      this.gameState.player.essence += targetEnemy.essenceReward;
       return true;
     }
 

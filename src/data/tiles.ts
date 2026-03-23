@@ -19,6 +19,7 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   flower: { isOverlay: true, baseTile: 'grass', scale: 0.5, sortTrim: 0.22 },
   push_block: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.16 },
   campfire: { isOverlay: true, baseTile: 'dirt', scale: 0.8, sortTrim: 0.2 },
+  bonfire: { isOverlay: true, baseTile: 'dirt', scale: 1.0, sortTrim: 0.16 },
   sign: { isOverlay: true, baseTile: 'dirt', scale: 0.8, sortTrim: 0.16 },
   well: { isOverlay: true, baseTile: 'stone', scale: 1.2, sortTrim: 0.18 },
   tombstone: { isOverlay: true, baseTile: 'grass', scale: 0.7, sortTrim: 0.16 },
@@ -40,6 +41,15 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   lantern: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.14 },
   tall_grass: { isOverlay: true, baseTile: 'grass', scale: 0.9, sortTrim: 0.24 },
   wheat: { isOverlay: true, baseTile: 'farmland', scale: 0.95, sortTrim: 0.24 },
+  wagon: { isOverlay: true, baseTile: 'dirt', scale: 2.4, sortTrim: 0.1 },
+  cart: { isOverlay: true, baseTile: 'dirt', scale: 1.6, sortTrim: 0.14 },
+  market_stall: { isOverlay: true, baseTile: 'cobblestone', scale: 2.0, sortTrim: 0.12 },
+  bench: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.2 },
+  bookshelf: { isOverlay: true, baseTile: 'wood_floor', scale: 1.5, sortTrim: 0.1 },
+  table: { isOverlay: true, baseTile: 'wood_floor', scale: 0.95, sortTrim: 0.18 },
+  pot: { isOverlay: true, baseTile: 'grass', scale: 0.7, sortTrim: 0.2 },
+  rug: { isOverlay: true, baseTile: 'wood_floor', scale: 0.95, sortTrim: 0.26 },
+  counter: { isOverlay: true, baseTile: 'wood_floor', scale: 0.95, sortTrim: 0.16 },
 };
 
 export const DETAIL_CONFIG: Partial<Record<TileType, { chance: number; types: string[]; scale: number; opacity: number }>> = {

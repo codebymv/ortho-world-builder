@@ -60,8 +60,10 @@ export class WeatherSystem {
   private readonly sharedGeometry = new THREE.PlaneGeometry(1, 1);
   private readonly MAX_PARTICLES = 200;
   private overlay: THREE.Mesh | null = null;
-  private lightningTimer = 0;
-  private lightningFlash = false;
+  /** Seconds until next lightning attempt (storm only). */
+  private lightningCooldown = 4 + Math.random() * 5;
+  /** Brief flash duration remaining; 0 = no flash. */
+  private lightningBurstRemaining = 0;
 
   // Biome-based weather weights
   private biomeWeights: Record<string, Partial<Record<WeatherType, number>>> = {
@@ -153,33 +155,41 @@ export class WeatherSystem {
       ? 1 - (this.transitionTimer / this.TRANSITION_DURATION)
       : 1;
 
-    // Update overlay tint
+    // Storm lightning: random bursts, short duration (no full-screen pure white hold)
+    if (activeWeather === 'storm') {
+      this.lightningCooldown -= deltaTime;
+      if (this.lightningCooldown <= 0 && this.lightningBurstRemaining <= 0) {
+        this.lightningBurstRemaining = 0.07 + Math.random() * 0.05;
+        this.lightningCooldown = 2.8 + Math.random() * 7;
+      }
+    } else {
+      this.lightningBurstRemaining = 0;
+      this.lightningCooldown = 3 + Math.random() * 5;
+    }
+
+    if (this.lightningBurstRemaining > 0) {
+      this.lightningBurstRemaining -= deltaTime;
+      if (this.lightningBurstRemaining < 0) this.lightningBurstRemaining = 0;
+    }
+
+    // Atmospheric overlay (must reset color when clear — lightning used to leave 0xFFFFFF and caused white flashes)
     if (this.overlay) {
       const mat = this.overlay.material as THREE.MeshBasicMaterial;
-      if (cfg.bgOpacity > 0) {
+      const baseOpacity = cfg.bgOpacity > 0 ? cfg.bgOpacity * fadeProgress : 0;
+
+      if (activeWeather === 'storm' && this.lightningBurstRemaining > 0) {
+        // Cool white-blue sheet flash, not pure 0xFFFFFF on the whole screen
+        mat.color.setHex(0xaabbdd);
+        mat.opacity = Math.min(0.42, baseOpacity + 0.28);
+      } else if (cfg.bgOpacity > 0) {
         mat.color.setHex(cfg.bgTint);
-        mat.opacity = cfg.bgOpacity * fadeProgress;
+        mat.opacity = baseOpacity;
       } else {
-        mat.opacity = Math.max(0, mat.opacity - deltaTime * 0.5);
+        mat.color.setHex(0x000000);
+        mat.opacity = Math.max(0, mat.opacity - deltaTime * 0.6);
       }
       this.overlay.position.x = playerX;
       this.overlay.position.y = playerY;
-    }
-
-    // Lightning in storms
-    if (activeWeather === 'storm') {
-      this.lightningTimer -= deltaTime;
-      if (this.lightningTimer <= 0) {
-        this.lightningFlash = true;
-        this.lightningTimer = 3 + Math.random() * 8; // 3-11 seconds
-        if (this.overlay) {
-          const mat = this.overlay.material as THREE.MeshBasicMaterial;
-          mat.color.setHex(0xFFFFFF);
-          mat.opacity = 0.6;
-        }
-      } else if (this.lightningFlash) {
-        this.lightningFlash = false;
-      }
     }
 
     // Spawn / update particles

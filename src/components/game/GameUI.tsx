@@ -1,9 +1,9 @@
 import { GameState } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { Button } from '@/components/ui/button';
-import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield, Sword, FlaskRound, Map as MapIcon, Key } from 'lucide-react';
+import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield, Sword, FlaskRound, Map as MapIcon, Key, Sparkles } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/game/notificationBus';
 
 interface GameUIProps {
   gameState: GameState;
@@ -35,8 +35,8 @@ const getItemIcon = (item: any, className: string, assetManager?: AssetManager |
 
 // --- Memoized Sub-components ---
 
-const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold }: { 
-  health: number, maxHealth: number, stamina: number, maxStamina: number, gold: number 
+const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold, essence }: { 
+  health: number, maxHealth: number, stamina: number, maxStamina: number, gold: number, essence: number 
 }) => (
   <div className="flex items-center gap-4">
     {/* Health */}
@@ -44,7 +44,7 @@ const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold }:
       <Heart className="w-4 h-4 text-red-500 drop-shadow" />
       <div className="w-28 h-2.5 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
         <div
-          className="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all"
+          className="h-full bg-gradient-to-r from-red-600 to-red-400"
           style={{ width: `${(health / maxHealth) * 100}%` }}
         />
       </div>
@@ -58,7 +58,7 @@ const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold }:
       <Shield className="w-3.5 h-3.5 text-emerald-400 drop-shadow" />
       <div className="w-20 h-2 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
         <div
-          className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all"
+          className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-[width] duration-[16ms]"
           style={{ width: `${(stamina / maxStamina) * 100}%` }}
         />
       </div>
@@ -67,6 +67,11 @@ const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold }:
     <div className="flex items-center gap-1.5">
       <Coins className="w-4 h-4 text-yellow-400 drop-shadow" />
       <span className="text-xs font-bold text-[#F5DEB3] tracking-wide">{gold}</span>
+    </div>
+
+    <div className="flex items-center gap-1.5">
+      <Sparkles className="w-4 h-4 text-violet-300 drop-shadow" />
+      <span className="text-xs font-bold text-violet-200 tracking-wide">{essence}</span>
     </div>
   </div>
 ));
@@ -185,6 +190,7 @@ export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate,
           stamina={gameState.player.stamina} 
           maxStamina={gameState.player.maxStamina} 
           gold={gameState.player.gold} 
+          essence={gameState.player.essence} 
         />
 
         {/* Center: Current Objective */}
@@ -251,6 +257,23 @@ export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate,
       {showInventory && (
         <div className="fixed top-12 right-8 w-72 bg-[#1A0F0A]/95 backdrop-blur-md border border-[#5C3A21] border-t-0 rounded-b-md shadow-xl z-40 flex flex-col pointer-events-auto">
           <div className="p-3 overflow-y-auto max-h-[400px]">
+            {(() => {
+              const eqId = gameState.equippedWeaponId;
+              const weapon =
+                (eqId ? gameState.inventory.find(i => i.id === eqId) : undefined) ??
+                gameState.inventory.find(i => i.type === 'equipment');
+              if (!weapon?.stats) return null;
+              return (
+                <div className="text-[10px] text-[#DAA520] border-b border-[#5C3A21] pb-2 mb-2 leading-relaxed">
+                  <span className="uppercase tracking-wider font-bold">Equipped weapon</span>
+                  <div className="text-[#F5DEB3] font-semibold mt-0.5">{weapon.name}</div>
+                  <div className="text-[#B0B0B0] mt-0.5">
+                    Attack {weapon.stats.damage}
+                    {weapon.stats.range != null ? ` · Range ${weapon.stats.range.toFixed(2)}` : ''}
+                  </div>
+                </div>
+              );
+            })()}
             {gameState.inventory.length === 0 ? (
               <p className="text-[#A0522D] text-center py-6 text-sm font-semibold">Your pack is empty</p>
             ) : (
@@ -264,15 +287,12 @@ export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate,
                     onClick={() => {
                       if (item.type === 'consumable' && item.id === 'health_potion') {
                         if (gameState.player.health >= gameState.player.maxHealth) {
-                          toast('Already at full health!', { className: 'rpg-toast' });
+                          notify('Already at full health!', { id: 'full-health', duration: 1500 });
                           return;
                         }
                         gameState.player.health = Math.min(gameState.player.maxHealth, gameState.player.health + 50);
                         gameState.removeItem(item.id);
-                        toast.success('Used Health Potion!', {
-                          description: 'Restored 50 health.',
-                          className: 'rpg-toast',
-                        });
+                        notify('Used Health Potion', { id: 'used-potion', type: 'success', description: 'Restored 50 health.', duration: 2000 });
                         triggerUIUpdate();
                         setShowInventory(true);
                       }
@@ -370,14 +390,17 @@ export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate,
       {/* Controls Help (auto-hide) */}
       {showControls && (
         <div className="fixed bottom-4 left-4 bg-[#1A0F0A]/80 backdrop-blur-sm border border-[#5C3A21] rounded-sm p-2 z-40 shadow-sm pointer-events-auto transition-opacity duration-1000">
-          <div className="flex gap-3 items-center">
+          <div className="flex flex-wrap gap-3 items-center">
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">WASD</kbd> Move</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Use/Attack</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">HOLD</kbd> Charge</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">CTRL</kbd> Dodge</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">LMB</kbd> Attack</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">HOLD LMB</kbd> Charge</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Dodge / Use Potion</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">CTRL/RMB</kbd> Block</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SHIFT</kbd> Sprint</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">F</kbd> Interact</p>
+            <p className="text-[10px] text-[#C9A0FF]">Portals — stand nearby; warp charges automatically</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Q/E</kbd> Item</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">M</kbd> Map</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">ESC</kbd> Pause</p>
           </div>
         </div>

@@ -7,7 +7,10 @@ export interface EnemyBlueprint {
   speed?: number;
   attackRange?: number;
   chaseRange?: number;
-  goldReward?: number;
+  /** Essence dropped on kill (defaults to hp-based in spawn if omitted) */
+  essenceReward?: number;
+  telegraphDuration?: number;
+  recoverDuration?: number;
 }
 
 export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
@@ -20,6 +23,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     speed: 0.045,
     attackRange: 1.5,
     chaseRange: 6,
+    telegraphDuration: 0.5,
+    recoverDuration: 0.4,
   },
   shadow: {
     type: 'shadow',
@@ -30,6 +35,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     speed: 0.05,
     attackRange: 1.6,
     chaseRange: 7,
+    telegraphDuration: 0.6,
+    recoverDuration: 0.5,
   },
   plant: {
     type: 'plant',
@@ -40,6 +47,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     speed: 0.02,
     attackRange: 2.2,
     chaseRange: 5,
+    telegraphDuration: 1.0,
+    recoverDuration: 1.0,
   },
   skeleton: {
     type: 'skeleton',
@@ -50,6 +59,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     speed: 0.035,
     attackRange: 1.8,
     chaseRange: 6,
+    telegraphDuration: 0.9,
+    recoverDuration: 0.7,
   },
   bandit: {
     type: 'bandit',
@@ -60,6 +71,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     speed: 0.055,
     attackRange: 1.5,
     chaseRange: 7,
+    telegraphDuration: 0.7,
+    recoverDuration: 0.5,
   },
   golem: {
     type: 'golem',
@@ -70,6 +83,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     speed: 0.02,
     attackRange: 2.0,
     chaseRange: 5,
+    telegraphDuration: 1.5,
+    recoverDuration: 1.2,
   },
   spider: {
     type: 'spider',
@@ -80,6 +95,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     speed: 0.06,
     attackRange: 1.4,
     chaseRange: 8,
+    telegraphDuration: 0.4,
+    recoverDuration: 0.3,
   },
   slime: {
     type: 'slime',
@@ -90,6 +107,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     speed: 0.03,
     attackRange: 1.2,
     chaseRange: 4,
+    telegraphDuration: 1.2,
+    recoverDuration: 0.8,
   },
 };
 
@@ -102,4 +121,6 @@ export const DEFAULT_ENEMY: EnemyBlueprint = {
   speed: 0.04,
   attackRange: 1.5,
   chaseRange: 6,
+  telegraphDuration: 0.8,
+  recoverDuration: 0.6,
 };

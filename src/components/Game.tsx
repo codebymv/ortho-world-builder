@@ -20,10 +20,70 @@ import { items } from '@/data/items';
 import { DialogueBox } from './game/DialogueBox';
 import { GameUI } from './game/GameUI';
 import { Minimap } from './game/Minimap';
+import { NotificationFeed } from './game/NotificationFeed';
+import { MapModal } from './game/MapModal';
 import { PauseMenu } from './game/PauseMenu';
 import { TransitionOverlay } from './game/TransitionOverlay';
 import { DeathOverlay } from './game/DeathOverlay';
-import { toast } from 'sonner';
+import { notify } from '@/lib/game/notificationBus';
+import type { WorldMap } from '@/lib/game/World';
+
+const SPAWN_BODY_R = 0.15;
+
+function pickEnemySpawnInZone(
+  zone: { x: number; y: number; width: number; height: number },
+  mapWorld: WorldMap,
+  world: World,
+  index: number,
+  total: number
+): { x: number; y: number } | null {
+  const cols = Math.max(1, Math.min(Math.floor(zone.width), Math.ceil(Math.sqrt(total))));
+  const rows = Math.max(1, Math.ceil(total / cols));
+  const subW = zone.width / cols;
+  const subH = zone.height / rows;
+  const ci = index % cols;
+  const cj = Math.floor(index / cols);
+  const bx = zone.x + ci * subW;
+  const by = zone.y + cj * subH;
+  for (let t = 0; t < 10; t++) {
+    const ex = bx + Math.random() * subW - mapWorld.width / 2;
+    const ey = by + Math.random() * subH - mapWorld.height / 2;
+    if (world.canMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)) return { x: ex, y: ey };
+  }
+  for (let t = 0; t < 28; t++) {
+    const ex = zone.x + Math.random() * zone.width - mapWorld.width / 2;
+    const ey = zone.y + Math.random() * zone.height - mapWorld.height / 2;
+    if (world.canMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)) return { x: ex, y: ey };
+  }
+  return null;
+}
+
+function spawnEnemiesFromMapZones(mapKey: string, mapWorld: WorldMap, combatSystem: CombatSystem, world: World) {
+  const mapDef = mapDefinitions[mapKey];
+  if (!mapDef?.enemyZones?.length) return;
+  for (const zone of mapDef.enemyZones) {
+    const blueprint = ENEMY_BLUEPRINTS[zone.enemyType] || DEFAULT_ENEMY;
+    for (let i = 0; i < zone.count; i++) {
+      const pos = pickEnemySpawnInZone(zone, mapWorld, world, i, zone.count);
+      if (!pos) continue;
+      combatSystem.spawnEnemy(
+        blueprint.name,
+        pos,
+        blueprint.hp,
+        blueprint.damage,
+        blueprint.sprite,
+        {
+          speed: blueprint.speed,
+          attackRange: blueprint.attackRange,
+          chaseRange: blueprint.chaseRange,
+          essenceReward: blueprint.essenceReward,
+          telegraphDuration: blueprint.telegraphDuration,
+          recoverDuration: blueprint.recoverDuration,
+        }
+      );
+    }
+  }
+}
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
 type CardinalDirection = 'up' | 'down' | 'left' | 'right';
@@ -79,6 +139,7 @@ const Game = () => {
   const worldRef = useRef<World | null>(null);
   const textureCacheRef = useRef<Map<string, THREE.Texture>>(new Map());
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const portalVignetteRef = useRef<HTMLDivElement | null>(null);
 
   // Audio processing system for compression and gain
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -138,10 +199,12 @@ const Game = () => {
   const [transitionActive, setTransitionActive] = useState(false);
   const [transitionMapName, setTransitionMapName] = useState('');
   const [deathActive, setDeathActive] = useState(false);
-  const [deathGoldLost, setDeathGoldLost] = useState(0);
+  const [deathEssenceLost, setDeathEssenceLost] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  const [mapModalOpen, setMapModalOpen] = useState(false);
   const pausedRef = useRef(false);
   const playerDeadRef = useRef(false);
+  const deathRespawnFnRef = useRef<(() => void) | null>(null);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Healing cooldowns: interactionId -> last use timestamp
@@ -163,6 +226,11 @@ const Game = () => {
     }
   }, []);
 
+  const setMapModalOpenRef = useRef(setMapModalOpen);
+  setMapModalOpenRef.current = setMapModalOpen;
+  const mapModalOpenRef = useRef(false);
+  mapModalOpenRef.current = mapModalOpen;
+
   const triggerUIUpdate = () => setUiVersion(prev => prev + 1);
   const triggerMinimapUpdate = (force: boolean = false, now: number = performance.now()) => {
     if (force || now - lastMinimapRefreshRef.current >= 120) {
@@ -178,10 +246,14 @@ const Game = () => {
   }, []);
 
   useEffect(() => {
+    if (deathActive) setMapModalOpen(false);
+  }, [deathActive]);
+
+  useEffect(() => {
     if (!mountRef.current) return;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
+    scene.background = new THREE.Color(0x2d5a1b); // dark grass green — neutral backdrop, prevents sky bleed through cliff transparent pixels
 
     const aspect = window.innerWidth / window.innerHeight;
     const frustumSize = 12;
@@ -196,10 +268,12 @@ const Game = () => {
     camera.position.z = 5;
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({ 
+    const renderer = new THREE.WebGLRenderer({
       antialias: true,
-      alpha: true, // Enable transparency support
-      premultipliedAlpha: false // Disable premultiplied alpha
+      alpha: true,
+      premultipliedAlpha: false,
+      powerPreference: 'high-performance',
+      stencil: false,
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -214,6 +288,17 @@ const Game = () => {
     gameStateRef.current = state;
     setGameState(state);
 
+    const ensureStartingWeapon = () => {
+      const hasMeekSword = state.inventory.some(i => i.id === 'meek_short_sword');
+      if (!hasMeekSword && !state.inventory.some(i => i.type === 'equipment')) {
+        state.inventory.unshift({ ...items.meek_short_sword });
+      }
+    };
+
+    const syncEquippedWeapon = (preferredWeaponId?: string | null) => {
+      state.setEquippedWeapon(preferredWeaponId ?? state.equippedWeaponId);
+    };
+
     const particleSystem = new ParticleSystem(scene);
     const combatSystem = new CombatSystem(state);
     const biomeAmbience = new BiomeAmbience(scene);
@@ -225,6 +310,7 @@ const Game = () => {
     // Load saved data or start fresh
     const savedData = SaveManager.load();
     const startMap = savedData?.currentMap || 'village';
+    assetManager.warmupEnemyTexturesForZones(mapDefinitions[startMap]?.enemyZones);
     const world = new World(scene, assetManager, allMaps[startMap] || allMaps.village);
     worldRef.current = world;
     
@@ -235,25 +321,22 @@ const Game = () => {
       state.player.health = savedData.player.health;
       state.player.maxHealth = savedData.player.maxHealth;
       state.player.gold = savedData.player.gold;
+      state.player.essence = savedData.player.essence ?? 0;
       state.player.attackDamage = savedData.player.attackDamage;
+      state.player.attackRange = savedData.player.attackRange ?? state.player.attackRange;
       state.player.stamina = savedData.player.stamina;
       state.player.maxStamina = savedData.player.maxStamina;
       state.inventory = savedData.inventory;
       
-      const hasMeekSword = state.inventory.some(i => i.id === 'meek_short_sword');
-      if (!hasMeekSword && !state.inventory.some(i => i.type === 'equipment')) {
-        state.inventory.unshift({
-          id: 'meek_short_sword',
-          name: 'Meek Short Sword',
-          description: 'A simple, reliable starting blade. Press space to swing.',
-          type: 'equipment',
-          sprite: 'sword',
-        });
-      }
+      ensureStartingWeapon();
       state.activeItemIndex = 0;
+      state.equippedWeaponId = savedData.equippedWeaponId ?? null;
+      syncEquippedWeapon(savedData.equippedWeaponId);
 
       state.quests = savedData.quests;
       state.gameFlags = savedData.gameFlags;
+      state.lastBonfire = savedData.lastBonfire ?? null;
+      state.droppedEssence = savedData.droppedEssence ?? null;
       // Restore map markers
       mapMarkersRef.current = savedData.mapMarkers || [];
       setMapMarkers(mapMarkersRef.current);
@@ -265,32 +348,19 @@ const Game = () => {
     } else {
       const spawnPoint = world.getSpawnPoint();
       state.player.position = { x: spawnPoint.x, y: spawnPoint.y };
+      ensureStartingWeapon();
+      syncEquippedWeapon();
+    }
+
+    if (!state.lastBonfire) {
+      const sp = world.getSpawnPoint();
+      state.lastBonfire = { mapId: state.currentMap, x: sp.x, y: sp.y };
     }
     
     world.updateChunks(state.player.position.x, state.player.position.y);
     
-    // Spawn enemies for the initial map
-    const initialMapDef = mapDefinitions[state.currentMap];
-    if (initialMapDef?.enemyZones) {
-      console.log(`[Spawn] Loading enemies for initial map ${state.currentMap}, zones: ${initialMapDef.enemyZones.length}`);
-      for (const zone of initialMapDef.enemyZones) {
-        const blueprint = ENEMY_BLUEPRINTS[zone.enemyType] || DEFAULT_ENEMY;
-        console.log(`[Spawn] Zone: ${zone.enemyType}, count: ${zone.count}, pos: (${zone.x}, ${zone.y})`);
-        
-        for (let i = 0; i < zone.count; i++) {
-          const ex = (zone.x + Math.random() * zone.width) - initialMapDef.width / 2;
-          const ey = (zone.y + Math.random() * zone.height) - initialMapDef.height / 2;
-          combatSystem.spawnEnemy(
-            blueprint.name, 
-            { x: ex, y: ey }, 
-            blueprint.hp, 
-            blueprint.damage, 
-            blueprint.sprite
-          );
-        }
-      }
-      console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
-    }
+    spawnEnemiesFromMapZones(state.currentMap, world.getCurrentMap(), combatSystem, world);
+    console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
     
     let lastAutoSaveTime = performance.now();
     const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
@@ -299,7 +369,41 @@ const Game = () => {
     const enemyShadows = new Map<string, THREE.Mesh>();
     const enemyOutlines = new Map<string, THREE.Mesh>();
     const enemyHPBars = new Map<string, { bg: THREE.Mesh; fill: THREE.Mesh }>();
-    const cameraTarget = { x: state.player.position.x, y: state.player.position.y };
+
+    const disposeEnemyMeshes = () => {
+      enemyMeshes.forEach(mesh => {
+        scene.remove(mesh);
+        (mesh.material as THREE.Material).dispose();
+      });
+      enemyMeshes.clear();
+      enemyShadows.forEach(mesh => {
+        scene.remove(mesh);
+        (mesh.material as THREE.Material).dispose();
+      });
+      enemyShadows.clear();
+      enemyOutlines.forEach(mesh => {
+        scene.remove(mesh);
+        (mesh.material as THREE.Material).dispose();
+      });
+      enemyOutlines.clear();
+      enemyHPBars.forEach(({ bg, fill }) => {
+        scene.remove(bg);
+        scene.remove(fill);
+        (bg.material as THREE.Material).dispose();
+        (fill.material as THREE.Material).dispose();
+      });
+      enemyHPBars.clear();
+    };
+
+    const getVisualYAt = (x: number, y: number) => world.getVisualY(x, y);
+    const getActorRenderOrder = (x: number, y: number, footOffset: number) =>
+      getYRenderOrder(getVisualYAt(x, y), footOffset, true);
+    // Smoothed elevation offset for the player — lerps toward the real tile elevation each frame
+    // so stepping onto a stair/cliff doesn't produce a jarring instant Y-snap.
+    let playerSmoothedElevation = world.getElevationAt(state.player.position.x, state.player.position.y);
+    const getPlayerVisualY = (x: number, y: number) =>
+      y + playerSmoothedElevation * World.ELEVATION_Y_OFFSET;
+    const cameraTarget = { x: state.player.position.x, y: getVisualYAt(state.player.position.x, state.player.position.y) };
 
     // Interaction indicator
     const indicatorTexture = assetManager.getTexture('interact_indicator');
@@ -315,11 +419,27 @@ const Game = () => {
     indicatorMesh.visible = false;
     scene.add(indicatorMesh);
 
+    const essenceOrbMaterial = new THREE.MeshBasicMaterial({
+      map: assetManager.getTexture('essence_drop'),
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const essenceOrbMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.55), essenceOrbMaterial);
+    essenceOrbMesh.visible = false;
+    essenceOrbMesh.renderOrder = 150000;
+    scene.add(essenceOrbMesh);
+
     let footstepTimer = 0;
     const footstepInterval = 0.3;
     let lastTime = performance.now();
     const MAX_DELTA = 0.1;
     let portalCooldown = 0;
+    let portalWarpCharge = 0;
+    let portalParticleAcc = 0;
+    let lastBarrierToastAt = -1e12;
+    let blockedPortalHintTimer = 0;
 
     // Reusable vectors to avoid per-frame allocation
     const _tmpVec3 = new THREE.Vector3();
@@ -377,6 +497,8 @@ const Game = () => {
     const CHARGE_TIME_MIN = 0.4;
     const CHARGE_TIME_MAX = 1.2;
     const CHARGE_DAMAGE_MULT = 2.5;
+    const ATTACK_STAMINA_COST = 15;
+    const CHARGE_ATTACK_STAMINA_COST = 35;
     let chargeLevel = 0;
 
     // Spin attack animation state
@@ -391,6 +513,7 @@ const Game = () => {
     let blockAngle = 0; // For smooth block animation
     const BLOCK_DAMAGE_REDUCTION = 0.6; // Reduce incoming damage by 60% when blocking
     const BLOCK_STAMINA_COST = 2; // Stamina cost per second while blocking
+    const DODGE_IFRAME_DURATION = 0.15;
 
     // LMB charge attack state
     let isLMBHeld = false;
@@ -409,6 +532,11 @@ const Game = () => {
 
     // Set biome for loaded map
     biomeAmbience.setBiome(mapBiomes[startMap] || 'grassland');
+
+    let disposed = false;
+    let rafId = 0;
+    const effectTimeouts: ReturnType<typeof setTimeout>[] = [];
+    let cancelEnemyPrewarm: (() => void) | undefined;
 
     // Save helper
     const triggerSave = () => {
@@ -449,18 +577,35 @@ const Game = () => {
       return Math.round(baseOrder - footY * 10);
     };
 
+    const isPortalDestinationUnlocked = (targetMap: string): boolean => {
+      if (targetMap === 'deep_woods') {
+        return !!state.quests.find(q => q.id === 'clear_deep_woods' && q.active);
+      }
+      return true;
+    };
+
+    const samplePortalNearPlayer = (): { targetMap: string; targetX: number; targetY: number } | null => {
+      const px = state.player.position.x;
+      const py = state.player.position.y;
+      for (const dir of [
+        { x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 },
+      ]) {
+        const t = world.getTransitionAt(px + dir.x * 0.7, py + dir.y * 0.7);
+        if (t) return t;
+      }
+      return null;
+    };
+
     const handleMapTransition = (targetMap: string, targetX: number, targetY: number) => {
       console.log(`[MapTransition] Starting transition to ${targetMap} at (${targetX}, ${targetY})`);
       
-      // Block deep_woods portal unless clear_deep_woods quest is active
-      if (targetMap === 'deep_woods') {
-        const deepQuest = state.quests.find(q => q.id === 'clear_deep_woods' && q.active);
-        if (!deepQuest) {
-          toast("You sense a magical barrier blocking the path. The ancient magic must be stronger elsewhere first.", {
-            className: "rpg-toast font-bold text-lg",
-          });
-          return;
-        }
+      if (!isPortalDestinationUnlocked(targetMap)) {
+        notify("Magical barrier blocks the path", {
+          id: 'portal-barrier',
+          description: 'Complete the right quest to unlock this route.',
+          duration: 3500,
+        });
+        return;
       }
 
       const newMap = allMaps[targetMap];
@@ -473,73 +618,36 @@ const Game = () => {
       // Show transition overlay
       setTransitionMapName(newMap.name);
       setTransitionActive(true);
-      setTimeout(() => setTransitionActive(false), 800); // trigger re-render
+      effectTimeouts.push(setTimeout(() => setTransitionActive(false), 800));
 
       state.currentMap = targetMap;
       world.loadMap(newMap);
-      biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
-      switchMusicTrack(targetMap);
+      if (!targetMap.startsWith('interior_')) {
+        biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
+        switchMusicTrack(targetMap);
+      }
       triggerSave(); // Save on map transition
       
       const worldX = targetX - newMap.width / 2;
       const worldY = targetY - newMap.height / 2;
       
       state.player.position = { x: worldX, y: worldY };
-      playerMesh.position.set(worldX, worldY, 0.2);
+      // Snap smoothed elevation to target immediately on map load to avoid gliding from 0
+      playerSmoothedElevation = world.getElevationAt(worldX, worldY);
+      playerMesh.position.set(worldX, getPlayerVisualY(worldX, worldY), 0.2);
       cameraTarget.x = worldX;
-      cameraTarget.y = worldY;
+      cameraTarget.y = getPlayerVisualY(worldX, worldY);
       camera.position.x = worldX;
-      camera.position.y = worldY;
+      camera.position.y = getPlayerVisualY(worldX, worldY);
       world.updateChunks(worldX, worldY);
 
       combatSystem.clearAllEnemies();
-      enemyMeshes.forEach(mesh => {
-        scene.remove(mesh);
-        (mesh.material as THREE.Material).dispose();
-      });
-      enemyMeshes.clear();
-      enemyShadows.forEach(mesh => {
-        scene.remove(mesh);
-        (mesh.material as THREE.Material).dispose();
-      });
-      enemyShadows.clear();
-      enemyOutlines.forEach(mesh => {
-        scene.remove(mesh);
-        (mesh.material as THREE.Material).dispose();
-      });
-      enemyOutlines.clear();
-      enemyHPBars.forEach(({ bg, fill }) => {
-        scene.remove(bg);
-        scene.remove(fill);
-        (bg.material as THREE.Material).dispose();
-        (fill.material as THREE.Material).dispose();
-      });
-      enemyHPBars.clear();
+      disposeEnemyMeshes();
 
       const mapDef = mapDefinitions[targetMap];
-      console.log(`[Spawn] mapDefinitions[${targetMap}] = `, mapDef);
-      if (mapDef?.enemyZones) {
-        console.log(`[Spawn] Loading enemies for ${targetMap}, zones: ${mapDef.enemyZones.length}`);
-        for (const zone of mapDef.enemyZones) {
-          const blueprint = ENEMY_BLUEPRINTS[zone.enemyType] || DEFAULT_ENEMY;
-          console.log(`[Spawn] Zone: ${zone.enemyType}, count: ${zone.count}, pos: (${zone.x}, ${zone.y})`);
-          
-          for (let i = 0; i < zone.count; i++) {
-            const ex = (zone.x + Math.random() * zone.width) - newMap.width / 2;
-            const ey = (zone.y + Math.random() * zone.height) - newMap.height / 2;
-            combatSystem.spawnEnemy(
-              blueprint.name, 
-              { x: ex, y: ey }, 
-              blueprint.hp, 
-              blueprint.damage, 
-              blueprint.sprite
-            );
-          }
-        }
-        console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
-      } else {
-        console.log(`[Spawn] No enemy zones defined for ${targetMap}`);
-      }
+      assetManager.warmupEnemyTexturesForZones(mapDef?.enemyZones);
+      spawnEnemiesFromMapZones(targetMap, newMap, combatSystem, world);
+      console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
 
       // Quest objective: track map entry
       const guardQuest = state.quests.find(q => q.id === 'guard_duty' && q.active && !q.completed);
@@ -554,30 +662,50 @@ const Game = () => {
         hunterQuest.objectives[1] = 'Search the northern area for clues ✓';
       }
       
-      // When returning to village after completing first quest, start second quest
-      if (targetMap === 'village') {
-        const completedHunter = state.quests.find(q => q.id === 'find_hunter' && q.completed);
-        const deepQuest = state.quests.find(q => q.id === 'clear_deep_woods');
-        
-        if (completedHunter && deepQuest && !deepQuest.active && !deepQuest.completed) {
-          // Start the second quest
-          deepQuest.active = true;
-          triggerUIUpdate();
-          toast("New quest available: Into the Depths", {
-            className: "rpg-toast font-bold text-lg",
-            duration: 5000,
-          });
-        }
+      const deepQuest = state.quests.find(q => q.id === 'clear_deep_woods' && q.active && !q.completed);
+      if (deepQuest && targetMap === 'deep_woods') {
+        deepQuest.objectives[0] = 'Travel to the Deep Woods ✓';
+      }
+      if (deepQuest && targetMap === 'interior_witch_hut') {
+        deepQuest.objectives[1] = 'Find the witch\'s hut ✓';
       }
 
-      toast(`Entered ${newMap.name}`, {
-        className: "rpg-toast font-bold text-lg text-center justify-center",
-        duration: 3000,
-      });
+      notify(`Entered ${newMap.name}`, { id: 'map-enter', duration: 2500 });
       visitedTilesRef.current = new Set();
       triggerMinimapUpdate(true);
       triggerUIUpdate();
       portalCooldown = 0.5;
+    };
+
+    const performBonfireRest = (tileX: number, tileY: number) => {
+      state.player.health = state.player.maxHealth;
+      state.player.stamina = state.player.maxStamina;
+      state.lastBonfire = {
+        mapId: state.currentMap,
+        x: state.player.position.x,
+        y: state.player.position.y,
+      };
+      const firstKey = `bonfire_first_${state.currentMap}_${tileX}_${tileY}`;
+      if (!state.getFlag(firstKey)) {
+        state.setFlag(firstKey, true);
+        notify('Flame kindled', {
+          id: 'bonfire', type: 'success',
+          description: 'You will respawn here if you fall. Foes have returned.',
+          duration: 4000,
+        });
+      } else {
+        notify('Rested at bonfire', {
+          id: 'bonfire', type: 'success',
+          description: 'Health and stamina restored. Enemies have respawned.',
+          duration: 2500,
+        });
+      }
+      assetManager.warmupEnemyTexturesForZones(mapDefinitions[state.currentMap]?.enemyZones);
+      combatSystem.clearAllEnemies();
+      disposeEnemyMeshes();
+      spawnEnemiesFromMapZones(state.currentMap, world.getCurrentMap(), combatSystem, world);
+      triggerSave();
+      triggerUIUpdate();
     };
 
     // === SHADOW SYSTEM ===
@@ -622,7 +750,7 @@ const Game = () => {
       side: THREE.DoubleSide,
     });
     const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
-    playerMesh.position.set(state.player.position.x, state.player.position.y, 0.8); // Higher Z to be above world objects
+    playerMesh.position.set(state.player.position.x, getPlayerVisualY(state.player.position.x, state.player.position.y), 0.8); // Higher Z to be above world objects
     playerMesh.scale.setScalar(PLAYER_BASE_SCALE);
     // Set player render order higher than any Y-sorted character (200000 + maxWorldY * 10)
     // Assuming max world Y of 1000, this gives us 200000 + 10000 = 210000 max for other characters
@@ -666,6 +794,7 @@ const Game = () => {
       speed: number;
       pauseTimer: number;
       isPaused: boolean;
+      stuckFrames: number;
     }> = {};
     for (const npc of npcData) {
       npcWander[npc.id] = {
@@ -675,6 +804,7 @@ const Game = () => {
         speed: npc.id === 'child' ? 1.2 : npc.id === 'guard' ? 0.8 : 0.5,
         pauseTimer: Math.random() * 3,
         isPaused: true,
+        stuckFrames: 0,
       };
     }
 
@@ -686,7 +816,7 @@ const Game = () => {
     npcData.forEach(npc => {
       // NPC shadow
       const npcShadow = new THREE.Mesh(shadowGeometry, shadowMaterial.clone());
-      npcShadow.position.set(npc.position.x, npc.position.y - 0.3, 0.05);
+      npcShadow.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) - 0.3, 0.05);
       npcShadow.scale.set(0.8, 0.35, 1);
       npcShadow.renderOrder = 1;
       scene.add(npcShadow);
@@ -701,16 +831,16 @@ const Game = () => {
       });
       const npcMesh = new THREE.Mesh(npcGeometry, npcMaterial);
       const npcScale = NPC_SCALE_BY_ID[npc.id] ?? 1;
-      npcMesh.position.set(npc.position.x, npc.position.y, 0.2);
+      npcMesh.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y), 0.2);
       npcMesh.scale.set(npcScale, npcScale, 1);
-      npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET, true);
+      npcMesh.renderOrder = getActorRenderOrder(npc.position.x, npc.position.y, NPC_FOOT_OFFSET);
       npcMesh.userData = { npcId: npc.id };
       scene.add(npcMesh);
       npcMeshes.push(npcMesh);
 
       // NPC outline
       const npcOutline = createOutlineMesh(npcGeometry, npcTexture);
-      npcOutline.position.set(npc.position.x, npc.position.y, 0.19);
+      npcOutline.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y), 0.19);
       npcOutline.scale.set(npcScale * OUTLINE_PAD, npcScale * OUTLINE_PAD, 1);
       npcOutline.renderOrder = npcMesh.renderOrder - 1;
       scene.add(npcOutline);
@@ -723,8 +853,12 @@ const Game = () => {
     let potionBuffered = false;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // ESC: close dialogue first, then toggle pause
+      // ESC: close full map, then dialogue, then pause
       if (e.key === 'Escape') {
+        if (mapModalOpenRef.current) {
+          setMapModalOpenRef.current(false);
+          return;
+        }
         if (state.dialogueActive) {
           // Close dialogue immediately
           state.dialogueActive = false;
@@ -738,7 +872,15 @@ const Game = () => {
         setIsPaused(pausedRef.current);
         return;
       }
-      if (pausedRef.current) return;
+
+      if (e.key.toLowerCase() === 'm' && !e.repeat) {
+        if (pausedRef.current || state.dialogueActive || playerDeadRef.current) return;
+        e.preventDefault();
+        setMapModalOpenRef.current(v => !v);
+        return;
+      }
+
+      if (pausedRef.current || mapModalOpenRef.current) return;
 
       keys[e.key.toLowerCase()] = true;
       if (e.key.toLowerCase() === 'f' && !state.dialogueActive) {
@@ -755,6 +897,9 @@ const Game = () => {
         }
         if (state.activeItemIndex !== prevIdx) {
           state.activeItemIndex = prevIdx;
+          if (state.inventory[prevIdx]?.type === 'equipment') {
+            syncEquippedWeapon(state.inventory[prevIdx].id);
+          }
           triggerUIUpdate();
         }
       }
@@ -768,6 +913,9 @@ const Game = () => {
         }
         if (state.activeItemIndex !== nextIdx) {
           state.activeItemIndex = nextIdx;
+          if (state.inventory[nextIdx]?.type === 'equipment') {
+            syncEquippedWeapon(state.inventory[nextIdx].id);
+          }
           triggerUIUpdate();
         }
       }
@@ -777,7 +925,7 @@ const Game = () => {
         if (activeItem?.type === 'consumable') {
           if (activeItem.id === 'health_potion') {
             if (state.player.health >= state.player.maxHealth) {
-              toast('Already at full health!', { className: 'rpg-toast' });
+              notify('Already at full health!', { id: 'full-health', duration: 1500 });
               return;
             }
             // Start drinking animation and restore health
@@ -785,7 +933,7 @@ const Game = () => {
             drinkTimer = DRINK_DURATION;
             state.player.health = Math.min(state.player.maxHealth, state.player.health + 50);
             state.removeItem(activeItem.id);
-            toast.success('Used Health Potion!', { description: 'Restored 50 health.', className: 'rpg-toast' });
+            notify('Used Health Potion', { id: 'used-potion', type: 'success', description: 'Restored 50 health.', duration: 2000 });
             if (state.activeItemIndex >= state.inventory.length) {
               state.activeItemIndex = Math.max(0, state.inventory.length - 1);
             }
@@ -829,6 +977,22 @@ const Game = () => {
       }
     };
 
+    const DODGE_ROLL_POOL_SIZE = 4;
+    const dodgeRollPool: HTMLAudioElement[] = [];
+    for (let i = 0; i < DODGE_ROLL_POOL_SIZE; i++) {
+      const a = new Audio('./audio/dodge_roll.mp3');
+      a.volume = 0.38;
+      processAudioElement(a);
+      dodgeRollPool.push(a);
+    }
+    let dodgeRollIdx = 0;
+    const playDodgeRoll = () => {
+      const sfx = dodgeRollPool[dodgeRollIdx % DODGE_ROLL_POOL_SIZE];
+      dodgeRollIdx++;
+      sfx.currentTime = 0;
+      sfx.play().catch(() => {});
+    };
+
     const performDodge = (moveX: number, moveY: number) => {
       const now = Date.now();
       if (now - state.player.lastDodgeTime < state.player.dodgeCooldown) return;
@@ -854,11 +1018,13 @@ const Game = () => {
 
       state.player.isDodging = true;
       state.player.dodgeTimer = state.player.dodgeDuration;
+      state.player.iFrameTimer = DODGE_IFRAME_DURATION;
       state.player.dodgeDirection = { x: dx, y: dy };
       state.player.lastDodgeTime = now;
       state.player.stamina -= 25;
       state.player.lastStaminaUseTime = now / 1000;
       playerAnimState = 'dodge';
+      playDodgeRoll();
       triggerUIUpdate();
     };
 
@@ -975,9 +1141,56 @@ const Game = () => {
       sfx.play().catch(() => {});
     };
 
+    const SMALL_SFX_POOL = 2;
+    const chestUnlockPool: HTMLAudioElement[] = [];
+    for (let i = 0; i < SMALL_SFX_POOL; i++) {
+      const a = new Audio('./audio/chest_unlock.mp3');
+      a.volume = 0.45;
+      processAudioElement(a);
+      chestUnlockPool.push(a);
+    }
+    let chestUnlockIdx = 0;
+    const playChestUnlock = () => {
+      const sfx = chestUnlockPool[chestUnlockIdx % SMALL_SFX_POOL];
+      chestUnlockIdx++;
+      sfx.currentTime = 0;
+      sfx.play().catch(() => {});
+    };
+
+    const itemGrabPool: HTMLAudioElement[] = [];
+    for (let i = 0; i < SMALL_SFX_POOL; i++) {
+      const a = new Audio('./audio/item_grab.mp3');
+      a.volume = 0.4;
+      processAudioElement(a);
+      itemGrabPool.push(a);
+    }
+    let itemGrabIdx = 0;
+    const playItemGrab = () => {
+      const sfx = itemGrabPool[itemGrabIdx % SMALL_SFX_POOL];
+      itemGrabIdx++;
+      sfx.currentTime = 0;
+      sfx.play().catch(() => {});
+    };
+
+    const gameOverPool: HTMLAudioElement[] = [];
+    for (let i = 0; i < 2; i++) {
+      const a = new Audio('./audio/game_over.mp3');
+      a.volume = 0.5;
+      processAudioElement(a);
+      gameOverPool.push(a);
+    }
+    let gameOverIdx = 0;
+    const playGameOverSound = () => {
+      const sfx = gameOverPool[gameOverIdx % gameOverPool.length];
+      gameOverIdx++;
+      sfx.currentTime = 0;
+      sfx.play().catch(() => {});
+    };
+
     const onEnemyKilled = (enemy: Enemy) => {
       killCount++;
       playDeathSound();
+      if (enemy.essenceReward > 0) playItemGrab();
       // Update guard_duty quest kill counter
       const guardQuest = state.quests.find(q => q.id === 'guard_duty' && q.active && !q.completed);
       if (guardQuest) {
@@ -987,9 +1200,10 @@ const Game = () => {
           guardQuest.objectives[1] = 'Defeat any hostile creatures (5/5) ✓';
         }
       }
-      toast(`Defeated ${enemy.name}!`, {
-        description: `Gained ${enemy.goldReward} gold.`,
-        className: "rpg-toast",
+      notify(`Defeated ${enemy.name}!`, {
+        id: 'enemy-kill',
+        description: enemy.essenceReward > 0 ? `+${enemy.essenceReward} essence` : undefined,
+        duration: 2000,
       });
       triggerUIUpdate();
     };
@@ -998,6 +1212,7 @@ const Game = () => {
       const currentTime = Date.now();
       if (currentTime - state.player.lastAttackTime < state.player.attackCooldown) return;
       if (state.player.isDodging) return;
+      if (state.player.stamina < ATTACK_STAMINA_COST) return;
       if (isBlocking) {
         // Cancel block when attacking
         isBlocking = false;
@@ -1008,6 +1223,8 @@ const Game = () => {
       swooshFacing = dir8to4(currentDir8); // Capture direction at the moment of the attack
 
       state.player.lastAttackTime = currentTime;
+      state.player.stamina = Math.max(0, state.player.stamina - ATTACK_STAMINA_COST);
+      state.player.lastStaminaUseTime = currentTime / 1000;
       playerAnimState = 'attack';
       attackFrame = 0;
       attackFrameTimer = ATTACK_FRAME_DURATION;
@@ -1067,11 +1284,14 @@ const Game = () => {
     const performChargeAttack = (level: number) => {
       const currentTime = Date.now();
       if (state.player.isDodging) return;
+      if (state.player.stamina < CHARGE_ATTACK_STAMINA_COST) return;
       playSwordSwing();
       playBladeSheath();
       spinSwooshTimer = SPIN_SWOOSH_DURATION; // trigger spin swoosh
 
       state.player.lastAttackTime = currentTime;
+      state.player.stamina = Math.max(0, state.player.stamina - CHARGE_ATTACK_STAMINA_COST);
+      state.player.lastStaminaUseTime = currentTime / 1000;
       playerAnimState = 'spin_attack';
       spinDirIndex = 0;
       spinFrameTimer = SPIN_FRAME_DURATION;
@@ -1124,17 +1344,17 @@ const Game = () => {
     const usePotion = () => {
       const potionIdx = state.inventory.findIndex(item => item.type === 'consumable' && item.id === 'health_potion');
       if (potionIdx === -1) {
-        toast('No potions!', { className: 'rpg-toast' });
+        notify('No potions!', { id: 'no-potions', duration: 1500 });
         return;
       }
       if (state.player.health >= state.player.maxHealth) {
-        toast('Already at full health!', { className: 'rpg-toast' });
+        notify('Already at full health!', { id: 'full-health', duration: 1500 });
         return;
       }
       state.player.health = Math.min(state.player.maxHealth, state.player.health + 50);
       state.inventory.splice(potionIdx, 1);
       particleSystem.emitHeal(new THREE.Vector3(state.player.position.x, state.player.position.y, 0.3));
-      toast.success('Used Health Potion!', { description: 'Restored 50 health.', className: 'rpg-toast' });
+      notify('Used Health Potion', { id: 'used-potion', type: 'success', description: 'Restored 50 health.', duration: 2000 });
       triggerUIUpdate();
     };
 
@@ -1154,96 +1374,152 @@ const Game = () => {
       const checkX = state.player.position.x;
       const checkY = state.player.position.y;
 
-      // Check nearby portal tiles and trigger transition on F press
-      for (const dir of [
-        { x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
-      ]) {
-        const portalTransition = world.getTransitionAt(
-          checkX + dir.x * 0.7,
-          checkY + dir.y * 0.7
-        );
-        if (portalTransition) {
-          handleMapTransition(portalTransition.targetMap, portalTransition.targetX, portalTransition.targetY);
+      const dropped = state.droppedEssence;
+      if (dropped && dropped.mapId === state.currentMap && dropped.amount > 0) {
+        const sdx = checkX - dropped.x;
+        const sdy = checkY - dropped.y;
+        if (sdx * sdx + sdy * sdy < 2.25) {
+          state.player.essence += dropped.amount;
+          state.droppedEssence = null;
+          playItemGrab();
+          particleSystem.emitSparkles(new THREE.Vector3(dropped.x, dropped.y, 0.5));
+          notify('Essence reclaimed', {
+            id: 'essence-reclaim', type: 'success',
+            description: `Recovered ${dropped.amount} essence from your bloodstain.`,
+            duration: 2500,
+          });
+          triggerSave();
+          triggerUIUpdate();
           return;
         }
       }
 
-      const directions = [
-        { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
+      // Probe the player's own tile, then 8 directions at 0.5 tiles and 1.0 tiles.
+      // Chests and signs can now be triggered from any adjacent tile at any angle,
+      // making interaction snappy regardless of exact facing direction.
+      const _D = 1 / Math.SQRT2; // normalised diagonal component
+      const probeOffsets: Array<{ x: number; y: number }> = [
+        { x: 0, y: 0 },                                    // own tile
+        { x: 0, y: 0.5 }, { x: 0, y: -0.5 },              // cardinal 0.5
+        { x: 0.5, y: 0 }, { x: -0.5, y: 0 },
+        { x: _D * 0.7, y: _D * 0.7 },                     // diagonal 0.5
+        { x: -_D * 0.7, y: _D * 0.7 },
+        { x: _D * 0.7, y: -_D * 0.7 },
+        { x: -_D * 0.7, y: -_D * 0.7 },
+        { x: 0, y: 1.0 }, { x: 0, y: -1.0 },              // cardinal 1.0
+        { x: 1.0, y: 0 }, { x: -1.0, y: 0 },
+        { x: _D, y: _D }, { x: -_D, y: _D },              // diagonal 1.0
+        { x: _D, y: -_D }, { x: -_D, y: -_D },
       ];
 
-      for (const dir of directions) {
-        const interactionId = world.getInteractableAt(
-          checkX + dir.x * 0.5,
-          checkY + dir.y * 0.5
-        );
-        
-        if (interactionId) {
-          if (interactionId.includes('chest') && !state.getFlag(`${interactionId}_opened`)) {
-            const goldAmount = interactionId.includes('ancient') ? 100 : 
-                             interactionId.includes('ruins') ? 75 :
-                             interactionId.includes('wolf') || interactionId.includes('shadow') ? 60 :
-                             interactionId.includes('hidden') ? 50 : 
-                             interactionId.includes('forest') ? 40 : 20;
-            state.player.gold += goldAmount;
-            if (items.health_potion) state.addItem(items.health_potion);
-            state.setFlag(`${interactionId}_opened`, true);
-            particleSystem.emitSparkles(new THREE.Vector3(checkX + dir.x * 0.5, checkY + dir.y * 0.5, 0.3));
-            toast.success('Chest Opened!', {
-              description: `Found ${goldAmount} gold and a Health Potion.`,
-              className: "rpg-toast",
-            });
-            triggerUIUpdate();
-            return;
-          }
+      // Deduplicate so multiple probe points landing on the same tile don't
+      // fire the interaction twice or return early on the wrong one.
+      const seenIds = new Set<string>();
+      for (const dir of probeOffsets) {
+        const px = checkX + dir.x;
+        const py = checkY + dir.y;
+        const interactionId = world.getInteractableAt(px, py);
+        if (!interactionId) continue;
+        if (seenIds.has(interactionId)) continue;
+        seenIds.add(interactionId);
 
-          // Potion ground pickups
-          if (interactionId === 'potion_pickup') {
-            const pickupKey = `potion_${state.currentMap}_${Math.round(checkX + dir.x * 0.5)}_${Math.round(checkY + dir.y * 0.5)}`;
-            if (!state.getFlag(pickupKey)) {
-              state.setFlag(pickupKey, true);
-              if (items.health_potion) state.addItem(items.health_potion);
-              particleSystem.emitSparkles(new THREE.Vector3(checkX + dir.x * 0.5, checkY + dir.y * 0.5, 0.3));
-              toast.success('Found a Health Potion!', {
-                description: 'Added to your inventory.',
-                className: "rpg-toast",
-              });
-              triggerUIUpdate();
-              SaveManager.save(state, mapMarkersRef.current, visitedTilesRef.current);
-              return;
+        if (interactionId === 'bonfire_rest') {
+          const w = world.getCurrentMap().width;
+          const h = world.getCurrentMap().height;
+          const tx = Math.floor(px + w / 2);
+          const ty = Math.floor(py + h / 2);
+          performBonfireRest(tx, ty);
+          return;
+        }
+
+        if (interactionId === 'moonbloom_pickup') {
+          const pickupKey = `moonbloom_${state.currentMap}_${Math.round(px)}_${Math.round(py)}`;
+          if (!state.getFlag(pickupKey)) {
+            state.setFlag(pickupKey, true);
+            if (items.moonbloom) state.addItem({ ...items.moonbloom });
+            playItemGrab();
+            particleSystem.emitSparkles(new THREE.Vector3(px, py, 0.3));
+            const mq = state.quests.find(q => q.id === 'merchants_request' && q.active && !q.completed);
+            if (mq) {
+              const n = state.inventory.filter(i => i.id === 'moonbloom').length;
+              const c = Math.min(n, 3);
+              mq.objectives[0] = `Find Moonbloom flowers (${c}/3)`;
+              if (n >= 3) mq.objectives[0] = 'Find Moonbloom flowers (3/3) ✓';
             }
+            notify('Picked Moonbloom', { type: 'success', description: 'A silvery petal glimmers in your pack.', duration: 2500 });
+            triggerUIUpdate();
+            SaveManager.save(state, mapMarkersRef.current, visitedTilesRef.current);
+            return;
           }
-          
-          // Healing sources with cooldown
-          if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'healing_mushroom' || interactionId === 'campfire') {
-            const now = Date.now();
-            const lastUse = healCooldowns.current.get(interactionId) || 0;
-            if (now - lastUse < HEAL_COOLDOWN_MS) {
-              const remaining = Math.ceil((HEAL_COOLDOWN_MS - (now - lastUse)) / 1000);
-              toast(`Not ready yet... (${remaining}s)`, { className: 'rpg-toast' });
-              return;
-            }
-            if (state.player.health >= state.player.maxHealth) {
-              toast('Already at full health!', { className: 'rpg-toast' });
-              return;
-            }
-            healCooldowns.current.set(interactionId, now);
-            state.player.health = Math.min(state.player.maxHealth, state.player.health + 25);
-            particleSystem.emitHeal(new THREE.Vector3(checkX, checkY, 0.3));
-            const label = interactionId === 'campfire' ? 'Resting by the Fire' : 
-                         interactionId === 'healing_mushroom' ? 'Mushroom Energy!' : 'Refreshing Water!';
-            toast.success(label, {
-              description: 'Health restored.',
-              className: "rpg-toast",
+        }
+
+        if (interactionId.includes('chest') && !state.getFlag(`${interactionId}_opened`)) {
+          playChestUnlock();
+          const goldAmount = interactionId.includes('ancient') ? 100 :
+                           interactionId.includes('ruins') ? 75 :
+                           interactionId.includes('wolf') || interactionId.includes('shadow') ? 60 :
+                           interactionId.includes('hidden') ? 50 :
+                           interactionId.includes('forest') ? 40 : 20;
+          state.player.gold += goldAmount;
+          if (items.health_potion) {
+            state.addItem(items.health_potion);
+            playItemGrab();
+          }
+          state.setFlag(`${interactionId}_opened`, true);
+          particleSystem.emitSparkles(new THREE.Vector3(px, py, 0.3));
+          notify('Chest Opened!', {
+            id: 'chest-open', type: 'success',
+            description: `Found ${goldAmount} gold and a Health Potion.`,
+            duration: 3000,
+          });
+          triggerUIUpdate();
+          return;
+        }
+
+        // Potion ground pickups
+        if (interactionId === 'potion_pickup') {
+          const pickupKey = `potion_${state.currentMap}_${Math.round(px)}_${Math.round(py)}`;
+          if (!state.getFlag(pickupKey)) {
+            state.setFlag(pickupKey, true);
+            if (items.health_potion) state.addItem(items.health_potion);
+            particleSystem.emitSparkles(new THREE.Vector3(px, py, 0.3));
+            notify('Found a Health Potion!', {
+              type: 'success', description: 'Added to your inventory.', duration: 2000,
             });
             triggerUIUpdate();
+            SaveManager.save(state, mapMarkersRef.current, visitedTilesRef.current);
             return;
           }
-          
-          if (dialogues[interactionId]) {
-            startDialogue(interactionId, undefined);
+        }
+
+        // Healing sources with cooldown
+        if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'healing_mushroom' || interactionId === 'campfire') {
+          const now = Date.now();
+          const lastUse = healCooldowns.current.get(interactionId) || 0;
+          if (now - lastUse < HEAL_COOLDOWN_MS) {
+            const remaining = Math.ceil((HEAL_COOLDOWN_MS - (now - lastUse)) / 1000);
+            notify(`Not ready yet… (${remaining}s)`, { id: 'heal-cooldown', duration: 1500 });
             return;
           }
+          if (state.player.health >= state.player.maxHealth) {
+            notify('Already at full health!', { id: 'full-health', duration: 1500 });
+            return;
+          }
+          healCooldowns.current.set(interactionId, now);
+          state.player.health = Math.min(state.player.maxHealth, state.player.health + 25);
+          particleSystem.emitHeal(new THREE.Vector3(checkX, checkY, 0.3));
+          const label = interactionId === 'campfire' ? 'Resting by the Fire' :
+                       interactionId === 'healing_mushroom' ? 'Mushroom Energy!' : 'Refreshing Water!';
+          notify(label, {
+            id: 'heal-source', type: 'success', description: 'Restored 25 health.', duration: 2000,
+          });
+          triggerUIUpdate();
+          return;
+        }
+
+        if (dialogues[interactionId]) {
+          startDialogue(interactionId, undefined);
+          return;
         }
       }
     };
@@ -1266,10 +1542,30 @@ const Game = () => {
       
       if (dialogueId === 'elder') {
         const hunterQuest = state.quests.find(q => q.id === 'find_hunter');
-        if (hunterQuest?.completed) {
+        const deepQuest = state.quests.find(q => q.id === 'clear_deep_woods');
+        if (deepQuest?.active && !deepQuest.completed && deepQuest.objectives[2]?.includes('✓')) {
+          startNode = dialogue.nodes.find(n => n.id === 'deep_woods_report');
+        } else if (deepQuest?.active && !deepQuest.completed) {
+          startNode = dialogue.nodes.find(n => n.id === 'deep_woods_active');
+        } else if (hunterQuest?.completed) {
           startNode = dialogue.nodes.find(n => n.id === 'quest_complete');
         } else if (hunterQuest?.active) {
           startNode = dialogue.nodes.find(n => n.id === 'quest_active');
+        }
+      }
+
+      if (dialogueId === 'guard') {
+        const gq = state.quests.find(q => q.id === 'guard_duty' && q.active && !q.completed);
+        if (gq && gq.objectives[1]?.includes('✓')) {
+          startNode = dialogue.nodes.find(n => n.id === 'guard_turnin') ?? startNode;
+        }
+      }
+
+      if (dialogueId === 'merchant') {
+        const mq = state.quests.find(q => q.id === 'merchants_request' && q.active && !q.completed);
+        const moonCount = state.inventory.filter(i => i.id === 'moonbloom').length;
+        if (mq && moonCount >= 3) {
+          startNode = dialogue.nodes.find(n => n.id === 'merchant_moonbloom_deliver') ?? startNode;
         }
       }
 
@@ -1285,7 +1581,7 @@ const Game = () => {
 
     // Mouse event handlers for LMB (attack/charge) and RMB (block)
     const handleMouseDown = (e: MouseEvent) => {
-      if (pausedRef.current) return;
+      if (pausedRef.current || mapModalOpenRef.current) return;
       
       if (e.button === 0) {
         // Left click - attack/charge
@@ -1295,14 +1591,14 @@ const Game = () => {
             // LMB with consumable selected - use it
             if (activeItem.id === 'health_potion') {
               if (state.player.health >= state.player.maxHealth) {
-                toast('Already at full health!', { className: 'rpg-toast' });
+                notify('Already at full health!', { id: 'full-health', duration: 1500 });
                 return;
               }
               playerAnimState = 'drinking';
               drinkTimer = DRINK_DURATION;
               state.player.health = Math.min(state.player.maxHealth, state.player.health + 50);
               state.removeItem(activeItem.id);
-              toast.success('Used Health Potion!', { description: 'Restored 50 health.', className: 'rpg-toast' });
+              notify('Used Health Potion', { id: 'used-potion', type: 'success', description: 'Restored 50 health.', duration: 2000 });
               if (state.activeItemIndex >= state.inventory.length) {
                 state.activeItemIndex = Math.max(0, state.inventory.length - 1);
               }
@@ -1337,6 +1633,22 @@ const Game = () => {
     };
 
     const handleMouseUp = (e: MouseEvent) => {
+      if (pausedRef.current || mapModalOpenRef.current) {
+        if (e.button === 0) {
+          isLMBHeld = false;
+          isChargingAttack = false;
+          chargeTimer = 0;
+          chargeLevel = 0;
+        }
+        if (e.button === 2) {
+          isRMBHeld = false;
+          if (isBlocking) {
+            isBlocking = false;
+            if (playerAnimState === 'block') playerAnimState = 'idle';
+          }
+        }
+        return;
+      }
       if (e.button === 0) {
         // LMB released - perform charge attack if charged enough
         if (isLMBHeld) {
@@ -1407,17 +1719,23 @@ const Game = () => {
       return hpBar;
     };
 
+    let lastNpcScreenUpdate = 0;
+    const lastNpcProjected = { x: 0, y: 0 };
+    const NPC_SCREEN_MIN_MS = 48;
+    const NPC_SCREEN_MIN_PX = 3;
+
     // ============= ANIMATION LOOP =============
     const animate = () => {
-      requestAnimationFrame(animate);
+      if (disposed) return;
+      rafId = requestAnimationFrame(animate);
 
       const currentTime = performance.now();
       let deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
       if (deltaTime > MAX_DELTA) deltaTime = MAX_DELTA;
 
-      // Skip game logic when paused
-      if (pausedRef.current) {
+      // Skip game logic when paused or full map is open (world frozen)
+      if (pausedRef.current || mapModalOpenRef.current) {
         renderer.render(scene, camera);
         return;
       }
@@ -1438,10 +1756,13 @@ const Game = () => {
 
       // Stamina regen
       const nowSec = currentTime / 1000;
+      if (state.player.iFrameTimer > 0) {
+        state.player.iFrameTimer = Math.max(0, state.player.iFrameTimer - deltaTime);
+      }
       if (nowSec - state.player.lastStaminaUseTime > state.player.staminaRegenDelay) {
         const prevStamina = state.player.stamina;
         state.player.stamina = Math.min(state.player.maxStamina, state.player.stamina + state.player.staminaRegenRate * deltaTime);
-        if (Math.floor(state.player.stamina) !== Math.floor(prevStamina)) {
+        if (state.player.stamina !== prevStamina) {
           triggerUIUpdate();
         }
       }
@@ -1465,6 +1786,10 @@ const Game = () => {
       const targetBlockAngle = isBlocking ? 0.3 : 0;
       blockAngle += (targetBlockAngle - blockAngle) * Math.min(1, deltaTime * 15);
 
+      if (portalCooldown > 0) {
+        portalCooldown -= deltaTime;
+      }
+
     // === NPC WANDERING ===
       for (let ni = 0; ni < npcData.length; ni++) {
         const npc = npcData[ni];
@@ -1479,10 +1804,10 @@ const Game = () => {
           if (npcMesh) {
             const npcScale = NPC_SCALE_BY_ID[npc.id] ?? 1;
             const breathe = Math.sin(currentTime / 800 + ni * 2.1) * 0.03;
-            npcMesh.position.set(npc.position.x, npc.position.y + breathe, 0.2);
+            npcMesh.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) + breathe, 0.2);
             npcMesh.scale.set(npcScale, npcScale, 1);
             npcMesh.rotation.z = 0;
-            npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET, true);
+            npcMesh.renderOrder = getActorRenderOrder(npc.position.x, npc.position.y, NPC_FOOT_OFFSET);
           }
           continue;
         }
@@ -1504,11 +1829,31 @@ const Game = () => {
             const moveSpeed = wander.speed * deltaTime;
             const nx = npc.position.x + (dx / dist) * moveSpeed;
             const ny = npc.position.y + (dy / dist) * moveSpeed;
-            if (world.isWalkable(nx, ny)) {
+            let moved = false;
+            if (world.canMoveTo(npc.position.x, npc.position.y, nx, ny)) {
               npc.position.x = nx;
               npc.position.y = ny;
+              moved = true;
+            } else if (world.canMoveTo(npc.position.x, npc.position.y, nx, npc.position.y)) {
+              npc.position.x = nx;
+              moved = true;
+            } else if (world.canMoveTo(npc.position.x, npc.position.y, npc.position.x, ny)) {
+              npc.position.y = ny;
+              moved = true;
+            }
+            if (moved) {
+              wander.stuckFrames = 0;
             } else {
-              wander.angle += Math.PI * 0.5;
+              wander.stuckFrames++;
+              if (wander.stuckFrames >= 4) {
+                // Completely stuck — abandon this heading, pause briefly, pick a fresh direction.
+                wander.isPaused = true;
+                wander.pauseTimer = 0.3 + Math.random() * 1.0;
+                wander.angle = Math.random() * Math.PI * 2;
+                wander.stuckFrames = 0;
+              } else {
+                wander.angle += Math.PI * (0.4 + Math.random() * 0.6);
+              }
             }
           } else {
             wander.isPaused = true;
@@ -1528,24 +1873,24 @@ const Game = () => {
             : Math.sin(currentTime / 800 + ni * 2.1) * 0.03;
           const lean = !wander.isPaused ? walkWave * 0.035 : 0;
 
-          npcMesh.position.set(npc.position.x, npc.position.y + bob, 0.2);
+          npcMesh.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) + bob, 0.2);
           npcMesh.scale.set(
             npcScale * (1 - stride * 0.025),
             npcScale * (1 + stride * 0.05),
             1
           );
           npcMesh.rotation.z = lean;
-          npcMesh.renderOrder = getYRenderOrder(npc.position.y, NPC_FOOT_OFFSET, true);
+          npcMesh.renderOrder = getActorRenderOrder(npc.position.x, npc.position.y, NPC_FOOT_OFFSET);
 
           // Update NPC shadow
           const npcShadow = npcShadows[ni];
           if (npcShadow) {
-            npcShadow.position.set(npc.position.x, npc.position.y - 0.3, 0.05);
+            npcShadow.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) - 0.3, 0.05);
           }
           // Update NPC outline
           const npcOutline = npcOutlines[ni];
           if (npcOutline) {
-            npcOutline.position.set(npc.position.x, npc.position.y + bob, 0.19);
+            npcOutline.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) + bob, 0.19);
             npcOutline.rotation.z = lean;
             npcOutline.renderOrder = npcMesh.renderOrder - 1;
           }
@@ -1597,13 +1942,13 @@ const Game = () => {
             x: state.player.position.x + state.player.dodgeDirection.x * dodgeFrameSpeed,
             y: state.player.position.y + state.player.dodgeDirection.y * dodgeFrameSpeed,
           };
-          if (world.isWalkable(newPos.x, newPos.y, 0.2)) {
+          if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, newPos.y, 0.2)) {
             state.player.position = newPos;
           }
-          world.updateChunks(state.player.position.x, state.player.position.y);
 
           if (state.player.dodgeTimer <= 0) {
             state.player.isDodging = false;
+            state.player.iFrameTimer = 0;
             playerAnimState = moved ? 'walk' : 'idle';
           }
         } else if (moved && !isChargingAttack && playerAnimState !== 'spin_attack') {
@@ -1627,15 +1972,14 @@ const Game = () => {
             y: state.player.position.y + moveY * frameSpeed,
           };
 
-          if (world.isWalkable(newPos.x, newPos.y, 0.2)) {
+          if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, newPos.y, 0.2)) {
             state.player.position = newPos;
-          } else if (world.isWalkable(newPos.x, state.player.position.y, 0.2)) {
+          } else if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, state.player.position.y, 0.2)) {
             state.player.position.x = newPos.x;
-          } else if (world.isWalkable(state.player.position.x, newPos.y, 0.2)) {
+          } else if (world.canMoveTo(state.player.position.x, state.player.position.y, state.player.position.x, newPos.y, 0.2)) {
             state.player.position.y = newPos.y;
           }
 
-          world.updateChunks(state.player.position.x, state.player.position.y);
           state.player.isMoving = true;
 
           if (playerAnimState !== 'attack' && playerAnimState !== 'dodge' && playerAnimState !== 'charge' && playerAnimState !== 'drinking' && playerAnimState !== 'block') {
@@ -1673,15 +2017,6 @@ const Game = () => {
           }
           if (newTilesRevealed) {
             triggerMinimapUpdate(false, currentTime);
-          }
-
-          if (portalCooldown > 0) {
-            portalCooldown -= deltaTime;
-          } else {
-            const transition = world.getTransitionAt(state.player.position.x, state.player.position.y);
-            if (transition) {
-              handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
-            }
           }
         } else {
           state.player.isMoving = false;
@@ -1885,11 +2220,18 @@ const Game = () => {
           outlineMat.color.setHex(0x000000);
         }
 
+        // Update smoothed elevation first so all visual calculations this frame use the
+        // same fresh value — avoids a one-frame lag between player/shadow and camera.
+        const targetElev = world.getElevationAt(state.player.position.x, state.player.position.y);
+        playerSmoothedElevation += (targetElev - playerSmoothedElevation) * Math.min(1, 12 * deltaTime);
+
         playerMesh.rotation.z = visualRotation;
         playerMesh.scale.set(visualScaleX, visualScaleY, 1);
+        const playerVisualX = state.player.position.x + attackOffsetX;
+        const playerVisualY = getPlayerVisualY(playerVisualX, state.player.position.y + attackOffsetY);
         playerMesh.position.set(
-          state.player.position.x + attackOffsetX,
-          state.player.position.y + attackOffsetY,
+          playerVisualX,
+          playerVisualY,
           0.8 // Higher Z to be above world objects
         );
 
@@ -1920,7 +2262,7 @@ const Game = () => {
           // Position held item on same arm as sword (attached to player body)
           heldItemMesh.position.set(
             state.player.position.x + itemOffsetX,
-            state.player.position.y + itemOffsetY,
+            getVisualYAt(state.player.position.x + itemOffsetX, state.player.position.y + itemOffsetY),
             0.85
           );
           heldItemMesh.visible = true;
@@ -1936,20 +2278,21 @@ const Game = () => {
           heldItemMesh.visible = false;
         }
 
-        // Update player shadow
+        // Update player shadow — always at the player's ground position, ignoring attack
+        // offsets and camera jitter so it stays flush with the terrain smoothly.
         playerShadow.position.set(
-          state.player.position.x + attackOffsetX,
-          state.player.position.y + attackOffsetY - 0.35,
+          state.player.position.x,
+          getPlayerVisualY(state.player.position.x, state.player.position.y) - 0.35,
           0.05
         );
 
         // Dynamic Y-sorting for player (disabled - player always on top)
         // playerMesh.renderOrder = getYRenderOrder(state.player.position.y, PLAYER_FOOT_OFFSET, true);
 
-        // Update player outline
+        // Update player outline — use smoothed elevation so it glides with the player sprite
         playerOutline.position.set(
           state.player.position.x,
-          state.player.position.y,
+          getPlayerVisualY(state.player.position.x, state.player.position.y),
           0.79 // Just below player
         );
         playerOutline.scale.set(visualScaleX * OUTLINE_PAD, visualScaleY * OUTLINE_PAD, 1);
@@ -1987,7 +2330,7 @@ const Game = () => {
           const sOff = swooshOffsets[swooshFacing] ?? {x: 0, y: 0};
           swooshMesh.position.set(
             state.player.position.x + attackOffsetX + sOff.x,
-            state.player.position.y + attackOffsetY + sOff.y,
+            getVisualYAt(state.player.position.x + attackOffsetX + sOff.x, state.player.position.y + attackOffsetY + sOff.y),
             0.3
           );
         } else {
@@ -2005,8 +2348,8 @@ const Game = () => {
           spinSwooshMesh.scale.set(spinScale, spinScale, 1);
           spinSwooshMesh.rotation.z = progress * Math.PI * 2;
           spinSwooshMesh.position.set(
-            state.player.position.x + attackOffsetX,
-            state.player.position.y + attackOffsetY,
+            playerVisualX,
+            playerVisualY,
             0.3
           );
         } else {
@@ -2034,49 +2377,55 @@ const Game = () => {
           playerMaterial.opacity = 1;
         }
 
-        // Smooth camera follow
+        // Smooth camera follow — uses the smoothed elevation so camera glides with the player
         cameraTarget.x = state.player.position.x;
-        cameraTarget.y = state.player.position.y;
+        cameraTarget.y = getPlayerVisualY(state.player.position.x, state.player.position.y);
 
         // === INTERACTION INDICATOR ===
+        // Priority: interactable objects first (bonfires, signs, chests) → portals → NPCs.
+        // This prevents an NPC behind a campfire from stealing the indicator.
         let showIndicator = false;
         let indicatorX = 0, indicatorY = 0;
         const interactionRange = 2.0;
 
-        const interactionRangeSq = interactionRange * interactionRange;
-        for (const npc of state.npcs) {
-          const ndx = state.player.position.x - npc.position.x;
-          const ndy = state.player.position.y - npc.position.y;
-          const distSq = ndx * ndx + ndy * ndy;
-          if (distSq < interactionRangeSq) {
+        const directions = [
+          { x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
+        ];
+        for (const dir of directions) {
+          const cx = state.player.position.x + dir.x * 0.5;
+          const cy = state.player.position.y + dir.y * 0.5;
+          const intId = world.getInteractableAt(cx, cy);
+          if (intId) {
+            if (intId.includes('chest') && state.getFlag(`${intId}_opened`)) continue;
+            if (intId === 'potion_pickup' && state.getFlag('potion_pickup_collected')) continue;
             showIndicator = true;
-            indicatorX = npc.position.x;
-            indicatorY = npc.position.y;
+            indicatorX = cx;
+            indicatorY = cy;
             break;
           }
         }
 
         if (!showIndicator) {
-          const directions = [
-            { x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
-          ];
-          for (const dir of directions) {
-            const cx = state.player.position.x + dir.x * 0.5;
-            const cy = state.player.position.y + dir.y * 0.5;
-            const intId = world.getInteractableAt(cx, cy);
-            if (intId) {
-              // Don't show indicator for already-looted chests
-              if (intId.includes('chest') && state.getFlag(`${intId}_opened`)) {
-                continue;
-              }
-              // Don't show indicator for already-collected pickups
-              if (intId === 'potion_pickup' && state.getFlag('potion_pickup_collected')) {
-                continue;
-              }
+          const portalHint = samplePortalNearPlayer();
+          if (portalHint && isPortalDestinationUnlocked(portalHint.targetMap)) {
+            showIndicator = true;
+            indicatorX = state.player.position.x;
+            indicatorY = state.player.position.y;
+          }
+        }
+
+        if (!showIndicator) {
+          const interactionRangeSq = interactionRange * interactionRange;
+          let closestDistSq = interactionRangeSq;
+          for (const npc of state.npcs) {
+            const ndx = state.player.position.x - npc.position.x;
+            const ndy = state.player.position.y - npc.position.y;
+            const distSq = ndx * ndx + ndy * ndy;
+            if (distSq < closestDistSq) {
+              closestDistSq = distSq;
               showIndicator = true;
-              indicatorX = state.player.position.x + dir.x * 0.5;
-              indicatorY = state.player.position.y + dir.y * 0.5;
-              break;
+              indicatorX = npc.position.x;
+              indicatorY = npc.position.y;
             }
           }
         }
@@ -2085,19 +2434,109 @@ const Game = () => {
           indicatorMesh.visible = true;
           const bobY = Math.sin(currentTime / 200) * 0.12;
           const pulse = 0.7 + Math.sin(currentTime / 300) * 0.3;
-          indicatorMesh.position.set(indicatorX, indicatorY + 0.8 + bobY, 0.5);
+          indicatorMesh.position.set(indicatorX, getVisualYAt(indicatorX, indicatorY) + 0.8 + bobY, 0.5);
           indicatorMaterial.opacity = pulse;
           indicatorMesh.scale.set(0.8 + Math.sin(currentTime / 250) * 0.15, 0.8 + Math.sin(currentTime / 250) * 0.15, 1);
         } else {
           indicatorMesh.visible = false;
         }
 
+        const stain = state.droppedEssence;
+        if (stain && stain.mapId === state.currentMap && stain.amount > 0) {
+          essenceOrbMesh.visible = true;
+          const orbY = getVisualYAt(stain.x, stain.y) + 0.75 + Math.sin(currentTime / 280) * 0.08;
+          essenceOrbMesh.position.set(stain.x, orbY, 0.55);
+          essenceOrbMaterial.opacity = 0.78 + Math.sin(currentTime / 350) * 0.18;
+          const s = 0.9 + Math.sin(currentTime / 200) * 0.12;
+          essenceOrbMesh.scale.set(s, s, 1);
+        } else {
+          essenceOrbMesh.visible = false;
+        }
+
         const lerpFactor = 1 - Math.pow(0.001, deltaTime);
         camera.position.x += (cameraTarget.x - camera.position.x) * lerpFactor;
         camera.position.y += (cameraTarget.y - camera.position.y) * lerpFactor;
 
+        // === PORTAL PROXIMITY: charge-up, particles, vignette, auto-travel (no key press) ===
+        const PORTAL_CHARGE_SEC = 1.12;
+        const vignette = portalVignetteRef.current;
+        const px = state.player.position.x;
+        const py = state.player.position.y;
+
+        if (portalCooldown > 0 || state.dialogueActive || playerDeadRef.current || mapModalOpenRef.current) {
+          portalWarpCharge = 0;
+          portalParticleAcc = 0;
+          blockedPortalHintTimer = 0;
+          if (vignette) {
+            vignette.style.opacity = '0';
+          }
+        } else {
+          const nearPortal = samplePortalNearPlayer();
+          if (nearPortal) {
+            if (!isPortalDestinationUnlocked(nearPortal.targetMap)) {
+              portalWarpCharge = Math.max(0, portalWarpCharge - deltaTime * 2.8);
+              blockedPortalHintTimer += deltaTime;
+              if (vignette) {
+                const pulse = 0.18 + Math.sin(currentTime * 0.006) * 0.06;
+                vignette.style.opacity = String(pulse);
+                vignette.style.background =
+                  'radial-gradient(circle at 50% 52%, rgba(140,30,70,0.55) 0%, rgba(40,0,60,0.5) 50%, transparent 72%)';
+              }
+              portalParticleAcc += deltaTime;
+              if (portalParticleAcc > 0.14) {
+                portalParticleAcc = 0;
+                _tmpVec3.set(px, py + 0.45, 0.28);
+                particleSystem.emitPortalBlocked(_tmpVec3);
+              }
+              if (blockedPortalHintTimer > 0.5 && currentTime - lastBarrierToastAt > 9000) {
+                lastBarrierToastAt = currentTime;
+                blockedPortalHintTimer = 0;
+                notify('Magical barrier blocks this portal', {
+                  id: 'portal-barrier',
+                  description: 'Complete the right quest to unlock this route.',
+                  duration: 4500,
+                });
+              }
+            } else {
+              blockedPortalHintTimer = 0;
+              portalWarpCharge = Math.min(1, portalWarpCharge + deltaTime / PORTAL_CHARGE_SEC);
+              if (vignette) {
+                const o = portalWarpCharge * (0.42 + Math.sin(currentTime * 0.01) * 0.08);
+                vignette.style.opacity = String(Math.min(0.68, o));
+                vignette.style.background =
+                  'radial-gradient(circle at 50% 46%, rgba(200,120,255,0.55) 0%, rgba(80,40,200,0.4) 38%, rgba(0,220,200,0.2) 62%, transparent 82%)';
+              }
+              portalParticleAcc += deltaTime;
+              const emitEvery = Math.max(0.028, 0.055 - portalWarpCharge * 0.028);
+              if (portalParticleAcc >= emitEvery) {
+                portalParticleAcc = 0;
+                _tmpVec3.set(
+                  px + (Math.random() - 0.5) * 0.25,
+                  py + 0.4 + Math.random() * 0.2,
+                  0.22
+                );
+                particleSystem.emitPortalWarp(_tmpVec3, portalWarpCharge);
+              }
+              camera.position.x += Math.sin(currentTime * 0.009) * 0.038 * portalWarpCharge;
+              camera.position.y += Math.cos(currentTime * 0.011) * 0.024 * portalWarpCharge;
+
+              if (portalWarpCharge >= 1) {
+                portalWarpCharge = 0;
+                portalParticleAcc = 0;
+                if (vignette) vignette.style.opacity = '0';
+                handleMapTransition(nearPortal.targetMap, nearPortal.targetX, nearPortal.targetY);
+              }
+            }
+          } else {
+            portalWarpCharge = Math.max(0, portalWarpCharge - deltaTime * 2.4);
+            portalParticleAcc = 0;
+            blockedPortalHintTimer = 0;
+            if (vignette) vignette.style.opacity = '0';
+          }
+        }
+
         // Update combat system
-        combatSystem.updateEnemies(deltaTime, state.player.position, state.player.isDodging, isBlocking);
+        combatSystem.updateEnemies(deltaTime, state.player.position, state.player.iFrameTimer > 0, isBlocking, world);
 
         // === ENEMY RENDERING WITH HP BARS ===
         const enemies = combatSystem.getEnemies();
@@ -2114,7 +2553,7 @@ const Game = () => {
             });
             enemyMesh = new THREE.Mesh(enemyGeometry, enemyMaterial);
             enemyMesh.position.z = 0.2;
-            enemyMesh.renderOrder = getYRenderOrder(enemy.position.y, 0, true);
+            enemyMesh.renderOrder = getActorRenderOrder(enemy.position.x, enemy.position.y, 0);
             scene.add(enemyMesh);
             enemyMeshes.set(enemy.id, enemyMesh);
 
@@ -2184,7 +2623,7 @@ const Game = () => {
           }
 
           let finalEnemyX = enemy.position.x;
-          let finalEnemyY = enemy.position.y;
+          let finalEnemyY = getVisualYAt(enemy.position.x, enemy.position.y);
           let scaleX = visual.baseScale;
           let scaleY = visual.baseScale;
           let rotation = 0;
@@ -2293,7 +2732,7 @@ const Game = () => {
           enemyMesh.rotation.z = rotation;
           enemyMesh.scale.set(scaleX, scaleY, 1);
           enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
-          enemyMesh.renderOrder = getYRenderOrder(enemy.position.y, visual.footOffset, true);
+          enemyMesh.renderOrder = getActorRenderOrder(enemy.position.x, enemy.position.y, visual.footOffset);
 
           // Update enemy shadow
           const eShadow = enemyShadows.get(enemy.id);
@@ -2400,16 +2839,28 @@ const Game = () => {
           combatSystem.removeDeadEnemiesByIds(Array.from(fullyDeadEnemyIds));
         }
 
-        // Check if player died — death penalty
+        // Check if player died — drop essence bloodstain
         if (state.player.health <= 0 && !playerDeadRef.current) {
           playerDeadRef.current = true;
-          playDeathSound();
-          const goldLoss = Math.floor(state.player.gold * 0.1);
-          state.player.gold -= goldLoss;
-          setDeathGoldLost(goldLoss);
+          playGameOverSound();
+          const lost = state.player.essence;
+          if (lost > 0) {
+            state.droppedEssence = {
+              mapId: state.currentMap,
+              x: state.player.position.x,
+              y: state.player.position.y,
+              amount: lost,
+            };
+            state.player.essence = 0;
+          } else {
+            state.droppedEssence = null;
+          }
+          setDeathEssenceLost(lost);
           setDeathActive(true);
         }
       }
+
+      world.updateChunks(state.player.position.x, state.player.position.y);
 
       // Project active NPC world pos to screen for chat bubble + walk-away detection
       if (activeNpcWorldPos.current && state.dialogueActive) {
@@ -2427,11 +2878,20 @@ const Game = () => {
           setCurrentDialogue(null);
           setNpcScreenPos(null);
         } else {
-          _worldPosVec3.set(nwx, nwy + 1.2, 0);
+          _worldPosVec3.set(nwx, getVisualYAt(nwx, nwy) + 1.2, 0);
           _worldPosVec3.project(camera);
           const sx = (_worldPosVec3.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
           const sy = (-_worldPosVec3.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
-          setNpcScreenPos({ x: sx, y: sy });
+          const elapsed = currentTime - lastNpcScreenUpdate;
+          const moved =
+            Math.abs(sx - lastNpcProjected.x) >= NPC_SCREEN_MIN_PX ||
+            Math.abs(sy - lastNpcProjected.y) >= NPC_SCREEN_MIN_PX;
+          if (elapsed >= NPC_SCREEN_MIN_MS || moved) {
+            lastNpcScreenUpdate = currentTime;
+            lastNpcProjected.x = sx;
+            lastNpcProjected.y = sy;
+            setNpcScreenPos({ x: sx, y: sy });
+          }
         }
       }
 
@@ -2452,24 +2912,93 @@ const Game = () => {
       renderer.render(scene, camera);
     };
 
+    deathRespawnFnRef.current = () => {
+      const st = gameStateRef.current;
+      const w = worldRef.current;
+      if (!st || !w) return;
+      const cam = cameraRef.current;
+      st.player.health = st.player.maxHealth;
+      st.player.stamina = st.player.maxStamina;
+      st.player.isDodging = false;
+      st.player.iFrameTimer = 0;
+
+      let lb = st.lastBonfire;
+      if (!lb) {
+        const sp = w.getSpawnPoint();
+        lb = { mapId: st.currentMap, x: sp.x, y: sp.y };
+        st.lastBonfire = lb;
+      }
+
+      const targetMap = lb.mapId;
+      const newMap = allMaps[targetMap];
+      if (!newMap) return;
+
+      if (st.currentMap !== targetMap) {
+        st.currentMap = targetMap;
+        w.loadMap(newMap);
+        if (!targetMap.startsWith('interior_')) {
+          biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
+          switchMusicTrack(targetMap);
+        }
+      }
+
+      st.player.position = { x: lb.x, y: lb.y };
+      playerSmoothedElevation = w.getElevationAt(lb.x, lb.y);
+      const pvy = lb.y + playerSmoothedElevation * World.ELEVATION_Y_OFFSET;
+      playerMesh.position.set(lb.x, pvy, 0.8);
+      cameraTarget.x = lb.x;
+      cameraTarget.y = pvy;
+      if (cam) {
+        cam.position.x = lb.x;
+        cam.position.y = pvy;
+      }
+
+      combatSystem.clearAllEnemies();
+      disposeEnemyMeshes();
+      assetManager.warmupEnemyTexturesForZones(mapDefinitions[targetMap]?.enemyZones);
+      spawnEnemiesFromMapZones(targetMap, w.getCurrentMap(), combatSystem, w);
+
+      w.rebuildChunks();
+      w.updateChunks(lb.x, lb.y);
+      triggerSave();
+      triggerUIUpdate();
+      triggerMinimapUpdate(true);
+    };
+
     animate();
 
+    cancelEnemyPrewarm = assetManager.startBackgroundEnemyPrewarm(() => disposed);
+
     if (!savedData) {
-      setTimeout(() => {
-        toast("The Village Elder looks deeply troubled...", {
-          description: "Perhaps you should speak with him. (Press E to interact)",
-          icon: "📜",
-          duration: 8000,
-          className: "rpg-toast",
-        });
-        // Ping the Elder's location on the minimap
-        addMarkersFromText("Village Elder", state.currentMap);
-      }, 1000);
+      effectTimeouts.push(
+        setTimeout(() => {
+          if (disposed) return;
+          notify("The Village Elder looks deeply troubled...", {
+            description: "Perhaps you should speak with him. (Press F to interact)",
+            duration: 8000,
+          });
+          addMarkersFromText("Village Elder", state.currentMap);
+        }, 1000)
+      );
     } else {
-      toast("Progress restored.", { icon: "💾", duration: 3000, className: "rpg-toast" });
+      notify("Progress restored.", { id: 'save-load', duration: 3000 });
     }
 
     return () => {
+      disposed = true;
+      cancelEnemyPrewarm?.();
+      cancelAnimationFrame(rafId);
+      effectTimeouts.forEach(clearTimeout);
+      effectTimeouts.length = 0;
+      if (portalVignetteRef.current) {
+        portalVignetteRef.current.style.opacity = '0';
+      }
+      gameStateRef.current = null;
+      worldRef.current = null;
+      assetManagerRef.current = null;
+      cameraRef.current = null;
+      rendererRef.current = null;
+
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('resize', handleResize);
@@ -2493,6 +3022,7 @@ const Game = () => {
       scene.remove(playerShadow); (playerShadow.material as THREE.Material).dispose();
       scene.remove(playerOutline); (playerOutline.material as THREE.Material).dispose();
       scene.remove(heldItemMesh); (heldItemMesh.material as THREE.Material).dispose();
+      scene.remove(essenceOrbMesh); essenceOrbMaterial.dispose();
       scene.remove(swooshMesh); swooshMaterial.dispose();
       scene.remove(spinSwooshMesh); spinSwooshMaterial.dispose();
       npcMeshes.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
@@ -2515,15 +3045,27 @@ const Game = () => {
     if (givesQuest && quests[givesQuest]) {
       const quest = { ...quests[givesQuest], active: true };
       gameState.addQuest(quest);
-      toast.success(`Quest Accepted: ${quest.title}`, {
+      notify(`Quest Accepted: ${quest.title}`, {
+        id: `quest-accept-${quest.id}`, type: 'success',
         description: quest.description,
-        icon: "📜",
-        className: "rpg-toast",
-        duration: 5000,
+        duration: 6000,
       });
       // Extract markers from quest description
       addMarkersFromText(quest.description, gameState.currentMap);
       quest.objectives.forEach(obj => addMarkersFromText(obj, gameState.currentMap));
+      if (givesQuest === 'clear_deep_woods' && items.magic_wand) {
+        gameState.addItem({ ...items.magic_wand });
+        gameState.setEquippedWeapon(items.magic_wand.id);
+      }
+      if (givesQuest === 'merchants_request') {
+        const mq = gameState.quests.find(q => q.id === 'merchants_request');
+        if (mq) {
+          const n = gameState.inventory.filter(i => i.id === 'moonbloom').length;
+          const c = Math.min(n, 3);
+          mq.objectives[0] = `Find Moonbloom flowers (${c}/3)`;
+          if (n >= 3) mq.objectives[0] = 'Find Moonbloom flowers (3/3) ✓';
+        }
+      }
       triggerUIUpdate();
       // Save on quest accept
       SaveManager.save(gameState, mapMarkersRef.current, visitedTilesRef.current);
@@ -2535,9 +3077,9 @@ const Game = () => {
         if (gameState.player.gold >= 10) {
           gameState.player.gold -= 10;
           gameState.addItem(items.health_potion);
-          toast.success('Purchased Health Potion!', { description: 'Spent 10 gold.', className: 'rpg-toast' });
+          notify('Purchased Health Potion!', { type: 'success', description: 'Spent 10 gold.', duration: 2500 });
         } else {
-          toast.error("Not enough gold!", { className: 'rpg-toast' });
+          notify("Not enough gold!", { id: 'no-gold', type: 'error', duration: 2000 });
         }
         triggerUIUpdate();
       }
@@ -2545,9 +3087,9 @@ const Game = () => {
         if (gameState.player.gold >= 50) {
           gameState.player.gold -= 50;
           gameState.addItem(items.ancient_map);
-          toast.success('Purchased Ancient Artifact!', { description: 'Spent 50 gold.', className: 'rpg-toast' });
+          notify('Purchased Ancient Artifact!', { type: 'success', description: 'Spent 50 gold.', duration: 2500 });
         } else {
-          toast.error("Not enough gold!", { className: 'rpg-toast' });
+          notify("Not enough gold!", { id: 'no-gold', type: 'error', duration: 2000 });
         }
         triggerUIUpdate();
       }
@@ -2558,12 +3100,11 @@ const Game = () => {
       const hunterQuest = gameState.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
       if (hunterQuest) {
         hunterQuest.objectives[2] = 'Defeat the forest threat ✓';
-        hunterQuest.completed = true;
-        toast.success("Quest Completed: The Missing Hunter!", {
+        gameState.completeQuest('find_hunter');
+        notify("Quest Completed: The Missing Hunter!", {
+          id: 'quest-done-hunter', type: 'success',
           description: "Return to the Elder to report your findings.",
-          icon: "📜",
-          className: "rpg-toast",
-          duration: 5000,
+          duration: 6000,
         });
         // Add marker for village
         addMarkersFromText("Village Elder", "village");
@@ -2576,6 +3117,74 @@ const Game = () => {
     if (gameState.currentDialogue === 'healer' && nextId === 'end' && currentDialogue.node.id === 'heal') {
       gameState.player.health = gameState.player.maxHealth;
       triggerUIUpdate();
+    }
+
+    if (gameState.currentDialogue === 'witch_hut_lore' && nextId === 'lore') {
+      const dq = gameState.quests.find(q => q.id === 'clear_deep_woods' && q.active && !q.completed);
+      if (dq) {
+        dq.objectives[2] = 'Learn about the dark magic ✓';
+      }
+      triggerUIUpdate();
+    }
+
+    if (
+      gameState.currentDialogue === 'witch_sign' &&
+      nextId === 'end' &&
+      currentDialogue.node.id === 'start' &&
+      gameState.currentMap === 'deep_woods'
+    ) {
+      const dq = gameState.quests.find(q => q.id === 'clear_deep_woods' && q.active && !q.completed);
+      if (dq) {
+        dq.objectives[1] = 'Find the witch\'s hut ✓';
+      }
+      triggerUIUpdate();
+    }
+
+    if (gameState.currentDialogue === 'elder' && nextId === 'end' && currentDialogue.node.id === 'elder_deep_done') {
+      const dq = gameState.quests.find(q => q.id === 'clear_deep_woods' && q.active && !q.completed);
+      if (dq) {
+        dq.objectives[3] = 'Return to the elder ✓';
+        gameState.completeQuest('clear_deep_woods');
+        notify('Quest Completed: Into the Depths!', {
+          id: 'quest-done-depths', type: 'success',
+          description: 'The village is safer for your courage.',
+          duration: 6000,
+        });
+        triggerUIUpdate();
+        triggerMinimapUpdate(true);
+      }
+    }
+
+    if (gameState.currentDialogue === 'guard' && nextId === 'end' && currentDialogue.node.id === 'guard_turnin') {
+      const gq = gameState.quests.find(q => q.id === 'guard_duty' && q.active && !q.completed);
+      if (gq && gq.objectives[1]?.includes('✓')) {
+        gq.objectives[2] = 'Report back to the guard ✓';
+        gameState.completeQuest('guard_duty');
+        notify('Quest Completed: Guard Duty!', {
+          id: 'quest-done-guard', type: 'success',
+          description: 'The border is a little quieter tonight.',
+          duration: 6000,
+        });
+        triggerUIUpdate();
+      }
+    }
+
+    if (gameState.currentDialogue === 'merchant' && nextId === 'end' && currentDialogue.node.id === 'merchant_moonbloom_deliver') {
+      const mq = gameState.quests.find(q => q.id === 'merchants_request' && q.active && !q.completed);
+      const moonCount = gameState.inventory.filter(i => i.id === 'moonbloom').length;
+      if (mq && moonCount >= 3) {
+        for (let i = 0; i < 3; i++) {
+          gameState.removeItem('moonbloom');
+        }
+        mq.objectives[1] = 'Return to the merchant ✓';
+        gameState.completeQuest('merchants_request');
+        notify("Quest Completed: Merchant's Rare Goods!", {
+          id: 'quest-done-merchant', type: 'success',
+          description: 'Your purse grows heavier.',
+          duration: 6000,
+        });
+        triggerUIUpdate();
+      }
     }
 
     if (nextId === 'end' || !gameState.currentDialogue) {
@@ -2612,20 +3221,7 @@ const Game = () => {
   const handleDeathComplete = useCallback(() => {
     setDeathActive(false);
     playerDeadRef.current = false;
-    if (gameStateRef.current) {
-      const state = gameStateRef.current;
-      state.player.health = state.player.maxHealth;
-      state.player.stamina = state.player.maxStamina;
-      state.player.isDodging = false;
-      
-      const spawn = worldRef.current?.getSpawnPoint() || { x: 0, y: 0 };
-      state.player.position = { x: spawn.x, y: spawn.y };
-      
-      worldRef.current?.rebuildChunks();
-      worldRef.current?.updateChunks(spawn.x, spawn.y);
-      
-      triggerUIUpdate();
-    }
+    deathRespawnFnRef.current?.();
   }, []);
 
   // Music system with per-map tracks
@@ -2651,7 +3247,6 @@ const Game = () => {
       console.log(`[Music] Same track, skipping`);
       return;
     }
-    if (currentTrackRef.current === track) return;
     currentTrackRef.current = track;
     const audio = musicRef.current;
     if (!audio) return;
@@ -2747,14 +3342,6 @@ const Game = () => {
       if (iframe) {
         iframe.addEventListener('load', startOnInteraction, { once: true });
       }
-      
-      // Also try on first player movement/attack which triggers sound
-      const originalHandleInput = handleInput;
-      handleInput = (...args) => {
-        const result = originalHandleInput(...args);
-        startOnInteraction();
-        return result;
-      };
     });
 
     // Kick audio if it stops due to browser throttling when tab regains focus
@@ -2785,17 +3372,37 @@ const Game = () => {
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
+      <div
+        ref={portalVignetteRef}
+        className="pointer-events-none fixed inset-0 z-[35]"
+        style={{ opacity: 0, mixBlendMode: 'screen', transition: 'opacity 120ms ease-out' }}
+        aria-hidden
+      />
       <div ref={mountRef} className="w-full h-full" />
       
       {gameState && (
         <>
           <GameUI gameState={gameState} assetManager={assetManagerRef.current} refreshToken={uiVersion} triggerUIUpdate={triggerUIUpdate} musicRef={musicRef} showControls={showControls} />
-          <Minimap
+          <div className="fixed top-16 right-4 z-30 flex flex-col gap-2 pointer-events-none">
+            <Minimap
+              currentMap={allMaps[gameState.currentMap]}
+              currentMapId={gameState.currentMap}
+              gameStateRef={gameStateRef}
+              visitedTilesRef={visitedTilesRef}
+              mapMarkersRef={mapMarkersRef}
+              markers={mapMarkers}
+              refreshToken={minimapVersion}
+            />
+            <NotificationFeed />
+          </div>
+          <MapModal
+            open={mapModalOpen}
+            onOpenChange={setMapModalOpen}
             currentMap={allMaps[gameState.currentMap]}
             currentMapId={gameState.currentMap}
-            playerPosition={gameState.player.position}
-            visitedTiles={visitedTilesRef.current}
-            npcs={gameState.npcs}
+            gameStateRef={gameStateRef}
+            visitedTilesRef={visitedTilesRef}
+            mapMarkersRef={mapMarkersRef}
             markers={mapMarkers}
             refreshToken={minimapVersion}
           />
@@ -2820,7 +3427,7 @@ const Game = () => {
       )}
 
       <TransitionOverlay active={transitionActive} mapName={transitionMapName} />
-      <DeathOverlay active={deathActive} goldLost={deathGoldLost} onComplete={handleDeathComplete} />
+      <DeathOverlay active={deathActive} essenceLost={deathEssenceLost} onComplete={handleDeathComplete} />
     </div>
   );
 };

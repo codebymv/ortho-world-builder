@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ENEMY_BLUEPRINTS } from '@/data/enemies';
 
 // Shared geometry instances to avoid creating duplicates
 const _sharedTileGeometry = new THREE.PlaneGeometry(1, 1);
@@ -496,6 +497,81 @@ export class AssetManager {
     return {};
   }
 
+  /** Build enemy sprite textures before first spawn (e.g. on map load) to avoid frame hitches. */
+  warmupEnemyTexturesForZones(zones: { enemyType: string }[] | undefined): void {
+    if (!zones?.length) return;
+    const seen = new Set<string>();
+    for (const z of zones) {
+      const bp = ENEMY_BLUEPRINTS[z.enemyType];
+      if (!bp || seen.has(bp.sprite)) continue;
+      seen.add(bp.sprite);
+      const base = bp.sprite;
+      this.getTexture(base);
+      this.getTexture(`${base}_telegraph`);
+      this.getTexture(`${base}_attack`);
+    }
+  }
+
+  /**
+   * Spread enemy sprite generation across idle frames so the first map stays light.
+   * Call cancel fn on unmount.
+   */
+  startBackgroundEnemyPrewarm(shouldAbort: () => boolean): () => void {
+    let cancelled = false;
+    let idleId: number | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const typeKeys = Object.keys(ENEMY_BLUEPRINTS);
+    let idx = 0;
+
+    const clearScheduled = () => {
+      if (idleId !== null && typeof cancelIdleCallback !== 'undefined') {
+        cancelIdleCallback(idleId);
+        idleId = null;
+      }
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
+
+    const schedule = (fn: () => void) => {
+      clearScheduled();
+      if (typeof requestIdleCallback !== 'undefined') {
+        idleId = requestIdleCallback(fn, { timeout: 1200 });
+      } else {
+        timeoutId = setTimeout(fn, 0);
+      }
+    };
+
+    const pump = () => {
+      if (cancelled || shouldAbort()) return;
+      if (idx >= typeKeys.length) return;
+      const bp = ENEMY_BLUEPRINTS[typeKeys[idx++]];
+      this.getTexture(bp.sprite);
+      this.getTexture(`${bp.sprite}_telegraph`);
+      this.getTexture(`${bp.sprite}_attack`);
+      if (!cancelled && !shouldAbort() && idx < typeKeys.length) {
+        schedule(pump);
+      }
+    };
+
+    const kick = () => {
+      if (cancelled || shouldAbort()) return;
+      schedule(pump);
+    };
+
+    if (typeof requestIdleCallback !== 'undefined') {
+      idleId = requestIdleCallback(kick, { timeout: 2000 });
+    } else {
+      timeoutId = setTimeout(kick, 400);
+    }
+
+    return () => {
+      cancelled = true;
+      clearScheduled();
+    };
+  }
+
   loadDefaultAssets() {
     const C = 0; // transparent
 
@@ -659,7 +735,7 @@ export class AssetManager {
     const SPIDER_EYE = 0xF44336;
     const SPIDER_FANG = 0xBDBDBD;
 
-    this.textures.set('enemy_spider', this.createSpriteTexture([
+    this.registerTexture('enemy_spider', () => this.createSpriteTexture([
       [C,          SPIDER_LEG,C,          C,          C,          C,          SPIDER_LEG,C,          C,          C],
       [SPIDER_LEG, C,         SPIDER_BODY,SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY_H,C,     SPIDER_LEG, C,         C],
       [C,          SPIDER_BODY,SPIDER_EYE,SPIDER_BODY,SPIDER_BODY,SPIDER_EYE,SPIDER_BODY,C,         C,         C],
@@ -680,7 +756,7 @@ export class AssetManager {
     const SLIME_PUPIL = 0x212121;
     const SLIME_SHINE = 0xA5D6A7;
 
-    this.textures.set('enemy_slime', this.createSpriteTexture([
+    this.registerTexture('enemy_slime', () => this.createSpriteTexture([
       [C,          C,          SLIME_H,   SLIME_H,   SLIME_H,   C,          C,          C],
       [C,          SLIME_H,   SLIME_SHINE,SLIME_BODY,SLIME_BODY,SLIME_H,   C,          C],
       [SLIME_S,   SLIME_BODY,SLIME_EYE, SLIME_BODY,SLIME_EYE, SLIME_BODY,SLIME_S,    C],
@@ -699,7 +775,7 @@ export class AssetManager {
     const WOLF_SNOUT = 0x9E9E9E;
     const WOLF_FANG = 0xFAFAFA;
 
-    this.textures.set('enemy_wolf', this.createSpriteTexture([
+    this.registerTexture('enemy_wolf', () => this.createSpriteTexture([
       [C,        C,        WOLF_FUR, WOLF_FUR_H,C,       C,        WOLF_FUR_H,WOLF_FUR,C,        C],
       [C,        WOLF_FUR, WOLF_FUR_H,WOLF_FUR,WOLF_FUR,WOLF_FUR, WOLF_FUR, WOLF_FUR_H,WOLF_FUR,C],
       [C,        WOLF_FUR, WOLF_EYE,WOLF_FUR,  WOLF_FUR,WOLF_FUR, WOLF_EYE, WOLF_FUR, C,        C],
@@ -712,7 +788,7 @@ export class AssetManager {
 
     const WOLF_EYE_GLOW = 0xFFFF00;
     const WOLF_WARN = 0xFF5722;
-    this.textures.set('enemy_wolf_telegraph', this.createSpriteTexture([
+    this.registerTexture('enemy_wolf_telegraph', () => this.createSpriteTexture([
       [C,        C,        C,        C,        C,       C,        C,        C,        C,        C],
       [C,        C,        WOLF_FUR, WOLF_FUR_H,C,       C,        WOLF_FUR_H,WOLF_FUR,C,       C],
       [C,        WOLF_FUR, WOLF_EYE_GLOW,WOLF_FUR,WOLF_FUR,WOLF_FUR, WOLF_EYE_GLOW, WOLF_FUR, C,C],
@@ -723,7 +799,7 @@ export class AssetManager {
       [C,        WOLF_FUR_S,C,       WOLF_FUR_S,C,       WOLF_FUR_S,C,       WOLF_FUR_S,C,      C],
     ], 4, 'enemy_wolf_telegraph'));
 
-    this.textures.set('enemy_wolf_attack', this.createSpriteTexture([
+    this.registerTexture('enemy_wolf_attack', () => this.createSpriteTexture([
       [C,        C,        WOLF_FUR_H,WOLF_FUR_H,C,       C,        WOLF_FUR_H,WOLF_FUR_H,C,    C],
       [C,        WOLF_FUR, WOLF_FUR_H,WOLF_FUR,WOLF_FUR,WOLF_FUR, WOLF_FUR, WOLF_FUR_H,WOLF_FUR,C],
       [C,        WOLF_FUR, WOLF_EYE_GLOW,WOLF_FUR,WOLF_FUR,WOLF_FUR, WOLF_EYE_GLOW, WOLF_FUR, C,C],
@@ -741,7 +817,7 @@ export class AssetManager {
     const SHADOW_GLOW = 0xD500F9;
     const SHADOW_WISP = 0x7C4DFF;
 
-    this.textures.set('enemy_shadow', this.createSpriteTexture([
+    this.registerTexture('enemy_shadow', () => this.createSpriteTexture([
       [C,          C,           SHADOW_WISP, SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_WISP,C,          C,          C],
       [C,          SHADOW_BODY, SHADOW_BODY_H,SHADOW_EYE,  SHADOW_BODY, SHADOW_EYE,   SHADOW_BODY_H,SHADOW_BODY,C,         C],
       [C,          SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY,  SHADOW_GLOW, SHADOW_BODY,  SHADOW_BODY,SHADOW_BODY_S,C,         C],
@@ -754,7 +830,7 @@ export class AssetManager {
 
     const SHADOW_EYE_GLOW = 0xFF5252;
     const SHADOW_CHARGE = 0xEA80FC;
-    this.textures.set('enemy_shadow_telegraph', this.createSpriteTexture([
+    this.registerTexture('enemy_shadow_telegraph', () => this.createSpriteTexture([
       [SHADOW_CHARGE,C,       SHADOW_WISP, SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_WISP,C,         SHADOW_CHARGE,C],
       [C,          SHADOW_BODY, SHADOW_BODY_H,SHADOW_EYE_GLOW,SHADOW_BODY,SHADOW_EYE_GLOW,SHADOW_BODY_H,SHADOW_BODY,C,C],
       [C,          SHADOW_BODY_S,SHADOW_CHARGE,SHADOW_BODY,SHADOW_GLOW,SHADOW_BODY,SHADOW_CHARGE,SHADOW_BODY_S,C,  C],
@@ -765,7 +841,7 @@ export class AssetManager {
       [C,          SHADOW_WISP, C,           C,           SHADOW_WISP, C,           C,          SHADOW_WISP,C,     C],
     ], 4, 'enemy_shadow_telegraph'));
 
-    this.textures.set('enemy_shadow_attack', this.createSpriteTexture([
+    this.registerTexture('enemy_shadow_attack', () => this.createSpriteTexture([
       [C,          SHADOW_WISP, SHADOW_CHARGE,SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_CHARGE,SHADOW_WISP,C,C],
       [SHADOW_WISP,SHADOW_BODY, SHADOW_BODY_H,SHADOW_EYE_GLOW,SHADOW_GLOW,SHADOW_EYE_GLOW,SHADOW_BODY_H,SHADOW_BODY,SHADOW_WISP,C],
       [SHADOW_CHARGE,SHADOW_BODY_S,SHADOW_BODY,SHADOW_GLOW,SHADOW_CHARGE,SHADOW_GLOW,SHADOW_BODY,SHADOW_BODY_S,SHADOW_CHARGE,C],
@@ -786,7 +862,7 @@ export class AssetManager {
     const BULB = 0x8BC34A;
     const BULB_S = 0x689F38;
 
-    this.textures.set('enemy_plant', this.createSpriteTexture([
+    this.registerTexture('enemy_plant', () => this.createSpriteTexture([
       [C,       C,       PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, C,       C,       C,       C],
       [C,       PETAL_E, PETAL_EH,0xFFEB3B,0xFFEB3B,PETAL_EH,PETAL_E, C,       C,       C],
       [VINE_S,  VINE,    PETAL_E, PETAL_EH,PETAL_E, PETAL_E, VINE,    VINE_S,  C,       C],
@@ -797,7 +873,7 @@ export class AssetManager {
       [C,       VINE_S,  C,       VINE_S,  VINE_S,  C,       VINE_S,  C,       C,       C],
     ], 4, 'enemy_plant'));
 
-    this.textures.set('enemy_plant_telegraph', this.createSpriteTexture([
+    this.registerTexture('enemy_plant_telegraph', () => this.createSpriteTexture([
       [PETAL_EH,C,       PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, C,       PETAL_EH,C,       C],
       [C,       PETAL_E, 0xFFEB3B,0xFFEB3B,0xFFEB3B,0xFFEB3B,PETAL_E, C,       C,       C],
       [VINE,    VINE_H,  PETAL_E, PETAL_EH,PETAL_E, PETAL_E, VINE_H,  VINE,    C,       C],
@@ -808,7 +884,7 @@ export class AssetManager {
       [C,       VINE_S,  C,       VINE_S,  VINE_S,  C,       VINE_S,  C,       C,       C],
     ], 4, 'enemy_plant_telegraph'));
 
-    this.textures.set('enemy_plant_attack', this.createSpriteTexture([
+    this.registerTexture('enemy_plant_attack', () => this.createSpriteTexture([
       [PETAL_E, PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, PETAL_EH,C,       C],
       [THORN,   PETAL_E, 0xFFEB3B,0xFFEB3B,0xFFEB3B,0xFFEB3B,PETAL_E, THORN,   C,       C],
       [THORN,   VINE_H,  PETAL_E, PETAL_EH,PETAL_E, PETAL_E, VINE_H,  THORN,   C,       C],
@@ -885,7 +961,7 @@ export class AssetManager {
     const GOL_EYE = 0xFF4400;
     const GOL_RUNE = 0x44FFAA;
 
-    this.textures.set('enemy_golem', this.createSpriteTexture([
+    this.registerTexture('enemy_golem', () => this.createSpriteTexture([
       [C,    C,    C,    GOL_S,GOL, GOL_H,GOL, GOL_S,C,    C,    C,    C],
       [C,    C,    GOL_S,GOL,  GOL_H,GOL, GOL, GOL_H,GOL, GOL_S,C,    C],
       [C,    GOL_S,GOL,  GOL_EYE,GOL_D,GOL,GOL,GOL_D,GOL_EYE,GOL,GOL_S,C],
@@ -915,7 +991,7 @@ export class AssetManager {
     this.textures.set('grass', this.createColorTexture(0x4CAF50, 32, 32, 'noise'));
     this.textures.set('dirt', this.createColorTexture(0x8D6E63, 32, 32, 'noise'));
     this.textures.set('water', this.createColorTexture(0x1E88E5, 32, 32, 'noise'));
-    this.textures.set('stone', this.createColorTexture(0x78909C, 32, 32, 'checker'));
+    this.textures.set('stone', this.createColorTexture(0x897060, 32, 32, 'checker'));
     this.textures.set('wood', this.createColorTexture(0x795548, 32, 32, 'gradient'));
     this.textures.set('tall_grass', this.createColorTexture(0x388E3C, 32, 32, 'noise'));
     this.textures.set('sand', this.createColorTexture(0xF5DEB3, 32, 32, 'noise'));
@@ -933,14 +1009,85 @@ export class AssetManager {
     this.textures.set('waterfall', this.createColorTexture(0x42A5F5, 32, 32, 'noise'));
     this.textures.set('snow', this.createColorTexture(0xECEFF1, 32, 32, 'noise'));
     
-    // New terrain tiles
-    this.textures.set('cliff', this.createColorTexture(0x5D4037, 32, 32, 'gradient'));
-    this.textures.set('cliff_edge', this.createColorTexture(0x4E342E, 32, 32, 'gradient'));
-    this.textures.set('cobblestone', this.createColorTexture(0x9E9E9E, 32, 32, 'checker'));
+    // New terrain tiles — cleaner, higher-contrast cliff set
+    const CLIFF_GRASS    = 0x81C784; // vivid grass cap
+    const CLIFF_GRASS_D  = 0x558B2F; // dark grass edge below cap
+    const CLIFF_SOIL     = 0x6D4C41; // dark soil band
+    const CLIFF_TOP_RIM  = 0xC8A97E; // warm sandy stone — the overhang lip
+    const CLIFF_STRATA_H = 0xA0877A; // lighter rock highlight
+    const CLIFF_STRATA   = 0x7B6460; // mid rock face
+    const CLIFF_STRATA_D = 0x4E3A36; // dark strata seam
+    const CLIFF_SHADOW   = 0x2C211E; // deep base shadow
+    const STAIRS_STONE   = 0xB0BEC5;
+    const STAIRS_STONE_H = 0xECEFF1;
+    const STAIRS_STONE_S = 0x546E7A;
+    const STAIRS_EDGE    = 0xFFFFFF; // bright tread edge
+
+    // cliff_edge: the TOP of the cliff — shows grass cap, soil band, overhang, then rock face.
+    // Top rows are opaque grass so the sky-blue scene background never bleeds through.
+    this.textures.set('cliff_edge', this.createSpriteTexture([
+      [CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS],
+      [CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D],
+      [CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS],
+      [CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL],
+      [CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM],
+      [CLIFF_STRATA_H,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA],
+      [CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D],
+      [CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D],
+      [CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA],
+      [CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA],
+      [CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D],
+      [CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H],
+      [CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA],
+      [CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW],
+      [CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW],
+      [CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW],
+    ], 4, 'cliff_edge'));
+
+    // cliff: the BODY tile below cliff_edge — pure rock face with strata lines.
+    // Top rows opaque to prevent sky bleed-through.
+    this.textures.set('cliff', this.createSpriteTexture([
+      [CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA],
+      [CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA],
+      [CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D],
+      [CLIFF_STRATA_H,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H],
+      [CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D],
+      [CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D],
+      [CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA],
+      [CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA],
+      [CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D],
+      [CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H],
+      [CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA],
+      [CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D],
+      [CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA],
+      [CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA],
+      [CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW],
+      [CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW],
+    ], 4, 'cliff'));
+
+    // stairs: carved stone steps — opaque grass cap at top, then treads
+    this.textures.set('stairs', this.createSpriteTexture([
+      [CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS],
+      [CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL],
+      [STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE],
+      [STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H],
+      [STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE],
+      [STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S],
+      [STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE],
+      [STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H],
+      [STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE],
+      [STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S],
+      [STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE],
+      [STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H],
+      [STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE],
+      [STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S],
+    ], 4, 'stairs'));
+    this.textures.set('cobblestone', this.createColorTexture(0x9B8B72, 32, 32, 'checker'));
     this.textures.set('farmland', this.createColorTexture(0x6D4C41, 32, 32, 'noise'));
     this.textures.set('dark_grass', this.createColorTexture(0x2E7D32, 32, 32, 'noise'));
-    this.textures.set('mossy_stone', this.createColorTexture(0x607060, 32, 32, 'checker'));
+    this.textures.set('mossy_stone', this.createColorTexture(0x6B7B5A, 32, 32, 'checker'));
     this.textures.set('wooden_path', this.createColorTexture(0x8D6E63, 32, 32, 'gradient'));
+    this.textures.set('wood_floor', this.createColorTexture(0xA1887F, 32, 32, 'gradient'));
 
     // ========== OBJECTS ==========
     const TRUNK = 0x5D4037;
@@ -993,80 +1140,89 @@ export class AssetManager {
       [C,     C,     STATUE_S,STATUE_S,STATUE_S,STATUE_S, C,     C],
     ]));
 
-    // House - bigger (14x12)
+    // House — chimney + roof ridge trim + door arch read
     const WALL = 0x8D6E63;
     const WALL_H = 0xA1887F;
     const WALL_S = 0x6D4C41;
     const ROOF = 0xB71C1C;
     const ROOF_H = 0xD32F2F;
     const ROOF_S = 0x7F0000;
-    const WINDOW = 0xBBDEFB;
+    const ROOF_TRIM = 0xFFCDD2;
+    const WINDOW = 0x1A237E;
+    const SHUTTER = 0x5D4037;
     const DOOR = 0x4E342E;
+    const DOOR_ARCH = 0x6D4C41;
+    const CHIM = 0x3E2723;
+    const CHIM_TOP = 0x5D4037;
 
     this.textures.set('house', this.createSpriteTexture([
-      [C,     C,     C,     C,     C,     ROOF_S,ROOF, ROOF_H,ROOF, C,     C,     C,     C,     C],
+      [C,     C,     C,     CHIM,  CHIM,  CHIM_TOP,CHIM_TOP,C,     C,     C,     C,     C,     C,     C],
+      [C,     C,     C,     CHIM,  CHIM,  ROOF_S,ROOF, ROOF_H,ROOF, C,     C,     C,     C,     C],
       [C,     C,     C,     C,     ROOF_S,ROOF,  ROOF_H,ROOF, ROOF, ROOF_S,C,     C,     C,     C],
-      [C,     C,     C,     ROOF_S,ROOF,  ROOF,  ROOF, ROOF,  ROOF, ROOF,  ROOF_S,C,     C,     C],
+      [C,     C,     C,     ROOF_S,ROOF,  ROOF,  ROOF_TRIM,ROOF, ROOF, ROOF,  ROOF_S,C,     C,     C],
       [C,     C,     ROOF_S,ROOF,  ROOF,  ROOF_H,ROOF, ROOF,  ROOF_H,ROOF, ROOF,  ROOF_S,C,     C],
       [C,     C,     WALL,  WALL_H,WALL,  WALL,  WALL, WALL,  WALL, WALL,  WALL_H,WALL,  C,     C],
-      [C,     C,     WALL,  WINDOW,WINDOW,WALL,  WALL_H,WALL, WINDOW,WINDOW,WALL,  WALL,  C,     C],
-      [C,     C,     WALL_S,WINDOW,WINDOW,WALL_S,WALL, WALL_S,WINDOW,WINDOW,WALL_S,WALL_S,C,     C],
-      [C,     C,     WALL,  WALL,  WALL,  WALL,  DOOR, DOOR,  WALL, WALL,  WALL,  WALL,  C,     C],
-      [C,     C,     WALL_S,WALL,  WALL,  WALL,  DOOR, DOOR,  WALL, WALL,  WALL,  WALL_S,C,     C],
+      [C,     C,     WALL,  SHUTTER,WINDOW,WINDOW,SHUTTER,WALL_H,SHUTTER,WINDOW,WINDOW,SHUTTER,WALL,  C],
+      [C,     C,     WALL_S,SHUTTER,WINDOW,WINDOW,SHUTTER,WALL_S,SHUTTER,WINDOW,WINDOW,SHUTTER,WALL_S,C],
+      [C,     C,     WALL,  WALL,  WALL,  DOOR_ARCH,DOOR,DOOR,DOOR_ARCH,WALL,  WALL,  WALL,  C,     C],
+      [C,     C,     WALL_S,WALL,  WALL,  DOOR_ARCH,DOOR,DOOR,DOOR_ARCH,WALL,  WALL,  WALL_S,C,     C],
       [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,C,   C],
     ]));
 
-    // House Blue Roof variant (14x10)
     const BROOF = 0x1565C0;
     const BROOF_H = 0x1E88E5;
     const BROOF_S = 0x0D47A1;
+    const BROOF_TRIM = 0xE3F2FD;
     this.textures.set('house_blue', this.createSpriteTexture([
-      [C,     C,     C,     C,     C,     BROOF_S,BROOF,BROOF_H,BROOF,C,     C,     C,     C,     C],
+      [C,     C,     C,     CHIM,  CHIM,  CHIM_TOP,CHIM_TOP,C,     C,     C,     C,     C,     C,     C],
+      [C,     C,     C,     CHIM,  CHIM,  BROOF_S,BROOF,BROOF_H,BROOF,C,     C,     C,     C,     C],
       [C,     C,     C,     C,     BROOF_S,BROOF, BROOF_H,BROOF,BROOF,BROOF_S,C,     C,     C,     C],
-      [C,     C,     C,     BROOF_S,BROOF, BROOF, BROOF,BROOF, BROOF,BROOF, BROOF_S,C,     C,     C],
+      [C,     C,     C,     BROOF_S,BROOF, BROOF, BROOF_TRIM,BROOF,BROOF,BROOF, BROOF_S,C,     C,     C],
       [C,     C,     BROOF_S,BROOF, BROOF, BROOF_H,BROOF,BROOF,BROOF_H,BROOF,BROOF,BROOF_S,C,    C],
       [C,     C,     WALL,  WALL_H,WALL,  WALL,  WALL, WALL,  WALL, WALL,  WALL_H,WALL,  C,     C],
-      [C,     C,     WALL,  WINDOW,WINDOW,WALL,  WALL_H,WALL, WINDOW,WINDOW,WALL,  WALL,  C,     C],
-      [C,     C,     WALL_S,WINDOW,WINDOW,WALL_S,WALL, WALL_S,WINDOW,WINDOW,WALL_S,WALL_S,C,     C],
-      [C,     C,     WALL,  WALL,  WALL,  WALL,  DOOR, DOOR,  WALL, WALL,  WALL,  WALL,  C,     C],
-      [C,     C,     WALL_S,WALL,  WALL,  WALL,  DOOR, DOOR,  WALL, WALL,  WALL,  WALL_S,C,     C],
+      [C,     C,     WALL,  SHUTTER,WINDOW,WINDOW,SHUTTER,WALL_H,SHUTTER,WINDOW,WINDOW,SHUTTER,WALL,  C],
+      [C,     C,     WALL_S,SHUTTER,WINDOW,WINDOW,SHUTTER,WALL_S,SHUTTER,WINDOW,WINDOW,SHUTTER,WALL_S,C],
+      [C,     C,     WALL,  WALL,  WALL,  DOOR_ARCH,DOOR,DOOR,DOOR_ARCH,WALL,  WALL,  WALL,  C,     C],
+      [C,     C,     WALL_S,WALL,  WALL,  DOOR_ARCH,DOOR,DOOR,DOOR_ARCH,WALL,  WALL,  WALL_S,C,     C],
       [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,C,   C],
     ]));
 
-    // House Green Roof variant (14x10)
     const GROOF = 0x2E7D32;
     const GROOF_H = 0x43A047;
     const GROOF_S = 0x1B5E20;
+    const GROOF_TRIM = 0xC8E6C9;
     this.textures.set('house_green', this.createSpriteTexture([
-      [C,     C,     C,     C,     C,     GROOF_S,GROOF,GROOF_H,GROOF,C,     C,     C,     C,     C],
+      [C,     C,     C,     CHIM,  CHIM,  CHIM_TOP,CHIM_TOP,C,     C,     C,     C,     C,     C,     C],
+      [C,     C,     C,     CHIM,  CHIM,  GROOF_S,GROOF,GROOF_H,GROOF,C,     C,     C,     C,     C],
       [C,     C,     C,     C,     GROOF_S,GROOF, GROOF_H,GROOF,GROOF,GROOF_S,C,     C,     C,     C],
-      [C,     C,     C,     GROOF_S,GROOF, GROOF, GROOF,GROOF, GROOF,GROOF, GROOF_S,C,     C,     C],
+      [C,     C,     C,     GROOF_S,GROOF, GROOF, GROOF_TRIM,GROOF,GROOF,GROOF, GROOF_S,C,     C,     C],
       [C,     C,     GROOF_S,GROOF, GROOF, GROOF_H,GROOF,GROOF,GROOF_H,GROOF,GROOF,GROOF_S,C,    C],
       [C,     C,     WALL,  WALL_H,WALL,  WALL,  WALL, WALL,  WALL, WALL,  WALL_H,WALL,  C,     C],
-      [C,     C,     WALL,  WINDOW,WINDOW,WALL,  WALL_H,WALL, WINDOW,WINDOW,WALL,  WALL,  C,     C],
-      [C,     C,     WALL_S,WINDOW,WINDOW,WALL_S,WALL, WALL_S,WINDOW,WINDOW,WALL_S,WALL_S,C,     C],
-      [C,     C,     WALL,  WALL,  WALL,  WALL,  DOOR, DOOR,  WALL, WALL,  WALL,  WALL,  C,     C],
-      [C,     C,     WALL_S,WALL,  WALL,  WALL,  DOOR, DOOR,  WALL, WALL,  WALL,  WALL_S,C,     C],
+      [C,     C,     WALL,  SHUTTER,WINDOW,WINDOW,SHUTTER,WALL_H,SHUTTER,WINDOW,WINDOW,SHUTTER,WALL,  C],
+      [C,     C,     WALL_S,SHUTTER,WINDOW,WINDOW,SHUTTER,WALL_S,SHUTTER,WINDOW,WINDOW,SHUTTER,WALL_S,C],
+      [C,     C,     WALL,  WALL,  WALL,  DOOR_ARCH,DOOR,DOOR,DOOR_ARCH,WALL,  WALL,  WALL,  C,     C],
+      [C,     C,     WALL_S,WALL,  WALL,  DOOR_ARCH,DOOR,DOOR,DOOR_ARCH,WALL,  WALL,  WALL_S,C,     C],
       [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,C,   C],
     ]));
 
-    // Thatched cottage variant (12x10) - more rustic
     const THATCH = 0xBCA065;
     const THATCH_H = 0xD4B878;
     const THATCH_S = 0x8D7540;
+    const THATCH_BAND = 0xE6CEA0;
     const CWALL = 0xD7CCC8;
     const CWALL_S = 0xBCAAA4;
     const CWALL_H = 0xEFEBE9;
     this.textures.set('house_thatch', this.createSpriteTexture([
-      [C,      C,      C,      C,      THATCH_S,THATCH, THATCH_H,THATCH, C,      C,      C,      C],
+      [C,      C,      CHIM,   CHIM,   CHIM_TOP,CHIM_TOP,C,      C,      C,      C,      C,      C],
+      [C,      C,      CHIM,   CHIM,   THATCH_S,THATCH, THATCH_H,THATCH, C,      C,      C,      C],
       [C,      C,      C,      THATCH_S,THATCH, THATCH_H,THATCH, THATCH, THATCH_S,C,      C,      C],
-      [C,      C,      THATCH_S,THATCH, THATCH, THATCH, THATCH_H,THATCH, THATCH, THATCH_S,C,      C],
+      [C,      C,      THATCH_S,THATCH, THATCH_BAND,THATCH, THATCH_H,THATCH, THATCH, THATCH_S,C,      C],
       [C,      THATCH_S,THATCH, THATCH_H,THATCH, THATCH, THATCH, THATCH, THATCH_H,THATCH, THATCH_S,C],
       [C,      CWALL,  CWALL_H,CWALL,  CWALL,  CWALL,  CWALL,  CWALL,  CWALL,  CWALL_H,CWALL,  C],
-      [C,      CWALL,  WINDOW, WINDOW, CWALL,  CWALL_H,CWALL,  WINDOW, WINDOW, CWALL,  CWALL,  C],
-      [C,      CWALL_S,WINDOW, WINDOW, CWALL_S,CWALL,  CWALL_S,WINDOW, WINDOW, CWALL_S,CWALL_S,C],
-      [C,      CWALL,  CWALL,  CWALL,  CWALL,  DOOR,   DOOR,   CWALL,  CWALL,  CWALL,  CWALL,  C],
-      [C,      CWALL_S,CWALL,  CWALL,  CWALL,  DOOR,   DOOR,   CWALL,  CWALL,  CWALL,  CWALL_S,C],
+      [C,      CWALL,  SHUTTER,WINDOW, WINDOW, CWALL,  CWALL_H,CWALL,  WINDOW, WINDOW, SHUTTER,CWALL,  C],
+      [C,      CWALL_S,SHUTTER,WINDOW, WINDOW, CWALL_S,CWALL,  CWALL_S,WINDOW, WINDOW, SHUTTER,CWALL_S,C],
+      [C,      CWALL,  CWALL,  CWALL,  CWALL,  DOOR_ARCH,DOOR, DOOR, DOOR_ARCH,CWALL,  CWALL,  CWALL,  C],
+      [C,      CWALL_S,CWALL,  CWALL,  CWALL,  DOOR_ARCH,DOOR, DOOR, DOOR_ARCH,CWALL,  CWALL,  CWALL_S,C],
       [C,      CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,C],
     ]));
 
@@ -1133,6 +1289,94 @@ export class AssetManager {
       [C,           C,           PORTAL_OUTER,PORTAL_OUTER,PORTAL_MID,  PORTAL_OUTER,PORTAL_OUTER,C,           C,           C],
     ]));
 
+    const WHEEL = 0x212121;
+    const WHEEL_H = 0x424242;
+    const WAGON_W = 0x5D4037;
+    const WAGON_W_H = 0x795548;
+    const CANOPY_R = 0xC62828;
+    const CANOPY_R_H = 0xE53935;
+    const STALL_W = 0x6D4C41;
+    const BOOK = 0x5D4037;
+    const BOOK_H = 0x8D6E63;
+    const RUG_R = 0xB71C1C;
+    const RUG_G = 0x1B5E20;
+    const RUG_GOLD = 0xFFD54F;
+    const CLAY = 0xBF360C;
+    const CLAY_H = 0xE64A19;
+
+    this.textures.set('wagon', this.createSpriteTexture([
+      [C,     C,     C,     WHEEL_H,WHEEL, WHEEL_H,C,     C,     WHEEL_H,WHEEL, WHEEL_H,C,     C],
+      [C,     C,     WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,C,     C],
+      [C,     WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,C],
+      [C,     WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,C],
+      [C,     WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,C],
+      [C,     WHEEL_H,WHEEL, WHEEL_H,WHEEL, WHEEL_H,WHEEL, WHEEL_H,WHEEL, WHEEL_H,WHEEL, WHEEL_H,C],
+      [C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
+    ]));
+
+    this.textures.set('cart', this.createSpriteTexture([
+      [C,     C,     WHEEL_H,WHEEL, WHEEL_H,C,     C,     C,     C],
+      [C,     WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,C,     C],
+      [C,     WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,C],
+      [C,     WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,C],
+      [C,     WHEEL_H,WHEEL, WHEEL_H,WHEEL, WHEEL_H,C,     C],
+    ]));
+
+    this.textures.set('market_stall', this.createSpriteTexture([
+      [C,     CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,C,     C],
+      [C,     CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,C,     C],
+      [C,     STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,C],
+      [C,     STALL_W,0xFFF8E1,0xFFECB3,STALL_W,0xFFF8E1,0xFFECB3,STALL_W,STALL_W,STALL_W,C],
+      [C,     STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,C],
+      [C,     C,     STALL_W,C,     STALL_W,C,     STALL_W,C,     C,     C,     C],
+    ]));
+
+    this.textures.set('bench', this.createSpriteTexture([
+      [C,     WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,C],
+      [C,     WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,C],
+      [WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H],
+      [C,     WAGON_W_H,C,     C,     C,     C,     WAGON_W_H,C],
+    ]));
+
+    this.textures.set('bookshelf', this.createSpriteTexture([
+      [STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W],
+      [BOOK_H, BOOK,  BOOK_H, BOOK,  BOOK_H, BOOK,  BOOK_H, BOOK],
+      [BOOK,   BOOK_H,BOOK,   BOOK_H,BOOK,   BOOK_H,BOOK,   BOOK_H],
+      [STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W],
+      [BOOK_H, BOOK,  BOOK_H, BOOK,  BOOK_H, BOOK,  BOOK_H, BOOK],
+      [BOOK,   BOOK_H,BOOK,   BOOK_H,BOOK,   BOOK_H,BOOK,   BOOK_H],
+      [STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W],
+      [BOOK_H, BOOK,  BOOK_H, BOOK,  BOOK_H, BOOK,  BOOK_H, BOOK],
+    ]));
+
+    this.textures.set('table', this.createSpriteTexture([
+      [C,     WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,C],
+      [C,     WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,C],
+      [WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H],
+      [C,     WAGON_W_H,C,     C,     C,     C,     WAGON_W_H,C],
+    ]));
+
+    this.textures.set('counter', this.createSpriteTexture([
+      [WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W],
+      [WAGON_W,0xFFF8E1,0xFFECB3,0xFFF8E1,0xFFECB3,0xFFF8E1,0xFFECB3,0xFFF8E1,0xFFECB3,WAGON_W],
+      [WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W],
+    ]));
+
+    this.textures.set('pot', this.createSpriteTexture([
+      [C,     CLAY_H,CLAY,  CLAY_H,C],
+      [CLAY_H,CLAY,  CLAY_H,CLAY,  CLAY_H],
+      [CLAY,  CLAY_H,CLAY,  CLAY_H,CLAY],
+      [C,     CLAY_H,CLAY,  CLAY_H,C],
+    ]));
+
+    this.textures.set('rug', this.createSpriteTexture([
+      [RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD],
+      [RUG_R,  RUG_G,  RUG_R,  RUG_G,  RUG_R,  RUG_G,  RUG_R,  RUG_G,  RUG_R],
+      [RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD],
+      [RUG_R,  RUG_G,  RUG_R,  RUG_G,  RUG_R,  RUG_G,  RUG_R,  RUG_G,  RUG_R],
+      [RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD],
+    ]));
+
     // Small environmental sprites
     const PETAL = 0xF48FB1;
     const PETAL_H = 0xF8BBD0;
@@ -1185,6 +1429,25 @@ export class AssetManager {
       [C,     0xFF5722,0xFF5722,0xFF9800,0xFF9800,0xFF5722,0xFF5722,C],
       [0x5D4037,0x5D4037,0xFF5722,0xFF5722,0xFF5722,0xFF5722,0x5D4037,0x5D4037],
       [C,     0x5D4037,0x5D4037,0x5D4037,0x5D4037,0x5D4037,0x5D4037,C],
+    ]));
+
+    // Bonfire — taller violet/white flame (rest checkpoint)
+    this.textures.set('bonfire', this.createSpriteTexture([
+      [C,     C,     0xE1BEE7,0xFFFFFF,0xE1BEE7,C,     C,     C],
+      [C,     0xBA68C8,0xFFFFFF,0xFFD54F,0xFFFFFF,0xBA68C8,C,     C],
+      [C,     0x7B1FA2,0xE1BEE7,0xFFD54F,0xFFD54F,0xE1BEE7,0x7B1FA2,C],
+      [0x4E342E,0x5D4037,0xFF6F00,0xFF9800,0xFF9800,0xFF6F00,0x5D4037,0x4E342E],
+      [0x3E2723,0x4E342E,0x5D4037,0xFF5722,0xFF5722,0x5D4037,0x4E342E,0x3E2723],
+      [C,     0x3E2723,0x4E342E,0x4E342E,0x4E342E,0x4E342E,0x3E2723,C],
+    ]));
+
+    // Dropped essence bloodstain orb (world pickup)
+    this.textures.set('essence_drop', this.createSpriteTexture([
+      [C,     C,     0x4A148C,0xCE93D8,0x4A148C,C,     C],
+      [C,     0x7B1FA2,0xE1BEE7,0xFFFFFF,0xE1BEE7,0x7B1FA2,C],
+      [0x6A1B9A,0xCE93D8,0xFFFFFF,0xFFD54F,0xFFFFFF,0xCE93D8,0x6A1B9A],
+      [C,     0x7B1FA2,0xE1BEE7,0xFFFFFF,0xE1BEE7,0x7B1FA2,C],
+      [C,     C,     0x4A148C,0xCE93D8,0x4A148C,C,     C],
     ]));
 
     this.textures.set('tombstone', this.createSpriteTexture([

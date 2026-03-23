@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { items } from '../../data/items';
 
 export interface PlayerState {
   position: { x: number; y: number };
@@ -10,6 +11,8 @@ export interface PlayerState {
   health: number;
   maxHealth: number;
   gold: number;
+  /** Combat currency — dropped on death, recovered from bloodstain */
+  essence: number;
   attackDamage: number;
   attackRange: number;
   lastAttackTime: number;
@@ -19,6 +22,7 @@ export interface PlayerState {
   // Dodge roll
   isDodging: boolean;
   dodgeTimer: number;
+  iFrameTimer: number;
   dodgeDuration: number;
   dodgeCooldown: number;
   lastDodgeTime: number;
@@ -46,6 +50,10 @@ export interface Item {
   description: string;
   type: 'consumable' | 'key' | 'quest' | 'equipment';
   sprite: string;
+  stats?: {
+    damage?: number;
+    range?: number;
+  };
 }
 
 export interface Quest {
@@ -58,10 +66,28 @@ export interface Quest {
   reward?: { gold?: number; items?: string[] };
 }
 
+export interface LastBonfire {
+  mapId: string;
+  x: number;
+  y: number;
+}
+
+export interface DroppedEssence {
+  mapId: string;
+  x: number;
+  y: number;
+  amount: number;
+}
+
 export class GameState {
   player: PlayerState;
   inventory: Item[];
   activeItemIndex: number;
+  equippedWeaponId: string | null;
+  /** Last rested bonfire — respawn point */
+  lastBonfire: LastBonfire | null;
+  /** Bloodstain left on death */
+  droppedEssence: DroppedEssence | null;
   quests: Quest[];
   npcs: NPC[];
   scene: THREE.Scene;
@@ -83,12 +109,13 @@ export class GameState {
       position: { x: 0, y: 0 },
       direction: 'down',
       isMoving: false,
-      speed: 0.055,
-      sprintSpeed: 0.10,
+      speed: 0.0605,
+      sprintSpeed: 0.11,
       isSprinting: false,
       health: 100,
       maxHealth: 100,
       gold: 0,
+      essence: 0,
       attackDamage: 20,
       attackRange: 2,
       lastAttackTime: 0,
@@ -98,6 +125,7 @@ export class GameState {
       // Dodge
       isDodging: false,
       dodgeTimer: 0,
+      iFrameTimer: 0,
       dodgeDuration: 0.25,
       dodgeCooldown: 600,
       lastDodgeTime: 0,
@@ -105,25 +133,25 @@ export class GameState {
       dodgeSpeed: 0.12,
       stamina: 100,
       maxStamina: 100,
-      staminaRegenRate: 15, // per second (moderate souls-like regen)
-      staminaRegenDelay: 1.0, // seconds after use before regen starts
+      staminaRegenRate: 38, // per second
+      staminaRegenDelay: 0.35, // seconds after use before regen starts
       lastStaminaUseTime: 0,
     };
 
-    this.inventory = [{
-      id: 'meek_short_sword',
-      name: 'Meek Short Sword',
-      description: 'A simple, reliable starting blade. Press space to swing.',
-      type: 'equipment',
-      sprite: 'sword',
-    }];
+    this.inventory = [{ ...items.meek_short_sword }];
     this.activeItemIndex = 0;
+    this.equippedWeaponId = items.meek_short_sword.id;
+    this.lastBonfire = null;
+    this.droppedEssence = null;
     this.quests = [];
     this.npcs = [];
   }
 
   addItem(item: Item) {
     this.inventory = [...this.inventory, item];
+    if (item.type === 'equipment' && !this.equippedWeaponId) {
+      this.setEquippedWeapon(item.id);
+    }
   }
 
   removeItem(itemId: string) {
@@ -133,6 +161,9 @@ export class GameState {
         ...this.inventory.slice(0, index),
         ...this.inventory.slice(index + 1)
       ];
+      if (this.equippedWeaponId === itemId) {
+        this.setEquippedWeapon(null);
+      }
     }
   }
 
@@ -152,7 +183,21 @@ export class GameState {
       if (quest.reward?.gold) {
         this.player.gold += quest.reward.gold;
       }
+      quest.reward?.items?.forEach(itemId => {
+        const rewardItem = items[itemId];
+        if (rewardItem) this.addItem({ ...rewardItem });
+      });
     }
+  }
+
+  setEquippedWeapon(itemId: string | null) {
+    const equipped =
+      (itemId ? this.inventory.find(item => item.id === itemId && item.type === 'equipment') : undefined) ??
+      this.inventory.find(item => item.type === 'equipment');
+
+    this.equippedWeaponId = equipped?.id ?? null;
+    this.player.attackDamage = equipped?.stats?.damage ?? 20;
+    this.player.attackRange = equipped?.stats?.range ?? 2;
   }
 
   setFlag(flag: string, value: boolean) {

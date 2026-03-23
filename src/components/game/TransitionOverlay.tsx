@@ -11,7 +11,6 @@ export const TransitionOverlay = ({ active, mapName }: TransitionOverlayProps) =
 
   useEffect(() => {
     if (active) {
-      // Clear any pending timers
       timerRef.current.forEach(clearTimeout);
       timerRef.current = [];
 
@@ -20,8 +19,14 @@ export const TransitionOverlay = ({ active, mapName }: TransitionOverlayProps) =
       timerRef.current.push(setTimeout(() => setPhase('fade-out'), 1500));
       timerRef.current.push(setTimeout(() => setPhase('hidden'), 2200));
     }
-    // Don't clear timers on cleanup — let the full animation play out
   }, [active]);
+
+  useEffect(() => {
+    return () => {
+      timerRef.current.forEach(clearTimeout);
+      timerRef.current = [];
+    };
+  }, []);
 
   if (phase === 'hidden') return null;
 
