@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
+import { Bell, CheckCircle2, Info, AlertCircle } from 'lucide-react';
 import { getEntries, subscribe, type NotifEntry } from '@/lib/game/notificationBus';
 
-const TYPE_ICON: Record<string, string> = { success: '✦', info: '●', error: '✗' };
+const TYPE_ICON: Record<string, any> = { 
+  success: <CheckCircle2 className="w-2.5 h-2.5" />, 
+  info: <Info className="w-2.5 h-2.5" />, 
+  error: <AlertCircle className="w-2.5 h-2.5" /> 
+};
 const TYPE_COLOR: Record<string, string> = {
-  success: '#4ade80',
-  info: '#93c5fd',
+  success: '#DAA520',
+  info: '#DAA520',
   error: '#f87171',
 };
 
@@ -29,10 +34,9 @@ export const NotificationFeed = () => {
   if (visible.length === 0) return null;
 
   return (
-    <div className="bg-[#1A0F0A]/90 backdrop-blur-sm p-2 rounded-sm border-2 border-[#5C3A21] shadow-lg font-sans pointer-events-none"
+    <div className="bg-[#1A0F0A]/90 backdrop-blur-sm p-2 rounded-sm border-2 border-[#5C3A21] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] font-sans pointer-events-none transition-all"
       style={{ maxWidth: '220px' }}
     >
-      <p className="text-[9px] text-[#DAA520]/80 uppercase tracking-wider font-bold mb-1.5">Recent</p>
       <div className="space-y-1.5">
         {visible.map((e) => {
           const ageSec = (now - e.createdAt) / 1000;
@@ -51,11 +55,11 @@ export const NotificationFeed = () => {
                 {TYPE_ICON[e.type]}
               </span>
               <div className="flex-1 min-w-0">
-                <span className="text-[#F5DEB3] text-[10px] font-semibold leading-tight truncate block">
+                <span className="text-[#DAA520] text-[10px] font-bold leading-tight truncate block">
                   {e.title}
                 </span>
                 {e.description && (
-                  <span className="text-[#8D6E63] text-[9px] leading-tight truncate block">
+                  <span className="text-[#F5DEB3] text-[9px] leading-tight truncate block">
                     {e.description}
                   </span>
                 )}
