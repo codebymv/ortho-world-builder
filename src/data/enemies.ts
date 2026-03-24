@@ -7,10 +7,11 @@ export interface EnemyBlueprint {
   speed?: number;
   attackRange?: number;
   chaseRange?: number;
-  /** Essence dropped on kill (defaults to hp-based in spawn if omitted) */
   essenceReward?: number;
   telegraphDuration?: number;
   recoverDuration?: number;
+  poise?: number;
+  staggerDuration?: number;
 }
 
 export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
@@ -25,6 +26,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     chaseRange: 6,
     telegraphDuration: 0.5,
     recoverDuration: 0.4,
+    poise: 60,
+    staggerDuration: 1.2,
   },
   shadow: {
     type: 'shadow',
@@ -37,6 +40,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     chaseRange: 7,
     telegraphDuration: 0.6,
     recoverDuration: 0.5,
+    poise: 80,
+    staggerDuration: 1.0,
   },
   plant: {
     type: 'plant',
@@ -49,6 +54,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     chaseRange: 5,
     telegraphDuration: 1.0,
     recoverDuration: 1.0,
+    poise: 120,
+    staggerDuration: 0.8,
   },
   skeleton: {
     type: 'skeleton',
@@ -61,6 +68,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     chaseRange: 6,
     telegraphDuration: 0.9,
     recoverDuration: 0.7,
+    poise: 70,
+    staggerDuration: 1.4,
   },
   bandit: {
     type: 'bandit',
@@ -73,6 +82,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     chaseRange: 7,
     telegraphDuration: 0.7,
     recoverDuration: 0.5,
+    poise: 50,
+    staggerDuration: 1.5,
   },
   golem: {
     type: 'golem',
@@ -85,6 +96,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     chaseRange: 5,
     telegraphDuration: 1.5,
     recoverDuration: 1.2,
+    poise: 200,
+    staggerDuration: 2.0,
   },
   spider: {
     type: 'spider',
@@ -97,6 +110,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     chaseRange: 8,
     telegraphDuration: 0.4,
     recoverDuration: 0.3,
+    poise: 30,
+    staggerDuration: 1.8,
   },
   slime: {
     type: 'slime',
@@ -109,6 +124,8 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     chaseRange: 4,
     telegraphDuration: 1.2,
     recoverDuration: 0.8,
+    poise: 40,
+    staggerDuration: 1.0,
   },
 };
 
@@ -123,4 +140,6 @@ export const DEFAULT_ENEMY: EnemyBlueprint = {
   chaseRange: 6,
   telegraphDuration: 0.8,
   recoverDuration: 0.6,
+  poise: 60,
+  staggerDuration: 1.2,
 };

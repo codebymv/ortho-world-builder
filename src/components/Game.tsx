@@ -79,6 +79,8 @@ function spawnEnemiesFromMapZones(mapKey: string, mapWorld: WorldMap, combatSyst
           essenceReward: blueprint.essenceReward,
           telegraphDuration: blueprint.telegraphDuration,
           recoverDuration: blueprint.recoverDuration,
+          poise: blueprint.poise,
+          staggerDuration: blueprint.staggerDuration,
         }
       );
     }
@@ -232,6 +234,13 @@ const Game = () => {
   mapModalOpenRef.current = mapModalOpen;
 
   const triggerUIUpdate = () => setUiVersion(prev => prev + 1);
+  const lastUIUpdateRef = useRef(0);
+  const triggerUIUpdateThrottled = (now: number = performance.now()) => {
+    if (now - lastUIUpdateRef.current >= 50) {
+      lastUIUpdateRef.current = now;
+      setUiVersion(prev => prev + 1);
+    }
+  };
   const triggerMinimapUpdate = (force: boolean = false, now: number = performance.now()) => {
     if (force || now - lastMinimapRefreshRef.current >= 120) {
       lastMinimapRefreshRef.current = now;
@@ -326,6 +335,8 @@ const Game = () => {
       state.player.attackRange = savedData.player.attackRange ?? state.player.attackRange;
       state.player.stamina = savedData.player.stamina;
       state.player.maxStamina = savedData.player.maxStamina;
+      state.player.estusCharges = savedData.player.estusCharges ?? state.player.maxEstusCharges;
+      state.player.maxEstusCharges = savedData.player.maxEstusCharges ?? 3;
       state.inventory = savedData.inventory;
       
       ensureStartingWeapon();
@@ -483,7 +494,7 @@ const Game = () => {
     let animTimer = 0;
     const IDLE_FRAME_DURATION = 0.8;
     const WALK_FRAME_DURATION = 0.18;
-    let playerAnimState: 'idle' | 'walk' | 'attack' | 'dodge' | 'charge' | 'hurt' | 'spin_attack' | 'drinking' = 'idle';
+    let playerAnimState: 'idle' | 'walk' | 'attack' | 'dodge' | 'charge' | 'hurt' | 'spin_attack' | 'drinking' | 'block' = 'idle';
     let drinkTimer = 0;
     const DRINK_DURATION = 0.8; // seconds to drink potion
     let attackFrameTimer = 0;
@@ -509,10 +520,11 @@ const Game = () => {
 
     // Blocking state
     let isBlocking = false;
-    let isRMBHeld = false; // Track if right mouse button is held
-    let blockAngle = 0; // For smooth block animation
-    const BLOCK_DAMAGE_REDUCTION = 0.6; // Reduce incoming damage by 60% when blocking
-    const BLOCK_STAMINA_COST = 2; // Stamina cost per second while blocking
+    let blockStartTime = 0;
+    let isRMBHeld = false;
+    let blockAngle = 0;
+    const BLOCK_DAMAGE_REDUCTION = 0.6;
+    const BLOCK_STAMINA_COST = 2;
     const DODGE_IFRAME_DURATION = 0.15;
 
     // LMB charge attack state
@@ -680,6 +692,7 @@ const Game = () => {
     const performBonfireRest = (tileX: number, tileY: number) => {
       state.player.health = state.player.maxHealth;
       state.player.stamina = state.player.maxStamina;
+      state.player.estusCharges = state.player.maxEstusCharges;
       state.lastBonfire = {
         mapId: state.currentMap,
         x: state.player.position.x,
@@ -690,13 +703,13 @@ const Game = () => {
         state.setFlag(firstKey, true);
         notify('Flame kindled', {
           id: 'bonfire', type: 'success',
-          description: 'You will respawn here if you fall. Foes have returned.',
+          description: 'Estus recharged. You will respawn here if you fall. Foes have returned.',
           duration: 4000,
         });
       } else {
         notify('Rested at bonfire', {
           id: 'bonfire', type: 'success',
-          description: 'Health and stamina restored. Enemies have respawned.',
+          description: 'Health, stamina, and Estus restored. Enemies have respawned.',
           duration: 2500,
         });
       }
@@ -762,6 +775,19 @@ const Game = () => {
     playerOutline.position.z = 0.79; // Just below player
     playerOutline.renderOrder = 999998; // Just below player
     scene.add(playerOutline);
+
+    // Blade shimmer overlay (for charge attack)
+    const bladeOverlayMaterial = new THREE.MeshBasicMaterial({
+      map: playerTexture, // Will be updated to blade texture during charge
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const bladeOverlayMesh = new THREE.Mesh(playerGeometry, bladeOverlayMaterial);
+    bladeOverlayMesh.position.z = 0.81; // Just above player
+    bladeOverlayMesh.renderOrder = 9999999;
+    bladeOverlayMesh.visible = false;
+    scene.add(bladeOverlayMesh);
 
     // Held item mesh (for showing potion instead of sword)
     const potionGeometry = new THREE.PlaneGeometry(0.3, 0.3);
@@ -928,7 +954,6 @@ const Game = () => {
               notify('Already at full health!', { id: 'full-health', duration: 1500 });
               return;
             }
-            // Start drinking animation and restore health
             playerAnimState = 'drinking';
             drinkTimer = DRINK_DURATION;
             state.player.health = Math.min(state.player.maxHealth, state.player.health + 50);
@@ -939,15 +964,27 @@ const Game = () => {
             }
             triggerUIUpdate();
           }
+        } else if (state.player.estusCharges > 0 && state.player.health < state.player.maxHealth) {
+          if (state.player.health >= state.player.maxHealth) {
+            notify('Already at full health!', { id: 'full-health', duration: 1500 });
+            return;
+          }
+          playerAnimState = 'drinking';
+          drinkTimer = DRINK_DURATION;
+          state.player.health = Math.min(state.player.maxHealth, state.player.health + 50);
+          state.player.estusCharges--;
+          notify('Used Estus Flask', { id: 'used-estus', type: 'success', description: 'Restored 50 health.', duration: 2000 });
+          triggerUIUpdate();
+        } else if (state.player.estusCharges <= 0) {
+          notify('No Estus charges!', { id: 'no-estus', duration: 1500 });
         } else {
-          // Space now triggers dodge roll
           dodgeBuffered = true;
         }
       }
       if (e.key === 'Control' && !state.dialogueActive) {
-        // Ctrl now triggers block
         if (!isBlocking && !state.player.isDodging && state.player.stamina > 0) {
           isBlocking = true;
+          blockStartTime = performance.now() / 1000;
           if (playerAnimState !== 'attack' && playerAnimState !== 'spin_attack' && playerAnimState !== 'drinking' && playerAnimState !== 'block') {
             playerAnimState = 'block';
           }
@@ -1022,7 +1059,7 @@ const Game = () => {
       state.player.dodgeDirection = { x: dx, y: dy };
       state.player.lastDodgeTime = now;
       state.player.stamina -= 25;
-      state.player.lastStaminaUseTime = now / 1000;
+      state.player.lastStaminaUseTime = performance.now() / 1000;
       playerAnimState = 'dodge';
       playDodgeRoll();
       triggerUIUpdate();
@@ -1222,9 +1259,9 @@ const Game = () => {
       swooshTimer = SWOOSH_DURATION;
       swooshFacing = dir8to4(currentDir8); // Capture direction at the moment of the attack
 
-      state.player.lastAttackTime = currentTime;
+state.player.lastAttackTime = currentTime;
       state.player.stamina = Math.max(0, state.player.stamina - ATTACK_STAMINA_COST);
-      state.player.lastStaminaUseTime = currentTime / 1000;
+      state.player.lastStaminaUseTime = performance.now() / 1000;
       playerAnimState = 'attack';
       attackFrame = 0;
       attackFrameTimer = ATTACK_FRAME_DURATION;
@@ -1251,19 +1288,41 @@ const Game = () => {
         });
         if (facingEnemies.length > 0) target = facingEnemies[0];
 
-        const died = combatSystem.playerAttack(target, state.player.attackDamage);
+        const result = combatSystem.playerAttack(target, state.player.attackDamage, state.player.position, state.player.direction);
 
-        const isCrit = target.state === 'recovering';
-        const actualDmg = isCrit ? Math.floor(state.player.attackDamage * 1.5) : state.player.attackDamage;
-        floatingText.spawnDamage(target.position.x, target.position.y, actualDmg, isCrit);
-        screenShake.shake(isCrit ? 0.2 : 0.1, isCrit ? 0.15 : 0.08);
-        if (isCrit) screenShake.hitStop(0.05);
+        const isCrit = target.state === 'recovering' || target.state === 'staggered';
+        const isStaggered = result.staggered;
+        const isBackstab = result.backstab;
+        
+        let actualDmg = state.player.attackDamage;
+        if (isBackstab) {
+          actualDmg = Math.floor(state.player.attackDamage * 2.5);
+        } else if (target.state === 'staggered') {
+          actualDmg = Math.floor(state.player.attackDamage * 2);
+        } else if (isCrit) {
+          actualDmg = Math.floor(state.player.attackDamage * 1.5);
+        }
+        
+        floatingText.spawnDamage(target.position.x, target.position.y, actualDmg, isCrit || isBackstab);
+        
+        if (isBackstab) {
+          screenShake.shake(0.35, 0.2);
+          screenShake.hitStop(0.1);
+          floatingText.spawn(target.position.x, target.position.y + 0.8, 'BACKSTAB!', '#FFD700', 24);
+        } else {
+          screenShake.shake(isCrit ? 0.2 : 0.1, isCrit ? 0.15 : 0.08);
+          if (isCrit) screenShake.hitStop(0.05);
+        }
+        
+        if (isStaggered) {
+          floatingText.spawn(target.position.x, target.position.y + 0.6, 'STAGGER!', '#88AAFF', 20);
+        }
 
         particleSystem.emitDamage(
           new THREE.Vector3(target.position.x, target.position.y, 0.3)
         );
 
-        if (died) {
+        if (result.killed) {
           onEnemyKilled(target);
         }
       } else {
@@ -1283,20 +1342,35 @@ const Game = () => {
 
     const performChargeAttack = (level: number) => {
       const currentTime = Date.now();
-      if (state.player.isDodging) return;
-      if (state.player.stamina < CHARGE_ATTACK_STAMINA_COST) return;
+      if (state.player.isDodging) {
+        isChargingAttack = false;
+        chargeTimer = 0;
+        chargeLevel = 0;
+        playerAnimState = 'idle';
+        return;
+      }
+      if (state.player.stamina < CHARGE_ATTACK_STAMINA_COST) {
+        isChargingAttack = false;
+        chargeTimer = 0;
+        chargeLevel = 0;
+        playerAnimState = 'idle';
+        return;
+      }
       playSwordSwing();
       playBladeSheath();
-      spinSwooshTimer = SPIN_SWOOSH_DURATION; // trigger spin swoosh
+      spinSwooshTimer = SPIN_SWOOSH_DURATION;
 
       state.player.lastAttackTime = currentTime;
       state.player.stamina = Math.max(0, state.player.stamina - CHARGE_ATTACK_STAMINA_COST);
-      state.player.lastStaminaUseTime = currentTime / 1000;
+      state.player.lastStaminaUseTime = performance.now() / 1000;
       playerAnimState = 'spin_attack';
       spinDirIndex = 0;
       spinFrameTimer = SPIN_FRAME_DURATION;
       attackFrame = 1;
       state.player.attackAnimationTimer = SPIN_FRAME_DURATION * SPIN_DIRECTIONS.length;
+      isChargingAttack = false;
+      chargeTimer = 0;
+      chargeLevel = 0;
 
       const dmgMult = 1 + (CHARGE_DAMAGE_MULT - 1) * level;
       const chargeDamage = Math.floor(state.player.attackDamage * dmgMult);
@@ -1309,11 +1383,21 @@ const Game = () => {
 
       if (enemiesInRange.length > 0) {
         for (const target of enemiesInRange) {
-          const died = combatSystem.playerAttack(target, chargeDamage);
+          const result = combatSystem.playerAttack(target, chargeDamage, state.player.position, state.player.direction);
 
-          floatingText.spawnDamage(target.position.x, target.position.y, chargeDamage, true);
+          const actualDmg = target.state === 'staggered'
+            ? Math.floor(chargeDamage * 2)
+            : chargeDamage;
+          floatingText.spawnDamage(target.position.x, target.position.y, actualDmg, true);
           screenShake.shake(0.25, 0.2);
           screenShake.hitStop(0.06);
+
+          if (result.backstab) {
+            floatingText.spawn(target.position.x, target.position.y + 0.6, 'BACKSTAB!', '#FFD700', 24);
+          }
+          if (result.staggered) {
+            floatingText.spawn(target.position.x, target.position.y + 0.4, 'STAGGER!', '#88AAFF', 20);
+          }
 
           particleSystem.emitDamage(
             new THREE.Vector3(target.position.x, target.position.y, 0.3)
@@ -1322,7 +1406,7 @@ const Game = () => {
             new THREE.Vector3(target.position.x, target.position.y + 0.3, 0.5)
           );
 
-          if (died) {
+          if (result.killed) {
             onEnemyKilled(target);
           }
         }
@@ -1625,6 +1709,7 @@ const Game = () => {
         isRMBHeld = true;
         if (!isBlocking && !state.player.isDodging && state.player.stamina > 0) {
           isBlocking = true;
+          blockStartTime = performance.now() / 1000;
           if (playerAnimState !== 'attack' && playerAnimState !== 'spin_attack' && playerAnimState !== 'drinking' && playerAnimState !== 'block') {
             playerAnimState = 'block';
           }
@@ -1760,27 +1845,24 @@ const Game = () => {
         state.player.iFrameTimer = Math.max(0, state.player.iFrameTimer - deltaTime);
       }
       if (nowSec - state.player.lastStaminaUseTime > state.player.staminaRegenDelay) {
-        const prevStamina = state.player.stamina;
         state.player.stamina = Math.min(state.player.maxStamina, state.player.stamina + state.player.staminaRegenRate * deltaTime);
-        if (state.player.stamina !== prevStamina) {
-          triggerUIUpdate();
-        }
       }
 
       // Blocking stamina drain
       if (isBlocking) {
         if (state.player.stamina <= 0) {
-          // Out of stamina - release block
           isBlocking = false;
           if (playerAnimState === 'block') {
             playerAnimState = 'idle';
           }
         } else {
-          // Drain stamina while blocking
           state.player.stamina = Math.max(0, state.player.stamina - BLOCK_STAMINA_COST * deltaTime);
           state.player.lastStaminaUseTime = nowSec;
         }
       }
+
+      // Throttled UI update for smooth stat bars (20fps)
+      triggerUIUpdateThrottled(currentTime);
 
       // Smooth block angle animation
       const targetBlockAngle = isBlocking ? 0.3 : 0;
@@ -1908,9 +1990,17 @@ const Game = () => {
       }
       // Update charge timer
       if (isChargingAttack) {
-        chargeTimer += deltaTime;
-        chargeLevel = Math.min(1, Math.max(0, (chargeTimer - CHARGE_TIME_MIN) / (CHARGE_TIME_MAX - CHARGE_TIME_MIN)));
-        playerAnimState = 'charge';
+        if (!isLMBHeld) {
+          // LMB was released but charge state wasn't cleaned up - force reset
+          isChargingAttack = false;
+          chargeTimer = 0;
+          chargeLevel = 0;
+          playerAnimState = 'idle';
+        } else {
+          chargeTimer += deltaTime;
+          chargeLevel = Math.min(1, Math.max(0, (chargeTimer - CHARGE_TIME_MIN) / (CHARGE_TIME_MAX - CHARGE_TIME_MIN)));
+          playerAnimState = 'charge';
+        }
       }
 
       if (!state.dialogueActive) {
@@ -1951,7 +2041,7 @@ const Game = () => {
             state.player.iFrameTimer = 0;
             playerAnimState = moved ? 'walk' : 'idle';
           }
-        } else if (moved && !isChargingAttack && playerAnimState !== 'spin_attack') {
+        } else if (moved && !isChargingAttack && playerAnimState !== 'spin_attack' && state.player.attackAnimationTimer <= 0) {
           const rawDir = getDirection8(moveX > 0 ? 1 : moveX < 0 ? -1 : 0, moveY > 0 ? 1 : moveY < 0 ? -1 : 0);
           currentDir8 = rawDir;
           state.player.direction = dir8to4(rawDir);
@@ -2100,12 +2190,13 @@ const Game = () => {
         } else if (playerAnimState === 'dodge') {
           texName = getPlayerTextureName(currentDir8, 'walk', animFrame);
         } else if (playerAnimState === 'drinking') {
-          texName = getPlayerTextureName(currentDir8, 'attack', 2); // Use attack frame as holding pose
+          texName = getPlayerTextureName(currentDir8, 'attack', 2);
+        } else if (playerAnimState === 'block') {
+          texName = getPlayerTextureName(currentDir8, 'block', 0);
         } else {
           // Check if player is holding a consumable (show potion instead of sword)
           const activeItem = state.inventory[state.activeItemIndex];
           if (activeItem?.type === 'consumable') {
-            // Show drinking hold pose when holding consumable
             texName = getPlayerTextureName(currentDir8, 'attack', 2);
           } else {
             texName = getPlayerTextureName(currentDir8, playerAnimState, animFrame);
@@ -2195,15 +2286,6 @@ const Game = () => {
           visualScaleX *= dodgeScaleX;
           visualScaleY *= dodgeScaleY;
           visualRotation = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? -1 : 1);
-        } else if (isChargingAttack) {
-          // Movement-based charge: crouch down and vibrate, no glow
-          const crouchAmount = 0.08 * chargeLevel;
-          const shakeAmt = chargeLevel * Math.sin(currentTime / 30) * 0.025;
-          visualScaleX *= 1 + chargeLevel * 0.06;
-          visualScaleY *= 1 - crouchAmount;
-          attackOffsetX += shakeAmt;
-          attackOffsetY -= crouchAmount * 0.3;
-          visualRotation = 0;
         }
 
         // Color tinting for animations
@@ -2211,13 +2293,25 @@ const Game = () => {
         if (state.player.damageFlashTimer > 0) {
           playerMaterial.color.setHex(0xffaaaa);
           outlineMat.color.setHex(0xff0000);
-        } else if (isChargingAttack) {
-          const tint = new THREE.Color().setHSL(0.12, 1.0, 1.0 - (chargeLevel * 0.3)); // Shift to gold
-          playerMaterial.color.copy(tint);
-          outlineMat.color.setHex(0xffaa00);
+        } else if (isChargingAttack && chargeLevel > 0) {
+          // Blade shimmer: pulse brightness - light pixels (blade) shimmer more than dark
+          const pulse = Math.sin(currentTime / 40) * 0.15 * chargeLevel;
+          const brightness = 1 + pulse;
+          playerMaterial.color.setRGB(brightness, brightness, brightness);
+          outlineMat.color.setHex(0x000000);
         } else {
           playerMaterial.color.setHex(0xffffff);
           outlineMat.color.setHex(0x000000);
+        }
+
+        // Blade shimmer overlay during charge
+        if (isChargingAttack) {
+          // Simple brightness pulse - blade (brightest pixels) will shimmer most
+          const pulse = 1 + Math.sin(currentTime / 50) * 0.15 * (0.3 + chargeLevel * 0.7);
+          playerMaterial.color.setRGB(pulse, pulse, pulse);
+          bladeOverlayMesh.visible = false;
+        } else {
+          bladeOverlayMesh.visible = false;
         }
 
         // Update smoothed elevation first so all visual calculations this frame use the
@@ -2536,7 +2630,17 @@ const Game = () => {
         }
 
         // Update combat system
-        combatSystem.updateEnemies(deltaTime, state.player.position, state.player.iFrameTimer > 0, isBlocking, world);
+        const combatResult = combatSystem.updateEnemies(deltaTime, state.player.position, state.player.iFrameTimer > 0, isBlocking, blockStartTime, world);
+        
+        // Handle parry success
+        if (combatResult.parried && combatResult.parryEnemyId) {
+          const parriedEnemy = combatSystem.getEnemies().find(e => e.id === combatResult.parryEnemyId);
+          if (parriedEnemy) {
+            floatingText.spawnDamage(parriedEnemy.position.x, parriedEnemy.position.y, 0, false);
+            screenShake.shake(0.3, 0.1);
+            screenShake.hitStop(0.08);
+          }
+        }
 
         // === ENEMY RENDERING WITH HP BARS ===
         const enemies = combatSystem.getEnemies();
@@ -2618,6 +2722,12 @@ const Game = () => {
           if (enemy.damageFlashTimer > 0) {
             enemy.damageFlashTimer -= deltaTime;
             mat.color.setHex(0xff0000);
+          } else if (enemy.state === 'telegraphing') {
+            const flashPhase = (enemy.telegraphTimer / enemy.telegraphDuration);
+            const flash = Math.sin(flashPhase * Math.PI * 6) * 0.3 + 0.7;
+            mat.color.setRGB(1, flash, flash);
+          } else if (enemy.state === 'staggered') {
+            mat.color.setHex(0xaaaaee);
           } else {
             mat.color.setHex(0xffffff);
           }

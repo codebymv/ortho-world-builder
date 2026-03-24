@@ -2,7 +2,7 @@ import { GameState, Item, Quest, LastBonfire, DroppedEssence } from './GameState
 import { MapMarker } from './MapMarkers';
 
 const SAVE_KEY = 'rpg_save_data';
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 
 export interface SaveData {
   version: number;
@@ -18,6 +18,8 @@ export interface SaveData {
     attackRange?: number;
     stamina: number;
     maxStamina: number;
+    estusCharges: number;
+    maxEstusCharges: number;
   };
   currentMap: string;
   inventory: Item[];
@@ -46,6 +48,8 @@ export class SaveManager {
         attackRange: state.player.attackRange,
         stamina: state.player.stamina,
         maxStamina: state.player.maxStamina,
+        estusCharges: state.player.estusCharges,
+        maxEstusCharges: state.player.maxEstusCharges,
       },
       currentMap: state.currentMap,
       inventory: state.inventory.map(i => ({ ...i })),
@@ -70,6 +74,20 @@ export class SaveManager {
       if (!raw) return null;
       const data: SaveData = JSON.parse(raw);
       if (data.version !== SAVE_VERSION) {
+        if (data.version === 2) {
+          const v2 = data as unknown as Omit<SaveData, 'player'> & {
+            player: SaveData['player'] & { estusCharges?: number; maxEstusCharges?: number };
+          };
+          return {
+            ...v2,
+            version: SAVE_VERSION,
+            player: {
+              ...v2.player,
+              estusCharges: v2.player.estusCharges ?? 3,
+              maxEstusCharges: v2.player.maxEstusCharges ?? 3,
+            },
+          } as SaveData;
+        }
         if (data.version === 1) {
           const v1 = data as unknown as Omit<SaveData, 'lastBonfire' | 'droppedEssence' | 'player'> & {
             player: SaveData['player'] & { essence?: number };
@@ -80,6 +98,8 @@ export class SaveManager {
             player: {
               ...v1.player,
               essence: v1.player.essence ?? 0,
+              estusCharges: 3,
+              maxEstusCharges: 3,
             },
             lastBonfire: null,
             droppedEssence: null,

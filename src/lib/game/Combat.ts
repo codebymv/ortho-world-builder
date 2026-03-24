@@ -6,9 +6,9 @@ import { World } from './World';
 type CardinalDirection = 'up' | 'down' | 'left' | 'right';
 
 const BLOCK_DAMAGE_REDUCTION = 0.6;
+const PARRY_WINDOW = 0.25;
 const ENEMY_MOVE_RADIUS = 0.15;
 
-/** Axis-aligned slide (same idea as player corner nudging) so enemies do not freeze on oblique walls. */
 function trySlideEnemyMove(
   world: World,
   ox: number,
@@ -38,10 +38,11 @@ interface SpawnEnemyOptions {
   speed?: number;
   attackRange?: number;
   chaseRange?: number;
-  /** Essence granted on kill (combat currency) */
   essenceReward?: number;
   telegraphDuration?: number;
   recoverDuration?: number;
+  poise?: number;
+  staggerDuration?: number;
 }
 
 export interface Enemy {
@@ -57,7 +58,7 @@ export interface Enemy {
   speed: number;
   attackRange: number;
   chaseRange: number;
-  state: 'idle' | 'chasing' | 'telegraphing' | 'attacking' | 'recovering' | 'dead';
+  state: 'idle' | 'chasing' | 'telegraphing' | 'attacking' | 'recovering' | 'staggered' | 'dead';
   lastAttackTime: number;
   attackCooldown: number;
   damageFlashTimer: number;
@@ -73,6 +74,17 @@ export interface Enemy {
   moveCycle: number;
   moveBlend: number;
   velocity: { x: number; y: number };
+  poise: number;
+  maxPoise: number;
+  staggerTimer: number;
+  staggerDuration: number;
+  poiseRegenTimer: number;
+}
+
+export interface AttackResult {
+  killed: boolean;
+  staggered: boolean;
+  backstab: boolean;
 }
 
 export class CombatSystem {
@@ -84,7 +96,7 @@ export class CombatSystem {
 
   constructor(gameState: GameState) {
     this.gameState = gameState;
-    this.spatialHash = new SpatialHash<Enemy>(4); // 4x4 grid cells
+    this.spatialHash = new SpatialHash<Enemy>(4);
   }
 
   spawnEnemy(
@@ -124,6 +136,11 @@ export class CombatSystem {
       moveCycle: Math.random() * Math.PI * 2,
       moveBlend: 0,
       velocity: { x: 0, y: 0 },
+      poise: options.poise ?? 100,
+      maxPoise: options.poise ?? 100,
+      staggerTimer: 0,
+      staggerDuration: options.staggerDuration ?? 1.5,
+      poiseRegenTimer: 0,
     };
 
     this.enemies.push(enemy);
@@ -149,8 +166,9 @@ export class CombatSystem {
     playerPosition: { x: number; y: number },
     playerInvulnerable: boolean = false,
     playerBlocking: boolean = false,
+    blockStartTime: number = 0,
     world?: World
-  ): void {
+  ): { parried: boolean; parryEnemyId: string | null } {
     const updateMovementVisuals = (enemy: Enemy, vx: number, vy: number, moving: boolean, cadence: number) => {
       if (moving) {
         enemy.velocity.x = vx;
@@ -171,8 +189,20 @@ export class CombatSystem {
       }
     };
 
+    let parried = false;
+    let parryEnemyId: string | null = null;
+    const now = performance.now() / 1000;
+
     for (const enemy of this.enemies) {
       if (enemy.state === 'dead') continue;
+
+      if (enemy.state !== 'staggered') {
+        enemy.poiseRegenTimer += deltaTime;
+        if (enemy.poiseRegenTimer >= 1.5) {
+          enemy.poise = Math.min(enemy.maxPoise, enemy.poise + enemy.maxPoise * 0.15);
+          enemy.poiseRegenTimer = 0;
+        }
+      }
 
       const dx = playerPosition.x - enemy.position.x;
       const dy = playerPosition.y - enemy.position.y;
@@ -249,7 +279,7 @@ export class CombatSystem {
                 enemy.position.x = step.x;
                 enemy.position.y = step.y;
                 this.updateEnemyHash(enemy, oldPos);
-                updateMovementVisuals(enemy, step.vx, step.vy, true, 10);
+                updateMovementVisuals(enemy, step.vx, step.vy, true,10);
               } else {
                 updateMovementVisuals(enemy, 0, 0, false, 0);
               }
@@ -271,7 +301,11 @@ export class CombatSystem {
             const extAttackRangeSq = attackRangeSq * 1.69;
 
             if (newDistSq <= extAttackRangeSq && !playerInvulnerable) {
-              this.attackPlayer(enemy, playerBlocking);
+              const result = this.attackPlayer(enemy, playerBlocking, blockStartTime, now);
+              if (result.parried) {
+                parried = true;
+                parryEnemyId = enemy.id;
+              }
             }
             enemy.state = 'recovering';
             enemy.recoverTimer = enemy.recoverDuration;
@@ -295,11 +329,38 @@ export class CombatSystem {
           }
           break;
         }
+
+        case 'staggered': {
+          enemy.staggerTimer -= deltaTime;
+          enemy.damageFlashTimer = Math.max(0, enemy.damageFlashTimer - deltaTime);
+          updateMovementVisuals(enemy, 0, 0, false, 0);
+          if (enemy.staggerTimer <= 0) {
+            enemy.poise = enemy.maxPoise *0.3;
+            enemy.state = distSq <= chaseRangeSq ? 'chasing' : 'idle';
+          }
+          break;
+        }
       }
     }
+
+    return { parried, parryEnemyId };
   }
 
-  private attackPlayer(enemy: Enemy, isBlocking: boolean = false): void {
+  private attackPlayer(
+    enemy: Enemy,
+    isBlocking: boolean = false,
+    blockStartTime: number = 0,
+    now: number = 0
+  ): { parried: boolean } {
+    const isParry = isBlocking && (now - blockStartTime) < PARRY_WINDOW;
+
+    if (isParry) {
+      enemy.state = 'staggered';
+      enemy.staggerTimer = enemy.staggerDuration;
+      enemy.damageFlashTimer = enemy.staggerDuration;
+      return { parried: true };
+    }
+
     let damage = enemy.damage;
     if (isBlocking) {
       damage = Math.floor(damage * (1 - BLOCK_DAMAGE_REDUCTION));
@@ -307,34 +368,82 @@ export class CombatSystem {
     this.gameState.player.health = Math.max(0, this.gameState.player.health - damage);
     this.gameState.player.damageFlashTimer = 0.3;
     enemy.attackAnimationTimer = 0.3;
+    return { parried: false };
   }
 
-  playerAttack(targetEnemy: Enemy, damage: number): boolean {
-    if (targetEnemy.state === 'dead') return false;
+  playerAttack(
+    targetEnemy: Enemy,
+    damage: number,
+    playerPosition?: { x: number; y: number },
+    playerDirection?: string
+  ): AttackResult {
+    if (targetEnemy.state === 'dead') {
+      return { killed: false, staggered: false, backstab: false };
+    }
 
     let finalDamage = damage;
+    let isStaggered = false;
+    let isBackstab = false;
+
+    const isBackstabbable = targetEnemy.state === 'idle';
+    if (isBackstabbable && playerPosition && playerDirection) {
+      const dx = playerPosition.x - targetEnemy.position.x;
+      const dy = playerPosition.y - targetEnemy.position.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const toPlayerX = dx / len;
+      const toPlayerY = dy / len;
+
+      let enemyForwardX = 0;
+      let enemyForwardY = 0;
+      switch (targetEnemy.facing) {
+        case 'up': enemyForwardY = 1; break;
+        case 'down': enemyForwardY = -1; break;
+        case 'left': enemyForwardX = -1; break;
+        case 'right': enemyForwardX = 1; break;
+      }
+
+      const dot = -(enemyForwardX * toPlayerX + enemyForwardY * toPlayerY);
+      if (dot > 0.7) {
+        isBackstab = true;
+        finalDamage = Math.floor(damage * 2.5);
+      }
+    }
+
     if (targetEnemy.state === 'recovering') {
       finalDamage = Math.floor(damage * 1.5);
     }
 
+    if (targetEnemy.state === 'staggered') {
+      finalDamage = Math.floor(damage * 2);
+    }
+
+    targetEnemy.poise -= damage;
+    if (targetEnemy.poise <= 0 && targetEnemy.state !== 'staggered') {
+      targetEnemy.state = 'staggered';
+      targetEnemy.staggerTimer = targetEnemy.staggerDuration;
+      targetEnemy.damageFlashTimer = targetEnemy.staggerDuration;
+      isStaggered = true;
+    }
+
     targetEnemy.health = Math.max(0, targetEnemy.health - finalDamage);
-    targetEnemy.damageFlashTimer = 0.2;
+    targetEnemy.damageFlashTimer = Math.max(targetEnemy.damageFlashTimer, 0.2);
+    targetEnemy.poiseRegenTimer = 0;
 
     if (targetEnemy.health <= 0) {
       targetEnemy.state = 'dead';
       this._enemiesDirty = true;
       this.gameState.player.essence += targetEnemy.essenceReward;
-      return true;
+      return { killed: true, staggered: false, backstab: isBackstab };
     }
 
-    return false;
+    return { killed: false, staggered: isStaggered, backstab: isBackstab };
   }
 
   getEnemiesInRange(position: { x: number; y: number }, range: number): Enemy[] {
     return this.spatialHash.query(position.x, position.y, range);
   }
 
-  updateEnemyHash(enemy: Enemy, oldPos: { x: number, y: number }) {
+  updateEnemyHash(enemy: Enemy, oldPos: { x: number; y: number }) {
     this.spatialHash.update(enemy, oldPos);
   }
 

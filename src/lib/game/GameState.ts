@@ -11,7 +11,6 @@ export interface PlayerState {
   health: number;
   maxHealth: number;
   gold: number;
-  /** Combat currency — dropped on death, recovered from bloodstain */
   essence: number;
   attackDamage: number;
   attackRange: number;
@@ -19,7 +18,6 @@ export interface PlayerState {
   attackCooldown: number;
   damageFlashTimer: number;
   attackAnimationTimer: number;
-  // Dodge roll
   isDodging: boolean;
   dodgeTimer: number;
   iFrameTimer: number;
@@ -33,6 +31,8 @@ export interface PlayerState {
   staminaRegenRate: number;
   staminaRegenDelay: number;
   lastStaminaUseTime: number;
+  estusCharges: number;
+  maxEstusCharges: number;
 }
 
 export interface NPC {
@@ -122,7 +122,6 @@ export class GameState {
       attackCooldown: 500,
       damageFlashTimer: 0,
       attackAnimationTimer: 0,
-      // Dodge
       isDodging: false,
       dodgeTimer: 0,
       iFrameTimer: 0,
@@ -133,9 +132,11 @@ export class GameState {
       dodgeSpeed: 0.12,
       stamina: 100,
       maxStamina: 100,
-      staminaRegenRate: 38, // per second
-      staminaRegenDelay: 0.35, // seconds after use before regen starts
+      staminaRegenRate: 38,
+      staminaRegenDelay: 0.35,
       lastStaminaUseTime: 0,
+      estusCharges: 3,
+      maxEstusCharges: 3,
     };
 
     this.inventory = [{ ...items.meek_short_sword }];

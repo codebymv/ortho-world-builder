@@ -35,8 +35,9 @@ const getItemIcon = (item: any, className: string, assetManager?: AssetManager |
 
 // --- Memoized Sub-components ---
 
-const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold, essence }: { 
-  health: number, maxHealth: number, stamina: number, maxStamina: number, gold: number, essence: number 
+const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold, essence, estusCharges, maxEstusCharges }: { 
+  health: number, maxHealth: number, stamina: number, maxStamina: number, gold: number, essence: number,
+  estusCharges: number, maxEstusCharges: number
 }) => (
   <div className="flex items-center gap-4">
     {/* Health */}
@@ -58,10 +59,16 @@ const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold, e
       <Shield className="w-3.5 h-3.5 text-emerald-400 drop-shadow" />
       <div className="w-20 h-2 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
         <div
-          className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-[width] duration-[16ms]"
+          className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-[width] duration-75 ease-out"
           style={{ width: `${(stamina / maxStamina) * 100}%` }}
         />
       </div>
+    </div>
+
+    {/* Estus Flask */}
+    <div className="flex items-center gap-1">
+      <FlaskRound className="w-3.5 h-3.5 text-amber-400 drop-shadow" />
+      <span className="text-xs font-bold text-amber-200">{estusCharges}/{maxEstusCharges}</span>
     </div>
 
     <div className="flex items-center gap-1.5">
@@ -190,7 +197,9 @@ export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate,
           stamina={gameState.player.stamina} 
           maxStamina={gameState.player.maxStamina} 
           gold={gameState.player.gold} 
-          essence={gameState.player.essence} 
+          essence={gameState.player.essence}
+          estusCharges={gameState.player.estusCharges}
+          maxEstusCharges={gameState.player.maxEstusCharges}
         />
 
         {/* Center: Current Objective */}
@@ -394,7 +403,7 @@ export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate,
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">WASD</kbd> Move</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">LMB</kbd> Attack</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">HOLD LMB</kbd> Charge</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Dodge / Use Potion</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Dodge / Estus</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">CTRL/RMB</kbd> Block</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SHIFT</kbd> Sprint</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">F</kbd> Interact</p>

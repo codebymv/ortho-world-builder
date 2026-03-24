@@ -132,7 +132,7 @@ export class AssetManager {
   // Unified pixel-art character sprite - pure fillRect, no curves
   createChibiCharacter(
     dir: 'down' | 'up' | 'left' | 'right',
-    state: 'idle' | 'walk' | 'attack' | 'charge' | 'hurt' = 'idle',
+    state: 'idle' | 'walk' | 'attack' | 'charge' | 'hurt' | 'block' = 'idle',
     frame: number = 0,
     palette: {
       hair: number; hairLight: number; hairDark: number;
@@ -144,7 +144,8 @@ export class AssetManager {
       pantColor: number; pantDark: number;
       bootColor: number; bootDark: number;
     },
-    spriteId?: string
+    spriteId?: string,
+    bladeOnly: boolean = false
   ): THREE.Texture {
     // Grid-based pixel art: 16 cols x 20 rows, 4px per cell = 64x80
     const G = 4; // grid cell size
@@ -170,6 +171,7 @@ export class AssetManager {
     const walkLeg = state === 'walk' ? (frame === 0 ? -1 : 1) : 0;
     const bob = state === 'walk' && Math.abs(walkLeg) > 0 ? -1 : 0;
     const atkFrame = state === 'attack' ? frame : -1;
+    const isBlock = state === 'block';
 
     // Mirror helper for side views
     const mx = (gx: number) => isLeft ? gx : (15 - gx);
@@ -247,6 +249,14 @@ export class AssetManager {
         cell(m(2), 7 + bob, BLADE_H); cell(m(3), 8 + bob, BLADE);
         cell(m(3), 10 + bob, GUARD); cell(m(2), 10 + bob, GUARD);
         cell(m(2), 11 + bob, GRIP);
+      } else if (isBlock) {
+        // Block: sword raised slightly from idle stance - defensive guard
+        // Same position as idle but shifted up 1 row
+        cell(m(3), 2 + bob, BLADE_H); cell(m(4), 3 + bob, BLADE); cell(m(5), 4 + bob, BLADE_E);
+        cell(m(3), 3 + bob, BLADE_H); cell(m(4), 4 + bob, BLADE);
+        cell(m(2), 6 + bob, GUARD); cell(m(3), 6 + bob, GUARD); cell(m(4), 6 + bob, GUARD); cell(m(5), 6 + bob, GUARD);
+        cell(m(4), 7 + bob, GRIP); cell(m(4), 8 + bob, GRIP);
+        cell(m(4), 9 + bob, GUARD);
       } else {
         // Idle: resting at side, traditional short sword
         // Blade
@@ -348,6 +358,16 @@ export class AssetManager {
         cell(2, 9 + bob, BLADE_H); cell(3, 10 + bob, BLADE);
         cell(4, 12 + bob, GUARD); cell(3, 12 + bob, GUARD);
         cell(3, 13 + bob, GRIP);
+      } else if (isBlock) {
+        // Block: sword raised slightly from idle - defensive guard
+        // Same as idle but shifted up 1 row
+        cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE); cell(4, 5 + bob, BLADE_E);
+        cell(2, 4 + bob, BLADE_H); cell(3, 5 + bob, BLADE);
+        cell(2, 5 + bob, BLADE_H); cell(3, 6 + bob, BLADE);
+        cell(1, 7 + bob, GUARD); cell(2, 7 + bob, GUARD); cell(3, 7 + bob, GUARD); cell(4, 7 + bob, GUARD);
+        cell(3, 8 + bob, GRIP);
+        cell(3, 9 + bob, GRIP);
+        cell(3, 10 + bob, GUARD);
       } else {
         // Idle: resting at left side, traditional short sword
         // Blade
@@ -454,6 +474,27 @@ export class AssetManager {
           ctx.fillRect(x + G - 1, y + G - 1, 1, 1);
         }
       }
+    }
+
+    // If bladeOnly, remove all non-blade pixels
+    if (bladeOnly) {
+      const finalData = ctx.getImageData(0, 0, W, H);
+      // Blade colors: BLADE=0xC0D0E0, BLADE_H=0xF0F4FF, BLADE_E=0x90A8C0, GUARD=0xE8C030, GRIP=0x5D4037
+      for (let i = 0; i < finalData.data.length; i += 4) {
+        const r = finalData.data[i];
+        const g = finalData.data[i + 1];
+        const b = finalData.data[i + 2];
+        const a = finalData.data[i + 3];
+        if (a === 0) continue;
+        // Check if pixel is blade/sword (silver/white/gold/brown grip)
+        const isSilver = r > 140 && g > 150 && b > 160 && Math.abs(r - b) < 60;
+        const isGold = r > 200 && g > 150 && b < 80;
+        const isGrip = r > 70 && r < 110 && g > 50 && g < 80 && b > 40 && b < 70;
+        if (!isSilver && !isGold && !isGrip) {
+          finalData.data[i + 3] = 0;
+        }
+      }
+      ctx.putImageData(finalData, 0, 0);
     }
 
     const texture = new THREE.CanvasTexture(canvas);
@@ -593,15 +634,17 @@ export class AssetManager {
 
     // Generate all player sprites using canvas drawing
     const dirs: Array<'down' | 'up' | 'left' | 'right'> = ['down', 'up', 'left', 'right'];
-    const states: Array<'idle' | 'walk' | 'attack' | 'charge' | 'hurt'> = ['idle', 'walk', 'attack', 'charge', 'hurt'];
+    const states: Array<'idle' | 'walk' | 'attack' | 'charge' | 'hurt' | 'block'> = ['idle', 'walk', 'attack', 'charge', 'hurt', 'block'];
 
     for (const dir of dirs) {
       for (const state of states) {
-        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' ? 1 : 2;
+        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' || state === 'block' ? 1 : 2;
         for (let f = 0; f < maxFrames; f++) {
           const d = dir, s = state, fr = f;
           const spriteId = `player_${d}_${s}_${fr}`;
+          const bladeId = `player_${d}_${s}_${fr}_blade`;
           this.registerTexture(spriteId, () => this.createChibiCharacter(d, s, fr, heroPalette, spriteId));
+          this.registerTexture(bladeId, () => this.createChibiCharacter(d, s, fr, heroPalette, bladeId, true));
         }
       }
     }
@@ -613,15 +656,22 @@ export class AssetManager {
     for (const dDir of diagDirs) {
       const base = diagBase[dDir];
       for (const state of states) {
-        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' ? 1 : 2;
+        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' || state === 'block' ? 1 : 2;
         for (let f = 0; f < maxFrames; f++) {
           const dd = dDir, b = base, s = state, fr = f;
           const spriteId = `player_${dd}_${s}_${fr}`;
+          const bladeId = `player_${dd}_${s}_${fr}_blade`;
           this.registerTexture(spriteId, () => {
             const baseTexture = this.getTexture(`player_${b}_${s}_${fr}`)!;
-            // If the base texture is a CanvasTexture, we can capture its data URL
             if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
               this.textureDataUrls.set(spriteId, baseTexture.image.toDataURL());
+            }
+            return baseTexture;
+          });
+          this.registerTexture(bladeId, () => {
+            const baseTexture = this.getTexture(`player_${b}_${s}_${fr}_blade`)!;
+            if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
+              this.textureDataUrls.set(bladeId, baseTexture.image.toDataURL());
             }
             return baseTexture;
           });
