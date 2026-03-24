@@ -1600,6 +1600,13 @@ state.player.lastAttackTime = currentTime;
         }
 
         if (interactionId === 'building_exit' || interactionId === 'building_entrance') {
+          if (interactionId === 'building_entrance') {
+            const entryTile = world.getTile(px, py);
+            const isEntranceTile =
+              entryTile?.type === 'door' ||
+              entryTile?.type === 'door_iron';
+            if (!isEntranceTile) continue;
+          }
           const transition = world.getTransitionAt(px, py);
           if (transition) {
             handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
@@ -2522,6 +2529,13 @@ state.player.lastAttackTime = currentTime;
           const cy = state.player.position.y + dir.y * 0.5;
           const intId = world.getInteractableAt(cx, cy);
           if (intId) {
+            if (intId === 'building_entrance') {
+              const entryTile = world.getTile(cx, cy);
+              const isEntranceTile =
+                entryTile?.type === 'door' ||
+                entryTile?.type === 'door_iron';
+              if (!isEntranceTile || !world.getTransitionAt(cx, cy)) continue;
+            }
             if (intId.includes('chest') && state.getFlag(`${intId}_opened`)) continue;
             if (intId === 'potion_pickup' && state.getFlag('potion_pickup_collected')) continue;
             showIndicator = true;

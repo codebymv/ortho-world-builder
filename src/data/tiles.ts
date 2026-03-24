@@ -13,6 +13,8 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   house_blue: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14 },
   house_green: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14 },
   house_thatch: { isOverlay: true, baseTile: 'dirt', scale: 2.0, sortTrim: 0.12 },
+  cottage_house: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3 },
+  cottage_house_entry: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3 },
   rock: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.18 },
   chest: { isOverlay: true, baseTile: 'grass', scale: 0.8, sortTrim: 0.16 },
   portal: { isOverlay: true, baseTile: 'stone', scale: 1.3, sortTrim: 0.2 },
@@ -63,8 +65,8 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   chain: { isOverlay: true, baseTile: 'stone', scale: 0.7, sortTrim: 0.2 },
   cage: { isOverlay: true, baseTile: 'stone', scale: 1.2, sortTrim: 0.12 },
   bones_pile: { isOverlay: true, baseTile: 'stone', scale: 0.9, sortTrim: 0.2 },
-  door: { isOverlay: true, baseTile: 'dirt', scale: 1.2, sortTrim: 0.1 },
-  door_iron: { isOverlay: true, baseTile: 'stone', scale: 1.2, sortTrim: 0.1 },
+  door: { isOverlay: true, baseTile: 'dirt', scale: 1.2, sortTrim: 1.2 },
+  door_iron: { isOverlay: true, baseTile: 'stone', scale: 1.2, sortTrim: 1.2 },
 };
 
 export const DETAIL_CONFIG: Partial<Record<TileType, { chance: number; types: string[]; scale: number; opacity: number }>> = {

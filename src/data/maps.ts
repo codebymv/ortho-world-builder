@@ -83,7 +83,7 @@ const villageDef: MapDefinition = {
     { x: 45, y: 30, width: 12, height: 14, type: 'church', interactionId: 'village_church' },
 
     // ====== SCATTERED COTTAGES (countryside feel) ======
-    { x: 88, y: 115, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_south', interiorMap: 'interior_cottage_a', interiorSpawnX: 6, interiorSpawnY: 8 },
+    { x: 88, y: 117, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_south', interiorMap: 'interior_cottage_a', interiorSpawnX: 6, interiorSpawnY: 8 },
     { x: 165, y: 40, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_east' },
     { x: 22, y: 95, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_west' },
     { x: 195, y: 100, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_lake' },
@@ -1010,10 +1010,12 @@ const interiorCottageADef: MapDefinition = {
     { x: 0, y: 0, width: 12, height: 2, type: 'wall', fill: 'stone' },
     { x: 0, y: 2, width: 2, height: 8, type: 'wall', fill: 'stone' },
     { x: 10, y: 2, width: 2, height: 8, type: 'wall', fill: 'stone' },
-    { x: 2, y: 8, width: 8, height: 2, type: 'wall', fill: 'stone' },
+    // Split bottom wall with a center doorway opening for the exit door tile.
+    { x: 2, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
+    { x: 7, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
   ],
-  portals: [{ x: 6, y: 9, targetMap: 'village', targetX: 91, targetY: 123 }],
-  chests: [],
+  portals: [{ x: 6, y: 9, targetMap: 'village', targetX: 91, targetY: 119 }],
+  chests: [{ x: 9, y: 6, interactionId: 'cottage_interior_chest_a' }],
   interactables: [],
   props: [
     { x: 4, y: 4, type: 'table', walkable: false },
@@ -1099,6 +1101,12 @@ const interiorWitchHutDef: MapDefinition = {
 // Lazy map generation - only generate when first accessed
 const mapCache: Record<string, WorldMap> = {};
 
+function clearMapCache() {
+  for (const key of Object.keys(mapCache)) {
+    delete mapCache[key];
+  }
+}
+
 export const mapDefinitions: Record<string, MapDefinition> = {
   village: villageDef,
   forest: forestDef,
@@ -1130,3 +1138,9 @@ export const allMaps: Record<string, WorldMap> = new Proxy({} as Record<string, 
     return prop in mapDefinitions;
   },
 });
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    clearMapCache();
+  });
+}

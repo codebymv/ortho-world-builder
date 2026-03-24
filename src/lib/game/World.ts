@@ -4,7 +4,7 @@ import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
 
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'stone' | 'wood' 
-  | 'tree' | 'house' | 'house_blue' | 'house_green' | 'house_thatch' | 'rock' | 'chest' | 'portal' | 'flower'
+  | 'tree' | 'house' | 'house_blue' | 'house_green' | 'house_thatch' | 'cottage_house' | 'cottage_house_entry' | 'rock' | 'chest' | 'portal' | 'flower'
   | 'tall_grass' | 'bridge' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
   | 'campfire' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
@@ -73,6 +73,8 @@ const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'house_blue',
   'house_green',
   'house_thatch',
+  'cottage_house',
+  'cottage_house_entry',
   'destroyed_house',
 ]);
 const OVERWORLD_STRUCTURE_SCALE_MULTIPLIER = 1.18;
@@ -671,10 +673,15 @@ export class World {
     const scale = baseScale * structureScaleBoost;
     const sortTrim = TILE_METADATA[tile.type]?.sortTrim ?? 0.16;
     const sortAnchorY = ((scale - 1) * this.tileSize * 0.3) - (scale * 0.5) + sortTrim;
+    const renderOrderBias =
+      tile.type === 'cottage_house' || tile.type === 'cottage_house_entry'
+        ? 1500
+        : 0;
 
     group.userData = {
       tileType: tile.type,
       sortAnchorY,
+      renderOrderBias,
     };
 
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
@@ -809,7 +816,11 @@ export class World {
           const sortAnchorY = object.userData?.sortAnchorY ?? 0;
           const worldY = worldOffsetY + y * this.tileSize + visualYOffset + sortAnchorY;
           // Environmental overlays get much lower render order to stay behind characters
-          const ySort = Math.round(50000 + (this.map.height - (worldY + this.map.height / 2)) * 10);
+          const ySort = Math.round(
+            50000 +
+            (this.map.height - (worldY + this.map.height / 2)) * 10 +
+            (object.userData?.renderOrderBias ?? 0)
+          );
           object.renderOrder = ySort;
           if (object instanceof THREE.Group) {
             for (const child of object.children) child.renderOrder = ySort;
@@ -895,7 +906,7 @@ export class World {
       if (isOverlay) {
         const sortAnchorY = object.userData?.sortAnchorY ?? 0;
         const worldY = worldOffsetY + y * this.tileSize + visualYOffset + sortAnchorY;
-        const ySort = Math.round(100000 - worldY * 10);
+        const ySort = Math.round(100000 - worldY * 10 + (object.userData?.renderOrderBias ?? 0));
         object.renderOrder = ySort;
         if (object instanceof THREE.Group) {
           for (const child of object.children) child.renderOrder = ySort;

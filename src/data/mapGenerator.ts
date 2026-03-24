@@ -289,6 +289,13 @@ function carveRoads(tiles: Tile[][], def: MapDefinition) {
 }
 
 function carvePath(tiles: Tile[][], x1: number, y1: number, x2: number, y2: number, pathType: TileType, width: number) {
+  const ROAD_CARVE_PROTECTED: Set<TileType> = new Set([
+    'house', 'house_blue', 'house_green', 'house_thatch',
+    'cottage_house', 'cottage_house_entry',
+    'door', 'door_iron',
+    'lantern', 'wood',
+  ]);
+
   let cx = x1;
   let cy = y1;
 
@@ -299,7 +306,12 @@ function carvePath(tiles: Tile[][], x1: number, y1: number, x2: number, y2: numb
         const ty = cy + dy;
         if (ty >= 2 && ty < tiles.length - 2 && tx >= 2 && tx < tiles[0].length - 2) {
           const existing = tiles[ty][tx];
-          if (existing.type !== 'portal' && existing.type !== 'chest' && !existing.interactable) {
+          if (
+            existing.type !== 'portal' &&
+            existing.type !== 'chest' &&
+            !existing.interactable &&
+            !ROAD_CARVE_PROTECTED.has(existing.type)
+          ) {
             tiles[ty][tx] = createTile(pathType, true);
           }
         }
@@ -433,10 +445,10 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 }
 
 const HOUSE_VARIANTS: TileType[] = ['house', 'house_blue', 'house_green', 'house_thatch'];
-const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch']);
+const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch', 'cottage_house', 'cottage_house_entry']);
 // All tile types that indicate a structure is present (for spacing checks)
 const STRUCTURE_TYPES: Set<TileType> = new Set([
-  'house', 'house_blue', 'house_green', 'house_thatch',
+  'house', 'house_blue', 'house_green', 'house_thatch', 'cottage_house', 'cottage_house_entry',
   'destroyed_house', 'statue', 'mossy_stone', 'well',
 ]);
 const MIN_BUILDING_SPACING = 16; // minimum tiles between any two buildings (increased from 12)
@@ -765,6 +777,17 @@ function placePath(tiles: Tile[][], f: MapFeature) {
       const tx = f.x + dx;
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        const existing = tiles[ty][tx];
+        // Never pave over structure sprites or interactive transition doors.
+        if (
+          HOUSE_TYPES.has(existing.type) ||
+          existing.type === 'door' ||
+          existing.type === 'door_iron' ||
+          existing.interactionId === 'building_entrance' ||
+          existing.interactionId === 'building_exit'
+        ) {
+          continue;
+        }
         tiles[ty][tx] = createTile(f.fill || 'dirt', true);
       }
     }
@@ -1336,9 +1359,9 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         const existing = tiles[ty][tx];
-        if (HOUSE_TYPES.has(existing.type) || existing.type === 'portal' || 
+        if (HOUSE_TYPES.has(existing.type) || existing.type === 'portal' ||
             existing.type === 'chest' || existing.interactable) continue;
-        if (!existing.walkable || existing.type === 'water' || existing.type === 'tree' || 
+        if (!existing.walkable || existing.type === 'water' || existing.type === 'tree' ||
             existing.type === 'rock' || existing.type === 'swamp') {
           tiles[ty][tx] = createTile('grass', true);
         }
@@ -1347,8 +1370,12 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
   }
 
   const cx = Math.floor(f.width / 2);
-  // Body rows = solid wooden walls; apron rows = garden out front
-  const bodyRows = Math.max(2, Math.ceil(f.height * 0.45));
+  const hasInterior = !!(f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined);
+  const bodyRows = Math.max(2, Math.ceil(f.height * 0.5));
+  const spriteStartX = cx;
+  const apronStartRow = Math.max(bodyRows, f.height - 2);
+  // Keep facade above the threshold door tile so both render (door + cottage).
+  const spriteRow = hasInterior ? Math.max(1, f.height - 2) : Math.max(1, f.height - 2);
 
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
@@ -1357,27 +1384,29 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
       if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
 
       if (dx === cx && dy === f.height - 1) {
-        // Door / portal on bottom-centre tile
-        if (f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined) {
-          tiles[ty][tx] = createTile('door', true, {
-            transition: { targetMap: f.interiorMap, targetX: f.interiorSpawnX, targetY: f.interiorSpawnY },
-            interactable: true,
-            interactionId: 'building_entrance',
-          });
+        // Interior cottages keep this as the threshold base under the facade.
+        // The actual outside entry door is stamped one tile farther south.
+        if (hasInterior) {
+          tiles[ty][tx] = createTile('dirt', false);
         } else {
           tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId || 'cottage' });
         }
-      } else if (dy === 0) {
-        // Full-width thatch roof row
-        tiles[ty][tx] = createTile('house_thatch', false);
-      } else if (dy < bodyRows) {
-        // Full-width wooden wall body
+      } else if (dy === spriteRow && dx === spriteStartX) {
+        // Visual facade only; entrance is the explicit outside door tile.
+        tiles[ty][tx] = createTile('cottage_house', false);
+      } else if (hasInterior && (
+        (dy >= f.height - 2) ||
+        (dy >= f.height - 3 && Math.abs(dx - cx) <= 2)
+      )) {
+        // Block the visible foundation/wall footprint so player can't walk into the house.
+        tiles[ty][tx] = createTile('grass', false);
+      } else if (!hasInterior && dy < bodyRows) {
         tiles[ty][tx] = createTile('wood', false);
       } else if (dy === f.height - 1 && (dx === cx - 1 || dx === cx + 1) && f.width >= 4) {
-        // Lantern gate posts flanking the cottage door
         tiles[ty][tx] = createTile('lantern', false);
+      } else if (dy >= apronStartRow) {
+        tiles[ty][tx] = createTile('dirt', true);
       } else {
-        // Small garden / front yard
         if ((dx + dy) % 4 === 0) {
           tiles[ty][tx] = createTile('flower', true);
         } else {
@@ -1387,9 +1416,36 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
     }
   }
 
+  // Exterior entry door: one tile in front of the cottage threshold.
+  if (hasInterior) {
+    const entryX = f.x + cx;
+    // Primary entrance aligned to the visual cue row (village south cottage => world -29,40).
+    const entryY = f.y + f.height - 3;
+    if (entryY >= 0 && entryY < tiles.length && entryX >= 0 && entryX < tiles[0].length) {
+      tiles[entryY][entryX] = createTile('door', true, {
+        transition: { targetMap: f.interiorMap!, targetX: f.interiorSpawnX!, targetY: f.interiorSpawnY! },
+        interactable: true,
+        interactionId: 'building_entrance',
+      });
+    }
+
+    // Secondary fallback trigger at the front step so entry still works if standing a bit lower.
+    const frontY = f.y + f.height;
+    if (frontY >= 0 && frontY < tiles.length && entryX >= 0 && entryX < tiles[0].length) {
+      const existing = tiles[frontY][entryX];
+      if (!existing.interactable) {
+        tiles[frontY][entryX] = createTile('dirt', true, {
+          transition: { targetMap: f.interiorMap!, targetX: f.interiorSpawnX!, targetY: f.interiorSpawnY! },
+          interactable: true,
+          interactionId: 'building_entrance',
+        });
+      }
+    }
+  }
+
   // Dirt path from the door outward
   const doorX = f.x + cx;
-  for (let step = 1; step <= 3; step++) {
+  for (let step = hasInterior ? 2 : 1; step <= 3; step++) {
     const ty = f.y + f.height - 1 + step;
     if (ty >= 0 && ty < tiles.length && doorX >= 0 && doorX < tiles[0].length) {
       tiles[ty][doorX] = createTile('dirt', true);
