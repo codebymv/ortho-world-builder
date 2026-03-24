@@ -304,6 +304,17 @@ const Game = () => {
       }
     };
 
+    // Save compatibility: Elder's Wand was removed from progression.
+    const stripDeprecatedLoadout = () => {
+      state.inventory = state.inventory.filter(i => i.id !== 'magic_wand');
+      if (state.activeItemIndex >= state.inventory.length) {
+        state.activeItemIndex = Math.max(0, state.inventory.length - 1);
+      }
+      if (state.equippedWeaponId === 'magic_wand') {
+        state.equippedWeaponId = null;
+      }
+    };
+
     const syncEquippedWeapon = (preferredWeaponId?: string | null) => {
       state.setEquippedWeapon(preferredWeaponId ?? state.equippedWeaponId);
     };
@@ -336,6 +347,7 @@ const Game = () => {
       state.player.stamina = savedData.player.stamina;
       state.player.maxStamina = savedData.player.maxStamina;
       state.inventory = savedData.inventory;
+      stripDeprecatedLoadout();
       
       ensureStartingWeapon();
       state.activeItemIndex = 0;
@@ -3222,10 +3234,6 @@ state.player.lastAttackTime = currentTime;
       // Extract markers from quest description
       addMarkersFromText(quest.description, gameState.currentMap);
       quest.objectives.forEach(obj => addMarkersFromText(obj, gameState.currentMap));
-      if (givesQuest === 'clear_deep_woods' && items.magic_wand) {
-        gameState.addItem({ ...items.magic_wand });
-        gameState.setEquippedWeapon(items.magic_wand.id);
-      }
       if (givesQuest === 'merchants_request') {
         const mq = gameState.quests.find(q => q.id === 'merchants_request');
         if (mq) {

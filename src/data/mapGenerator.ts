@@ -291,7 +291,7 @@ function carveRoads(tiles: Tile[][], def: MapDefinition) {
 function carvePath(tiles: Tile[][], x1: number, y1: number, x2: number, y2: number, pathType: TileType, width: number) {
   const ROAD_CARVE_PROTECTED: Set<TileType> = new Set([
     'house', 'house_blue', 'house_green', 'house_thatch',
-    'cottage_house', 'cottage_house_entry',
+    'cottage_house', 'cottage_house_entry', 'cottage_house_forest',
     'door', 'door_iron',
     'lantern', 'wood',
   ]);
@@ -445,10 +445,10 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 }
 
 const HOUSE_VARIANTS: TileType[] = ['house', 'house_blue', 'house_green', 'house_thatch'];
-const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch', 'cottage_house', 'cottage_house_entry']);
+const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch', 'cottage_house', 'cottage_house_entry', 'cottage_house_forest']);
 // All tile types that indicate a structure is present (for spacing checks)
 const STRUCTURE_TYPES: Set<TileType> = new Set([
-  'house', 'house_blue', 'house_green', 'house_thatch', 'cottage_house', 'cottage_house_entry',
+  'house', 'house_blue', 'house_green', 'house_thatch', 'cottage_house', 'cottage_house_entry', 'cottage_house_forest',
   'destroyed_house', 'statue', 'mossy_stone', 'well',
 ]);
 const MIN_BUILDING_SPACING = 16; // minimum tiles between any two buildings (increased from 12)
@@ -1371,6 +1371,8 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
 
   const cx = Math.floor(f.width / 2);
   const hasInterior = !!(f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined);
+  const isWhisperingCottage = /woodcutter_cottage|witch_cottage|hunter_cottage|forest_cottage|ruin_cottage|hidden_cottage/.test(f.interactionId ?? '');
+  const facadeTile: TileType = isWhisperingCottage ? 'cottage_house_forest' : 'cottage_house';
   const bodyRows = Math.max(2, Math.ceil(f.height * 0.5));
   const spriteStartX = cx;
   const apronStartRow = Math.max(bodyRows, f.height - 2);
@@ -1393,7 +1395,7 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
         }
       } else if (dy === spriteRow && dx === spriteStartX) {
         // Visual facade only; entrance is the explicit outside door tile.
-        tiles[ty][tx] = createTile('cottage_house', false);
+        tiles[ty][tx] = createTile(facadeTile, false);
       } else if (hasInterior && (
         (dy >= f.height - 2) ||
         (dy >= f.height - 3 && Math.abs(dx - cx) <= 2)
@@ -1419,7 +1421,7 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
   // Exterior entry door: one tile in front of the cottage threshold.
   if (hasInterior) {
     const entryX = f.x + cx;
-    // Primary entrance aligned to the visual cue row (village south cottage => world -29,40).
+    // Match Greenleaf cottage entry alignment for consistent scale/placement behavior.
     const entryY = f.y + f.height - 3;
     if (entryY >= 0 && entryY < tiles.length && entryX >= 0 && entryX < tiles[0].length) {
       tiles[entryY][entryX] = createTile('door', true, {
@@ -1429,7 +1431,7 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
       });
     }
 
-    // Secondary fallback trigger at the front step so entry still works if standing a bit lower.
+    // Secondary fallback trigger at the front step to keep interaction forgiving.
     const frontY = f.y + f.height;
     if (frontY >= 0 && frontY < tiles.length && entryX >= 0 && entryX < tiles[0].length) {
       const existing = tiles[frontY][entryX];

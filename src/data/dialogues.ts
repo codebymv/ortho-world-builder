@@ -60,7 +60,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'give_second_quest',
-        text: "Take this __magic wand__ for protection. Find the witch at her hut in the Deep Woods. Learn what has awakened, and return with that knowledge. The fate of our village depends on it!",
+        text: "Gather your strength and travel to the Deep Woods. Find the witch at her hut, learn what has awakened, and return with that knowledge. The fate of our village depends on it.",
         responses: [
           { text: "I won't let you down.", nextId: 'end', givesQuest: 'clear_deep_woods' },
         ],

@@ -1307,6 +1307,14 @@ export class AssetManager {
       [C, C, C, C, C, C, CWALL_S, CWALL_S, CWALL_S, CWALL_S, C, C, C, C, C, C],
     ] as const;
     this.textures.set('cottage_house', this.createSpriteTexture(cottageHouseSprite));
+    const cottageHouseForestSprite = cottageHouseSprite.map(row => row.map(px => {
+      if (px === THATCH) return GROOF;
+      if (px === THATCH_H) return GROOF_H;
+      if (px === THATCH_S) return GROOF_S;
+      if (px === THATCH_BAND) return GROOF_TRIM;
+      return px;
+    }));
+    this.textures.set('cottage_house_forest', this.createSpriteTexture(cottageHouseForestSprite));
     const cottageHouseEntrySprite = [
       [C, C, C, C, CHIM, CHIM, CHIM_TOP, CHIM_TOP, C, C, C, C, C, C, C, C],
       [C, C, C, CHIM, CHIM, CHIM, THATCH_S, THATCH_S, THATCH, THATCH, C, C, C, C, C, C],

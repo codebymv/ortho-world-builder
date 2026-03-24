@@ -15,6 +15,7 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   house_thatch: { isOverlay: true, baseTile: 'dirt', scale: 2.0, sortTrim: 0.12 },
   cottage_house: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3 },
   cottage_house_entry: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3 },
+  cottage_house_forest: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3 },
   rock: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.18 },
   chest: { isOverlay: true, baseTile: 'grass', scale: 0.8, sortTrim: 0.16 },
   portal: { isOverlay: true, baseTile: 'stone', scale: 1.3, sortTrim: 0.2 },

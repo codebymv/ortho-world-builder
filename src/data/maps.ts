@@ -333,7 +333,7 @@ const forestDef: MapDefinition = {
     // === SCATTERED COTTAGES (hermits, woodcutters) ===
     { x: 90, y: 180, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage' },
     { x: 230, y: 130, width: 6, height: 6, type: 'cottage', interactionId: 'witch_cottage' },
-    { x: 140, y: 240, width: 6, height: 6, type: 'cottage', interactionId: 'hunter_cottage' },
+    { x: 140, y: 240, width: 6, height: 6, type: 'cottage', interactionId: 'hunter_cottage', interiorMap: 'interior_hunter_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
     { x: 170, y: 80, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage' },
     { x: 80, y: 50, width: 6, height: 6, type: 'cottage', interactionId: 'ruin_cottage' },
     { x: 210, y: 200, width: 6, height: 6, type: 'cottage', interactionId: 'hidden_cottage' },
@@ -1098,6 +1098,38 @@ const interiorWitchHutDef: MapDefinition = {
   ],
 };
 
+const interiorHunterCottageDef: MapDefinition = {
+  name: "Hunter's Cottage",
+  width: 12,
+  height: 10,
+  spawnPoint: { x: 6, y: 8 },
+  seed: 9010,
+  baseTerrain: 'forest',
+  borderTile: 'stone',
+  autoRoads: false,
+  features: [
+    { x: 2, y: 2, width: 8, height: 6, type: 'clearing', fill: 'wood_floor' },
+    { x: 0, y: 0, width: 12, height: 2, type: 'wall', fill: 'stone' },
+    { x: 0, y: 2, width: 2, height: 8, type: 'wall', fill: 'stone' },
+    { x: 10, y: 2, width: 2, height: 8, type: 'wall', fill: 'stone' },
+    { x: 2, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
+    { x: 7, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
+  ],
+  // Return to Whispering Woods near hunter_cottage (~world -4,93) with a little breathing room.
+  portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 146, targetY: 242 }],
+  chests: [{ x: 8, y: 6, interactionId: 'hunter_cottage_chest' }],
+  interactables: [{ x: 6, y: 4, type: 'sign', walkable: false, interactionId: 'hunter_clue' }],
+  props: [
+    { x: 3, y: 3, type: 'bed', walkable: false },
+    { x: 8, y: 3, type: 'weapon_rack', walkable: false },
+    { x: 4, y: 4, type: 'table', walkable: false },
+    { x: 8, y: 4, type: 'bench', walkable: false },
+    { x: 3, y: 5, type: 'fireplace', walkable: false },
+    { x: 9, y: 5, type: 'barrel', walkable: false },
+    { x: 6, y: 6, type: 'rug', walkable: true },
+  ],
+};
+
 // Lazy map generation - only generate when first accessed
 const mapCache: Record<string, WorldMap> = {};
 
@@ -1118,6 +1150,7 @@ export const mapDefinitions: Record<string, MapDefinition> = {
   interior_cottage_a: interiorCottageADef,
   interior_ranger_cabin: interiorRangerCabinDef,
   interior_witch_hut: interiorWitchHutDef,
+  interior_hunter_cottage: interiorHunterCottageDef,
 };
 
 function getOrGenerateMap(key: string): WorldMap {

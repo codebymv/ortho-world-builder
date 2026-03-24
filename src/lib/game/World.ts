@@ -4,7 +4,7 @@ import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
 
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'stone' | 'wood' 
-  | 'tree' | 'house' | 'house_blue' | 'house_green' | 'house_thatch' | 'cottage_house' | 'cottage_house_entry' | 'rock' | 'chest' | 'portal' | 'flower'
+  | 'tree' | 'house' | 'house_blue' | 'house_green' | 'house_thatch' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'rock' | 'chest' | 'portal' | 'flower'
   | 'tall_grass' | 'bridge' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
   | 'campfire' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
@@ -75,6 +75,7 @@ const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'house_thatch',
   'cottage_house',
   'cottage_house_entry',
+  'cottage_house_forest',
   'destroyed_house',
 ]);
 const OVERWORLD_STRUCTURE_SCALE_MULTIPLIER = 1.18;
@@ -674,7 +675,7 @@ export class World {
     const sortTrim = TILE_METADATA[tile.type]?.sortTrim ?? 0.16;
     const sortAnchorY = ((scale - 1) * this.tileSize * 0.3) - (scale * 0.5) + sortTrim;
     const renderOrderBias =
-      tile.type === 'cottage_house' || tile.type === 'cottage_house_entry'
+      tile.type === 'cottage_house' || tile.type === 'cottage_house_entry' || tile.type === 'cottage_house_forest'
         ? 1500
         : 0;
 

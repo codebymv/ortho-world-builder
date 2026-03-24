@@ -56,16 +56,4 @@ export const items: Record<string, Item> = {
       range: 2,
     },
   },
-
-  magic_wand: {
-    id: 'magic_wand',
-    name: 'Elder\'s Wand',
-    description: 'A simple focus carved with protective runes. Lighter strikes, slightly longer reach.',
-    type: 'equipment',
-    sprite: 'sword',
-    stats: {
-      damage: 24,
-      range: 2.15,
-    },
-  },
 };
