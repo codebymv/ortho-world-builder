@@ -335,8 +335,6 @@ const Game = () => {
       state.player.attackRange = savedData.player.attackRange ?? state.player.attackRange;
       state.player.stamina = savedData.player.stamina;
       state.player.maxStamina = savedData.player.maxStamina;
-      state.player.estusCharges = savedData.player.estusCharges ?? state.player.maxEstusCharges;
-      state.player.maxEstusCharges = savedData.player.maxEstusCharges ?? 3;
       state.inventory = savedData.inventory;
       
       ensureStartingWeapon();
@@ -602,7 +600,7 @@ const Game = () => {
       for (const dir of [
         { x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 },
       ]) {
-        const t = world.getTransitionAt(px + dir.x * 0.7, py + dir.y * 0.7);
+        const t = world.getAutoTransitionAt(px + dir.x * 0.7, py + dir.y * 0.7);
         if (t) return t;
       }
       return null;
@@ -634,6 +632,7 @@ const Game = () => {
 
       state.currentMap = targetMap;
       world.loadMap(newMap);
+      setActiveNpcsForCurrentMap();
       if (!targetMap.startsWith('interior_')) {
         biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
         switchMusicTrack(targetMap);
@@ -644,6 +643,18 @@ const Game = () => {
       const worldY = targetY - newMap.height / 2;
       
       state.player.position = { x: worldX, y: worldY };
+      
+      // Set player orientation based on transition direction:
+      // - Entering interior: face 'down' (into room, door is behind at high-Y)
+      // - Exiting to overworld: face 'down' (away from building)
+      if (targetMap.startsWith('interior_')) {
+        currentDir8 = 'down';
+        state.player.direction = 'down';
+      } else {
+        currentDir8 = 'down';
+        state.player.direction = 'down';
+      }
+      
       // Snap smoothed elevation to target immediately on map load to avoid gliding from 0
       playerSmoothedElevation = world.getElevationAt(worldX, worldY);
       playerMesh.position.set(worldX, getPlayerVisualY(worldX, worldY), 0.2);
@@ -692,7 +703,6 @@ const Game = () => {
     const performBonfireRest = (tileX: number, tileY: number) => {
       state.player.health = state.player.maxHealth;
       state.player.stamina = state.player.maxStamina;
-      state.player.estusCharges = state.player.maxEstusCharges;
       state.lastBonfire = {
         mapId: state.currentMap,
         x: state.player.position.x,
@@ -703,13 +713,13 @@ const Game = () => {
         state.setFlag(firstKey, true);
         notify('Flame kindled', {
           id: 'bonfire', type: 'success',
-          description: 'Estus recharged. You will respawn here if you fall. Foes have returned.',
+          description: 'You will respawn here if you fall. Foes have returned.',
           duration: 4000,
         });
       } else {
         notify('Rested at bonfire', {
           id: 'bonfire', type: 'success',
-          description: 'Health, stamina, and Estus restored. Enemies have respawned.',
+          description: 'Health and stamina restored. Enemies have respawned.',
           duration: 2500,
         });
       }
@@ -803,13 +813,13 @@ const Game = () => {
     scene.add(heldItemMesh);
 
     const npcData: NPC[] = [
-      { id: 'elder', name: 'Village Elder', position: { x: -18, y: -10 }, dialogueId: 'elder', sprite: 'npc_elder', questGiver: true },
-      { id: 'merchant', name: 'Traveling Merchant', position: { x: 20, y: -2 }, dialogueId: 'merchant', sprite: 'npc_merchant' },
-      { id: 'guard', name: 'Village Guard', position: { x: 0, y: 5 }, dialogueId: 'guard', sprite: 'npc_guard' },
-      { id: 'blacksmith', name: 'Blacksmith', position: { x: 35, y: -8 }, dialogueId: 'blacksmith', sprite: 'npc_blacksmith' },
-      { id: 'healer', name: 'Healer', position: { x: -10, y: 15 }, dialogueId: 'healer', sprite: 'npc_healer' },
-      { id: 'farmer', name: 'Old Farmer', position: { x: -40, y: -30 }, dialogueId: 'farmer', sprite: 'npc_farmer' },
-      { id: 'child', name: 'Village Child', position: { x: 5, y: -5 }, dialogueId: 'child', sprite: 'npc_child' },
+      { id: 'elder', name: 'Village Elder', mapId: 'village', position: { x: -18, y: -10 }, dialogueId: 'elder', sprite: 'npc_elder', questGiver: true },
+      { id: 'merchant', name: 'Traveling Merchant', mapId: 'village', position: { x: 20, y: -2 }, dialogueId: 'merchant', sprite: 'npc_merchant' },
+      { id: 'guard', name: 'Village Guard', mapId: 'village', position: { x: 0, y: 5 }, dialogueId: 'guard', sprite: 'npc_guard' },
+      { id: 'blacksmith', name: 'Blacksmith', mapId: 'village', position: { x: 35, y: -8 }, dialogueId: 'blacksmith', sprite: 'npc_blacksmith' },
+      { id: 'healer', name: 'Healer', mapId: 'village', position: { x: -10, y: 15 }, dialogueId: 'healer', sprite: 'npc_healer' },
+      { id: 'farmer', name: 'Old Farmer', mapId: 'village', position: { x: -40, y: -30 }, dialogueId: 'farmer', sprite: 'npc_farmer' },
+      { id: 'child', name: 'Village Child', mapId: 'village', position: { x: 5, y: -5 }, dialogueId: 'child', sprite: 'npc_child' },
     ];
 
     // NPC wandering state
@@ -834,7 +844,8 @@ const Game = () => {
       };
     }
 
-    state.npcs = npcData;
+    state.npcs = [];
+    const activeNpcIndices: number[] = [];
     const npcMeshes: THREE.Mesh[] = [];
     const npcShadows: THREE.Mesh[] = [];
     const npcOutlines: THREE.Mesh[] = [];
@@ -872,6 +883,31 @@ const Game = () => {
       scene.add(npcOutline);
       npcOutlines.push(npcOutline);
     });
+
+    const setActiveNpcsForCurrentMap = () => {
+      const currentMap = state.currentMap;
+      activeNpcIndices.length = 0;
+      state.npcs = [];
+
+      for (let i = 0; i < npcData.length; i++) {
+        const npc = npcData[i];
+        const isActive = !npc.mapId || npc.mapId === currentMap;
+
+        const npcMesh = npcMeshes[i];
+        if (npcMesh) npcMesh.visible = isActive;
+        const npcShadow = npcShadows[i];
+        if (npcShadow) npcShadow.visible = isActive;
+        const npcOutline = npcOutlines[i];
+        if (npcOutline) npcOutline.visible = isActive;
+
+        if (isActive) {
+          activeNpcIndices.push(i);
+          state.npcs.push(npc);
+        }
+      }
+    };
+
+    setActiveNpcsForCurrentMap();
 
     const keys: { [key: string]: boolean } = {};
     let interactBuffered = false;
@@ -964,19 +1000,6 @@ const Game = () => {
             }
             triggerUIUpdate();
           }
-        } else if (state.player.estusCharges > 0 && state.player.health < state.player.maxHealth) {
-          if (state.player.health >= state.player.maxHealth) {
-            notify('Already at full health!', { id: 'full-health', duration: 1500 });
-            return;
-          }
-          playerAnimState = 'drinking';
-          drinkTimer = DRINK_DURATION;
-          state.player.health = Math.min(state.player.maxHealth, state.player.health + 50);
-          state.player.estusCharges--;
-          notify('Used Estus Flask', { id: 'used-estus', type: 'success', description: 'Restored 50 health.', duration: 2000 });
-          triggerUIUpdate();
-        } else if (state.player.estusCharges <= 0) {
-          notify('No Estus charges!', { id: 'no-estus', duration: 1500 });
         } else {
           dodgeBuffered = true;
         }
@@ -1576,6 +1599,14 @@ state.player.lastAttackTime = currentTime;
           }
         }
 
+        if (interactionId === 'building_exit' || interactionId === 'building_entrance') {
+          const transition = world.getTransitionAt(px, py);
+          if (transition) {
+            handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
+            return;
+          }
+        }
+
         // Healing sources with cooldown
         if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'healing_mushroom' || interactionId === 'campfire') {
           const now = Date.now();
@@ -1873,7 +1904,8 @@ state.player.lastAttackTime = currentTime;
       }
 
     // === NPC WANDERING ===
-      for (let ni = 0; ni < npcData.length; ni++) {
+      for (let ai = 0; ai < activeNpcIndices.length; ai++) {
+        const ni = activeNpcIndices[ai];
         const npc = npcData[ni];
         const wander = npcWander[npc.id];
         if (!wander) continue;
@@ -2503,8 +2535,13 @@ state.player.lastAttackTime = currentTime;
           const portalHint = samplePortalNearPlayer();
           if (portalHint && isPortalDestinationUnlocked(portalHint.targetMap)) {
             showIndicator = true;
-            indicatorX = state.player.position.x;
-            indicatorY = state.player.position.y;
+            const portalDir = directions.find(dir => {
+              const cx = state.player.position.x + dir.x * 0.7;
+              const cy = state.player.position.y + dir.y * 0.7;
+              return world.getTransitionAt(cx, cy) !== null;
+            }) || directions[0];
+            indicatorX = state.player.position.x + portalDir.x * 0.7;
+            indicatorY = state.player.position.y + portalDir.y * 0.7;
           }
         }
 
@@ -3031,6 +3068,14 @@ state.player.lastAttackTime = currentTime;
       st.player.stamina = st.player.maxStamina;
       st.player.isDodging = false;
       st.player.iFrameTimer = 0;
+
+      // Give player 2 health potions on respawn
+      const potionCount = st.inventory.filter(i => i.id === 'health_potion').length;
+      if (potionCount < 2) {
+        while (st.inventory.filter(i => i.id === 'health_potion').length < 2) {
+          st.addItem({ ...items.health_potion });
+        }
+      }
 
       let lb = st.lastBonfire;
       if (!lb) {

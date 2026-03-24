@@ -13,9 +13,12 @@ export type TileType =
   | 'dead_tree' | 'destroyed_house' | 'statue'
   | 'cliff' | 'cliff_edge' | 'cobblestone' | 'farmland' | 'wheat'
   | 'iron_fence' | 'hedge' | 'scarecrow' | 'hay_bale' | 'lantern'
-  | 'dark_grass' | 'mossy_stone' | 'wooden_path' | 'stairs'
+  | 'dark_grass' | 'mossy_stone' | 'wooden_path' | 'stairs' | 'ladder'
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
-  | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter';
+  | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter'
+  | 'bed' | 'wardrobe' | 'fireplace' | 'weapon_rack' | 'alchemy_table' | 'cauldron'
+  | 'throne' | 'altar' | 'bloodstain' | 'chain' | 'cage' | 'bones_pile'
+  | 'door' | 'door_iron';
 
 export interface Tile {
   type: TileType;
@@ -54,7 +57,7 @@ interface ChunkMesh {
 const RENDER_RADIUS = 32;
 const CULL_RADIUS = 42;
 const MAX_TILES_PER_FRAME = 200; // batch tile creation to prevent frame drops
-const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'stairs']);
+const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'stairs', 'ladder']);
 const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'bones',
   'flower',
@@ -65,6 +68,14 @@ const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'tall_grass',
   'wheat',
 ]);
+const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
+  'house',
+  'house_blue',
+  'house_green',
+  'house_thatch',
+  'destroyed_house',
+]);
+const OVERWORLD_STRUCTURE_SCALE_MULTIPLIER = 1.18;
 
 // Seeded hash for deterministic detail placement
 function tileHash(x: number, y: number, seed: number = 0): number {
@@ -652,7 +663,12 @@ export class World {
     const group = this.overlayPool.pop() ?? new THREE.Group();
     group.clear();
     group.matrixAutoUpdate = false;
-    const scale = TILE_METADATA[tile.type]?.scale ?? 1.0;
+    const baseScale = TILE_METADATA[tile.type]?.scale ?? 1.0;
+    const isOverworldMap = this.map.width >= 80 || this.map.height >= 80;
+    const structureScaleBoost = isOverworldMap && OVERWORLD_STRUCTURE_TILE_TYPES.has(tile.type)
+      ? OVERWORLD_STRUCTURE_SCALE_MULTIPLIER
+      : 1;
+    const scale = baseScale * structureScaleBoost;
     const sortTrim = TILE_METADATA[tile.type]?.sortTrim ?? 0.16;
     const sortAnchorY = ((scale - 1) * this.tileSize * 0.3) - (scale * 0.5) + sortTrim;
 
@@ -1006,6 +1022,13 @@ export class World {
   getTransitionAt(x: number, y: number): { targetMap: string; targetX: number; targetY: number } | null {
     const tile = this.getTile(x, y);
     return tile?.transition || null;
+  }
+
+  /** Like getTransitionAt but only for portal tiles (auto-warp). Doors require F-key. */
+  getAutoTransitionAt(x: number, y: number): { targetMap: string; targetX: number; targetY: number } | null {
+    const tile = this.getTile(x, y);
+    if (tile?.type === 'portal' && tile.transition) return tile.transition;
+    return null;
   }
 
   tryPushBlock(playerX: number, playerY: number, direction: { x: number; y: number }): boolean {

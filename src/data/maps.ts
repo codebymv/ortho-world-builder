@@ -83,7 +83,7 @@ const villageDef: MapDefinition = {
     { x: 45, y: 30, width: 12, height: 14, type: 'church', interactionId: 'village_church' },
 
     // ====== SCATTERED COTTAGES (countryside feel) ======
-    { x: 88, y: 115, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_south', interiorMap: 'interior_cottage_a', interiorSpawnX: 6, interiorSpawnY: 2 },
+    { x: 88, y: 115, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_south', interiorMap: 'interior_cottage_a', interiorSpawnX: 6, interiorSpawnY: 8 },
     { x: 165, y: 40, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_east' },
     { x: 22, y: 95, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_west' },
     { x: 195, y: 100, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_lake' },
@@ -427,10 +427,14 @@ const forestDef: MapDefinition = {
     { x: 45, y: 145, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
     { x: 255, y: 55, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
     { x: 155, y: 55, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 100, y: 165, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 148, y: 265, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 230, y: 165, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 75, y: 100, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
+{ x: 100, y: 165, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
+     { x: 148, y: 265, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
+     { x: 230, y: 165, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
+     { x: 75, y: 100, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
+     // Moonbloom flowers for Merchant's Request quest
+     { x: 140, y: 48, type: 'flower', walkable: true, interactionId: 'moonbloom_pickup' },
+     { x: 210, y: 105, type: 'flower', walkable: true, interactionId: 'moonbloom_pickup' },
+     { x: 85, y: 185, type: 'flower', walkable: true, interactionId: 'moonbloom_pickup' },
   ],
   props: [
     { x: 128, y: 42, type: 'bench', walkable: false },
@@ -604,8 +608,11 @@ const deepWoodsDef: MapDefinition = {
     // === TREANT GROVE ===
     { x: 160, y: 160, width: 15, height: 12, type: 'garden' },
 
-    // === BOSS ARENA - Shadow Lord ===
+    // === BOSS ARENA - Shadow Lord (Shadow Castle) ===
     { x: 90, y: 40, width: 20, height: 20, type: 'boss_arena', interactionId: 'shadow_lord' },
+    // Shadow Castle entrance (elevated platform with ritual elements)
+    { x: 85, y: 35, width: 30, height: 30, type: 'clearing', fill: 'stone' },
+    // Atmospheric props around boss arena - bloodstains and bones
 
     // === ABANDONED EXPEDITION CAMPS ===
     { x: 30, y: 160, width: 12, height: 10, type: 'abandoned_camp', interactionId: 'lost_scholars' },
@@ -660,11 +667,35 @@ const deepWoodsDef: MapDefinition = {
     { x: 25, y: 165, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
   ],
   props: [
+    // Ancient shrine vicinity
     { x: 168, y: 48, type: 'pot', walkable: true },
     { x: 172, y: 48, type: 'pot', walkable: true },
     { x: 175, y: 52, type: 'bones', walkable: true },
     { x: 114, y: 24, type: 'pot', walkable: true },
     { x: 118, y: 26, type: 'pot', walkable: true },
+    // Shadow Castle approach - ritual elements and atmosphere
+    { x: 92, y: 42, type: 'altar', walkable: false },
+    { x: 108, y: 42, type: 'altar', walkable: false },
+    { x: 98, y: 38, type: 'throne', walkable: false },
+    { x: 102, y: 38, type: 'throne', walkable: false },
+    // Bloodstains leading to boss
+    { x: 88, y: 52, type: 'bloodstain', walkable: true },
+    { x: 112, y: 52, type: 'bloodstain', walkable: true },
+    { x: 95, y: 48, type: 'bloodstain', walkable: true },
+    { x: 105, y: 48, type: 'bloodstain', walkable: true },
+    // Bones piles around arena
+    { x: 85, y: 45, type: 'bones_pile', walkable: true },
+    { x: 115, y: 45, type: 'bones_pile', walkable: true },
+    { x: 100, y: 56, type: 'bones_pile', walkable: true },
+    // Chains hanging from elevated areas
+    { x: 90, y: 38, type: 'chain', walkable: false },
+    { x: 110, y: 38, type: 'chain', walkable: false },
+    // Cages (imprisoned souls)
+    { x: 86, y: 50, type: 'cage', walkable: false },
+    { x: 114, y: 50, type: 'cage', walkable: false },
+    // Witch's hut area
+    { x: 55, y: 58, type: 'cauldron', walkable: false },
+    { x: 65, y: 62, type: 'cauldron', walkable: false },
   ],
   secretAreas: [
     { x: 15, y: 15, width: 8, height: 6, fill: 'stone' },
@@ -875,11 +906,11 @@ const interiorInnDef: MapDefinition = {
     { x: 0, y: 12, width: 8, height: 2, type: 'wall', fill: 'stone' },
     { x: 12, y: 12, width: 8, height: 2, type: 'wall', fill: 'stone' },
   ],
-  portals: [{ x: 10, y: 13, targetMap: 'village', targetX: 179, targetY: 93 }],
+  portals: [{ x: 10, y: 13, targetMap: 'village', targetX: 179, targetY: 94 }],
   chests: [],
   interactables: [{ x: 10, y: 4, type: 'sign', walkable: false, interactionId: 'merchant' }],
   props: [
-    { x: 10, y: 2, type: 'campfire', walkable: false },
+    { x: 10, y: 2, type: 'fireplace', walkable: false },
     { x: 6, y: 6, type: 'table', walkable: false },
     { x: 10, y: 6, type: 'table', walkable: false },
     { x: 14, y: 6, type: 'table', walkable: false },
@@ -890,6 +921,9 @@ const interiorInnDef: MapDefinition = {
     { x: 10, y: 9, type: 'rug', walkable: true },
     { x: 8, y: 3, type: 'counter', walkable: false },
     { x: 12, y: 3, type: 'counter', walkable: false },
+    { x: 3, y: 3, type: 'bed', walkable: false },
+    { x: 17, y: 3, type: 'bed', walkable: false },
+    { x: 2, y: 9, type: 'wardrobe', walkable: false },
   ],
 };
 
@@ -910,11 +944,11 @@ const interiorBlacksmithDef: MapDefinition = {
     { x: 0, y: 10, width: 6, height: 2, type: 'wall', fill: 'stone' },
     { x: 10, y: 10, width: 6, height: 2, type: 'wall', fill: 'stone' },
   ],
-  portals: [{ x: 8, y: 11, targetMap: 'village', targetX: 159, targetY: 63 }],
+  portals: [{ x: 8, y: 11, targetMap: 'village', targetX: 159, targetY: 64 }],
   chests: [],
   interactables: [{ x: 8, y: 4, type: 'sign', walkable: false, interactionId: 'blacksmith' }],
   props: [
-    { x: 8, y: 2, type: 'campfire', walkable: false },
+    { x: 8, y: 2, type: 'fireplace', walkable: false },
     { x: 4, y: 5, type: 'crate', walkable: false },
     { x: 5, y: 5, type: 'crate', walkable: false },
     { x: 11, y: 5, type: 'barrel', walkable: false },
@@ -922,6 +956,8 @@ const interiorBlacksmithDef: MapDefinition = {
     { x: 3, y: 7, type: 'counter', walkable: false },
     { x: 7, y: 7, type: 'counter', walkable: false },
     { x: 11, y: 7, type: 'counter', walkable: false },
+    { x: 4, y: 3, type: 'weapon_rack', walkable: false },
+    { x: 3, y: 3, type: 'barrel', walkable: false },
   ],
 };
 
@@ -942,7 +978,7 @@ const interiorMerchantDef: MapDefinition = {
     { x: 0, y: 10, width: 5, height: 2, type: 'wall', fill: 'stone' },
     { x: 9, y: 10, width: 5, height: 2, type: 'wall', fill: 'stone' },
   ],
-  portals: [{ x: 7, y: 11, targetMap: 'village', targetX: 179, targetY: 61 }],
+  portals: [{ x: 7, y: 11, targetMap: 'village', targetX: 179, targetY: 62 }],
   chests: [],
   interactables: [{ x: 7, y: 7, type: 'sign', walkable: false, interactionId: 'healer' }],
   props: [
@@ -954,6 +990,9 @@ const interiorMerchantDef: MapDefinition = {
     { x: 10, y: 8, type: 'pot', walkable: true },
     { x: 6, y: 5, type: 'crate', walkable: false },
     { x: 8, y: 5, type: 'crate', walkable: false },
+    { x: 7, y: 3, type: 'alchemy_table', walkable: false },
+    { x: 3, y: 5, type: 'cauldron', walkable: false },
+    { x: 11, y: 5, type: 'cauldron', walkable: false },
   ],
 };
 
@@ -961,7 +1000,7 @@ const interiorCottageADef: MapDefinition = {
   name: 'Cottage Interior',
   width: 12,
   height: 10,
-  spawnPoint: { x: 6, y: 2 },
+  spawnPoint: { x: 6, y: 8 },
   seed: 9004,
   baseTerrain: 'grassland',
   borderTile: 'stone',
@@ -969,12 +1008,11 @@ const interiorCottageADef: MapDefinition = {
   features: [
     { x: 2, y: 2, width: 8, height: 6, type: 'clearing', fill: 'wood_floor' },
     { x: 0, y: 0, width: 12, height: 2, type: 'wall', fill: 'stone' },
-    { x: 0, y: 2, width: 2, height: 6, type: 'wall', fill: 'stone' },
-    { x: 10, y: 2, width: 2, height: 6, type: 'wall', fill: 'stone' },
-    { x: 0, y: 8, width: 4, height: 2, type: 'wall', fill: 'stone' },
-    { x: 8, y: 8, width: 4, height: 2, type: 'wall', fill: 'stone' },
+    { x: 0, y: 2, width: 2, height: 8, type: 'wall', fill: 'stone' },
+    { x: 10, y: 2, width: 2, height: 8, type: 'wall', fill: 'stone' },
+    { x: 2, y: 8, width: 8, height: 2, type: 'wall', fill: 'stone' },
   ],
-  portals: [{ x: 6, y: 9, targetMap: 'village', targetX: 91, targetY: 118 }],
+  portals: [{ x: 6, y: 9, targetMap: 'village', targetX: 91, targetY: 123 }],
   chests: [],
   interactables: [],
   props: [
@@ -982,6 +1020,10 @@ const interiorCottageADef: MapDefinition = {
     { x: 8, y: 4, type: 'bench', walkable: false },
     { x: 6, y: 6, type: 'rug', walkable: true },
     { x: 9, y: 3, type: 'pot', walkable: true },
+    { x: 3, y: 3, type: 'bed', walkable: false },
+    { x: 3, y: 6, type: 'wardrobe', walkable: false },
+    { x: 8, y: 3, type: 'bed', walkable: false },
+    { x: 3, y: 5, type: 'fireplace', walkable: false },
   ],
 };
 
@@ -1002,7 +1044,7 @@ const interiorRangerCabinDef: MapDefinition = {
     { x: 0, y: 8, width: 5, height: 2, type: 'wall', fill: 'stone' },
     { x: 9, y: 8, width: 5, height: 2, type: 'wall', fill: 'stone' },
   ],
-  portals: [{ x: 7, y: 9, targetMap: 'forest', targetX: 141, targetY: 171 }],
+  portals: [{ x: 7, y: 9, targetMap: 'forest', targetX: 141, targetY: 172 }],
   chests: [],
   interactables: [{ x: 7, y: 4, type: 'sign', walkable: false, interactionId: 'ranger_sign' }],
   props: [
@@ -1012,6 +1054,10 @@ const interiorRangerCabinDef: MapDefinition = {
     { x: 10, y: 4, type: 'bookshelf', walkable: false },
     { x: 3, y: 6, type: 'bench', walkable: false },
     { x: 11, y: 6, type: 'bench', walkable: false },
+    { x: 3, y: 3, type: 'bed', walkable: false },
+    { x: 11, y: 3, type: 'bed', walkable: false },
+    { x: 6, y: 6, type: 'fireplace', walkable: false },
+    { x: 4, y: 3, type: 'wardrobe', walkable: false },
   ],
 };
 
@@ -1032,16 +1078,21 @@ const interiorWitchHutDef: MapDefinition = {
     { x: 0, y: 8, width: 4, height: 2, type: 'wall', fill: 'stone' },
     { x: 8, y: 8, width: 4, height: 2, type: 'wall', fill: 'stone' },
   ],
-  portals: [{ x: 6, y: 9, targetMap: 'deep_woods', targetX: 65, targetY: 67 }],
+  portals: [{ x: 6, y: 9, targetMap: 'deep_woods', targetX: 65, targetY: 68 }],
   chests: [],
   interactables: [{ x: 6, y: 4, type: 'sign', walkable: false, interactionId: 'witch_hut_lore' }],
   props: [
     { x: 3, y: 3, type: 'bookshelf', walkable: false },
     { x: 9, y: 3, type: 'bookshelf', walkable: false },
-    { x: 6, y: 5, type: 'campfire', walkable: false },
+    { x: 6, y: 5, type: 'fireplace', walkable: false },
     { x: 4, y: 6, type: 'pot', walkable: true },
     { x: 8, y: 6, type: 'pot', walkable: true },
     { x: 5, y: 4, type: 'counter', walkable: false },
+    { x: 3, y: 5, type: 'cauldron', walkable: false },
+    { x: 9, y: 5, type: 'cauldron', walkable: false },
+    { x: 6, y: 3, type: 'alchemy_table', walkable: false },
+    { x: 4, y: 4, type: 'bones', walkable: true },
+    { x: 8, y: 4, type: 'bones_pile', walkable: true },
   ],
 };
 

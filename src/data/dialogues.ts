@@ -491,4 +491,24 @@ export const dialogues: Record<string, Dialogue> = {
       { id: 'end', text: "Bye bye, adventurer! Come back and tell me more stories!", responses: [] },
     ],
   },
+  building_entrance: {
+    id: 'building_entrance',
+    nodes: [
+      {
+        id: 'start',
+        text: "*The door stands ajar, inviting you inside.*\n\n_(Stand still for a moment to enter)_",
+        responses: [],
+      },
+    ],
+  },
+  building_exit: {
+    id: 'building_exit',
+    nodes: [
+      {
+        id: 'start',
+        text: "*Exit to the outside world?*\n\n_(Stand still for a moment to leave)_",
+        responses: [],
+      },
+    ],
+  },
 };

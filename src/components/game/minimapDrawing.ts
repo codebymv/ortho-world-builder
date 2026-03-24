@@ -98,6 +98,28 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
   ctx.fillStyle = '#0a0806';
   ctx.fillRect(0, 0, w * scale, h * scale);
 
+  // If no visited tiles, draw at least the player's immediate area
+  const playerTileX = Math.floor(playerPosition.x + w / 2);
+  const playerTileY = Math.floor(playerPosition.y + h / 2);
+  
+  if (visited.size === 0) {
+    // Draw a small area around the player for new games
+    const revealRadius = 5;
+    for (let dy = -revealRadius; dy <= revealRadius; dy++) {
+      for (let dx = -revealRadius; dx <= revealRadius; dx++) {
+        const tx = playerTileX + dx;
+        const ty = playerTileY + dy;
+        if (tx >= 0 && ty >= 0 && tx < w && ty < h) {
+          const tile = tiles[ty]?.[tx];
+          if (tile) {
+            ctx.fillStyle = tileColorForMinimap(tile);
+            ctx.fillRect(tx * scale, (h - 1 - ty) * scale, scale, scale);
+          }
+        }
+      }
+    }
+  }
+
   for (const tileKey of visited) {
     const comma = tileKey.indexOf(',');
     if (comma <= 0) continue;

@@ -57,6 +57,14 @@ export interface Stairway {
   elevation: number;
 }
 
+export interface Ladder {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  elevation: number;
+}
+
 export interface MapFeature {
   x: number;
   y: number;
@@ -120,6 +128,7 @@ export interface MapDefinition {
   }>;
   elevationZones?: ElevationZone[];
   stairways?: Stairway[];
+  ladders?: Ladder[];
   enemyZones?: Array<{
     x: number;
     y: number;
@@ -516,8 +525,11 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean) 
         if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
           // Door / portal — always on the bottom-centre tile
           if (interiorPortal && f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined) {
-            tiles[ty][tx] = createTile('portal', true, {
+            // Use door tile for building entrances (not portal - that's for magical teleportation)
+            tiles[ty][tx] = createTile('door', true, {
               transition: { targetMap: f.interiorMap, targetX: f.interiorSpawnX, targetY: f.interiorSpawnY },
+              interactable: true,
+              interactionId: 'building_entrance',
             });
           } else {
             tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId });
@@ -1316,6 +1328,24 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
 function placeCottage(tiles: Tile[][], f: MapFeature) {
   if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
 
+  // Clear a yard around the cottage (4-tile border of grass) to prevent blocked doors
+  const yardPad = 4;
+  for (let dy = -yardPad; dy < f.height + yardPad; dy++) {
+    for (let dx = -yardPad; dx < f.width + yardPad; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        const existing = tiles[ty][tx];
+        if (HOUSE_TYPES.has(existing.type) || existing.type === 'portal' || 
+            existing.type === 'chest' || existing.interactable) continue;
+        if (!existing.walkable || existing.type === 'water' || existing.type === 'tree' || 
+            existing.type === 'rock' || existing.type === 'swamp') {
+          tiles[ty][tx] = createTile('grass', true);
+        }
+      }
+    }
+  }
+
   const cx = Math.floor(f.width / 2);
   // Body rows = solid wooden walls; apron rows = garden out front
   const bodyRows = Math.max(2, Math.ceil(f.height * 0.45));
@@ -1329,17 +1359,19 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
       if (dx === cx && dy === f.height - 1) {
         // Door / portal on bottom-centre tile
         if (f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined) {
-          tiles[ty][tx] = createTile('portal', true, {
+          tiles[ty][tx] = createTile('door', true, {
             transition: { targetMap: f.interiorMap, targetX: f.interiorSpawnX, targetY: f.interiorSpawnY },
+            interactable: true,
+            interactionId: 'building_entrance',
           });
         } else {
           tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId || 'cottage' });
         }
-      } else if (dy === 0 && dx === cx) {
-        // Single centred thatch-roof sprite — one per cottage to avoid stacking
+      } else if (dy === 0) {
+        // Full-width thatch roof row
         tiles[ty][tx] = createTile('house_thatch', false);
       } else if (dy < bodyRows) {
-        // Wooden wall body
+        // Full-width wooden wall body
         tiles[ty][tx] = createTile('wood', false);
       } else if (dy === f.height - 1 && (dx === cx - 1 || dx === cx + 1) && f.width >= 4) {
         // Lantern gate posts flanking the cottage door
@@ -1398,20 +1430,34 @@ function placeWatchtower(tiles: Tile[][], f: MapFeature) {
 }
 
 function placePortals(tiles: Tile[][], def: MapDefinition) {
+  // Determine if this is an interior map (use door for exits) or overworld (use portal)
+  const isInterior = def.name.toLowerCase().includes('inn') || 
+                     def.name.toLowerCase().includes('smith') || 
+                     def.name.toLowerCase().includes('shop') ||
+                     def.name.toLowerCase().includes('cottage') ||
+                     def.name.toLowerCase().includes('cabin') ||
+                     def.name.toLowerCase().includes('hut');
+  
   for (const portal of def.portals) {
     if (portal.y < tiles.length && portal.x < tiles[0].length) {
-      tiles[portal.y][portal.x] = createTile('portal', true, {
-        transition: { targetMap: portal.targetMap, targetX: portal.targetX, targetY: portal.targetY }
+      // Use door for interior exits, portal for overworld transitions
+      const tileType = isInterior ? 'door' : 'portal';
+      tiles[portal.y][portal.x] = createTile(tileType, true, {
+        transition: { targetMap: portal.targetMap, targetX: portal.targetX, targetY: portal.targetY },
+        interactable: isInterior ? true : undefined,
+        interactionId: isInterior ? 'building_exit' : undefined,
       });
-      // Clear surrounding tiles for accessibility
-      for (let dy = -1; dy <= 1; dy++) {
+      // Clear surrounding tiles for accessibility (include border rows so interior doors are reachable)
+      const clearTile: TileType = isInterior ? 'wood_floor' : 'stone';
+      const clearRange = isInterior ? 2 : 1;
+      for (let dy = -clearRange; dy <= clearRange; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
           if (dx === 0 && dy === 0) continue;
           const tx = portal.x + dx;
           const ty = portal.y + dy;
-          if (ty >= 2 && ty < tiles.length - 2 && tx >= 2 && tx < tiles[0].length - 2) {
-            if (tiles[ty][tx].type !== 'portal') {
-              tiles[ty][tx] = createTile('stone', true);
+          if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+            if (tiles[ty][tx].type !== 'portal' && tiles[ty][tx].type !== 'door') {
+              tiles[ty][tx] = createTile(clearTile, true);
             }
           }
         }
@@ -1668,6 +1714,26 @@ function placeStairways(tiles: Tile[][], def: MapDefinition) {
   }
 }
 
+function placeLadders(tiles: Tile[][], def: MapDefinition) {
+  for (const ladder of def.ladders ?? []) {
+    for (let dy = 0; dy < ladder.height; dy++) {
+      for (let dx = 0; dx < ladder.width; dx++) {
+        const tx = ladder.x + dx;
+        const ty = ladder.y + dy;
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        const existing = tiles[ty][tx];
+        tiles[ty][tx] = createTile('ladder', true, {
+          elevation: ladder.elevation,
+          transition: existing.transition,
+          interactable: existing.interactable,
+          interactionId: existing.interactionId,
+          hidden: existing.hidden,
+        });
+      }
+    }
+  }
+}
+
 export function generateMap(def: MapDefinition): WorldMap {
   const tiles = generateBaseTerrain(def);
 
@@ -1689,15 +1755,17 @@ export function generateMap(def: MapDefinition): WorldMap {
   // Clean up illogical placements (flowers in water, etc.)
   cleanupIllogicalPlacements(tiles, def);
 
-  // Ensure spawn point is walkable
-  const sp = def.spawnPoint;
-  for (let dy = -2; dy <= 2; dy++) {
-    for (let dx = -2; dx <= 2; dx++) {
-      const tx = sp.x + dx;
-      const ty = sp.y + dy;
-      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-        if (!tiles[ty][tx].walkable && tiles[ty][tx].type !== 'portal') {
-          tiles[ty][tx] = createTile('grass', true);
+  // Ensure spawn point is walkable (skip for hand-crafted interior maps)
+  if (def.autoRoads !== false) {
+    const sp = def.spawnPoint;
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const tx = sp.x + dx;
+        const ty = sp.y + dy;
+        if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+          if (!tiles[ty][tx].walkable && tiles[ty][tx].type !== 'portal') {
+            tiles[ty][tx] = createTile('grass', true);
+          }
         }
       }
     }
@@ -1706,6 +1774,7 @@ export function generateMap(def: MapDefinition): WorldMap {
   applyElevationZones(tiles, def);
   stampCliffs(tiles, useCoastalSouthBorder(def));
   placeStairways(tiles, def);
+  placeLadders(tiles, def);
 
   return {
     name: def.name,

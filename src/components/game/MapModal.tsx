@@ -44,19 +44,33 @@ export const MapModal = memo(function MapModal({
     const el = wrapRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    const w = Math.max(120, r.width - 8);
-    const h = Math.max(120, r.height - 8);
-    setViewport({ w, h });
+    // Only update if dimensions are meaningful
+    if (r.width > 20 && r.height > 20) {
+      const w = Math.max(120, Math.floor(r.width - 8));
+      const h = Math.max(120, Math.floor(r.height - 8));
+      setViewport(prev => {
+        if (prev.w !== w || prev.h !== h) {
+          return { w, h };
+        }
+        return prev;
+      });
+    }
   }, []);
 
   useEffect(() => {
     if (!open) return;
-    measure();
+    // Initial measurement after animation frame
+    const rafId = requestAnimationFrame(() => {
+      measure();
+      // Also measure after a short delay for modal animation
+      setTimeout(measure, 100);
+    });
     const ro = new ResizeObserver(() => measure());
     const el = wrapRef.current;
     if (el) ro.observe(el);
     window.addEventListener('resize', measure);
     return () => {
+      cancelAnimationFrame(rafId);
       ro.disconnect();
       window.removeEventListener('resize', measure);
     };
@@ -126,7 +140,7 @@ export const MapModal = memo(function MapModal({
       running = false;
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [
+}, [
     open,
     currentMap,
     currentMapId,
@@ -161,11 +175,16 @@ export const MapModal = memo(function MapModal({
               The world is paused while this chart is open. Only tiles you have explored are drawn; bonfires and secrets stay hidden until you walk them.
             </p>
           </div>
-          <p className="text-[11px] text-[#8D6E63]">
-            <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">M</kbd>{' '}
-            or <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">Esc</kbd>{' '}
-            to close
-          </p>
+          <div className="flex items-center gap-3">
+            <span className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-2 py-1 font-mono text-sm text-[#DAA520]">
+              X: {Math.round(gameStateRef.current?.player.position.x ?? 0)} Y: {Math.round(gameStateRef.current?.player.position.y ?? 0)}
+            </span>
+            <p className="text-[11px] text-[#8D6E63]">
+              <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">M</kbd>{' '}
+              or <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">Esc</kbd>{' '}
+              to close
+            </p>
+          </div>
         </div>
 
         <div

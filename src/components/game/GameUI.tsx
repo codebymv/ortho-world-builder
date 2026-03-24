@@ -1,7 +1,7 @@
 import { GameState } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { Button } from '@/components/ui/button';
-import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield, Sword, FlaskRound, Map as MapIcon, Key, Sparkles } from 'lucide-react';
+import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield, Sword, Map as MapIcon, Key, Sparkles, Locate } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { notify } from '@/lib/game/notificationBus';
 
@@ -25,8 +25,7 @@ const getItemIcon = (item: any, className: string, assetManager?: AssetManager |
     }
   }
   if (item.sprite === 'sword') return <Sword className={className} />;
-  if (item.sprite === 'potion') return <FlaskRound className={className} />;
-  if (item.sprite === 'red_potion') return <FlaskRound className={className} />; // Fallback for red potion
+  if (item.sprite === 'potion' || item.sprite === 'red_potion') return <Heart className={className} />; // Health potion
   if (item.sprite === 'map') return <MapIcon className={className} />;
   if (item.sprite === 'key') return <Key className={className} />;
   if (item.sprite === 'flower') return <Zap className={className} />;
@@ -35,9 +34,9 @@ const getItemIcon = (item: any, className: string, assetManager?: AssetManager |
 
 // --- Memoized Sub-components ---
 
-const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold, essence, estusCharges, maxEstusCharges }: { 
+const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold, essence, playerX, playerY }: { 
   health: number, maxHealth: number, stamina: number, maxStamina: number, gold: number, essence: number,
-  estusCharges: number, maxEstusCharges: number
+  playerX: number, playerY: number
 }) => (
   <div className="flex items-center gap-4">
     {/* Health */}
@@ -65,12 +64,6 @@ const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold, e
       </div>
     </div>
 
-    {/* Estus Flask */}
-    <div className="flex items-center gap-1">
-      <FlaskRound className="w-3.5 h-3.5 text-amber-400 drop-shadow" />
-      <span className="text-xs font-bold text-amber-200">{estusCharges}/{maxEstusCharges}</span>
-    </div>
-
     <div className="flex items-center gap-1.5">
       <Coins className="w-4 h-4 text-yellow-400 drop-shadow" />
       <span className="text-xs font-bold text-[#F5DEB3] tracking-wide">{gold}</span>
@@ -79,6 +72,12 @@ const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold, e
     <div className="flex items-center gap-1.5">
       <Sparkles className="w-4 h-4 text-violet-300 drop-shadow" />
       <span className="text-xs font-bold text-violet-200 tracking-wide">{essence}</span>
+    </div>
+
+    {/* Coordinates */}
+    <div className="flex items-center gap-1 px-2 py-0.5 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60">
+      <Locate className="w-3 h-3 text-[#DAA520]" />
+      <span className="text-[10px] font-mono text-[#DAA520]">{Math.round(playerX)}, {Math.round(playerY)}</span>
     </div>
   </div>
 ));
@@ -198,8 +197,8 @@ export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate,
           maxStamina={gameState.player.maxStamina} 
           gold={gameState.player.gold} 
           essence={gameState.player.essence}
-          estusCharges={gameState.player.estusCharges}
-          maxEstusCharges={gameState.player.maxEstusCharges}
+          playerX={gameState.player.position.x}
+          playerY={gameState.player.position.y}
         />
 
         {/* Center: Current Objective */}

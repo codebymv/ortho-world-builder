@@ -31,13 +31,12 @@ export interface PlayerState {
   staminaRegenRate: number;
   staminaRegenDelay: number;
   lastStaminaUseTime: number;
-  estusCharges: number;
-  maxEstusCharges: number;
 }
 
 export interface NPC {
   id: string;
   name: string;
+  mapId?: string;
   position: { x: number; y: number };
   dialogueId: string;
   sprite: string;
@@ -135,8 +134,6 @@ export class GameState {
       staminaRegenRate: 38,
       staminaRegenDelay: 0.35,
       lastStaminaUseTime: 0,
-      estusCharges: 3,
-      maxEstusCharges: 3,
     };
 
     this.inventory = [{ ...items.meek_short_sword }];
