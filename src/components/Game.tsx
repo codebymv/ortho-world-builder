@@ -17,6 +17,7 @@ import { allMaps, mapDefinitions } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
 import { quests } from '@/data/quests';
 import { items } from '@/data/items';
+import { criticalPathItems } from '@/data/criticalPathItems';
 import { DialogueBox } from './game/DialogueBox';
 import { GameUI } from './game/GameUI';
 import { Minimap } from './game/Minimap';
@@ -29,6 +30,7 @@ import { notify } from '@/lib/game/notificationBus';
 import type { WorldMap } from '@/lib/game/World';
 
 const SPAWN_BODY_R = 0.15;
+const CRITICAL_ITEM_INTERACTION_IDS = new Set(Object.keys(criticalPathItems));
 
 function pickEnemySpawnInZone(
   zone: { x: number; y: number; width: number; height: number },
@@ -204,6 +206,8 @@ const Game = () => {
   const [deathEssenceLost, setDeathEssenceLost] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [transitionDebugEnabled, setTransitionDebugEnabled] = useState(false);
+  const [transitionDebugLines, setTransitionDebugLines] = useState<string[]>([]);
   const pausedRef = useRef(false);
   const playerDeadRef = useRef(false);
   const deathRespawnFnRef = useRef<(() => void) | null>(null);
@@ -315,6 +319,16 @@ const Game = () => {
       }
     };
 
+    const reconcileCriticalQuestItems = () => {
+      const manuscriptQuestDone = state.quests.some(q => q.id === 'find_hunter' && q.completed);
+      if (manuscriptQuestDone) {
+        state.setFlag(criticalPathItems.hunter_clue.collectedFlag, true);
+        if (!state.hasItem(criticalPathItems.hunter_clue.itemId)) {
+          state.addItem({ ...items[criticalPathItems.hunter_clue.itemId] });
+        }
+      }
+    };
+
     const syncEquippedWeapon = (preferredWeaponId?: string | null) => {
       state.setEquippedWeapon(preferredWeaponId ?? state.equippedWeaponId);
     };
@@ -356,6 +370,7 @@ const Game = () => {
 
       state.quests = savedData.quests;
       state.gameFlags = savedData.gameFlags;
+      reconcileCriticalQuestItems();
       state.lastBonfire = savedData.lastBonfire ?? null;
       state.droppedEssence = savedData.droppedEssence ?? null;
       // Restore map markers
@@ -377,6 +392,8 @@ const Game = () => {
       const sp = world.getSpawnPoint();
       state.lastBonfire = { mapId: state.currentMap, x: sp.x, y: sp.y };
     }
+
+    syncShadowCastleGateState();
     
     world.updateChunks(state.player.position.x, state.player.position.y);
     
@@ -440,6 +457,68 @@ const Game = () => {
     indicatorMesh.visible = false;
     scene.add(indicatorMesh);
 
+    const transitionDebugGroup = new THREE.Group();
+    transitionDebugGroup.visible = false;
+    scene.add(transitionDebugGroup);
+    const transitionDebugGeometry = new THREE.RingGeometry(0.2, 0.3, 16);
+    const transitionDebugMaterials = {
+      entrance: new THREE.MeshBasicMaterial({ color: 0xFFD24A, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }),
+      exit: new THREE.MeshBasicMaterial({ color: 0xFF8A4A, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }),
+      portal: new THREE.MeshBasicMaterial({ color: 0xB47BFF, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }),
+      other: new THREE.MeshBasicMaterial({ color: 0x6EE7FF, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }),
+    };
+    let transitionDebug = false;
+    let lastTransitionDebugRefreshAt = 0;
+
+    const clearTransitionDebugMarkers = () => {
+      for (let i = transitionDebugGroup.children.length - 1; i >= 0; i--) {
+        transitionDebugGroup.remove(transitionDebugGroup.children[i]);
+      }
+    };
+
+    const rebuildTransitionDebugMarkers = () => {
+      clearTransitionDebugMarkers();
+      const map = world.getCurrentMap();
+      const radius = 18;
+      const centerTileX = Math.floor(state.player.position.x + map.width / 2);
+      const centerTileY = Math.floor(state.player.position.y + map.height / 2);
+      const lines: string[] = [];
+
+      for (let ty = Math.max(0, centerTileY - radius); ty <= Math.min(map.height - 1, centerTileY + radius); ty++) {
+        for (let tx = Math.max(0, centerTileX - radius); tx <= Math.min(map.width - 1, centerTileX + radius); tx++) {
+          const tile = map.tiles[ty]?.[tx];
+          if (!tile) continue;
+          const isEntrance = tile.interactionId === 'building_entrance';
+          const isExit = tile.interactionId === 'building_exit';
+          const hasTransition = !!tile.transition;
+          if (!isEntrance && !isExit && !hasTransition) continue;
+
+          const wx = tx - map.width / 2;
+          const wy = ty - map.height / 2;
+          const mat = isEntrance
+            ? transitionDebugMaterials.entrance
+            : isExit
+              ? transitionDebugMaterials.exit
+              : tile.type === 'portal'
+                ? transitionDebugMaterials.portal
+                : transitionDebugMaterials.other;
+          const marker = new THREE.Mesh(transitionDebugGeometry, mat);
+          marker.position.set(wx, world.getVisualY(wx, wy) + 0.02, 0.72);
+          marker.renderOrder = 250000;
+          transitionDebugGroup.add(marker);
+
+          if (lines.length < 7) {
+            const target = tile.transition
+              ? ` -> ${tile.transition.targetMap}(${tile.transition.targetX},${tile.transition.targetY})`
+              : '';
+            lines.push(`(${wx}, ${wy}) ${tile.type}${tile.interactionId ? ` [${tile.interactionId}]` : ''}${target}`);
+          }
+        }
+      }
+
+      setTransitionDebugLines(lines);
+    };
+
     const essenceOrbMaterial = new THREE.MeshBasicMaterial({
       map: assetManager.getTexture('essence_drop'),
       transparent: true,
@@ -451,6 +530,87 @@ const Game = () => {
     essenceOrbMesh.visible = false;
     essenceOrbMesh.renderOrder = 150000;
     scene.add(essenceOrbMesh);
+
+    const criticalItemVisualGroup = new THREE.Group();
+    criticalItemVisualGroup.visible = true;
+    scene.add(criticalItemVisualGroup);
+    let criticalItemGlowAccumulator = 0;
+    let lastCriticalItemVisualSignature = '';
+
+    const disposeCriticalItemVisuals = () => {
+      for (let i = criticalItemVisualGroup.children.length - 1; i >= 0; i--) {
+        const child = criticalItemVisualGroup.children[i] as THREE.Group;
+        child.children.forEach(grandChild => {
+          if (grandChild instanceof THREE.Mesh) {
+            grandChild.geometry.dispose();
+            (grandChild.material as THREE.Material).dispose();
+          }
+        });
+        criticalItemVisualGroup.remove(child);
+      }
+    };
+
+    const getCriticalItemVisualSignature = () =>
+      `${state.currentMap}|${Object.values(criticalPathItems).map(config => `${config.interactionId}:${state.getFlag(config.collectedFlag) ? 1 : 0}`).join('|')}`;
+
+    const rebuildCriticalItemVisuals = () => {
+      disposeCriticalItemVisuals();
+      const map = world.getCurrentMap();
+
+      for (const config of Object.values(criticalPathItems)) {
+        if (state.getFlag(config.collectedFlag)) continue;
+        const item = items[config.itemId];
+        const texture = item ? assetManager.getTexture(item.sprite) : undefined;
+        if (!item || !texture) continue;
+
+        let found = false;
+        for (let ty = 0; ty < map.height && !found; ty++) {
+          for (let tx = 0; tx < map.width; tx++) {
+            const tile = map.tiles[ty]?.[tx];
+            if (!tile || tile.interactionId !== config.interactionId) continue;
+
+            const group = new THREE.Group();
+            const halo = new THREE.Mesh(
+              new THREE.CircleGeometry(config.haloScale ?? 0.88, 24),
+              new THREE.MeshBasicMaterial({
+                color: config.haloColor ?? config.glowColor,
+                transparent: true,
+                opacity: 0.22,
+                depthWrite: false,
+                depthTest: false,
+              })
+            );
+            halo.renderOrder = 149500;
+            halo.position.set(0, 0.04, 0.38);
+
+            const sprite = new THREE.Mesh(
+              new THREE.PlaneGeometry(config.spriteScale ?? 0.56, config.spriteScale ?? 0.56),
+              new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true,
+                opacity: 1,
+                depthWrite: false,
+                depthTest: false,
+              })
+            );
+            sprite.renderOrder = 150000;
+            sprite.position.set(0, 0.12, 0.44);
+
+            group.userData = {
+              baseX: tx - map.width / 2,
+              baseY: ty - map.height / 2,
+              bobAmplitude: config.bobAmplitude ?? 0.05,
+              hoverHeight: config.hoverHeight ?? 0.52,
+              glowColor: config.glowColor,
+            };
+            group.add(halo, sprite);
+            criticalItemVisualGroup.add(group);
+            found = true;
+            break;
+          }
+        }
+      }
+    };
 
     let footstepTimer = 0;
     const footstepInterval = 0.3;
@@ -549,6 +709,7 @@ const Game = () => {
       village: 'grassland',
       forest: 'forest',
       deep_woods: 'swamp',
+      shadow_castle: 'ruins',
       ruins: 'ruins',
     };
 
@@ -606,6 +767,30 @@ const Game = () => {
       return true;
     };
 
+    function syncShadowCastleGateState() {
+      if (state.currentMap !== 'shadow_castle') return;
+      const map = world.getCurrentMap();
+      const gateOpen = state.getFlag('shadow_castle_gate_open');
+      const gateId = 'shadow_castle_inner_gate';
+      for (let y = 46; y <= 47; y++) {
+        for (let x = 92; x <= 107; x++) {
+          const t = map.tiles[y]?.[x];
+          if (!t) continue;
+          if (gateOpen) {
+            map.tiles[y][x] = { type: 'stone', walkable: true, elevation: t.elevation ?? 0 };
+          } else {
+            map.tiles[y][x] = {
+              type: 'switch_door',
+              walkable: false,
+              elevation: t.elevation ?? 0,
+              interactionId: gateId,
+            };
+          }
+        }
+      }
+      world.rebuildChunks();
+    }
+
     const samplePortalNearPlayer = (): { targetMap: string; targetX: number; targetY: number } | null => {
       const px = state.player.position.x;
       const py = state.player.position.y;
@@ -644,6 +829,7 @@ const Game = () => {
 
       state.currentMap = targetMap;
       world.loadMap(newMap);
+      syncShadowCastleGateState();
       setActiveNpcsForCurrentMap();
       if (!targetMap.startsWith('interior_')) {
         biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
@@ -951,6 +1137,24 @@ const Game = () => {
         if (pausedRef.current || state.dialogueActive || playerDeadRef.current) return;
         e.preventDefault();
         setMapModalOpenRef.current(v => !v);
+        return;
+      }
+      if (e.key.toLowerCase() === 'v' && !e.repeat) {
+        transitionDebug = !transitionDebug;
+        transitionDebugGroup.visible = transitionDebug;
+        setTransitionDebugEnabled(transitionDebug);
+        if (transitionDebug) {
+          rebuildTransitionDebugMarkers();
+          notify('Transition debug ON', {
+            id: 'transition-debug-on',
+            description: 'Markers: yellow entrance, orange exit, purple portal, cyan transition.',
+            duration: 2400,
+          });
+        } else {
+          clearTransitionDebugMarkers();
+          setTransitionDebugLines([]);
+          notify('Transition debug OFF', { id: 'transition-debug-off', duration: 1600 });
+        }
         return;
       }
 
@@ -1595,6 +1799,14 @@ state.player.lastAttackTime = currentTime;
           return;
         }
 
+        if (CRITICAL_ITEM_INTERACTION_IDS.has(interactionId)) {
+          const config = criticalPathItems[interactionId];
+          if (state.getFlag(config.collectedFlag)) {
+            notify('Nothing more remains here.', { id: 'critical-item-collected', duration: 1800 });
+            return;
+          }
+        }
+
         // Potion ground pickups
         if (interactionId === 'potion_pickup') {
           const pickupKey = `potion_${state.currentMap}_${Math.round(px)}_${Math.round(py)}`;
@@ -1647,6 +1859,26 @@ state.player.lastAttackTime = currentTime;
           notify(label, {
             id: 'heal-source', type: 'success', description: 'Restored 25 health.', duration: 2000,
           });
+          triggerUIUpdate();
+          return;
+        }
+
+        if (interactionId === 'shadow_castle_gate_switch') {
+          if (state.currentMap !== 'shadow_castle') continue;
+          if (state.getFlag('shadow_castle_gate_open')) {
+            notify('The inner gate is already open.', { id: 'shadow-gate-open', duration: 1800 });
+            return;
+          }
+          state.setFlag('shadow_castle_gate_open', true);
+          world.activateSwitch('shadow_castle_inner_gate');
+          world.updateChunks(state.player.position.x, state.player.position.y);
+          notify('Inner gate unlocked', {
+            id: 'shadow-gate-unlocked',
+            type: 'success',
+            description: 'A heavy mechanism rumbles deeper in the castle.',
+            duration: 3200,
+          });
+          triggerSave();
           triggerUIUpdate();
           return;
         }
@@ -2541,6 +2773,7 @@ state.player.lastAttackTime = currentTime;
           const cy = state.player.position.y + dir.y * 0.5;
           const intId = world.getInteractableAt(cx, cy);
           if (intId) {
+            if (CRITICAL_ITEM_INTERACTION_IDS.has(intId) && state.getFlag(criticalPathItems[intId].collectedFlag)) continue;
             if (intId === 'building_entrance') {
               const entryTile = world.getTile(cx, cy);
               const isEntranceTile =
@@ -2596,6 +2829,47 @@ state.player.lastAttackTime = currentTime;
           indicatorMesh.scale.set(0.8 + Math.sin(currentTime / 250) * 0.15, 0.8 + Math.sin(currentTime / 250) * 0.15, 1);
         } else {
           indicatorMesh.visible = false;
+        }
+
+        const criticalItemVisualSignature = getCriticalItemVisualSignature();
+        if (criticalItemVisualSignature !== lastCriticalItemVisualSignature) {
+          rebuildCriticalItemVisuals();
+          lastCriticalItemVisualSignature = criticalItemVisualSignature;
+        }
+
+        criticalItemGlowAccumulator += deltaTime;
+        criticalItemVisualGroup.children.forEach((child, index) => {
+          const group = child as THREE.Group;
+          const baseX = group.userData.baseX as number;
+          const baseY = group.userData.baseY as number;
+          const bobAmplitude = group.userData.bobAmplitude as number;
+          const hoverHeight = group.userData.hoverHeight as number;
+          const glowColor = group.userData.glowColor as number;
+          const bob = Math.sin(currentTime / 280 + index * 0.9) * bobAmplitude;
+          const pulse = 0.78 + Math.sin(currentTime / 220 + index * 0.7) * 0.22;
+          group.position.set(baseX, getVisualYAt(baseX, baseY) + hoverHeight + bob, 0);
+          group.children.forEach((meshChild, meshIndex) => {
+            if (!(meshChild instanceof THREE.Mesh)) return;
+            const material = meshChild.material as THREE.MeshBasicMaterial;
+            material.opacity = meshIndex === 0 ? 0.15 + pulse * 0.18 : 0.92;
+            if (meshIndex === 0) {
+              meshChild.scale.setScalar(0.94 + pulse * 0.12);
+            }
+            meshChild.updateMatrix();
+          });
+          group.updateMatrixWorld();
+          if (criticalItemGlowAccumulator >= 0.18) {
+            _tmpVec3.set(baseX, getVisualYAt(baseX, baseY) + hoverHeight, 0.45);
+            particleSystem.emit(_tmpVec3, 2, glowColor, 0.55, 0.22, 0.7);
+          }
+        });
+        if (criticalItemGlowAccumulator >= 0.18) {
+          criticalItemGlowAccumulator = 0;
+        }
+
+        if (transitionDebug && currentTime - lastTransitionDebugRefreshAt > 180) {
+          rebuildTransitionDebugMarkers();
+          lastTransitionDebugRefreshAt = currentTime;
         }
 
         const stain = state.droppedEssence;
@@ -3117,11 +3391,14 @@ state.player.lastAttackTime = currentTime;
       if (st.currentMap !== targetMap) {
         st.currentMap = targetMap;
         w.loadMap(newMap);
+        setActiveNpcsForCurrentMap();
         if (!targetMap.startsWith('interior_')) {
           biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
           switchMusicTrack(targetMap);
         }
       }
+
+      syncShadowCastleGateState();
 
       st.player.position = { x: lb.x, y: lb.y };
       playerSmoothedElevation = w.getElevationAt(lb.x, lb.y);
@@ -3141,6 +3418,9 @@ state.player.lastAttackTime = currentTime;
 
       w.rebuildChunks();
       w.updateChunks(lb.x, lb.y);
+      activeNpcWorldPos.current = null;
+      setCurrentDialogue(null);
+      setNpcScreenPos(null);
       triggerSave();
       triggerUIUpdate();
       triggerMinimapUpdate(true);
@@ -3204,8 +3484,17 @@ state.player.lastAttackTime = currentTime;
       scene.remove(playerOutline); (playerOutline.material as THREE.Material).dispose();
       scene.remove(heldItemMesh); (heldItemMesh.material as THREE.Material).dispose();
       scene.remove(essenceOrbMesh); essenceOrbMaterial.dispose();
+      scene.remove(transitionDebugGroup);
+      clearTransitionDebugMarkers();
+      transitionDebugGeometry.dispose();
+      transitionDebugMaterials.entrance.dispose();
+      transitionDebugMaterials.exit.dispose();
+      transitionDebugMaterials.portal.dispose();
+      transitionDebugMaterials.other.dispose();
       scene.remove(swooshMesh); swooshMaterial.dispose();
       scene.remove(spinSwooshMesh); spinSwooshMaterial.dispose();
+      disposeCriticalItemVisuals();
+      scene.remove(criticalItemVisualGroup);
       npcMeshes.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
       npcShadows.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
       npcOutlines.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
@@ -3274,6 +3563,19 @@ state.player.lastAttackTime = currentTime;
 
     // Quest completion from hunter_clue dialogue
     if (gameState.currentDialogue === 'hunter_clue' && nextId === 'complete_quest') {
+      const manuscriptConfig = criticalPathItems.hunter_clue;
+      if (!gameState.getFlag(manuscriptConfig.collectedFlag)) {
+        gameState.setFlag(manuscriptConfig.collectedFlag, true);
+        if (!gameState.hasItem(manuscriptConfig.itemId)) {
+          gameState.addItem({ ...items[manuscriptConfig.itemId] });
+        }
+        notify("Hunter's Manuscript Acquired", {
+          id: 'hunters-manuscript',
+          type: 'success',
+          description: 'The loose pages may be the clue the Elder needs.',
+          duration: 3600,
+        });
+      }
       const hunterQuest = gameState.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
       if (hunterQuest) {
         hunterQuest.objectives[2] = 'Defeat the forest threat ✓';
@@ -3560,6 +3862,18 @@ state.player.lastAttackTime = currentTime;
       {gameState && (
         <>
           <GameUI gameState={gameState} assetManager={assetManagerRef.current} refreshToken={uiVersion} triggerUIUpdate={triggerUIUpdate} musicRef={musicRef} showControls={showControls} />
+          {transitionDebugEnabled && (
+            <div className="fixed left-4 top-16 z-[80] max-w-md border border-[#5C3A21] bg-[#1A0F0A]/92 p-2 text-[11px] text-[#F5DEB3] shadow-lg pointer-events-none">
+              <div className="font-bold text-[#FFD27A]">TRANSITION DEBUG (V)</div>
+              {transitionDebugLines.length > 0 ? (
+                transitionDebugLines.map((line, idx) => (
+                  <div key={`td-${idx}`} className="font-mono leading-4">{line}</div>
+                ))
+              ) : (
+                <div className="font-mono leading-4 text-[#C8B18A]">No nearby transitions in scan radius.</div>
+              )}
+            </div>
+          )}
           <div className="fixed top-16 right-4 z-30 flex flex-col gap-2 pointer-events-none">
             <Minimap
               currentMap={allMaps[gameState.currentMap]}

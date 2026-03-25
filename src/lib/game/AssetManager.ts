@@ -1414,6 +1414,7 @@ export class AssetManager {
       [DOOR_FRAME,DOOR_FRAME_L,DOOR_HANDLE,DOOR_HANDLE_S,DOOR_FRAME_L,DOOR_FRAME],
       [DOOR_FRAME,DOOR_FRAME,DOOR_FRAME,DOOR_FRAME,DOOR_FRAME,DOOR_FRAME],
     ]));
+    this.textures.set('door_interior', this.textures.get('door')!.clone());
 
     const IRON_D = 0x37474F;
     const IRON_M = 0x546E7A;
@@ -1701,6 +1702,20 @@ export class AssetManager {
       [C,     C,     STEM,   STEM_S,C,     C],
       [C,     STEM,  STEM_S, STEM,  STEM,  C],
     ]));
+
+    const PAPER = 0xF2E8C9;
+    const PAPER_H = 0xFFF7DD;
+    const PAPER_S = 0xCDBE96;
+    const INK = 0x5D4037;
+    const SEAL = 0xDAA520;
+    this.textures.set('loose_pages', this.createSpriteTexture([
+      [C,       C,       PAPER_H, PAPER_H, PAPER_H, PAPER_H, C,       C],
+      [C,       PAPER_H, PAPER,   PAPER,   PAPER_H, PAPER_H, PAPER_H, C],
+      [PAPER_H, PAPER,   INK,     PAPER,   PAPER,   INK,     PAPER_H, C],
+      [PAPER_H, PAPER,   PAPER,   INK,     PAPER,   PAPER,   PAPER_H, C],
+      [C,       PAPER_H, PAPER,   PAPER,   PAPER_H, PAPER,   SEAL,    C],
+      [C,       C,       PAPER_S, PAPER_H, PAPER,   PAPER_S, C,       C],
+    ], 4, 'loose_pages'));
 
     this.textures.set('mushroom', this.createSpriteTexture([
       [C,        C,        0xE53935,0xEF5350,0xE53935,0xEF5350,C,       C],

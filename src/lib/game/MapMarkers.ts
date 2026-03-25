@@ -48,6 +48,9 @@ export const PORTAL_LINKS: PortalLink[] = [
   // Deep woods portals
   { fromMap: 'deep_woods', toMap: 'village', portalTileX: 120, portalTileY: 4 },
   { fromMap: 'deep_woods', toMap: 'ruins', portalTileX: 236, portalTileY: 120 },
+  { fromMap: 'deep_woods', toMap: 'shadow_castle', portalTileX: 100, portalTileY: 44 },
+  // Shadow castle portals
+  { fromMap: 'shadow_castle', toMap: 'deep_woods', portalTileX: 100, portalTileY: 117 },
   // Ruins portals
   { fromMap: 'ruins', toMap: 'forest', portalTileX: 4, portalTileY: 100 },
   { fromMap: 'ruins', toMap: 'deep_woods', portalTileX: 4, portalTileY: 50 },
@@ -73,6 +76,7 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   
   // Deep woods
   { keywords: ['deep woods', 'shadow', 'shadow creature', 'shadow beast'], tileX: 120, tileY: 120, map: 'deep_woods', label: 'Deep Woods', type: 'danger', color: '#4B0082' },
+  { keywords: ['shadow castle', 'castle', 'shadow keep', 'dark fortress'], tileX: 100, tileY: 56, map: 'shadow_castle', label: 'Shadow Castle', type: 'danger', color: '#8B0000' },
   { keywords: ['hunter', 'missing hunter', 'signs of the missing', 'find signs'], tileX: 120, tileY: 120, map: 'deep_woods', label: 'Missing Hunter', type: 'quest', color: '#FF4500' },
   { keywords: ['mysterious lights', 'investigate the mysterious', 'strange lights'], tileX: 80, tileY: 90, map: 'deep_woods', label: 'Mysterious Lights', type: 'quest', color: '#00BFFF' },
   { keywords: ['return to the elder', 'findings'], tileX: 102, tileY: 70, map: 'village', label: 'Report to Elder', type: 'quest', color: '#FFD700' },

@@ -18,7 +18,7 @@ export type TileType =
   | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter'
   | 'bed' | 'wardrobe' | 'fireplace' | 'weapon_rack' | 'alchemy_table' | 'cauldron'
   | 'throne' | 'altar' | 'bloodstain' | 'chain' | 'cage' | 'bones_pile'
-  | 'door' | 'door_iron';
+  | 'door' | 'door_interior' | 'door_iron';
 
 export interface Tile {
   type: TileType;
@@ -677,7 +677,11 @@ export class World {
     const renderOrderBias =
       tile.type === 'cottage_house' || tile.type === 'cottage_house_entry' || tile.type === 'cottage_house_forest'
         ? 1500
-        : 0;
+        : tile.type === 'door' || tile.type === 'door_interior' || tile.type === 'door_iron'
+          ? 1300
+          : tile.type === 'chest'
+            ? 900
+            : 0;
 
     group.userData = {
       tileType: tile.type,

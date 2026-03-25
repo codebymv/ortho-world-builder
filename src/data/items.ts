@@ -32,6 +32,14 @@ export const items: Record<string, Item> = {
     type: 'quest',
     sprite: 'flower',
   },
+
+  hunters_manuscript: {
+    id: 'hunters_manuscript',
+    name: "Hunter's Manuscript",
+    description: 'Loose weathered pages from the missing hunter, filled with grim notes about shadow creatures at the northern perimeter.',
+    type: 'quest',
+    sprite: 'loose_pages',
+  },
   
   iron_sword: {
     id: 'iron_sword',

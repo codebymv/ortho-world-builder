@@ -292,7 +292,7 @@ function carvePath(tiles: Tile[][], x1: number, y1: number, x2: number, y2: numb
   const ROAD_CARVE_PROTECTED: Set<TileType> = new Set([
     'house', 'house_blue', 'house_green', 'house_thatch',
     'cottage_house', 'cottage_house_entry', 'cottage_house_forest',
-    'door', 'door_iron',
+    'door', 'door_interior', 'door_iron',
     'lantern', 'wood',
   ]);
 
@@ -616,6 +616,13 @@ function placeMarketStallRow(tiles: Tile[][], f: MapFeature) {
 function placeProps(tiles: Tile[][], def: MapDefinition) {
   for (const p of def.props ?? []) {
     if (p.y >= 0 && p.y < tiles.length && p.x >= 0 && p.x < tiles[0].length) {
+      const existing = tiles[p.y][p.x];
+      if (
+        PROTECTED_INTERACTIVE_TILES.has(existing.type) ||
+        existing.interactable
+      ) {
+        continue;
+      }
       tiles[p.y][p.x] = createTile(p.type, p.walkable);
     }
   }
@@ -782,6 +789,7 @@ function placePath(tiles: Tile[][], f: MapFeature) {
         if (
           HOUSE_TYPES.has(existing.type) ||
           existing.type === 'door' ||
+          existing.type === 'door_interior' ||
           existing.type === 'door_iron' ||
           existing.interactionId === 'building_entrance' ||
           existing.interactionId === 'building_exit'
@@ -1373,11 +1381,25 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
   const hasInterior = !!(f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined);
   const isWhisperingCottage = /woodcutter_cottage|witch_cottage|hunter_cottage|forest_cottage|ruin_cottage|hidden_cottage/.test(f.interactionId ?? '');
   const facadeTile: TileType = isWhisperingCottage ? 'cottage_house_forest' : 'cottage_house';
+  const anchors = (() => {
+    const entryX = f.x + cx;
+    // Canonical exterior cottage interaction anchor.
+    // Keep this aligned with legacy player-facing coordinates (ex: -29,40 in village cottage).
+    const entryY = f.y + f.height - 3;
+    const frontY = f.y + f.height;
+    return {
+      centerX: cx,
+      spriteStartX: cx,
+      spriteRow: Math.max(1, f.height - 2),
+      entryX,
+      entryY,
+      frontY,
+    };
+  })();
   const bodyRows = Math.max(2, Math.ceil(f.height * 0.5));
-  const spriteStartX = cx;
   const apronStartRow = Math.max(bodyRows, f.height - 2);
   // Keep facade above the threshold door tile so both render (door + cottage).
-  const spriteRow = hasInterior ? Math.max(1, f.height - 2) : Math.max(1, f.height - 2);
+  const spriteRow = anchors.spriteRow;
 
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
@@ -1385,7 +1407,7 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
       const ty = f.y + dy;
       if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
 
-      if (dx === cx && dy === f.height - 1) {
+      if (dx === anchors.centerX && dy === f.height - 1) {
         // Interior cottages keep this as the threshold base under the facade.
         // The actual outside entry door is stamped one tile farther south.
         if (hasInterior) {
@@ -1393,18 +1415,18 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
         } else {
           tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId || 'cottage' });
         }
-      } else if (dy === spriteRow && dx === spriteStartX) {
+      } else if (dy === spriteRow && dx === anchors.spriteStartX) {
         // Visual facade only; entrance is the explicit outside door tile.
         tiles[ty][tx] = createTile(facadeTile, false);
       } else if (hasInterior && (
         (dy >= f.height - 2) ||
-        (dy >= f.height - 3 && Math.abs(dx - cx) <= 2)
+        (dy >= f.height - 3 && Math.abs(dx - anchors.centerX) <= 2)
       )) {
         // Block the visible foundation/wall footprint so player can't walk into the house.
         tiles[ty][tx] = createTile('grass', false);
       } else if (!hasInterior && dy < bodyRows) {
         tiles[ty][tx] = createTile('wood', false);
-      } else if (dy === f.height - 1 && (dx === cx - 1 || dx === cx + 1) && f.width >= 4) {
+      } else if (dy === f.height - 1 && (dx === anchors.centerX - 1 || dx === anchors.centerX + 1) && f.width >= 4) {
         tiles[ty][tx] = createTile('lantern', false);
       } else if (dy >= apronStartRow) {
         tiles[ty][tx] = createTile('dirt', true);
@@ -1420,11 +1442,8 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
 
   // Exterior entry door: one tile in front of the cottage threshold.
   if (hasInterior) {
-    const entryX = f.x + cx;
-    // Match Greenleaf cottage entry alignment for consistent scale/placement behavior.
-    const entryY = f.y + f.height - 3;
-    if (entryY >= 0 && entryY < tiles.length && entryX >= 0 && entryX < tiles[0].length) {
-      tiles[entryY][entryX] = createTile('door', true, {
+    if (anchors.entryY >= 0 && anchors.entryY < tiles.length && anchors.entryX >= 0 && anchors.entryX < tiles[0].length) {
+      tiles[anchors.entryY][anchors.entryX] = createTile('door', true, {
         transition: { targetMap: f.interiorMap!, targetX: f.interiorSpawnX!, targetY: f.interiorSpawnY! },
         interactable: true,
         interactionId: 'building_entrance',
@@ -1432,11 +1451,10 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
     }
 
     // Secondary fallback trigger at the front step to keep interaction forgiving.
-    const frontY = f.y + f.height;
-    if (frontY >= 0 && frontY < tiles.length && entryX >= 0 && entryX < tiles[0].length) {
-      const existing = tiles[frontY][entryX];
+    if (anchors.frontY >= 0 && anchors.frontY < tiles.length && anchors.entryX >= 0 && anchors.entryX < tiles[0].length) {
+      const existing = tiles[anchors.frontY][anchors.entryX];
       if (!existing.interactable) {
-        tiles[frontY][entryX] = createTile('dirt', true, {
+        tiles[anchors.frontY][anchors.entryX] = createTile('dirt', true, {
           transition: { targetMap: f.interiorMap!, targetX: f.interiorSpawnX!, targetY: f.interiorSpawnY! },
           interactable: true,
           interactionId: 'building_entrance',
@@ -1446,11 +1464,50 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
   }
 
   // Dirt path from the door outward
-  const doorX = f.x + cx;
+  const doorX = anchors.entryX;
   for (let step = hasInterior ? 2 : 1; step <= 3; step++) {
     const ty = f.y + f.height - 1 + step;
     if (ty >= 0 && ty < tiles.length && doorX >= 0 && doorX < tiles[0].length) {
       tiles[ty][doorX] = createTile('dirt', true);
+    }
+  }
+}
+
+function validateMapTransitions(tiles: Tile[][], def: MapDefinition) {
+  // Validate static portal targets got stamped with transitions.
+  for (const portal of def.portals) {
+    if (portal.y < 0 || portal.y >= tiles.length || portal.x < 0 || portal.x >= tiles[0].length) {
+      console.warn(`[MapValidation] ${def.name}: portal out of bounds at (${portal.x},${portal.y})`);
+      continue;
+    }
+    const tile = tiles[portal.y][portal.x];
+    if (!tile.transition) {
+      console.warn(`[MapValidation] ${def.name}: portal missing transition at (${portal.x},${portal.y})`);
+    }
+  }
+
+  // Validate interior-enabled features have at least one entrance tile somewhere on the map
+  // that targets the expected interior. Standard buildings and cottages stamp their
+  // entrances differently, so a tight feature-bounds scan produces false positives.
+  for (const f of def.features) {
+    const hasInterior = !!(f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined);
+    if (!hasInterior) continue;
+
+    let foundEntrance = false;
+    for (let y = 0; y < def.height && !foundEntrance; y++) {
+      for (let x = 0; x < def.width; x++) {
+        const tile = tiles[y][x];
+        if (tile.interactable && tile.interactionId === 'building_entrance' && tile.transition?.targetMap === f.interiorMap) {
+          foundEntrance = true;
+          break;
+        }
+      }
+    }
+
+    if (!foundEntrance) {
+      console.warn(
+        `[MapValidation] ${def.name}: missing building entrance for feature ${f.interactionId ?? f.type} -> ${f.interiorMap}`
+      );
     }
   }
 }
@@ -1499,7 +1556,7 @@ function placePortals(tiles: Tile[][], def: MapDefinition) {
   for (const portal of def.portals) {
     if (portal.y < tiles.length && portal.x < tiles[0].length) {
       // Use door for interior exits, portal for overworld transitions
-      const tileType = isInterior ? 'door' : 'portal';
+      const tileType: TileType = isInterior ? 'door_interior' : 'portal';
       tiles[portal.y][portal.x] = createTile(tileType, true, {
         transition: { targetMap: portal.targetMap, targetX: portal.targetX, targetY: portal.targetY },
         interactable: isInterior ? true : undefined,
@@ -1514,7 +1571,11 @@ function placePortals(tiles: Tile[][], def: MapDefinition) {
           const tx = portal.x + dx;
           const ty = portal.y + dy;
           if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-            if (tiles[ty][tx].type !== 'portal' && tiles[ty][tx].type !== 'door') {
+            if (
+              tiles[ty][tx].type !== 'portal' &&
+              tiles[ty][tx].type !== 'door' &&
+              tiles[ty][tx].type !== 'door_interior'
+            ) {
               tiles[ty][tx] = createTile(clearTile, true);
             }
           }
@@ -1525,17 +1586,20 @@ function placePortals(tiles: Tile[][], def: MapDefinition) {
 }
 
 function placeChests(tiles: Tile[][], def: MapDefinition) {
+  const shouldCarveAccess = def.width >= 40 || def.height >= 40;
   for (const chest of def.chests) {
-    if (chest.y < tiles.length && chest.x < tiles[0].length) {
+    if (chest.y >= 0 && chest.y < tiles.length && chest.x >= 0 && chest.x < tiles[0].length) {
       tiles[chest.y][chest.x] = createTile('chest', true, { interactable: true, interactionId: chest.interactionId });
-      // Ensure path to chest
-      for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-          const tx = chest.x + dx;
-          const ty = chest.y + dy;
-          if (ty >= 2 && ty < tiles.length - 2 && tx >= 2 && tx < tiles[0].length - 2) {
-            if (!tiles[ty][tx].walkable && tiles[ty][tx].type !== 'chest') {
-              tiles[ty][tx] = createTile('grass', true);
+      if (shouldCarveAccess) {
+        // Only auto-carve access in large field maps; authored interiors should keep their walls/floors intact.
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            const tx = chest.x + dx;
+            const ty = chest.y + dy;
+            if (ty >= 2 && ty < tiles.length - 2 && tx >= 2 && tx < tiles[0].length - 2) {
+              if (!tiles[ty][tx].walkable && tiles[ty][tx].type !== 'chest') {
+                tiles[ty][tx] = createTile('grass', true);
+              }
             }
           }
         }
@@ -1585,6 +1649,10 @@ const PATH_TILES: Set<TileType> = new Set([
   'dirt', 'cobblestone', 'wooden_path', 'wood_floor', 'bridge', 'sand',
 ]);
 
+const PROTECTED_INTERACTIVE_TILES: Set<TileType> = new Set([
+  'chest', 'door', 'door_interior', 'door_iron',
+]);
+
 // How far from paths to clear blocking objects (trees, rocks)
 const PATH_CLEAR_RADIUS = 2;
 
@@ -1623,6 +1691,10 @@ function cleanupIllogicalPlacements(tiles: Tile[][], def: MapDefinition) {
       const tile = tiles[y][x];
 
       // Remove land decorations near water/lava
+      if (PROTECTED_INTERACTIVE_TILES.has(tile.type) || tile.interactable) {
+        continue;
+      }
+
       if (LAND_DECORATIONS.has(tile.type)) {
         let onBadTerrain = false;
         for (let dy = -1; dy <= 1; dy++) {
@@ -1833,6 +1905,7 @@ export function generateMap(def: MapDefinition): WorldMap {
   stampCliffs(tiles, useCoastalSouthBorder(def));
   placeStairways(tiles, def);
   placeLadders(tiles, def);
+  validateMapTransitions(tiles, def);
 
   return {
     name: def.name,

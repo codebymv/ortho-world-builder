@@ -1,5 +1,9 @@
 # Welcome to your Lovable project
 
+## Execution Roadmap
+
+- AAA implementation plan: `docs/AAA_EXECUTION_PLAN.md`
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/94e8aa8f-85f8-490b-bfe4-24cf8d52fc6e

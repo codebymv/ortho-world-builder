@@ -333,7 +333,8 @@ const forestDef: MapDefinition = {
     // === SCATTERED COTTAGES (hermits, woodcutters) ===
     { x: 90, y: 180, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage' },
     { x: 230, y: 130, width: 6, height: 6, type: 'cottage', interactionId: 'witch_cottage' },
-    { x: 140, y: 240, width: 6, height: 6, type: 'cottage', interactionId: 'hunter_cottage', interiorMap: 'interior_hunter_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
+    // Hunter cottage moved farther into Whispering Woods to improve progression pacing and mystery.
+    { x: 132, y: 212, width: 6, height: 6, type: 'cottage', interactionId: 'hunter_cottage', interiorMap: 'interior_hunter_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
     { x: 170, y: 80, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage' },
     { x: 80, y: 50, width: 6, height: 6, type: 'cottage', interactionId: 'ruin_cottage' },
     { x: 210, y: 200, width: 6, height: 6, type: 'cottage', interactionId: 'hidden_cottage' },
@@ -636,6 +637,7 @@ const deepWoodsDef: MapDefinition = {
     { x: 120, y: 190, targetMap: 'forest', targetX: 150, targetY: 8 },
     { x: 120, y: 8, targetMap: 'village', targetX: 120, targetY: 150 },
     { x: 120, y: 28, targetMap: 'ruins', targetX: 100, targetY: 115 },
+    { x: 100, y: 44, targetMap: 'shadow_castle', targetX: 100, targetY: 108 },
   ],
   chests: [
     { x: 170, y: 50, interactionId: 'shrine_chest' },
@@ -888,6 +890,87 @@ const ruinsDef: MapDefinition = {
   ],
 };
 
+// ============= SHADOW CASTLE: 200x120 Legacy Fortress =============
+const shadowCastleDef: MapDefinition = {
+  name: 'Shadow Castle',
+  width: 200,
+  height: 120,
+  spawnPoint: { x: 100, y: 108 },
+  seed: 770,
+  baseTerrain: 'ruins',
+  borderTile: 'stone',
+  coastalSouthBorder: false,
+  features: [
+    // === ENTRY COURT ===
+    { x: 78, y: 96, width: 44, height: 20, type: 'clearing', fill: 'stone' },
+
+    // === OUTER WALLS AND WINGS ===
+    { x: 14, y: 68, width: 42, height: 32, type: 'ruins' },
+    { x: 144, y: 68, width: 42, height: 32, type: 'ruins' },
+    { x: 22, y: 30, width: 34, height: 28, type: 'ruins' },
+    { x: 144, y: 30, width: 34, height: 28, type: 'ruins' },
+
+    // === CENTRAL HALL ===
+    { x: 70, y: 46, width: 60, height: 44, type: 'clearing', fill: 'stone' },
+    { x: 78, y: 52, width: 44, height: 32, type: 'ruins' },
+
+    // === UPPER KEEP / BOSS APPROACH ===
+    { x: 84, y: 6, width: 32, height: 30, type: 'clearing', fill: 'ruins_floor' },
+    { x: 82, y: 10, width: 36, height: 24, type: 'boss_arena', interactionId: 'shadow_lord' },
+
+    // === CONNECTORS ===
+    { x: 96, y: 34, width: 8, height: 64, type: 'path', fill: 'stone' },
+    { x: 56, y: 72, width: 88, height: 6, type: 'path', fill: 'stone' },
+    { x: 56, y: 42, width: 88, height: 6, type: 'path', fill: 'stone' },
+    { x: 48, y: 42, width: 8, height: 36, type: 'path', fill: 'stone' },
+    { x: 144, y: 42, width: 8, height: 36, type: 'path', fill: 'stone' },
+  ],
+  portals: [
+    { x: 100, y: 117, targetMap: 'deep_woods', targetX: 100, targetY: 44 },
+  ],
+  chests: [
+    { x: 38, y: 84, interactionId: 'shadow_castle_west_chest' },
+    { x: 162, y: 84, interactionId: 'shadow_castle_east_chest' },
+    { x: 100, y: 58, interactionId: 'shadow_castle_hall_chest' },
+  ],
+  interactables: [
+    { x: 100, y: 101, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
+    { x: 100, y: 40, type: 'sign', walkable: false, interactionId: 'temple_sign' },
+    { x: 100, y: 52, type: 'sign', walkable: false, interactionId: 'shadow_castle_gate_switch' },
+    { x: 84, y: 88, type: 'campfire', walkable: false, interactionId: 'campfire' },
+    { x: 116, y: 88, type: 'campfire', walkable: false, interactionId: 'campfire' },
+  ],
+  props: [
+    { x: 90, y: 92, type: 'chain', walkable: false },
+    { x: 110, y: 92, type: 'chain', walkable: false },
+    { x: 88, y: 84, type: 'bones_pile', walkable: true },
+    { x: 112, y: 84, type: 'bones_pile', walkable: true },
+    { x: 96, y: 70, type: 'altar', walkable: false },
+    { x: 104, y: 70, type: 'altar', walkable: false },
+    { x: 95, y: 28, type: 'throne', walkable: false },
+    { x: 105, y: 28, type: 'throne', walkable: false },
+  ],
+  elevationZones: [
+    { x: 6, y: 22, width: 188, height: 74, elevation: 1 },
+    { x: 74, y: 2, width: 52, height: 42, elevation: 2 },
+    { x: 16, y: 26, width: 44, height: 36, elevation: 1 },
+    { x: 140, y: 26, width: 44, height: 36, elevation: 1 },
+  ],
+  stairways: [
+    { x: 96, y: 44, width: 8, height: 4, elevation: 2 },
+    { x: 96, y: 96, width: 8, height: 4, elevation: 1 },
+    { x: 52, y: 62, width: 6, height: 4, elevation: 1 },
+    { x: 144, y: 62, width: 6, height: 4, elevation: 1 },
+  ],
+  enemyZones: [
+    { x: 78, y: 86, width: 44, height: 22, enemyType: 'shadow', count: 8 },
+    { x: 20, y: 68, width: 30, height: 24, enemyType: 'skeleton', count: 6 },
+    { x: 150, y: 68, width: 30, height: 24, enemyType: 'skeleton', count: 6 },
+    { x: 80, y: 52, width: 40, height: 24, enemyType: 'shadow', count: 9 },
+    { x: 84, y: 10, width: 30, height: 22, enemyType: 'golem', count: 1 },
+  ],
+};
+
 // ============= INTERIOR ROOMS (portal targets) =============
 const interiorInnDef: MapDefinition = {
   name: 'Greenleaf Inn',
@@ -1099,7 +1182,7 @@ const interiorWitchHutDef: MapDefinition = {
 };
 
 const interiorHunterCottageDef: MapDefinition = {
-  name: "Hunter's Cottage",
+  name: 'Disparaged Cottage',
   width: 12,
   height: 10,
   spawnPoint: { x: 6, y: 8 },
@@ -1115,14 +1198,13 @@ const interiorHunterCottageDef: MapDefinition = {
     { x: 2, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
     { x: 7, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
   ],
-  // Return to Whispering Woods near hunter_cottage (~world -4,93) with a little breathing room.
-  portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 146, targetY: 242 }],
+  // Return to Whispering Woods one tile in front of the exterior entrance at (-15, 65).
+  portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 135, targetY: 214 }],
   chests: [{ x: 8, y: 6, interactionId: 'hunter_cottage_chest' }],
-  interactables: [{ x: 6, y: 4, type: 'sign', walkable: false, interactionId: 'hunter_clue' }],
+  interactables: [{ x: 6, y: 4, type: 'table', walkable: false, interactionId: 'hunter_clue' }],
   props: [
     { x: 3, y: 3, type: 'bed', walkable: false },
     { x: 8, y: 3, type: 'weapon_rack', walkable: false },
-    { x: 4, y: 4, type: 'table', walkable: false },
     { x: 8, y: 4, type: 'bench', walkable: false },
     { x: 3, y: 5, type: 'fireplace', walkable: false },
     { x: 9, y: 5, type: 'barrel', walkable: false },
@@ -1143,6 +1225,7 @@ export const mapDefinitions: Record<string, MapDefinition> = {
   village: villageDef,
   forest: forestDef,
   deep_woods: deepWoodsDef,
+  shadow_castle: shadowCastleDef,
   ruins: ruinsDef,
   interior_inn: interiorInnDef,
   interior_blacksmith: interiorBlacksmithDef,

@@ -67,7 +67,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'deep_woods_active',
-        text: "The **Deep Woods** are treacherous. Find the **witch's hut**, learn what __shadow magic__ stirs below, and return to me with that knowledge.",
+        text: "The **Deep Woods** are treacherous. Find the **witch's hut**, learn what __shadow magic__ stirs below, and follow its trail toward **Shadow Castle** before you return.",
         responses: [
           { text: "I'm still investigating.", nextId: 'end' },
         ],
@@ -295,12 +295,12 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       { 
         id: 'start', 
-        text: "You find the hunter's final journal entry pinned to a tree: '**Defeated by shadow creatures** near the northern perimeter. The forest is not safe. I must return to warn the village...'",
-        responses: [{ text: "Return to Elder with this news", nextId: 'complete_quest' }]
+        text: "A cluster of **loose manuscript pages** rests on the stand, still catching the light. In the hunter's hand: '**Defeated by shadow creatures** near the northern perimeter. The forest is not safe. I must return to warn the village...'",
+        responses: [{ text: "Take the Hunter's Manuscript and return to the Elder", nextId: 'complete_quest' }]
       },
       { 
         id: 'complete_quest', 
-        text: "You now have enough information to return to the village elder.", 
+        text: "You secure the **Hunter's Manuscript**. Its final pages should reach the village elder.", 
         responses: [{ text: "[Continue]", nextId: 'end' }] 
       },
       { id: 'end', text: "", responses: [] }

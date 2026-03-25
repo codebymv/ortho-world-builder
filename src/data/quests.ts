@@ -24,7 +24,7 @@ export const quests: Record<string, Quest> = {
   clear_deep_woods: {
     id: 'clear_deep_woods',
     title: 'Into the Depths',
-    description: 'With the forest threat eliminated, the elder reveals the path to the Deep Woods is now open. Find the witch and learn what caused the disturbances.',
+    description: 'With the forest threat eliminated, the elder reveals the path to the Deep Woods is now open. Find the witch, uncover the shadow threat, and trace it toward Shadow Castle.',
     objectives: [
       'Travel to the Deep Woods',
       'Find the witch\'s hut',
