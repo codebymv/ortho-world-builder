@@ -32,7 +32,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'accept',
-        text: "Thank you, brave soul! The **hunter** was last seen heading into the **Whispering Woods**. Please, find him and discover what troubles our forest. Take this __map__ - it will guide you.",
+        text: "Thank you, brave soul! The **hunter** was last seen heading into the **Whispering Woods** near a **run down old shack**. Search it, find what became of him, and discover what troubles our forest. Take this __map__ - it will guide you.",
         responses: [
           { text: "I'll return with news.", nextId: 'end', givesQuest: 'find_hunter' },
         ],
@@ -46,7 +46,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'quest_active',
-        text: "Have you found any sign of our missing **hunter**? Please be careful in the **forest**.",
+        text: "Have you found any sign of our missing **hunter**? Search the **run down old shack** in the **Whispering Woods** if you have not yet, and please be careful in the **forest**.",
         responses: [
           { text: "Still searching. I'll keep looking.", nextId: 'end' },
         ],
@@ -127,7 +127,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'interesting',
-        text: "Ah! There's an **Ancient Ruin** to the north - older than the village itself. Locals say it holds __great power__, but also __great danger__. Few dare venture there.",
+        text: "Ah! There are **Ancient Ruins** beyond the **Whispering Woods** - older than the village itself. Locals say they hold __great power__, but also __great danger__. Few dare venture that far.",
         responses: [
           { text: "I might check it out.", nextId: 'end' },
           { text: "Show me what you're selling.", nextId: 'shop' },
@@ -276,7 +276,15 @@ export const dialogues: Record<string, Dialogue> = {
   // === MAP INTERACTABLES ===
   ranger_sign: {
     id: 'ranger_sign',
-    nodes: [{ id: 'start', text: "A weathered sign reads: '**Ranger Outpost** — All travelers welcome. Beware __wolves__ north of here.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "A weathered sign reads: '**Ranger Outpost** — All travelers welcome. Beware __wolves__ deeper in the woods, especially to the __northwest__.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  forest_shortcut_lever: {
+    id: 'forest_shortcut_lever',
+    nodes: [{ id: 'start', text: "A rain-darkened chain hangs beside a collapsed timber gate. The mechanism looks old, but the route beyond would fold back toward the **Ranger Outpost**.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  hunter_warning_sign: {
+    id: 'hunter_warning_sign',
+    nodes: [{ id: 'start', text: "A split hunters' board leans against the ruined gate: '**Palisade broken. Keep moving.** If the trail is bloodied, the **Disparaged Cottage** lies just ahead.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   bridge_sign: {
     id: 'bridge_sign',
@@ -343,7 +351,7 @@ export const dialogues: Record<string, Dialogue> = {
   },
   stump_lore: {
     id: 'stump_lore',
-    nodes: [{ id: 'start', text: "This ancient tree stump has __strange markings__ carved into it. They seem to point **north**, toward the **forest**.", responses: [{ text: "[Interesting...]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "This ancient tree stump has __strange markings__ carved into it. They seem to point deeper into the **forest**, toward an older trail.", responses: [{ text: "[Interesting...]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   market_sign: {
     id: 'market_sign',

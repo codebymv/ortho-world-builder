@@ -5,11 +5,11 @@ export const quests: Record<string, Quest> = {
   find_hunter: {
     id: 'find_hunter',
     title: 'The Missing Hunter',
-    description: 'The village elder has asked you to find the missing hunter who went into the Whispering Woods to investigate strange occurrences.',
+    description: 'The village elder has asked you to follow the hunter into the Whispering Woods, search the Disparaged Cottage, and bring back whatever evidence remains.',
     objectives: [
       'Travel to the Whispering Woods',
-      'Search the northern area for clues',
-      'Defeat the forest threat',
+      'Find the Disparaged Cottage',
+      "Recover the Hunter's Manuscript",
       'Return to the elder with your findings',
     ],
     completed: false,
@@ -24,7 +24,7 @@ export const quests: Record<string, Quest> = {
   clear_deep_woods: {
     id: 'clear_deep_woods',
     title: 'Into the Depths',
-    description: 'With the forest threat eliminated, the elder reveals the path to the Deep Woods is now open. Find the witch, uncover the shadow threat, and trace it toward Shadow Castle.',
+    description: "With the Hunter's Manuscript in hand, the elder reveals the path to the Deep Woods is now open. Find the witch, uncover the shadow threat, and trace it toward Shadow Castle.",
     objectives: [
       'Travel to the Deep Woods',
       'Find the witch\'s hut',

@@ -11,7 +11,7 @@ import { ENEMY_BLUEPRINTS, DEFAULT_ENEMY } from '@/data/enemies';
 import { DayNightCycle } from '@/lib/game/DayNightCycle';
 import { FloatingTextSystem } from '@/lib/game/FloatingText';
 import { ScreenShake } from '@/lib/game/ScreenShake';
-import { MapMarker, extractMarkersFromText } from '@/lib/game/MapMarkers';
+import { MapMarker, extractMarkersFromText, isNpcObjectiveTarget } from '@/lib/game/MapMarkers';
 import { SaveManager } from '@/lib/game/SaveManager';
 import { allMaps, mapDefinitions } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
@@ -26,11 +26,72 @@ import { MapModal } from './game/MapModal';
 import { PauseMenu } from './game/PauseMenu';
 import { TransitionOverlay } from './game/TransitionOverlay';
 import { DeathOverlay } from './game/DeathOverlay';
+import { BonfireOverlay } from './game/BonfireOverlay';
 import { notify } from '@/lib/game/notificationBus';
 import type { WorldMap } from '@/lib/game/World';
 
 const SPAWN_BODY_R = 0.15;
 const CRITICAL_ITEM_INTERACTION_IDS = new Set(Object.keys(criticalPathItems));
+type InteractionPrompt = string | null;
+
+function getMapDisplayName(mapId: string): string {
+  return mapDefinitions[mapId]?.name ?? mapId.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
+}
+
+function getInteractionPromptLabel(
+  interactionId: string,
+  state: GameState,
+  world: World,
+  x: number,
+  y: number,
+  npcName?: string
+): InteractionPrompt {
+  if (npcName) return `Talk to ${npcName}`;
+
+  if (interactionId === 'building_entrance' || interactionId === 'building_exit') {
+    const transition = world.getTransitionAt(x, y);
+    if (!transition) return interactionId === 'building_entrance' ? 'Enter' : 'Exit';
+    const destinationName = getMapDisplayName(transition.targetMap);
+    return interactionId === 'building_entrance' ? `Enter ${destinationName}` : `Exit to ${destinationName}`;
+  }
+
+  if (interactionId === 'bonfire_rest') return 'Rest at Bonfire';
+  if (interactionId === 'moonbloom_pickup') return 'Pick Moonbloom';
+  if (interactionId === 'potion_pickup') return 'Collect Health Potion';
+  if (interactionId === 'shadow_castle_gate_switch') return 'Open Inner Gate';
+  if (interactionId === 'forest_shortcut_lever') {
+    return state.getFlag('whispering_woods_shortcut_open') ? 'Shortcut Unlocked' : 'Unbar Ranger Gate';
+  }
+
+  if (CRITICAL_ITEM_INTERACTION_IDS.has(interactionId)) {
+    const config = criticalPathItems[interactionId];
+    const criticalItem = items[config.itemId];
+    if (criticalItem?.name) {
+      if (criticalItem.name.toLowerCase().includes('manuscript')) return `Read ${criticalItem.name}`;
+      return `Take ${criticalItem.name}`;
+    }
+    return 'Inspect';
+  }
+
+  if (interactionId.includes('chest')) {
+    return state.getFlag(`${interactionId}_opened`) ? 'Chest Opened' : 'Open Chest';
+  }
+
+  if (interactionId.includes('sign')) return 'Read Sign';
+  if (interactionId === 'tombstone') return 'Read Epitaph';
+  if (interactionId === 'campfire') return 'Rest at Campfire';
+  if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain') return 'Drink from Fountain';
+  if (interactionId === 'healing_mushroom') return 'Gather Mushroom';
+  if (interactionId === 'lantern') return 'Inspect Lantern';
+  if (interactionId === 'hunter_clue') return "Read Hunter's Manuscript";
+
+  if (dialogues[interactionId]) {
+    const speakerName = interactionId.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
+    return `Talk to ${speakerName}`;
+  }
+
+  return 'Interact';
+}
 
 function pickEnemySpawnInZone(
   zone: { x: number; y: number; width: number; height: number },
@@ -58,6 +119,36 @@ function pickEnemySpawnInZone(
     if (world.canMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)) return { x: ex, y: ey };
   }
   return null;
+}
+
+function resolveSafeTransitionPosition(
+  world: World,
+  mapWorld: WorldMap,
+  targetX: number,
+  targetY: number
+): { x: number; y: number } {
+  const baseX = targetX - mapWorld.width / 2;
+  const baseY = targetY - mapWorld.height / 2;
+
+  if (world.canMoveTo(baseX, baseY, baseX, baseY, SPAWN_BODY_R)) {
+    return { x: baseX, y: baseY };
+  }
+
+  const offsets = [
+    { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 },
+    { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: -1 },
+    { x: 0, y: 2 }, { x: 0, y: -2 }, { x: 2, y: 0 }, { x: -2, y: 0 },
+  ];
+
+  for (const offset of offsets) {
+    const x = baseX + offset.x;
+    const y = baseY + offset.y;
+    if (world.canMoveTo(x, y, x, y, SPAWN_BODY_R)) {
+      return { x, y };
+    }
+  }
+
+  return { x: baseX, y: baseY };
 }
 
 function spawnEnemiesFromMapZones(mapKey: string, mapWorld: WorldMap, combatSystem: CombatSystem, world: World) {
@@ -208,10 +299,23 @@ const Game = () => {
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [transitionDebugEnabled, setTransitionDebugEnabled] = useState(false);
   const [transitionDebugLines, setTransitionDebugLines] = useState<string[]>([]);
+  const [interactionPrompt, setInteractionPrompt] = useState<InteractionPrompt>(null);
+  const [bonfireOverlayActive, setBonfireOverlayActive] = useState(false);
+  const bonfireOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pausedRef = useRef(false);
   const playerDeadRef = useRef(false);
   const deathRespawnFnRef = useRef<(() => void) | null>(null);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastInteractionPromptRef = useRef<InteractionPrompt>(null);
+
+  useEffect(() => {
+    return () => {
+      if (bonfireOverlayTimerRef.current) {
+        clearTimeout(bonfireOverlayTimerRef.current);
+        bonfireOverlayTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // Healing cooldowns: interactionId -> last use timestamp
   const healCooldowns = useRef<Map<string, number>>(new Map());
@@ -299,6 +403,26 @@ const Game = () => {
 
     const state = new GameState(scene, camera);
     gameStateRef.current = state;
+
+    const isNpcPriorityCueTarget = (npc: NPC) => {
+      if (isNpcObjectiveTarget(npc, state.currentMap, mapMarkersRef.current)) return true;
+      if (npc.questGiver) return true;
+
+      const activeQuestText = state.quests
+        .filter(q => q.active && !q.completed)
+        .map(q => `${q.title} ${q.description} ${q.objectives.join(' ')}`)
+        .join(' ')
+        .toLowerCase();
+
+      if (!activeQuestText) return false;
+      const npcName = npc.name.toLowerCase();
+      if (npcName.includes('elder') && activeQuestText.includes('elder')) return true;
+      if (npcName.includes('merchant') && activeQuestText.includes('merchant')) return true;
+      if (npcName.includes('guard') && activeQuestText.includes('guard')) return true;
+      if (npcName.includes('blacksmith') && activeQuestText.includes('blacksmith')) return true;
+      if (npcName.includes('healer') && activeQuestText.includes('healer')) return true;
+      return false;
+    };
     setGameState(state);
 
     const ensureStartingWeapon = () => {
@@ -393,7 +517,7 @@ const Game = () => {
       state.lastBonfire = { mapId: state.currentMap, x: sp.x, y: sp.y };
     }
 
-    syncShadowCastleGateState();
+    syncPersistentMapState();
     
     world.updateChunks(state.player.position.x, state.player.position.y);
     
@@ -456,6 +580,28 @@ const Game = () => {
     indicatorMesh.position.z = 0.5;
     indicatorMesh.visible = false;
     scene.add(indicatorMesh);
+    const objectiveIndicatorRingMaterial = new THREE.MeshBasicMaterial({
+      color: 0xFFD24A,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const objectiveIndicatorRingMesh = new THREE.Mesh(new THREE.RingGeometry(0.24, 0.32, 32), objectiveIndicatorRingMaterial);
+    objectiveIndicatorRingMesh.position.z = 0.48;
+    objectiveIndicatorRingMesh.visible = false;
+    scene.add(objectiveIndicatorRingMesh);
+    const objectiveIndicatorOuterMaterial = new THREE.MeshBasicMaterial({
+      color: 0xFFF1B8,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const objectiveIndicatorOuterMesh = new THREE.Mesh(new THREE.RingGeometry(0.34, 0.4, 32), objectiveIndicatorOuterMaterial);
+    objectiveIndicatorOuterMesh.position.z = 0.47;
+    objectiveIndicatorOuterMesh.visible = false;
+    scene.add(objectiveIndicatorOuterMesh);
 
     const transitionDebugGroup = new THREE.Group();
     transitionDebugGroup.visible = false;
@@ -791,6 +937,55 @@ const Game = () => {
       world.rebuildChunks();
     }
 
+    function syncWhisperingWoodsShortcutState() {
+      if (state.currentMap !== 'forest') return;
+      const map = world.getCurrentMap();
+      const shortcutOpen = state.getFlag('whispering_woods_shortcut_open');
+      for (let y = 199; y <= 202; y++) {
+        for (let x = 124; x <= 129; x++) {
+          const existing = map.tiles[y]?.[x];
+          if (!existing) continue;
+          map.tiles[y][x] = shortcutOpen
+            ? { type: 'wooden_path', walkable: true, elevation: existing.elevation ?? 0 }
+            : {
+                type: 'gate',
+                walkable: false,
+                elevation: existing.elevation ?? 0,
+                interactionId: 'whispering_woods_ranger_gate',
+              };
+        }
+      }
+      world.rebuildChunks();
+    }
+
+    function syncOpenedChestState() {
+      const map = world.getCurrentMap();
+      let changed = false;
+      for (let y = 0; y < map.height; y++) {
+        for (let x = 0; x < map.width; x++) {
+          const tile = map.tiles[y][x];
+          if (!tile.interactionId || !tile.interactionId.includes('chest')) continue;
+          const opened = state.getFlag(`${tile.interactionId}_opened`);
+          if (opened && tile.type === 'chest') {
+            map.tiles[y][x] = { ...tile, type: 'chest_opened' };
+            changed = true;
+          } else if (!opened && tile.type === 'chest_opened') {
+            map.tiles[y][x] = { ...tile, type: 'chest' };
+            changed = true;
+          }
+        }
+      }
+      if (changed) {
+        world.rebuildChunks();
+      }
+    }
+
+    function syncPersistentMapState() {
+      syncShadowCastleGateState();
+      syncWhisperingWoodsShortcutState();
+      syncOpenedChestState();
+    }
+
     const samplePortalNearPlayer = (): { targetMap: string; targetX: number; targetY: number } | null => {
       const px = state.player.position.x;
       const py = state.player.position.y;
@@ -829,7 +1024,7 @@ const Game = () => {
 
       state.currentMap = targetMap;
       world.loadMap(newMap);
-      syncShadowCastleGateState();
+      syncPersistentMapState();
       setActiveNpcsForCurrentMap();
       if (!targetMap.startsWith('interior_')) {
         biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
@@ -837,8 +1032,9 @@ const Game = () => {
       }
       triggerSave(); // Save on map transition
       
-      const worldX = targetX - newMap.width / 2;
-      const worldY = targetY - newMap.height / 2;
+      const safeTarget = resolveSafeTransitionPosition(world, newMap, targetX, targetY);
+      const worldX = safeTarget.x;
+      const worldY = safeTarget.y;
       
       state.player.position = { x: worldX, y: worldY };
       
@@ -883,6 +1079,14 @@ const Game = () => {
         hunterQuest.objectives[1] = 'Search the northern area for clues ✓';
       }
       
+      if (hunterQuest && targetMap === 'forest') {
+        hunterQuest.objectives[0] = 'Travel to the Whispering Woods ✓';
+        hunterQuest.objectives[1] = 'Find the Disparaged Cottage';
+      }
+      if (hunterQuest && targetMap === 'interior_hunter_cottage') {
+        hunterQuest.objectives[1] = 'Find the Disparaged Cottage ✓';
+      }
+
       const deepQuest = state.quests.find(q => q.id === 'clear_deep_woods' && q.active && !q.completed);
       if (deepQuest && targetMap === 'deep_woods') {
         deepQuest.objectives[0] = 'Travel to the Deep Woods ✓';
@@ -901,20 +1105,35 @@ const Game = () => {
     const performBonfireRest = (tileX: number, tileY: number) => {
       state.player.health = state.player.maxHealth;
       state.player.stamina = state.player.maxStamina;
+      playBonfireRestore();
       state.lastBonfire = {
         mapId: state.currentMap,
         x: state.player.position.x,
         y: state.player.position.y,
       };
+      const bonfireWorldX = tileX - world.getCurrentMap().width / 2 + 0.5;
+      const bonfireWorldY = tileY - world.getCurrentMap().height / 2 + 0.5;
+      const bonfireVec = new THREE.Vector3(bonfireWorldX, bonfireWorldY, 0.45);
       const firstKey = `bonfire_first_${state.currentMap}_${tileX}_${tileY}`;
       if (!state.getFlag(firstKey)) {
         state.setFlag(firstKey, true);
+        playBonfireKindle();
+        particleSystem.emitBonfireKindled(bonfireVec);
+        particleSystem.emitSparkles(new THREE.Vector3(bonfireWorldX, bonfireWorldY + 0.1, 0.55));
+        if (bonfireOverlayTimerRef.current) clearTimeout(bonfireOverlayTimerRef.current);
+        setBonfireOverlayActive(false);
+        requestAnimationFrame(() => setBonfireOverlayActive(true));
+        bonfireOverlayTimerRef.current = setTimeout(() => {
+          setBonfireOverlayActive(false);
+          bonfireOverlayTimerRef.current = null;
+        }, 2900);
         notify('Flame kindled', {
           id: 'bonfire', type: 'success',
           description: 'You will respawn here if you fall. Foes have returned.',
           duration: 4000,
         });
       } else {
+        particleSystem.emitBonfireKindled(bonfireVec);
         notify('Rested at bonfire', {
           id: 'bonfire', type: 'success',
           description: 'Health and stamina restored. Enemies have respawned.',
@@ -1047,6 +1266,8 @@ const Game = () => {
     const npcMeshes: THREE.Mesh[] = [];
     const npcShadows: THREE.Mesh[] = [];
     const npcOutlines: THREE.Mesh[] = [];
+    const npcObjectiveRings: THREE.Mesh[] = [];
+    const npcObjectiveHalos: THREE.Mesh[] = [];
 
     npcData.forEach(npc => {
       // NPC shadow
@@ -1080,6 +1301,38 @@ const Game = () => {
       npcOutline.renderOrder = npcMesh.renderOrder - 1;
       scene.add(npcOutline);
       npcOutlines.push(npcOutline);
+
+      const objectiveHalo = new THREE.Mesh(
+        new THREE.CircleGeometry(0.34, 28),
+        new THREE.MeshBasicMaterial({
+          color: 0xF3E0A6,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          depthTest: false,
+        })
+      );
+      objectiveHalo.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) - 0.33, 0.041);
+      objectiveHalo.scale.set(1.2, 0.56, 1);
+      objectiveHalo.visible = false;
+      objectiveHalo.renderOrder = 2;
+      scene.add(objectiveHalo);
+      npcObjectiveHalos.push(objectiveHalo);
+
+      const objectiveRing = new THREE.Mesh(
+        new THREE.RingGeometry(0.12, 0.16, 24),
+        new THREE.MeshBasicMaterial({
+          color: 0xFFD24A,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          depthTest: false,
+        })
+      );
+      objectiveRing.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) + 0.9, 0.52);
+      objectiveRing.visible = false;
+      scene.add(objectiveRing);
+      npcObjectiveRings.push(objectiveRing);
     });
 
     const setActiveNpcsForCurrentMap = () => {
@@ -1097,6 +1350,10 @@ const Game = () => {
         if (npcShadow) npcShadow.visible = isActive;
         const npcOutline = npcOutlines[i];
         if (npcOutline) npcOutline.visible = isActive;
+        const npcObjectiveHalo = npcObjectiveHalos[i];
+        if (npcObjectiveHalo) npcObjectiveHalo.visible = false;
+        const npcObjectiveRing = npcObjectiveRings[i];
+        if (npcObjectiveRing) npcObjectiveRing.visible = false;
 
         if (isActive) {
           activeNpcIndices.push(i);
@@ -1463,9 +1720,155 @@ const Game = () => {
       sfx.play().catch(() => {});
     };
 
+    const bonfireKindlePool: HTMLAudioElement[] = [];
+    for (let i = 0; i < SMALL_SFX_POOL; i++) {
+      const a = new Audio('./audio/fire_kindle.mp3');
+      a.volume = 0.55;
+      processAudioElement(a);
+      bonfireKindlePool.push(a);
+    }
+    let bonfireKindleIdx = 0;
+    const playBonfireKindle = () => {
+      const sfx = bonfireKindlePool[bonfireKindleIdx % bonfireKindlePool.length];
+      bonfireKindleIdx++;
+      sfx.currentTime = 0;
+      sfx.play().catch(() => {});
+    };
+
+    const bonfireRestorePool: HTMLAudioElement[] = [];
+    for (let i = 0; i < SMALL_SFX_POOL; i++) {
+      const a = new Audio('./audio/fire_restore.mp3');
+      a.volume = 0.5;
+      processAudioElement(a);
+      bonfireRestorePool.push(a);
+    }
+    let bonfireRestoreIdx = 0;
+    const playBonfireRestore = () => {
+      const sfx = bonfireRestorePool[bonfireRestoreIdx % bonfireRestorePool.length];
+      bonfireRestoreIdx++;
+      sfx.currentTime = 0;
+      sfx.play().catch(() => {});
+    };
+
+    const enemyWalkCooldowns = new Map<string, number>();
+    const ENEMY_AUDIO_TYPES = ['skeleton', 'slime', 'wolf'] as const;
+    type EnemyAudioType = typeof ENEMY_AUDIO_TYPES[number];
+
+    const getEnemyAudioType = (enemy: Enemy): EnemyAudioType | null => {
+      const type = enemy.sprite.replace('enemy_', '') as EnemyAudioType | string;
+      if (type === 'skeleton' || type === 'slime' || type === 'wolf') return type;
+      return null;
+    };
+
+    const enemyDefeatPools: Record<EnemyAudioType, HTMLAudioElement[]> = {
+      skeleton: [],
+      slime: [],
+      wolf: [],
+    };
+    const enemyDefeatIdx: Record<EnemyAudioType, number> = {
+      skeleton: 0,
+      slime: 0,
+      wolf: 0,
+    };
+    const enemyWalkPools: Record<EnemyAudioType, HTMLAudioElement[]> = {
+      skeleton: [],
+      slime: [],
+      wolf: [],
+    };
+    const enemyWalkIdx: Record<EnemyAudioType, number> = {
+      skeleton: 0,
+      slime: 0,
+      wolf: 0,
+    };
+
+    for (let i = 0; i < SMALL_SFX_POOL; i++) {
+      const skeletonDefeat = new Audio('./audio/skeleton_defeat.mp3');
+      skeletonDefeat.volume = 0.42;
+      processAudioElement(skeletonDefeat);
+      enemyDefeatPools.skeleton.push(skeletonDefeat);
+
+      const slimeDefeat = new Audio('./audio/slime_defeat.mp3');
+      slimeDefeat.volume = 0.38;
+      processAudioElement(slimeDefeat);
+      enemyDefeatPools.slime.push(slimeDefeat);
+
+      const wolfDefeat = new Audio('./audio/wolf_defeat.mp3');
+      wolfDefeat.volume = 0.46;
+      processAudioElement(wolfDefeat);
+      enemyDefeatPools.wolf.push(wolfDefeat);
+
+      const skeletonWalk = new Audio('./audio/skeleton_walk.mp3');
+      skeletonWalk.volume = 0.24;
+      processAudioElement(skeletonWalk);
+      enemyWalkPools.skeleton.push(skeletonWalk);
+
+      const slimeWalk = new Audio('./audio/slime_walk.mp3');
+      slimeWalk.volume = 0.18;
+      processAudioElement(slimeWalk);
+      enemyWalkPools.slime.push(slimeWalk);
+
+      const wolfWalk = new Audio('./audio/wolf_walk.mp3');
+      wolfWalk.volume = 0.28;
+      processAudioElement(wolfWalk);
+      enemyWalkPools.wolf.push(wolfWalk);
+    }
+
+    const playEnemyDefeatSound = (enemy: Enemy) => {
+      const type = getEnemyAudioType(enemy);
+      if (!type) {
+        playDeathSound();
+        return;
+      }
+      const pool = enemyDefeatPools[type];
+      const idx = enemyDefeatIdx[type] % pool.length;
+      enemyDefeatIdx[type]++;
+      const sfx = pool[idx];
+      sfx.currentTime = 0;
+      sfx.play().catch(() => {});
+    };
+
+    const playEnemyWalkSound = (enemy: Enemy, nowSeconds: number) => {
+      const type = getEnemyAudioType(enemy);
+      if (!type) return;
+      const nextAllowed = enemyWalkCooldowns.get(enemy.id) ?? 0;
+      if (nowSeconds < nextAllowed) return;
+
+      const pool = enemyWalkPools[type];
+      const idx = enemyWalkIdx[type] % pool.length;
+      enemyWalkIdx[type]++;
+      const sfx = pool[idx];
+      sfx.currentTime = 0;
+      sfx.play().catch(() => {});
+
+      const baseInterval =
+        type === 'wolf' ? 0.52 :
+        type === 'skeleton' ? 0.64 :
+        0.78;
+      enemyWalkCooldowns.set(enemy.id, nowSeconds + baseInterval + Math.random() * 0.18);
+    };
+
+    const maybePlayEnemyWalkSound = (enemy: Enemy, nowSeconds: number) => {
+      const type = getEnemyAudioType(enemy);
+      if (!type) return;
+
+      const dx = enemy.position.x - state.player.position.x;
+      const dy = enemy.position.y - state.player.position.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq > 36) return;
+
+      const speedSq = enemy.velocity.x * enemy.velocity.x + enemy.velocity.y * enemy.velocity.y;
+      const isMoving = enemy.moveBlend > 0.3 || speedSq > 0.0025;
+      if (!isMoving) return;
+
+      if (enemy.state !== 'chasing' && enemy.moveBlend < 0.45) return;
+
+      playEnemyWalkSound(enemy, nowSeconds);
+    };
+
     const onEnemyKilled = (enemy: Enemy) => {
       killCount++;
-      playDeathSound();
+      playEnemyDefeatSound(enemy);
+      enemyWalkCooldowns.delete(enemy.id);
       if (enemy.essenceReward > 0) playItemGrab();
       // Update guard_duty quest kill counter
       const guardQuest = state.quests.find(q => q.id === 'guard_duty' && q.active && !q.completed);
@@ -1717,34 +2120,9 @@ state.player.lastAttackTime = currentTime;
         }
       }
 
-      // Probe the player's own tile, then 8 directions at 0.5 tiles and 1.0 tiles.
-      // Chests and signs can now be triggered from any adjacent tile at any angle,
-      // making interaction snappy regardless of exact facing direction.
-      const _D = 1 / Math.SQRT2; // normalised diagonal component
-      const probeOffsets: Array<{ x: number; y: number }> = [
-        { x: 0, y: 0 },                                    // own tile
-        { x: 0, y: 0.5 }, { x: 0, y: -0.5 },              // cardinal 0.5
-        { x: 0.5, y: 0 }, { x: -0.5, y: 0 },
-        { x: _D * 0.7, y: _D * 0.7 },                     // diagonal 0.5
-        { x: -_D * 0.7, y: _D * 0.7 },
-        { x: _D * 0.7, y: -_D * 0.7 },
-        { x: -_D * 0.7, y: -_D * 0.7 },
-        { x: 0, y: 1.0 }, { x: 0, y: -1.0 },              // cardinal 1.0
-        { x: 1.0, y: 0 }, { x: -1.0, y: 0 },
-        { x: _D, y: _D }, { x: -_D, y: _D },              // diagonal 1.0
-        { x: _D, y: -_D }, { x: -_D, y: -_D },
-      ];
-
-      // Deduplicate so multiple probe points landing on the same tile don't
-      // fire the interaction twice or return early on the wrong one.
-      const seenIds = new Set<string>();
-      for (const dir of probeOffsets) {
-        const px = checkX + dir.x;
-        const py = checkY + dir.y;
-        const interactionId = world.getInteractableAt(px, py);
-        if (!interactionId) continue;
-        if (seenIds.has(interactionId)) continue;
-        seenIds.add(interactionId);
+      const interactableHit = world.getInteractableNear(checkX, checkY, 1.15);
+      if (interactableHit) {
+        const { interactionId, x: px, y: py } = interactableHit;
 
         if (interactionId === 'bonfire_rest') {
           const w = world.getCurrentMap().width;
@@ -1789,6 +2167,7 @@ state.player.lastAttackTime = currentTime;
             playItemGrab();
           }
           state.setFlag(`${interactionId}_opened`, true);
+          syncOpenedChestState();
           particleSystem.emitSparkles(new THREE.Vector3(px, py, 0.3));
           notify('Chest Opened!', {
             id: 'chest-open', type: 'success',
@@ -1829,7 +2208,7 @@ state.player.lastAttackTime = currentTime;
             const isEntranceTile =
               entryTile?.type === 'door' ||
               entryTile?.type === 'door_iron';
-            if (!isEntranceTile) continue;
+            if (!isEntranceTile) return;
           }
           const transition = world.getTransitionAt(px, py);
           if (transition) {
@@ -1864,7 +2243,7 @@ state.player.lastAttackTime = currentTime;
         }
 
         if (interactionId === 'shadow_castle_gate_switch') {
-          if (state.currentMap !== 'shadow_castle') continue;
+          if (state.currentMap !== 'shadow_castle') return;
           if (state.getFlag('shadow_castle_gate_open')) {
             notify('The inner gate is already open.', { id: 'shadow-gate-open', duration: 1800 });
             return;
@@ -1883,8 +2262,53 @@ state.player.lastAttackTime = currentTime;
           return;
         }
 
+        if (interactionId === 'forest_shortcut_lever') {
+          if (state.currentMap !== 'forest') return;
+          if (state.getFlag('whispering_woods_shortcut_open')) {
+            notify('The ranger gate is already open.', { id: 'forest-shortcut-open', duration: 1800 });
+            return;
+          }
+          state.setFlag('whispering_woods_shortcut_open', true);
+          syncWhisperingWoodsShortcutState();
+          world.updateChunks(state.player.position.x, state.player.position.y);
+          notify('Shortcut unlocked', {
+            id: 'forest-shortcut-unlocked',
+            type: 'success',
+            description: 'A rain-slick gate groans open toward the Ranger Outpost.',
+            duration: 3200,
+          });
+          triggerSave();
+          triggerUIUpdate();
+          return;
+        }
+
         if (dialogues[interactionId]) {
           startDialogue(interactionId, undefined);
+          return;
+        }
+      }
+
+      const transitionOffsets = [
+        { x: 0, y: 0 },
+        { x: 0, y: 0.7 }, { x: 0, y: -0.7 },
+        { x: 0.7, y: 0 }, { x: -0.7, y: 0 },
+      ];
+      for (const dir of transitionOffsets) {
+        const px = checkX + dir.x;
+        const py = checkY + dir.y;
+        const interactionId = world.getInteractableAt(px, py);
+        if (interactionId !== 'building_exit' && interactionId !== 'building_entrance') continue;
+
+        if (interactionId === 'building_entrance') {
+          const entryTile = world.getTile(px, py);
+          const isEntranceTile =
+            entryTile?.type === 'door' ||
+            entryTile?.type === 'door_iron';
+          if (!isEntranceTile) continue;
+        }
+        const transition = world.getTransitionAt(px, py);
+        if (transition) {
+          handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
           return;
         }
       }
@@ -2166,6 +2590,8 @@ state.player.lastAttackTime = currentTime;
         if (isTalkingToThisNpc) {
           // Update mesh position without moving
           const npcMesh = npcMeshes[ni];
+          const npcObjectiveHalo = npcObjectiveHalos[ni];
+          const npcObjectiveRing = npcObjectiveRings[ni];
           if (npcMesh) {
             const npcScale = NPC_SCALE_BY_ID[npc.id] ?? 1;
             const breathe = Math.sin(currentTime / 800 + ni * 2.1) * 0.03;
@@ -2173,6 +2599,26 @@ state.player.lastAttackTime = currentTime;
             npcMesh.scale.set(npcScale, npcScale, 1);
             npcMesh.rotation.z = 0;
             npcMesh.renderOrder = getActorRenderOrder(npc.position.x, npc.position.y, NPC_FOOT_OFFSET);
+          }
+          if (npcObjectiveHalo) {
+            const isObjective = isNpcPriorityCueTarget(npc);
+            npcObjectiveHalo.visible = isObjective;
+            if (isObjective) {
+              const pulse = 0.82 + Math.sin(currentTime / 260 + ni * 0.6) * 0.18;
+              npcObjectiveHalo.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) - 0.33, 0.041);
+              npcObjectiveHalo.scale.set(1.18 + pulse * 0.06, 0.55 + pulse * 0.03, 1);
+              (npcObjectiveHalo.material as THREE.MeshBasicMaterial).opacity = 0.06 + pulse * 0.04;
+            }
+          }
+          if (npcObjectiveRing) {
+            const isObjective = isNpcPriorityCueTarget(npc);
+            npcObjectiveRing.visible = isObjective;
+            if (isObjective) {
+              const pulse = 0.82 + Math.sin(currentTime / 260 + ni * 0.6) * 0.18;
+              npcObjectiveRing.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) + 0.86, 0.52);
+              npcObjectiveRing.scale.setScalar(0.98 + pulse * 0.08);
+              (npcObjectiveRing.material as THREE.MeshBasicMaterial).opacity = 0.16 + pulse * 0.12;
+            }
           }
           continue;
         }
@@ -2252,12 +2698,34 @@ state.player.lastAttackTime = currentTime;
           if (npcShadow) {
             npcShadow.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) - 0.3, 0.05);
           }
+          const npcObjectiveHalo = npcObjectiveHalos[ni];
+          if (npcObjectiveHalo) {
+            const isObjective = isNpcPriorityCueTarget(npc);
+            npcObjectiveHalo.visible = isObjective;
+            if (isObjective) {
+              const pulse = 0.82 + Math.sin(currentTime / 260 + ni * 0.6) * 0.18;
+              npcObjectiveHalo.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) - 0.33, 0.041);
+              npcObjectiveHalo.scale.set(1.18 + pulse * 0.06, 0.55 + pulse * 0.03, 1);
+              (npcObjectiveHalo.material as THREE.MeshBasicMaterial).opacity = 0.06 + pulse * 0.04;
+            }
+          }
           // Update NPC outline
           const npcOutline = npcOutlines[ni];
           if (npcOutline) {
             npcOutline.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) + bob, 0.19);
             npcOutline.rotation.z = lean;
             npcOutline.renderOrder = npcMesh.renderOrder - 1;
+          }
+          const npcObjectiveRing = npcObjectiveRings[ni];
+          if (npcObjectiveRing) {
+            const isObjective = isNpcPriorityCueTarget(npc);
+            npcObjectiveRing.visible = isObjective;
+            if (isObjective) {
+              const pulse = 0.82 + Math.sin(currentTime / 260 + ni * 0.6) * 0.18;
+              npcObjectiveRing.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) + 0.86, 0.52);
+              npcObjectiveRing.scale.setScalar(0.98 + pulse * 0.08);
+              (npcObjectiveRing.material as THREE.MeshBasicMaterial).opacity = 0.16 + pulse * 0.12;
+            }
           }
         }
       }
@@ -2763,29 +3231,44 @@ state.player.lastAttackTime = currentTime;
         // This prevents an NPC behind a campfire from stealing the indicator.
         let showIndicator = false;
         let indicatorX = 0, indicatorY = 0;
+        let indicatorIsObjectiveNpc = false;
+        let nextInteractionPrompt: InteractionPrompt = null;
         const interactionRange = 2.0;
 
         const directions = [
           { x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
         ];
-        for (const dir of directions) {
-          const cx = state.player.position.x + dir.x * 0.5;
-          const cy = state.player.position.y + dir.y * 0.5;
-          const intId = world.getInteractableAt(cx, cy);
-          if (intId) {
-            if (CRITICAL_ITEM_INTERACTION_IDS.has(intId) && state.getFlag(criticalPathItems[intId].collectedFlag)) continue;
-            if (intId === 'building_entrance') {
-              const entryTile = world.getTile(cx, cy);
-              const isEntranceTile =
-                entryTile?.type === 'door' ||
-                entryTile?.type === 'door_iron';
-              if (!isEntranceTile || !world.getTransitionAt(cx, cy)) continue;
+        const interactableHit = world.getInteractableNear(state.player.position.x, state.player.position.y, 1.15);
+        if (interactableHit) {
+          const { interactionId: intId, x, y } = interactableHit;
+          if (!(CRITICAL_ITEM_INTERACTION_IDS.has(intId) && state.getFlag(criticalPathItems[intId].collectedFlag)) &&
+              !(intId.includes('chest') && state.getFlag(`${intId}_opened`)) &&
+              !(intId === 'potion_pickup' && state.getFlag('potion_pickup_collected'))) {
+            if (intId !== 'building_entrance') {
+              showIndicator = true;
+              indicatorX = x;
+              indicatorY = y;
+              nextInteractionPrompt = getInteractionPromptLabel(intId, state, world, x, y);
             }
-            if (intId.includes('chest') && state.getFlag(`${intId}_opened`)) continue;
-            if (intId === 'potion_pickup' && state.getFlag('potion_pickup_collected')) continue;
+          }
+        }
+
+        if (!showIndicator) {
+          for (const dir of directions) {
+            const cx = state.player.position.x + dir.x * 0.7;
+            const cy = state.player.position.y + dir.y * 0.7;
+            const intId = world.getInteractableAt(cx, cy);
+            if (intId !== 'building_entrance' && intId !== 'building_exit') continue;
+            const entryTile = world.getTile(cx, cy);
+            const isValidDoor =
+              intId === 'building_exit' ||
+              entryTile?.type === 'door' ||
+              entryTile?.type === 'door_iron';
+            if (!isValidDoor || !world.getTransitionAt(cx, cy)) continue;
             showIndicator = true;
             indicatorX = cx;
             indicatorY = cy;
+            nextInteractionPrompt = getInteractionPromptLabel(intId, state, world, cx, cy);
             break;
           }
         }
@@ -2801,6 +3284,7 @@ state.player.lastAttackTime = currentTime;
             }) || directions[0];
             indicatorX = state.player.position.x + portalDir.x * 0.7;
             indicatorY = state.player.position.y + portalDir.y * 0.7;
+            nextInteractionPrompt = `Travel to ${getMapDisplayName(portalHint.targetMap)}`;
           }
         }
 
@@ -2816,8 +3300,15 @@ state.player.lastAttackTime = currentTime;
               showIndicator = true;
               indicatorX = npc.position.x;
               indicatorY = npc.position.y;
+              indicatorIsObjectiveNpc = isNpcPriorityCueTarget(npc);
+              nextInteractionPrompt = getInteractionPromptLabel(npc.dialogueId, state, world, npc.position.x, npc.position.y, npc.name);
             }
           }
+        }
+
+        if (lastInteractionPromptRef.current !== nextInteractionPrompt) {
+          lastInteractionPromptRef.current = nextInteractionPrompt;
+          setInteractionPrompt(nextInteractionPrompt);
         }
 
         if (showIndicator) {
@@ -2827,8 +3318,22 @@ state.player.lastAttackTime = currentTime;
           indicatorMesh.position.set(indicatorX, getVisualYAt(indicatorX, indicatorY) + 0.8 + bobY, 0.5);
           indicatorMaterial.opacity = pulse;
           indicatorMesh.scale.set(0.8 + Math.sin(currentTime / 250) * 0.15, 0.8 + Math.sin(currentTime / 250) * 0.15, 1);
+          indicatorMaterial.color.setHex(indicatorIsObjectiveNpc ? 0xFFE596 : 0xFFFFFF);
+          objectiveIndicatorRingMesh.visible = indicatorIsObjectiveNpc;
+          objectiveIndicatorOuterMesh.visible = indicatorIsObjectiveNpc;
+          if (indicatorIsObjectiveNpc) {
+            const objectivePulse = 0.82 + Math.sin(currentTime / 260) * 0.18;
+            objectiveIndicatorRingMesh.position.set(indicatorX, getVisualYAt(indicatorX, indicatorY) + 0.8, 0.49);
+            objectiveIndicatorRingMaterial.opacity = 0.18 + objectivePulse * 0.12;
+            objectiveIndicatorRingMesh.scale.setScalar(1 + objectivePulse * 0.06);
+            objectiveIndicatorOuterMesh.position.set(indicatorX, getVisualYAt(indicatorX, indicatorY) + 0.8, 0.47);
+            objectiveIndicatorOuterMaterial.opacity = 0.05 + objectivePulse * 0.05;
+            objectiveIndicatorOuterMesh.scale.setScalar(0.98 + objectivePulse * 0.08);
+          }
         } else {
           indicatorMesh.visible = false;
+          objectiveIndicatorRingMesh.visible = false;
+          objectiveIndicatorOuterMesh.visible = false;
         }
 
         const criticalItemVisualSignature = getCriticalItemVisualSignature();
@@ -2981,6 +3486,7 @@ state.player.lastAttackTime = currentTime;
 
         // === ENEMY RENDERING WITH HP BARS ===
         const enemies = combatSystem.getEnemies();
+        const enemyAudioNow = currentTime / 1000;
         for (const enemy of enemies) {
           let enemyMesh = enemyMeshes.get(enemy.id);
           
@@ -3176,6 +3682,8 @@ state.player.lastAttackTime = currentTime;
             }
           }
 
+          maybePlayEnemyWalkSound(enemy, enemyAudioNow);
+
           enemyMesh.rotation.z = rotation;
           enemyMesh.scale.set(scaleX, scaleY, 1);
           enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
@@ -3259,9 +3767,11 @@ state.player.lastAttackTime = currentTime;
                   enemyOutlines.delete(enemy.id);
                 }
 
+                enemyWalkCooldowns.delete(enemy.id);
                 fullyDeadEnemyIds.add(enemy.id);
               }
             } else {
+              enemyWalkCooldowns.delete(enemy.id);
               fullyDeadEnemyIds.add(enemy.id);
             }
 
@@ -3484,6 +3994,9 @@ state.player.lastAttackTime = currentTime;
       scene.remove(playerOutline); (playerOutline.material as THREE.Material).dispose();
       scene.remove(heldItemMesh); (heldItemMesh.material as THREE.Material).dispose();
       scene.remove(essenceOrbMesh); essenceOrbMaterial.dispose();
+      scene.remove(indicatorMesh); indicatorMaterial.dispose(); indicatorGeometry.dispose();
+      scene.remove(objectiveIndicatorRingMesh); objectiveIndicatorRingMaterial.dispose(); objectiveIndicatorRingMesh.geometry.dispose();
+      scene.remove(objectiveIndicatorOuterMesh); objectiveIndicatorOuterMaterial.dispose(); objectiveIndicatorOuterMesh.geometry.dispose();
       scene.remove(transitionDebugGroup);
       clearTransitionDebugMarkers();
       transitionDebugGeometry.dispose();
@@ -3498,6 +4011,8 @@ state.player.lastAttackTime = currentTime;
       npcMeshes.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
       npcShadows.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
       npcOutlines.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); });
+      npcObjectiveHalos.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); m.geometry.dispose(); });
+      npcObjectiveRings.forEach(m => { scene.remove(m); (m.material as THREE.Material).dispose(); m.geometry.dispose(); });
       // Dispose systems
       particleSystem.cleanup();
       biomeAmbience.cleanup();
@@ -3579,6 +4094,8 @@ state.player.lastAttackTime = currentTime;
       const hunterQuest = gameState.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
       if (hunterQuest) {
         hunterQuest.objectives[2] = 'Defeat the forest threat ✓';
+        hunterQuest.objectives[1] = 'Find the Disparaged Cottage ✓';
+        hunterQuest.objectives[2] = "Recover the Hunter's Manuscript ✓";
         gameState.completeQuest('find_hunter');
         notify("Quest Completed: The Missing Hunter!", {
           id: 'quest-done-hunter', type: 'success',
@@ -3861,7 +4378,15 @@ state.player.lastAttackTime = currentTime;
       
       {gameState && (
         <>
-          <GameUI gameState={gameState} assetManager={assetManagerRef.current} refreshToken={uiVersion} triggerUIUpdate={triggerUIUpdate} musicRef={musicRef} showControls={showControls} />
+          <GameUI
+            gameState={gameState}
+            assetManager={assetManagerRef.current}
+            refreshToken={uiVersion}
+            triggerUIUpdate={triggerUIUpdate}
+            musicRef={musicRef}
+            showControls={showControls}
+            interactionPrompt={interactionPrompt}
+          />
           {transitionDebugEnabled && (
             <div className="fixed left-4 top-16 z-[80] max-w-md border border-[#5C3A21] bg-[#1A0F0A]/92 p-2 text-[11px] text-[#F5DEB3] shadow-lg pointer-events-none">
               <div className="font-bold text-[#FFD27A]">TRANSITION DEBUG (V)</div>
@@ -3919,6 +4444,7 @@ state.player.lastAttackTime = currentTime;
 
       <TransitionOverlay active={transitionActive} mapName={transitionMapName} />
       <DeathOverlay active={deathActive} essenceLost={deathEssenceLost} onComplete={handleDeathComplete} />
+      <BonfireOverlay active={bonfireOverlayActive} title="Flame Kindled" />
     </div>
   );
 };

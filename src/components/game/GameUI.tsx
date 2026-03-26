@@ -12,6 +12,7 @@ interface GameUIProps {
   triggerUIUpdate: () => void;
   musicRef: React.RefObject<HTMLAudioElement | null>;
   showControls?: boolean;
+  interactionPrompt?: string | null;
 }
 
 // --- Helpers ---
@@ -156,7 +157,15 @@ const ActiveItemWheel = React.memo(({
   );
 });
 
-export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate, musicRef, showControls = true }: GameUIProps) => {
+export const GameUI = ({
+  gameState,
+  assetManager,
+  refreshToken,
+  triggerUIUpdate,
+  musicRef,
+  showControls = true,
+  interactionPrompt = null,
+}: GameUIProps) => {
   const [showInventory, setShowInventory] = useState(false);
   const [showQuests, setShowQuests] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -405,7 +414,10 @@ export const GameUI = ({ gameState, assetManager, refreshToken, triggerUIUpdate,
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Dodge / Estus</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">CTRL/RMB</kbd> Block</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SHIFT</kbd> Sprint</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">F</kbd> Interact</p>
+            <p className="text-[10px] text-[#D3D3D3]">
+              <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">F</kbd>
+              {interactionPrompt || 'Interact'}
+            </p>
             <p className="text-[10px] text-[#C9A0FF]">Portals — stand nearby; warp charges automatically</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Q/E</kbd> Item</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">M</kbd> Map</p>

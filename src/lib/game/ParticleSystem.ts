@@ -95,6 +95,12 @@ export class ParticleSystem {
     this.emit(position, 8, 0x00FF00, 1, 1, 1.5);
   }
 
+  emitBonfireKindled(position: THREE.Vector3) {
+    this.emit(position, 10, 0xffd36b, 0.8, 1.1, 0.9);
+    this.emit(position, 8, 0xff9e2c, 1.0, 0.9, 0.8);
+    this.emit(position, 6, 0xfff2c1, 0.55, 0.7, 0.55);
+  }
+
   /** Purple / cyan swirl while charging a map portal (charge 0..1). */
   emitPortalWarp(position: THREE.Vector3, charge: number) {
     const n = Math.max(2, Math.floor(3 + charge * 12));

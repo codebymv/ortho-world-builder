@@ -73,11 +73,12 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   // Forest locations
   { keywords: ['forest', 'whispering woods', 'woods'], tileX: 150, tileY: 150, map: 'forest', label: 'Whispering Woods', type: 'danger', color: '#228B22' },
   { keywords: ['ranger', 'ranger outpost'], tileX: 70, tileY: 70, map: 'forest', label: 'Ranger Outpost', type: 'poi', color: '#8FBC8F' },
+  { keywords: ['disparaged cottage', 'hunter cottage', 'old shack', 'shack', 'run down old shack'], tileX: 137, tileY: 184, map: 'forest', label: 'Disparaged Cottage', type: 'quest', color: '#FFD700' },
   
   // Deep woods
   { keywords: ['deep woods', 'shadow', 'shadow creature', 'shadow beast'], tileX: 120, tileY: 120, map: 'deep_woods', label: 'Deep Woods', type: 'danger', color: '#4B0082' },
   { keywords: ['shadow castle', 'castle', 'shadow keep', 'dark fortress'], tileX: 100, tileY: 56, map: 'shadow_castle', label: 'Shadow Castle', type: 'danger', color: '#8B0000' },
-  { keywords: ['hunter', 'missing hunter', 'signs of the missing', 'find signs'], tileX: 120, tileY: 120, map: 'deep_woods', label: 'Missing Hunter', type: 'quest', color: '#FF4500' },
+  { keywords: ['hunter', 'missing hunter', 'hunter manuscript', 'manuscript', 'find signs'], tileX: 137, tileY: 184, map: 'forest', label: 'Disparaged Cottage', type: 'quest', color: '#FFD700' },
   { keywords: ['mysterious lights', 'investigate the mysterious', 'strange lights'], tileX: 80, tileY: 90, map: 'deep_woods', label: 'Mysterious Lights', type: 'quest', color: '#00BFFF' },
   { keywords: ['return to the elder', 'findings'], tileX: 102, tileY: 70, map: 'village', label: 'Report to Elder', type: 'quest', color: '#FFD700' },
 
@@ -93,6 +94,41 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   { keywords: ['spider', 'spiders'], tileX: 214, tileY: 123, map: 'village', label: 'Spider Nest', type: 'danger', color: '#800080' },
   { keywords: ['golem', 'stone golem'], tileX: 200, tileY: 26, map: 'village', label: 'Golem', type: 'danger', color: '#696969' },
 ];
+
+function normalizeMarkerText(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+export function markerTargetsNpc(
+  marker: Pick<MapMarker, 'label' | 'type'>,
+  npc: { id: string; name: string; dialogueId?: string }
+): boolean {
+  if (marker.type !== 'quest' && marker.type !== 'npc') return false;
+  const label = normalizeMarkerText(marker.label);
+  const npcName = normalizeMarkerText(npc.name);
+  const npcId = normalizeMarkerText(npc.id);
+  const dialogueId = normalizeMarkerText(npc.dialogueId ?? '');
+
+  if (npcName && label.includes(npcName)) return true;
+  if (npcId && label.includes(npcId)) return true;
+  if (dialogueId && label.includes(dialogueId)) return true;
+
+  if (npcName.includes('elder') && label.includes('elder')) return true;
+  if (npcName.includes('merchant') && label.includes('merchant')) return true;
+  if (npcName.includes('guard') && label.includes('guard')) return true;
+  if (npcName.includes('blacksmith') && label.includes('blacksmith')) return true;
+  if (npcName.includes('healer') && label.includes('healer')) return true;
+
+  return false;
+}
+
+export function isNpcObjectiveTarget(
+  npc: { id: string; name: string; dialogueId?: string },
+  currentMap: string,
+  markers: MapMarker[]
+): boolean {
+  return markers.some(marker => marker.map === currentMap && marker.type === 'quest' && markerTargetsNpc(marker, npc));
+}
 
 /**
  * Scan dialogue text for keyword matches and return relevant markers.

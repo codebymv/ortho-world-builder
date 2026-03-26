@@ -4,7 +4,7 @@ import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
 
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'stone' | 'wood' 
-  | 'tree' | 'house' | 'house_blue' | 'house_green' | 'house_thatch' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'rock' | 'chest' | 'portal' | 'flower'
+  | 'tree' | 'house' | 'house_blue' | 'house_green' | 'house_thatch' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'rock' | 'chest' | 'chest_opened' | 'portal' | 'flower'
   | 'tall_grass' | 'bridge' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
   | 'campfire' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
@@ -45,6 +45,13 @@ export interface WorldMap {
   spawnPoint: { x: number; y: number };
   /** When true, World draws an extra south backdrop (cliff/ocean) below the tile grid so the camera does not show empty void past the coast. */
   coastalSouthBackdrop?: boolean;
+}
+
+export interface InteractableHit {
+  interactionId: string;
+  tileType: TileType;
+  x: number;
+  y: number;
 }
 
 interface ChunkMesh {
@@ -679,7 +686,7 @@ export class World {
         ? 1500
         : tile.type === 'door' || tile.type === 'door_interior' || tile.type === 'door_iron'
           ? 1300
-          : tile.type === 'chest'
+          : tile.type === 'chest' || tile.type === 'chest_opened'
             ? 900
             : 0;
 
@@ -1035,6 +1042,40 @@ export class World {
     return tile?.interactable && tile.interactionId ? tile.interactionId : null;
   }
 
+  getInteractableNear(x: number, y: number, radius: number = 1.15): InteractableHit | null {
+    const centerTileX = Math.floor(x + this.map.width / 2);
+    const centerTileY = Math.floor(y + this.map.height / 2);
+    let best: InteractableHit | null = null;
+    let bestDistSq = Number.POSITIVE_INFINITY;
+
+    for (let ty = centerTileY - 2; ty <= centerTileY + 2; ty++) {
+      if (ty < 0 || ty >= this.map.height) continue;
+      for (let tx = centerTileX - 2; tx <= centerTileX + 2; tx++) {
+        if (tx < 0 || tx >= this.map.width) continue;
+        const tile = this.map.tiles[ty][tx];
+        if (!tile?.interactable || !tile.interactionId) continue;
+
+        const tileCenterX = tx - this.map.width / 2 + 0.5;
+        const tileCenterY = ty - this.map.height / 2 + 0.5;
+        const dx = x - tileCenterX;
+        const dy = y - tileCenterY;
+        const distSq = dx * dx + dy * dy;
+        const reach = Math.min(radius, this.getInteractableReach(tile));
+        if (distSq > reach * reach || distSq >= bestDistSq) continue;
+
+        bestDistSq = distSq;
+        best = {
+          interactionId: tile.interactionId,
+          tileType: tile.type,
+          x: tileCenterX,
+          y: tileCenterY,
+        };
+      }
+    }
+
+    return best;
+  }
+
   getTransitionAt(x: number, y: number): { targetMap: string; targetX: number; targetY: number } | null {
     const tile = this.getTile(x, y);
     return tile?.transition || null;
@@ -1082,6 +1123,28 @@ export class World {
         }
       }
     }
+  }
+
+  private getInteractableReach(tile: Tile): number {
+    if (tile.type === 'door' || tile.type === 'door_interior' || tile.type === 'door_iron' || tile.type === 'portal') {
+      return 0.75;
+    }
+    if (tile.type === 'bonfire' || tile.type === 'campfire') {
+      return 1.2;
+    }
+    if (tile.type === 'sign' || tile.type === 'chain' || tile.type === 'lantern') {
+      return 1.1;
+    }
+    if (tile.type === 'well' || tile.type === 'tombstone' || tile.type === 'table' || tile.type === 'stump') {
+      return 1.0;
+    }
+    if (tile.type === 'chest' || tile.type === 'chest_opened') {
+      return 0.9;
+    }
+    if (tile.type === 'flower' || tile.type === 'mushroom') {
+      return 0.85;
+    }
+    return 0.9;
   }
 
   revealHiddenArea(centerX: number, centerY: number, radius: number = 3) {

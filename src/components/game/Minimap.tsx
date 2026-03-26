@@ -4,7 +4,6 @@ import { WorldMap } from '@/lib/game/World';
 import type { MapMarker } from '@/lib/game/MapMarkers';
 import type { GameState } from '@/lib/game/GameState';
 import {
-  MARKER_TYPE_ICONS,
   MARKER_TYPE_SHORT,
   computeMinimapScale,
   drawMinimapContent,
@@ -20,7 +19,6 @@ interface MinimapProps {
   markers: MapMarker[];
   refreshToken: number;
 }
-
 
 export const Minimap = memo(
   ({
@@ -104,30 +102,37 @@ export const Minimap = memo(
     const recentMarkers = currentMarkers.filter(
       m => m.permanent || now - m.createdAt < 120000 || now < m.pulseUntil
     );
+    const objectiveMarkers = recentMarkers.filter(m => m.type === 'quest');
+    const supportMarkers = recentMarkers.filter(m => m.type !== 'quest').slice(0, 4);
+    const visibleMarkers = [...objectiveMarkers, ...supportMarkers];
 
     return (
       <div
         className="bg-[#1A0F0A]/90 backdrop-blur-sm p-2 rounded-sm border-2 border-[#5C3A21] shadow-lg font-sans pointer-events-auto"
-        style={{ maxWidth: '220px', maxHeight: '340px', overflowY: 'auto' }}
+        style={{ width: '220px' }}
       >
         <div className="text-[#DAA520] text-xs mb-1 text-center font-bold uppercase tracking-wider">
           {currentMap.name}
         </div>
         <p className="text-[9px] text-[#8D6E63] text-center mb-1.5 leading-tight px-0.5">
-          Explored areas only · <kbd className="text-[#DAA520]">M</kbd> full map
+          Explored areas only. <kbd className="text-[#DAA520]">M</kbd> opens the full map.
         </p>
         <canvas
           ref={canvasRef}
           className="pixelated border-2 border-[#3a2812] block rounded-sm mx-auto"
           style={{ imageRendering: 'pixelated', maxWidth: '200px', maxHeight: '180px', width: '100%', height: 'auto' }}
         />
-        {recentMarkers.length > 0 && (
+        {visibleMarkers.length > 0 && (
           <div className="mt-2 space-y-1 border-t border-[#5C3A21]/50 pt-2">
-            <p className="text-[9px] text-[#DAA520]/80 uppercase tracking-wider font-bold mb-1">Markers</p>
-            {recentMarkers.slice(0, 8).map(m => {
+            <p className="text-[9px] text-[#DAA520]/80 uppercase tracking-wider font-bold mb-1">Map guide</p>
+            {visibleMarkers.map(m => {
               const isPulsing = Date.now() < m.pulseUntil;
+              const labelPrefix = m.type === 'quest' ? 'Goal' : MARKER_TYPE_SHORT[m.type] || 'Mark';
               return (
-                <div key={m.id} className="flex items-center gap-2 text-[11px] leading-tight">
+                <div
+                  key={m.id}
+                  className="flex items-center gap-2 rounded border border-[#5C3A21]/35 bg-[#120907]/55 px-1.5 py-1 text-[11px] leading-tight"
+                >
                   <span
                     className={`inline-block w-3 h-3 flex-shrink-0 rounded-sm ${isPulsing ? 'animate-pulse' : ''}`}
                     style={{
@@ -135,11 +140,10 @@ export const Minimap = memo(
                       boxShadow: isPulsing ? `0 0 6px ${m.color}` : `0 0 2px ${m.color}80`,
                     }}
                   />
-                  <span className="text-[#DAA520] font-bold text-[10px] w-7 flex-shrink-0 tabular-nums">
-                    {MARKER_TYPE_ICONS[m.type] || '◆'}{' '}
-                    <span className="text-[#8D6E63] font-normal">{MARKER_TYPE_SHORT[m.type] || ''}</span>
+                  <span className="text-[#DAA520] font-bold text-[10px] w-8 flex-shrink-0 uppercase tracking-wide">
+                    {labelPrefix}
                   </span>
-                  <span className="text-[#F5DEB3] truncate font-medium">{m.label}</span>
+                  <span className="text-[#F5DEB3] font-medium leading-tight">{m.label}</span>
                 </div>
               );
             })}

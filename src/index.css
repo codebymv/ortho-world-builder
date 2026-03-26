@@ -136,4 +136,111 @@ All colors MUST be HSL.
   [data-sonner-toast] [data-icon] {
     color: #DAA520 !important;
   }
+
+  @keyframes bonfire-card-enter {
+    0% {
+      opacity: 0;
+      transform: translateY(18px) scale(0.985);
+      filter: blur(10px);
+    }
+    55% {
+      opacity: 1;
+      transform: translateY(0) scale(1.01);
+      filter: blur(0);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes bonfire-card-exit {
+    0% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.995);
+      filter: blur(4px);
+    }
+  }
+
+  @keyframes bonfire-title-enter {
+    0% {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+      letter-spacing: 0.52em;
+      text-shadow: 0 0 0 rgba(255, 222, 170, 0);
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(0) scale(1.02);
+      letter-spacing: 0.4em;
+      text-shadow: 0 0 20px rgba(255, 210, 120, 0.28);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      letter-spacing: 0.38em;
+      text-shadow: 0 0 12px rgba(255, 210, 120, 0.2);
+    }
+  }
+
+  @keyframes bonfire-subtitle-enter {
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+      letter-spacing: 0.36em;
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+      letter-spacing: 0.26em;
+    }
+  }
+
+  .bonfire-card-enter {
+    animation: bonfire-card-enter 680ms cubic-bezier(0.18, 0.9, 0.22, 1) forwards;
+  }
+
+  .bonfire-card-hold {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .bonfire-card-exit {
+    animation: bonfire-card-exit 520ms ease forwards;
+  }
+
+  .bonfire-title-enter {
+    animation: bonfire-title-enter 760ms cubic-bezier(0.16, 0.9, 0.2, 1) forwards;
+  }
+
+  .bonfire-title-hold {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    text-shadow: 0 0 12px rgba(255, 210, 120, 0.2);
+  }
+
+  .bonfire-title-exit {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.995);
+  }
+
+  .bonfire-subtitle-enter {
+    animation: bonfire-subtitle-enter 840ms cubic-bezier(0.16, 0.9, 0.2, 1) forwards;
+  }
+
+  .bonfire-subtitle-hold {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .bonfire-subtitle-exit {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }

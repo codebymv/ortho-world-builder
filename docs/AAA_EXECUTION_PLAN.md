@@ -185,6 +185,7 @@ Status
 - Keep entry/exit coordinates consistent with visible doorway cue.
 Status
 - In progress: hunter cottage moved deeper into Whispering Woods and interior return target updated to land near front approach.
+- In progress: first-quest guidance is being tightened around the Disparaged Cottage / Hunter's Manuscript route so the early critical path reads as a named destination, not a vague search.
 
 4. Shadow Castle discovery setup
 - Add landmark signposting in Deep Woods and map marker references.

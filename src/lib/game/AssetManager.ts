@@ -1315,6 +1315,25 @@ export class AssetManager {
       return px;
     }));
     this.textures.set('cottage_house_forest', this.createSpriteTexture(cottageHouseForestSprite));
+    const cottageHouseForestRuinedSprite = cottageHouseForestSprite.map((row, y) => row.map((px, x) => {
+      if ((y === 1 && (x === 3 || x === 4)) || (y === 3 && x === 10) || (y === 5 && x === 2) || (y === 6 && x === 11)) return 0x607B5D;
+      if (px === GROOF) return 0x6E8D69;
+      if (px === GROOF_H) return 0x86A87F;
+      if (px === GROOF_S) return 0x53714F;
+      if (px === GROOF_TRIM) return 0x6A5B3A;
+      if (px === CWALL) return 0xB0ACA8;
+      if (px === CWALL_H) return 0xC4BFBB;
+      if (px === CWALL_S) return 0x8F857E;
+      if (px === WINDOW) return 0x5A6876;
+      return px;
+    }));
+    cottageHouseForestRuinedSprite[8][3] = 0x6B625C;
+    cottageHouseForestRuinedSprite[8][4] = 0x85776D;
+    cottageHouseForestRuinedSprite[9][12] = 0x6B625C;
+    cottageHouseForestRuinedSprite[9][13] = 0x85776D;
+    cottageHouseForestRuinedSprite[10][6] = 0x6B5C50;
+    cottageHouseForestRuinedSprite[10][9] = 0x6B5C50;
+    this.textures.set('cottage_house_forest_ruined', this.createSpriteTexture(cottageHouseForestRuinedSprite));
     const cottageHouseEntrySprite = [
       [C, C, C, C, CHIM, CHIM, CHIM_TOP, CHIM_TOP, C, C, C, C, C, C, C, C],
       [C, C, C, CHIM, CHIM, CHIM, THATCH_S, THATCH_S, THATCH, THATCH, C, C, C, C, C, C],
@@ -1378,6 +1397,18 @@ export class AssetManager {
       [C,     CHEST_WOOD_S,CHEST_WOOD,CHEST_WOOD,CHEST_LOCK,CHEST_LOCK,CHEST_WOOD,CHEST_WOOD,CHEST_WOOD_S,C],
       [C,     CHEST_WOOD,CHEST_WOOD_S,CHEST_WOOD,CHEST_WOOD_S,CHEST_WOOD,CHEST_WOOD_S,CHEST_WOOD,CHEST_WOOD,C],
       [C,     CHEST_WOOD_S,CHEST_WOOD_S,CHEST_WOOD_S,CHEST_WOOD_S,CHEST_WOOD_S,CHEST_WOOD_S,CHEST_WOOD_S,CHEST_WOOD_S,C],
+    ]));
+
+    const CHEST_OPEN_METAL = 0x8D8D8D;
+    const CHEST_OPEN_METAL_H = 0xB0B0B0;
+    const CHEST_OPEN_GLOW = 0xE6C45A;
+    this.textures.set('chest_opened', this.createSpriteTexture([
+      [C,     C,     C,            CHEST_WOOD_H,      CHEST_WOOD_H,      C,               C,            C,     C,     C],
+      [C,     C,     CHEST_WOOD_S, CHEST_OPEN_METAL,  CHEST_OPEN_METAL_H,CHEST_OPEN_METAL,CHEST_WOOD_H, C,     C,     C],
+      [C,     CHEST_WOOD, CHEST_WOOD, CHEST_OPEN_GLOW,C,               CHEST_OPEN_GLOW, CHEST_WOOD,   CHEST_WOOD_H, C, C],
+      [C,     CHEST_WOOD_S, CHEST_WOOD, CHEST_WOOD,   CHEST_WOOD,      CHEST_WOOD,      CHEST_WOOD,   CHEST_WOOD_S, C, C],
+      [C,     CHEST_WOOD, CHEST_WOOD_S, CHEST_WOOD,   CHEST_WOOD_S,    CHEST_WOOD,      CHEST_WOOD_S, CHEST_WOOD,   C, C],
+      [C,     CHEST_WOOD_S, CHEST_WOOD_S, CHEST_WOOD_S,CHEST_WOOD_S,   CHEST_WOOD_S,    CHEST_WOOD_S, CHEST_WOOD_S, C, C],
     ]));
 
     const PORTAL_OUTER = 0x7B1FA2;
@@ -1640,12 +1671,13 @@ export class AssetManager {
     const BLOOD_S = 0x2A0000;
     
     this.textures.set('bloodstain', this.createSpriteTexture([
-      [C,C,BLOOD_S,BLOOD_D,BLOOD_S,C,C,C],
-      [C,BLOOD_D,BLOOD_R,BLOOD_R,BLOOD_R,BLOOD_D,BLOOD_S,C],
-      [BLOOD_S,BLOOD_R,BLOOD_R,BLOOD_D,BLOOD_R,BLOOD_R,BLOOD_D,C],
-      [BLOOD_D,BLOOD_R,BLOOD_D,BLOOD_S,BLOOD_D,BLOOD_R,BLOOD_R,BLOOD_S],
-      [BLOOD_S,BLOOD_R,BLOOD_R,BLOOD_R,BLOOD_R,BLOOD_D,BLOOD_S,C],
-      [C,BLOOD_D,BLOOD_S,C,BLOOD_S,BLOOD_D,BLOOD_S,C],
+      [C,C,C,BLOOD_S,BLOOD_D,C,C,C,C],
+      [C,C,BLOOD_S,BLOOD_R,BLOOD_R,BLOOD_D,C,C,C],
+      [C,BLOOD_S,BLOOD_R,BLOOD_R,BLOOD_D,BLOOD_R,BLOOD_D,C,C],
+      [BLOOD_S,BLOOD_R,BLOOD_R,BLOOD_D,BLOOD_S,BLOOD_R,BLOOD_R,BLOOD_D,C],
+      [C,BLOOD_D,BLOOD_R,BLOOD_R,BLOOD_R,BLOOD_D,C,BLOOD_D,C],
+      [C,C,BLOOD_S,BLOOD_R,BLOOD_D,C,C,BLOOD_R,BLOOD_D],
+      [C,C,C,BLOOD_D,C,C,C,BLOOD_D,C],
     ]));
 
     const CHAIN = 0x616161;

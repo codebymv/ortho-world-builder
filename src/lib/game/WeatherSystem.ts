@@ -22,13 +22,13 @@ const WEATHER_CONFIGS: Record<WeatherType, {
 }> = {
   clear: { color: 0, count: 0, sizeMin: 0, sizeMax: 0, speedY: 0, speedX: 0, opacity: 0, spread: 0, bgTint: 0, bgOpacity: 0 },
   rain: {
-    color: 0x8899CC, count: 120, sizeMin: 0.02, sizeMax: 0.06,
-    speedY: -8, speedX: -1.5, opacity: 0.5, spread: 20,
+    color: 0x9BAFE6, count: 120, sizeMin: 0.026, sizeMax: 0.075,
+    speedY: -8, speedX: -1.5, opacity: 0.68, spread: 20,
     bgTint: 0x445566, bgOpacity: 0.15,
   },
   heavy_rain: {
-    color: 0x6677AA, count: 200, sizeMin: 0.03, sizeMax: 0.08,
-    speedY: -12, speedX: -3, opacity: 0.65, spread: 24,
+    color: 0x8EA3DE, count: 200, sizeMin: 0.038, sizeMax: 0.1,
+    speedY: -12, speedX: -3, opacity: 0.8, spread: 24,
     bgTint: 0x334455, bgOpacity: 0.3,
   },
   snow: {
@@ -37,8 +37,8 @@ const WEATHER_CONFIGS: Record<WeatherType, {
     bgTint: 0xCCCCDD, bgOpacity: 0.1,
   },
   storm: {
-    color: 0x5566AA, count: 180, sizeMin: 0.03, sizeMax: 0.07,
-    speedY: -14, speedX: -5, opacity: 0.7, spread: 26,
+    color: 0x8A9CDD, count: 180, sizeMin: 0.036, sizeMax: 0.09,
+    speedY: -14, speedX: -5, opacity: 0.82, spread: 26,
     bgTint: 0x222233, bgOpacity: 0.4,
   },
   fog: {
@@ -230,8 +230,8 @@ export class WeatherSystem {
           p.mesh.visible = true;
           const size = cfg.sizeMin + Math.random() * (cfg.sizeMax - cfg.sizeMin);
           p.mesh.scale.set(
-            activeWeather === 'rain' || activeWeather === 'heavy_rain' || activeWeather === 'storm' ? size * 0.3 : size,
-            activeWeather === 'rain' || activeWeather === 'heavy_rain' || activeWeather === 'storm' ? size * 3 : size,
+            activeWeather === 'rain' || activeWeather === 'heavy_rain' || activeWeather === 'storm' ? size * 0.34 : size,
+            activeWeather === 'rain' || activeWeather === 'heavy_rain' || activeWeather === 'storm' ? size * 3.8 : size,
             1
           );
           p.mesh.position.set(

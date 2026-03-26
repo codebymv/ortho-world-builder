@@ -1,29 +1,29 @@
 import type { WorldMap, Tile } from '@/lib/game/World';
 import type { GameState } from '@/lib/game/GameState';
-import type { MapMarker } from '@/lib/game/MapMarkers';
+import { isNpcObjectiveTarget, markerTargetsNpc, type MapMarker } from '@/lib/game/MapMarkers';
 
 export const MARKER_TYPE_ICONS: Record<string, string> = {
   quest: '!',
-  poi: '◆',
-  danger: '⚠',
-  npc: '●',
-  portal: '▸',
+  poi: '+',
+  danger: '!',
+  npc: 'o',
+  portal: '>',
 };
 
 /** Short labels for compact HUD legend */
 export const MARKER_TYPE_SHORT: Record<string, string> = {
-  quest: 'Quest',
-  poi: 'POI',
-  danger: 'Danger',
+  quest: 'Goal',
+  poi: 'Place',
+  danger: 'Risk',
   npc: 'NPC',
   portal: 'Gate',
 };
 
 /** Readable names for full map modal */
 export const MARKER_TYPE_NAMES: Record<string, string> = {
-  quest: 'Objective',
-  poi: 'Place of interest',
-  danger: 'Hazard',
+  quest: 'Current objective',
+  poi: 'Landmark',
+  danger: 'Danger area',
   npc: 'Character',
   portal: 'Passage',
 };
@@ -56,7 +56,7 @@ export function computeMinimapScale(
   return Math.max(minScale, Math.min(maxScale, s));
 }
 
-/** Pick largest integer scale so the full map fits inside maxWidth × maxHeight (HUD / modal). */
+/** Pick largest integer scale so the full map fits inside maxWidth x maxHeight (HUD / modal). */
 export function computeMinimapScaleToFit(
   mapWidth: number,
   mapHeight: number,
@@ -94,16 +94,19 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
 
   const playerPosition = state.player.position;
   const npcs = state.npcs;
+  const objectiveNpcIds = new Set(
+    npcs
+      .filter(npc => isNpcObjectiveTarget(npc, currentMapId, markers))
+      .map(npc => npc.id)
+  );
 
   ctx.fillStyle = '#0a0806';
   ctx.fillRect(0, 0, w * scale, h * scale);
 
-  // If no visited tiles, draw at least the player's immediate area
   const playerTileX = Math.floor(playerPosition.x + w / 2);
   const playerTileY = Math.floor(playerPosition.y + h / 2);
-  
+
   if (visited.size === 0) {
-    // Draw a small area around the player for new games
     const revealRadius = 5;
     for (let dy = -revealRadius; dy <= revealRadius; dy++) {
       for (let dx = -revealRadius; dx <= revealRadius; dx++) {
@@ -140,38 +143,57 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
     const cx = mx + scale / 2;
     const cy = my + scale / 2;
 
+    const isNpcObjectiveMarker = marker.type === 'quest' && npcs.some(npc => markerTargetsNpc(marker, npc));
+
     ctx.beginPath();
     ctx.arc(cx, cy, Math.max(6, scale * 0.9), 0, Math.PI * 2);
     ctx.fillStyle = marker.color;
-    ctx.globalAlpha = 0.25;
+    ctx.globalAlpha = isNpcObjectiveMarker ? 0.18 : 0.25;
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(Math.PI / 4);
-    const markerSize = Math.max(scale * 1.5, 4);
-    ctx.fillStyle = marker.color;
-    ctx.fillRect(-markerSize / 2, -markerSize / 2, markerSize, markerSize);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = Math.max(1, scale >= 6 ? 2 : 1);
-    ctx.globalAlpha = 0.65;
-    ctx.strokeRect(-markerSize / 2, -markerSize / 2, markerSize, markerSize);
-    ctx.globalAlpha = 1;
-    ctx.restore();
+    if (isNpcObjectiveMarker) {
+      const coreRadius = Math.max(scale >= 6 ? 5 : 3.5, scale * 0.7);
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRadius, 0, Math.PI * 2);
+      ctx.fillStyle = marker.color;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRadius * 0.45, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff7d6';
+      ctx.fill();
+    } else {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(Math.PI / 4);
+      const markerSize = Math.max(scale * 1.5, 4);
+      ctx.fillStyle = marker.color;
+      ctx.fillRect(-markerSize / 2, -markerSize / 2, markerSize, markerSize);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(1, scale >= 6 ? 2 : 1);
+      ctx.globalAlpha = 0.65;
+      ctx.strokeRect(-markerSize / 2, -markerSize / 2, markerSize, markerSize);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
 
-    if (isPulsing) {
+    if (isPulsing || isNpcObjectiveMarker) {
       const age = nowMs - marker.createdAt;
-      for (let ring = 0; ring < 2; ring++) {
+      const ringCount = isNpcObjectiveMarker ? 1 : 2;
+      for (let ring = 0; ring < ringCount; ring++) {
         const pulsePhase = ((age + ring * 750) % 1500) / 1500;
-        const ringRadius = 5 + pulsePhase * (scale >= 6 ? 28 : 20);
-        const ringAlpha = (1 - pulsePhase) * 0.7;
+        const ringRadius = isNpcObjectiveMarker
+          ? 4 + pulsePhase * (scale >= 6 ? 10 : 7)
+          : 5 + pulsePhase * (scale >= 6 ? 28 : 20);
+        const ringAlpha = isNpcObjectiveMarker
+          ? (1 - pulsePhase) * 0.28
+          : (1 - pulsePhase) * 0.7;
 
         ctx.beginPath();
         ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
         ctx.strokeStyle = marker.color;
         ctx.globalAlpha = ringAlpha;
-        ctx.lineWidth = scale >= 6 ? 3 : 2.5;
+        ctx.lineWidth = isNpcObjectiveMarker ? (scale >= 6 ? 2 : 1.5) : (scale >= 6 ? 3 : 2.5);
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
@@ -196,6 +218,7 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
   }
 
   for (const npc of npcs) {
+    if (objectiveNpcIds.has(npc.id)) continue;
     const npcX = Math.floor(npc.position.x + w / 2);
     const npcY = Math.floor(npc.position.y + h / 2);
     const nx = npcX * scale + scale / 2;

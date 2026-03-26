@@ -291,7 +291,7 @@ function carveRoads(tiles: Tile[][], def: MapDefinition) {
 function carvePath(tiles: Tile[][], x1: number, y1: number, x2: number, y2: number, pathType: TileType, width: number) {
   const ROAD_CARVE_PROTECTED: Set<TileType> = new Set([
     'house', 'house_blue', 'house_green', 'house_thatch',
-    'cottage_house', 'cottage_house_entry', 'cottage_house_forest',
+    'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
     'door', 'door_interior', 'door_iron',
     'lantern', 'wood',
   ]);
@@ -344,7 +344,11 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
         placeBuilding(tiles, feature, false);
         break;
       case 'inn_building':
-        placeBuilding(tiles, feature, true);
+        if (feature.interactionId === 'ranger_cabin') {
+          placeCottage(tiles, feature);
+        } else {
+          placeBuilding(tiles, feature, true);
+        }
         break;
       case 'broken_wagon':
         placeBrokenWagon(tiles, feature);
@@ -445,10 +449,10 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 }
 
 const HOUSE_VARIANTS: TileType[] = ['house', 'house_blue', 'house_green', 'house_thatch'];
-const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch', 'cottage_house', 'cottage_house_entry', 'cottage_house_forest']);
+const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch', 'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined']);
 // All tile types that indicate a structure is present (for spacing checks)
 const STRUCTURE_TYPES: Set<TileType> = new Set([
-  'house', 'house_blue', 'house_green', 'house_thatch', 'cottage_house', 'cottage_house_entry', 'cottage_house_forest',
+  'house', 'house_blue', 'house_green', 'house_thatch', 'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
   'destroyed_house', 'statue', 'mossy_stone', 'well',
 ]);
 const MIN_BUILDING_SPACING = 16; // minimum tiles between any two buildings (increased from 12)
@@ -501,7 +505,9 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean) 
   }
 
   // Pick a deterministic house variant based on position
-  const variant = HOUSE_VARIANTS[(f.x * 7 + f.y * 13) % HOUSE_VARIANTS.length];
+  const variant: TileType = f.interactionId === 'ranger_cabin'
+    ? 'cottage_house_forest'
+    : HOUSE_VARIANTS[(f.x * 7 + f.y * 13) % HOUSE_VARIANTS.length];
   
   // First, clear a yard around the building (3-tile border of grass)
   const yardPad = 4;
@@ -712,7 +718,7 @@ function placeCamp(tiles: Tile[][], f: MapFeature) {
   const cx = f.x + Math.floor(f.width / 2);
   const cy = f.y + Math.floor(f.height / 2);
   if (cy < tiles.length && cx < tiles[0].length) {
-    tiles[cy][cx] = createTile('campfire', false, { interactable: true, interactionId: f.interactionId || 'campfire' });
+    tiles[cy][cx] = createTile('campfire', true, { interactable: true, interactionId: f.interactionId || 'campfire' });
   }
   // Barrels and crates around edges
   const corners = [[f.x + 1, f.y + 1], [f.x + f.width - 2, f.y + 1], [f.x + 1, f.y + f.height - 2]];
@@ -975,7 +981,7 @@ function placeBossArena(tiles: Tile[][], f: MapFeature) {
   }
   // Central marker
   if (cy < tiles.length && cx < tiles[0].length) {
-    tiles[cy][cx] = createTile('campfire', false, { interactable: true, interactionId: f.interactionId || 'boss_summon' });
+    tiles[cy][cx] = createTile('campfire', true, { interactable: true, interactionId: f.interactionId || 'boss_summon' });
   }
 }
 
@@ -1204,7 +1210,7 @@ function placeFort(tiles: Tile[][], f: MapFeature) {
         // Interior
         else {
           if (dx === Math.floor(f.width / 2) && dy === Math.floor(f.height / 2)) {
-            tiles[ty][tx] = createTile('campfire', false, { interactable: true, interactionId: f.interactionId || 'fort_campfire' });
+            tiles[ty][tx] = createTile('campfire', true, { interactable: true, interactionId: f.interactionId || 'fort_campfire' });
           } else if ((dx + dy * 3) % 11 === 0) {
             tiles[ty][tx] = createTile('barrel', false);
           } else if ((dx * 2 + dy) % 13 === 0) {
@@ -1352,7 +1358,7 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
   const cx = f.x + Math.floor(f.width / 2);
   const cy = f.y + Math.floor(f.height / 2);
   if (cy < tiles.length && cx < tiles[0].length) {
-    tiles[cy][cx] = createTile('campfire', false, { interactable: true, interactionId: f.interactionId || 'ruined_fort' });
+    tiles[cy][cx] = createTile('campfire', true, { interactable: true, interactionId: f.interactionId || 'ruined_fort' });
   }
 }
 
@@ -1379,8 +1385,13 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
 
   const cx = Math.floor(f.width / 2);
   const hasInterior = !!(f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined);
-  const isWhisperingCottage = /woodcutter_cottage|witch_cottage|hunter_cottage|forest_cottage|ruin_cottage|hidden_cottage/.test(f.interactionId ?? '');
-  const facadeTile: TileType = isWhisperingCottage ? 'cottage_house_forest' : 'cottage_house';
+  const isWhisperingCottage = /woodcutter_cottage|witch_cottage|hunter_cottage|forest_cottage|ruin_cottage|hidden_cottage|ranger_cabin/.test(f.interactionId ?? '');
+  const isRuinedWhisperingCottage = /hunter_cottage/.test(f.interactionId ?? '');
+  const facadeTile: TileType = isRuinedWhisperingCottage
+    ? 'cottage_house_forest_ruined'
+    : isWhisperingCottage
+      ? 'cottage_house_forest'
+      : 'cottage_house';
   const anchors = (() => {
     const entryX = f.x + cx;
     // Canonical exterior cottage interaction anchor.
@@ -1512,6 +1523,39 @@ function validateMapTransitions(tiles: Tile[][], def: MapDefinition) {
   }
 }
 
+function validateAuthoredPlacements(tiles: Tile[][], def: MapDefinition) {
+  const spawnDx = (x: number) => x - def.spawnPoint.x;
+  const spawnDy = (y: number) => y - def.spawnPoint.y;
+
+  for (const chest of def.chests) {
+    if (chest.y < 0 || chest.y >= tiles.length || chest.x < 0 || chest.x >= tiles[0].length) {
+      console.warn(`[MapValidation] ${def.name}: chest out of bounds at (${chest.x},${chest.y})`);
+      continue;
+    }
+    const tile = tiles[chest.y][chest.x];
+    if (tile.type !== 'chest' || tile.interactionId !== chest.interactionId) {
+      console.warn(`[MapValidation] ${def.name}: chest placement overwritten at (${chest.x},${chest.y}) [${chest.interactionId}]`);
+    }
+    const distSq = spawnDx(chest.x) * spawnDx(chest.x) + spawnDy(chest.y) * spawnDy(chest.y);
+    if (distSq <= 4) {
+      console.warn(`[MapValidation] ${def.name}: chest ${chest.interactionId} is very close to spawn at (${chest.x},${chest.y})`);
+    }
+  }
+
+  for (const interactable of def.interactables) {
+    if (interactable.y < 0 || interactable.y >= tiles.length || interactable.x < 0 || interactable.x >= tiles[0].length) {
+      console.warn(`[MapValidation] ${def.name}: interactable out of bounds at (${interactable.x},${interactable.y}) [${interactable.interactionId}]`);
+      continue;
+    }
+    const tile = tiles[interactable.y][interactable.x];
+    if (tile.interactionId !== interactable.interactionId) {
+      console.warn(
+        `[MapValidation] ${def.name}: interactable overwritten at (${interactable.x},${interactable.y}) expected [${interactable.interactionId}] got [${tile.interactionId ?? tile.type}]`
+      );
+    }
+  }
+}
+
 function placeWatchtower(tiles: Tile[][], f: MapFeature) {
   const cx = f.x + Math.floor(f.width / 2);
   const cy = f.y + Math.floor(f.height / 2);
@@ -1611,7 +1655,16 @@ function placeChests(tiles: Tile[][], def: MapDefinition) {
 function placeInteractables(tiles: Tile[][], def: MapDefinition) {
   for (const obj of def.interactables) {
     if (obj.y < tiles.length && obj.x < tiles[0].length) {
-      tiles[obj.y][obj.x] = createTile(obj.type, obj.walkable, { interactable: true, interactionId: obj.interactionId });
+      const softInteractable =
+        obj.type === 'bonfire' ||
+        obj.type === 'campfire' ||
+        obj.type === 'sign' ||
+        obj.type === 'chain' ||
+        obj.type === 'lantern';
+      tiles[obj.y][obj.x] = createTile(obj.type, softInteractable ? true : obj.walkable, {
+        interactable: true,
+        interactionId: obj.interactionId,
+      });
     }
   }
 }
@@ -1866,6 +1919,7 @@ function placeLadders(tiles: Tile[][], def: MapDefinition) {
 
 export function generateMap(def: MapDefinition): WorldMap {
   const tiles = generateBaseTerrain(def);
+  const isHandCraftedInterior = def.autoRoads === false && def.width <= 24 && def.height <= 24;
 
   // Place features first (buildings, lakes, etc)
   placeFeatures(tiles, def);
@@ -1883,7 +1937,9 @@ export function generateMap(def: MapDefinition): WorldMap {
   placeSecretAreas(tiles, def);
 
   // Clean up illogical placements (flowers in water, etc.)
-  cleanupIllogicalPlacements(tiles, def);
+  if (!isHandCraftedInterior) {
+    cleanupIllogicalPlacements(tiles, def);
+  }
 
   // Ensure spawn point is walkable (skip for hand-crafted interior maps)
   if (def.autoRoads !== false) {
@@ -1906,6 +1962,7 @@ export function generateMap(def: MapDefinition): WorldMap {
   placeStairways(tiles, def);
   placeLadders(tiles, def);
   validateMapTransitions(tiles, def);
+  validateAuthoredPlacements(tiles, def);
 
   return {
     name: def.name,

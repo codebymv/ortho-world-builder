@@ -4,7 +4,6 @@ import { WorldMap } from '@/lib/game/World';
 import type { MapMarker } from '@/lib/game/MapMarkers';
 import type { GameState } from '@/lib/game/GameState';
 import {
-  MARKER_TYPE_ICONS,
   MARKER_TYPE_NAMES,
   computeMinimapScaleToFit,
   drawMinimapContent,
@@ -199,7 +198,7 @@ export const MapModal = memo(function MapModal({
           />
         </div>
 
-        <div className="max-h-[28vh] flex-shrink-0 overflow-y-auto border-t border-[#5C3A21]/50 pt-3">
+        <div className="flex-shrink-0 border-t border-[#5C3A21]/50 pt-3">
           <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#DAA520]/90">Map key</p>
           <div className="grid grid-cols-1 gap-2 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
             <div className="flex items-center gap-2 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60 px-2 py-1.5">
@@ -209,6 +208,12 @@ export const MapModal = memo(function MapModal({
             <div className="flex items-center gap-2 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60 px-2 py-1.5">
               <span className="h-3 w-3 flex-shrink-0 rounded-full bg-[#FFD700] ring-1 ring-black/50" />
               <span className="text-[#F5DEB3]">Villagers &amp; NPCs (this area)</span>
+            </div>
+            <div className="flex items-center gap-2 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60 px-2 py-1.5">
+              <span className="relative h-3 w-3 flex-shrink-0 rounded-full bg-[#FFD700] ring-2 ring-[#ffe9a8]/80">
+                <span className="absolute inset-[-4px] rounded-full border border-[#FFD700]/70" />
+              </span>
+              <span className="text-[#F5DEB3]">Gold pulse means this is where to go next</span>
             </div>
             <div className="flex items-center gap-2 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60 px-2 py-1.5">
               <span
@@ -222,7 +227,17 @@ export const MapModal = memo(function MapModal({
                 key={type}
                 className="flex items-center gap-2 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60 px-2 py-1.5"
               >
-                <span className="w-5 flex-shrink-0 text-center font-bold text-[#DAA520]">{MARKER_TYPE_ICONS[type]}</span>
+                <span className="w-7 flex-shrink-0 text-center font-bold uppercase tracking-wide text-[#DAA520]">
+                  {type === 'quest'
+                    ? 'Goal'
+                    : type === 'poi'
+                      ? 'Place'
+                      : type === 'danger'
+                        ? 'Risk'
+                        : type === 'npc'
+                          ? 'NPC'
+                          : 'Gate'}
+                </span>
                 <span className="text-[#C9B8A8]">{MARKER_TYPE_NAMES[type]}</span>
               </div>
             ))}
@@ -230,7 +245,7 @@ export const MapModal = memo(function MapModal({
 
           {legendMarkers.length > 0 && (
             <div className="mt-3 border-t border-[#5C3A21]/40 pt-2">
-              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-[#DAA520]/80">Active pins</p>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-[#DAA520]/80">Visible markers</p>
               <ul className="space-y-1.5 text-[11px] text-[#E8DCC8]">
                 {legendMarkers.map(m => (
                   <li key={m.id} className="flex items-start gap-2">
@@ -239,7 +254,17 @@ export const MapModal = memo(function MapModal({
                       style={{ backgroundColor: m.color, boxShadow: `0 0 4px ${m.color}` }}
                     />
                     <span>
-                      <span className="font-bold text-[#DAA520]">{MARKER_TYPE_ICONS[m.type]}</span>{' '}
+                      <span className="font-bold uppercase tracking-wide text-[#DAA520]">
+                        {m.type === 'quest'
+                          ? 'Goal'
+                          : m.type === 'poi'
+                            ? 'Place'
+                            : m.type === 'danger'
+                              ? 'Risk'
+                              : m.type === 'npc'
+                                ? 'NPC'
+                                : 'Gate'}
+                      </span>{' '}
                       <span className="text-[#A1887F]">({MARKER_TYPE_NAMES[m.type]})</span> {m.label}
                     </span>
                   </li>

@@ -129,9 +129,9 @@ const villageDef: MapDefinition = {
     { x: 120, y: 150, targetMap: 'deep_woods', targetX: 120, targetY: 8 },
   ],
   chests: [
-    { x: 122, y: 110, interactionId: 'start_potion_chest_1' },
-    { x: 118, y: 110, interactionId: 'start_potion_chest_2' },
-    { x: 120, y: 108, interactionId: 'start_potion_chest_3' },
+    { x: 116, y: 112, interactionId: 'start_potion_chest_1' },
+    { x: 120, y: 115, interactionId: 'start_potion_chest_2' },
+    { x: 124, y: 112, interactionId: 'start_potion_chest_3' },
     { x: 70, y: 100, interactionId: 'chest_1' },
     { x: 190, y: 35, interactionId: 'training_chest' },
     { x: 25, y: 120, interactionId: 'garden_chest' },
@@ -144,7 +144,7 @@ const villageDef: MapDefinition = {
     { x: 35, y: 28, interactionId: 'cemetery_chest' },
   ],
   interactables: [
-    { x: 117, y: 86, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
+    { x: 120, y: 104, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
     { x: 119, y: 82, type: 'well', walkable: false, interactionId: 'fountain' },
     { x: 108, y: 100, type: 'sign', walkable: false, interactionId: 'village_sign' },
     { x: 155, y: 72, type: 'sign', walkable: false, interactionId: 'market_sign' },
@@ -254,7 +254,7 @@ const forestDef: MapDefinition = {
     { x: 150, y: 50, width: 30, height: 20, type: 'clearing', fill: 'grass' },
 
     // === RANGER OUTPOST ===
-    { x: 136, y: 164, width: 10, height: 8, type: 'inn_building', interactionId: 'ranger_cabin', interiorMap: 'interior_ranger_cabin', interiorSpawnX: 7, interiorSpawnY: 2 },
+    { x: 136, y: 164, width: 10, height: 8, type: 'inn_building', interactionId: 'ranger_cabin', interiorMap: 'interior_ranger_cabin', interiorSpawnX: 7, interiorSpawnY: 5 },
     { x: 156, y: 170, width: 12, height: 10, type: 'camp', interactionId: 'ranger_camp' },
 
     // === BANDIT CAMP (north-east) ===
@@ -333,8 +333,13 @@ const forestDef: MapDefinition = {
     // === SCATTERED COTTAGES (hermits, woodcutters) ===
     { x: 90, y: 180, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage' },
     { x: 230, y: 130, width: 6, height: 6, type: 'cottage', interactionId: 'witch_cottage' },
-    // Hunter cottage moved farther into Whispering Woods to improve progression pacing and mystery.
-    { x: 132, y: 212, width: 6, height: 6, type: 'cottage', interactionId: 'hunter_cottage', interiorMap: 'interior_hunter_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
+    // Hunter shack is teased from below, then reached by wrapping around a cliff-backed approach.
+    { x: 134, y: 182, width: 6, height: 6, type: 'cottage', interactionId: 'hunter_cottage', interiorMap: 'interior_hunter_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
+    { x: 108, y: 196, width: 18, height: 14, type: 'ruined_fort', interactionId: 'hunter_gate_ruin' },
+    { x: 118, y: 220, width: 18, height: 12, type: 'abandoned_camp', interactionId: 'hunters_last_camp' },
+    { x: 144, y: 206, width: 16, height: 14, type: 'cemetery' },
+    { x: 152, y: 220, width: 18, height: 12, type: 'destroyed_town', interactionId: 'hunter_wreck' },
+    { x: 118, y: 192, width: 36, height: 10, type: 'cliff_face' },
     { x: 170, y: 80, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage' },
     { x: 80, y: 50, width: 6, height: 6, type: 'cottage', interactionId: 'ruin_cottage' },
     { x: 210, y: 200, width: 6, height: 6, type: 'cottage', interactionId: 'hidden_cottage' },
@@ -366,8 +371,14 @@ const forestDef: MapDefinition = {
     { x: 228, y: 122, width: 6, height: 46, type: 'path', fill: 'dirt' },
     { x: 234, y: 148, width: 22, height: 4, type: 'path', fill: 'dirt' },
     { x: 260, y: 48, width: 6, height: 20, type: 'path', fill: 'dirt' },
-    { x: 118, y: 232, width: 28, height: 4, type: 'path', fill: 'dirt' },
-    { x: 114, y: 214, width: 6, height: 18, type: 'path', fill: 'dirt' },
+    { x: 118, y: 204, width: 38, height: 6, type: 'path', fill: 'dirt' },
+    { x: 150, y: 192, width: 6, height: 14, type: 'path', fill: 'dirt' },
+    { x: 138, y: 188, width: 18, height: 4, type: 'path', fill: 'dirt' },
+    // Shortcut connector between the Disparaged Cottage approach and the ranger plateau.
+    { x: 124, y: 202, width: 6, height: 12, type: 'path', fill: 'dirt' },
+    { x: 120, y: 212, width: 10, height: 4, type: 'path', fill: 'dirt' },
+    { x: 126, y: 218, width: 22, height: 4, type: 'path', fill: 'dirt' },
+    { x: 146, y: 214, width: 4, height: 18, type: 'path', fill: 'dirt' },
     // West branch off the central spine so travelers and AI can reach the mid-west forest without hugging the fort
     { x: 100, y: 120, width: 40, height: 6, type: 'path', fill: 'dirt' },
   ],
@@ -407,10 +418,10 @@ const forestDef: MapDefinition = {
     { x: 120, y: 90, type: 'sign', walkable: false, interactionId: 'bridge_sign' },
     { x: 76, y: 36, type: 'sign', walkable: false, interactionId: 'danger_sign' },
     { x: 130, y: 44, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
-    { x: 138, y: 168, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
+    { x: 130, y: 206, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
     { x: 150, y: 260, type: 'sign', walkable: false, interactionId: 'forest_entry_sign' },
-    // Quest objective: Hunter's last known location in the north
-    { x: 120, y: 40, type: 'sign', walkable: false, interactionId: 'hunter_clue' },
+    { x: 128, y: 198, type: 'sign', walkable: false, interactionId: 'hunter_warning_sign' },
+    { x: 127, y: 205, type: 'chain', walkable: false, interactionId: 'forest_shortcut_lever' },
     { x: 90, y: 230, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 250, y: 190, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 45, y: 145, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
@@ -448,6 +459,14 @@ const forestDef: MapDefinition = {
     { x: 209, y: 66, type: 'crate', walkable: false },
     { x: 66, y: 196, type: 'barrel', walkable: false },
     { x: 70, y: 196, type: 'crate', walkable: false },
+    { x: 124, y: 203, type: 'bloodstain', walkable: true },
+    { x: 129, y: 205, type: 'bloodstain', walkable: true },
+    { x: 136, y: 209, type: 'bloodstain', walkable: true },
+    { x: 144, y: 213, type: 'bloodstain', walkable: true },
+    { x: 150, y: 222, type: 'bones_pile', walkable: true },
+    { x: 156, y: 225, type: 'cage', walkable: false },
+    { x: 146, y: 208, type: 'dead_tree', walkable: false },
+    { x: 118, y: 224, type: 'dead_tree', walkable: false },
   ],
   secretAreas: [
     { x: 256, y: 184, width: 8, height: 6, fill: 'grass' },
@@ -501,6 +520,8 @@ const forestDef: MapDefinition = {
     // Central ranger plateau south face: zone {x:112,y:148,h:52}, south_face=199
     // (second stairway on east side of plateau)
     { x: 178, y: 199, width: 6, height: 4, elevation: 1 },
+    // Hunter shack overlook: climb from the bloodstained bonfire shelf to the upper approach.
+    { x: 150, y: 199, width: 6, height: 4, elevation: 1 },
     // SE enchanted hills south: zone {x:230,y:222,h:62}, south_face=283
     { x: 248, y: 283, width: 6, height: 4, elevation: 1 },
   ],
@@ -559,6 +580,8 @@ const forestDef: MapDefinition = {
     // SW plateau + far E trail
     { x: 36, y: 192, width: 20, height: 16, enemyType: 'wolf', count: 4 },
     { x: 278, y: 92, width: 16, height: 16, enemyType: 'wolf', count: 4 },
+    { x: 110, y: 198, width: 18, height: 14, enemyType: 'skeleton', count: 4 },
+    { x: 132, y: 210, width: 22, height: 18, enemyType: 'wolf', count: 4 },
 
     { x: 215, y: 140, width: 20, height: 16, enemyType: 'golem', count: 1 },
   ],
@@ -1130,7 +1153,7 @@ const interiorRangerCabinDef: MapDefinition = {
     { x: 9, y: 8, width: 5, height: 2, type: 'wall', fill: 'stone' },
   ],
   portals: [{ x: 7, y: 9, targetMap: 'forest', targetX: 141, targetY: 172 }],
-  chests: [],
+  chests: [{ x: 10, y: 5, interactionId: 'ranger_cabin_chest' }],
   interactables: [{ x: 7, y: 4, type: 'sign', walkable: false, interactionId: 'ranger_sign' }],
   props: [
     { x: 7, y: 3, type: 'table', walkable: false },
@@ -1187,7 +1210,7 @@ const interiorHunterCottageDef: MapDefinition = {
   height: 10,
   spawnPoint: { x: 6, y: 8 },
   seed: 9010,
-  baseTerrain: 'forest',
+  baseTerrain: 'dungeon',
   borderTile: 'stone',
   autoRoads: false,
   features: [
@@ -1198,15 +1221,19 @@ const interiorHunterCottageDef: MapDefinition = {
     { x: 2, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
     { x: 7, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
   ],
-  // Return to Whispering Woods one tile in front of the exterior entrance at (-15, 65).
-  portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 135, targetY: 214 }],
+  // Return to Whispering Woods on the upper shack approach, just in front of the exterior entrance.
+  portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 137, targetY: 188 }],
   chests: [{ x: 8, y: 6, interactionId: 'hunter_cottage_chest' }],
   interactables: [{ x: 6, y: 4, type: 'table', walkable: false, interactionId: 'hunter_clue' }],
   props: [
     { x: 3, y: 3, type: 'bed', walkable: false },
-    { x: 8, y: 3, type: 'weapon_rack', walkable: false },
-    { x: 8, y: 4, type: 'bench', walkable: false },
+    { x: 8, y: 3, type: 'crate', walkable: false },
+    { x: 9, y: 3, type: 'barrel', walkable: false },
+    { x: 8, y: 4, type: 'crate', walkable: false },
     { x: 3, y: 5, type: 'fireplace', walkable: false },
+    { x: 4, y: 4, type: 'bones', walkable: true },
+    { x: 5, y: 6, type: 'bloodstain', walkable: true },
+    { x: 7, y: 6, type: 'bloodstain', walkable: true },
     { x: 9, y: 5, type: 'barrel', walkable: false },
     { x: 6, y: 6, type: 'rug', walkable: true },
   ],
