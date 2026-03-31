@@ -1,0 +1,266 @@
+import * as THREE from 'three';
+import type { Enemy } from '@/lib/game/Combat';
+import type { GameState } from '@/lib/game/GameState';
+import type { EnemyVisualRegistry, EnemyHPBar } from '@/game/runtime/EnemyVisualRegistry';
+
+type EnemyVisualProfile = {
+  baseScale: number;
+  footOffset: number;
+  strideAmp: number;
+  bobAmp: number;
+  squashAmp: number;
+  leanAmp: number;
+  hpBarOffset: number;
+};
+
+interface ApplyEnemyVisualsOptions {
+  enemy: Enemy;
+  state: GameState;
+  currentTime: number;
+  deltaTime: number;
+  outlinePad: number;
+  enemyVisualProfiles: Record<string, EnemyVisualProfile>;
+  registry: EnemyVisualRegistry;
+  getOrCreateHPBar: () => EnemyHPBar;
+  getVisualYAt: (x: number, y: number) => number;
+  getActorRenderOrder: (x: number, y: number, footOffset: number) => number;
+  getTexture: (key: string) => THREE.Texture | null;
+}
+
+function resolveSpriteKey(enemy: Enemy, enemyType: string): string {
+  if (enemyType === 'bandit') {
+    const banditState = enemy.state === 'telegraphing'
+      ? 'charge'
+      : enemy.state === 'recovering' && enemy.attackAnimationTimer > 0
+        ? 'attack'
+        : enemy.moveBlend > 0.25
+          ? 'walk'
+          : 'idle';
+    const banditFrame = banditState === 'walk'
+      ? Math.floor(enemy.moveCycle * 2.4) % 2
+      : banditState === 'charge'
+        ? Math.min(2, Math.floor((1 - enemy.telegraphTimer / enemy.telegraphDuration) * 3))
+        : banditState === 'attack'
+          ? 1
+          : 0;
+    return `enemy_bandit_${enemy.facing}_${banditState}_${banditFrame}`;
+  }
+  if (enemy.state === 'telegraphing') return `${enemy.sprite}_telegraph`;
+  if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return `${enemy.sprite}_attack`;
+  return enemy.sprite;
+}
+
+export function applyEnemyVisuals({
+  enemy,
+  state,
+  currentTime,
+  deltaTime,
+  outlinePad,
+  enemyVisualProfiles,
+  registry,
+  getOrCreateHPBar,
+  getVisualYAt,
+  getActorRenderOrder,
+  getTexture,
+}: ApplyEnemyVisualsOptions) {
+  const enemyMesh = registry.meshes.get(enemy.id);
+  if (!enemyMesh) return;
+
+  const mat = enemyMesh.material as THREE.MeshBasicMaterial;
+  const enemyType = enemy.sprite.replace('enemy_', '');
+  const visual = enemyVisualProfiles[enemyType] ?? enemyVisualProfiles.wolf;
+  const seed = parseFloat(enemy.id.split('_')[1] || '0') * 0.001;
+
+  const spriteKey = resolveSpriteKey(enemy, enemyType);
+  let enemyTex = getTexture(spriteKey);
+  if (!enemyTex) {
+    const fallbackKey = enemy.state === 'telegraphing'
+      ? `${enemy.sprite}_telegraph`
+      : enemy.state === 'recovering' && enemy.attackAnimationTimer > 0
+        ? `${enemy.sprite}_attack`
+        : enemy.sprite;
+    enemyTex = getTexture(fallbackKey);
+  }
+  if (enemyTex && mat.map !== enemyTex) {
+    mat.map = enemyTex;
+  }
+
+  if (enemy.damageFlashTimer > 0) {
+    enemy.damageFlashTimer -= deltaTime;
+    mat.color.setHex(0xff0000);
+  } else if (enemy.state === 'telegraphing') {
+    const flashPhase = enemy.telegraphTimer / enemy.telegraphDuration;
+    const flash = Math.sin(flashPhase * Math.PI * 6) * 0.3 + 0.7;
+    mat.color.setRGB(1, flash, flash);
+  } else if (enemy.state === 'staggered') {
+    mat.color.setHex(0xaaaaee);
+  } else {
+    mat.color.setHex(0xffffff);
+  }
+
+  let finalEnemyX = enemy.position.x;
+  let finalEnemyY = getVisualYAt(enemy.position.x, enemy.position.y);
+  let scaleX = visual.baseScale;
+  let scaleY = visual.baseScale;
+  let rotation = 0;
+  const moveWave = Math.sin(enemy.moveCycle);
+  const stride = Math.abs(moveWave) * enemy.moveBlend;
+  const lateralBias = Math.abs(enemy.velocity.x) > 0.001 ? Math.sign(enemy.velocity.x) : 0;
+
+  if (enemy.state === 'chasing' || enemy.moveBlend > 0.2) {
+    finalEnemyY += stride * visual.bobAmp;
+    finalEnemyX += moveWave * visual.strideAmp * (enemyType === 'spider' ? 1 : lateralBias * 0.5);
+    scaleX *= 1 - stride * visual.squashAmp;
+    scaleY *= 1 + stride * visual.squashAmp * 1.35;
+    rotation = moveWave * visual.leanAmp * (lateralBias !== 0 ? lateralBias : 1);
+
+    switch (enemyType) {
+      case 'shadow':
+        finalEnemyY += Math.sin(currentTime / 180 + seed) * 0.05;
+        finalEnemyX += Math.cos(currentTime / 220 + seed) * 0.025;
+        scaleX *= 1 + stride * 0.02;
+        scaleY *= 1 - stride * 0.02;
+        rotation *= 0.4;
+        break;
+      case 'slime':
+        finalEnemyY += stride * 0.02;
+        scaleX *= 1 + stride * 0.08;
+        scaleY *= 1 - stride * 0.08;
+        rotation = moveWave * 0.015;
+        break;
+      case 'spider':
+        finalEnemyY += Math.sin(enemy.moveCycle * 2) * 0.012;
+        rotation = moveWave * 0.03;
+        break;
+      case 'golem':
+        finalEnemyY += stride * 0.03;
+        scaleX *= 1 + stride * 0.03;
+        scaleY *= 1 - stride * 0.04;
+        rotation *= 0.35;
+        break;
+      case 'plant':
+        finalEnemyX += Math.sin(currentTime / 260 + seed) * 0.02;
+        rotation = moveWave * 0.025;
+        break;
+    }
+  } else if (enemy.state === 'telegraphing') {
+    const telegraphProgress = 1 - enemy.telegraphTimer / enemy.telegraphDuration;
+    const dx = state.player.position.x - enemy.position.x;
+    const dy = state.player.position.y - enemy.position.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+    scaleX *= 1 + telegraphProgress * 0.15;
+    scaleY *= 1 - telegraphProgress * 0.12;
+
+    const windUpDist = telegraphProgress * 0.15;
+    finalEnemyX += (dx / dist) * -windUpDist;
+    finalEnemyY += (dy / dist) * -windUpDist;
+
+    const shakeIntensity = 0.03 * telegraphProgress * telegraphProgress;
+    finalEnemyX += Math.sin(currentTime / 25 + seed) * shakeIntensity;
+    finalEnemyY += Math.cos(currentTime / 30 + seed) * shakeIntensity;
+    rotation = Math.atan2(dy, dx) * 0.08 * telegraphProgress;
+  } else if (enemy.state === 'recovering') {
+    if (enemy.attackAnimationTimer > 0) {
+      enemy.attackAnimationTimer -= deltaTime;
+      const dx = state.player.position.x - enemy.position.x;
+      const dy = state.player.position.y - enemy.position.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 0) {
+        const lungeProgress = enemy.attackAnimationTimer / 0.3;
+        const lungeDistance = Math.sin(lungeProgress * Math.PI) * 0.4;
+        finalEnemyX += (dx / dist) * lungeDistance;
+        finalEnemyY += (dy / dist) * lungeDistance;
+      }
+    }
+    const recoverProgress = enemy.recoverTimer / enemy.recoverDuration;
+    scaleX *= 0.92 + recoverProgress * 0.08;
+    scaleY *= 0.88 + recoverProgress * 0.12;
+    rotation = Math.sin(currentTime / 90 + seed) * 0.02;
+  } else {
+    const breathe = Math.sin(currentTime / 800 + seed * 3);
+    if (enemyType === 'shadow') {
+      finalEnemyY += breathe * 0.05;
+      finalEnemyX += Math.cos(currentTime / 900 + seed) * 0.02;
+      scaleX *= 1 + breathe * 0.012;
+      scaleY *= 1 - breathe * 0.012;
+    } else if (enemyType === 'slime') {
+      finalEnemyY += Math.abs(breathe) * 0.025;
+      scaleX *= 1 + Math.abs(breathe) * 0.04;
+      scaleY *= 1 - Math.abs(breathe) * 0.04;
+    } else if (enemyType === 'spider') {
+      finalEnemyX += breathe * 0.015;
+      rotation = breathe * 0.02;
+    } else {
+      finalEnemyY += breathe * 0.02;
+      scaleX *= 1 + breathe * 0.015;
+      scaleY *= 1 - breathe * 0.015;
+    }
+  }
+
+  enemyMesh.rotation.z = rotation;
+  enemyMesh.scale.set(scaleX, scaleY, 1);
+  enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
+  enemyMesh.renderOrder = getActorRenderOrder(enemy.position.x, enemy.position.y, visual.footOffset);
+
+  const shadow = registry.shadows.get(enemy.id);
+  if (shadow) {
+    shadow.position.set(finalEnemyX, finalEnemyY - visual.footOffset * 0.7, 0.05);
+  }
+
+  const outline = registry.outlines.get(enemy.id);
+  if (outline) {
+    outline.position.set(finalEnemyX, finalEnemyY, 0.19);
+    outline.scale.set(scaleX * outlinePad, scaleY * outlinePad, 1);
+    outline.rotation.z = rotation;
+    outline.renderOrder = enemyMesh.renderOrder - 1;
+  }
+
+  const hpBar = getOrCreateHPBar();
+  const hpRatio = enemy.health / enemy.maxHealth;
+  const barY = finalEnemyY + visual.hpBarOffset;
+  hpBar.bg.position.set(finalEnemyX, barY, 0.35);
+  hpBar.fill.position.set(finalEnemyX - 0.29 * (1 - hpRatio), barY, 0.36);
+  hpBar.fill.scale.set(hpRatio, 1, 1);
+  hpBar.bg.renderOrder = 10000;
+  hpBar.fill.renderOrder = 10001;
+
+  const fillMat = hpBar.fill.material as THREE.MeshBasicMaterial;
+  if (hpRatio > 0.5) fillMat.color.setHex(0x4caf50);
+  else if (hpRatio > 0.25) fillMat.color.setHex(0xffc107);
+  else fillMat.color.setHex(0xf44336);
+
+  hpBar.bg.visible = true;
+  hpBar.fill.visible = true;
+}
+
+export function updateDeadEnemyVisual(enemy: Enemy, registry: EnemyVisualRegistry): boolean {
+  const mesh = registry.meshes.get(enemy.id);
+  if (mesh) {
+    mesh.scale.x *= 0.9;
+    mesh.scale.y *= 0.9;
+    const deadMat = mesh.material as THREE.MeshBasicMaterial;
+    deadMat.opacity -= 0.05;
+
+    if (deadMat.opacity <= 0) {
+      registry.removeEnemy(enemy.id);
+      return true;
+    }
+  } else {
+    return true;
+  }
+
+  const hpBar = registry.hpBars.get(enemy.id);
+  if (hpBar) {
+    hpBar.bg.visible = false;
+    hpBar.fill.visible = false;
+  }
+
+  const shadow = registry.shadows.get(enemy.id);
+  if (shadow) shadow.visible = false;
+
+  const outline = registry.outlines.get(enemy.id);
+  if (outline) outline.visible = false;
+
+  return false;
+}

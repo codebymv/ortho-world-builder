@@ -31,10 +31,11 @@ const villageDef: MapDefinition = {
 
     // ====== MARKET DISTRICT (east) - shops with cobblestone ======
     { x: 155, y: 65, width: 30, height: 18, type: 'cobble_plaza' },
-    { x: 155, y: 58, width: 8, height: 6, type: 'inn_building', interactionId: 'shop_weapons', interiorMap: 'interior_blacksmith', interiorSpawnX: 8, interiorSpawnY: 3 },
-    { x: 175, y: 56, width: 8, height: 6, type: 'inn_building', interactionId: 'shop_potions', interiorMap: 'interior_merchant', interiorSpawnX: 7, interiorSpawnY: 3 },
+    { x: 184, y: 74, width: 24, height: 18, type: 'cobble_plaza' },
+    { x: 155, y: 58, width: 8, height: 6, type: 'inn_building', interactionId: 'shop_weapons', interiorMap: 'interior_blacksmith', interiorSpawnX: 8, interiorSpawnY: 10 },
+    { x: 175, y: 56, width: 8, height: 6, type: 'inn_building', interactionId: 'shop_potions', interiorMap: 'interior_merchant', interiorSpawnX: 7, interiorSpawnY: 10 },
     { x: 155, y: 86, width: 8, height: 6, type: 'building', interactionId: 'shop_armor' },
-    { x: 175, y: 88, width: 8, height: 6, type: 'inn_building', interactionId: 'inn', interiorMap: 'interior_inn', interiorSpawnX: 10, interiorSpawnY: 4 },
+    { x: 175, y: 88, width: 8, height: 6, type: 'inn_building', interactionId: 'inn', interiorMap: 'interior_inn', interiorSpawnX: 10, interiorSpawnY: 12 },
     { x: 192, y: 64, width: 8, height: 6, type: 'building', interactionId: 'shop_magic' },
     { x: 192, y: 80, width: 8, height: 6, type: 'building', interactionId: 'tavern' },
 
@@ -80,6 +81,7 @@ const villageDef: MapDefinition = {
     { x: 8, y: 40, width: 16, height: 14, type: 'fort', interactionId: 'west_fort' },
 
     // ====== VILLAGE CHURCH (east of cemetery) ======
+    { x: 42, y: 28, width: 20, height: 20, type: 'clearing', fill: 'dirt' },
     { x: 45, y: 30, width: 12, height: 14, type: 'church', interactionId: 'village_church' },
 
     // ====== SCATTERED COTTAGES (countryside feel) ======
@@ -97,6 +99,14 @@ const villageDef: MapDefinition = {
     { x: 48, y: 26, width: 5, height: 4, type: 'broken_wagon' },
     { x: 118, y: 118, width: 5, height: 4, type: 'broken_wagon' },
     { x: 158, y: 68, width: 6, height: 1, type: 'market_stall_row' },
+    { x: 168, y: 68, width: 6, height: 1, type: 'market_stall_row' },
+    { x: 176, y: 70, width: 4, height: 1, type: 'market_stall_row' },
+    { x: 160, y: 78, width: 5, height: 1, type: 'market_stall_row' },
+    { x: 168, y: 78, width: 5, height: 1, type: 'market_stall_row' },
+    { x: 160, y: 84, width: 4, height: 1, type: 'market_stall_row' },
+    { x: 184, y: 78, width: 5, height: 1, type: 'market_stall_row' },
+    { x: 184, y: 88, width: 5, height: 1, type: 'market_stall_row' },
+    { x: 58, y: 108, width: 5, height: 4, type: 'broken_wagon' },
 
     // ====== COBBLESTONE ROADS connecting everything ======
     // Main N-S road through center
@@ -105,6 +115,8 @@ const villageDef: MapDefinition = {
     { x: 20, y: 72, width: 200, height: 4, type: 'path', fill: 'cobblestone' },
     // Market road
     { x: 145, y: 72, width: 60, height: 4, type: 'path', fill: 'cobblestone' },
+    // Tavern frontage
+    { x: 184, y: 88, width: 24, height: 4, type: 'path', fill: 'cobblestone' },
     // South farm connector
     { x: 40, y: 100, width: 100, height: 3, type: 'path', fill: 'dirt' },
     // Residential side streets
@@ -124,7 +136,7 @@ const villageDef: MapDefinition = {
     { x: 112, y: 38, width: 4, height: 20, type: 'path', fill: 'cobblestone' },
   ],
   portals: [
-    { x: 120, y: 8, targetMap: 'forest', targetX: 150, targetY: 294 },
+    { x: 120, y: 8, targetMap: 'forest', targetX: 150, targetY: 289 },
     { x: 237, y: 80, targetMap: 'forest', targetX: 4, targetY: 150 },
     { x: 120, y: 150, targetMap: 'deep_woods', targetX: 120, targetY: 8 },
   ],
@@ -158,26 +170,85 @@ const villageDef: MapDefinition = {
     { x: 115, y: 90, type: 'lantern', walkable: false, interactionId: 'lantern' },
     { x: 50, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
     { x: 145, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    // Potion pickups scattered across town squares, paths, clearings
-    { x: 105, y: 78, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 130, y: 75, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 160, y: 70, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 85, y: 98, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 45, y: 65, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 118, y: 112, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 100, y: 45, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 175, y: 68, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 200, y: 98, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 60, y: 85, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
+    // Tempest Grass patches scattered across town squares, paths, and clearings
+    { x: 105, y: 78, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 130, y: 75, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 160, y: 70, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 85, y: 98, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 45, y: 65, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 118, y: 112, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 100, y: 45, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 175, y: 68, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 200, y: 98, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 60, y: 85, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
   ],
   props: [
+    // North ridge overlook
     { x: 84, y: 14, type: 'bench', walkable: false },
     { x: 78, y: 12, type: 'lantern', walkable: false },
+    // Plaza social core
+    { x: 104, y: 86, type: 'bench', walkable: false },
+    { x: 132, y: 86, type: 'bench', walkable: false },
+    { x: 106, y: 90, type: 'pot', walkable: true },
+    { x: 132, y: 90, type: 'pot', walkable: true },
+    { x: 126, y: 96, type: 'lantern', walkable: false },
     { x: 102, y: 75, type: 'bench', walkable: false },
     { x: 132, y: 75, type: 'bench', walkable: false },
     { x: 100, y: 78, type: 'pot', walkable: true },
     { x: 134, y: 78, type: 'pot', walkable: true },
     { x: 116, y: 72, type: 'pot', walkable: true },
+    // Smithy + market quarter
+    { x: 152, y: 60, type: 'lantern', walkable: false },
+    { x: 165, y: 60, type: 'barrel', walkable: false },
+    { x: 167, y: 60, type: 'crate', walkable: false },
+    { x: 173, y: 60, type: 'barrel', walkable: false },
+    { x: 185, y: 66, type: 'cart', walkable: false },
+    { x: 150, y: 66, type: 'cart', walkable: false },
+    { x: 164, y: 66, type: 'barrel', walkable: false },
+    { x: 166, y: 66, type: 'crate', walkable: false },
+    { x: 171, y: 66, type: 'pot', walkable: true },
+    { x: 178, y: 66, type: 'barrel', walkable: false },
+    { x: 180, y: 66, type: 'crate', walkable: false },
+    { x: 184, y: 70, type: 'bench', walkable: false },
+    { x: 172, y: 84, type: 'bench', walkable: false },
+    { x: 162, y: 86, type: 'pot', walkable: true },
+    { x: 178, y: 86, type: 'pot', walkable: true },
+    { x: 188, y: 74, type: 'lantern', walkable: false },
+    { x: 186, y: 86, type: 'bench', walkable: false },
+    { x: 204, y: 86, type: 'bench', walkable: false },
+    { x: 188, y: 90, type: 'barrel', walkable: false },
+    { x: 190, y: 90, type: 'crate', walkable: false },
+    { x: 202, y: 90, type: 'barrel', walkable: false },
+    { x: 204, y: 90, type: 'crate', walkable: false },
+    { x: 186, y: 80, type: 'lantern', walkable: false },
+    { x: 204, y: 80, type: 'lantern', walkable: false },
+    // Churchyard + west residential
+    { x: 44, y: 42, type: 'bench', walkable: false },
+    { x: 58, y: 42, type: 'bench', walkable: false },
+    { x: 46, y: 46, type: 'tombstone', walkable: false },
+    { x: 54, y: 46, type: 'tombstone', walkable: false },
+    { x: 60, y: 46, type: 'lantern', walkable: false },
+    { x: 62, y: 52, type: 'barrel', walkable: false },
+    { x: 64, y: 52, type: 'crate', walkable: false },
+    { x: 44, y: 58, type: 'bench', walkable: false },
+    { x: 30, y: 66, type: 'pot', walkable: true },
+    { x: 54, y: 80, type: 'pot', walkable: true },
+    { x: 75, y: 82, type: 'bench', walkable: false },
+    { x: 88, y: 118, type: 'barrel', walkable: false },
+    { x: 92, y: 118, type: 'crate', walkable: false },
+    { x: 18, y: 108, type: 'cart', walkable: false },
+    { x: 58, y: 112, type: 'barrel', walkable: false },
+    { x: 60, y: 112, type: 'crate', walkable: false },
+    { x: 66, y: 116, type: 'hay_bale', walkable: false },
+    { x: 135, y: 118, type: 'scarecrow', walkable: false },
+    { x: 142, y: 123, type: 'hay_bale', walkable: false },
+    { x: 147, y: 121, type: 'hay_bale', walkable: false },
+    { x: 128, y: 118, type: 'barrel', walkable: false },
+    { x: 130, y: 118, type: 'crate', walkable: false },
+    { x: 152, y: 118, type: 'cart', walkable: false },
+    { x: 165, y: 111, type: 'bench', walkable: false },
+    { x: 188, y: 108, type: 'barrel', walkable: false },
+    { x: 192, y: 108, type: 'crate', walkable: false },
   ],
   secretAreas: [
     { x: 5, y: 20, width: 6, height: 4, fill: 'stone' },
@@ -220,8 +291,6 @@ const villageDef: MapDefinition = {
     { x: 188, y: 45, width: 4, height: 4, elevation: 1 },
     // West cemetery approach: south_face=45
     { x: 44, y: 45, width: 4, height: 4, elevation: 1 },
-    // West residential south face on main N-S road: south_face=75
-    { x: 114, y: 75, width: 8, height: 4, elevation: 1 },
     // East market approach: south_face=45
     { x: 148, y: 45, width: 4, height: 4, elevation: 1 },
     // SW farm south face: south_face=155 (zone y=140 + height=16 - 1 = 155)
@@ -250,8 +319,13 @@ const forestDef: MapDefinition = {
     { x: 80, y: 220, width: 20, height: 16, type: 'clearing', fill: 'grass' },
     { x: 220, y: 220, width: 24, height: 20, type: 'clearing', fill: 'grass' },
     { x: 40, y: 140, width: 20, height: 16, type: 'clearing', fill: 'grass' },
+    { x: 48, y: 146, width: 20, height: 20, type: 'clearing', fill: 'dirt' },
     { x: 250, y: 50, width: 20, height: 16, type: 'clearing', fill: 'grass' },
     { x: 150, y: 50, width: 30, height: 20, type: 'clearing', fill: 'grass' },
+    { x: 138, y: 246, width: 24, height: 18, type: 'clearing', fill: 'dirt' },
+    { x: 126, y: 156, width: 48, height: 24, type: 'clearing', fill: 'dirt' },
+    { x: 116, y: 192, width: 48, height: 24, type: 'clearing', fill: 'dirt' },
+    { x: 126, y: 180, width: 26, height: 14, type: 'clearing', fill: 'dirt' },
 
     // === RANGER OUTPOST ===
     { x: 136, y: 164, width: 10, height: 8, type: 'inn_building', interactionId: 'ranger_cabin', interiorMap: 'interior_ranger_cabin', interiorSpawnX: 7, interiorSpawnY: 5 },
@@ -297,6 +371,9 @@ const forestDef: MapDefinition = {
     { x: 144, y: 228, width: 5, height: 4, type: 'broken_wagon' },
     { x: 148, y: 118, width: 5, height: 4, type: 'broken_wagon' },
     { x: 156, y: 172, width: 4, height: 1, type: 'market_stall_row' },
+    { x: 160, y: 174, width: 4, height: 1, type: 'market_stall_row' },
+    { x: 150, y: 214, width: 5, height: 4, type: 'broken_wagon' },
+    { x: 118, y: 176, width: 5, height: 4, type: 'broken_wagon' },
 
     // === WATERFALL (north) — large summit cascade; clearing placed first, fall overwrites the chasm
     { x: 126, y: 36, width: 48, height: 16, type: 'clearing', fill: 'grass' },
@@ -331,7 +408,7 @@ const forestDef: MapDefinition = {
     { x: 50, y: 100, width: 10, height: 14, type: 'church', interactionId: 'old_chapel' },
 
     // === SCATTERED COTTAGES (hermits, woodcutters) ===
-    { x: 90, y: 180, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage' },
+    { x: 90, y: 180, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage', interiorMap: 'interior_woodcutter_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
     { x: 230, y: 130, width: 6, height: 6, type: 'cottage', interactionId: 'witch_cottage' },
     // Hunter shack is teased from below, then reached by wrapping around a cliff-backed approach.
     { x: 134, y: 182, width: 6, height: 6, type: 'cottage', interactionId: 'hunter_cottage', interiorMap: 'interior_hunter_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
@@ -339,7 +416,6 @@ const forestDef: MapDefinition = {
     { x: 118, y: 220, width: 18, height: 12, type: 'abandoned_camp', interactionId: 'hunters_last_camp' },
     { x: 144, y: 206, width: 16, height: 14, type: 'cemetery' },
     { x: 152, y: 220, width: 18, height: 12, type: 'destroyed_town', interactionId: 'hunter_wreck' },
-    { x: 118, y: 192, width: 36, height: 10, type: 'cliff_face' },
     { x: 170, y: 80, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage' },
     { x: 80, y: 50, width: 6, height: 6, type: 'cottage', interactionId: 'ruin_cottage' },
     { x: 210, y: 200, width: 6, height: 6, type: 'cottage', interactionId: 'hidden_cottage' },
@@ -416,7 +492,7 @@ const forestDef: MapDefinition = {
   interactables: [
     { x: 140, y: 170, type: 'sign', walkable: false, interactionId: 'ranger_sign' },
     { x: 120, y: 90, type: 'sign', walkable: false, interactionId: 'bridge_sign' },
-    { x: 76, y: 36, type: 'sign', walkable: false, interactionId: 'danger_sign' },
+    { x: 60, y: 156, type: 'sign', walkable: false, interactionId: 'danger_sign' },
     { x: 130, y: 44, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
     { x: 130, y: 206, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
     { x: 150, y: 260, type: 'sign', walkable: false, interactionId: 'forest_entry_sign' },
@@ -431,28 +507,55 @@ const forestDef: MapDefinition = {
     { x: 25, y: 205, type: 'sign', walkable: false, interactionId: 'destroyed_town_sign' },
     { x: 258, y: 155, type: 'well', walkable: false, interactionId: 'ancient_fountain' },
     // Potion pickups in forest clearings and paths
-    { x: 68, y: 65, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 210, y: 108, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 140, y: 170, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 85, y: 225, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 225, y: 225, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 45, y: 145, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 255, y: 55, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 155, y: 55, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-{ x: 100, y: 165, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-     { x: 148, y: 265, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-     { x: 230, y: 165, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-     { x: 75, y: 100, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
+    { x: 68, y: 65, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 210, y: 108, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 148, y: 162, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 85, y: 225, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 225, y: 225, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 45, y: 145, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 255, y: 55, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 155, y: 55, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+{ x: 100, y: 165, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+     { x: 148, y: 265, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+     { x: 230, y: 165, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+     { x: 75, y: 100, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
      // Moonbloom flowers for Merchant's Request quest
      { x: 140, y: 48, type: 'flower', walkable: true, interactionId: 'moonbloom_pickup' },
      { x: 210, y: 105, type: 'flower', walkable: true, interactionId: 'moonbloom_pickup' },
      { x: 85, y: 185, type: 'flower', walkable: true, interactionId: 'moonbloom_pickup' },
   ],
   props: [
+    { x: 144, y: 268, type: 'lantern', walkable: false },
+    { x: 156, y: 268, type: 'lantern', walkable: false },
+    { x: 142, y: 262, type: 'barrel', walkable: false },
+    { x: 144, y: 262, type: 'crate', walkable: false },
+    { x: 158, y: 262, type: 'barrel', walkable: false },
+    { x: 160, y: 262, type: 'crate', walkable: false },
+    { x: 140, y: 256, type: 'stump', walkable: false },
+    { x: 160, y: 256, type: 'stump', walkable: false },
+    { x: 146, y: 238, type: 'lantern', walkable: false },
+    { x: 146, y: 222, type: 'lantern', walkable: false },
+    { x: 118, y: 88, type: 'lantern', walkable: false },
+    { x: 122, y: 88, type: 'lantern', walkable: false },
+    { x: 74, y: 40, type: 'bones_pile', walkable: true },
+    { x: 82, y: 38, type: 'dead_tree', walkable: false },
+    { x: 84, y: 42, type: 'cage', walkable: false },
+    { x: 56, y: 152, type: 'dead_tree', walkable: false },
+    { x: 62, y: 150, type: 'bones_pile', walkable: true },
+    { x: 64, y: 154, type: 'cage', walkable: false },
+    { x: 66, y: 158, type: 'wagon', walkable: false },
+    { x: 70, y: 160, type: 'barrel', walkable: false },
+    { x: 72, y: 160, type: 'crate', walkable: false },
     { x: 128, y: 42, type: 'bench', walkable: false },
     { x: 182, y: 42, type: 'barrel', walkable: false },
     { x: 186, y: 44, type: 'crate', walkable: false },
     { x: 124, y: 40, type: 'lantern', walkable: false },
+    { x: 132, y: 166, type: 'lantern', walkable: false },
+    { x: 148, y: 166, type: 'lantern', walkable: false },
+    { x: 154, y: 166, type: 'bench', walkable: false },
+    { x: 158, y: 166, type: 'barrel', walkable: false },
+    { x: 160, y: 166, type: 'crate', walkable: false },
+    { x: 170, y: 176, type: 'lantern', walkable: false },
     { x: 139, y: 128, type: 'barrel', walkable: false },
     { x: 142, y: 128, type: 'crate', walkable: false },
     { x: 206, y: 66, type: 'barrel', walkable: false },
@@ -463,10 +566,51 @@ const forestDef: MapDefinition = {
     { x: 129, y: 205, type: 'bloodstain', walkable: true },
     { x: 136, y: 209, type: 'bloodstain', walkable: true },
     { x: 144, y: 213, type: 'bloodstain', walkable: true },
+    { x: 120, y: 198, type: 'bloodstain', walkable: true },
+    { x: 126, y: 194, type: 'bloodstain', walkable: true },
+    { x: 134, y: 191, type: 'bloodstain', walkable: true },
     { x: 150, y: 222, type: 'bones_pile', walkable: true },
     { x: 156, y: 225, type: 'cage', walkable: false },
     { x: 146, y: 208, type: 'dead_tree', walkable: false },
     { x: 118, y: 224, type: 'dead_tree', walkable: false },
+    { x: 116, y: 200, type: 'bones_pile', walkable: true },
+    { x: 124, y: 207, type: 'lantern', walkable: false },
+    { x: 138, y: 189, type: 'dead_tree', walkable: false },
+    { x: 148, y: 190, type: 'dead_tree', walkable: false },
+    { x: 132, y: 187, type: 'bones_pile', walkable: true },
+    { x: 140, y: 186, type: 'bones_pile', walkable: true },
+    { x: 130, y: 190, type: 'lantern', walkable: false },
+    { x: 144, y: 190, type: 'lantern', walkable: false },
+    { x: 124, y: 191, type: 'stump', walkable: false },
+    { x: 150, y: 192, type: 'stump', walkable: false },
+    { x: 136, y: 168, type: 'bench', walkable: false },
+    { x: 144, y: 168, type: 'lantern', walkable: false },
+    { x: 150, y: 168, type: 'crate', walkable: false },
+    { x: 153, y: 169, type: 'barrel', walkable: false },
+    { x: 162, y: 170, type: 'cart', walkable: false },
+    { x: 166, y: 174, type: 'crate', walkable: false },
+    { x: 168, y: 174, type: 'barrel', walkable: false },
+    { x: 123, y: 196, type: 'bones_pile', walkable: true },
+    { x: 131, y: 201, type: 'bones_pile', walkable: true },
+    { x: 134, y: 206, type: 'cage', walkable: false },
+    { x: 141, y: 204, type: 'dead_tree', walkable: false },
+    { x: 146, y: 201, type: 'stump', walkable: false },
+    { x: 152, y: 205, type: 'barrel', walkable: false },
+    { x: 155, y: 208, type: 'crate', walkable: false },
+    { x: 160, y: 214, type: 'bones_pile', walkable: true },
+    { x: 164, y: 218, type: 'cage', walkable: false },
+    { x: 28, y: 206, type: 'wagon', walkable: false },
+    { x: 34, y: 214, type: 'dead_tree', walkable: false },
+    { x: 42, y: 212, type: 'bones_pile', walkable: true },
+    { x: 214, y: 47, type: 'barrel', walkable: false },
+    { x: 218, y: 47, type: 'crate', walkable: false },
+    { x: 222, y: 52, type: 'lantern', walkable: false },
+    { x: 233, y: 130, type: 'stump', walkable: false },
+    { x: 237, y: 132, type: 'barrel', walkable: false },
+    { x: 239, y: 132, type: 'crate', walkable: false },
+    { x: 174, y: 82, type: 'stump', walkable: false },
+    { x: 88, y: 181, type: 'stump', walkable: false },
+    { x: 92, y: 182, type: 'barrel', walkable: false },
   ],
   secretAreas: [
     { x: 256, y: 184, width: 8, height: 6, fill: 'grass' },
@@ -474,7 +618,6 @@ const forestDef: MapDefinition = {
     { x: 280, y: 270, width: 5, height: 5, fill: 'grass' },
     { x: 90, y: 145, width: 6, height: 5, fill: 'grass' },
     { x: 195, y: 175, width: 5, height: 5, fill: 'stone' },
-    { x: 145, y: 270, width: 6, height: 4, fill: 'grass' },
     { x: 55, y: 195, width: 5, height: 5, fill: 'stone' },
     { x: 270, y: 130, width: 4, height: 5, fill: 'grass' },
   ],
@@ -540,25 +683,24 @@ const forestDef: MapDefinition = {
     { x: 65, y: 25, width: 22, height: 16, enemyType: 'skeleton', count: 6 },
 
     // Central — east of ranger plateau / inn (avoids fort footprint ~130–152, 120–138)
-    { x: 150, y: 150, width: 24, height: 16, enemyType: 'wolf', count: 5 },
+    { x: 166, y: 148, width: 18, height: 18, enemyType: 'wolf', count: 4 },
     { x: 86, y: 116, width: 26, height: 18, enemyType: 'wolf', count: 5 },
 
     // North — single wide band along deep woods gate (replaces stacked twin boxes)
     { x: 96, y: 4, width: 60, height: 16, enemyType: 'wolf', count: 12 },
 
     // West — hidden grove plants
-    { x: 18, y: 124, width: 22, height: 18, enemyType: 'plant', count: 6 },
-    { x: 8, y: 150, width: 20, height: 14, enemyType: 'plant', count: 3 },
+    { x: 18, y: 124, width: 22, height: 18, enemyType: 'plant', count: 5 },
+    { x: 52, y: 148, width: 18, height: 16, enemyType: 'wolf', count: 4 },
 
     // E — lakeside spiders + temple skeletons
     { x: 230, y: 176, width: 24, height: 14, enemyType: 'spider', count: 5 },
     { x: 246, y: 136, width: 26, height: 26, enemyType: 'skeleton', count: 6 },
 
     // South — split wolf / slime along trail (less pile-up on portal column)
-    { x: 122, y: 256, width: 32, height: 18, enemyType: 'wolf', count: 5 },
-    { x: 172, y: 266, width: 30, height: 16, enemyType: 'slime', count: 7 },
-
-    { x: 128, y: 276, width: 28, height: 14, enemyType: 'wolf', count: 3 },
+    { x: 112, y: 252, width: 18, height: 14, enemyType: 'wolf', count: 3 },
+    { x: 170, y: 262, width: 24, height: 16, enemyType: 'slime', count: 5 },
+    { x: 164, y: 278, width: 18, height: 10, enemyType: 'wolf', count: 2 },
 
     // Enchanted groves
     { x: 72, y: 140, width: 28, height: 24, enemyType: 'plant', count: 8 },
@@ -580,8 +722,8 @@ const forestDef: MapDefinition = {
     // SW plateau + far E trail
     { x: 36, y: 192, width: 20, height: 16, enemyType: 'wolf', count: 4 },
     { x: 278, y: 92, width: 16, height: 16, enemyType: 'wolf', count: 4 },
-    { x: 110, y: 198, width: 18, height: 14, enemyType: 'skeleton', count: 4 },
-    { x: 132, y: 210, width: 22, height: 18, enemyType: 'wolf', count: 4 },
+    { x: 110, y: 200, width: 14, height: 12, enemyType: 'skeleton', count: 2 },
+    { x: 142, y: 210, width: 18, height: 14, enemyType: 'wolf', count: 2 },
 
     { x: 215, y: 140, width: 20, height: 16, enemyType: 'golem', count: 1 },
   ],
@@ -600,6 +742,7 @@ const deepWoodsDef: MapDefinition = {
     // === WITCH'S HUT ===
     { x: 60, y: 60, width: 10, height: 8, type: 'inn_building', interactionId: 'witch_hut', interiorMap: 'interior_witch_hut', interiorSpawnX: 6, interiorSpawnY: 2 },
     { x: 50, y: 52, width: 24, height: 20, type: 'clearing', fill: 'swamp' },
+    { x: 44, y: 54, width: 36, height: 24, type: 'clearing', fill: 'dirt' },
 
     // === ANCIENT SHRINE ===
     { x: 160, y: 40, width: 24, height: 20, type: 'ruins' },
@@ -607,6 +750,7 @@ const deepWoodsDef: MapDefinition = {
     // === MUSHROOM GROVE ===
     { x: 100, y: 100, width: 40, height: 30, type: 'clearing', fill: 'grass' },
     { x: 110, y: 110, width: 20, height: 12, type: 'garden' },
+    { x: 92, y: 88, width: 36, height: 18, type: 'clearing', fill: 'stone' },
 
     // === SWAMP LAKES ===
     { x: 40, y: 120, width: 32, height: 24, type: 'lake' },
@@ -628,6 +772,7 @@ const deepWoodsDef: MapDefinition = {
 
     // === CURSED GROVE ===
     { x: 200, y: 160, width: 20, height: 16, type: 'clearing', fill: 'swamp' },
+    { x: 108, y: 154, width: 24, height: 28, type: 'clearing', fill: 'dirt' },
 
     // === TREANT GROVE ===
     { x: 160, y: 160, width: 15, height: 12, type: 'garden' },
@@ -650,11 +795,14 @@ const deepWoodsDef: MapDefinition = {
     { x: 60, y: 100, width: 60, height: 6, type: 'path', fill: 'dirt' },
     { x: 120, y: 100, width: 60, height: 6, type: 'path', fill: 'dirt' },
     { x: 116, y: 20, width: 8, height: 80, type: 'path', fill: 'dirt' },
+    { x: 96, y: 44, width: 8, height: 56, type: 'path', fill: 'stone' },
     { x: 60, y: 60, width: 56, height: 6, type: 'path', fill: 'dirt' },
+    { x: 52, y: 66, width: 20, height: 4, type: 'path', fill: 'dirt' },
     { x: 160, y: 50, width: 6, height: 50, type: 'path', fill: 'dirt' },
     { x: 40, y: 30, width: 70, height: 4, type: 'path', fill: 'dirt' },
     { x: 180, y: 100, width: 6, height: 60, type: 'path', fill: 'dirt' },
     { x: 186, y: 28, width: 6, height: 12, type: 'path', fill: 'dirt' },
+    { x: 96, y: 98, width: 24, height: 6, type: 'path', fill: 'stone' },
   ],
   portals: [
     { x: 120, y: 190, targetMap: 'forest', targetX: 150, targetY: 8 },
@@ -684,43 +832,73 @@ const deepWoodsDef: MapDefinition = {
     { x: 205, y: 165, type: 'tombstone', walkable: false, interactionId: 'tombstone' },
     { x: 35, y: 25, type: 'campfire', walkable: false, interactionId: 'campfire' },
     // Potion pickups in deep woods clearings
-    { x: 55, y: 58, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 115, y: 108, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 185, y: 85, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 55, y: 135, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 165, y: 165, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
-    { x: 25, y: 165, type: 'flower', walkable: true, interactionId: 'potion_pickup' },
+    { x: 55, y: 58, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 115, y: 108, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 185, y: 85, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 55, y: 135, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 165, y: 165, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 25, y: 165, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
   ],
   props: [
+    // South threshold and first warning shelf
+    { x: 114, y: 178, type: 'lantern', walkable: false },
+    { x: 126, y: 178, type: 'lantern', walkable: false },
+    { x: 112, y: 170, type: 'dead_tree', walkable: false },
+    { x: 128, y: 170, type: 'dead_tree', walkable: false },
+    { x: 118, y: 166, type: 'bones_pile', walkable: true },
+    { x: 122, y: 164, type: 'cage', walkable: false },
     // Ancient shrine vicinity
+    { x: 162, y: 42, type: 'lantern', walkable: false },
+    { x: 178, y: 42, type: 'lantern', walkable: false },
     { x: 168, y: 48, type: 'pot', walkable: true },
     { x: 172, y: 48, type: 'pot', walkable: true },
     { x: 175, y: 52, type: 'bones', walkable: true },
+    { x: 164, y: 54, type: 'bones_pile', walkable: true },
+    { x: 180, y: 54, type: 'chain', walkable: false },
     { x: 114, y: 24, type: 'pot', walkable: true },
     { x: 118, y: 26, type: 'pot', walkable: true },
+    { x: 96, y: 92, type: 'altar', walkable: false },
+    { x: 124, y: 92, type: 'altar', walkable: false },
+    { x: 108, y: 84, type: 'chain', walkable: false },
+    { x: 120, y: 84, type: 'chain', walkable: false },
+    { x: 112, y: 96, type: 'lantern', walkable: false },
     // Shadow Castle approach - ritual elements and atmosphere
     { x: 92, y: 42, type: 'altar', walkable: false },
     { x: 108, y: 42, type: 'altar', walkable: false },
     { x: 98, y: 38, type: 'throne', walkable: false },
     { x: 102, y: 38, type: 'throne', walkable: false },
     // Bloodstains leading to boss
+    { x: 94, y: 72, type: 'bloodstain', walkable: true },
+    { x: 106, y: 72, type: 'bloodstain', walkable: true },
+    { x: 100, y: 64, type: 'bloodstain', walkable: true },
     { x: 88, y: 52, type: 'bloodstain', walkable: true },
     { x: 112, y: 52, type: 'bloodstain', walkable: true },
     { x: 95, y: 48, type: 'bloodstain', walkable: true },
     { x: 105, y: 48, type: 'bloodstain', walkable: true },
     // Bones piles around arena
+    { x: 88, y: 86, type: 'bones_pile', walkable: true },
+    { x: 112, y: 86, type: 'bones_pile', walkable: true },
     { x: 85, y: 45, type: 'bones_pile', walkable: true },
     { x: 115, y: 45, type: 'bones_pile', walkable: true },
     { x: 100, y: 56, type: 'bones_pile', walkable: true },
     // Chains hanging from elevated areas
+    { x: 96, y: 80, type: 'chain', walkable: false },
+    { x: 104, y: 80, type: 'chain', walkable: false },
     { x: 90, y: 38, type: 'chain', walkable: false },
     { x: 110, y: 38, type: 'chain', walkable: false },
     // Cages (imprisoned souls)
+    { x: 92, y: 76, type: 'cage', walkable: false },
+    { x: 108, y: 76, type: 'cage', walkable: false },
     { x: 86, y: 50, type: 'cage', walkable: false },
     { x: 114, y: 50, type: 'cage', walkable: false },
     // Witch's hut area
+    { x: 48, y: 68, type: 'lantern', walkable: false },
+    { x: 72, y: 68, type: 'lantern', walkable: false },
+    { x: 52, y: 60, type: 'bones_pile', walkable: true },
+    { x: 70, y: 58, type: 'stump', walkable: false },
     { x: 55, y: 58, type: 'cauldron', walkable: false },
     { x: 65, y: 62, type: 'cauldron', walkable: false },
+    { x: 58, y: 66, type: 'altar', walkable: false },
   ],
   secretAreas: [
     { x: 15, y: 15, width: 8, height: 6, fill: 'stone' },
@@ -762,13 +940,13 @@ const deepWoodsDef: MapDefinition = {
   ],
   enemyZones: [
     // Witch's Hut clearing
-    { x: 50, y: 55, width: 20, height: 16, enemyType: 'shadow', count: 7 },
+    { x: 50, y: 55, width: 20, height: 16, enemyType: 'shadow', count: 4 },
     // Witch hut perimeter
-    { x: 30, y: 40, width: 24, height: 18, enemyType: 'shadow', count: 5 },
+    { x: 30, y: 40, width: 24, height: 18, enemyType: 'shadow', count: 3 },
 
     // Ancient Shrine
-    { x: 155, y: 35, width: 22, height: 16, enemyType: 'shadow', count: 6 },
-    { x: 168, y: 58, width: 16, height: 14, enemyType: 'shadow', count: 4 },
+    { x: 155, y: 35, width: 22, height: 16, enemyType: 'shadow', count: 5 },
+    { x: 168, y: 58, width: 16, height: 14, enemyType: 'shadow', count: 3 },
 
     // Cursed Cemetery
     { x: 145, y: 95, width: 20, height: 16, enemyType: 'skeleton', count: 8 },
@@ -778,8 +956,9 @@ const deepWoodsDef: MapDefinition = {
     { x: 20, y: 18, width: 28, height: 22, enemyType: 'spider', count: 6 },
 
     // Northern dark forest (boss approach)
-    { x: 80, y: 20, width: 30, height: 24, enemyType: 'shadow', count: 9 },
-    { x: 115, y: 10, width: 22, height: 18, enemyType: 'shadow', count: 7 },
+    { x: 92, y: 58, width: 20, height: 18, enemyType: 'shadow', count: 4 },
+    { x: 80, y: 20, width: 30, height: 24, enemyType: 'shadow', count: 6 },
+    { x: 115, y: 10, width: 22, height: 18, enemyType: 'shadow', count: 5 },
 
     // Shadow den outer ring
     { x: 178, y: 82, width: 26, height: 22, enemyType: 'shadow', count: 8 },
@@ -926,27 +1105,36 @@ const shadowCastleDef: MapDefinition = {
   features: [
     // === ENTRY COURT ===
     { x: 78, y: 96, width: 44, height: 20, type: 'clearing', fill: 'stone' },
+    { x: 66, y: 88, width: 68, height: 20, type: 'clearing', fill: 'stone' },
 
     // === OUTER WALLS AND WINGS ===
     { x: 14, y: 68, width: 42, height: 32, type: 'ruins' },
     { x: 144, y: 68, width: 42, height: 32, type: 'ruins' },
     { x: 22, y: 30, width: 34, height: 28, type: 'ruins' },
     { x: 144, y: 30, width: 34, height: 28, type: 'ruins' },
+    { x: 20, y: 82, width: 30, height: 12, type: 'clearing', fill: 'stone' },
+    { x: 150, y: 82, width: 30, height: 12, type: 'clearing', fill: 'stone' },
 
     // === CENTRAL HALL ===
     { x: 70, y: 46, width: 60, height: 44, type: 'clearing', fill: 'stone' },
     { x: 78, y: 52, width: 44, height: 32, type: 'ruins' },
+    { x: 88, y: 44, width: 24, height: 18, type: 'clearing', fill: 'stone' },
 
     // === UPPER KEEP / BOSS APPROACH ===
     { x: 84, y: 6, width: 32, height: 30, type: 'clearing', fill: 'ruins_floor' },
     { x: 82, y: 10, width: 36, height: 24, type: 'boss_arena', interactionId: 'shadow_lord' },
+    { x: 76, y: 0, width: 48, height: 12, type: 'clearing', fill: 'ruins_floor' },
 
     // === CONNECTORS ===
     { x: 96, y: 34, width: 8, height: 64, type: 'path', fill: 'stone' },
+    { x: 96, y: 96, width: 8, height: 20, type: 'path', fill: 'ruins_floor' },
+    { x: 80, y: 92, width: 40, height: 6, type: 'path', fill: 'ruins_floor' },
     { x: 56, y: 72, width: 88, height: 6, type: 'path', fill: 'stone' },
     { x: 56, y: 42, width: 88, height: 6, type: 'path', fill: 'stone' },
     { x: 48, y: 42, width: 8, height: 36, type: 'path', fill: 'stone' },
     { x: 144, y: 42, width: 8, height: 36, type: 'path', fill: 'stone' },
+    { x: 36, y: 82, width: 20, height: 4, type: 'path', fill: 'stone' },
+    { x: 144, y: 82, width: 20, height: 4, type: 'path', fill: 'stone' },
   ],
   portals: [
     { x: 100, y: 117, targetMap: 'deep_woods', targetX: 100, targetY: 44 },
@@ -964,14 +1152,47 @@ const shadowCastleDef: MapDefinition = {
     { x: 116, y: 88, type: 'campfire', walkable: false, interactionId: 'campfire' },
   ],
   props: [
+    // Entry procession
+    { x: 84, y: 102, type: 'campfire', walkable: false },
+    { x: 116, y: 102, type: 'campfire', walkable: false },
+    { x: 78, y: 96, type: 'lantern', walkable: false },
+    { x: 122, y: 96, type: 'lantern', walkable: false },
+    { x: 88, y: 98, type: 'bones_pile', walkable: true },
+    { x: 112, y: 98, type: 'bones_pile', walkable: true },
+    { x: 92, y: 94, type: 'chain', walkable: false },
+    { x: 108, y: 94, type: 'chain', walkable: false },
     { x: 90, y: 92, type: 'chain', walkable: false },
     { x: 110, y: 92, type: 'chain', walkable: false },
     { x: 88, y: 84, type: 'bones_pile', walkable: true },
     { x: 112, y: 84, type: 'bones_pile', walkable: true },
+    // West reliquary wing
+    { x: 30, y: 86, type: 'altar', walkable: false },
+    { x: 42, y: 86, type: 'cage', walkable: false },
+    { x: 38, y: 92, type: 'bones_pile', walkable: true },
+    { x: 28, y: 78, type: 'lantern', walkable: false },
+    // East armory wing
+    { x: 158, y: 86, type: 'altar', walkable: false },
+    { x: 170, y: 86, type: 'cage', walkable: false },
+    { x: 162, y: 92, type: 'bones_pile', walkable: true },
+    { x: 172, y: 78, type: 'lantern', walkable: false },
+    // Inner hall
     { x: 96, y: 70, type: 'altar', walkable: false },
     { x: 104, y: 70, type: 'altar', walkable: false },
+    { x: 92, y: 60, type: 'lantern', walkable: false },
+    { x: 108, y: 60, type: 'lantern', walkable: false },
+    { x: 90, y: 54, type: 'bones_pile', walkable: true },
+    { x: 110, y: 54, type: 'bones_pile', walkable: true },
+    { x: 84, y: 50, type: 'chain', walkable: false },
+    { x: 116, y: 50, type: 'chain', walkable: false },
+    // Upper keep sanctum
     { x: 95, y: 28, type: 'throne', walkable: false },
     { x: 105, y: 28, type: 'throne', walkable: false },
+    { x: 88, y: 24, type: 'altar', walkable: false },
+    { x: 112, y: 24, type: 'altar', walkable: false },
+    { x: 92, y: 16, type: 'cage', walkable: false },
+    { x: 108, y: 16, type: 'cage', walkable: false },
+    { x: 96, y: 12, type: 'lantern', walkable: false },
+    { x: 104, y: 12, type: 'lantern', walkable: false },
   ],
   elevationZones: [
     { x: 6, y: 22, width: 188, height: 74, elevation: 1 },
@@ -986,10 +1207,10 @@ const shadowCastleDef: MapDefinition = {
     { x: 144, y: 62, width: 6, height: 4, elevation: 1 },
   ],
   enemyZones: [
-    { x: 78, y: 86, width: 44, height: 22, enemyType: 'shadow', count: 8 },
-    { x: 20, y: 68, width: 30, height: 24, enemyType: 'skeleton', count: 6 },
-    { x: 150, y: 68, width: 30, height: 24, enemyType: 'skeleton', count: 6 },
-    { x: 80, y: 52, width: 40, height: 24, enemyType: 'shadow', count: 9 },
+    { x: 78, y: 88, width: 44, height: 20, enemyType: 'shadow', count: 6 },
+    { x: 24, y: 76, width: 24, height: 18, enemyType: 'skeleton', count: 4 },
+    { x: 152, y: 76, width: 24, height: 18, enemyType: 'skeleton', count: 4 },
+    { x: 84, y: 54, width: 32, height: 22, enemyType: 'shadow', count: 7 },
     { x: 84, y: 10, width: 30, height: 22, enemyType: 'golem', count: 1 },
   ],
 };
@@ -999,7 +1220,7 @@ const interiorInnDef: MapDefinition = {
   name: 'Greenleaf Inn',
   width: 20,
   height: 14,
-  spawnPoint: { x: 10, y: 4 },
+  spawnPoint: { x: 10, y: 12 },
   seed: 9001,
   baseTerrain: 'grassland',
   borderTile: 'stone',
@@ -1014,7 +1235,7 @@ const interiorInnDef: MapDefinition = {
   ],
   portals: [{ x: 10, y: 13, targetMap: 'village', targetX: 179, targetY: 94 }],
   chests: [],
-  interactables: [{ x: 10, y: 4, type: 'sign', walkable: false, interactionId: 'merchant' }],
+  interactables: [],
   props: [
     { x: 10, y: 2, type: 'fireplace', walkable: false },
     { x: 6, y: 6, type: 'table', walkable: false },
@@ -1037,7 +1258,7 @@ const interiorBlacksmithDef: MapDefinition = {
   name: 'Village Smithy',
   width: 16,
   height: 12,
-  spawnPoint: { x: 8, y: 3 },
+  spawnPoint: { x: 8, y: 10 },
   seed: 9002,
   baseTerrain: 'grassland',
   borderTile: 'stone',
@@ -1052,7 +1273,7 @@ const interiorBlacksmithDef: MapDefinition = {
   ],
   portals: [{ x: 8, y: 11, targetMap: 'village', targetX: 159, targetY: 64 }],
   chests: [],
-  interactables: [{ x: 8, y: 4, type: 'sign', walkable: false, interactionId: 'blacksmith' }],
+  interactables: [],
   props: [
     { x: 8, y: 2, type: 'fireplace', walkable: false },
     { x: 4, y: 5, type: 'crate', walkable: false },
@@ -1071,7 +1292,7 @@ const interiorMerchantDef: MapDefinition = {
   name: 'Potion Shop',
   width: 14,
   height: 12,
-  spawnPoint: { x: 7, y: 3 },
+  spawnPoint: { x: 7, y: 10 },
   seed: 9003,
   baseTerrain: 'grassland',
   borderTile: 'stone',
@@ -1086,7 +1307,7 @@ const interiorMerchantDef: MapDefinition = {
   ],
   portals: [{ x: 7, y: 11, targetMap: 'village', targetX: 179, targetY: 62 }],
   chests: [],
-  interactables: [{ x: 7, y: 7, type: 'sign', walkable: false, interactionId: 'healer' }],
+  interactables: [],
   props: [
     { x: 3, y: 3, type: 'bookshelf', walkable: false },
     { x: 10, y: 3, type: 'bookshelf', walkable: false },
@@ -1169,6 +1390,38 @@ const interiorRangerCabinDef: MapDefinition = {
   ],
 };
 
+const interiorWoodcutterCottageDef: MapDefinition = {
+  name: "Woodcutter's Cottage",
+  width: 12,
+  height: 10,
+  spawnPoint: { x: 6, y: 8 },
+  seed: 9011,
+  baseTerrain: 'forest',
+  borderTile: 'stone',
+  autoRoads: false,
+  features: [
+    { x: 2, y: 2, width: 8, height: 6, type: 'clearing', fill: 'wood_floor' },
+    { x: 0, y: 0, width: 12, height: 2, type: 'wall', fill: 'stone' },
+    { x: 0, y: 2, width: 2, height: 8, type: 'wall', fill: 'stone' },
+    { x: 10, y: 2, width: 2, height: 8, type: 'wall', fill: 'stone' },
+    { x: 2, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
+    { x: 7, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
+  ],
+  portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 93, targetY: 186 }],
+  chests: [{ x: 9, y: 6, interactionId: 'woodcutter_cottage_chest' }],
+  interactables: [],
+  props: [
+    { x: 3, y: 3, type: 'bed', walkable: false },
+    { x: 3, y: 5, type: 'fireplace', walkable: false },
+    { x: 4, y: 4, type: 'table', walkable: false },
+    { x: 8, y: 4, type: 'weapon_rack', walkable: false },
+    { x: 8, y: 5, type: 'crate', walkable: false },
+    { x: 9, y: 4, type: 'barrel', walkable: false },
+    { x: 7, y: 6, type: 'bench', walkable: false },
+    { x: 3, y: 6, type: 'wardrobe', walkable: false },
+  ],
+};
+
 const interiorWitchHutDef: MapDefinition = {
   name: 'Witch Hut',
   width: 12,
@@ -1223,7 +1476,7 @@ const interiorHunterCottageDef: MapDefinition = {
   ],
   // Return to Whispering Woods on the upper shack approach, just in front of the exterior entrance.
   portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 137, targetY: 188 }],
-  chests: [{ x: 8, y: 6, interactionId: 'hunter_cottage_chest' }],
+  chests: [{ x: 8, y: 5, interactionId: 'hunter_cottage_chest' }],
   interactables: [{ x: 6, y: 4, type: 'table', walkable: false, interactionId: 'hunter_clue' }],
   props: [
     { x: 3, y: 3, type: 'bed', walkable: false },
@@ -1259,6 +1512,7 @@ export const mapDefinitions: Record<string, MapDefinition> = {
   interior_merchant: interiorMerchantDef,
   interior_cottage_a: interiorCottageADef,
   interior_ranger_cabin: interiorRangerCabinDef,
+  interior_woodcutter_cottage: interiorWoodcutterCottageDef,
   interior_witch_hut: interiorWitchHutDef,
   interior_hunter_cottage: interiorHunterCottageDef,
 };

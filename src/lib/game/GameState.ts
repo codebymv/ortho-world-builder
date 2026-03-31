@@ -49,6 +49,7 @@ export interface Item {
   description: string;
   type: 'consumable' | 'key' | 'quest' | 'equipment';
   sprite: string;
+  healAmount?: number;
   stats?: {
     damage?: number;
     range?: number;
@@ -129,10 +130,10 @@ export class GameState {
       lastDodgeTime: 0,
       dodgeDirection: { x: 0, y: 0 },
       dodgeSpeed: 0.12,
-      stamina: 100,
-      maxStamina: 100,
-      staminaRegenRate: 38,
-      staminaRegenDelay: 0.35,
+      stamina: 120,
+      maxStamina: 120,
+      staminaRegenRate: 44,
+      staminaRegenDelay: 0.38,
       lastStaminaUseTime: 0,
     };
 

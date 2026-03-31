@@ -290,7 +290,10 @@ function carveRoads(tiles: Tile[][], def: MapDefinition) {
 
 function carvePath(tiles: Tile[][], x1: number, y1: number, x2: number, y2: number, pathType: TileType, width: number) {
   const ROAD_CARVE_PROTECTED: Set<TileType> = new Set([
-    'house', 'house_blue', 'house_green', 'house_thatch',
+    'house', 'house_entry',
+    'house_blue', 'house_blue_entry',
+    'house_green', 'house_green_entry',
+    'house_thatch', 'house_thatch_entry',
     'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
     'door', 'door_interior', 'door_iron',
     'lantern', 'wood',
@@ -449,10 +452,20 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 }
 
 const HOUSE_VARIANTS: TileType[] = ['house', 'house_blue', 'house_green', 'house_thatch'];
-const HOUSE_TYPES: Set<TileType> = new Set(['house', 'house_blue', 'house_green', 'house_thatch', 'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined']);
+const HOUSE_TYPES: Set<TileType> = new Set([
+  'house', 'house_entry',
+  'house_blue', 'house_blue_entry',
+  'house_green', 'house_green_entry',
+  'house_thatch', 'house_thatch_entry',
+  'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
+]);
 // All tile types that indicate a structure is present (for spacing checks)
 const STRUCTURE_TYPES: Set<TileType> = new Set([
-  'house', 'house_blue', 'house_green', 'house_thatch', 'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
+  'house', 'house_entry',
+  'house_blue', 'house_blue_entry',
+  'house_green', 'house_green_entry',
+  'house_thatch', 'house_thatch_entry',
+  'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
   'destroyed_house', 'statue', 'mossy_stone', 'well',
 ]);
 const MIN_BUILDING_SPACING = 16; // minimum tiles between any two buildings (increased from 12)
@@ -505,9 +518,18 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean) 
   }
 
   // Pick a deterministic house variant based on position
-  const variant: TileType = f.interactionId === 'ranger_cabin'
+  const baseVariant: TileType = f.interactionId === 'ranger_cabin'
     ? 'cottage_house_forest'
     : HOUSE_VARIANTS[(f.x * 7 + f.y * 13) % HOUSE_VARIANTS.length];
+  const variant: TileType = interiorPortal
+    ? (
+        baseVariant === 'house' ? 'house_entry' :
+        baseVariant === 'house_blue' ? 'house_blue_entry' :
+        baseVariant === 'house_green' ? 'house_green_entry' :
+        baseVariant === 'house_thatch' ? 'house_thatch_entry' :
+        baseVariant
+      )
+    : baseVariant;
   
   // First, clear a yard around the building (3-tile border of grass)
   const yardPad = 4;
@@ -527,10 +549,80 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean) 
     }
   }
 
+  if (interiorPortal) {
+    const centerX = Math.floor(f.width / 2);
+    const entryY = f.y + f.height - 3;
+    const thresholdY = f.y + f.height - 1;
+    const frontY = f.y + f.height;
+    const facadeRow = Math.max(1, f.height - 2);
+    const entryTransition = {
+      targetMap: f.interiorMap!,
+      targetX: f.interiorSpawnX!,
+      targetY: f.interiorSpawnY!,
+    };
+
+    for (let dy = 0; dy < f.height; dy++) {
+      for (let dx = 0; dx < f.width; dx++) {
+        const tx = f.x + dx;
+        const ty = f.y + dy;
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+
+        if (dx === centerX && dy === facadeRow) {
+          // Shop/inn exteriors use a single full facade sprite with its own baked-in door art.
+          // Keep the transition trigger invisible, like cottages, so we don't get a loose door tile.
+          tiles[ty][tx] = createTile(variant, false);
+        } else if (dx === centerX && dy === f.height - 1) {
+          // Match cottage behavior: keep a solid threshold/foundation under the facade
+          // and put the exterior entrance trigger on the approach tile(s) in front of it.
+          tiles[ty][tx] = createTile('dirt', false);
+        } else if (
+          dy >= f.height - 2 ||
+          (dy >= f.height - 3 && Math.abs(dx - centerX) <= 2)
+        ) {
+          tiles[ty][tx] = createTile('dirt', false);
+        } else if (dy === f.height - 1 && (dx === centerX - 1 || dx === centerX + 1) && f.width >= 4) {
+          tiles[ty][tx] = createTile('lantern', false);
+        } else {
+          tiles[ty][tx] = createTile('dirt', true);
+        }
+      }
+    }
+
+    if (entryY >= 0 && entryY < tiles.length) {
+      tiles[entryY][f.x + centerX] = createTile('dirt', true, {
+        transition: entryTransition,
+        interactable: true,
+        interactionId: 'building_entrance',
+      });
+    }
+
+    if (frontY >= 0 && frontY < tiles.length) {
+      const frontTile = tiles[frontY][f.x + centerX];
+      if (!frontTile.interactable) {
+        tiles[frontY][f.x + centerX] = createTile('dirt', true, {
+          transition: entryTransition,
+          interactable: true,
+          interactionId: 'building_entrance',
+        });
+      }
+    }
+
+    for (let step = 2; step <= 4; step++) {
+      const ty = thresholdY + step;
+      const tx = f.x + centerX;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        tiles[ty][tx] = createTile('dirt', true);
+      }
+    }
+
+    return;
+  }
+
   // One centered house sprite per building — each sprite is scale 2.2 so it visually
   // spans the full facade. Multiple side-by-side sprites produce a "stacked houses" look.
   const houseWidth = 1;
   const houseStartX = Math.floor(f.width / 2);
+  const facadeRow = 0;
   // The "body" rows are 0..bodyRows-1 (solid stone wall, no entry).
   // The "apron" rows are bodyRows..height-1 (walkable stone floor in front of building).
   const bodyRows = Math.max(2, Math.ceil(f.height * 0.5));
@@ -543,7 +635,8 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean) 
         if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
           // Door / portal — always on the bottom-centre tile
           if (interiorPortal && f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined) {
-            // Use door tile for building entrances (not portal - that's for magical teleportation)
+            // Standard shop/house facades still need a visible entrance tile.
+            // Cottage-style interiors use a separate path in placeCottage().
             tiles[ty][tx] = createTile('door', true, {
               transition: { targetMap: f.interiorMap, targetX: f.interiorSpawnX, targetY: f.interiorSpawnY },
               interactable: true,
@@ -552,9 +645,10 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean) 
           } else {
             tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId });
           }
-        } else if (dy === 0 && dx >= houseStartX && dx < houseStartX + houseWidth) {
-          // House sprite on the FIRST row only — scale 2.2 extends visually down over row 1,
-          // placing sprites on both rows 0 and 1 produces a double-stacked appearance.
+        } else if (dy === facadeRow && dx >= houseStartX && dx < houseStartX + houseWidth) {
+          // Standard exteriors use a small roofline sprite at the top row.
+          // Interior shop entrances use a larger facade variant anchored near the threshold,
+          // so the overworld building reads as one coherent asset around the visible door.
           tiles[ty][tx] = createTile(variant, false);
         } else if (dy < bodyRows) {
           // Solid wooden wall — warm brown rather than cold grey stone
@@ -1363,7 +1457,8 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
 }
 
 function placeCottage(tiles: Tile[][], f: MapFeature) {
-  if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
+  const allowNearbyStructureCluster = /hunter_cottage|ranger_cabin/.test(f.interactionId ?? '');
+  if (!allowNearbyStructureCluster && isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
 
   // Clear a yard around the cottage (4-tile border of grass) to prevent blocked doors
   const yardPad = 4;
@@ -1391,6 +1486,8 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
     ? 'cottage_house_forest_ruined'
     : isWhisperingCottage
       ? 'cottage_house_forest'
+      : hasInterior
+        ? 'cottage_house_entry'
       : 'cottage_house';
   const anchors = (() => {
     const entryX = f.x + cx;
@@ -1454,7 +1551,7 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
   // Exterior entry door: one tile in front of the cottage threshold.
   if (hasInterior) {
     if (anchors.entryY >= 0 && anchors.entryY < tiles.length && anchors.entryX >= 0 && anchors.entryX < tiles[0].length) {
-      tiles[anchors.entryY][anchors.entryX] = createTile('door', true, {
+      tiles[anchors.entryY][anchors.entryX] = createTile('dirt', true, {
         transition: { targetMap: f.interiorMap!, targetX: f.interiorSpawnX!, targetY: f.interiorSpawnY! },
         interactable: true,
         interactionId: 'building_entrance',

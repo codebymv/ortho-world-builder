@@ -29,7 +29,7 @@ const getItemIcon = (item: any, className: string, assetManager?: AssetManager |
   if (item.sprite === 'potion' || item.sprite === 'red_potion') return <Heart className={className} />; // Health potion
   if (item.sprite === 'map') return <MapIcon className={className} />;
   if (item.sprite === 'key') return <Key className={className} />;
-  if (item.sprite === 'flower') return <Zap className={className} />;
+  if (item.sprite === 'flower' || item.sprite === 'tempest_grass_item') return <Zap className={className} />;
   return <Package className={className} />;
 };
 
@@ -302,14 +302,19 @@ export const GameUI = ({
                       item.type === 'consumable' ? 'hover:border-[#DAA520] cursor-pointer' : 'hover:border-[#5C3A21]/70'
                     }`}
                     onClick={() => {
-                      if (item.type === 'consumable' && item.id === 'health_potion') {
+                      if (item.type === 'consumable' && typeof item.healAmount === 'number' && item.healAmount > 0) {
                         if (gameState.player.health >= gameState.player.maxHealth) {
                           notify('Already at full health!', { id: 'full-health', duration: 1500 });
                           return;
                         }
-                        gameState.player.health = Math.min(gameState.player.maxHealth, gameState.player.health + 50);
+                        gameState.player.health = Math.min(gameState.player.maxHealth, gameState.player.health + item.healAmount);
                         gameState.removeItem(item.id);
-                        notify('Used Health Potion', { id: 'used-potion', type: 'success', description: 'Restored 50 health.', duration: 2000 });
+                        notify(`Used ${item.name}`, {
+                          id: `used-${item.id}`,
+                          type: 'success',
+                          description: `Restored ${item.healAmount} health.`,
+                          duration: 2000,
+                        });
                         triggerUIUpdate();
                         setShowInventory(true);
                       }

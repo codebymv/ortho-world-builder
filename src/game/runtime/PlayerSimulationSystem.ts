@@ -1,0 +1,376 @@
+import type { GameState } from '@/lib/game/GameState';
+import type { World } from '@/lib/game/World';
+
+export type PlayerAnimState =
+  | 'idle'
+  | 'walk'
+  | 'attack'
+  | 'dodge'
+  | 'charge'
+  | 'hurt'
+  | 'spin_attack'
+  | 'drinking'
+  | 'block';
+
+export type Direction8 =
+  | 'up'
+  | 'down'
+  | 'left'
+  | 'right'
+  | 'up_left'
+  | 'up_right'
+  | 'down_left'
+  | 'down_right';
+
+export type CardinalDirection = 'up' | 'down' | 'left' | 'right';
+
+interface UpdatePlayerSimulationOptions {
+  state: GameState;
+  world: World;
+  currentTime: number;
+  deltaTime: number;
+  isDialogueActive: boolean;
+  isBlocking: boolean;
+  isLmbHeld: boolean;
+  isChargingAttack: boolean;
+  chargeTimer: number;
+  chargeLevel: number;
+  playerAnimState: PlayerAnimState;
+  currentDir8: Direction8;
+  footstepTimer: number;
+  footstepInterval: number;
+  attackFrame: number;
+  attackFrameTimer: number;
+  attackFrameDuration: number;
+  spinDirIndex: number;
+  spinFrameTimer: number;
+  spinFrameDuration: number;
+  spinDirections: Direction8[];
+  drinkTimer: number;
+  animTimer: number;
+  animFrame: number;
+  idleFrameDuration: number;
+  walkFrameDuration: number;
+  chargeTimeMin: number;
+  chargeTimeMax: number;
+  dodgeBuffered: boolean;
+  keys: Record<string, boolean>;
+  visitedTiles: Set<string>;
+  getDirection8: (x: number, y: number) => Direction8;
+  dir8to4: (direction: Direction8) => CardinalDirection;
+  performDodge: (moveX: number, moveY: number) => void;
+  playFootstep: (isSprinting: boolean) => void;
+  emitDust: (x: number, y: number) => void;
+  emitHeal: (x: number, y: number, z: number) => void;
+  triggerMinimapUpdate: (force?: boolean, now?: number) => void;
+}
+
+export interface PlayerSimulationResult {
+  isChargingAttack: boolean;
+  chargeTimer: number;
+  chargeLevel: number;
+  playerAnimState: PlayerAnimState;
+  currentDir8: Direction8;
+  footstepTimer: number;
+  attackFrame: number;
+  attackFrameTimer: number;
+  spinDirIndex: number;
+  spinFrameTimer: number;
+  drinkTimer: number;
+  animTimer: number;
+  animFrame: number;
+  dodgeBuffered: boolean;
+}
+
+export function updatePlayerSimulation({
+  state,
+  world,
+  currentTime,
+  deltaTime,
+  isDialogueActive,
+  isBlocking,
+  isLmbHeld,
+  isChargingAttack,
+  chargeTimer,
+  chargeLevel,
+  playerAnimState,
+  currentDir8,
+  footstepTimer,
+  footstepInterval,
+  attackFrame,
+  attackFrameTimer,
+  attackFrameDuration,
+  spinDirIndex,
+  spinFrameTimer,
+  spinFrameDuration,
+  spinDirections,
+  drinkTimer,
+  animTimer,
+  animFrame,
+  idleFrameDuration,
+  walkFrameDuration,
+  chargeTimeMin,
+  chargeTimeMax,
+  dodgeBuffered,
+  keys,
+  visitedTiles,
+  getDirection8,
+  dir8to4,
+  performDodge,
+  playFootstep,
+  emitDust,
+  emitHeal,
+  triggerMinimapUpdate,
+}: UpdatePlayerSimulationOptions): PlayerSimulationResult {
+  if (isChargingAttack) {
+    if (!isLmbHeld) {
+      isChargingAttack = false;
+      chargeTimer = 0;
+      chargeLevel = 0;
+      playerAnimState = 'idle';
+    } else {
+      chargeTimer += deltaTime;
+      chargeLevel = Math.min(
+        1,
+        Math.max(0, (chargeTimer - chargeTimeMin) / (chargeTimeMax - chargeTimeMin)),
+      );
+      playerAnimState = 'charge';
+    }
+  }
+
+  if (isDialogueActive) {
+    return {
+      isChargingAttack,
+      chargeTimer,
+      chargeLevel,
+      playerAnimState,
+      currentDir8,
+      footstepTimer,
+      attackFrame,
+      attackFrameTimer,
+      spinDirIndex,
+      spinFrameTimer,
+      drinkTimer,
+      animTimer,
+      animFrame,
+      dodgeBuffered,
+    };
+  }
+
+  let moveX = 0;
+  let moveY = 0;
+  let moved = false;
+
+  if (keys.w || keys.arrowup) {
+    moveY += 1;
+    moved = true;
+  }
+  if (keys.s || keys.arrowdown) {
+    moveY -= 1;
+    moved = true;
+  }
+  if (keys.a || keys.arrowleft) {
+    moveX -= 1;
+    moved = true;
+  }
+  if (keys.d || keys.arrowright) {
+    moveX += 1;
+    moved = true;
+  }
+
+  if (dodgeBuffered && !isBlocking) {
+    performDodge(moveX, moveY);
+    dodgeBuffered = false;
+  }
+
+  if (moveX !== 0 && moveY !== 0) {
+    const length = Math.sqrt(moveX * moveX + moveY * moveY);
+    moveX /= length;
+    moveY /= length;
+  }
+
+  if (state.player.isDodging) {
+    state.player.dodgeTimer -= deltaTime;
+    const dodgeFrameSpeed = state.player.dodgeSpeed * deltaTime * 60;
+    const newPos = {
+      x: state.player.position.x + state.player.dodgeDirection.x * dodgeFrameSpeed,
+      y: state.player.position.y + state.player.dodgeDirection.y * dodgeFrameSpeed,
+    };
+
+    if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, newPos.y, 0.2)) {
+      state.player.position = newPos;
+    }
+
+    if (state.player.dodgeTimer <= 0) {
+      state.player.isDodging = false;
+      state.player.iFrameTimer = 0;
+      playerAnimState = moved ? 'walk' : 'idle';
+    }
+  } else if (moved && !isChargingAttack && playerAnimState !== 'spin_attack' && state.player.attackAnimationTimer <= 0) {
+    const rawDir = getDirection8(moveX > 0 ? 1 : moveX < 0 ? -1 : 0, moveY > 0 ? 1 : moveY < 0 ? -1 : 0);
+    currentDir8 = rawDir;
+    state.player.direction = dir8to4(rawDir);
+
+    const wantsSprint = keys.shift && state.player.stamina > 0;
+    state.player.isSprinting = wantsSprint;
+    const currentSpeed = wantsSprint ? state.player.sprintSpeed : state.player.speed;
+
+    if (wantsSprint) {
+      state.player.stamina = Math.max(0, state.player.stamina - 16 * deltaTime);
+      state.player.lastStaminaUseTime = currentTime / 1000;
+      if (state.player.stamina <= 0) {
+        state.player.isSprinting = false;
+      }
+    }
+
+    const frameSpeed = currentSpeed * deltaTime * 60;
+    const newPos = {
+      x: state.player.position.x + moveX * frameSpeed,
+      y: state.player.position.y + moveY * frameSpeed,
+    };
+
+    if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, newPos.y, 0.2)) {
+      state.player.position = newPos;
+    } else if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, state.player.position.y, 0.2)) {
+      state.player.position.x = newPos.x;
+    } else if (world.canMoveTo(state.player.position.x, state.player.position.y, state.player.position.x, newPos.y, 0.2)) {
+      state.player.position.y = newPos.y;
+    }
+
+    state.player.isMoving = true;
+
+    if (
+      playerAnimState !== 'attack' &&
+      playerAnimState !== 'dodge' &&
+      playerAnimState !== 'charge' &&
+      playerAnimState !== 'drinking' &&
+      playerAnimState !== 'block'
+    ) {
+      playerAnimState = 'walk';
+    }
+
+    footstepTimer += deltaTime;
+    const actualFootstepInterval = state.player.isSprinting ? footstepInterval * 0.65 : footstepInterval;
+    if (footstepTimer >= actualFootstepInterval) {
+      emitDust(state.player.position.x, state.player.position.y);
+      playFootstep(state.player.isSprinting);
+      footstepTimer = 0;
+    }
+
+    const currentMap = world.getCurrentMap();
+    const viewHalfH = 7;
+    const viewHalfW = Math.ceil(viewHalfH * (window.innerWidth / window.innerHeight));
+    const centerTileX = Math.floor(state.player.position.x + currentMap.width / 2);
+    const centerTileY = Math.floor(state.player.position.y + currentMap.height / 2);
+    let newTilesRevealed = false;
+
+    for (let dy = -viewHalfH; dy <= viewHalfH; dy++) {
+      for (let dx = -viewHalfW; dx <= viewHalfW; dx++) {
+        const tx = centerTileX + dx;
+        const ty = centerTileY + dy;
+        if (tx >= 0 && tx < currentMap.width && ty >= 0 && ty < currentMap.height) {
+          const key = `${tx},${ty}`;
+          if (!visitedTiles.has(key)) {
+            visitedTiles.add(key);
+            newTilesRevealed = true;
+          }
+        }
+      }
+    }
+
+    if (newTilesRevealed) {
+      triggerMinimapUpdate(false, currentTime);
+    }
+  } else {
+    state.player.isMoving = false;
+    footstepTimer = 0;
+    if (
+      playerAnimState !== 'attack' &&
+      playerAnimState !== 'dodge' &&
+      playerAnimState !== 'charge' &&
+      playerAnimState !== 'spin_attack' &&
+      playerAnimState !== 'block'
+    ) {
+      playerAnimState = 'idle';
+    }
+  }
+
+  if (playerAnimState === 'attack') {
+    attackFrameTimer -= deltaTime;
+    if (attackFrameTimer <= 0) {
+      attackFrame++;
+      if (attackFrame >= 3) {
+        playerAnimState = moved ? 'walk' : 'idle';
+        attackFrame = 0;
+      } else {
+        attackFrameTimer = attackFrameDuration;
+      }
+    }
+    state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
+  }
+
+  if (playerAnimState === 'spin_attack') {
+    spinFrameTimer -= deltaTime;
+    if (spinFrameTimer <= 0) {
+      spinDirIndex++;
+      if (spinDirIndex >= spinDirections.length) {
+        playerAnimState = moved ? 'walk' : 'idle';
+        spinDirIndex = 0;
+      } else {
+        spinFrameTimer = spinFrameDuration;
+      }
+    }
+    state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
+  }
+
+  if (playerAnimState === 'drinking') {
+    drinkTimer -= deltaTime;
+    if (Math.random() < 0.3) {
+      emitHeal(state.player.position.x, state.player.position.y + 0.5, 0.3);
+    }
+    if (drinkTimer <= 0) {
+      playerAnimState = 'idle';
+    }
+  }
+
+  if (
+    playerAnimState !== 'attack' &&
+    playerAnimState !== 'dodge' &&
+    playerAnimState !== 'charge' &&
+    playerAnimState !== 'spin_attack' &&
+    playerAnimState !== 'drinking' &&
+    playerAnimState !== 'block'
+  ) {
+    const frameDuration = playerAnimState === 'walk' ? walkFrameDuration : idleFrameDuration;
+    animTimer += deltaTime;
+    if (animTimer >= frameDuration) {
+      animFrame = (animFrame + 1) % 2;
+      animTimer = 0;
+    }
+  }
+
+  if (playerAnimState === 'charge') {
+    animTimer += deltaTime;
+    if (animTimer >= 0.15) {
+      animFrame = (animFrame + 1) % 3;
+      animTimer = 0;
+    }
+  }
+
+  return {
+    isChargingAttack,
+    chargeTimer,
+    chargeLevel,
+    playerAnimState,
+    currentDir8,
+    footstepTimer,
+    attackFrame,
+    attackFrameTimer,
+    spinDirIndex,
+    spinFrameTimer,
+    drinkTimer,
+    animTimer,
+    animFrame,
+    dodgeBuffered,
+  };
+}

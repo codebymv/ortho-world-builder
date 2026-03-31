@@ -4,7 +4,7 @@ import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
 
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'stone' | 'wood' 
-  | 'tree' | 'house' | 'house_blue' | 'house_green' | 'house_thatch' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'rock' | 'chest' | 'chest_opened' | 'portal' | 'flower'
+  | 'tree' | 'house' | 'house_entry' | 'house_blue' | 'house_blue_entry' | 'house_green' | 'house_green_entry' | 'house_thatch' | 'house_thatch_entry' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'rock' | 'chest' | 'chest_opened' | 'portal' | 'flower' | 'tempest_grass'
   | 'tall_grass' | 'bridge' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
   | 'campfire' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
@@ -68,6 +68,7 @@ const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge',
 const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'bones',
   'flower',
+  'tempest_grass',
   'hay_bale',
   'mushroom',
   'pot',
@@ -77,12 +78,17 @@ const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
 ]);
 const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'house',
+  'house_entry',
   'house_blue',
+  'house_blue_entry',
   'house_green',
+  'house_green_entry',
   'house_thatch',
+  'house_thatch_entry',
   'cottage_house',
   'cottage_house_entry',
   'cottage_house_forest',
+  'cottage_house_forest_ruined',
   'destroyed_house',
 ]);
 const OVERWORLD_STRUCTURE_SCALE_MULTIPLIER = 1.18;
@@ -243,6 +249,25 @@ export class World {
     mesh.position.z = z;
     mesh.matrixAutoUpdate = false;
     return mesh;
+  }
+
+  private setRenderRole(object: THREE.Object3D, role: 'ground' | 'overlay'): void {
+    object.userData = {
+      ...object.userData,
+      renderRole: role,
+    };
+  }
+
+  private applyOverlayRenderOrder(object: THREE.Object3D, ySort: number): void {
+    if (!(object instanceof THREE.Group)) {
+      object.renderOrder = ySort;
+      return;
+    }
+
+    object.renderOrder = 0;
+    for (const child of object.children) {
+      child.renderOrder = child.userData?.renderRole === 'overlay' ? ySort : 0;
+    }
   }
 
   private createDetailDecal(tileX: number, tileY: number, tileType: TileType): THREE.Mesh | null {
@@ -440,6 +465,8 @@ export class World {
 
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
     const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1, `height_${tile.type}`);
+    this.setRenderRole(baseMesh, 'ground');
+    this.setRenderRole(overlayMesh, 'overlay');
     overlayMesh.scale.set(1, scale, 1);
     overlayMesh.position.y = yOffset;
 
@@ -571,6 +598,7 @@ export class World {
       if (gap < 0.02) return;
       const variant = Math.floor(tileHash(tileX, tileY, 201) * 6);
       const mesh = new THREE.Mesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
+      this.setRenderRole(mesh, 'ground');
       mesh.scale.set(1, gap, 1);
       mesh.position.set(0, this.tileSize * 0.5 + gap * 0.5, 0.04);
       mesh.frustumCulled = false;
@@ -589,6 +617,7 @@ export class World {
       if (gap < 0.02) return;
       const variant = Math.floor(tileHash(tileX, tileY, 307) * 6);
       const mesh = new THREE.Mesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
+      this.setRenderRole(mesh, 'ground');
       mesh.scale.set(gap, 1, 1);
       mesh.position.set(this.tileSize * 0.5 + gap * 0.5, 0, 0.04);
       mesh.frustumCulled = false;
@@ -678,11 +707,20 @@ export class World {
     const structureScaleBoost = isOverworldMap && OVERWORLD_STRUCTURE_TILE_TYPES.has(tile.type)
       ? OVERWORLD_STRUCTURE_SCALE_MULTIPLIER
       : 1;
+    const metadata = TILE_METADATA[tile.type];
     const scale = baseScale * structureScaleBoost;
     const sortTrim = TILE_METADATA[tile.type]?.sortTrim ?? 0.16;
+    const yOffset = metadata?.yOffset ?? ((scale - 1) * this.tileSize * 0.3);
     const sortAnchorY = ((scale - 1) * this.tileSize * 0.3) - (scale * 0.5) + sortTrim;
     const renderOrderBias =
-      tile.type === 'cottage_house' || tile.type === 'cottage_house_entry' || tile.type === 'cottage_house_forest'
+      tile.type === 'house_entry' ||
+      tile.type === 'house_blue_entry' ||
+      tile.type === 'house_green_entry' ||
+      tile.type === 'house_thatch_entry' ||
+      tile.type === 'cottage_house' ||
+      tile.type === 'cottage_house_entry' ||
+      tile.type === 'cottage_house_forest' ||
+      tile.type === 'cottage_house_forest_ruined'
         ? 1500
         : tile.type === 'door' || tile.type === 'door_interior' || tile.type === 'door_iron'
           ? 1300
@@ -698,10 +736,12 @@ export class World {
 
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
     const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1, `overlay_${tile.type}`);
+    this.setRenderRole(baseMesh, 'ground');
+    this.setRenderRole(overlayMesh, 'overlay');
 
     if (scale !== 1.0) {
       overlayMesh.scale.set(scale, scale, 1);
-      overlayMesh.position.y = (scale - 1) * this.tileSize * 0.3;
+      overlayMesh.position.y = yOffset;
     }
     baseMesh.updateMatrix();
     overlayMesh.updateMatrix();
@@ -827,16 +867,8 @@ export class World {
         if (isOverlay) {
           const sortAnchorY = object.userData?.sortAnchorY ?? 0;
           const worldY = worldOffsetY + y * this.tileSize + visualYOffset + sortAnchorY;
-          // Environmental overlays get much lower render order to stay behind characters
-          const ySort = Math.round(
-            50000 +
-            (this.map.height - (worldY + this.map.height / 2)) * 10 +
-            (object.userData?.renderOrderBias ?? 0)
-          );
-          object.renderOrder = ySort;
-          if (object instanceof THREE.Group) {
-            for (const child of object.children) child.renderOrder = ySort;
-          }
+          const ySort = Math.round(100000 - worldY * 10 + (object.userData?.renderOrderBias ?? 0));
+          this.applyOverlayRenderOrder(object, ySort);
         }
         object.updateMatrix();
         if (object instanceof THREE.Group) object.updateMatrixWorld(true);
@@ -919,10 +951,7 @@ export class World {
         const sortAnchorY = object.userData?.sortAnchorY ?? 0;
         const worldY = worldOffsetY + y * this.tileSize + visualYOffset + sortAnchorY;
         const ySort = Math.round(100000 - worldY * 10 + (object.userData?.renderOrderBias ?? 0));
-        object.renderOrder = ySort;
-        if (object instanceof THREE.Group) {
-          for (const child of object.children) child.renderOrder = ySort;
-        }
+        this.applyOverlayRenderOrder(object, ySort);
       }
       object.updateMatrix();
       if (object instanceof THREE.Group) object.updateMatrixWorld(true);
@@ -1055,8 +1084,8 @@ export class World {
         const tile = this.map.tiles[ty][tx];
         if (!tile?.interactable || !tile.interactionId) continue;
 
-        const tileCenterX = tx - this.map.width / 2 + 0.5;
-        const tileCenterY = ty - this.map.height / 2 + 0.5;
+        const tileCenterX = tx - this.map.width / 2;
+        const tileCenterY = ty - this.map.height / 2;
         const dx = x - tileCenterX;
         const dy = y - tileCenterY;
         const distSq = dx * dx + dy * dy;
@@ -1126,6 +1155,9 @@ export class World {
   }
 
   private getInteractableReach(tile: Tile): number {
+    if (tile.interactionId === 'building_entrance' || tile.interactionId === 'building_exit') {
+      return 1.15;
+    }
     if (tile.type === 'door' || tile.type === 'door_interior' || tile.type === 'door_iron' || tile.type === 'portal') {
       return 0.75;
     }
@@ -1141,7 +1173,7 @@ export class World {
     if (tile.type === 'chest' || tile.type === 'chest_opened') {
       return 0.9;
     }
-    if (tile.type === 'flower' || tile.type === 'mushroom') {
+    if (tile.type === 'flower' || tile.type === 'mushroom' || tile.type === 'tempest_grass') {
       return 0.85;
     }
     return 0.9;

@@ -4,9 +4,19 @@ export const items: Record<string, Item> = {
   health_potion: {
     id: 'health_potion',
     name: 'Health Potion',
-    description: 'A small vial filled with red liquid. Restores 50 health when consumed.',
+    description: 'A small vial filled with red liquid. Restores 100 health when consumed.',
     type: 'consumable',
     sprite: 'potion',
+    healAmount: 100,
+  },
+
+  tempest_grass: {
+    id: 'tempest_grass',
+    name: 'Tempest Grass',
+    description: 'A wild healing herb bundled with twine. Restores 35 health when chewed or steeped.',
+    type: 'consumable',
+    sprite: 'tempest_grass_item',
+    healAmount: 35,
   },
   
   ancient_map: {

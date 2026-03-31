@@ -87,6 +87,13 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
+        id: 'shadow_watch',
+        text: "Greenleaf speaks your name with gratitude now. The village will hold the lantern line as best it can, but the road ahead leads to **Shadow Castle**. Rest while you can. When you are ready, finish what woke in the woods.",
+        responses: [
+          { text: "I'll carry the fight north.", nextId: 'end' },
+        ],
+      },
+      {
         id: 'end',
         text: "May fortune smile upon you, traveler.",
         responses: [],
@@ -105,6 +112,26 @@ export const dialogues: Record<string, Dialogue> = {
           { text: "Tell me about your travels.", nextId: 'travels' },
           { text: "I heard you're looking for rare herbs.", nextId: 'merchant_herb_pitch' },
           { text: "Nothing today, thanks.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'manuscript_return',
+        text: "Since your return from the cottage, half the village has been buying lantern oil, bandages, and lucky charms. Bad times for nerves, good times for trade. What can I get you?",
+        responses: [
+          { text: "What do you have for sale?", nextId: 'shop' },
+          { text: "Tell me about your travels.", nextId: 'travels' },
+          { text: "I heard you're looking for rare herbs.", nextId: 'merchant_herb_pitch' },
+          { text: "Nothing today, thanks.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'shadow_watch',
+        text: "These days I'm selling more lamp oil and salves than trinkets. Still, if you're marching on **Shadow Castle**, better to leave prepared than brave and empty-handed.",
+        responses: [
+          { text: "Show me your goods.", nextId: 'shop' },
+          { text: "Tell me about your travels.", nextId: 'travels' },
+          { text: "Still looking for rare herbs?", nextId: 'merchant_herb_pitch' },
+          { text: "I'll be on my way.", nextId: 'end' },
         ],
       },
       {
@@ -156,6 +183,21 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
+        id: 'merchant_herb_pitch',
+        text: "Moonbloom only blooms where old stone remembers moonlight. Bring me **three bunches** from the ruin-side paths beyond the **Whispering Woods**, and I'll pay well for the risk.",
+        responses: [
+          { text: "I'll gather the Moonbloom.", nextId: 'end', givesQuest: 'merchants_request' },
+          { text: "Not today.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'merchant_moonbloom_deliver',
+        text: "By the stars, you really found enough __Moonbloom__. Hand it over and I'll make it worth your while. Fresh bloom like this is hard to come by in frightened times.",
+        responses: [
+          { text: "Hand over the Moonbloom.", nextId: 'end' },
+        ],
+      },
+      {
         id: 'end',
         text: "Safe travels, friend! Come back anytime!",
         responses: [],
@@ -174,6 +216,23 @@ export const dialogues: Record<string, Dialogue> = {
           { text: "I'm here to help with the trouble in the forest.", nextId: 'helping', requiresQuest: 'find_hunter' },
           { text: "I could help you patrol.", nextId: 'patrol_offer' },
           { text: "What are you guarding against?", nextId: 'guarding' },
+        ],
+      },
+      {
+        id: 'manuscript_return',
+        text: "Since your report from the **Disparaged Cottage**, we've doubled the watch and barred the north road at dusk. If you're heading back out, do it with your eyes open.",
+        responses: [
+          { text: "What are the defenses now?", nextId: 'guarding' },
+          { text: "I could help you patrol.", nextId: 'patrol_offer' },
+          { text: "Stay sharp.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'shadow_watch',
+        text: "The Elder's warning changed everything. Every spear in **Greenleaf** faces north now, and every torch stays lit past midnight. If the castle stirs, we hold long enough for you to end it.",
+        responses: [
+          { text: "How bad is it beyond the walls?", nextId: 'dangers' },
+          { text: "Hold the line.", nextId: 'end' },
         ],
       },
       {
@@ -214,6 +273,21 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
+        id: 'patrol_offer',
+        text: "Good. Sweep the **northern border**, put down whatever hostile creatures you find, and report back. We need proof the line can still hold.",
+        responses: [
+          { text: "I'll take the patrol.", nextId: 'end', givesQuest: 'guard_duty' },
+          { text: "Maybe another time.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'guard_turnin',
+        text: "Back from the border? You look like you've thinned the pack. That's the sort of work that buys a village one more quiet night.",
+        responses: [
+          { text: "The border is clear for now.", nextId: 'end' },
+        ],
+      },
+      {
         id: 'end',
         text: "Stay vigilant out there.",
         responses: [],
@@ -224,7 +298,7 @@ export const dialogues: Record<string, Dialogue> = {
   village_sign: {
     id: 'village_sign',
     nodes: [
-      { id: 'start', text: "A weathered wooden sign reads: '**Welcome to Willowbrook Village** - Founded __342 years ago__. Population: 47. May peace and prosperity guide all who enter.'", responses: [{ text: "[Continue]", nextId: 'end' }] },
+      { id: 'start', text: "A weathered wooden sign reads: '**Welcome to Greenleaf Village** - Founded __342 years ago__. Population: 47. May peace and prosperity guide all who enter.'", responses: [{ text: "[Continue]", nextId: 'end' }] },
       { id: 'end', text: "", responses: [] },
     ],
   },
@@ -276,7 +350,7 @@ export const dialogues: Record<string, Dialogue> = {
   // === MAP INTERACTABLES ===
   ranger_sign: {
     id: 'ranger_sign',
-    nodes: [{ id: 'start', text: "A weathered sign reads: '**Ranger Outpost** — All travelers welcome. Beware __wolves__ deeper in the woods, especially to the __northwest__.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "A weathered sign reads: '**Ranger Outpost** — Rest, resupply, and keep the fire lit. Follow the __blood-dark trail east__ for the **Disparaged Cottage**. __Northwest__ paths lead into wolf country.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   forest_shortcut_lever: {
     id: 'forest_shortcut_lever',
@@ -284,7 +358,7 @@ export const dialogues: Record<string, Dialogue> = {
   },
   hunter_warning_sign: {
     id: 'hunter_warning_sign',
-    nodes: [{ id: 'start', text: "A split hunters' board leans against the ruined gate: '**Palisade broken. Keep moving.** If the trail is bloodied, the **Disparaged Cottage** lies just ahead.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "A split hunters' board leans against the ruined gate: '**Palisade broken. Keep moving.** Follow the __blood trail__ past the bonfire shelf and the **Disparaged Cottage** lies just ahead.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   bridge_sign: {
     id: 'bridge_sign',
@@ -292,11 +366,11 @@ export const dialogues: Record<string, Dialogue> = {
   },
   danger_sign: {
     id: 'danger_sign',
-    nodes: [{ id: 'start', text: "**WARNING:** __Wolf territory__ ahead. Only experienced adventurers should proceed.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "**WARNING:** __Wolf territory__ ahead. The ruin road is faster, but only experienced hunters should proceed.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   forest_entry_sign: {
     id: 'forest_entry_sign',
-    nodes: [{ id: 'start', text: "A carved wooden sign: '**Welcome to the Whispering Woods**. Stay on the __paths__, traveler.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "A carved wooden sign: '**Welcome to the Whispering Woods**. Stay on the __paths__. The __ranger fire__ burns on the rise ahead.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   hunter_clue: {
     id: 'hunter_clue',
@@ -316,7 +390,7 @@ export const dialogues: Record<string, Dialogue> = {
   },
   witch_sign: {
     id: 'witch_sign',
-    nodes: [{ id: 'start', text: "Scrawled on a rotting plank: '**The Witch** sees all. Leave __offerings__ or leave quickly.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "Scrawled on a rotting plank: '**The Witch** sees all. Leave __offerings__ and follow the __lanterns west__ if you seek counsel. Climb __north__ only if you seek the shadow gate.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
 
   witch_hut_lore: {
@@ -331,7 +405,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'lore',
-        text: "You understand the danger: a **well of shadow magic** is waking, twisting creature and forest alike. The witch has been holding the line for years.",
+        text: "You understand the danger: a **well of shadow magic** is waking, twisting creature and forest alike. The witch has been holding the line for years. Its pull now climbs the __temple road__ toward the **Shadow Castle** gate.",
         responses: [{ text: "[Continue]", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },
@@ -339,11 +413,11 @@ export const dialogues: Record<string, Dialogue> = {
   },
   temple_sign: {
     id: 'temple_sign',
-    nodes: [{ id: 'start', text: "Ancient runes glow faintly: '**Beyond lies the Temple of the Forgotten**. Only the __worthy__ may enter.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "Ancient runes glow faintly: '**Beyond lies the Temple of the Forgotten**. The __seal road__ climbs north toward the **Shadow Castle** gate. Cross the ruined court, raise the inner mechanism, and only then may the keep be faced.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   deep_woods_sign: {
     id: 'deep_woods_sign',
-    nodes: [{ id: 'start', text: "A battered sign: '**The Deep Woods** — Turn back. __Shadow creatures__ roam these lands.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "A battered sign: '**The Deep Woods** — Turn back. Follow the __west lantern road__ to the witch. The __north road__ rises toward old temple stones and the shadow gate beyond.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   tombstone: {
     id: 'tombstone',
@@ -392,6 +466,24 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
+        id: 'manuscript_return',
+        text: "Ever since you came back from that cottage, I've been turning spare iron into nails, spearheads, and anything else that might stop a beast at the wall. Need something while the forge is still hot?",
+        responses: [
+          { text: "Can you improve my weapons?", nextId: 'weapons' },
+          { text: "Heard any rumors lately?", nextId: 'rumors' },
+          { text: "Just browsing.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'shadow_watch',
+        text: "I've handed the guard every spare blade I trust not to snap. If you're really going north, make sure your steel is cleaner than your conscience.",
+        responses: [
+          { text: "Can you improve my weapons?", nextId: 'weapons' },
+          { text: "Heard any rumors lately?", nextId: 'rumors' },
+          { text: "Just browsing.", nextId: 'end' },
+        ],
+      },
+      {
         id: 'weapons',
         text: "Ha! Eager to fight, are we? I can see your blade's seen some action. Come back with some **rare ore** from the **Ancient Ruins** and I'll forge you something __special__.",
         responses: [
@@ -423,6 +515,24 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
+        id: 'manuscript_return',
+        text: "Since your news from the forest, the chapel has barely gone quiet. Hunters, woodcutters, frightened children - everyone wants a blessing before sunset. How may I help you?",
+        responses: [
+          { text: "Can you heal me?", nextId: 'heal' },
+          { text: "Do you know anything about the forest?", nextId: 'forest' },
+          { text: "I'm fine, thanks.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'shadow_watch',
+        text: "The beds are full and the lanterns burn through the night, but fear is worse than any wound if you let it settle. Tell me what you need.",
+        responses: [
+          { text: "Can you heal me?", nextId: 'heal' },
+          { text: "Do you know anything about the forest?", nextId: 'forest' },
+          { text: "I'm fine, thanks.", nextId: 'end' },
+        ],
+      },
+      {
         id: 'heal',
         text: "Of course. The light mends all wounds. Rest a moment... there. You should feel __much better__ now. (**Health restored**)",
         responses: [
@@ -440,12 +550,136 @@ export const dialogues: Record<string, Dialogue> = {
     ],
   },
 
+  apothecary: {
+    id: 'apothecary',
+    nodes: [
+      {
+        id: 'start',
+        text: "Welcome to the **Greenleaf Apothecary**. I'm **Mirelle**. If it's bitter, it probably works. If it stains, don't ask what was in it. What do you need?",
+        responses: [
+          { text: "Could you mix a restorative?", nextId: 'heal' },
+          { text: "What are people buying lately?", nextId: 'stock' },
+          { text: "Seen anything strange from the woods?", nextId: 'woods' },
+          { text: "Just browsing.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'manuscript_return',
+        text: "Since the hunter's notes came back, I've been grinding moonbloom and sleep-leaf from dawn to dusk. Folk want courage in a bottle, but I mostly sell steadier hands and quieter hearts.",
+        responses: [
+          { text: "Could you mix a restorative?", nextId: 'heal' },
+          { text: "What are people buying lately?", nextId: 'stock' },
+          { text: "Seen anything strange from the woods?", nextId: 'woods' },
+          { text: "Just browsing.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'shadow_watch',
+        text: "I've moved the strongest tinctures off the front shelves. Between the chapel beds and the north watch, the whole village seems to breathe in short, careful sips now. What can I make for you?",
+        responses: [
+          { text: "Could you mix a restorative?", nextId: 'heal' },
+          { text: "What are people buying lately?", nextId: 'stock' },
+          { text: "Seen anything strange from the woods?", nextId: 'woods' },
+          { text: "Just browsing.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'heal',
+        text: "Drink this while it's still warm. Bitter root, clean water, and just enough embermint to bully the ache out of your bones. (**Health restored**)",
+        responses: [
+          { text: "That helped. Thanks.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'stock',
+        text: "Bandages, calming draughts, lamp-oil, and every herb the rangers drag in before sunset. When a village gets nervous, it starts buying anything that promises one more good night of sleep.",
+        responses: [
+          { text: "Makes sense.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'woods',
+        text: "The worst part isn't the blood on the hunters' clothes. It's the resin. Black, sticky, and cold even when I put it near the fire. Whatever's gone wrong beyond the **Deep Woods**, it's seeping south in more ways than one.",
+        responses: [
+          { text: "I'll remember that.", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: "Mind the shelves. Half these bottles heal, and the other half teach respect.", responses: [] },
+    ],
+  },
+
+  chapel_keeper: {
+    id: 'chapel_keeper',
+    nodes: [
+      {
+        id: 'start',
+        text: "Peace on this threshold. I'm **Rowan**, keeper of the village chapel. We keep the candles trimmed, the names remembered, and the door unbarred for anyone who needs a quieter room than the world provides.",
+        responses: [
+          { text: "How's the chapel holding up?", nextId: 'chapel' },
+          { text: "How is the village taking all this?", nextId: 'watch' },
+          { text: "I'll leave you to your work.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'manuscript_return',
+        text: "Since word came back from the forest, we've kept the chapel open past moonrise. People pray here, rest here, and sometimes just sit where the bells ought to sound and listen for proof the night hasn't swallowed everything yet.",
+        responses: [
+          { text: "How's the chapel holding up?", nextId: 'chapel' },
+          { text: "How is the village taking all this?", nextId: 'watch' },
+          { text: "I'll leave you to your work.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'shadow_watch',
+        text: "We're down to the last dry linens and the chapel floor is lined with cots, but the door still opens and the lantern still burns. That's enough to keep fear from thinking it owns the room.",
+        responses: [
+          { text: "How's the chapel holding up?", nextId: 'chapel' },
+          { text: "How is the village taking all this?", nextId: 'watch' },
+          { text: "I'll leave you to your work.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'chapel',
+        text: "A chapel earns its keep long before funerals. Right now it's blankets, water, a steady voice, and someplace Sister Lenna can send the frightened before they become wounded.",
+        responses: [
+          { text: "That's good to hear.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'watch',
+        text: "Greenleaf still has its shape: market fires, chapel candles, gate lanterns, boots on the road. People can endure a great deal if the small familiar things keep happening around them.",
+        responses: [
+          { text: "Let's keep it that way.", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: "If you need a quiet moment before the road, the chapel door is yours.", responses: [] },
+    ],
+  },
+
   farmer: {
     id: 'farmer',
     nodes: [
       {
         id: 'start',
         text: "Hmph. Another adventurer tramping through my fields. Mind where you step! Those __crops__ took months to grow.",
+        responses: [
+          { text: "Sorry about that. Need any help?", nextId: 'help' },
+          { text: "Seen anything strange around here?", nextId: 'strange' },
+          { text: "I'll be on my way.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'manuscript_return',
+        text: "Since the village heard your news, nobody wants to work the fields after dusk. Can't say I blame them. Half the harvest's still sitting out there under a nervous sky.",
+        responses: [
+          { text: "Sorry about that. Need any help?", nextId: 'help' },
+          { text: "Seen anything strange around here?", nextId: 'strange' },
+          { text: "I'll be on my way.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'shadow_watch',
+        text: "We've hauled what grain we can inside the fences and left the rest to weather. If the castle road keeps souring the night air, next season's going to be hard.",
         responses: [
           { text: "Sorry about that. Need any help?", nextId: 'help' },
           { text: "Seen anything strange around here?", nextId: 'strange' },
@@ -483,6 +717,24 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
+        id: 'manuscript_return',
+        text: "Everyone keeps whispering about the forest now. Mama says I have to stay where the lanterns reach, but I still want to hear what you saw out there!",
+        responses: [
+          { text: "I sure do! Want to hear a story?", nextId: 'story' },
+          { text: "It's dangerous work, kid.", nextId: 'dangerous' },
+          { text: "Maybe when you're older.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'shadow_watch',
+        text: "They won't let me near the north gate anymore. Everybody keeps carrying boxes and whispering about the castle. Are you really going to stop it?",
+        responses: [
+          { text: "I sure do! Want to hear a story?", nextId: 'story' },
+          { text: "It's dangerous work, kid.", nextId: 'dangerous' },
+          { text: "Maybe when you're older.", nextId: 'end' },
+        ],
+      },
+      {
         id: 'story',
         text: "YES! Tell me tell me! ...Wow, a real **shadow beast**?! My friend **Tommy** says he saw one near the __old well__ but I think he was just making it up. Or maybe not...",
         responses: [
@@ -497,6 +749,54 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       { id: 'end', text: "Bye bye, adventurer! Come back and tell me more stories!", responses: [] },
+    ],
+  },
+  innkeeper: {
+    id: 'innkeeper',
+    nodes: [
+      {
+        id: 'start',
+        text: "Welcome to the **Greenleaf Inn**. I'm **Mara**. Warm stew, dry blankets, and no questions unless you want them. What do you need?",
+        responses: [
+          { text: "How's the inn holding up?", nextId: 'inn_talk' },
+          { text: "Heard anything lately?", nextId: 'rumors' },
+          { text: "Just looking around.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'manuscript_return',
+        text: "Since the hunter's pages came back, half the village has been sleeping here in shifts. Folk feel safer near the fire and the walls. What can I do for you?",
+        responses: [
+          { text: "How's the inn holding up?", nextId: 'inn_talk' },
+          { text: "Heard anything lately?", nextId: 'rumors' },
+          { text: "Just looking around.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'shadow_watch',
+        text: "I've turned spare rooms into cots and the common tables into bandage stations. If the castle road sends worse down on us, this place becomes a shelter before sunrise.",
+        responses: [
+          { text: "How's the inn holding up?", nextId: 'inn_talk' },
+          { text: "Heard anything lately?", nextId: 'rumors' },
+          { text: "Just looking around.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'inn_talk',
+        text: "A village can panic quietly for a while, but you can hear it in the cups and footsteps. These days everyone drinks slower and listens harder.",
+        responses: [
+          { text: "Any useful rumors?", nextId: 'rumors' },
+          { text: "Thanks, Mara.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'rumors',
+        text: "Rangers say the woods went wrong in layers. First the beasts, then the shadows, and now the road north feels watched. Whatever waits beyond the **Deep Woods**, it wants the village afraid before it ever arrives.",
+        responses: [
+          { text: "I'll keep that in mind.", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: "There's always a chair by the fire if you make it back in one piece.", responses: [] },
     ],
   },
   building_entrance: {

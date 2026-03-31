@@ -5,27 +5,33 @@ export interface TileMetadata {
   baseTile?: TileType;
   scale?: number;
   sortTrim?: number;
+  yOffset?: number;
 }
 
 export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   tree: { isOverlay: true, baseTile: 'grass', scale: 1.8, sortTrim: 0.12 },
-  house: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14 },
-  house_blue: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14 },
-  house_green: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14 },
-  house_thatch: { isOverlay: true, baseTile: 'dirt', scale: 2.0, sortTrim: 0.12 },
-  cottage_house: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3 },
-  cottage_house_entry: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3 },
-  cottage_house_forest: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3 },
-  cottage_house_forest_ruined: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3 },
+  house: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1 },
+  house_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.95, sortTrim: 0.26, yOffset: 0.7 },
+  house_blue: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1 },
+  house_blue_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.95, sortTrim: 0.26, yOffset: 0.7 },
+  house_green: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1 },
+  house_green_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.95, sortTrim: 0.26, yOffset: 0.7 },
+  house_thatch: { isOverlay: true, baseTile: 'dirt', scale: 2.0, sortTrim: 0.12, yOffset: 0 },
+  house_thatch_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.8, sortTrim: 0.24, yOffset: 0.66 },
+  cottage_house: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
+  cottage_house_entry: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
+  cottage_house_forest: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
+  cottage_house_forest_ruined: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
   rock: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.18 },
   chest: { isOverlay: true, baseTile: 'wood_floor', scale: 0.9, sortTrim: 0.32 },
   chest_opened: { isOverlay: true, baseTile: 'wood_floor', scale: 0.9, sortTrim: 0.32 },
-  portal: { isOverlay: true, baseTile: 'stone', scale: 1.3, sortTrim: 0.2 },
+  portal: { isOverlay: true, baseTile: 'stone', scale: 1.45, sortTrim: 0.24, yOffset: 0.08 },
   flower: { isOverlay: true, baseTile: 'grass', scale: 0.5, sortTrim: 0.22 },
+  tempest_grass: { isOverlay: true, baseTile: 'grass', scale: 0.72, sortTrim: 0.24 },
   push_block: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.16 },
   campfire: { isOverlay: true, baseTile: 'dirt', scale: 0.8, sortTrim: 0.2 },
   bonfire: { isOverlay: true, baseTile: 'dirt', scale: 1.0, sortTrim: 0.16 },
-  sign: { isOverlay: true, baseTile: 'dirt', scale: 0.8, sortTrim: 0.16 },
+  sign: { isOverlay: true, baseTile: 'dirt', scale: 1.08, sortTrim: 0.2, yOffset: 0.08 },
   well: { isOverlay: true, baseTile: 'stone', scale: 1.2, sortTrim: 0.18 },
   tombstone: { isOverlay: true, baseTile: 'grass', scale: 0.7, sortTrim: 0.16 },
   mushroom: { isOverlay: true, baseTile: 'grass', scale: 0.7, sortTrim: 0.2 },
