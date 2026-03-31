@@ -1,5 +1,6 @@
 import type { GameState } from '@/lib/game/GameState';
 import type { World } from '@/lib/game/World';
+import { makeVisitedTileKey } from '@/lib/game/visitedTiles';
 
 export type PlayerAnimState =
   | 'idle'
@@ -122,6 +123,33 @@ export function updatePlayerSimulation({
   emitHeal,
   triggerMinimapUpdate,
 }: UpdatePlayerSimulationOptions): PlayerSimulationResult {
+  const revealVisibleTiles = () => {
+    const currentMap = world.getCurrentMap();
+    const viewHalfH = 7;
+    const viewHalfW = Math.ceil(viewHalfH * (window.innerWidth / window.innerHeight));
+    const centerTileX = Math.floor(state.player.position.x + currentMap.width / 2);
+    const centerTileY = Math.floor(state.player.position.y + currentMap.height / 2);
+    let newTilesRevealed = false;
+
+    for (let dy = -viewHalfH; dy <= viewHalfH; dy++) {
+      for (let dx = -viewHalfW; dx <= viewHalfW; dx++) {
+        const tx = centerTileX + dx;
+        const ty = centerTileY + dy;
+        if (tx >= 0 && tx < currentMap.width && ty >= 0 && ty < currentMap.height) {
+          const key = makeVisitedTileKey(state.currentMap, tx, ty);
+          if (!visitedTiles.has(key)) {
+            visitedTiles.add(key);
+            newTilesRevealed = true;
+          }
+        }
+      }
+    }
+
+    if (newTilesRevealed) {
+      triggerMinimapUpdate(false, currentTime);
+    }
+  };
+
   if (isChargingAttack) {
     if (!isLmbHeld) {
       isChargingAttack = false;
@@ -156,6 +184,8 @@ export function updatePlayerSimulation({
       dodgeBuffered,
     };
   }
+
+  revealVisibleTiles();
 
   let moveX = 0;
   let moveY = 0;
@@ -257,30 +287,6 @@ export function updatePlayerSimulation({
       footstepTimer = 0;
     }
 
-    const currentMap = world.getCurrentMap();
-    const viewHalfH = 7;
-    const viewHalfW = Math.ceil(viewHalfH * (window.innerWidth / window.innerHeight));
-    const centerTileX = Math.floor(state.player.position.x + currentMap.width / 2);
-    const centerTileY = Math.floor(state.player.position.y + currentMap.height / 2);
-    let newTilesRevealed = false;
-
-    for (let dy = -viewHalfH; dy <= viewHalfH; dy++) {
-      for (let dx = -viewHalfW; dx <= viewHalfW; dx++) {
-        const tx = centerTileX + dx;
-        const ty = centerTileY + dy;
-        if (tx >= 0 && tx < currentMap.width && ty >= 0 && ty < currentMap.height) {
-          const key = `${tx},${ty}`;
-          if (!visitedTiles.has(key)) {
-            visitedTiles.add(key);
-            newTilesRevealed = true;
-          }
-        }
-      }
-    }
-
-    if (newTilesRevealed) {
-      triggerMinimapUpdate(false, currentTime);
-    }
   } else {
     state.player.isMoving = false;
     footstepTimer = 0;

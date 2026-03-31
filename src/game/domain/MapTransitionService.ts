@@ -37,6 +37,30 @@ interface TransitionContext {
 }
 
 export function createMapTransitionService(context: TransitionContext) {
+  const findNearbyExteriorEntrance = (map: WorldMap, targetX: number, targetY: number) => {
+    let best: { x: number; y: number } | null = null;
+    let bestScore = Number.POSITIVE_INFINITY;
+
+    for (let y = targetY - 4; y <= targetY + 4; y++) {
+      if (y < 0 || y >= map.height) continue;
+      for (let x = targetX - 1; x <= targetX + 1; x++) {
+        if (x < 0 || x >= map.width) continue;
+        const tile = map.tiles[y]?.[x];
+        if (tile?.interactionId !== 'building_entrance') continue;
+
+        // Favor the southernmost entrance marker so cottage front-step fallback
+        // triggers beat the threshold tile tucked under the facade.
+        const score = Math.abs(x - targetX) * 100 + Math.abs(y - targetY) * 10 - y;
+        if (!best || score < bestScore) {
+          best = { x, y };
+          bestScore = score;
+        }
+      }
+    }
+
+    return best;
+  };
+
   const resolveExteriorExitTarget = (
     sourceMap: string,
     targetMap: string,
@@ -48,24 +72,25 @@ export function createMapTransitionService(context: TransitionContext) {
       return { x: targetX, y: targetY };
     }
 
-    const destinationTile = map.tiles[targetY]?.[targetX];
-    if (destinationTile?.interactionId !== 'building_entrance') {
+    const entranceTile = findNearbyExteriorEntrance(map, targetX, targetY);
+    if (!entranceTile) {
       return { x: targetX, y: targetY };
     }
 
     // Exterior building entrances are authored with the accessible approach path
-    // directly south of the trigger tile. Prefer spawning a couple of steps out
-    // so the player appears in front of the doorway instead of inside the facade.
-    const candidateOffsets = [2, 1, 3];
+    // visually below the trigger tile. In this map coordinate system that means
+    // a slightly smaller Y value, so step outward that way instead of dropping
+    // the player onto the roof/back side of the facade.
+    const candidateOffsets = [5, 4, 3, 2, 1, 6];
     for (const offset of candidateOffsets) {
-      const nextY = targetY + offset;
-      const nextTile = map.tiles[nextY]?.[targetX];
+      const nextY = entranceTile.y - offset;
+      const nextTile = map.tiles[nextY]?.[entranceTile.x];
       if (nextTile?.walkable) {
-        return { x: targetX, y: nextY };
+        return { x: entranceTile.x, y: nextY };
       }
     }
 
-    return { x: targetX, y: targetY };
+    return entranceTile;
   };
 
   const transitionTo = (targetMap: string, targetX: number, targetY: number): MapTransitionResult => {

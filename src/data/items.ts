@@ -3,8 +3,8 @@ import { Item } from '@/lib/game/GameState';
 export const items: Record<string, Item> = {
   health_potion: {
     id: 'health_potion',
-    name: 'Health Potion',
-    description: 'A small vial filled with red liquid. Restores 100 health when consumed.',
+    name: 'Ephemeral Extract',
+    description: 'A bright alchemical draught that briefly steadies body and breath. Restores 100 health when consumed.',
     type: 'consumable',
     sprite: 'potion',
     healAmount: 100,

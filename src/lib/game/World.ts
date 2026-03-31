@@ -17,7 +17,7 @@ export type TileType =
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
   | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter'
   | 'bed' | 'wardrobe' | 'fireplace' | 'weapon_rack' | 'alchemy_table' | 'cauldron'
-  | 'throne' | 'altar' | 'bloodstain' | 'chain' | 'cage' | 'bones_pile'
+  | 'throne' | 'altar' | 'bloodstain' | 'chain' | 'shortcut_lever' | 'cage' | 'bones_pile'
   | 'door' | 'door_interior' | 'door_iron';
 
 export interface Tile {
@@ -1164,7 +1164,7 @@ export class World {
     if (tile.type === 'bonfire' || tile.type === 'campfire') {
       return 1.2;
     }
-    if (tile.type === 'sign' || tile.type === 'chain' || tile.type === 'lantern') {
+    if (tile.type === 'sign' || tile.type === 'chain' || tile.type === 'shortcut_lever' || tile.type === 'lantern') {
       return 1.1;
     }
     if (tile.type === 'well' || tile.type === 'tombstone' || tile.type === 'table' || tile.type === 'stump') {

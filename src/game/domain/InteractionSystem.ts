@@ -15,7 +15,9 @@ interface InteractionSystemContext {
   startDialogue: (dialogueId: string, npcName?: string) => void;
   items: Record<string, Item>;
   playItemGrab: () => void;
+  playGrassPull: () => void;
   playChestUnlock: () => void;
+  playGateShortcut: () => void;
   emitSparkles: (position: THREE.Vector3) => void;
   emitHeal: (position: THREE.Vector3) => void;
   notify: (message: string, options?: NotificationOptions) => void;
@@ -64,7 +66,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return false;
     }
 
-    context.state.player.essence += dropped.amount;
+    context.state.addEssence(dropped.amount);
     context.state.droppedEssence = null;
     context.playItemGrab();
     context.emitSparkles(new THREE.Vector3(dropped.x, dropped.y, 0.5));
@@ -137,7 +139,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
               ? 40
               : 20;
 
-    context.state.player.gold += goldAmount;
+    context.state.addGold(goldAmount);
     if (context.items.health_potion) {
       context.state.addItem(context.items.health_potion);
       context.playItemGrab();
@@ -148,7 +150,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.notify('Chest Opened!', {
       id: 'chest-open',
       type: 'success',
-      description: `Found ${goldAmount} gold and a Health Potion.`,
+      description: `Found ${goldAmount} gold and an Ephemeral Extract.`,
       duration: 3000,
     });
     context.triggerUIUpdate();
@@ -165,6 +167,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     if (context.items.tempest_grass) {
       context.state.addItem(context.items.tempest_grass);
     }
+    context.playGrassPull();
     context.syncHarvestedTempestGrassState();
     context.emitSparkles(new THREE.Vector3(px, py, 0.3));
     context.notify('Harvested Tempest Grass', {
@@ -273,6 +276,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.state.setFlag('whispering_woods_shortcut_open', true);
     context.syncWhisperingWoodsShortcutState();
     context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.notify('Shortcut unlocked', {
       id: 'forest-shortcut-unlocked',

@@ -1,5 +1,5 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import type { GameState, Item } from '@/lib/game/GameState';
+import type { GameState } from '@/lib/game/GameState';
 
 type PlayerAnimState =
   | 'idle'
@@ -23,6 +23,7 @@ interface RuntimeKeyboardInputOptions {
   notify: (title: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
   triggerUIUpdate: () => void;
   syncEquippedWeapon: (preferredWeaponId?: string | null) => void;
+  usePotion: () => void;
   setTransitionDebugEnabled: Dispatch<SetStateAction<boolean>>;
   setTransitionDebugLines: Dispatch<SetStateAction<string[]>>;
   rebuildTransitionDebug: () => void;
@@ -34,8 +35,7 @@ interface RuntimeKeyboardInputOptions {
   setDodgeBuffered: (value: boolean) => void;
   setPlayerAnimState: (value: PlayerAnimState) => void;
   getPlayerAnimState: () => PlayerAnimState;
-  setDrinkTimer: (value: number) => void;
-  drinkDuration: number;
+  playBlock: () => void;
   setIsBlocking: (value: boolean) => void;
   getIsBlocking: () => boolean;
   setBlockStartTime: (value: number) => void;
@@ -52,6 +52,7 @@ export function createKeyboardInputController({
   notify,
   triggerUIUpdate,
   syncEquippedWeapon,
+  usePotion,
   setTransitionDebugEnabled,
   setTransitionDebugLines,
   rebuildTransitionDebug,
@@ -63,64 +64,59 @@ export function createKeyboardInputController({
   setDodgeBuffered,
   setPlayerAnimState,
   getPlayerAnimState,
-  setDrinkTimer,
-  drinkDuration,
+  playBlock,
   setIsBlocking,
   getIsBlocking,
   setBlockStartTime,
 }: RuntimeKeyboardInputOptions) {
-  const cycleActiveItem = (direction: -1 | 1) => {
-    if (state.dialogueActive || state.inventory.length === 0) return;
+  const cycleConsumable = (direction: -1 | 1) => {
+    if (state.dialogueActive) return;
+    const consumableIndexesById = new Map<string, number>();
+    state.inventory.forEach((item, index) => {
+      if (item.type === 'consumable' && !consumableIndexesById.has(item.id)) {
+        consumableIndexesById.set(item.id, index);
+      }
+    });
+    const consumableIndexes = Array.from(consumableIndexesById.values());
+    if (consumableIndexes.length === 0) return;
 
-    let nextIndex =
+    const activeItem = state.inventory[state.activeItemIndex];
+    const currentIndex =
+      activeItem?.type === 'consumable' && consumableIndexesById.has(activeItem.id)
+        ? consumableIndexesById.get(activeItem.id)!
+        : state.activeItemIndex;
+    const currentPosition = consumableIndexes.indexOf(currentIndex);
+    const basePosition = currentPosition >= 0 ? currentPosition : 0;
+    const nextPosition =
       direction === -1
-        ? (state.activeItemIndex - 1 + state.inventory.length) % state.inventory.length
-        : (state.activeItemIndex + 1) % state.inventory.length;
+        ? (basePosition - 1 + consumableIndexes.length) % consumableIndexes.length
+        : (basePosition + 1) % consumableIndexes.length;
 
-    const startId = state.inventory[state.activeItemIndex]?.id;
-    let count = 0;
-    while (state.inventory[nextIndex]?.id === startId && count < state.inventory.length) {
-      nextIndex =
-        direction === -1
-          ? (nextIndex - 1 + state.inventory.length) % state.inventory.length
-          : (nextIndex + 1) % state.inventory.length;
-      count++;
-    }
-
+    const nextIndex = consumableIndexes[nextPosition];
     if (state.activeItemIndex !== nextIndex) {
       state.activeItemIndex = nextIndex;
-      if (state.inventory[nextIndex]?.type === 'equipment') {
-        syncEquippedWeapon(state.inventory[nextIndex].id);
-      }
       triggerUIUpdate();
     }
   };
 
-  const useSelectedConsumable = () => {
-    const activeItem = state.inventory[state.activeItemIndex];
-    if (activeItem?.type !== 'consumable') {
-      setDodgeBuffered(true);
-      return;
-    }
+  const cycleWeapon = (direction: -1 | 1) => {
+    if (state.dialogueActive) return;
+    const weaponIds: string[] = [];
+    state.inventory.forEach(item => {
+      if (item.type === 'equipment' && !weaponIds.includes(item.id)) {
+        weaponIds.push(item.id);
+      }
+    });
+    if (weaponIds.length === 0) return;
 
-    if (typeof activeItem.healAmount === 'number' && activeItem.healAmount > 0) {
-      if (state.player.health >= state.player.maxHealth) {
-        notify('Already at full health!', { id: 'full-health', duration: 1500 });
-        return;
-      }
-      setPlayerAnimState('drinking');
-      setDrinkTimer(drinkDuration);
-      state.player.health = Math.min(state.player.maxHealth, state.player.health + activeItem.healAmount);
-      state.removeItem(activeItem.id);
-      notify(`Used ${activeItem.name}`, {
-        id: `used-${activeItem.id}`,
-        type: 'success',
-        description: `Restored ${activeItem.healAmount} health.`,
-        duration: 2000,
-      });
-      if (state.activeItemIndex >= state.inventory.length) {
-        state.activeItemIndex = Math.max(0, state.inventory.length - 1);
-      }
+    const currentIndex = Math.max(0, weaponIds.indexOf(state.equippedWeaponId ?? weaponIds[0]));
+    const nextIndex =
+      direction === -1
+        ? (currentIndex - 1 + weaponIds.length) % weaponIds.length
+        : (currentIndex + 1) % weaponIds.length;
+    const nextWeaponId = weaponIds[nextIndex];
+    if (nextWeaponId !== state.equippedWeaponId) {
+      syncEquippedWeapon(nextWeaponId);
       triggerUIUpdate();
     }
   };
@@ -173,19 +169,32 @@ export function createKeyboardInputController({
       setInteractBuffered(true);
     }
     if (e.key.toLowerCase() === 'q') {
-      cycleActiveItem(-1);
+      cycleConsumable(-1);
     }
     if (e.key.toLowerCase() === 'e') {
-      cycleActiveItem(1);
+      cycleConsumable(1);
+    }
+    if (e.key.toLowerCase() === 'z' && !state.dialogueActive) {
+      e.preventDefault();
+      usePotion();
+    }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      cycleWeapon(-1);
+    }
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      cycleWeapon(1);
     }
     if (e.key === ' ' && !state.dialogueActive) {
       e.preventDefault();
-      useSelectedConsumable();
+      setDodgeBuffered(true);
     }
     if (e.key === 'Control' && !state.dialogueActive) {
       if (!getIsBlocking() && !state.player.isDodging && state.player.stamina > 0) {
         setIsBlocking(true);
         setBlockStartTime(performance.now() / 1000);
+        playBlock();
         const playerAnimState = getPlayerAnimState();
         if (
           playerAnimState !== 'attack' &&

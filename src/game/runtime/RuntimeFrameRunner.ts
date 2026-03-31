@@ -148,6 +148,7 @@ export function runRuntimeFrame({
       swooshFacing: runtimeSession.visual.swooshFacing,
       spinSwooshTimer: runtimeSession.visual.spinSwooshTimer,
       spinSwooshDuration,
+      heldConsumableSpriteId: runtimeSession.animation.heldConsumableSpriteId,
       camera,
       cameraTarget,
       lastInteractionPrompt,

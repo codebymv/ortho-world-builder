@@ -133,6 +133,7 @@ export interface PlayerFrameContext {
   portalWarpManager: PortalWarpManagerLike;
   notify: (title: string, options?: { id?: string; description?: string; duration?: number }) => void;
   handleMapTransition: (targetMap: string, targetX: number, targetY: number) => void;
+  handlePortalTransition: (targetMap: string, targetX: number, targetY: number) => void;
 }
 
 export interface EnemyAudioContext {
@@ -161,6 +162,7 @@ export interface EnemyLoopContext {
   createOutlineMesh: (geometry: THREE.BufferGeometry, texture: THREE.Texture | null) => THREE.Mesh;
   getVisualYAt: (x: number, y: number) => number;
   getActorRenderOrder: (x: number, y: number, footOffset: number) => number;
+  playPlayerHit: () => void;
 }
 
 export interface RuntimeLoopTailContext {

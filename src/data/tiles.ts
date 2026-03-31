@@ -72,6 +72,7 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   altar: { isOverlay: true, baseTile: 'stone', scale: 1.4, sortTrim: 0.08 },
   bloodstain: { isOverlay: true, baseTile: 'stone', scale: 0.8, sortTrim: 0.28 },
   chain: { isOverlay: true, baseTile: 'stone', scale: 0.7, sortTrim: 0.2 },
+  shortcut_lever: { isOverlay: true, baseTile: 'dirt', scale: 1.18, sortTrim: 0.2, yOffset: 0.08 },
   cage: { isOverlay: true, baseTile: 'stone', scale: 1.2, sortTrim: 0.12 },
   bones_pile: { isOverlay: true, baseTile: 'stone', scale: 0.9, sortTrim: 0.2 },
   door: { isOverlay: true, baseTile: 'dirt', scale: 1.2, sortTrim: 1.45 },

@@ -136,9 +136,9 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'shop',
-        text: "I have **health potions**, __ancient maps__, and **mysterious artifacts**. Each item has been carefully selected from my journeys. Prices are fair, I assure you!",
+        text: "I have **Ephemeral Extracts**, __ancient maps__, and **mysterious artifacts**. Each item has been carefully selected from my journeys. Prices are fair, I assure you!",
         responses: [
-          { text: "I'll take a health potion.", nextId: 'buy_potion' },
+          { text: "I'll take an Ephemeral Extract.", nextId: 'buy_potion' },
           { text: "Tell me about these artifacts.", nextId: 'artifacts' },
           { text: "Maybe later.", nextId: 'end' },
         ],
@@ -170,7 +170,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'buy_potion',
-        text: "Excellent choice! This **Health Potion** will restore your vitality in times of need. That'll be __10 gold__ pieces.",
+        text: "Excellent choice! This **Ephemeral Extract** will restore your vitality in times of need. That'll be __10 gold__ pieces.",
         responses: [
           { text: "Here you go.", nextId: 'end' },
         ],
@@ -338,7 +338,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'open',
-        text: "Inside the chest you find **20 gold coins** and a **Health Potion**! (Added to inventory)",
+        text: "Inside the chest you find **20 gold coins** and an **Ephemeral Extract**! (Added to inventory)",
         responses: [
           { text: "[Take the items]", nextId: 'end' },
         ],
@@ -354,7 +354,7 @@ export const dialogues: Record<string, Dialogue> = {
   },
   forest_shortcut_lever: {
     id: 'forest_shortcut_lever',
-    nodes: [{ id: 'start', text: "A rain-darkened chain hangs beside a collapsed timber gate. The mechanism looks old, but the route beyond would fold back toward the **Ranger Outpost**.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "A rain-darkened **gate lever** juts from a square timber plate beside the collapsed palisade. The mechanism looks old, but the route beyond would fold back toward the **Ranger Outpost**.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   hunter_warning_sign: {
     id: 'hunter_warning_sign',

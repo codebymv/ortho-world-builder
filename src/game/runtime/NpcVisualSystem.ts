@@ -69,22 +69,10 @@ export function applyNpcVisuals({
   }
 
   if (npcObjectiveHalo) {
-    npcObjectiveHalo.visible = isObjective;
-    if (isObjective) {
-      const pulse = 0.82 + Math.sin(currentTime / 260 + index * 0.6) * 0.18;
-      npcObjectiveHalo.position.set(npc.position.x, visualY - 0.33, 0.041);
-      npcObjectiveHalo.scale.set(1.18 + pulse * 0.06, 0.55 + pulse * 0.03, 1);
-      (npcObjectiveHalo.material as THREE.MeshBasicMaterial).opacity = 0.06 + pulse * 0.04;
-    }
+    npcObjectiveHalo.visible = false;
   }
 
   if (npcObjectiveRing) {
-    npcObjectiveRing.visible = isObjective;
-    if (isObjective) {
-      const pulse = 0.82 + Math.sin(currentTime / 260 + index * 0.6) * 0.18;
-      npcObjectiveRing.position.set(npc.position.x, visualY + 0.86, 0.52);
-      npcObjectiveRing.scale.setScalar(0.98 + pulse * 0.08);
-      (npcObjectiveRing.material as THREE.MeshBasicMaterial).opacity = 0.16 + pulse * 0.12;
-    }
+    npcObjectiveRing.visible = false;
   }
 }

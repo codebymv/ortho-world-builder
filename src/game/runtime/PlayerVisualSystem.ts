@@ -29,6 +29,7 @@ interface ApplyPlayerVisualsOptions {
   getPlayerVisualY: (x: number, y: number) => number;
   getVisualYAt: (x: number, y: number) => number;
   getHeldItemTexture: (spriteId: string) => THREE.Texture | null;
+  heldConsumableSpriteId: string | null;
   meshes: PlayerVisualMeshes;
 }
 
@@ -49,6 +50,7 @@ export function applyPlayerVisuals({
   getPlayerVisualY,
   getVisualYAt,
   getHeldItemTexture,
+  heldConsumableSpriteId,
   meshes,
 }: ApplyPlayerVisualsOptions) {
   const {
@@ -60,6 +62,8 @@ export function applyPlayerVisuals({
     heldItemMesh,
     heldItemMaterial,
   } = meshes;
+
+  const isBlocking = playerAnimState === 'block';
 
   const outlineMat = playerOutline.material as THREE.MeshBasicMaterial;
   if (state.player.damageFlashTimer > 0) {
@@ -85,27 +89,39 @@ export function applyPlayerVisuals({
 
   const playerVisualX = state.player.position.x + attackOffsetX;
   const playerVisualY = getPlayerVisualY(playerVisualX, state.player.position.y + attackOffsetY);
+  const effectiveScaleX = isBlocking ? visualScaleX * 0.98 : visualScaleX;
+  const effectiveScaleY = isBlocking ? visualScaleY * 1.08 : visualScaleY;
+  const effectiveVisualY = playerVisualY + (isBlocking ? 0.03 : 0);
 
   playerMesh.rotation.z = visualRotation;
-  playerMesh.scale.set(visualScaleX, visualScaleY, 1);
-  playerMesh.position.set(playerVisualX, playerVisualY, 0.8);
+  playerMesh.scale.set(effectiveScaleX, effectiveScaleY, 1);
+  playerMesh.position.set(playerVisualX, effectiveVisualY, 0.8);
   playerMesh.renderOrder = 999999;
 
   const activeItem = state.inventory[state.activeItemIndex];
-  const isHoldingConsumable = activeItem?.type === 'consumable' && playerAnimState !== 'drinking';
+  const heldSpriteId =
+    playerAnimState === 'drinking'
+      ? heldConsumableSpriteId ?? (activeItem?.type === 'consumable' ? activeItem.sprite : null)
+      : null;
+  const isHoldingConsumable = Boolean(heldSpriteId);
 
   if (isHoldingConsumable) {
     let itemOffsetX = 0.25;
     let itemOffsetY = 0.05;
 
+    if (playerAnimState === 'drinking') {
+      itemOffsetX = 0.34;
+      itemOffsetY = 0.14;
+    }
+
     if (currentDir8 === 'left' || currentDir8 === 'up_left' || currentDir8 === 'down_left') {
-      itemOffsetX = -0.25;
+      itemOffsetX = playerAnimState === 'drinking' ? -0.34 : -0.25;
     }
     if (currentDir8 === 'up' || currentDir8 === 'up_left' || currentDir8 === 'up_right') {
-      itemOffsetY = 0.35;
+      itemOffsetY = playerAnimState === 'drinking' ? 0.42 : 0.35;
     }
     if (currentDir8 === 'down' || currentDir8 === 'down_left' || currentDir8 === 'down_right') {
-      itemOffsetY = -0.15;
+      itemOffsetY = playerAnimState === 'drinking' ? -0.05 : -0.15;
     }
 
     heldItemMesh.position.set(
@@ -115,9 +131,10 @@ export function applyPlayerVisuals({
     );
     heldItemMesh.visible = true;
 
-    const heldItemTexture = getHeldItemTexture(activeItem.sprite);
+    const heldItemTexture = getHeldItemTexture(heldSpriteId!);
     if (heldItemTexture !== heldItemMaterial.map) {
       heldItemMaterial.map = heldItemTexture;
+      heldItemMaterial.needsUpdate = true;
     }
   } else {
     heldItemMesh.visible = false;
@@ -131,10 +148,10 @@ export function applyPlayerVisuals({
 
   playerOutline.position.set(
     state.player.position.x,
-    getPlayerVisualY(state.player.position.x, state.player.position.y),
+    getPlayerVisualY(state.player.position.x, state.player.position.y) + (isBlocking ? 0.03 : 0),
     0.79,
   );
-  playerOutline.scale.set(visualScaleX * outlinePad, visualScaleY * outlinePad, 1);
+  playerOutline.scale.set(effectiveScaleX * outlinePad, effectiveScaleY * outlinePad, 1);
   playerOutline.rotation.z = visualRotation;
   playerOutline.renderOrder = 999998;
 

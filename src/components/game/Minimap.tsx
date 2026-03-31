@@ -3,6 +3,7 @@ import type { MutableRefObject } from 'react';
 import { WorldMap } from '@/lib/game/World';
 import type { MapMarker } from '@/lib/game/MapMarkers';
 import type { GameState } from '@/lib/game/GameState';
+import { isPrimaryObjectiveMarker } from '@/lib/game/MapMarkers';
 import {
   MARKER_TYPE_SHORT,
   computeMinimapScale,
@@ -18,6 +19,8 @@ interface MinimapProps {
   /** For legend + effect refresh when markers change (kept in sync with ref). */
   markers: MapMarker[];
   refreshToken: number;
+  playerX: number;
+  playerY: number;
 }
 
 export const Minimap = memo(
@@ -29,6 +32,8 @@ export const Minimap = memo(
     mapMarkersRef,
     markers,
     refreshToken,
+    playerX,
+    playerY,
   }: MinimapProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animFrameRef = useRef<number>(0);
@@ -102,7 +107,9 @@ export const Minimap = memo(
     const recentMarkers = currentMarkers.filter(
       m => m.permanent || now - m.createdAt < 120000 || now < m.pulseUntil
     );
-    const objectiveMarkers = recentMarkers.filter(m => m.type === 'quest');
+    const objectiveMarkers = recentMarkers.filter(
+      m => m.type === 'quest' && gameStateRef.current && isPrimaryObjectiveMarker(m, gameStateRef.current)
+    );
     const supportMarkers = recentMarkers.filter(m => m.type !== 'quest').slice(0, 4);
     const visibleMarkers = [...objectiveMarkers, ...supportMarkers];
 
@@ -124,7 +131,12 @@ export const Minimap = memo(
         />
         {visibleMarkers.length > 0 && (
           <div className="mt-2 space-y-1 border-t border-[#5C3A21]/50 pt-2">
-            <p className="text-[9px] text-[#DAA520]/80 uppercase tracking-wider font-bold mb-1">Map guide</p>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <p className="text-[9px] text-[#DAA520]/80 uppercase tracking-wider font-bold">Map guide</p>
+              <span className="rounded border border-[#5C3A21]/40 bg-[#120907]/55 px-1.5 py-0.5 text-[9px] font-mono text-[#DAA520]">
+                {Math.round(playerX)}, {Math.round(playerY)}
+              </span>
+            </div>
             {visibleMarkers.map(m => {
               const isPulsing = Date.now() < m.pulseUntil;
               const labelPrefix = m.type === 'quest' ? 'Goal' : MARKER_TYPE_SHORT[m.type] || 'Mark';

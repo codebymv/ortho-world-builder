@@ -80,34 +80,35 @@ export function createRuntimeNpcVisuals({
     npcOutlines.push(npcOutline);
 
     const objectiveHalo = new THREE.Mesh(
-      new THREE.CircleGeometry(0.34, 28),
+      new THREE.CircleGeometry(0.09, 24),
       new THREE.MeshBasicMaterial({
-        color: 0xF3E0A6,
+        color: 0xFFF0A8,
         transparent: true,
         opacity: 0,
         depthWrite: false,
         depthTest: false,
       }),
     );
-    objectiveHalo.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) - 0.33, 0.041);
-    objectiveHalo.scale.set(1.2, 0.56, 1);
+    objectiveHalo.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) + 0.9, 0.5);
+    objectiveHalo.scale.set(1, 1, 1);
     objectiveHalo.visible = false;
-    objectiveHalo.renderOrder = 2;
+    objectiveHalo.renderOrder = 150100;
     scene.add(objectiveHalo);
     npcObjectiveHalos.push(objectiveHalo);
 
     const objectiveRing = new THREE.Mesh(
-      new THREE.RingGeometry(0.12, 0.16, 24),
+      new THREE.CircleGeometry(0.05, 20),
       new THREE.MeshBasicMaterial({
-        color: 0xFFD24A,
+        color: 0xFFD54F,
         transparent: true,
         opacity: 0,
         depthWrite: false,
         depthTest: false,
       }),
     );
-    objectiveRing.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) + 0.9, 0.52);
+    objectiveRing.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y) + 0.9, 0.51);
     objectiveRing.visible = false;
+    objectiveRing.renderOrder = 150110;
     scene.add(objectiveRing);
     npcObjectiveRings.push(objectiveRing);
   });

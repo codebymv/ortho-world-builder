@@ -57,6 +57,7 @@ interface RuntimeActionPhaseOptions {
   setKillCount: (value: number) => void;
   getCurrentDir8: () => Direction8;
   healCooldownMs: number;
+  drinkDuration: number;
   attackFrameDuration: number;
   spinFrameDuration: number;
   spinDirections: Direction8[];
@@ -103,6 +104,7 @@ export function setupRuntimeActionPhase({
   setKillCount,
   getCurrentDir8,
   healCooldownMs,
+  drinkDuration,
   attackFrameDuration,
   spinFrameDuration,
   spinDirections,
@@ -214,7 +216,9 @@ export function setupRuntimeActionPhase({
     setCurrentDialogue,
     addMarkersFromText,
     playItemGrab: sfx.playItemGrab,
+    playGrassPull: sfx.playGrassPull,
     playChestUnlock: sfx.playChestUnlock,
+    playGateShortcut: sfx.playGateShortcut,
     particleSystem: particleSystem as any,
     notify,
     triggerSave,
@@ -244,6 +248,18 @@ export function setupRuntimeActionPhase({
     particleSystem: particleSystem as any,
     notify,
     triggerUIUpdate,
+    playPotionDrink: sfx.playPotionDrink,
+    playGrassChew: sfx.playGrassChew,
+    setPlayerAnimState: value => {
+      runtimeSession.animation.playerAnimState = value as any;
+    },
+    setHeldConsumableSpriteId: value => {
+      runtimeSession.animation.heldConsumableSpriteId = value;
+    },
+    setDrinkTimer: value => {
+      runtimeSession.animation.drinkTimer = value;
+    },
+    drinkDuration,
   });
 
   const checkInteraction = createInteractionCheckAction({
@@ -261,6 +277,20 @@ export function setupRuntimeActionPhase({
     playFootstep: sfx.playFootstep,
     playGameOverSound: sfx.playGameOverSound,
     playDeathSound: sfx.playDeathSound,
+    playPotionDrink: sfx.playPotionDrink,
+    playGrassChew: sfx.playGrassChew,
+    playBlock: sfx.playBlock,
+    playPlayerHit: sfx.playPlayerHit,
+    playHeroEvent: sfx.playHeroEvent,
+    playGateShortcut: sfx.playGateShortcut,
+    startPortalChargeLoop: sfx.startPortalChargeLoop,
+    stopPortalChargeLoop: sfx.stopPortalChargeLoop,
+    playPortalWarp: sfx.playPortalWarp,
+    playDialogueAdvance: sfx.playDialogueAdvance,
+    startDialogueLoop: sfx.startDialogueLoop,
+    stopDialogueLoop: sfx.stopDialogueLoop,
+    playMenuOpen: sfx.playMenuOpen,
+    playMenuClose: sfx.playMenuClose,
     usePotion,
     checkInteraction,
     performDodge,

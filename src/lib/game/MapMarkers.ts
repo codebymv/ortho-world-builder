@@ -1,3 +1,5 @@
+import type { GameState } from '@/lib/game/GameState';
+
 // Map marker system - POIs revealed through dialogue, quests, signs, etc.
 
 export interface MapMarker {
@@ -99,6 +101,14 @@ function normalizeMarkerText(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+export function getPrimaryObjectiveText(state: GameState): string {
+  const activeQuest = state.quests.find(q => q.active && !q.completed);
+  if (!activeQuest) return '';
+
+  const nextObjective = activeQuest.objectives.find(objective => !objective.includes('\u2713'));
+  return normalizeMarkerText(nextObjective ?? activeQuest.description ?? '');
+}
+
 export function markerTargetsNpc(
   marker: Pick<MapMarker, 'label' | 'type'>,
   npc: { id: string; name: string; dialogueId?: string }
@@ -128,6 +138,29 @@ export function isNpcObjectiveTarget(
   markers: MapMarker[]
 ): boolean {
   return markers.some(marker => marker.map === currentMap && marker.type === 'quest' && markerTargetsNpc(marker, npc));
+}
+
+export function isPrimaryObjectiveMarker(marker: Pick<MapMarker, 'label' | 'type'>, state: GameState): boolean {
+  const objectiveText = getPrimaryObjectiveText(state);
+  if (!objectiveText) return false;
+
+  const label = normalizeMarkerText(marker.label);
+  if (!label) return false;
+
+  if (objectiveText.includes(label)) return true;
+
+  if (marker.type === 'portal') {
+    const cleanedPortalLabel = label.replace(/^ /, '');
+    if (objectiveText.includes(cleanedPortalLabel)) return true;
+  }
+
+  if (label.includes('elder') && objectiveText.includes('elder')) return true;
+  if (label.includes('whispering woods') && objectiveText.includes('whispering woods')) return true;
+  if (label.includes('disparaged cottage') && (objectiveText.includes('disparaged cottage') || objectiveText.includes('old shack'))) return true;
+  if (label.includes('deep woods') && objectiveText.includes('deep woods')) return true;
+  if (label.includes('witch') && objectiveText.includes('witch')) return true;
+
+  return false;
 }
 
 /**

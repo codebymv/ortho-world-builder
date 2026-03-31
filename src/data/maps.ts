@@ -411,12 +411,14 @@ const forestDef: MapDefinition = {
     { x: 90, y: 180, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage', interiorMap: 'interior_woodcutter_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
     { x: 230, y: 130, width: 6, height: 6, type: 'cottage', interactionId: 'witch_cottage' },
     // Hunter shack is teased from below, then reached by wrapping around a cliff-backed approach.
+    { x: 60, y: 186, width: 62, height: 26, type: 'cliff_face' },
     { x: 134, y: 182, width: 6, height: 6, type: 'cottage', interactionId: 'hunter_cottage', interiorMap: 'interior_hunter_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
-    { x: 108, y: 196, width: 18, height: 14, type: 'ruined_fort', interactionId: 'hunter_gate_ruin' },
+    { x: 108, y: 196, width: 28, height: 14, type: 'ruined_fort', interactionId: 'hunter_gate_ruin' },
+    { x: 136, y: 192, width: 72, height: 18, type: 'cliff_face' },
     { x: 118, y: 220, width: 18, height: 12, type: 'abandoned_camp', interactionId: 'hunters_last_camp' },
     { x: 144, y: 206, width: 16, height: 14, type: 'cemetery' },
     { x: 152, y: 220, width: 18, height: 12, type: 'destroyed_town', interactionId: 'hunter_wreck' },
-    { x: 170, y: 80, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage' },
+    { x: 170, y: 80, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage', interiorMap: 'interior_cottage_a', interiorSpawnX: 6, interiorSpawnY: 8 },
     { x: 80, y: 50, width: 6, height: 6, type: 'cottage', interactionId: 'ruin_cottage' },
     { x: 210, y: 200, width: 6, height: 6, type: 'cottage', interactionId: 'hidden_cottage' },
 
@@ -455,6 +457,13 @@ const forestDef: MapDefinition = {
     { x: 120, y: 212, width: 10, height: 4, type: 'path', fill: 'dirt' },
     { x: 126, y: 218, width: 22, height: 4, type: 'path', fill: 'dirt' },
     { x: 146, y: 214, width: 4, height: 18, type: 'path', fill: 'dirt' },
+    // River cut separating the skeleton shelf from the bonfire/shortcut shelf until the loop reconnects farther east.
+    { x: 86, y: 196, width: 22, height: 18, type: 'wall', fill: 'water' },
+    { x: 90, y: 208, width: 20, height: 18, type: 'wall', fill: 'water' },
+    { x: 94, y: 222, width: 18, height: 16, type: 'wall', fill: 'water' },
+    { x: 98, y: 234, width: 14, height: 12, type: 'wall', fill: 'water' },
+    { x: 68, y: 206, width: 20, height: 22, type: 'cliff_face' },
+    { x: 120, y: 218, width: 8, height: 12, type: 'cliff_face' },
     // West branch off the central spine so travelers and AI can reach the mid-west forest without hugging the fort
     { x: 100, y: 120, width: 40, height: 6, type: 'path', fill: 'dirt' },
   ],
@@ -488,6 +497,7 @@ const forestDef: MapDefinition = {
     { x: 138, y: 128, interactionId: 'fort_chest_1' },
     { x: 208, y: 66, interactionId: 'fort_chest_2' },
     { x: 68, y: 196, interactionId: 'fort_chest_3' },
+    { x: 111, y: 220, interactionId: 'river_alcove_chest' },
   ],
   interactables: [
     { x: 140, y: 170, type: 'sign', walkable: false, interactionId: 'ranger_sign' },
@@ -497,7 +507,7 @@ const forestDef: MapDefinition = {
     { x: 130, y: 206, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
     { x: 150, y: 260, type: 'sign', walkable: false, interactionId: 'forest_entry_sign' },
     { x: 128, y: 198, type: 'sign', walkable: false, interactionId: 'hunter_warning_sign' },
-    { x: 127, y: 205, type: 'chain', walkable: false, interactionId: 'forest_shortcut_lever' },
+    { x: 127, y: 205, type: 'shortcut_lever', walkable: false, interactionId: 'forest_shortcut_lever' },
     { x: 90, y: 230, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 250, y: 190, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 45, y: 145, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
@@ -649,7 +659,6 @@ const forestDef: MapDefinition = {
     // (post-stampCliffs) overwrites cliff_edge + all 3 cliff tiles below it.
 
     // Main trail → north highlands (el1): zone {x:112,y:148,h:52}, south_face=199
-    { x: 146, y: 199, width: 8, height: 4, elevation: 1 },
     // Center summit el2→el0: zone {x:204,y:38,h:42}, south_face=79; elevDrop=2 → 5 tiles
     { x: 218, y: 79, width: 6, height: 5, elevation: 2 },
     // NW corner el1 south descent: zone {x:4,y:4,h:68}, south_face=71
@@ -660,11 +669,7 @@ const forestDef: MapDefinition = {
     { x: 228, y: 193, width: 6, height: 4, elevation: 1 },
     // West hidden grove south face: zone {x:4,y:108,h:56}, south_face=163
     { x: 54, y: 163, width: 6, height: 4, elevation: 1 },
-    // Central ranger plateau south face: zone {x:112,y:148,h:52}, south_face=199
-    // (second stairway on east side of plateau)
-    { x: 178, y: 199, width: 6, height: 4, elevation: 1 },
     // Hunter shack overlook: climb from the bloodstained bonfire shelf to the upper approach.
-    { x: 150, y: 199, width: 6, height: 4, elevation: 1 },
     // SE enchanted hills south: zone {x:230,y:222,h:62}, south_face=283
     { x: 248, y: 283, width: 6, height: 4, elevation: 1 },
   ],

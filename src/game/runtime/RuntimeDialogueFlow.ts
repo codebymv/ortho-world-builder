@@ -16,7 +16,9 @@ interface CreateRuntimeDialogueFlowOptions {
   setCurrentDialogue: Dispatch<SetStateAction<{ node: DialogueNode; npcName: string } | null>>;
   addMarkersFromText: (text: string, currentMap: string) => void;
   playItemGrab: () => void;
+  playGrassPull: () => void;
   playChestUnlock: () => void;
+  playGateShortcut: () => void;
   particleSystem: {
     emitSparkles: (position: THREE.Vector3) => void;
     emitHeal: (position: THREE.Vector3) => void;
@@ -46,7 +48,9 @@ export function createRuntimeDialogueFlow({
   setCurrentDialogue,
   addMarkersFromText,
   playItemGrab,
+  playGrassPull,
   playChestUnlock,
+  playGateShortcut,
   particleSystem,
   notify,
   triggerSave,
@@ -89,7 +93,9 @@ export function createRuntimeDialogueFlow({
     startDialogue,
     items,
     playItemGrab,
+    playGrassPull,
     playChestUnlock,
+    playGateShortcut,
     emitSparkles: position => {
       particleSystem.emitSparkles(position);
     },

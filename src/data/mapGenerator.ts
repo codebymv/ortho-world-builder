@@ -1413,6 +1413,7 @@ function placeChurch(tiles: Tile[][], f: MapFeature) {
 
 function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
   if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
+  const isHunterGateRuin = f.interactionId === 'hunter_gate_ruin';
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
@@ -1420,7 +1421,7 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         // Crumbling outer walls with gaps
         if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
-          if ((dx + dy) % 3 === 0) {
+          if (!isHunterGateRuin && (dx + dy) % 3 === 0) {
             tiles[ty][tx] = createTile('stone', true); // collapsed section
           } else {
             tiles[ty][tx] = createTile('mossy_stone', false);
@@ -1429,18 +1430,18 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
         // Broken corner towers
         else if ((dx <= 2 && dy <= 2) || (dx >= f.width - 3 && dy <= 2) ||
                  (dx <= 2 && dy >= f.height - 3) || (dx >= f.width - 3 && dy >= f.height - 3)) {
-          if ((dx + dy) % 2 === 0) {
+          if (isHunterGateRuin || (dx + dy) % 2 === 0) {
             tiles[ty][tx] = createTile('stone', false);
           } else {
             tiles[ty][tx] = createTile('ruins_floor', true);
           }
         }
         // Interior - overgrown with debris
-        else if ((dx * 3 + dy * 7) % 11 === 0) {
+        else if (!isHunterGateRuin && (dx * 3 + dy * 7) % 11 === 0) {
           tiles[ty][tx] = createTile('bones', true);
-        } else if ((dx + dy * 5) % 13 === 0) {
+        } else if (!isHunterGateRuin && (dx + dy * 5) % 13 === 0) {
           tiles[ty][tx] = createTile('destroyed_house', false);
-        } else if ((dx * 2 + dy) % 9 === 0) {
+        } else if (!isHunterGateRuin && (dx * 2 + dy) % 9 === 0) {
           tiles[ty][tx] = createTile('tall_grass', true);
         } else {
           tiles[ty][tx] = createTile('ruins_floor', true);
@@ -1757,6 +1758,7 @@ function placeInteractables(tiles: Tile[][], def: MapDefinition) {
         obj.type === 'campfire' ||
         obj.type === 'sign' ||
         obj.type === 'chain' ||
+        obj.type === 'shortcut_lever' ||
         obj.type === 'lantern';
       tiles[obj.y][obj.x] = createTile(obj.type, softInteractable ? true : obj.walkable, {
         interactable: true,

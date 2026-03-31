@@ -30,6 +30,7 @@ interface RuntimeMapFlowOptions {
   isPortalDestinationUnlocked: (targetMap: string) => boolean;
   setPortalCooldown: (seconds: number) => void;
   setActiveForCurrentMap: () => void;
+  playPortalWarp: () => void;
   assetManager: { warmupEnemyTexturesForZones: (enemyZones: unknown) => void };
   combatSystem: CombatSystem;
   enemyVisuals: EnemyVisualRegistryLike;
@@ -211,6 +212,7 @@ export function createRuntimeMapFlow({
   isPortalDestinationUnlocked,
   setPortalCooldown,
   setActiveForCurrentMap,
+  playPortalWarp,
   assetManager,
   combatSystem,
   enemyVisuals,
@@ -245,7 +247,7 @@ export function createRuntimeMapFlow({
     const map = world.getCurrentMap();
     const shortcutOpen = state.getFlag('whispering_woods_shortcut_open');
     for (let y = 199; y <= 202; y++) {
-      for (let x = 124; x <= 129; x++) {
+      for (let x = 122; x <= 136; x++) {
         const existing = map.tiles[y]?.[x];
         if (!existing) continue;
         map.tiles[y][x] = shortcutOpen
@@ -417,6 +419,11 @@ export function createRuntimeMapFlow({
     mapTransitionService.transitionTo(targetMap, targetX, targetY);
   };
 
+  const handlePortalTransition = (targetMap: string, targetX: number, targetY: number) => {
+    playPortalWarp();
+    mapTransitionService.transitionTo(targetMap, targetX, targetY);
+  };
+
   return {
     syncShadowCastleGateState,
     syncWhisperingWoodsShortcutState,
@@ -426,6 +433,7 @@ export function createRuntimeMapFlow({
     syncHarvestedTempestGrassState,
     syncPersistentMapState,
     handleMapTransition,
+    handlePortalTransition,
     respawnEnemiesForCurrentMap,
   };
 }

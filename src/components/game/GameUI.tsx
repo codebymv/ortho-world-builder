@@ -1,7 +1,7 @@
-import { GameState } from '@/lib/game/GameState';
+import { GameState, type CurrencyGain } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { Button } from '@/components/ui/button';
-import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield, Sword, Map as MapIcon, Key, Sparkles, Locate } from 'lucide-react';
+import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield, Sword, Map as MapIcon, Key, Sparkles } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { notify } from '@/lib/game/notificationBus';
 
@@ -10,6 +10,12 @@ interface GameUIProps {
   assetManager?: AssetManager | null;
   refreshToken: number;
   triggerUIUpdate: () => void;
+  justPickedUpItem?: any | null;
+  justGainedCurrency?: CurrencyGain | null;
+  playPotionDrink?: () => void;
+  playGrassChew?: () => void;
+  playMenuOpen?: () => void;
+  playMenuClose?: () => void;
   musicRef: React.RefObject<HTMLAudioElement | null>;
   showControls?: boolean;
   interactionPrompt?: string | null;
@@ -35,11 +41,10 @@ const getItemIcon = (item: any, className: string, assetManager?: AssetManager |
 
 // --- Memoized Sub-components ---
 
-const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold, essence, playerX, playerY }: { 
-  health: number, maxHealth: number, stamina: number, maxStamina: number, gold: number, essence: number,
-  playerX: number, playerY: number
+const CombatBars = React.memo(({ health, maxHealth, stamina, maxStamina }: { 
+  health: number, maxHealth: number, stamina: number, maxStamina: number
 }) => (
-  <div className="flex items-center gap-4">
+  <div className="flex items-center gap-5">
     {/* Health */}
     <div className="flex items-center gap-2">
       <Heart className="w-4 h-4 text-red-500 drop-shadow" />
@@ -64,21 +69,37 @@ const StatMeters = React.memo(({ health, maxHealth, stamina, maxStamina, gold, e
         />
       </div>
     </div>
+  </div>
+));
 
-    <div className="flex items-center gap-1.5">
+const CurrencyCountersWithGains = React.memo(({
+  gold,
+  essence,
+  justGainedCurrency,
+}: {
+  gold: number;
+  essence: number;
+  justGainedCurrency?: CurrencyGain | null;
+}) => (
+  <div className="flex items-center gap-4">
+    <div className="flex items-center gap-1.5 relative min-w-[42px]">
       <Coins className="w-4 h-4 text-yellow-400 drop-shadow" />
       <span className="text-xs font-bold text-[#F5DEB3] tracking-wide">{gold}</span>
+      {justGainedCurrency?.kind === 'gold' && (
+        <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 text-[10px] font-bold text-yellow-300 tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,1)] animate-in fade-in slide-in-from-top-1">
+          +{justGainedCurrency.amount}
+        </span>
+      )}
     </div>
 
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 relative min-w-[42px]">
       <Sparkles className="w-4 h-4 text-violet-300 drop-shadow" />
       <span className="text-xs font-bold text-violet-200 tracking-wide">{essence}</span>
-    </div>
-
-    {/* Coordinates */}
-    <div className="flex items-center gap-1 px-2 py-0.5 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60">
-      <Locate className="w-3 h-3 text-[#DAA520]" />
-      <span className="text-[10px] font-mono text-[#DAA520]">{Math.round(playerX)}, {Math.round(playerY)}</span>
+      {justGainedCurrency?.kind === 'essence' && (
+        <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 text-[10px] font-bold text-violet-200 tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,1)] animate-in fade-in slide-in-from-top-1">
+          +{justGainedCurrency.amount}
+        </span>
+      )}
     </div>
   </div>
 ));
@@ -94,64 +115,103 @@ const CurrentObjective = React.memo(({ title, onObjectiveClick }: { title: strin
   </div>
 ));
 
-const ActiveItemWheel = React.memo(({ 
-  inventory, activeItemIndex, groupedInventory, assetManager 
-}: { 
-  inventory: any[], activeItemIndex: number, groupedInventory: any[], assetManager?: AssetManager | null 
+const SelectionWheel = React.memo(({
+  entries,
+  activeItemId,
+  assetManager,
+  prevLabel,
+  nextLabel,
+  badgeLabel,
+}: {
+  entries: Array<{ item: any; count: number }>;
+  activeItemId: string | null | undefined;
+  assetManager?: AssetManager | null;
+  prevLabel: string;
+  nextLabel: string;
+  badgeLabel: string;
 }) => {
-  if (inventory.length === 0) return null;
-  const activeIdx = activeItemIndex || 0;
-  
-  const uniqueItems = groupedInventory;
-  const activeItemRaw = inventory[activeIdx];
-  const uniqueActiveIdx = Math.max(0, uniqueItems.findIndex(u => u.item.id === activeItemRaw?.id));
-  
-  const activeEntry = uniqueItems[uniqueActiveIdx];
-  const hasMultipleDistinct = uniqueItems.length > 1;
-  const prevEntry = hasMultipleDistinct ? uniqueItems[(uniqueActiveIdx - 1 + uniqueItems.length) % uniqueItems.length] : null;
-  const nextEntry = uniqueItems.length > 2 ? uniqueItems[(uniqueActiveIdx + 1) % uniqueItems.length] : null;
+  if (entries.length === 0) return null;
+
+  const hasTwoEntries = entries.length === 2;
+  const activeIndex = Math.max(0, entries.findIndex(u => u.item.id === activeItemId));
+  const activeEntry = entries[activeIndex] ?? entries[0];
+  const hasMultipleDistinct = entries.length > 1;
+  const prevEntry = hasMultipleDistinct ? entries[(activeIndex - 1 + entries.length) % entries.length] : null;
+  const nextEntry = hasMultipleDistinct ? entries[(activeIndex + 1) % entries.length] : null;
+  const sideCardClass = hasTwoEntries ? 'w-12 h-12' : 'w-11 h-11';
+  const sideIconClass = hasTwoEntries ? 'w-7 h-7 mb-1' : 'w-6 h-6 mb-1';
 
   return (
-    <div className="fixed bottom-4 right-4 z-30 pointer-events-auto flex items-end gap-3 transition-all duration-300">
+    <div className={`flex items-end transition-all duration-300 ${hasTwoEntries ? 'gap-2' : 'gap-3'}`}>
       <div className={`flex flex-col items-center transition-opacity ${hasMultipleDistinct ? 'opacity-80 hover:opacity-100' : 'opacity-[0.85]'}`}>
-        <span className="text-[10px] text-[#DAA520]/60 font-bold mb-1 font-mono drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,1)]">Q</span>
+        <span className="text-[10px] text-[#DAA520]/60 font-bold mb-1 font-mono drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,1)]">{prevLabel}</span>
         {prevEntry ? (
-          <div className="w-11 h-11 bg-[#1A0F0A]/90 backdrop-blur-md border border-[#5C3A21] rounded-md shadow-lg flex flex-col items-center justify-center p-1 relative overflow-hidden">
-            {getItemIcon(prevEntry.item, "w-6 h-6 mb-1", assetManager)}
+          <div className={`${sideCardClass} bg-[#1A0F0A]/90 backdrop-blur-md border border-[#5C3A21] rounded-md shadow-lg flex flex-col items-center justify-center p-1 relative overflow-hidden`}>
+            {getItemIcon(prevEntry.item, sideIconClass, assetManager)}
             {prevEntry.count > 1 && (
               <span className="absolute top-0 right-0.5 text-[8px] font-bold text-[#F5DEB3] drop-shadow-md">x{prevEntry.count}</span>
             )}
             <span className="text-[7px] text-[#D3D3D3] text-center w-full truncate absolute bottom-0.5 leading-none">{prevEntry.item.name.split(' ')[0]}</span>
           </div>
         ) : (
-          <div className="w-11 h-11 bg-[#2D1B11]/40 rounded-lg shadow-inner pointer-events-none" />
+          <div className={`${sideCardClass} bg-[#2D1B11]/40 rounded-lg shadow-inner pointer-events-none`} />
         )}
       </div>
 
       <div className="flex flex-col items-center transform scale-100 translate-y-[-4px]">
-        <span className="text-[11px] text-[#F5DEB3] font-bold mb-1.5 uppercase tracking-wider text-center drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">{activeEntry?.item?.name || 'Empty'}</span>
+        <span className="text-[11px] text-[#F5DEB3] font-bold mb-1.5 uppercase tracking-wider text-center drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
+          {activeEntry?.item?.name || 'Empty'}
+        </span>
         <div className="w-16 h-16 bg-[#1A0F0A]/95 backdrop-blur-md border-[1.5px] border-[#DAA520] rounded-lg flex items-center justify-center shadow-xl relative overflow-hidden group">
           {activeEntry && getItemIcon(activeEntry.item, "w-12 h-12 transform group-hover:scale-110 transition-transform", assetManager)}
           {activeEntry && activeEntry.count > 1 && (
             <span className="absolute top-1 right-1.5 text-[10px] font-bold text-[#F5DEB3] drop-shadow-[0_1px_1px_rgba(0,0,0,1)] bg-[#1A0F0A]/60 px-1 rounded-sm border border-[#5C3A21]/50">x{activeEntry.count}</span>
           )}
         </div>
-        <span className="text-[9px] text-[#F5DEB3] mt-2 font-mono bg-[#1A0F0A]/95 backdrop-blur border border-[#5C3A21] px-2.5 py-0.5 rounded-md uppercase tracking-widest shadow-lg drop-shadow-md">Space</span>
+        <span className="text-[9px] text-[#F5DEB3] mt-2 font-mono bg-[#1A0F0A]/95 backdrop-blur border border-[#5C3A21] px-2.5 py-0.5 rounded-md uppercase tracking-widest shadow-lg drop-shadow-md">
+          {badgeLabel}
+        </span>
       </div>
 
       <div className={`flex flex-col items-center transition-opacity ${hasMultipleDistinct ? 'opacity-80 hover:opacity-100' : 'opacity-[0.85]'}`}>
-        <span className="text-[10px] text-[#DAA520]/60 font-bold mb-1 font-mono drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,1)]">E</span>
+        <span className="text-[10px] text-[#DAA520]/60 font-bold mb-1 font-mono drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,1)]">{nextLabel}</span>
         {nextEntry ? (
-          <div className="w-11 h-11 bg-[#1A0F0A]/90 backdrop-blur-md border border-[#5C3A21] rounded-md shadow-lg flex flex-col items-center justify-center p-1 relative overflow-hidden">
-            {getItemIcon(nextEntry.item, "w-6 h-6 mb-1", assetManager)}
+          <div className={`${sideCardClass} bg-[#1A0F0A]/90 backdrop-blur-md border border-[#5C3A21] rounded-md shadow-lg flex flex-col items-center justify-center p-1 relative overflow-hidden`}>
+            {getItemIcon(nextEntry.item, sideIconClass, assetManager)}
             {nextEntry.count > 1 && (
               <span className="absolute top-0 right-0.5 text-[8px] font-bold text-[#F5DEB3] drop-shadow-md">x{nextEntry.count}</span>
             )}
             <span className="text-[7px] text-[#D3D3D3] text-center w-full truncate absolute bottom-0.5 leading-none">{nextEntry.item.name.split(' ')[0]}</span>
           </div>
         ) : (
-          <div className="w-11 h-11 bg-[#2D1B11]/40 rounded-lg shadow-inner pointer-events-none" />
+          <div className={`${sideCardClass} bg-[#2D1B11]/40 rounded-lg shadow-inner pointer-events-none`} />
         )}
+      </div>
+    </div>
+  );
+});
+
+const JustPickedUpDisplay = React.memo(({
+  item,
+  assetManager,
+}: {
+  item: any | null;
+  assetManager?: AssetManager | null;
+}) => {
+  if (!item) return null;
+
+  return (
+    <div className="fixed left-1/2 bottom-20 z-40 -translate-x-1/2 pointer-events-none">
+      <div className="flex flex-col items-center transform transition-all duration-300 animate-in fade-in slide-in-from-bottom-3">
+        <span className="text-[11px] text-[#F5DEB3] font-bold mb-1.5 uppercase tracking-wider text-center drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
+          {item.name}
+        </span>
+        <div className="w-16 h-16 bg-[#1A0F0A]/95 backdrop-blur-md border-[1.5px] border-[#DAA520] rounded-lg flex items-center justify-center shadow-xl relative overflow-hidden">
+          {getItemIcon(item, "w-12 h-12", assetManager)}
+        </div>
+        <span className="text-[9px] text-[#F5DEB3] mt-2 font-mono bg-[#1A0F0A]/95 backdrop-blur border border-[#5C3A21] px-2.5 py-0.5 rounded-md uppercase tracking-widest shadow-lg drop-shadow-md">
+          Acquired
+        </span>
       </div>
     </div>
   );
@@ -162,6 +222,12 @@ export const GameUI = ({
   assetManager,
   refreshToken,
   triggerUIUpdate,
+  justPickedUpItem = null,
+  justGainedCurrency = null,
+  playPotionDrink,
+  playGrassChew,
+  playMenuOpen,
+  playMenuClose,
   musicRef,
   showControls = true,
   interactionPrompt = null,
@@ -186,6 +252,20 @@ export const GameUI = ({
     return Array.from(groups.values());
   }, [gameState.inventory]);
 
+  const groupedConsumables = useMemo(
+    () => groupedInventory.filter(({ item }) => item.type === 'consumable'),
+    [groupedInventory],
+  );
+
+  const groupedWeapons = useMemo(
+    () => groupedInventory.filter(({ item }) => item.type === 'equipment'),
+    [groupedInventory],
+  );
+
+  const activeConsumable = gameState.inventory[gameState.activeItemIndex];
+  const activeConsumableId = activeConsumable?.type === 'consumable' ? activeConsumable.id : groupedConsumables[0]?.item.id;
+  const activeWeaponId = gameState.equippedWeaponId ?? groupedWeapons[0]?.item.id;
+
   const toggleMute = () => {
     if (musicRef.current) {
       musicRef.current.muted = !musicRef.current.muted;
@@ -196,29 +276,32 @@ export const GameUI = ({
   return (
     <>
       {/* Minimal Top Bar */}
-      <div className="fixed top-0 left-0 right-0 h-12 bg-[#1A0F0A]/85 backdrop-blur-sm border-b border-[#5C3A21] z-50 flex justify-between items-center px-4 pointer-events-auto shadow-md">
+      <div className="fixed top-0 left-0 right-0 h-12 bg-[#1A0F0A]/85 backdrop-blur-sm border-b border-[#5C3A21] z-50 px-4 pointer-events-auto shadow-md">
+        <div className="relative flex h-full items-center">
+          {/* Left Side: Currency */}
+          <div className="flex min-w-[140px] items-center">
+            <CurrencyCountersWithGains
+              gold={gameState.player.gold}
+              essence={gameState.player.essence}
+              justGainedCurrency={justGainedCurrency}
+            />
+          </div>
 
-        {/* Left Side: Health, Stamina & Gold */}
-        <StatMeters 
-          health={gameState.player.health} 
-          maxHealth={gameState.player.maxHealth} 
-          stamina={gameState.player.stamina} 
-          maxStamina={gameState.player.maxStamina} 
-          gold={gameState.player.gold} 
-          essence={gameState.player.essence}
-          playerX={gameState.player.position.x}
-          playerY={gameState.player.position.y}
-        />
+          {/* Center: Combat bars + objective */}
+          <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-6">
+            <CombatBars
+              health={gameState.player.health}
+              maxHealth={gameState.player.maxHealth}
+              stamina={gameState.player.stamina}
+              maxStamina={gameState.player.maxStamina}
+            />
+            {activeQuests.length > 0 && (
+              <CurrentObjective title={activeQuests[0].title} />
+            )}
+          </div>
 
-        {/* Center: Current Objective */}
-        <div className="flex-1 flex justify-center">
-          {activeQuests.length > 0 && (
-            <CurrentObjective title={activeQuests[0].title} />
-          )}
-        </div>
-
-        {/* Right Side: Toggles - pushed left more to avoid fullscreen button */}
-        <div className="flex items-center gap-1 mr-8">
+          {/* Right Side: Toggles - pushed left more to avoid fullscreen button */}
+          <div className="ml-auto flex items-center gap-1 mr-8">
           <Button
             onClick={toggleMute}
             variant="ghost"
@@ -231,8 +314,14 @@ export const GameUI = ({
 
           <Button
             onClick={() => {
-              setShowInventory(!showInventory);
-              if (!showInventory) setShowQuests(false);
+              const nextShowInventory = !showInventory;
+              if (nextShowInventory) {
+                playMenuOpen?.();
+              } else {
+                playMenuClose?.();
+              }
+              setShowInventory(nextShowInventory);
+              if (nextShowInventory) setShowQuests(false);
             }}
             variant="ghost"
             size="sm"
@@ -248,8 +337,14 @@ export const GameUI = ({
 
           <Button
             onClick={() => {
-              setShowQuests(!showQuests);
-              if (!showQuests) setShowInventory(false);
+              const nextShowQuests = !showQuests;
+              if (nextShowQuests) {
+                playMenuOpen?.();
+              } else {
+                playMenuClose?.();
+              }
+              setShowQuests(nextShowQuests);
+              if (nextShowQuests) setShowInventory(false);
             }}
             variant="ghost"
             size="sm"
@@ -267,6 +362,7 @@ export const GameUI = ({
               </span>
             )}
           </Button>
+        </div>
         </div>
       </div>
 
@@ -306,6 +402,11 @@ export const GameUI = ({
                         if (gameState.player.health >= gameState.player.maxHealth) {
                           notify('Already at full health!', { id: 'full-health', duration: 1500 });
                           return;
+                        }
+                        if (item.id === 'health_potion') {
+                          playPotionDrink?.();
+                        } else if (item.id === 'tempest_grass') {
+                          playGrassChew?.();
                         }
                         gameState.player.health = Math.min(gameState.player.maxHealth, gameState.player.health + item.healAmount);
                         gameState.removeItem(item.id);
@@ -416,7 +517,7 @@ export const GameUI = ({
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">WASD</kbd> Move</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">LMB</kbd> Attack</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">HOLD LMB</kbd> Charge</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Dodge / Estus</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Dodge Roll</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">CTRL/RMB</kbd> Block</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SHIFT</kbd> Sprint</p>
             <p className="text-[10px] text-[#D3D3D3]">
@@ -425,19 +526,33 @@ export const GameUI = ({
             </p>
             <p className="text-[10px] text-[#C9A0FF]">Portals — stand nearby; warp charges automatically</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Q/E</kbd> Item</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">←/→</kbd> Weapon</p>
+            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Z</kbd> Use Item</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">M</kbd> Map</p>
             <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">ESC</kbd> Pause</p>
           </div>
         </div>
       )}
 
-      {/* Active Item Wheel */}
-      <ActiveItemWheel 
-        inventory={gameState.inventory} 
-        activeItemIndex={gameState.activeItemIndex} 
-        groupedInventory={groupedInventory} 
-        assetManager={assetManager} 
-      />
+      <div className="fixed bottom-4 right-4 z-30 pointer-events-auto flex flex-col items-end gap-5">
+        <SelectionWheel
+          entries={groupedConsumables}
+          activeItemId={activeConsumableId}
+          assetManager={assetManager}
+          prevLabel="Q"
+          nextLabel="E"
+          badgeLabel="Item"
+        />
+        <SelectionWheel
+          entries={groupedWeapons}
+          activeItemId={activeWeaponId}
+          assetManager={assetManager}
+          prevLabel="←"
+          nextLabel="→"
+          badgeLabel="Weapon"
+        />
+      </div>
+      <JustPickedUpDisplay item={justPickedUpItem} assetManager={assetManager} />
     </>
   );
 };

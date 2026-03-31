@@ -151,9 +151,9 @@ export function createProgressionService(context: ProgressionServiceContext) {
   const applyMerchantPurchase = (state: GameState, nodeId: string) => {
     if (nodeId === 'buy_potion') {
       if (state.player.gold >= 10) {
-        state.player.gold -= 10;
+        state.spendGold(10);
         state.addItem(context.items.health_potion);
-        context.notify('Purchased Health Potion!', {
+        context.notify('Purchased Ephemeral Extract!', {
           type: 'success',
           description: 'Spent 10 gold.',
           duration: 2500,
@@ -166,7 +166,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
 
     if (nodeId === 'buy_artifact') {
       if (state.player.gold >= 50) {
-        state.player.gold -= 50;
+        state.spendGold(50);
         state.addItem(context.items.ancient_map);
         context.notify('Purchased Ancient Artifact!', {
           type: 'success',

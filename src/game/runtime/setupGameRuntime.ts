@@ -4,7 +4,7 @@ import { GameState, NPC } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { World } from '@/lib/game/World';
 import { ENEMY_BLUEPRINTS, DEFAULT_ENEMY } from '@/data/enemies';
-import { MapMarker, isNpcObjectiveTarget } from '@/lib/game/MapMarkers';
+import { getPrimaryObjectiveText, MapMarker, isNpcObjectiveTarget } from '@/lib/game/MapMarkers';
 import { SaveManager } from '@/lib/game/SaveManager';
 import { allMaps } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
@@ -76,6 +76,17 @@ export interface RuntimeHostRefs {
   setMapModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   activeNpcWorldPos: MutableRefObject<{ x: number; y: number } | null>;
   syncVillageReactivityRef: MutableRefObject<(() => void) | null>;
+  playPotionDrinkRef: MutableRefObject<(() => void) | null>;
+  playGrassChewRef: MutableRefObject<(() => void) | null>;
+  playHeroEventRef: MutableRefObject<(() => void) | null>;
+  playPortalWarpRef: MutableRefObject<(() => void) | null>;
+  startPortalChargeLoopRef: MutableRefObject<(() => void) | null>;
+  stopPortalChargeLoopRef: MutableRefObject<(() => void) | null>;
+  playDialogueAdvanceRef: MutableRefObject<(() => void) | null>;
+  startDialogueLoopRef: MutableRefObject<(() => void) | null>;
+  stopDialogueLoopRef: MutableRefObject<(() => void) | null>;
+  playMenuOpenRef: MutableRefObject<(() => void) | null>;
+  playMenuCloseRef: MutableRefObject<(() => void) | null>;
 }
 
 export interface RuntimeUiBindings {
@@ -143,6 +154,17 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       setMapModalOpenRef,
       activeNpcWorldPos,
       syncVillageReactivityRef,
+      playPotionDrinkRef,
+      playGrassChewRef,
+      playHeroEventRef,
+      playPortalWarpRef,
+      startPortalChargeLoopRef,
+      stopPortalChargeLoopRef,
+      playDialogueAdvanceRef,
+      startDialogueLoopRef,
+      stopDialogueLoopRef,
+      playMenuOpenRef,
+      playMenuCloseRef,
     },
     ui: {
       setGameState,
@@ -226,16 +248,21 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       frustumSize,
     } = runtime;
     const isNpcPriorityCueTarget = (npc: NPC) => {
-      if (isNpcObjectiveTarget(npc, state.currentMap, mapMarkersRef.current)) return true;
-      if (npc.questGiver) return true;
+      if (isNpcObjectiveTarget(npc, state.currentMap, mapMarkersRef.current)) {
+        const primaryObjectiveText = getPrimaryObjectiveText(state);
+        if (primaryObjectiveText) {
+          const npcName = npc.name.toLowerCase();
+          if (npcName.includes('elder') && primaryObjectiveText.includes('elder')) return true;
+          if (npcName.includes('merchant') && primaryObjectiveText.includes('merchant')) return true;
+          if (npcName.includes('guard') && primaryObjectiveText.includes('guard')) return true;
+          if (npcName.includes('blacksmith') && primaryObjectiveText.includes('blacksmith')) return true;
+          if (npcName.includes('healer') && primaryObjectiveText.includes('healer')) return true;
+        }
+      }
 
-      const activeQuestText = state.quests
-        .filter(q => q.active && !q.completed)
-        .map(q => `${q.title} ${q.description} ${q.objectives.join(' ')}`)
-        .join(' ')
-        .toLowerCase();
+      const activeQuestText = getPrimaryObjectiveText(state);
+      if (!activeQuestText) return npc.questGiver && npc.id === 'elder' && state.currentMap === 'village';
 
-      if (!activeQuestText) return false;
       const npcName = npc.name.toLowerCase();
       if (npcName.includes('elder') && activeQuestText.includes('elder')) return true;
       if (npcName.includes('merchant') && activeQuestText.includes('merchant')) return true;
@@ -274,7 +301,14 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     let transitionDebug = false;
     const footstepInterval = 0.3;
     const MAX_DELTA = 0.1;
-    const portalWarpManager = createPortalWarpManager();
+    const portalWarpManager = createPortalWarpManager({
+      startPortalChargeLoop: () => {
+        startPortalChargeLoopRef.current?.();
+      },
+      stopPortalChargeLoop: () => {
+        stopPortalChargeLoopRef.current?.();
+      },
+    });
 
     // Reusable vectors to avoid per-frame allocation
     const _tmpVec3 = new THREE.Vector3();
@@ -471,6 +505,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       syncHarvestedTempestGrassState,
       syncPersistentMapState,
       handleMapTransition,
+      handlePortalTransition,
       respawnEnemiesForCurrentMap,
     } = createRuntimeMapFlow({
       state,
@@ -500,7 +535,6 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
         world.updateChunks(worldX, worldY);
       },
       resetExplorationState: () => {
-        visitedTilesRef.current = new Set();
         triggerMinimapUpdate(true);
         triggerUIUpdate();
       },
@@ -509,6 +543,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
         runtimeSession.loop.portalCooldown = seconds;
       },
       setActiveForCurrentMap: setActiveNpcsForCurrentMap,
+      playPortalWarp: () => {
+        playPortalWarpRef.current?.();
+      },
       assetManager,
       combatSystem,
       enemyVisuals,
@@ -528,6 +565,20 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       enemyAudio,
       playFootstep,
       playGameOverSound,
+      playPotionDrink,
+      playGrassChew,
+      playBlock,
+      playPlayerHit,
+      playHeroEvent,
+      playGateShortcut,
+      startPortalChargeLoop,
+      stopPortalChargeLoop,
+      playPortalWarp,
+      playDialogueAdvance,
+      startDialogueLoop,
+      stopDialogueLoop,
+      playMenuOpen,
+      playMenuClose,
       usePotion,
       checkInteraction,
       performDodge,
@@ -571,6 +622,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           },
           getCurrentDir8: () => runtimeSession.animation.currentDir8,
           healCooldownMs: HEAL_COOLDOWN_MS,
+          drinkDuration: DRINK_DURATION,
           attackFrameDuration: ATTACK_FRAME_DURATION,
           spinFrameDuration: SPIN_FRAME_DURATION,
           spinDirections: SPIN_DIRECTIONS,
@@ -589,6 +641,20 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           enemyAudio: null as any,
           playFootstep: () => {},
           playGameOverSound: () => {},
+          playPotionDrink: () => {},
+          playGrassChew: () => {},
+          playBlock: () => {},
+          playPlayerHit: () => {},
+          playHeroEvent: () => {},
+          playGateShortcut: () => {},
+          startPortalChargeLoop: () => {},
+          stopPortalChargeLoop: () => {},
+          playPortalWarp: () => {},
+          playDialogueAdvance: () => {},
+          startDialogueLoop: () => {},
+          stopDialogueLoop: () => {},
+          playMenuOpen: () => {},
+          playMenuClose: () => {},
           usePotion: () => {},
           checkInteraction: () => {},
           performDodge: () => {},
@@ -597,6 +663,17 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
         };
       }
     })();
+    playPotionDrinkRef.current = playPotionDrink;
+    playGrassChewRef.current = playGrassChew;
+    playHeroEventRef.current = playHeroEvent;
+    playPortalWarpRef.current = playPortalWarp;
+    startPortalChargeLoopRef.current = startPortalChargeLoop;
+    stopPortalChargeLoopRef.current = stopPortalChargeLoop;
+    playDialogueAdvanceRef.current = playDialogueAdvance;
+    startDialogueLoopRef.current = startDialogueLoop;
+    stopDialogueLoopRef.current = stopDialogueLoop;
+    playMenuOpenRef.current = playMenuOpen;
+    playMenuCloseRef.current = playMenuClose;
 
     const { keys, detachDomEvents } = (() => {
       try {
@@ -625,7 +702,8 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             transitionDebugGroup.visible = enabled;
           },
           runtimeSession,
-          drinkDuration: DRINK_DURATION,
+          playBlock,
+          usePotion,
           performAttack,
           performChargeAttack,
           chargeTimeMin: CHARGE_TIME_MIN,
@@ -747,9 +825,11 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           portalWarpManager,
           notify,
           handleMapTransition,
+          handlePortalTransition,
           enemyVisualProfiles: ENEMY_VISUALS,
           enemyVisuals,
           enemyAudio,
+          playPlayerHit,
           shadowGeometry,
           shadowMaterial,
           createOutlineMesh,
@@ -854,7 +934,20 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
         portalVignette: portalVignetteRef.current,
         clearRuntimeRefs: () => {
           fatalRuntime.clear();
+          stopDialogueLoopRef.current?.();
+          stopPortalChargeLoopRef.current?.();
           syncVillageReactivityRef.current = null;
+          playPotionDrinkRef.current = null;
+          playGrassChewRef.current = null;
+          playHeroEventRef.current = null;
+          playPortalWarpRef.current = null;
+          startPortalChargeLoopRef.current = null;
+          stopPortalChargeLoopRef.current = null;
+          playDialogueAdvanceRef.current = null;
+          startDialogueLoopRef.current = null;
+          stopDialogueLoopRef.current = null;
+          playMenuOpenRef.current = null;
+          playMenuCloseRef.current = null;
           gameStateRef.current = null;
           worldRef.current = null;
           assetManagerRef.current = null;

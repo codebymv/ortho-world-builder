@@ -7,6 +7,9 @@ interface DialogueBoxProps {
   npcScreenPos?: { x: number; y: number } | null;
   onResponse: (nextId: string, givesQuest?: string) => void;
   onClose: () => void;
+  playAdvanceSound?: () => void;
+  startTypewriterLoop?: () => void;
+  stopTypewriterLoop?: () => void;
 }
 
 // Renders text with **bold** and __underline__ markup
@@ -59,21 +62,41 @@ const RichText = ({ text }: { text: string }) => {
   );
 };
 
-export const DialogueBox = ({ node, npcName, npcScreenPos, onResponse, onClose }: DialogueBoxProps) => {
+export const DialogueBox = ({
+  node,
+  npcName,
+  npcScreenPos,
+  onResponse,
+  onClose,
+  playAdvanceSound,
+  startTypewriterLoop,
+  stopTypewriterLoop,
+}: DialogueBoxProps) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const playAdvanceSoundRef = useRef(playAdvanceSound);
+  const startTypewriterLoopRef = useRef(startTypewriterLoop);
+  const stopTypewriterLoopRef = useRef(stopTypewriterLoop);
+
+  useEffect(() => {
+    playAdvanceSoundRef.current = playAdvanceSound;
+    startTypewriterLoopRef.current = startTypewriterLoop;
+    stopTypewriterLoopRef.current = stopTypewriterLoop;
+  }, [playAdvanceSound, startTypewriterLoop, stopTypewriterLoop]);
 
   const stripMarkers = (text: string) => text.replace(/\*\*|__/g, '');
 
   useEffect(() => {
     if (!node) return;
+    stopTypewriterLoopRef.current?.();
     setDisplayedText('');
     setCurrentIndex(0);
     setIsTyping(true);
     setHoveredIdx(null);
+    startTypewriterLoopRef.current?.();
   }, [node]);
 
   useEffect(() => {
@@ -104,12 +127,35 @@ export const DialogueBox = ({ node, npcName, npcScreenPos, onResponse, onClose }
 
   const skipTyping = useCallback(() => {
     if (node && isTyping) {
+      stopTypewriterLoopRef.current?.();
       setDisplayedText(node.text);
       setIsTyping(false);
     }
   }, [node, isTyping]);
 
   const hasResponses = !!(node?.responses && node.responses.length > 0);
+
+  const advanceDialogue = useCallback((nextId: string, givesQuest?: string) => {
+    playAdvanceSoundRef.current?.();
+    onResponse(nextId, givesQuest);
+  }, [onResponse]);
+
+  useEffect(() => {
+    if (!node) {
+      stopTypewriterLoopRef.current?.();
+      return;
+    }
+
+    if (isTyping) {
+      startTypewriterLoopRef.current?.();
+    } else {
+      stopTypewriterLoopRef.current?.();
+    }
+
+    return () => {
+      stopTypewriterLoopRef.current?.();
+    };
+  }, [node, isTyping]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -125,7 +171,7 @@ export const DialogueBox = ({ node, npcName, npcScreenPos, onResponse, onClose }
         } else if (node.responses!.length === 1) {
           // Single response — advance immediately
           const r = node.responses![0];
-          onResponse(r.nextId, r.givesQuest);
+          advanceDialogue(r.nextId, r.givesQuest);
         }
         return;
       }
@@ -136,13 +182,13 @@ export const DialogueBox = ({ node, npcName, npcScreenPos, onResponse, onClose }
         if (!isNaN(num) && num >= 1 && num <= node.responses!.length) {
           e.preventDefault();
           const r = node.responses![num - 1];
-          onResponse(r.nextId, r.givesQuest);
+          advanceDialogue(r.nextId, r.givesQuest);
         }
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [node, isTyping, hasResponses, skipTyping, onResponse, onClose]);
+  }, [node, isTyping, hasResponses, skipTyping, advanceDialogue, onClose]);
 
   if (!node) return null;
 
@@ -202,7 +248,7 @@ export const DialogueBox = ({ node, npcName, npcScreenPos, onResponse, onClose }
                       key={index}
                       onMouseEnter={() => setHoveredIdx(index)}
                       onMouseLeave={() => setHoveredIdx(null)}
-                      onClick={() => onResponse(response.nextId, response.givesQuest)}
+                      onClick={() => advanceDialogue(response.nextId, response.givesQuest)}
                       className={`
                         flex items-center gap-2 text-left rounded-md py-2.5 px-3 text-sm transition-all border
                         ${isHovered

@@ -17,14 +17,11 @@ interface PointerInputOptions {
   state: GameState;
   pausedRef: MutableRefObject<boolean>;
   mapModalOpenRef: MutableRefObject<boolean>;
-  notify: (title: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
-  triggerUIUpdate: () => void;
   performAttack: () => void;
   performChargeAttack: (level: number) => void;
   getPlayerAnimState: () => PlayerAnimState;
   setPlayerAnimState: (value: PlayerAnimState) => void;
-  setDrinkTimer: (value: number) => void;
-  drinkDuration: number;
+  playBlock: () => void;
   getIsChargingAttack: () => boolean;
   setIsChargingAttack: (value: boolean) => void;
   setChargeTimer: (value: number) => void;
@@ -45,14 +42,11 @@ export function createPointerInputController({
   state,
   pausedRef,
   mapModalOpenRef,
-  notify,
-  triggerUIUpdate,
   performAttack,
   performChargeAttack,
   getPlayerAnimState,
   setPlayerAnimState,
-  setDrinkTimer,
-  drinkDuration,
+  playBlock,
   getIsChargingAttack,
   setIsChargingAttack,
   setChargeTimer,
@@ -68,35 +62,6 @@ export function createPointerInputController({
   setLmbHoldStartTime,
   chargeTimeMin,
 }: PointerInputOptions) {
-  const useSelectedConsumable = () => {
-    const activeItem = state.inventory[state.activeItemIndex];
-    if (activeItem?.type !== 'consumable') return false;
-
-    if (typeof activeItem.healAmount === 'number' && activeItem.healAmount > 0) {
-      if (state.player.health >= state.player.maxHealth) {
-        notify('Already at full health!', { id: 'full-health', duration: 1500 });
-        return true;
-      }
-      setPlayerAnimState('drinking');
-      setDrinkTimer(drinkDuration);
-      state.player.health = Math.min(state.player.maxHealth, state.player.health + activeItem.healAmount);
-      state.removeItem(activeItem.id);
-      notify(`Used ${activeItem.name}`, {
-        id: `used-${activeItem.id}`,
-        type: 'success',
-        description: `Restored ${activeItem.healAmount} health.`,
-        duration: 2000,
-      });
-      if (state.activeItemIndex >= state.inventory.length) {
-        state.activeItemIndex = Math.max(0, state.inventory.length - 1);
-      }
-      triggerUIUpdate();
-      return true;
-    }
-
-    return false;
-  };
-
   const clearChargeState = () => {
     setIsLmbHeld(false);
     setIsChargingAttack(false);
@@ -119,9 +84,6 @@ export function createPointerInputController({
 
     if (e.button === 0) {
       if (!state.dialogueActive && !state.player.isDodging) {
-        if (useSelectedConsumable()) {
-          return;
-        }
         const currentTime = Date.now();
         if (currentTime - state.player.lastAttackTime >= state.player.attackCooldown) {
           setIsLmbHeld(true);
@@ -149,6 +111,7 @@ export function createPointerInputController({
       if (!getIsBlocking() && !state.player.isDodging && state.player.stamina > 0) {
         setIsBlocking(true);
         setBlockStartTime(performance.now() / 1000);
+        playBlock();
         const playerAnimState = getPlayerAnimState();
         if (
           playerAnimState !== 'attack' &&

@@ -432,7 +432,7 @@ export class CombatSystem {
     if (targetEnemy.health <= 0) {
       targetEnemy.state = 'dead';
       this._enemiesDirty = true;
-      this.gameState.player.essence += targetEnemy.essenceReward;
+      this.gameState.addEssence(targetEnemy.essenceReward);
       return { killed: true, staggered: false, backstab: isBackstab };
     }
 

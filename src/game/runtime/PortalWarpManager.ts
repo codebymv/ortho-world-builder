@@ -24,13 +24,34 @@ interface UpdatePortalWarpOptions {
   handleMapTransition: (targetMap: string, targetX: number, targetY: number) => void;
 }
 
-export function createPortalWarpManager() {
+interface CreatePortalWarpManagerOptions {
+  startPortalChargeLoop: () => void;
+  stopPortalChargeLoop: () => void;
+}
+
+export function createPortalWarpManager({
+  startPortalChargeLoop,
+  stopPortalChargeLoop,
+}: CreatePortalWarpManagerOptions) {
   let warpCharge = 0;
   let particleAccumulator = 0;
   let lastBarrierToastAt = -1e12;
   let blockedPortalHintTimer = 0;
+  let portalLoopActive = false;
   const tmpVec3 = new THREE.Vector3();
   const PORTAL_CHARGE_SEC = 1.12;
+
+  const stopLoop = () => {
+    if (!portalLoopActive) return;
+    portalLoopActive = false;
+    stopPortalChargeLoop();
+  };
+
+  const startLoop = () => {
+    if (portalLoopActive) return;
+    portalLoopActive = true;
+    startPortalChargeLoop();
+  };
 
   return {
     update({
@@ -56,6 +77,7 @@ export function createPortalWarpManager() {
         warpCharge = 0;
         particleAccumulator = 0;
         blockedPortalHintTimer = 0;
+        stopLoop();
         if (vignette) {
           vignette.style.opacity = '0';
         }
@@ -67,6 +89,7 @@ export function createPortalWarpManager() {
         warpCharge = Math.max(0, warpCharge - deltaTime * 2.4);
         particleAccumulator = 0;
         blockedPortalHintTimer = 0;
+        stopLoop();
         if (vignette) vignette.style.opacity = '0';
         return;
       }
@@ -74,6 +97,7 @@ export function createPortalWarpManager() {
       if (!isPortalDestinationUnlocked(nearPortal.targetMap)) {
         warpCharge = Math.max(0, warpCharge - deltaTime * 2.8);
         blockedPortalHintTimer += deltaTime;
+        stopLoop();
         if (vignette) {
           const pulse = 0.18 + Math.sin(currentTime * 0.006) * 0.06;
           vignette.style.opacity = String(pulse);
@@ -100,6 +124,7 @@ export function createPortalWarpManager() {
 
       blockedPortalHintTimer = 0;
       warpCharge = Math.min(1, warpCharge + deltaTime / PORTAL_CHARGE_SEC);
+      startLoop();
       if (vignette) {
         const opacity = warpCharge * (0.42 + Math.sin(currentTime * 0.01) * 0.08);
         vignette.style.opacity = String(Math.min(0.68, opacity));
@@ -125,6 +150,7 @@ export function createPortalWarpManager() {
       if (warpCharge >= 1) {
         warpCharge = 0;
         particleAccumulator = 0;
+        stopLoop();
         if (vignette) vignette.style.opacity = '0';
         handleMapTransition(nearPortal.targetMap, nearPortal.targetX, nearPortal.targetY);
       }
@@ -133,6 +159,7 @@ export function createPortalWarpManager() {
       warpCharge = 0;
       particleAccumulator = 0;
       blockedPortalHintTimer = 0;
+      stopLoop();
       if (vignette) vignette.style.opacity = '0';
     },
   };

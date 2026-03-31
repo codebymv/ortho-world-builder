@@ -16,9 +16,36 @@ export function createRuntimeSfx({
   musicRef,
   musicStarted,
 }: CreateRuntimeSfxOptions) {
+  const createLoopingAudio = (src: string, volume: number, playbackRate: number = 1) => {
+    const audio = new Audio(src);
+    audio.loop = true;
+    audio.volume = volume;
+    audio.playbackRate = playbackRate;
+    processAudioElement(audio);
+
+    const play = () => {
+      if (!audio.paused) return;
+      audio.playbackRate = playbackRate;
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    };
+
+    const stop = () => {
+      if (audio.paused && audio.currentTime === 0) return;
+      audio.pause();
+      audio.currentTime = 0;
+    };
+
+    return {
+      audio,
+      play,
+      stop,
+    };
+  };
+
   const dodgeRollSfx = createSequentialAudioPool({
     src: './audio/dodge_roll.mp3',
-    volume: 0.38,
+    volume: 0.44,
     poolSize: 4,
     processAudioElement,
   });
@@ -47,7 +74,7 @@ export function createRuntimeSfx({
 
   const FOOTSTEP_POOL_SIZE = 2;
   const walkFootstepSfx = createRandomAudioPool({
-    entries: [1, 2, 3].map(variant => ({ src: `./audio/fs_${variant}_walk.mp3`, volume: 0.3 })),
+    entries: [1, 2, 3].map(variant => ({ src: `./audio/fs_${variant}_walk.mp3`, volume: 0.35 })),
     copiesPerEntry: FOOTSTEP_POOL_SIZE,
     processAudioElement,
     onPlaySuccess: tryStartMusicFromSfx,
@@ -57,7 +84,7 @@ export function createRuntimeSfx({
   });
 
   const sprintFootstepSfx = createRandomAudioPool({
-    entries: [1, 2, 3].map(variant => ({ src: `./audio/fs_${variant}_sprint.mp3`, volume: 0.4 })),
+    entries: [1, 2, 3].map(variant => ({ src: `./audio/fs_${variant}_sprint.mp3`, volume: 0.46 })),
     copiesPerEntry: FOOTSTEP_POOL_SIZE,
     processAudioElement,
     onPlaySuccess: tryStartMusicFromSfx,
@@ -88,6 +115,50 @@ export function createRuntimeSfx({
     processAudioElement,
   });
 
+  const grassPullSfx = createSequentialAudioPool({
+    src: './audio/grass_pull.mp3',
+    volume: 0.42,
+    poolSize: SMALL_SFX_POOL,
+    processAudioElement,
+  });
+
+  const grassChewSfx = createSequentialAudioPool({
+    src: './audio/grass_chew.mp3',
+    volume: 0.44,
+    poolSize: SMALL_SFX_POOL,
+    processAudioElement,
+  });
+
+  const potionDrinkSfx = createSequentialAudioPool({
+    src: './audio/potion_drink.mp3',
+    volume: 0.45,
+    poolSize: SMALL_SFX_POOL,
+    processAudioElement,
+  });
+
+  const blockSfx = createSequentialAudioPool({
+    src: './audio/block.mp3',
+    volume: 0.5,
+    poolSize: SMALL_SFX_POOL,
+    processAudioElement,
+  });
+
+  const playerHitSfx = createSequentialAudioPool({
+    src: './audio/player_hit.mp3',
+    volume: 0.42,
+    poolSize: SMALL_SFX_POOL,
+    processAudioElement,
+  });
+
+  const autoWarpLoopSfx = createLoopingAudio('./audio/auto_warp.mp3', 0.46, 1);
+
+  const portalWarpSfx = createSequentialAudioPool({
+    src: './audio/portal_warp.mp3',
+    volume: 0.38,
+    poolSize: SMALL_SFX_POOL,
+    processAudioElement,
+  });
+
   const gameOverSfx = createSequentialAudioPool({
     src: './audio/game_over.mp3',
     volume: 0.5,
@@ -97,14 +168,52 @@ export function createRuntimeSfx({
 
   const bonfireKindleSfx = createSequentialAudioPool({
     src: './audio/fire_kindle.mp3',
-    volume: 0.55,
+    volume: 0.62,
     poolSize: SMALL_SFX_POOL,
     processAudioElement,
   });
 
   const bonfireRestoreSfx = createSequentialAudioPool({
     src: './audio/fire_restore.mp3',
+    volume: 0.58,
+    poolSize: SMALL_SFX_POOL,
+    processAudioElement,
+  });
+
+  const heroEventSfx = createSequentialAudioPool({
+    src: './audio/hero_event.mp3',
     volume: 0.5,
+    poolSize: SMALL_SFX_POOL,
+    processAudioElement,
+  });
+
+  const gateShortcutSfx = createSequentialAudioPool({
+    src: './audio/gate_shortcut.mp3',
+    volume: 0.52,
+    poolSize: SMALL_SFX_POOL,
+    processAudioElement,
+  });
+
+  const dialogueAdvanceSfx = createSequentialAudioPool({
+    src: './audio/dialog_loop.mp3',
+    volume: 0.34,
+    poolSize: SMALL_SFX_POOL,
+    playbackRate: 1.35,
+    processAudioElement,
+  });
+
+  const dialogueLoopSfx = createLoopingAudio('./audio/dialog_loop.mp3', 0.24, 1.35);
+
+  const menuOpenSfx = createSequentialAudioPool({
+    src: './audio/pause_open.mp3',
+    volume: 0.64,
+    poolSize: SMALL_SFX_POOL,
+    processAudioElement,
+  });
+
+  const menuCloseSfx = createSequentialAudioPool({
+    src: './audio/pause_close.mp3',
+    volume: 0.58,
     poolSize: SMALL_SFX_POOL,
     processAudioElement,
   });
@@ -147,8 +256,23 @@ export function createRuntimeSfx({
     playDeathSound: deathSfx.play,
     playChestUnlock: chestUnlockSfx.play,
     playItemGrab: itemGrabSfx.play,
+    playGrassPull: grassPullSfx.play,
+    playGrassChew: grassChewSfx.play,
+    playPotionDrink: potionDrinkSfx.play,
+    playBlock: blockSfx.play,
+    playPlayerHit: playerHitSfx.play,
+    startPortalChargeLoop: autoWarpLoopSfx.play,
+    stopPortalChargeLoop: autoWarpLoopSfx.stop,
+    playPortalWarp: portalWarpSfx.play,
     playGameOverSound: gameOverSfx.play,
     playBonfireKindle: bonfireKindleSfx.play,
     playBonfireRestore: bonfireRestoreSfx.play,
+    playHeroEvent: heroEventSfx.play,
+    playGateShortcut: gateShortcutSfx.play,
+    playDialogueAdvance: dialogueAdvanceSfx.play,
+    startDialogueLoop: dialogueLoopSfx.play,
+    stopDialogueLoop: dialogueLoopSfx.stop,
+    playMenuOpen: menuOpenSfx.play,
+    playMenuClose: menuCloseSfx.play,
   };
 }

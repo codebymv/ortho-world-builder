@@ -23,6 +23,7 @@ export function createRuntimeSessionState({
       animFrame: 0,
       animTimer: 0,
       playerAnimState: 'idle' as PlayerAnimState,
+      heldConsumableSpriteId: null as string | null,
       drinkTimer: 0,
       attackFrameTimer: 0,
       attackFrame: 0,

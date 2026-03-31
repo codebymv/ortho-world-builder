@@ -149,6 +149,7 @@ interface SequentialAudioPoolConfig {
   volume: number;
   poolSize: number;
   processAudioElement: (audio: HTMLAudioElement) => void;
+  playbackRate?: number;
 }
 
 export function createSequentialAudioPool(config: SequentialAudioPoolConfig) {
@@ -156,6 +157,7 @@ export function createSequentialAudioPool(config: SequentialAudioPoolConfig) {
   for (let i = 0; i < config.poolSize; i++) {
     const audio = new Audio(config.src);
     audio.volume = config.volume;
+    audio.playbackRate = config.playbackRate ?? 1;
     config.processAudioElement(audio);
     pool.push(audio);
   }
@@ -166,6 +168,7 @@ export function createSequentialAudioPool(config: SequentialAudioPoolConfig) {
     const audio = pool[index % pool.length];
     index += 1;
     audio.currentTime = 0;
+    audio.playbackRate = config.playbackRate ?? 1;
     audio.play().catch(() => {});
   };
 

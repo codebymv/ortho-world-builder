@@ -17,6 +17,7 @@ interface SetupRuntimeInputPhaseOptions {
   notify: (title: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
   triggerUIUpdate: () => void;
   syncEquippedWeapon: (preferredWeaponId?: string | null) => void;
+  usePotion: () => void;
   setTransitionDebugEnabled: Dispatch<SetStateAction<boolean>>;
   setTransitionDebugLines: Dispatch<SetStateAction<string[]>>;
   rebuildTransitionDebug: () => void;
@@ -24,7 +25,7 @@ interface SetupRuntimeInputPhaseOptions {
   getTransitionDebug: () => boolean;
   setTransitionDebug: (enabled: boolean) => void;
   runtimeSession: RuntimeSessionState;
-  drinkDuration: number;
+  playBlock: () => void;
   performAttack: () => void;
   performChargeAttack: (level: number) => void;
   chargeTimeMin: number;
@@ -44,6 +45,7 @@ export function setupRuntimeInputPhase({
   notify,
   triggerUIUpdate,
   syncEquippedWeapon,
+  usePotion,
   setTransitionDebugEnabled,
   setTransitionDebugLines,
   rebuildTransitionDebug,
@@ -51,7 +53,7 @@ export function setupRuntimeInputPhase({
   getTransitionDebug,
   setTransitionDebug,
   runtimeSession,
-  drinkDuration,
+  playBlock,
   performAttack,
   performChargeAttack,
   chargeTimeMin,
@@ -72,6 +74,7 @@ export function setupRuntimeInputPhase({
     notify,
     triggerUIUpdate,
     syncEquippedWeapon,
+    usePotion,
     setTransitionDebugEnabled,
     setTransitionDebugLines,
     rebuildTransitionDebug,
@@ -89,10 +92,7 @@ export function setupRuntimeInputPhase({
       runtimeSession.animation.playerAnimState = value;
     },
     getPlayerAnimState: () => runtimeSession.animation.playerAnimState,
-    setDrinkTimer: value => {
-      runtimeSession.animation.drinkTimer = value;
-    },
-    drinkDuration,
+    playBlock,
     setIsBlocking: value => {
       runtimeSession.combat.isBlocking = value;
     },
@@ -106,18 +106,13 @@ export function setupRuntimeInputPhase({
     state,
     pausedRef,
     mapModalOpenRef,
-    notify,
-    triggerUIUpdate,
     performAttack,
     performChargeAttack,
     getPlayerAnimState: () => runtimeSession.animation.playerAnimState,
     setPlayerAnimState: value => {
       runtimeSession.animation.playerAnimState = value;
     },
-    setDrinkTimer: value => {
-      runtimeSession.animation.drinkTimer = value;
-    },
-    drinkDuration,
+    playBlock,
     getIsChargingAttack: () => runtimeSession.animation.isChargingAttack,
     setIsChargingAttack: value => {
       runtimeSession.animation.isChargingAttack = value;

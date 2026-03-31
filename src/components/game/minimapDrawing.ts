@@ -1,6 +1,7 @@
 import type { WorldMap, Tile } from '@/lib/game/World';
 import type { GameState } from '@/lib/game/GameState';
-import { isNpcObjectiveTarget, markerTargetsNpc, type MapMarker } from '@/lib/game/MapMarkers';
+import { isNpcObjectiveTarget, isPrimaryObjectiveMarker, markerTargetsNpc, type MapMarker } from '@/lib/game/MapMarkers';
+import { parseVisitedTileKey } from '@/lib/game/visitedTiles';
 
 export const MARKER_TYPE_ICONS: Record<string, string> = {
   quest: '!',
@@ -96,7 +97,7 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
   const npcs = state.npcs;
   const objectiveNpcIds = new Set(
     npcs
-      .filter(npc => isNpcObjectiveTarget(npc, currentMapId, markers))
+      .filter(npc => isNpcObjectiveTarget(npc, currentMapId, markers.filter(marker => isPrimaryObjectiveMarker(marker, state))))
       .map(npc => npc.id)
   );
 
@@ -106,7 +107,15 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
   const playerTileX = Math.floor(playerPosition.x + w / 2);
   const playerTileY = Math.floor(playerPosition.y + h / 2);
 
-  if (visited.size === 0) {
+  const visibleVisitedTiles = Array.from(visited)
+    .map(parseVisitedTileKey)
+    .filter((tile): tile is NonNullable<typeof tile> => {
+      if (!tile) return false;
+      if (tile.mapId !== null && tile.mapId !== currentMapId) return false;
+      return tile.x >= 0 && tile.y >= 0 && tile.x < w && tile.y < h;
+    });
+
+  if (visibleVisitedTiles.length === 0) {
     const revealRadius = 5;
     for (let dy = -revealRadius; dy <= revealRadius; dy++) {
       for (let dx = -revealRadius; dx <= revealRadius; dx++) {
@@ -123,12 +132,8 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
     }
   }
 
-  for (const tileKey of visited) {
-    const comma = tileKey.indexOf(',');
-    if (comma <= 0) continue;
-    const x = +tileKey.slice(0, comma);
-    const y = +tileKey.slice(1 + comma);
-    if (x < 0 || y < 0 || x >= w || y >= h) continue;
+  for (const tileInfo of visibleVisitedTiles) {
+    const { x, y } = tileInfo;
     const tile = tiles[y]?.[x];
     if (!tile) continue;
     ctx.fillStyle = tileColorForMinimap(tile);
@@ -143,7 +148,8 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
     const cx = mx + scale / 2;
     const cy = my + scale / 2;
 
-    const isNpcObjectiveMarker = marker.type === 'quest' && npcs.some(npc => markerTargetsNpc(marker, npc));
+    const isNpcObjectiveMarker =
+      isPrimaryObjectiveMarker(marker, state) && marker.type === 'quest' && npcs.some(npc => markerTargetsNpc(marker, npc));
 
     ctx.beginPath();
     ctx.arc(cx, cy, Math.max(6, scale * 0.9), 0, Math.PI * 2);

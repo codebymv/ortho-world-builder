@@ -108,9 +108,11 @@ export interface BuildRuntimePhaseContextsOptions {
   portalWarpManager: PortalWarpManagerLike;
   notify: (title: string, options?: { id?: string; description?: string; duration?: number }) => void;
   handleMapTransition: (targetMap: string, targetX: number, targetY: number) => void;
+  handlePortalTransition: (targetMap: string, targetX: number, targetY: number) => void;
   enemyVisualProfiles: Record<string, EnemyVisualProfile>;
   enemyVisuals: EnemyVisualRegistry;
   enemyAudio: EnemyLoopContext['enemyAudio'];
+  playPlayerHit: () => void;
   shadowGeometry: THREE.BufferGeometry;
   shadowMaterial: THREE.MeshBasicMaterial;
   createOutlineMesh: (geometry: THREE.BufferGeometry, texture: THREE.Texture | null) => THREE.Mesh;

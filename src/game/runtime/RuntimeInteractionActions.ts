@@ -35,6 +35,12 @@ interface PotionActionOptions {
   particleSystem: { emitHeal: (position: THREE.Vector3) => void };
   notify: (title: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
   triggerUIUpdate: () => void;
+  playPotionDrink?: () => void;
+  playGrassChew?: () => void;
+  setPlayerAnimState?: (value: string) => void;
+  setHeldConsumableSpriteId?: (value: string | null) => void;
+  setDrinkTimer?: (value: number) => void;
+  drinkDuration?: number;
 }
 
 export function createUsePotionAction(options: PotionActionOptions) {
@@ -48,6 +54,12 @@ export function useHealthPotionAction({
   particleSystem,
   notify,
   triggerUIUpdate,
+  playPotionDrink,
+  playGrassChew,
+  setPlayerAnimState,
+  setHeldConsumableSpriteId,
+  setDrinkTimer,
+  drinkDuration,
 }: PotionActionOptions) {
   const activeItem = state.inventory[state.activeItemIndex];
   if (activeItem?.type !== 'consumable' || typeof activeItem.healAmount !== 'number' || activeItem.healAmount <= 0) {
@@ -56,6 +68,16 @@ export function useHealthPotionAction({
   if (state.player.health >= state.player.maxHealth) {
     notify('Already at full health!', { id: 'full-health', duration: 1500 });
     return;
+  }
+  if (activeItem.id === 'health_potion') {
+    playPotionDrink?.();
+  } else if (activeItem.id === 'tempest_grass') {
+    playGrassChew?.();
+  }
+  setPlayerAnimState?.('drinking');
+  setHeldConsumableSpriteId?.(activeItem.sprite);
+  if (typeof drinkDuration === 'number') {
+    setDrinkTimer?.(drinkDuration);
   }
   state.player.health = Math.min(state.player.maxHealth, state.player.health + activeItem.healAmount);
   state.removeItem(activeItem.id);
@@ -97,10 +119,6 @@ export function runInteractionCheck({
   notify,
   handleMapTransition,
 }: InteractionCheckOptions) {
-  if (interactionSystem.tryInteractWithNearbyNpc(3.0)) {
-    return;
-  }
-
   const checkX = state.player.position.x;
   const checkY = state.player.position.y;
 
@@ -137,6 +155,10 @@ export function runInteractionCheck({
     if (interactionSystem.tryHandleShadowCastleGateSwitch(interactionId)) return;
     if (interactionSystem.tryHandleForestShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleDialogueInteraction(interactionId)) return;
+  }
+
+  if (interactionSystem.tryInteractWithNearbyNpc(3.0)) {
+    return;
   }
 
   const transitionOffsets = [

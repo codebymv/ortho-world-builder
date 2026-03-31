@@ -10,6 +10,7 @@ import { dialogues, DialogueNode } from '@/data/dialogues';
 import { quests } from '@/data/quests';
 import { items } from '@/data/items';
 import { criticalPathItems } from '@/data/criticalPathItems';
+import type { CurrencyGain, Item } from '@/lib/game/GameState';
 import { DialogueBox } from './game/DialogueBox';
 import { GameUI } from './game/GameUI';
 import { Minimap } from './game/Minimap';
@@ -52,6 +53,17 @@ const Game = () => {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const portalVignetteRef = useRef<HTMLDivElement | null>(null);
   const syncVillageReactivityRef = useRef<(() => void) | null>(null);
+  const playPotionDrinkRef = useRef<(() => void) | null>(null);
+  const playGrassChewRef = useRef<(() => void) | null>(null);
+  const playHeroEventRef = useRef<(() => void) | null>(null);
+  const playPortalWarpRef = useRef<(() => void) | null>(null);
+  const startPortalChargeLoopRef = useRef<(() => void) | null>(null);
+  const stopPortalChargeLoopRef = useRef<(() => void) | null>(null);
+  const playDialogueAdvanceRef = useRef<(() => void) | null>(null);
+  const startDialogueLoopRef = useRef<(() => void) | null>(null);
+  const stopDialogueLoopRef = useRef<(() => void) | null>(null);
+  const playMenuOpenRef = useRef<(() => void) | null>(null);
+  const playMenuCloseRef = useRef<(() => void) | null>(null);
 
   // Audio processing system for compression and gain
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -93,12 +105,18 @@ const Game = () => {
   const [bonfireOverlayActive, setBonfireOverlayActive] = useState(false);
   const [bonfireOverlayTitle, setBonfireOverlayTitle] = useState('Flame Kindled');
   const [bonfireOverlaySubtitle, setBonfireOverlaySubtitle] = useState<string | null>(null);
+  const [justPickedUpItem, setJustPickedUpItem] = useState<Item | null>(null);
+  const [justGainedCurrency, setJustGainedCurrency] = useState<CurrencyGain | null>(null);
   const bonfireOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const justPickedUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const justGainedCurrencyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pausedRef = useRef(false);
   const playerDeadRef = useRef(false);
   const deathRespawnFnRef = useRef<(() => void) | null>(null);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastInteractionPromptRef = useRef<InteractionPrompt>(null);
+  const previousPausedStateRef = useRef(isPaused);
+  const previousMapModalOpenRef = useRef(mapModalOpen);
 
   useEffect(() => {
     return () => {
@@ -106,8 +124,51 @@ const Game = () => {
         clearTimeout(bonfireOverlayTimerRef.current);
         bonfireOverlayTimerRef.current = null;
       }
+      if (justPickedUpTimerRef.current) {
+        clearTimeout(justPickedUpTimerRef.current);
+        justPickedUpTimerRef.current = null;
+      }
+      if (justGainedCurrencyTimerRef.current) {
+        clearTimeout(justGainedCurrencyTimerRef.current);
+        justGainedCurrencyTimerRef.current = null;
+      }
     };
   }, []);
+
+  useEffect(() => {
+    if (!gameState) return;
+
+    gameState.onItemAdded = (item: Item) => {
+      setJustPickedUpItem({ ...item });
+      if (justPickedUpTimerRef.current) {
+        clearTimeout(justPickedUpTimerRef.current);
+      }
+      justPickedUpTimerRef.current = setTimeout(() => {
+        setJustPickedUpItem(null);
+        justPickedUpTimerRef.current = null;
+      }, 2600);
+    };
+
+    gameState.onCurrencyGained = (gain: CurrencyGain) => {
+      setJustGainedCurrency({ ...gain });
+      if (justGainedCurrencyTimerRef.current) {
+        clearTimeout(justGainedCurrencyTimerRef.current);
+      }
+      justGainedCurrencyTimerRef.current = setTimeout(() => {
+        setJustGainedCurrency(null);
+        justGainedCurrencyTimerRef.current = null;
+      }, 1800);
+    };
+
+    return () => {
+      if (gameState.onItemAdded) {
+        gameState.onItemAdded = null;
+      }
+      if (gameState.onCurrencyGained) {
+        gameState.onCurrencyGained = null;
+      }
+    };
+  }, [gameState]);
 
   // Healing cooldowns: interactionId -> last use timestamp
   const healCooldowns = useRef<Map<string, number>>(new Map());
@@ -148,6 +209,7 @@ const Game = () => {
     }
   };
   const showHeroOverlay = useCallback((title: string, subtitle?: string) => {
+    playHeroEventRef.current?.();
     if (bonfireOverlayTimerRef.current) {
       clearTimeout(bonfireOverlayTimerRef.current);
       bonfireOverlayTimerRef.current = null;
@@ -194,6 +256,20 @@ const Game = () => {
   useEffect(() => {
     if (deathActive) setMapModalOpen(false);
   }, [deathActive]);
+
+  useEffect(() => {
+    if (previousPausedStateRef.current !== isPaused) {
+      (isPaused ? playMenuOpenRef.current : playMenuCloseRef.current)?.();
+      previousPausedStateRef.current = isPaused;
+    }
+  }, [isPaused]);
+
+  useEffect(() => {
+    if (previousMapModalOpenRef.current !== mapModalOpen) {
+      (mapModalOpen ? playMenuOpenRef.current : playMenuCloseRef.current)?.();
+      previousMapModalOpenRef.current = mapModalOpen;
+    }
+  }, [mapModalOpen]);
 
   const handleDialogueResponse = (nextId: string, givesQuest?: string) => {
     if (!gameState || !currentDialogue) return;
@@ -261,6 +337,17 @@ const Game = () => {
     setMapModalOpenRef,
     activeNpcWorldPos,
     syncVillageReactivityRef,
+    playPotionDrinkRef,
+    playGrassChewRef,
+    playHeroEventRef,
+    playPortalWarpRef,
+    startPortalChargeLoopRef,
+    stopPortalChargeLoopRef,
+    playDialogueAdvanceRef,
+    startDialogueLoopRef,
+    stopDialogueLoopRef,
+    playMenuOpenRef,
+    playMenuCloseRef,
   } satisfies Omit<RuntimeHostRefs, 'mountElement'>;
 
   const runtimeUi = {
@@ -329,6 +416,20 @@ const Game = () => {
             assetManager={assetManagerRef.current}
             refreshToken={uiVersion}
             triggerUIUpdate={triggerUIUpdate}
+            justPickedUpItem={justPickedUpItem}
+            justGainedCurrency={justGainedCurrency}
+            playPotionDrink={() => {
+              playPotionDrinkRef.current?.();
+            }}
+            playGrassChew={() => {
+              playGrassChewRef.current?.();
+            }}
+            playMenuOpen={() => {
+              playMenuOpenRef.current?.();
+            }}
+            playMenuClose={() => {
+              playMenuCloseRef.current?.();
+            }}
             musicRef={musicRef}
             showControls={showControls}
             interactionPrompt={interactionPrompt}
@@ -354,6 +455,8 @@ const Game = () => {
               mapMarkersRef={mapMarkersRef}
               markers={mapMarkers}
               refreshToken={minimapVersion}
+              playerX={gameState.player.position.x}
+              playerY={gameState.player.position.y}
             />
             <NotificationFeed />
           </div>
@@ -378,6 +481,15 @@ const Game = () => {
           npcScreenPos={npcScreenPos}
           onResponse={handleDialogueResponse}
           onClose={handleCloseDialogue}
+          playAdvanceSound={() => {
+            playDialogueAdvanceRef.current?.();
+          }}
+          startTypewriterLoop={() => {
+            startDialogueLoopRef.current?.();
+          }}
+          stopTypewriterLoop={() => {
+            stopDialogueLoopRef.current?.();
+          }}
         />
       )}
 

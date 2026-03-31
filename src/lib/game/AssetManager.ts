@@ -251,13 +251,12 @@ export class AssetManager {
         cell(m(3), 10 + bob, GUARD); cell(m(2), 10 + bob, GUARD);
         cell(m(2), 11 + bob, GRIP);
       } else if (includeSword && isBlock) {
-        // Block: sword raised slightly from idle stance - defensive guard
-        // Same position as idle but shifted up 1 row
-        cell(m(3), 2 + bob, BLADE_H); cell(m(4), 3 + bob, BLADE); cell(m(5), 4 + bob, BLADE_E);
-        cell(m(3), 3 + bob, BLADE_H); cell(m(4), 4 + bob, BLADE);
-        cell(m(2), 6 + bob, GUARD); cell(m(3), 6 + bob, GUARD); cell(m(4), 6 + bob, GUARD); cell(m(5), 6 + bob, GUARD);
-        cell(m(4), 7 + bob, GRIP); cell(m(4), 8 + bob, GRIP);
-        cell(m(4), 9 + bob, GUARD);
+        // Block: tall forward guard so the silhouette reads clearly at gameplay scale
+        cell(m(4), 0 + bob, BLADE_H); cell(m(5), 1 + bob, BLADE); cell(m(6), 2 + bob, BLADE_E);
+        cell(m(4), 1 + bob, BLADE_H); cell(m(5), 2 + bob, BLADE);
+        cell(m(3), 4 + bob, GUARD); cell(m(4), 4 + bob, GUARD); cell(m(5), 4 + bob, GUARD); cell(m(6), 4 + bob, GUARD);
+        cell(m(5), 5 + bob, GRIP); cell(m(5), 6 + bob, GRIP); cell(m(5), 7 + bob, GRIP);
+        cell(m(5), 8 + bob, GUARD);
       } else if (includeSword) {
         // Idle: resting at side, traditional short sword
         // Blade
@@ -360,15 +359,15 @@ export class AssetManager {
         cell(4, 12 + bob, GUARD); cell(3, 12 + bob, GUARD);
         cell(3, 13 + bob, GRIP);
       } else if (includeSword && isBlock) {
-        // Block: sword raised slightly from idle - defensive guard
-        // Same as idle but shifted up 1 row
-        cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE); cell(4, 5 + bob, BLADE_E);
-        cell(2, 4 + bob, BLADE_H); cell(3, 5 + bob, BLADE);
-        cell(2, 5 + bob, BLADE_H); cell(3, 6 + bob, BLADE);
-        cell(1, 7 + bob, GUARD); cell(2, 7 + bob, GUARD); cell(3, 7 + bob, GUARD); cell(4, 7 + bob, GUARD);
-        cell(3, 8 + bob, GRIP);
-        cell(3, 9 + bob, GRIP);
-        cell(3, 10 + bob, GUARD);
+        // Block: sword drawn high across the body for a strong readable guard silhouette
+        cell(3, 1 + bob, BLADE_H); cell(4, 2 + bob, BLADE); cell(5, 3 + bob, BLADE_E);
+        cell(3, 2 + bob, BLADE_H); cell(4, 3 + bob, BLADE);
+        cell(3, 3 + bob, BLADE_H); cell(4, 4 + bob, BLADE);
+        cell(2, 5 + bob, GUARD); cell(3, 5 + bob, GUARD); cell(4, 5 + bob, GUARD); cell(5, 5 + bob, GUARD);
+        cell(4, 6 + bob, GRIP);
+        cell(4, 7 + bob, GRIP);
+        cell(4, 8 + bob, GRIP);
+        cell(4, 9 + bob, GUARD);
       } else if (includeSword) {
         // Idle: resting at left side, traditional short sword
         // Blade
@@ -443,6 +442,11 @@ export class AssetManager {
       // Arms
       cell(4, 7 + bob, p.tunicDark); cell(4, 8 + bob, p.tunicDark); cell(4, 9 + bob, p.skinShadow);
       cell(11, 7 + bob, p.tunicDark); cell(11, 8 + bob, p.tunicDark); cell(11, 9 + bob, p.skinShadow);
+      if (isBlock) {
+        cell(5, 7 + bob, p.tunicDark); cell(5, 8 + bob, p.tunicDark);
+        cell(10, 7 + bob, p.tunicDark); cell(10, 8 + bob, p.tunicDark);
+        cell(5, 9 + bob, p.skinShadow);
+      }
       // Belt
       for (let dx = 5; dx <= 10; dx++) cell(dx, 10 + bob, p.bootDark);
       cell(7, 10 + bob, p.trimColor); cell(8, 10 + bob, p.trimColor);
@@ -1773,6 +1777,25 @@ export class AssetManager {
       [CHAIN_H,CHAIN_S,CHAIN_H,C,C],
       [C,CHAIN,C,C,C],
     ]));
+
+    const LEVER_WOOD = 0xA67C52;
+    const LEVER_WOOD_H = 0xD7B388;
+    const LEVER_WOOD_S = 0x6D4C41;
+    const LEVER_METAL = 0x9E9E9E;
+    const LEVER_METAL_H = 0xD7D7D7;
+    const LEVER_METAL_S = 0x616161;
+    const LEVER_BRASS = 0xE0B11A;
+    const LEVER_BRASS_H = 0xFFE082;
+    this.textures.set('shortcut_lever', this.createSpriteTexture([
+      [C,            C,            LEVER_WOOD_S, LEVER_WOOD_S, LEVER_WOOD_S, LEVER_WOOD_S, C,            C],
+      [C,            LEVER_WOOD_S, LEVER_WOOD_H, LEVER_WOOD_H, LEVER_WOOD_H, LEVER_WOOD_S, C,            C],
+      [C,            LEVER_WOOD_S, LEVER_WOOD,   LEVER_METAL_H,LEVER_WOOD_H, LEVER_WOOD_S, C,            C],
+      [C,            LEVER_WOOD_S, LEVER_WOOD_H, LEVER_METAL,  LEVER_BRASS_H,LEVER_BRASS,  C,            C],
+      [C,            C,            LEVER_WOOD_S, LEVER_METAL_S,LEVER_METAL,  C,            C,            C],
+      [C,            C,            C,            LEVER_WOOD_S, LEVER_WOOD_S, C,            C,            C],
+      [C,            C,            C,            LEVER_WOOD_S, LEVER_WOOD_S, C,            C,            C],
+      [C,            C,            C,            LEVER_WOOD_S, LEVER_WOOD_S, C,            C,            C],
+    ], 4, 'shortcut_lever'));
 
     const CAGE = 0x424242;
     const CAGE_H = 0x616161;

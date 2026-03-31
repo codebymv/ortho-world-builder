@@ -19,6 +19,7 @@ interface RunPlayerFramePhaseOptions extends PlayerFrameContext {
   swooshFacing: string;
   spinSwooshTimer: number;
   spinSwooshDuration: number;
+  heldConsumableSpriteId: string | null;
   camera: THREE.OrthographicCamera;
   cameraTarget: { x: number; y: number };
   lastInteractionPrompt: string | null;
@@ -59,6 +60,7 @@ export function runPlayerFramePhase({
   swooshFacing,
   spinSwooshTimer,
   spinSwooshDuration,
+  heldConsumableSpriteId,
   camera,
   cameraTarget,
   screenShake,
@@ -85,6 +87,7 @@ export function runPlayerFramePhase({
   particleSystem,
   notify,
   handleMapTransition,
+  handlePortalTransition,
 }: RunPlayerFramePhaseOptions) {
   const newTexture = resolvePlayerTexture({
     state,
@@ -177,6 +180,7 @@ export function runPlayerFramePhase({
     getPlayerVisualY,
     getVisualYAt,
     getHeldItemTexture: spriteId => assetManager.getTexture(spriteId) ?? null,
+    heldConsumableSpriteId,
     meshes: {
       playerMesh: meshes.playerMesh,
       playerMaterial: meshes.playerMaterial,
@@ -309,7 +313,7 @@ export function runPlayerFramePhase({
     samplePortalNearPlayer,
     isPortalDestinationUnlocked,
     notify,
-    handleMapTransition,
+    handleMapTransition: handlePortalTransition,
   });
 
   return {

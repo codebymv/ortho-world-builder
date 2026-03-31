@@ -97,6 +97,7 @@ export function buildPlayerFrameContext(options: BuildRuntimePhaseContextsOption
     portalWarpManager: options.portalWarpManager,
     notify: options.notify,
     handleMapTransition: options.handleMapTransition,
+    handlePortalTransition: options.handlePortalTransition,
   };
 }
 
@@ -113,6 +114,7 @@ export function buildEnemyLoopContext(options: BuildRuntimePhaseContextsOptions)
     enemyVisualProfiles: options.enemyVisualProfiles,
     registry: options.enemyVisuals,
     enemyAudio: options.enemyAudio,
+    playPlayerHit: options.playPlayerHit,
     shadowGeometry: options.shadowGeometry,
     shadowMaterial: options.shadowMaterial,
     createOutlineMesh: options.createOutlineMesh,

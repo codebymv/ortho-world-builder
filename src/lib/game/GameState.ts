@@ -79,6 +79,11 @@ export interface DroppedEssence {
   amount: number;
 }
 
+export interface CurrencyGain {
+  kind: 'gold' | 'essence';
+  amount: number;
+}
+
 export class GameState {
   player: PlayerState;
   inventory: Item[];
@@ -96,6 +101,8 @@ export class GameState {
   dialogueActive: boolean;
   currentDialogue: string | null;
   gameFlags: Record<string, boolean>;
+  onItemAdded: ((item: Item) => void) | null;
+  onCurrencyGained: ((gain: CurrencyGain) => void) | null;
 
   constructor(scene: THREE.Scene, camera: THREE.OrthographicCamera) {
     this.scene = scene;
@@ -104,6 +111,8 @@ export class GameState {
     this.dialogueActive = false;
     this.currentDialogue = null;
     this.gameFlags = {};
+    this.onItemAdded = null;
+    this.onCurrencyGained = null;
     
     this.player = {
       position: { x: 0, y: 0 },
@@ -147,10 +156,44 @@ export class GameState {
   }
 
   addItem(item: Item) {
-    this.inventory = [...this.inventory, item];
+    if (item.type === 'consumable') {
+      const lastMatchingIndex = this.inventory.reduce((lastIndex, inventoryItem, index) => (
+        inventoryItem.id === item.id ? index : lastIndex
+      ), -1);
+
+      if (lastMatchingIndex >= 0) {
+        this.inventory = [
+          ...this.inventory.slice(0, lastMatchingIndex + 1),
+          item,
+          ...this.inventory.slice(lastMatchingIndex + 1),
+        ];
+      } else {
+        this.inventory = [...this.inventory, item];
+      }
+    } else {
+      this.inventory = [...this.inventory, item];
+    }
+    this.onItemAdded?.(item);
     if (item.type === 'equipment' && !this.equippedWeaponId) {
       this.setEquippedWeapon(item.id);
     }
+  }
+
+  addGold(amount: number) {
+    if (amount <= 0) return;
+    this.player.gold += amount;
+    this.onCurrencyGained?.({ kind: 'gold', amount });
+  }
+
+  spendGold(amount: number) {
+    if (amount <= 0) return;
+    this.player.gold = Math.max(0, this.player.gold - amount);
+  }
+
+  addEssence(amount: number) {
+    if (amount <= 0) return;
+    this.player.essence += amount;
+    this.onCurrencyGained?.({ kind: 'essence', amount });
   }
 
   removeItem(itemId: string) {
@@ -180,7 +223,7 @@ export class GameState {
       quest.completed = true;
       quest.active = false;
       if (quest.reward?.gold) {
-        this.player.gold += quest.reward.gold;
+        this.addGold(quest.reward.gold);
       }
       quest.reward?.items?.forEach(itemId => {
         const rewardItem = items[itemId];

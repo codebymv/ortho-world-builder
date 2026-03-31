@@ -29,12 +29,14 @@ export function runEnemyLoop({
   enemyVisualProfiles,
   registry,
   enemyAudio,
+  playPlayerHit,
   shadowGeometry,
   shadowMaterial,
   createOutlineMesh,
   getVisualYAt,
   getActorRenderOrder,
 }: RunEnemyLoopOptions) {
+  const playerHealthBeforeUpdate = state.player.health;
   const combatResult = combatSystem.updateEnemies(
     deltaTime,
     state.player.position,
@@ -43,6 +45,10 @@ export function runEnemyLoop({
     blockStartTime,
     world,
   );
+
+  if (state.player.health < playerHealthBeforeUpdate) {
+    playPlayerHit();
+  }
 
   if (combatResult.parried && combatResult.parryEnemyId) {
     const parriedEnemy = combatSystem.getEnemies().find(e => e.id === combatResult.parryEnemyId);
