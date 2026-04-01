@@ -105,6 +105,7 @@ export function setupRuntimeInputPhase({
   const { handleMouseDown, handleMouseUp, handleContextMenu } = createPointerInputController({
     state,
     pausedRef,
+    playerDeadRef,
     mapModalOpenRef,
     performAttack,
     performChargeAttack,

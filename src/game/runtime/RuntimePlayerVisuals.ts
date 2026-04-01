@@ -7,7 +7,7 @@ export interface RuntimePlayerVisuals {
   playerMaterial: THREE.MeshBasicMaterial;
   playerMesh: THREE.Mesh;
   playerOutline: THREE.Mesh;
-  bladeOverlayMaterial: THREE.MeshBasicMaterial;
+  bladeOverlayMaterial: THREE.ShaderMaterial;
   bladeOverlayMesh: THREE.Mesh;
   heldItemMaterial: THREE.MeshBasicMaterial;
   heldItemMesh: THREE.Mesh;
@@ -72,11 +72,37 @@ export function createRuntimePlayerVisuals({
   playerOutline.renderOrder = 999998;
   scene.add(playerOutline);
 
-  const bladeOverlayMaterial = new THREE.MeshBasicMaterial({
-    map: playerTexture,
+  const bladeOverlayMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      map: { value: playerTexture },
+      glowColor: { value: new THREE.Color(1, 0.65, 0) },
+      opacity: { value: 0.0 },
+      threshold: { value: 0.72 },
+    },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform sampler2D map;
+      uniform vec3 glowColor;
+      uniform float opacity;
+      uniform float threshold;
+      varying vec2 vUv;
+      void main() {
+        vec4 texel = texture2D(map, vUv);
+        float lum = dot(texel.rgb, vec3(0.299, 0.587, 0.114));
+        float mask = smoothstep(threshold - 0.08, threshold + 0.08, lum) * texel.a;
+        gl_FragColor = vec4(glowColor * mask, opacity * mask);
+      }
+    `,
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
   });
   const bladeOverlayMesh = new THREE.Mesh(playerGeometry, bladeOverlayMaterial);
   bladeOverlayMesh.position.z = 0.81;

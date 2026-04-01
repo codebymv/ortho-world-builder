@@ -82,7 +82,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
   };
 
   const tryHandleBonfireRest = (interactionId: string, px: number, py: number, mapWidth: number, mapHeight: number): boolean => {
-    if (interactionId !== 'bonfire_rest') return false;
+    if (!interactionId.includes('bonfire')) return false;
 
     const tx = Math.floor(px + mapWidth / 2);
     const ty = Math.floor(py + mapHeight / 2);
@@ -108,7 +108,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       const count = context.state.inventory.filter(i => i.id === 'moonbloom').length;
       const clamped = Math.min(count, 3);
       merchantQuest.objectives[0] = `Find Moonbloom flowers (${clamped}/3)`;
-      if (count >= 3) merchantQuest.objectives[0] = 'Find Moonbloom flowers (3/3) âœ“';
+      if (count >= 3) merchantQuest.objectives[0] = 'Find Moonbloom flowers (3/3) ✓';
     }
 
     context.notify('Picked Moonbloom', {
@@ -133,24 +133,41 @@ export function createInteractionSystem(context: InteractionSystemContext) {
         ? 75
         : interactionId.includes('wolf') || interactionId.includes('shadow')
           ? 60
-          : interactionId.includes('hidden')
-            ? 50
-            : interactionId.includes('forest')
-              ? 40
-              : 20;
+          : interactionId.includes('enchanted')
+            ? 55
+            : interactionId.includes('hidden') || interactionId.includes('fort')
+              ? 50
+              : interactionId.includes('temple') || interactionId.includes('volcano') || interactionId.includes('spider')
+                ? 45
+                : interactionId.includes('forest')
+                  ? 40
+                  : 20;
 
     context.state.addGold(goldAmount);
     if (context.items.health_potion) {
       context.state.addItem(context.items.health_potion);
       context.playItemGrab();
     }
+
+    let bonusDescription = '';
+    if (interactionId === 'ancient_chest' && context.items.shadow_blade) {
+      context.state.addItem({ ...context.items.shadow_blade });
+      bonusDescription = ' and a Shadow Blade';
+    } else if (interactionId === 'boss_arena_chest' && context.items.crystal_greatsword) {
+      context.state.addItem({ ...context.items.crystal_greatsword });
+      bonusDescription = ' and a Crystal Greatsword';
+    } else if (interactionId === 'golem_arena_chest' && context.items.golem_heart) {
+      context.state.addItem({ ...context.items.golem_heart });
+      bonusDescription = ' and a Golem Heart';
+    }
+
     context.state.setFlag(`${interactionId}_opened`, true);
     context.syncOpenedChestState();
     context.emitSparkles(new THREE.Vector3(px, py, 0.3));
     context.notify('Chest Opened!', {
       id: 'chest-open',
       type: 'success',
-      description: `Found ${goldAmount} gold and an Ephemeral Extract.`,
+      description: `Found ${goldAmount} gold, an Ephemeral Extract${bonusDescription}.`,
       duration: 3000,
     });
     context.triggerUIUpdate();
@@ -201,6 +218,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       interactionId !== 'well' &&
       interactionId !== 'fountain' &&
       interactionId !== 'ancient_fountain' &&
+      interactionId !== 'ancient_well' &&
       interactionId !== 'healing_mushroom' &&
       interactionId !== 'campfire'
     ) {

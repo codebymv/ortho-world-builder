@@ -69,20 +69,29 @@ export function applyPlayerVisuals({
   if (state.player.damageFlashTimer > 0) {
     playerMaterial.color.setHex(0xffaaaa);
     outlineMat.color.setHex(0xff0000);
-  } else if (isChargingAttack && chargeLevel > 0) {
-    const pulse = Math.sin(currentTime / 40) * 0.15 * chargeLevel;
-    const brightness = 1 + pulse;
-    playerMaterial.color.setRGB(brightness, brightness, brightness);
-    outlineMat.color.setHex(0x000000);
   } else {
     playerMaterial.color.setHex(0xffffff);
     outlineMat.color.setHex(0x000000);
   }
 
-  if (isChargingAttack) {
-    const pulse = 1 + Math.sin(currentTime / 50) * 0.15 * (0.3 + chargeLevel * 0.7);
-    playerMaterial.color.setRGB(pulse, pulse, pulse);
-    bladeOverlayMesh.visible = false;
+  // Blade glow: shader-masked overlay only affects bright (sword) pixels.
+  if (isChargingAttack && chargeLevel > 0) {
+    const bladeOverlayMat = bladeOverlayMesh.material as THREE.ShaderMaterial;
+
+    if (chargeLevel >= 1) {
+      const fastPulse = Math.sin(currentTime / 30) * 0.5 + 0.5;
+      const peakIntensity = 0.85 + fastPulse * 0.15;
+      (bladeOverlayMat.uniforms.glowColor.value as THREE.Color)
+        .setRGB(peakIntensity, peakIntensity * 0.82, peakIntensity * 0.35);
+      bladeOverlayMat.uniforms.opacity.value = 0.7 + fastPulse * 0.2;
+    } else {
+      const pulseCycle = Math.sin(currentTime / 55) * 0.5 + 0.5;
+      const intensity = 0.25 + chargeLevel * 0.45 + pulseCycle * 0.3 * chargeLevel;
+      (bladeOverlayMat.uniforms.glowColor.value as THREE.Color)
+        .setRGB(intensity, intensity * 0.65, 0);
+      bladeOverlayMat.uniforms.opacity.value = 0.35 + chargeLevel * 0.45;
+    }
+    bladeOverlayMesh.visible = true;
   } else {
     bladeOverlayMesh.visible = false;
   }
@@ -97,6 +106,10 @@ export function applyPlayerVisuals({
   playerMesh.scale.set(effectiveScaleX, effectiveScaleY, 1);
   playerMesh.position.set(playerVisualX, effectiveVisualY, 0.8);
   playerMesh.renderOrder = 999999;
+
+  bladeOverlayMesh.position.set(playerVisualX, effectiveVisualY, 0.81);
+  bladeOverlayMesh.scale.set(effectiveScaleX, effectiveScaleY, 1);
+  bladeOverlayMesh.rotation.z = visualRotation;
 
   const activeItem = state.inventory[state.activeItemIndex];
   const heldSpriteId =

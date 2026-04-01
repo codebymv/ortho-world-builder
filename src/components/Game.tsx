@@ -52,6 +52,7 @@ const Game = () => {
   const textureCacheRef = useRef<Map<string, THREE.Texture>>(new Map());
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const portalVignetteRef = useRef<HTMLDivElement | null>(null);
+  const killCountRef = useRef(0);
   const syncVillageReactivityRef = useRef<(() => void) | null>(null);
   const playPotionDrinkRef = useRef<(() => void) | null>(null);
   const playGrassChewRef = useRef<(() => void) | null>(null);
@@ -95,6 +96,7 @@ const Game = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [transitionActive, setTransitionActive] = useState(false);
   const [transitionMapName, setTransitionMapName] = useState('');
+  const [transitionMapSubtitle, setTransitionMapSubtitle] = useState('');
   const [deathActive, setDeathActive] = useState(false);
   const [deathEssenceLost, setDeathEssenceLost] = useState(0);
   const [showControls, setShowControls] = useState(true);
@@ -189,6 +191,18 @@ const Game = () => {
     }
   }, []);
 
+  const clearNpcMarkerPulse = useCallback((mapId: string) => {
+    const now = Date.now();
+    const updated = mapMarkersRef.current.map(m =>
+      m.map === mapId && m.type === 'npc' && m.pulseUntil > now
+        ? { ...m, pulseUntil: now }
+        : m
+    );
+    mapMarkersRef.current = updated;
+    setMapMarkers(updated);
+    triggerMinimapUpdate(true);
+  }, []);
+
   const setMapModalOpenRef = useRef(setMapModalOpen);
   setMapModalOpenRef.current = setMapModalOpen;
   const mapModalOpenRef = useRef(false);
@@ -231,6 +245,8 @@ const Game = () => {
       criticalPathItems,
       notify,
       addMarkersFromText,
+      clearNpcMarkerPulse,
+      getKillCount: () => killCountRef.current,
       triggerUIUpdate,
       triggerMinimapUpdate,
       syncVillageReactivity: () => {
@@ -348,6 +364,7 @@ const Game = () => {
     stopDialogueLoopRef,
     playMenuOpenRef,
     playMenuCloseRef,
+    killCountRef,
   } satisfies Omit<RuntimeHostRefs, 'mountElement'>;
 
   const runtimeUi = {
@@ -358,6 +375,7 @@ const Game = () => {
     setIsPaused,
     setTransitionActive,
     setTransitionMapName,
+    setTransitionMapSubtitle,
     setTransitionDebugEnabled,
     setTransitionDebugLines,
     setInteractionPrompt,
@@ -500,7 +518,7 @@ const Game = () => {
         />
       )}
 
-      <TransitionOverlay active={transitionActive} mapName={transitionMapName} />
+      <TransitionOverlay active={transitionActive} mapName={transitionMapName} mapSubtitle={transitionMapSubtitle} />
       <DeathOverlay active={deathActive} essenceLost={deathEssenceLost} onComplete={handleDeathComplete} />
       <BonfireOverlay active={bonfireOverlayActive} title={bonfireOverlayTitle} subtitle={bonfireOverlaySubtitle ?? undefined} />
     </div>

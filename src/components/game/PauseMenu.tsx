@@ -33,13 +33,17 @@ export const PauseMenu = ({ onResume, questSummary }: PauseMenuProps) => {
           <p className="text-[10px] text-[#DAA520] uppercase tracking-wider font-bold">Controls</p>
           <div className="grid grid-cols-2 gap-2 text-sm">
             {[
-              ['WASD / Arrows', 'Move'],
-              ['Space', 'Attack'],
-              ['Hold Space', 'Charge Attack'],
-              ['Ctrl', 'Dodge Roll'],
+              ['WASD', 'Move'],
               ['Shift', 'Sprint'],
-              ['E', 'Interact'],
-              ['Q', 'Use Potion'],
+              ['LMB', 'Attack'],
+              ['Hold LMB', 'Charge Attack'],
+              ['Space', 'Dodge Roll'],
+              ['Ctrl / RMB', 'Block'],
+              ['F', 'Interact'],
+              ['Z', 'Use Item'],
+              ['Q / E', 'Cycle Items'],
+              ['← / →', 'Cycle Weapons'],
+              ['M', 'Map'],
               ['ESC', 'Pause'],
             ].map(([key, action]) => (
               <div key={key} className="flex justify-between items-center bg-[#2D1B11]/50 px-2 py-1.5 rounded-sm border border-[#5C3A21]/30">

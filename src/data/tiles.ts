@@ -23,8 +23,8 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   cottage_house_forest: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
   cottage_house_forest_ruined: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
   rock: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.18 },
-  chest: { isOverlay: true, baseTile: 'wood_floor', scale: 0.9, sortTrim: 0.32 },
-  chest_opened: { isOverlay: true, baseTile: 'wood_floor', scale: 0.9, sortTrim: 0.32 },
+  chest: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.32 },
+  chest_opened: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.32 },
   portal: { isOverlay: true, baseTile: 'stone', scale: 1.45, sortTrim: 0.24, yOffset: 0.08 },
   flower: { isOverlay: true, baseTile: 'grass', scale: 0.5, sortTrim: 0.22 },
   tempest_grass: { isOverlay: true, baseTile: 'grass', scale: 0.72, sortTrim: 0.24 },
@@ -90,4 +90,5 @@ export const DETAIL_CONFIG: Partial<Record<TileType, { chance: number; types: st
   stone: { chance: 0.1, types: ['detail_crack', 'detail_pebble'], scale: 0.2, opacity: 0.4 },
   wooden_path: { chance: 0.08, types: ['detail_crack', 'detail_leaf'], scale: 0.2, opacity: 0.35 },
   mossy_stone: { chance: 0.15, types: ['detail_leaf', 'detail_mushroom_small'], scale: 0.25, opacity: 0.5 },
+  ruins_floor: { chance: 0.14, types: ['detail_crack', 'detail_pebble'], scale: 0.22, opacity: 0.45 },
 };

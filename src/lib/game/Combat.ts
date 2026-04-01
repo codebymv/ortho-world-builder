@@ -417,7 +417,7 @@ export class CombatSystem {
       finalDamage = Math.floor(damage * 2);
     }
 
-    targetEnemy.poise -= damage;
+    targetEnemy.poise -= finalDamage;
     if (targetEnemy.poise <= 0 && targetEnemy.state !== 'staggered') {
       targetEnemy.state = 'staggered';
       targetEnemy.staggerTimer = targetEnemy.staggerDuration;

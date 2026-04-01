@@ -34,7 +34,7 @@ export function getInteractionPromptLabel(
     return interactionId === 'building_entrance' ? `Enter ${destinationName}` : `Exit to ${destinationName}`;
   }
 
-  if (interactionId === 'bonfire_rest') return 'Rest at Bonfire';
+  if (interactionId.includes('bonfire')) return 'Rest at Bonfire';
   if (interactionId === 'moonbloom_pickup') return 'Pick Moonbloom';
   if (interactionId === 'tempest_grass_pickup') return 'Harvest Tempest Grass';
   if (interactionId === 'shadow_castle_gate_switch') return 'Open Inner Gate';
@@ -59,10 +59,20 @@ export function getInteractionPromptLabel(
   if (interactionId.includes('sign')) return 'Read Sign';
   if (interactionId === 'tombstone') return 'Read Epitaph';
   if (interactionId === 'campfire') return 'Rest at Campfire';
-  if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain') return 'Drink from Fountain';
+  if (interactionId === 'ancient_well') return 'Drink from Well';
+  if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'ancient_well') return 'Drink from Fountain';
   if (interactionId === 'healing_mushroom') return 'Gather Mushroom';
   if (interactionId === 'lantern') return 'Inspect Lantern';
   if (interactionId === 'hunter_clue') return "Read Hunter's Manuscript";
+  if (interactionId === 'stump_lore') return 'Inspect Carvings';
+  if (interactionId === 'wolf_den_bones') return 'Inspect Remains';
+  if (interactionId === 'old_chapel_altar') return 'Inspect Altar';
+  if (interactionId === 'caravan_journal') return 'Read Journal';
+  if (interactionId === 'spider_cocoon') return 'Inspect Cocoon';
+  if (interactionId === 'temple_inscription') return 'Read Inscription';
+  if (interactionId === 'forest_fort_banner') return 'Inspect Banner';
+  if (interactionId === 'volcano_warning') return 'Read Warning';
+  if (interactionId === 'witch_cottage') return 'Inspect Cottage';
 
   if (dialogues[interactionId]) {
     const speakerName = interactionId.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());

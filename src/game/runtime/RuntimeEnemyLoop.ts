@@ -53,7 +53,7 @@ export function runEnemyLoop({
   if (combatResult.parried && combatResult.parryEnemyId) {
     const parriedEnemy = combatSystem.getEnemies().find(e => e.id === combatResult.parryEnemyId);
     if (parriedEnemy) {
-      floatingText.spawnDamage(parriedEnemy.position.x, parriedEnemy.position.y, 0, false);
+      floatingText.spawn(parriedEnemy.position.x, parriedEnemy.position.y + 0.5, 'PARRY!', '#00FFCC', 22);
       screenShake.shake(0.3, 0.1);
       screenShake.hitStop(0.08);
     }

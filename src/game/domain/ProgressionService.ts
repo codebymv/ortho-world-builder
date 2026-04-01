@@ -30,6 +30,8 @@ interface ProgressionServiceContext {
   criticalPathItems: Record<string, { itemId: string; collectedFlag: string }>;
   notify: (message: string, options?: NotificationOptions) => void;
   addMarkersFromText: (text: string, mapId: string) => void;
+  clearNpcMarkerPulse: (mapId: string) => void;
+  getKillCount: () => number;
   triggerUIUpdate: () => void;
   triggerMinimapUpdate: (reset: boolean) => void;
   syncVillageReactivity?: () => void;
@@ -105,6 +107,21 @@ export function createProgressionService(context: ProgressionServiceContext) {
       }
     }
 
+    if (dialogueId === 'forest_ranger') {
+      const rangerQuest = state.quests.find(q => q.id === 'rangers_request');
+      if (rangerQuest?.completed) {
+        startNode = dialogue.nodes.find(node => node.id === 'after_quest') ?? startNode;
+      } else if (rangerQuest?.active && !rangerQuest.completed) {
+        if (state.getFlag('forest_golem_defeated')) {
+          rangerQuest.objectives[0] = `Defeat the Stone Golem ${CHECKMARK}`;
+          rangerQuest.objectives[1] = 'Return to the ranger';
+          startNode = dialogue.nodes.find(node => node.id === 'quest_complete') ?? startNode;
+        } else {
+          startNode = dialogue.nodes.find(node => node.id === 'quest_active') ?? startNode;
+        }
+      }
+    }
+
     if (['blacksmith', 'healer', 'apothecary', 'chapel_keeper', 'farmer', 'child', 'innkeeper'].includes(dialogueId)) {
       startNode = selectVillageReactivityNode(state, dialogue, startNode);
     }
@@ -137,8 +154,21 @@ export function createProgressionService(context: ProgressionServiceContext) {
       description: quest.description,
       duration: 6000,
     });
+    // Stop any NPC markers on this map from pulsing — the player just spoke to the quest-giver
+    // and is now heading somewhere else, so quest-giver NPC dots should not keep blinking.
+    context.clearNpcMarkerPulse(state.currentMap);
+
     context.addMarkersFromText(quest.description, state.currentMap);
-    quest.objectives.forEach(objective => context.addMarkersFromText(objective, state.currentMap));
+    // Only scan the first objective for markers — later objectives (e.g. "Return to the elder")
+    // get their markers created at the correct time by the progression system, so we don't
+    // pre-create markers that make past/future NPCs glow when they aren't the active target.
+    if (quest.objectives.length > 0) {
+      context.addMarkersFromText(quest.objectives[0], state.currentMap);
+    }
+
+    if (questId === 'guard_duty') {
+      state.setFlag('guard_duty_kill_baseline', Number(state.getFlag('forest_kill_count')) || 0);
+    }
 
     if (questId === 'merchants_request') {
       syncMoonbloomObjective(state);
@@ -215,13 +245,6 @@ export function createProgressionService(context: ProgressionServiceContext) {
       if (hunterQuest) {
         hunterQuest.objectives[1] = `Find the Disparaged Cottage ${CHECKMARK}`;
         hunterQuest.objectives[2] = `Recover the Hunter's Manuscript ${CHECKMARK}`;
-        state.completeQuest('find_hunter');
-        context.notify('Quest Completed: The Missing Hunter!', {
-          id: 'quest-done-hunter',
-          type: 'success',
-          description: 'Return to the Elder to report your findings.',
-          duration: 6000,
-        });
         context.addMarkersFromText('Village Elder', 'village');
         context.triggerUIUpdate();
         context.triggerMinimapUpdate(true);
@@ -230,6 +253,18 @@ export function createProgressionService(context: ProgressionServiceContext) {
     }
 
     if (state.currentDialogue === 'elder' && nextId === 'end' && currentDialogue.node.id === 'give_second_quest') {
+      const hunterQuestPending = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
+      if (hunterQuestPending) {
+        hunterQuestPending.objectives[3] = `Return to the elder with your findings ${CHECKMARK}`;
+        state.completeQuest('find_hunter');
+        context.notify('Quest Completed: The Missing Hunter!', {
+          id: 'quest-done-hunter',
+          type: 'success',
+          description: 'The Elder now knows the truth of the forest.',
+          duration: 6000,
+        });
+        context.triggerUIUpdate();
+      }
       state.setFlag(VILLAGE_REACTIVITY_FLAGS.afterManuscript, true);
       context.syncVillageReactivity?.();
       shouldSave = true;
@@ -309,6 +344,23 @@ export function createProgressionService(context: ProgressionServiceContext) {
           id: 'quest-done-merchant',
           type: 'success',
           description: 'Your purse grows heavier.',
+          duration: 6000,
+        });
+        context.triggerUIUpdate();
+        shouldSave = true;
+      }
+    }
+
+    if (state.currentDialogue === 'forest_ranger' && nextId === 'end' && currentDialogue.node.id === 'quest_complete') {
+      const rangerQuest = state.quests.find(q => q.id === 'rangers_request' && q.active && !q.completed);
+      if (rangerQuest && state.getFlag('forest_golem_defeated')) {
+        rangerQuest.objectives[0] = `Defeat the Stone Golem ${CHECKMARK}`;
+        rangerQuest.objectives[1] = `Return to the ranger ${CHECKMARK}`;
+        state.completeQuest('rangers_request');
+        context.notify("Quest Completed: The Ranger's Request!", {
+          id: 'quest-done-ranger',
+          type: 'success',
+          description: 'The eastern high road is open again.',
           duration: 6000,
         });
         context.triggerUIUpdate();

@@ -41,7 +41,6 @@ export const PORTAL_LINKS: PortalLink[] = [
   // Village portals
   { fromMap: 'village', toMap: 'forest', portalTileX: 120, portalTileY: 4 },
   { fromMap: 'village', toMap: 'forest', portalTileX: 237, portalTileY: 80 },
-  { fromMap: 'village', toMap: 'deep_woods', portalTileX: 120, portalTileY: 156 },
   // Forest portals
   { fromMap: 'forest', toMap: 'village', portalTileX: 150, portalTileY: 294 },
   { fromMap: 'forest', toMap: 'village', portalTileX: 4, portalTileY: 150 },
@@ -74,7 +73,7 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
 
   // Forest locations
   { keywords: ['forest', 'whispering woods', 'woods'], tileX: 150, tileY: 150, map: 'forest', label: 'Whispering Woods', type: 'danger', color: '#228B22' },
-  { keywords: ['ranger', 'ranger outpost'], tileX: 70, tileY: 70, map: 'forest', label: 'Ranger Outpost', type: 'poi', color: '#8FBC8F' },
+  { keywords: ['ranger', 'ranger outpost'], tileX: 140, tileY: 170, map: 'forest', label: 'Ranger Outpost', type: 'poi', color: '#8FBC8F' },
   { keywords: ['disparaged cottage', 'hunter cottage', 'old shack', 'shack', 'run down old shack'], tileX: 137, tileY: 184, map: 'forest', label: 'Disparaged Cottage', type: 'quest', color: '#FFD700' },
   
   // Deep woods
@@ -94,7 +93,7 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   { keywords: ['bandit', 'bandits'], tileX: 223, tileY: 14, map: 'village', label: 'Bandit Camp', type: 'danger', color: '#8B0000' },
   { keywords: ['skeleton', 'undead'], tileX: 15, tileY: 25, map: 'village', label: 'Undead', type: 'danger', color: '#D3D3D3' },
   { keywords: ['spider', 'spiders'], tileX: 214, tileY: 123, map: 'village', label: 'Spider Nest', type: 'danger', color: '#800080' },
-  { keywords: ['golem', 'stone golem'], tileX: 200, tileY: 26, map: 'village', label: 'Golem', type: 'danger', color: '#696969' },
+  { keywords: ['golem', 'stone golem'], tileX: 225, tileY: 155, map: 'forest', label: 'Stone Golem', type: 'danger', color: '#696969' },
 ];
 
 function normalizeMarkerText(value: string): string {
@@ -128,6 +127,7 @@ export function markerTargetsNpc(
   if (npcName.includes('guard') && label.includes('guard')) return true;
   if (npcName.includes('blacksmith') && label.includes('blacksmith')) return true;
   if (npcName.includes('healer') && label.includes('healer')) return true;
+  if (npcName.includes('ranger') && label.includes('ranger')) return true;
 
   return false;
 }
@@ -159,6 +159,7 @@ export function isPrimaryObjectiveMarker(marker: Pick<MapMarker, 'label' | 'type
   if (label.includes('disparaged cottage') && (objectiveText.includes('disparaged cottage') || objectiveText.includes('old shack'))) return true;
   if (label.includes('deep woods') && objectiveText.includes('deep woods')) return true;
   if (label.includes('witch') && objectiveText.includes('witch')) return true;
+  if (label.includes('ranger') && objectiveText.includes('ranger')) return true;
 
   return false;
 }

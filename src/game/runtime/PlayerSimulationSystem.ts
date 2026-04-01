@@ -322,8 +322,12 @@ export function updatePlayerSimulation({
       if (spinDirIndex >= spinDirections.length) {
         playerAnimState = moved ? 'walk' : 'idle';
         spinDirIndex = 0;
+        state.player.attackAnimationTimer = 0;
       } else {
-        spinFrameTimer = spinFrameDuration;
+        // Decelerate: last two frames play at 2x duration for a wind-down feel
+        const remaining = spinDirections.length - spinDirIndex;
+        const slowdown = remaining <= 2 ? 2 : 1;
+        spinFrameTimer = spinFrameDuration * slowdown;
       }
     }
     state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
@@ -356,11 +360,10 @@ export function updatePlayerSimulation({
   }
 
   if (playerAnimState === 'charge') {
-    animTimer += deltaTime;
-    if (animTimer >= 0.15) {
-      animFrame = (animFrame + 1) % 3;
-      animTimer = 0;
-    }
+    // Drive the frame directly from hold progress so the sword visually rises
+    // as the charge builds: frame 0 (just started) → 1 (mid wind-up) → 2 (fully coiled).
+    const holdProgress = Math.min(1, chargeTimer / chargeTimeMax);
+    animFrame = Math.min(2, Math.floor(holdProgress * 3));
   }
 
   return {

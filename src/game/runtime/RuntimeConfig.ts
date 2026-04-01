@@ -38,6 +38,7 @@ export const NPC_SCALE_BY_ID: Record<string, number> = {
   chapel_keeper: 1.02,
   farmer: 1.03,
   child: 0.86,
+  forest_ranger: 1.04,
 };
 
 export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
@@ -63,6 +64,7 @@ export function createDefaultNpcData(): NPC[] {
     { id: 'chapel_keeper', name: 'Caretaker Rowan', mapId: 'village', position: { x: -69, y: -39 }, dialogueId: 'chapel_keeper', sprite: 'npc_chapel_keeper' },
     { id: 'farmer', name: 'Old Farmer', mapId: 'village', position: { x: -56, y: 35 }, dialogueId: 'farmer', sprite: 'npc_farmer' },
     { id: 'child', name: 'Village Child', mapId: 'village', position: { x: 5, y: -5 }, dialogueId: 'child', sprite: 'npc_child' },
+    { id: 'forest_ranger', name: 'Forest Ranger', mapId: 'forest', position: { x: 158, y: 168 }, dialogueId: 'forest_ranger', sprite: 'npc_guard', questGiver: true },
   ];
 }
 

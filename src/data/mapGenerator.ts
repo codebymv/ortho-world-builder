@@ -83,6 +83,7 @@ export interface MapFeature {
 
 export interface MapDefinition {
   name: string;
+  subtitle?: string;
   width: number;
   height: number;
   spawnPoint: { x: number; y: number };
@@ -775,24 +776,71 @@ function placeWall(tiles: Tile[][], f: MapFeature) {
 }
 
 function placeRuinsFeature(tiles: Tile[][], f: MapFeature) {
+  const halfW = Math.floor(f.width / 2);
+  const halfH = Math.floor(f.height / 2);
+
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
-      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-        // Outer walls
-        if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
-          // Leave gaps for doors
-          if ((dx === Math.floor(f.width / 2) && (dy === 0 || dy === f.height - 1)) ||
-              (dy === Math.floor(f.height / 2) && (dx === 0 || dx === f.width - 1))) {
-            tiles[ty][tx] = createTile('stone', true);
-          } else {
-            tiles[ty][tx] = createTile('stone', false);
-          }
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+
+      const isNSWall = dy === 0 || dy === f.height - 1;
+      const isEWWall = dx === 0 || dx === f.width - 1;
+      const isCorner = isNSWall && isEWWall;
+      const isWall = isNSWall || isEWWall;
+
+      if (isWall) {
+        // Two-tile-wide entrance gap at the midpoint of each side (never at corners)
+        const isNSGap = isNSWall && !isCorner && (dx === halfW || dx === halfW - 1);
+        const isEWGap = isEWWall && !isCorner && (dy === halfH || dy === halfH - 1);
+
+        if (isNSGap || isEWGap) {
+          // Entrance floor matches interior — the brown continues through the wall opening
+          // so the gap is immediately readable as "you can walk through here"
+          tiles[ty][tx] = createTile('ruins_floor', true);
         } else {
-          tiles[ty][tx] = createTile('stone', true);
+          // Scatter mossy_stone patches — ages/weathers the wall visually
+          const isMossy = (dx * 7 + dy * 3) % 5 === 0;
+          tiles[ty][tx] = createTile(isMossy ? 'mossy_stone' : 'stone', false);
         }
+      } else {
+        // Interior — ruins_floor reads clearly as ancient flagstone vs the stone walls
+        tiles[ty][tx] = createTile('ruins_floor', true);
       }
+    }
+  }
+
+  // Rock gateposts one tile outside each entrance — flanking pillars that frame the opening
+  // and draw the eye toward it from the surrounding terrain.
+  const set = (tx: number, ty: number) => {
+    if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+      tiles[ty][tx] = createTile('rock', false);
+    }
+  };
+  // North entrance gateposts (outside north wall)
+  set(f.x + halfW - 2, f.y - 1);
+  set(f.x + halfW + 1, f.y - 1);
+  // South entrance gateposts (outside south wall)
+  set(f.x + halfW - 2, f.y + f.height);
+  set(f.x + halfW + 1, f.y + f.height);
+  // West entrance gateposts (outside west wall)
+  set(f.x - 1, f.y + halfH - 2);
+  set(f.x - 1, f.y + halfH + 1);
+  // East entrance gateposts (outside east wall)
+  set(f.x + f.width, f.y + halfH - 2);
+  set(f.x + f.width, f.y + halfH + 1);
+
+  // Rubble piles just inside the corners — gives the space a lived-in, collapsed feel
+  const rubble: [number, number][] = [
+    [f.x + 1, f.y + 1],
+    [f.x + f.width - 2, f.y + 1],
+    [f.x + 1, f.y + f.height - 2],
+    [f.x + f.width - 2, f.y + f.height - 2],
+  ];
+  for (const [rx, ry] of rubble) {
+    if (ry >= 0 && ry < tiles.length && rx >= 0 && rx < tiles[0].length) {
+      tiles[ry][rx] = createTile('rock', false);
     }
   }
 }
@@ -2065,6 +2113,7 @@ export function generateMap(def: MapDefinition): WorldMap {
 
   return {
     name: def.name,
+    subtitle: def.subtitle,
     width: def.width,
     height: def.height,
     tiles,

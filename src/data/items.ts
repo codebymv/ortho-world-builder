@@ -74,4 +74,44 @@ export const items: Record<string, Item> = {
       range: 2,
     },
   },
+
+  shadow_blade: {
+    id: 'shadow_blade',
+    name: 'Shadow Blade',
+    description: 'A dark sword forged from an alloy found only in the ancient ruins. Its edge hums with residual magic.',
+    type: 'equipment',
+    sprite: 'sword',
+    stats: {
+      damage: 36,
+      range: 2.3,
+    },
+  },
+
+  crystal_greatsword: {
+    id: 'crystal_greatsword',
+    name: 'Crystal Greatsword',
+    description: 'A massive crystalline blade pulsing with arcane power. Devastatingly slow but overwhelmingly powerful.',
+    type: 'equipment',
+    sprite: 'sword',
+    stats: {
+      damage: 44,
+      range: 2.5,
+    },
+  },
+
+  golem_heart: {
+    id: 'golem_heart',
+    name: 'Golem Heart',
+    description: 'A dense core chipped from the Stone Golem. It is warm to the touch and thrums with the memory of impossible weight.',
+    type: 'quest',
+    sprite: 'key',
+  },
+
+  ranger_badge: {
+    id: 'ranger_badge',
+    name: 'Ranger Badge',
+    description: 'A weathered badge from the old outpost, pressed into your palm as proof that the high road is safe again.',
+    type: 'quest',
+    sprite: 'map',
+  },
 };

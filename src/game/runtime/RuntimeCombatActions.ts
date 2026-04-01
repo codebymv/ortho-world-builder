@@ -126,12 +126,22 @@ export function createRuntimeCombatActions({
     enemyAudio.clearEnemy(enemy.id);
     if (enemy.essenceReward > 0) playItemGrab();
 
+    if (state.currentMap === 'forest') {
+      const forestKillCount = (Number(state.getFlag('forest_kill_count')) || 0) + 1;
+      state.setFlag('forest_kill_count', forestKillCount);
+      if (enemy.type === 'golem') {
+        state.setFlag('forest_golem_defeated', true);
+      }
+    }
+
     const guardQuest = state.quests.find(q => q.id === 'guard_duty' && q.active && !q.completed);
-    if (guardQuest) {
-      const kills = Math.min(nextKillCount, 5);
+    if (guardQuest && state.currentMap === 'forest') {
+      const baseline = Number(state.getFlag('guard_duty_kill_baseline')) || 0;
+      const forestKillCount = Number(state.getFlag('forest_kill_count')) || 0;
+      const kills = Math.min(forestKillCount - baseline, 5);
       guardQuest.objectives[1] = `Defeat any hostile creatures (${kills}/5)`;
       if (kills >= 5) {
-        guardQuest.objectives[1] = 'Defeat any hostile creatures (5/5) âœ“';
+        guardQuest.objectives[1] = 'Defeat any hostile creatures (5/5) ✓';
       }
     }
 

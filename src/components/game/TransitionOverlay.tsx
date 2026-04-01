@@ -3,9 +3,10 @@ import { useEffect, useState, useRef } from 'react';
 interface TransitionOverlayProps {
   active: boolean;
   mapName?: string;
+  mapSubtitle?: string;
 }
 
-export const TransitionOverlay = ({ active, mapName }: TransitionOverlayProps) => {
+export const TransitionOverlay = ({ active, mapName, mapSubtitle }: TransitionOverlayProps) => {
   const [phase, setPhase] = useState<'hidden' | 'fade-in' | 'show' | 'fade-out'>('hidden');
   const timerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -38,9 +39,16 @@ export const TransitionOverlay = ({ active, mapName }: TransitionOverlayProps) =
       style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
     >
       {mapName && (
-        <h2 className="text-3xl font-bold text-[#DAA520] uppercase tracking-[0.3em]">
-          {mapName}
-        </h2>
+        <div className="flex flex-col items-center gap-2">
+          <h2 className="text-3xl font-bold text-[#DAA520] uppercase tracking-[0.3em]">
+            {mapName}
+          </h2>
+          {mapSubtitle && (
+            <p className="text-sm text-[#D3D3D3]/70 uppercase tracking-[0.2em]">
+              {mapSubtitle}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

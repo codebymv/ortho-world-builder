@@ -78,8 +78,6 @@ export function createGameRuntime({
 
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
-    alpha: true,
-    premultipliedAlpha: false,
     powerPreference: 'high-performance',
     stencil: false,
   });

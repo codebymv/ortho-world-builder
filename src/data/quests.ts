@@ -5,7 +5,7 @@ export const quests: Record<string, Quest> = {
   find_hunter: {
     id: 'find_hunter',
     title: 'The Missing Hunter',
-    description: 'The village elder has asked you to follow the hunter into the Whispering Woods, search the Disparaged Cottage, and bring back whatever evidence remains.',
+    description: 'A hunter went into the Whispering Woods and never returned. Search the Disparaged Cottage deep in the forest and bring back whatever evidence remains.',
     objectives: [
       'Travel to the Whispering Woods',
       'Find the Disparaged Cottage',
@@ -41,7 +41,7 @@ export const quests: Record<string, Quest> = {
   merchants_request: {
     id: 'merchants_request',
     title: "Merchant's Rare Goods",
-    description: 'The traveling merchant is looking for rare herbs that grow near the ancient ruins. He will pay handsomely for them.',
+    description: 'The traveling merchant wants Moonbloom flowers that grow in and around the Whispering Woods and along the ruin-side paths beyond it. He will pay handsomely for them.',
     objectives: [
       'Find Moonbloom flowers (0/3)',
       'Return to the merchant',
@@ -67,6 +67,22 @@ export const quests: Record<string, Quest> = {
     reward: {
       gold: 50,
       items: ['iron_sword'],
+    },
+  },
+
+  rangers_request: {
+    id: 'rangers_request',
+    title: "The Ranger's Request",
+    description: 'The ranger at the outpost wants the Stone Golem in the eastern highlands destroyed before it seals the old watchtower route for good.',
+    objectives: [
+      'Defeat the Stone Golem',
+      'Return to the ranger',
+    ],
+    completed: false,
+    active: false,
+    reward: {
+      gold: 80,
+      items: ['ranger_badge'],
     },
   },
 };

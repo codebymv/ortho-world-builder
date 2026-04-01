@@ -162,7 +162,7 @@ export function createKeyboardInputController({
       return;
     }
 
-    if (pausedRef.current || mapModalOpenRef.current) return;
+    if (pausedRef.current || mapModalOpenRef.current || playerDeadRef.current) return;
 
     keys[e.key.toLowerCase()] = true;
     if (e.key.toLowerCase() === 'f' && !state.dialogueActive) {

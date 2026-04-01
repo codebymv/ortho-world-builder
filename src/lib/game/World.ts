@@ -39,6 +39,7 @@ export interface Tile {
 
 export interface WorldMap {
   name: string;
+  subtitle?: string;
   width: number;
   height: number;
   tiles: Tile[][];
@@ -498,7 +499,7 @@ export class World {
 
   private createSeamGradientCanvasTexture(kind: string, variant: number): THREE.CanvasTexture {
     const W = 8;
-    const H = 48;
+    const H = 80;
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
@@ -540,21 +541,27 @@ export class World {
     const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
     for (let y = 0; y < H; y++) {
       const u = y / (H - 1);
+      // Ease-in curve so the bottom half darkens faster, reinforcing a shadow drop
+      const ue = u * u;
       const n =
         Math.sin(y * 0.55 + vr) * 7 +
         Math.sin(y * 1.4 + vr * 1.7) * 5 +
         (tileHash(variant, y, 2) - 0.5) * 12;
-      const r = top[0] * (1 - u) + bot[0] * u + n;
-      const g = top[1] * (1 - u) + bot[1] * u + n * 0.92;
-      const b = top[2] * (1 - u) + bot[2] * u + n * 0.88;
+      const r = top[0] * (1 - ue) + bot[0] * ue + n;
+      const g = top[1] * (1 - ue) + bot[1] * ue + n * 0.92;
+      const b = top[2] * (1 - ue) + bot[2] * ue + n * 0.88;
       ctx.fillStyle = `rgb(${clamp(r)},${clamp(g)},${clamp(b)})`;
       ctx.fillRect(0, y, W, 1);
     }
-    for (let s = 0; s < 6; s++) {
+    // Dark seam rows scattered through the gradient for rock-strata feel
+    for (let s = 0; s < 8; s++) {
       const yy = Math.floor(tileHash(variant, s, 11) * H);
-      ctx.fillStyle = `rgba(0,0,0,${0.06 + tileHash(s, variant, 5) * 0.12})`;
+      ctx.fillStyle = `rgba(0,0,0,${0.10 + tileHash(s, variant, 5) * 0.15})`;
       ctx.fillRect(0, yy, W, 1);
     }
+    // Extra hard shadow at the very bottom edge (base of the drop)
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, H - 2, W, 2);
     const tex = new THREE.CanvasTexture(canvas);
     tex.magFilter = THREE.NearestFilter;
     tex.minFilter = THREE.NearestFilter;

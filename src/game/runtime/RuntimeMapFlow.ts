@@ -20,7 +20,7 @@ interface RuntimeMapFlowOptions {
   world: World;
   allMaps: Record<string, WorldMap>;
   notify: (message: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
-  showTransitionOverlay: (mapName: string) => void;
+  showTransitionOverlay: (mapName: string, mapSubtitle?: string) => void;
   setBiomeForMap: (mapId: string) => void;
   switchMusicTrack: (mapId: string) => void;
   triggerSave: () => void;

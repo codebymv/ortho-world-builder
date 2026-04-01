@@ -106,6 +106,10 @@ export function runPlayerFramePhase({
   if (newTexture && meshes.playerMaterial.map !== newTexture) {
     meshes.playerMaterial.map = newTexture;
     (meshes.playerOutline.material as THREE.MeshBasicMaterial).map = newTexture;
+    // Keep blade overlay in sync so the glow covers the current pose
+    const bladeOverlayMat = meshes.bladeOverlayMesh.material as THREE.ShaderMaterial;
+    bladeOverlayMat.uniforms.map.value = newTexture;
+    bladeOverlayMat.uniformsNeedUpdate = true;
   }
 
   let attackOffsetX = 0;
@@ -244,7 +248,7 @@ export function runPlayerFramePhase({
     meshes.spinSwooshMesh.visible = false;
   }
 
-  if (state.player.damageFlashTimer > 0 && state.player.damageFlashTimer > 0.28) {
+  if (state.player.damageFlashTimer > 0) {
     screenShake.shake(0.18, 0.12);
   }
 

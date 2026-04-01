@@ -17,7 +17,7 @@ interface TransitionContext {
   allMaps: Record<string, WorldMap>;
   isPortalDestinationUnlocked: (targetMap: string) => boolean;
   notify: (message: string, options?: NotificationOptions) => void;
-  showTransitionOverlay: (mapName: string) => void;
+  showTransitionOverlay: (mapName: string, mapSubtitle?: string) => void;
   syncPersistentMapState: () => void;
   setActiveNpcsForCurrentMap: () => void;
   setBiomeForMap: (mapId: string) => void;
@@ -114,7 +114,7 @@ export function createMapTransitionService(context: TransitionContext) {
 
     console.log(`[MapTransition] Map loaded: ${newMap.name}, size: ${newMap.width}x${newMap.height}`);
 
-    context.showTransitionOverlay(newMap.name);
+    context.showTransitionOverlay(newMap.name, newMap.subtitle);
 
     context.state.currentMap = targetMap;
     context.world.loadMap(newMap);

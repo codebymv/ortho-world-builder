@@ -30,7 +30,7 @@ export const BonfireOverlay = ({ active, title = 'Flame Kindled', subtitle }: Bo
         background: 'radial-gradient(circle at center, rgba(191,121,25,0.18) 0%, rgba(20,8,2,0.38) 38%, rgba(0,0,0,0.0) 72%)',
       }}
     >
-      <div style={{ marginTop: '-300px' }}>
+      <div className="flex flex-col items-center" style={{ marginTop: '-15vh' }}>
         <div
           className={`px-10 py-6 text-center ${
             phase === 'fadein'

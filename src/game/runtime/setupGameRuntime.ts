@@ -87,6 +87,7 @@ export interface RuntimeHostRefs {
   stopDialogueLoopRef: MutableRefObject<(() => void) | null>;
   playMenuOpenRef: MutableRefObject<(() => void) | null>;
   playMenuCloseRef: MutableRefObject<(() => void) | null>;
+  killCountRef: MutableRefObject<number>;
 }
 
 export interface RuntimeUiBindings {
@@ -97,6 +98,7 @@ export interface RuntimeUiBindings {
   setIsPaused: Dispatch<SetStateAction<boolean>>;
   setTransitionActive: Dispatch<SetStateAction<boolean>>;
   setTransitionMapName: Dispatch<SetStateAction<string>>;
+  setTransitionMapSubtitle: Dispatch<SetStateAction<string>>;
   setTransitionDebugEnabled: Dispatch<SetStateAction<boolean>>;
   setTransitionDebugLines: Dispatch<SetStateAction<string[]>>;
   setInteractionPrompt: Dispatch<SetStateAction<InteractionPrompt>>;
@@ -165,6 +167,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       stopDialogueLoopRef,
       playMenuOpenRef,
       playMenuCloseRef,
+      killCountRef,
     },
     ui: {
       setGameState,
@@ -174,6 +177,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       setIsPaused,
       setTransitionActive,
       setTransitionMapName,
+      setTransitionMapSubtitle,
       setTransitionDebugEnabled,
       setTransitionDebugLines,
       setInteractionPrompt,
@@ -257,6 +261,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           if (npcName.includes('guard') && primaryObjectiveText.includes('guard')) return true;
           if (npcName.includes('blacksmith') && primaryObjectiveText.includes('blacksmith')) return true;
           if (npcName.includes('healer') && primaryObjectiveText.includes('healer')) return true;
+          if (npcName.includes('ranger') && primaryObjectiveText.includes('ranger')) return true;
         }
       }
 
@@ -269,6 +274,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       if (npcName.includes('guard') && activeQuestText.includes('guard')) return true;
       if (npcName.includes('blacksmith') && activeQuestText.includes('blacksmith')) return true;
       if (npcName.includes('healer') && activeQuestText.includes('healer')) return true;
+      if (npcName.includes('ranger') && activeQuestText.includes('ranger')) return true;
       return false;
     };
     setGameState(state);
@@ -380,8 +386,8 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       SaveManager.save(state, mapMarkersRef.current, visitedTilesRef.current);
     };
 
-    // Kill tracker for quests
-    let killCount = 0;
+    // Kill tracker for quests — synced to ref so ProgressionService can snapshot baselines
+    let killCount = killCountRef.current;
 
     const getPlayerTextureName = (dir: Direction8, animState: string, frame: number): string => {
       return `player_${dir}_${animState}_${frame}`;
@@ -512,8 +518,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       world,
       allMaps,
       notify,
-      showTransitionOverlay: (mapName: string) => {
+      showTransitionOverlay: (mapName: string, mapSubtitle?: string) => {
         setTransitionMapName(mapName);
+        setTransitionMapSubtitle(mapSubtitle ?? '');
         setTransitionActive(true);
         effectTimeouts.push(setTimeout(() => setTransitionActive(false), 800));
       },
@@ -619,6 +626,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           getKillCount: () => killCount,
           setKillCount: value => {
             killCount = value;
+            killCountRef.current = value;
           },
           getCurrentDir8: () => runtimeSession.animation.currentDir8,
           healCooldownMs: HEAL_COOLDOWN_MS,

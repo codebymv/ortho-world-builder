@@ -184,7 +184,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'merchant_herb_pitch',
-        text: "Moonbloom only blooms where old stone remembers moonlight. Bring me **three bunches** from the ruin-side paths beyond the **Whispering Woods**, and I'll pay well for the risk.",
+        text: "Moonbloom only blooms where old stone remembers moonlight. Bring me **three bunches** from the **Whispering Woods** and the ruin-side paths beyond it, and I'll pay well for the risk.",
         responses: [
           { text: "I'll gather the Moonbloom.", nextId: 'end', givesQuest: 'merchants_request' },
           { text: "Not today.", nextId: 'end' },
@@ -372,6 +372,18 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'forest_entry_sign',
     nodes: [{ id: 'start', text: "A carved wooden sign: '**Welcome to the Whispering Woods**. Stay on the __paths__. The __ranger fire__ burns on the rise ahead.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
+  destroyed_town_sign: {
+    id: 'destroyed_town_sign',
+    nodes: [{ id: 'start', text: "A broken road marker lists no village name, only a warning carved later by an unsteady hand: '__Do not rebuild here.__ The dead were walking before the roofs were cold.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  hunter_cottage_sign: {
+    id: 'hunter_cottage_sign',
+    nodes: [{ id: 'start', text: "A crude board hangs by a single nail: '**Disparaged Cottage**.' Someone has scratched a second line beneath it: '__Do not linger after dark.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  forest_cottage_sign: {
+    id: 'forest_cottage_sign',
+    nodes: [{ id: 'start', text: "A faded placard reads: '**Wayfarer's Cottage**.' The latch is clean and the threshold recently swept.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
   hunter_clue: {
     id: 'hunter_clue',
     nodes: [
@@ -426,6 +438,53 @@ export const dialogues: Record<string, Dialogue> = {
   stump_lore: {
     id: 'stump_lore',
     nodes: [{ id: 'start', text: "This ancient tree stump has __strange markings__ carved into it. They seem to point deeper into the **forest**, toward an older trail.", responses: [{ text: "[Interesting...]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  wolf_den_bones: {
+    id: 'wolf_den_bones',
+    nodes: [{ id: 'start', text: "The bones are picked clean and stacked almost neatly. A snapped spear shaft lies among them, suggesting the wolves dragged more than deer back to this hollow.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  old_chapel_altar: {
+    id: 'old_chapel_altar',
+    nodes: [{ id: 'start', text: "A stone altar sinks into the damp floor. Melted wax and fern roots share the same cracks. Someone still leaves tiny offerings here: feathers, beads, and silver thread.", responses: [{ text: "[Pay respects]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  volcano_warning: {
+    id: 'volcano_warning',
+    nodes: [{ id: 'start', text: "A soot-stained sign warns: '**Ashfall ridge ahead.** The ground breaks without warning when the old fire mountain mutters.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  temple_inscription: {
+    id: 'temple_inscription',
+    nodes: [{ id: 'start', text: "Shallow carvings run across the temple stones: '__Bind the wild heart. Keep the hill asleep.__' Moss obscures the rest.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  forest_fort_banner: {
+    id: 'forest_fort_banner',
+    nodes: [{ id: 'start', text: "The banner's dye has long since bled into rust-brown threads. Even so, the old crest still shows a lantern above crossed spears: the mark of the forest watch.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  caravan_journal: {
+    id: 'caravan_journal',
+    nodes: [{ id: 'start', text: "Most of the ledger is ruined by rain, but the last page remains: '__Lost two mules at dusk. Heard bells in the trees. Leaving the crates and making for the south gate before moonrise.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  spider_cocoon: {
+    id: 'spider_cocoon',
+    nodes: [{ id: 'start', text: "The cocoon twitches once when you draw near, then hangs still. Strands of cloth and old mail are woven into the silk like warning flags.", responses: [{ text: "[Step back]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  ancient_well: {
+    id: 'ancient_well',
+    nodes: [
+      {
+        id: 'start',
+        text: "A circular well of pale stone sits beside the trail, older than the road around it. The water below is clear enough to reflect the canopy like dark glass.",
+        responses: [
+          { text: "[Drink from the well]", nextId: 'drink' },
+          { text: "[Leave it alone]", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'drink',
+        text: "The water is cold and impossibly clean. Your breathing steadies, and for a moment the whispering of the woods grows quiet. (**Health restored**)",
+        responses: [{ text: "[Continue]", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
   },
   market_sign: {
     id: 'market_sign',
@@ -485,9 +544,9 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'weapons',
-        text: "Ha! Eager to fight, are we? I can see your blade's seen some action. Come back with some **rare ore** from the **Ancient Ruins** and I'll forge you something __special__.",
+        text: "Ha! Eager to fight, are we? I can sharpen what you've got, but if you're looking for a real upgrade you'll need to find something out in the wilds. I've heard the **Ancient Ruins** still hold blades from a bygone age.",
         responses: [
-          { text: "I'll keep an eye out for ore.", nextId: 'end' },
+          { text: "I'll keep that in mind.", nextId: 'end' },
         ],
       },
       {
@@ -690,7 +749,7 @@ export const dialogues: Record<string, Dialogue> = {
         id: 'help',
         text: "Help? HA! Unless you can chase off the **slimes** eating my cabbages, I don't see what good a sword-swinger like you can do. They come from the __south__ at night.",
         responses: [
-          { text: "I'll handle the slimes for you.", nextId: 'end' },
+          { text: "Sounds rough. Good luck with that.", nextId: 'end' },
         ],
       },
       {
@@ -736,7 +795,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'story',
-        text: "YES! Tell me tell me! ...Wow, a real **shadow beast**?! My friend **Tommy** says he saw one near the __old well__ but I think he was just making it up. Or maybe not...",
+        text: "YES! Tell me tell me! ...Wow, a real **shadow beast**?! I bet they're huge! Do they have claws? Do they breathe fire?! ...Okay maybe I'd be a LITTLE scared.",
         responses: [
           { text: "Stay safe, little one.", nextId: 'end' },
         ],
@@ -817,6 +876,119 @@ export const dialogues: Record<string, Dialogue> = {
         text: "*Exit to the outside world?*\n\n_(Stand still for a moment to leave)_",
         responses: [],
       },
+    ],
+  },
+  hermit_hut: {
+    id: 'hermit_hut',
+    nodes: [
+      {
+        id: 'start',
+        text: "A ramshackle hut half-swallowed by roots and moss. Dried herbs hang from the eaves. Whoever lived here valued __solitude__ above all else.",
+        responses: [{ text: "Move on.", nextId: 'end' }],
+      },
+      { id: 'end', text: "The forest hums quietly around the hut.", responses: [] },
+    ],
+  },
+  forest_hermit: {
+    id: 'forest_hermit',
+    nodes: [
+      {
+        id: 'start',
+        text: "A narrow cottage stands under sagging branches. Bundles of dried moss hang in the window and a dozen tiny bottles line the sill. Whoever lives here studies the woods by patience, not force.",
+        responses: [{ text: "Move on.", nextId: 'end' }],
+      },
+      { id: 'end', text: "A faint herbal scent follows you back to the path.", responses: [] },
+    ],
+  },
+  southern_outpost: {
+    id: 'southern_outpost',
+    nodes: [
+      {
+        id: 'start',
+        text: "An abandoned campsite. Half-packed crates and a cold fire pit suggest the occupants left in a hurry. A torn banner bearing the **village crest** flutters from a crooked pole.",
+        responses: [{ text: "Search the camp.", nextId: 'search' }, { text: "Leave.", nextId: 'end' }],
+      },
+      {
+        id: 'search',
+        text: "Nothing of value remains. The crates hold only rotted provisions and a broken lantern.",
+        responses: [{ text: "Move on.", nextId: 'end' }],
+      },
+      { id: 'end', text: "The wind picks up as you step away from the outpost.", responses: [] },
+    ],
+  },
+  overgrown_shrine: {
+    id: 'overgrown_shrine',
+    nodes: [
+      {
+        id: 'start',
+        text: "An ancient shrine reclaimed by the forest. Ivy drapes the altar and wildflowers push through cracked stone. Whatever was once worshipped here is long forgotten.",
+        responses: [{ text: "Offer a moment of silence.", nextId: 'pray' }, { text: "Leave.", nextId: 'end' }],
+      },
+      {
+        id: 'pray',
+        text: "A faint warmth passes through you. Perhaps the old spirits still listen.",
+        responses: [{ text: "Move on.", nextId: 'end' }],
+      },
+      { id: 'end', text: "The shrine fades into the undergrowth behind you.", responses: [] },
+    ],
+  },
+  witch_cottage: {
+    id: 'witch_cottage',
+    nodes: [
+      {
+        id: 'start',
+        text: "Shelves of stoppered jars crowd the walls, and a low cauldron ticks as it cools. This place feels less abandoned than merely unattended, as if its owner stepped out only moments ago.",
+        responses: [{ text: "Look around quietly.", nextId: 'end' }],
+      },
+      { id: 'end', text: "Herbs, ash, and rainwater leave a bitter scent in the air.", responses: [] },
+    ],
+  },
+  forest_ranger: {
+    id: 'forest_ranger',
+    nodes: [
+      {
+        id: 'start',
+        text: "Easy now. The fire's friendly, the woods aren't. I'm the last ranger holding this outpost, and every trail north of here has grown teeth.",
+        responses: [
+          { text: "What happened to the woods?", nextId: 'woods' },
+          { text: "Need a hand with anything?", nextId: 'offer' },
+          { text: "Any advice before I move on?", nextId: 'advice' },
+        ],
+      },
+      {
+        id: 'woods',
+        text: "The forest used to turn hostile in pockets. Now it sours in layers. Wolves first. Then the dead. Then that stone brute on the eastern rise started prowling close enough to shake the watchtower steps.",
+        responses: [{ text: "Anything else I should know?", nextId: 'advice' }],
+      },
+      {
+        id: 'offer',
+        text: "Aye. There's a **Stone Golem** stalking the eastern highlands above the temple road. Bring it down and the old watch route opens again.",
+        responses: [
+          { text: "I'll handle the golem.", nextId: 'end', givesQuest: 'rangers_request' },
+          { text: "Not yet.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'advice',
+        text: "Use the lever by the broken palisade if you find it. That gate folds the hunter road back toward this fire. And if the trees go quiet near stonework, assume something there is hunting.",
+        responses: [{ text: "Understood.", nextId: 'end' }],
+      },
+      {
+        id: 'quest_active',
+        text: "The golem still walks the eastern highlands. Follow the ridge road past the fort and keep your feet moving when it starts its swing.",
+        responses: [{ text: "I'm on it.", nextId: 'end' }],
+      },
+      {
+        id: 'quest_complete',
+        text: "You brought the brute down? Good. The ridge will breathe easier now. Take this badge - the watch carried it before the line broke, and you've earned it more than they ever did.",
+        responses: [{ text: "I'll take it.", nextId: 'end' }],
+      },
+      {
+        id: 'after_quest',
+        text: "The high road's open again, thanks to you. If the woods hold, they'll do it because someone finally hit back hard enough.",
+        responses: [{ text: "Stay safe out here.", nextId: 'end' }],
+      },
+      { id: 'end', text: "Keep the lanterns in sight when you can.", responses: [] },
     ],
   },
 };

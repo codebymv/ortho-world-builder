@@ -257,6 +257,22 @@ export class AssetManager {
         cell(m(3), 4 + bob, GUARD); cell(m(4), 4 + bob, GUARD); cell(m(5), 4 + bob, GUARD); cell(m(6), 4 + bob, GUARD);
         cell(m(5), 5 + bob, GRIP); cell(m(5), 6 + bob, GRIP); cell(m(5), 7 + bob, GRIP);
         cell(m(5), 8 + bob, GUARD);
+      } else if (includeSword && state === 'charge') {
+        // Charge stance side view: sword extends forward into a ready guard.
+        // The glow overlay signals charge level — the pose is a held combat stance.
+        if (frame === 0) {
+          // Arm starts to extend — sword angling toward forward
+          cell(m(5), 3 + bob, BLADE_H); cell(m(6), 4 + bob, BLADE); cell(m(7), 5 + bob, BLADE_E);
+          cell(m(5), 4 + bob, BLADE_H); cell(m(6), 5 + bob, BLADE);
+          cell(m(4), 6 + bob, GUARD); cell(m(5), 6 + bob, GUARD); cell(m(6), 6 + bob, GUARD);
+          cell(m(5), 7 + bob, GRIP); cell(m(5), 8 + bob, GRIP);
+        } else {
+          // Frames 1 & 2: arm fully extended, sword held diagonally forward
+          cell(m(3), 3 + bob, BLADE_H); cell(m(4), 4 + bob, BLADE); cell(m(5), 5 + bob, BLADE_E);
+          cell(m(3), 4 + bob, BLADE_H); cell(m(4), 5 + bob, BLADE);
+          cell(m(2), 6 + bob, GUARD); cell(m(3), 6 + bob, GUARD); cell(m(4), 6 + bob, GUARD);
+          cell(m(4), 7 + bob, GRIP); cell(m(4), 8 + bob, GRIP);
+        }
       } else if (includeSword) {
         // Idle: resting at side, traditional short sword
         // Blade
@@ -368,6 +384,25 @@ export class AssetManager {
         cell(4, 7 + bob, GRIP);
         cell(4, 8 + bob, GRIP);
         cell(4, 9 + bob, GUARD);
+      } else if (includeSword && state === 'charge') {
+        // Charge stance: frame 0 keeps the idle sword shape so the transition is
+        // seamless — the glow alone signals "charge started".  Frames 1+2 raise the
+        // arm to match the attack mid-swing silhouette.
+        if (frame === 0) {
+          // Same geometry as idle — full-length blade, wide guard
+          cell(2, 4 + bob, BLADE_H); cell(3, 5 + bob, BLADE); cell(4, 6 + bob, BLADE_E);
+          cell(2, 5 + bob, BLADE_H); cell(3, 6 + bob, BLADE);
+          cell(2, 6 + bob, BLADE_H); cell(3, 7 + bob, BLADE);
+          cell(1, 8 + bob, GUARD); cell(2, 8 + bob, GUARD); cell(3, 8 + bob, GUARD); cell(4, 8 + bob, GUARD);
+          cell(3, 9 + bob, GRIP); cell(3, 10 + bob, GRIP);
+        } else {
+          // Arm raised: identical idle sword shape shifted up 2 rows as a unit
+          cell(2, 2 + bob, BLADE_H); cell(3, 3 + bob, BLADE); cell(4, 4 + bob, BLADE_E);
+          cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE);
+          cell(2, 4 + bob, BLADE_H); cell(3, 5 + bob, BLADE);
+          cell(1, 6 + bob, GUARD); cell(2, 6 + bob, GUARD); cell(3, 6 + bob, GUARD); cell(4, 6 + bob, GUARD);
+          cell(3, 7 + bob, GRIP); cell(3, 8 + bob, GRIP);
+        }
       } else if (includeSword) {
         // Idle: resting at left side, traditional short sword
         // Blade
@@ -1088,60 +1123,65 @@ export class AssetManager {
     this.textures.set('waterfall', this.createColorTexture(0x42A5F5, 32, 32, 'noise'));
     this.textures.set('snow', this.createColorTexture(0xECEFF1, 32, 32, 'noise'));
     
-    // New terrain tiles — cleaner, higher-contrast cliff set
     const CLIFF_GRASS    = 0x81C784; // vivid grass cap
     const CLIFF_GRASS_D  = 0x558B2F; // dark grass edge below cap
-    const CLIFF_SOIL     = 0x6D4C41; // dark soil band
-    const CLIFF_TOP_RIM  = 0xC8A97E; // warm sandy stone — the overhang lip
-    const CLIFF_STRATA_H = 0xA0877A; // lighter rock highlight
-    const CLIFF_STRATA   = 0x7B6460; // mid rock face
-    const CLIFF_STRATA_D = 0x4E3A36; // dark strata seam
-    const CLIFF_SHADOW   = 0x2C211E; // deep base shadow
+    const CLIFF_SOIL     = 0x5A3D2E; // dark soil band
+    // Overhang lip — bright cream stripe, very readable as cliff edge
+    const CLIFF_TOP_RIM  = 0xF0E0A0;
+    // Rock strata — cool grey-stone palette, high contrast across 3 tones
+    const CL  = 0xC0B4AA; // light strata highlight (warm grey-stone)
+    const CM  = 0x7E706A; // mid strata
+    const CD  = 0x3E3430; // dark strata seam
+    const CS  = 0x18130F; // base shadow
     const STAIRS_STONE   = 0xB0BEC5;
     const STAIRS_STONE_H = 0xECEFF1;
     const STAIRS_STONE_S = 0x546E7A;
     const STAIRS_EDGE    = 0xFFFFFF; // bright tread edge
 
-    // cliff_edge: the TOP of the cliff — shows grass cap, soil band, overhang, then rock face.
-    // Top rows are opaque grass so the sky-blue scene background never bleeds through.
+    // cliff_edge: grass cap → soil → bright cream lip → clearly banded rock face → shadow base.
+    // Each row renders 4px tall (NearestFilter, 4× scale) — solid rows = clearly readable stripes.
     this.textures.set('cliff_edge', this.createSpriteTexture([
+      // rows 0-2: grass cap
       [CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS],
       [CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D],
       [CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS],
+      // row 3: soil
       [CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL],
+      // row 4: bright overhang lip — the most visible marker of the cliff top
       [CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM],
-      [CLIFF_STRATA_H,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA],
-      [CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D],
-      [CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D],
-      [CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA],
-      [CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA],
-      [CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D],
-      [CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H],
-      [CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA],
-      [CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW],
-      [CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW],
-      [CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW],
+      // rows 5-13: banded rock face — strict L/M/D cycles for crisp horizontal stripes
+      [CL,CL,CL,CL,CL,CL,CL,CL,CL,CL,CL,CL],
+      [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
+      [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
+      [CL,CL,CM,CL,CL,CM,CL,CM,CL,CL,CM,CL],
+      [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
+      [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
+      [CL,CM,CL,CL,CL,CM,CL,CL,CM,CL,CL,CL],
+      [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
+      [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
+      // rows 14-15: base shadow
+      [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
+      [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
     ], 4, 'cliff_edge'));
 
-    // cliff: the BODY tile below cliff_edge — pure rock face with strata lines.
-    // Top rows opaque to prevent sky bleed-through.
+    // cliff: pure rock body — 4 full L/M/D strata cycles then shadow base.
     this.textures.set('cliff', this.createSpriteTexture([
-      [CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA],
-      [CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA],
-      [CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D],
-      [CLIFF_STRATA_H,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H],
-      [CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D],
-      [CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D],
-      [CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA],
-      [CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA],
-      [CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D],
-      [CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H],
-      [CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA],
-      [CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D,CLIFF_STRATA_D],
-      [CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_H,CLIFF_STRATA,CLIFF_STRATA],
-      [CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA,CLIFF_STRATA,CLIFF_STRATA_D,CLIFF_STRATA],
-      [CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW],
-      [CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW,CLIFF_SHADOW],
+      [CL,CL,CL,CL,CL,CL,CL,CL,CL,CL,CL,CL],
+      [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
+      [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
+      [CL,CL,CM,CL,CL,CL,CM,CL,CL,CM,CL,CL],
+      [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
+      [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
+      [CL,CM,CL,CL,CM,CL,CL,CM,CL,CL,CM,CL],
+      [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
+      [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
+      [CL,CL,CL,CM,CL,CL,CL,CM,CL,CL,CL,CM],
+      [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
+      [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
+      [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
+      [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
+      [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
+      [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
     ], 4, 'cliff'));
 
     // stairs: carved stone steps — opaque grass cap at top, then treads

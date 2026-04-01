@@ -100,7 +100,7 @@ export class GameState {
   currentMap: string;
   dialogueActive: boolean;
   currentDialogue: string | null;
-  gameFlags: Record<string, boolean>;
+  gameFlags: Record<string, boolean | number>;
   onItemAdded: ((item: Item) => void) | null;
   onCurrencyGained: ((gain: CurrencyGain) => void) | null;
 
@@ -242,11 +242,11 @@ export class GameState {
     this.player.attackRange = equipped?.stats?.range ?? 2;
   }
 
-  setFlag(flag: string, value: boolean) {
+  setFlag(flag: string, value: boolean | number) {
     this.gameFlags[flag] = value;
   }
 
-  getFlag(flag: string): boolean {
+  getFlag(flag: string): boolean | number {
     return this.gameFlags[flag] || false;
   }
 }

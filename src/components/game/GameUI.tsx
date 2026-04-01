@@ -68,6 +68,9 @@ const CombatBars = React.memo(({ health, maxHealth, stamina, maxStamina }: {
           style={{ width: `${(stamina / maxStamina) * 100}%` }}
         />
       </div>
+      <span className="text-[10px] font-bold text-emerald-300/70 tracking-wide">
+        {Math.round(stamina)}/{maxStamina}
+      </span>
     </div>
   </div>
 ));

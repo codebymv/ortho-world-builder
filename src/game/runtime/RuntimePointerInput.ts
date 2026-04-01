@@ -16,6 +16,7 @@ type PlayerAnimState =
 interface PointerInputOptions {
   state: GameState;
   pausedRef: MutableRefObject<boolean>;
+  playerDeadRef: MutableRefObject<boolean>;
   mapModalOpenRef: MutableRefObject<boolean>;
   performAttack: () => void;
   performChargeAttack: (level: number) => void;
@@ -41,6 +42,7 @@ interface PointerInputOptions {
 export function createPointerInputController({
   state,
   pausedRef,
+  playerDeadRef,
   mapModalOpenRef,
   performAttack,
   performChargeAttack,
@@ -80,7 +82,7 @@ export function createPointerInputController({
   };
 
   const handleMouseDown = (e: MouseEvent) => {
-    if (pausedRef.current || mapModalOpenRef.current) return;
+    if (pausedRef.current || mapModalOpenRef.current || playerDeadRef.current) return;
 
     if (e.button === 0) {
       if (!state.dialogueActive && !state.player.isDodging) {

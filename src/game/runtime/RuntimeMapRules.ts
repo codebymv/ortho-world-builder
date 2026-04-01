@@ -10,7 +10,12 @@ export const MAP_BIOMES: Record<string, string> = {
 
 export function isPortalDestinationUnlocked(state: GameState, targetMap: string): boolean {
   if (targetMap === 'deep_woods') {
-    return !!state.quests.find(q => q.id === 'clear_deep_woods' && q.active);
+    const questUnlocked = !!state.quests.find(q => q.id === 'clear_deep_woods');
+    if (!questUnlocked) return false;
+    if (state.currentMap === 'village') {
+      return !!state.getFlag('whispering_woods_shortcut_open');
+    }
+    return true;
   }
   return true;
 }
