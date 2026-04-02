@@ -10,6 +10,8 @@ export type PlayerAnimState =
   | 'charge'
   | 'hurt'
   | 'spin_attack'
+  | 'lunge'
+  | 'lunge_recovery'
   | 'drinking'
   | 'block';
 
@@ -64,6 +66,25 @@ interface UpdatePlayerSimulationOptions {
   emitDust: (x: number, y: number) => void;
   emitHeal: (x: number, y: number, z: number) => void;
   triggerMinimapUpdate: (force?: boolean, now?: number) => void;
+  // Lunge state
+  lungeState: {
+    active: boolean;
+    recovering: boolean;
+    dirX: number;
+    dirY: number;
+    speed: number;
+    distanceRemaining: number;
+    recoveryTimer: number;
+    damage: number;
+    hitEnemyIds: Set<string>;
+  };
+  combatSystem: {
+    getEnemiesInRange: (position: { x: number; y: number }, range: number) => any[];
+    playerAttack: (enemy: any, damage: number, playerPosition: { x: number; y: number }, playerDirection: string) => { killed: boolean; staggered: boolean; backstab: boolean };
+  };
+  onLungeHit: (enemy: any, damage: number) => void;
+  onLungeEnd: () => void;
+  dodgeIFrameDuration: number;
 }
 
 export interface PlayerSimulationResult {
@@ -122,6 +143,11 @@ export function updatePlayerSimulation({
   emitDust,
   emitHeal,
   triggerMinimapUpdate,
+  lungeState,
+  combatSystem,
+  onLungeHit,
+  onLungeEnd,
+  dodgeIFrameDuration,
 }: UpdatePlayerSimulationOptions): PlayerSimulationResult {
   const revealVisibleTiles = () => {
     const currentMap = world.getCurrentMap();
@@ -199,16 +225,16 @@ export function updatePlayerSimulation({
     moveY -= 1;
     moved = true;
   }
-  if (keys.a || keys.arrowleft) {
+  if (keys.a) {
     moveX -= 1;
     moved = true;
   }
-  if (keys.d || keys.arrowright) {
+  if (keys.d) {
     moveX += 1;
     moved = true;
   }
 
-  if (dodgeBuffered && !isBlocking) {
+  if (dodgeBuffered && !isBlocking && playerAnimState !== 'lunge' && playerAnimState !== 'lunge_recovery') {
     performDodge(moveX, moveY);
     dodgeBuffered = false;
   }
@@ -236,7 +262,7 @@ export function updatePlayerSimulation({
       state.player.iFrameTimer = 0;
       playerAnimState = moved ? 'walk' : 'idle';
     }
-  } else if (moved && !isChargingAttack && playerAnimState !== 'spin_attack' && state.player.attackAnimationTimer <= 0) {
+  } else if (moved && !isBlocking && !isChargingAttack && playerAnimState !== 'spin_attack' && playerAnimState !== 'lunge' && playerAnimState !== 'lunge_recovery' && state.player.attackAnimationTimer <= 0) {
     const rawDir = getDirection8(moveX > 0 ? 1 : moveX < 0 ? -1 : 0, moveY > 0 ? 1 : moveY < 0 ? -1 : 0);
     currentDir8 = rawDir;
     state.player.direction = dir8to4(rawDir);
@@ -295,6 +321,8 @@ export function updatePlayerSimulation({
       playerAnimState !== 'dodge' &&
       playerAnimState !== 'charge' &&
       playerAnimState !== 'spin_attack' &&
+      playerAnimState !== 'lunge' &&
+      playerAnimState !== 'lunge_recovery' &&
       playerAnimState !== 'block'
     ) {
       playerAnimState = 'idle';
@@ -333,6 +361,88 @@ export function updatePlayerSimulation({
     state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
   }
 
+  if (playerAnimState === 'lunge' && lungeState.active) {
+    const step = lungeState.speed * deltaTime;
+    const newPos = {
+      x: state.player.position.x + lungeState.dirX * step,
+      y: state.player.position.y + lungeState.dirY * step,
+    };
+
+    if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, newPos.y, 0.2)) {
+      state.player.position = newPos;
+    } else {
+      lungeState.distanceRemaining = 0;
+    }
+
+    lungeState.distanceRemaining -= step;
+
+    const hitRadius = 1.5;
+    const nearby = combatSystem.getEnemiesInRange(state.player.position, hitRadius);
+    const { dirX, dirY } = lungeState;
+    const LUNGE_POST_HIT_LOCK = 0.42;
+    // Fixed push distances from the player's current position — independent of
+    // how much lunge travel remains, so enemies always land well clear.
+    const KNOCKBACK_DISTANCES = [3.2, 2.8, 2.4, 2.0];
+
+    for (const enemy of nearby) {
+      if (!lungeState.hitEnemyIds.has(enemy.id)) {
+        lungeState.hitEnemyIds.add(enemy.id);
+        onLungeHit(enemy, lungeState.damage);
+
+        if (enemy.state !== 'dead') {
+          for (const dist of KNOCKBACK_DISTANCES) {
+            const pushX = state.player.position.x + dirX * dist;
+            const pushY = state.player.position.y + dirY * dist;
+            if (world.canMoveTo(enemy.position.x, enemy.position.y, pushX, pushY, 0.2)) {
+              enemy.position.x = pushX;
+              enemy.position.y = pushY;
+              break;
+            }
+          }
+
+          if (enemy.state === 'telegraphing' || enemy.state === 'attacking') {
+            enemy.state = 'recovering';
+            enemy.telegraphTimer = 0;
+            enemy.recoverTimer = Math.max(enemy.recoverTimer, enemy.recoverDuration * 0.55);
+          }
+          enemy.attackWindupLockTimer = Math.max(enemy.attackWindupLockTimer, LUNGE_POST_HIT_LOCK);
+        }
+      }
+    }
+
+    if (lungeState.distanceRemaining <= 0) {
+      lungeState.active = false;
+      lungeState.recovering = true;
+      playerAnimState = 'lunge_recovery';
+    }
+
+    state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
+  }
+
+  if (playerAnimState === 'lunge_recovery' && lungeState.recovering) {
+    lungeState.recoveryTimer -= deltaTime;
+    if (lungeState.recoveryTimer <= 0) {
+      lungeState.recovering = false;
+      lungeState.hitEnemyIds.clear();
+      state.player.attackAnimationTimer = 0;
+      onLungeEnd();
+
+      // Auto-retreat: kick the player backward out of the lunge so there is
+      // separation before enemies can retaliate. Free — no stamina cost.
+      if (!state.player.isDodging) {
+        state.player.isDodging = true;
+        state.player.dodgeTimer = state.player.dodgeDuration;
+        state.player.iFrameTimer = dodgeIFrameDuration;
+        state.player.dodgeDirection = { x: -lungeState.dirX, y: -lungeState.dirY };
+        state.player.lastDodgeTime = Date.now();
+        playerAnimState = 'dodge';
+      } else {
+        playerAnimState = moved ? 'walk' : 'idle';
+      }
+    }
+    state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
+  }
+
   if (playerAnimState === 'drinking') {
     drinkTimer -= deltaTime;
     if (Math.random() < 0.3) {
@@ -348,6 +458,8 @@ export function updatePlayerSimulation({
     playerAnimState !== 'dodge' &&
     playerAnimState !== 'charge' &&
     playerAnimState !== 'spin_attack' &&
+    playerAnimState !== 'lunge' &&
+    playerAnimState !== 'lunge_recovery' &&
     playerAnimState !== 'drinking' &&
     playerAnimState !== 'block'
   ) {

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { GameState, Item } from '@/lib/game/GameState';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
+import { INTERACTABLE_QUERY_RADIUS } from '@/lib/game/World';
 
 interface InteractionSystemLike {
   tryInteractWithNearbyNpc: (range: number) => boolean;
@@ -19,6 +20,8 @@ interface InteractionSystemLike {
   ) => boolean;
   tryHandleShadowCastleGateSwitch: (interactionId: string) => boolean;
   tryHandleForestShortcutLever: (interactionId: string) => boolean;
+  tryHandleHollowShortcutLever: (interactionId: string) => boolean;
+  tryHandleForestFortGate: (interactionId: string) => boolean;
   tryHandleDialogueInteraction: (interactionId: string) => boolean;
 }
 
@@ -61,9 +64,15 @@ export function useHealthPotionAction({
   setDrinkTimer,
   drinkDuration,
 }: PotionActionOptions) {
-  const activeItem = state.inventory[state.activeItemIndex];
+  let activeItem = state.inventory[state.activeItemIndex];
   if (activeItem?.type !== 'consumable' || typeof activeItem.healAmount !== 'number' || activeItem.healAmount <= 0) {
-    return;
+    const firstConsumableIdx = state.inventory.findIndex(
+      i => i.type === 'consumable' && typeof i.healAmount === 'number' && i.healAmount > 0,
+    );
+    if (firstConsumableIdx === -1) return;
+    state.activeItemIndex = firstConsumableIdx;
+    activeItem = state.inventory[firstConsumableIdx];
+    triggerUIUpdate();
   }
   if (state.player.health >= state.player.maxHealth) {
     notify('Already at full health!', { id: 'full-health', duration: 1500 });
@@ -126,7 +135,7 @@ export function runInteractionCheck({
     return;
   }
 
-  const interactableHit = world.getInteractableNear(checkX, checkY, 1.15);
+  const interactableHit = world.getInteractableNear(checkX, checkY, INTERACTABLE_QUERY_RADIUS);
   if (interactableHit) {
     const { interactionId, x: px, y: py } = interactableHit;
     const currentMap = world.getCurrentMap();
@@ -154,6 +163,9 @@ export function runInteractionCheck({
     )) return;
     if (interactionSystem.tryHandleShadowCastleGateSwitch(interactionId)) return;
     if (interactionSystem.tryHandleForestShortcutLever(interactionId)) return;
+    if (interactionSystem.tryHandleHollowShortcutLever(interactionId)) return;
+    if (interactionSystem.tryHandleForestFortGate(interactionId)) return;
+    if (interactionSystem.tryHandleHollowFogGate(interactionId)) return;
     if (interactionSystem.tryHandleDialogueInteraction(interactionId)) return;
   }
 

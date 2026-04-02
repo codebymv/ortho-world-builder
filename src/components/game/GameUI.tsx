@@ -371,8 +371,8 @@ export const GameUI = ({
 
       {/* Inventory Dropdown Menu */}
       {showInventory && (
-        <div className="fixed top-12 right-8 w-72 bg-[#1A0F0A]/95 backdrop-blur-md border border-[#5C3A21] border-t-0 rounded-b-md shadow-xl z-40 flex flex-col pointer-events-auto">
-          <div className="p-3 overflow-y-auto max-h-[400px]">
+        <div className="fixed top-12 right-8 w-[420px] bg-[#1A0F0A]/95 backdrop-blur-md border border-[#5C3A21] border-t-0 rounded-b-md shadow-xl z-40 flex flex-col pointer-events-auto">
+          <div className="p-3 overflow-y-auto max-h-[480px]">
             {(() => {
               const eqId = gameState.equippedWeaponId;
               const weapon =
@@ -426,10 +426,10 @@ export const GameUI = ({
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#1A0F0A]/60 rounded border border-[#5C3A21]/50 flex items-center justify-center shadow-inner relative">
-                          {getItemIcon(item, "w-8 h-8", assetManager)}
+                        <div className="w-16 h-16 flex-shrink-0 bg-[#1A0F0A]/60 rounded border border-[#5C3A21]/50 flex items-center justify-center shadow-inner relative overflow-hidden">
+                          {getItemIcon(item, "w-12 h-12 [image-rendering:pixelated] object-contain", assetManager)}
                           {count > 1 && (
-                            <div className="absolute -top-1 -right-1 bg-[#1A0F0A] border border-[#DAA520] rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center border border-[#DAA520]/50 shadow-sm z-10">
+                            <div className="absolute -top-1 -right-1 bg-[#1A0F0A] border border-[#DAA520]/50 rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center shadow-sm z-10">
                               <span className="text-[8px] font-bold text-[#DAA520]">x{count}</span>
                             </div>
                           )}

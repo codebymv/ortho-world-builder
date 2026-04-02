@@ -34,6 +34,17 @@ export function createRuntimeSessionState({
       spinDirIndex: 0,
       spinFrameTimer: 0,
     },
+    lunge: {
+      active: false,
+      recovering: false,
+      dirX: 0,
+      dirY: 0,
+      speed: 0,
+      distanceRemaining: 0,
+      recoveryTimer: 0,
+      damage: 0,
+      hitEnemyIds: new Set<string>(),
+    },
     combat: {
       isBlocking: false,
       blockStartTime: 0,

@@ -9,7 +9,10 @@ export const quests: Record<string, Quest> = {
     objectives: [
       'Travel to the Whispering Woods',
       'Find the Disparaged Cottage',
-      "Recover the Hunter's Manuscript",
+      'Find traces of the manuscript',
+      'Cross the river into the Hollow',
+      'Defeat the Hollow Guardian',
+      'Recover the complete manuscript',
       'Return to the elder with your findings',
     ],
     completed: false,

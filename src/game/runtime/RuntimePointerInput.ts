@@ -10,6 +10,8 @@ type PlayerAnimState =
   | 'charge'
   | 'hurt'
   | 'spin_attack'
+  | 'lunge'
+  | 'lunge_recovery'
   | 'drinking'
   | 'block';
 
@@ -95,6 +97,8 @@ export function createPointerInputController({
             !getIsChargingAttack() &&
             playerAnimState !== 'attack' &&
             playerAnimState !== 'spin_attack' &&
+            playerAnimState !== 'lunge' &&
+            playerAnimState !== 'lunge_recovery' &&
             playerAnimState !== 'drinking' &&
             playerAnimState !== 'block'
           ) {
@@ -110,16 +114,17 @@ export function createPointerInputController({
 
     if (e.button === 2) {
       setIsRmbHeld(true);
+      const currentAnim = getPlayerAnimState();
+      if (currentAnim === 'lunge' || currentAnim === 'lunge_recovery') return;
       if (!getIsBlocking() && !state.player.isDodging && state.player.stamina > 0) {
         setIsBlocking(true);
         setBlockStartTime(performance.now() / 1000);
         playBlock();
-        const playerAnimState = getPlayerAnimState();
         if (
-          playerAnimState !== 'attack' &&
-          playerAnimState !== 'spin_attack' &&
-          playerAnimState !== 'drinking' &&
-          playerAnimState !== 'block'
+          currentAnim !== 'attack' &&
+          currentAnim !== 'spin_attack' &&
+          currentAnim !== 'drinking' &&
+          currentAnim !== 'block'
         ) {
           setPlayerAnimState('block');
         }

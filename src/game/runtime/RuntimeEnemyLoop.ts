@@ -44,6 +44,13 @@ export function runEnemyLoop({
     isBlocking,
     blockStartTime,
     world,
+    (enemy, phase) => {
+      if (phase === 2) {
+        floatingText.spawn(enemy.position.x, enemy.position.y + 1.0, 'The Guardian awakens...', '#CE93D8', 20);
+        screenShake.shake(0.6, 0.3);
+        screenShake.hitStop(0.3);
+      }
+    },
   );
 
   if (state.player.health < playerHealthBeforeUpdate) {
@@ -61,8 +68,33 @@ export function runEnemyLoop({
 
   const enemies = combatSystem.getEnemies();
   const enemyAudioNow = currentTime / 1000;
+  const VISUAL_RANGE_SQ = 36 * 36;
+  const px = state.player.position.x;
+  const py = state.player.position.y;
+
   for (const enemy of enemies) {
-    let enemyMesh = registry.meshes.get(enemy.id);
+    const edx = enemy.position.x - px;
+    const edy = enemy.position.y - py;
+    const eDistSq = edx * edx + edy * edy;
+
+    const existingVisuals = registry.meshes.get(enemy.id);
+    if (eDistSq > VISUAL_RANGE_SQ) {
+      if (existingVisuals) {
+        existingVisuals.visible = false;
+        const shadow = registry.shadows.get(enemy.id);
+        const outline = registry.outlines.get(enemy.id);
+        if (shadow) shadow.visible = false;
+        if (outline) outline.visible = false;
+        const hpBar = registry.hpBars.get(enemy.id);
+        if (hpBar) {
+          hpBar.bg.visible = false;
+          hpBar.fill.visible = false;
+        }
+      }
+      continue;
+    }
+
+    let enemyMesh = existingVisuals;
 
     if (!enemyMesh) {
       const enemyGeometry = SharedGeometry.enemy;
@@ -93,6 +125,14 @@ export function runEnemyLoop({
         shadow: enemyShadow,
         outline: enemyOutline,
       });
+    }
+
+    if (!enemyMesh.visible) {
+      enemyMesh.visible = true;
+      const shadow = registry.shadows.get(enemy.id);
+      const outline = registry.outlines.get(enemy.id);
+      if (shadow) shadow.visible = true;
+      if (outline) outline.visible = true;
     }
 
     enemyAudio.maybePlayWalk(enemy, enemyAudioNow, state.player.position);

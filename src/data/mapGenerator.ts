@@ -209,19 +209,21 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
           }
           break;
 
-        case 'forest':
+        case 'forest': {
+          const inHollow = y < 75;
           if (n1 > 0.45) {
-            tile = createTile('tree', false);
+            tile = createTile(inHollow && n2 > 0.4 ? 'dead_tree' : 'tree', false);
           } else if (n1 > 0.35 && n2 > 0.5) {
-            tile = createTile('tree', false);
+            tile = createTile(inHollow && n2 > 0.6 ? 'dead_tree' : 'tree', false);
           } else if (n2 < 0.08) {
             tile = createTile('mushroom', true);
           } else if (n1 < 0.15) {
             tile = createTile('tall_grass', true);
           } else {
-            tile = createTile('grass', true);
+            tile = createTile(inHollow ? 'dark_grass' : 'grass', true);
           }
           break;
+        }
 
         case 'swamp':
           if (n1 < 0.3) {
@@ -274,7 +276,7 @@ function carveRoads(tiles: Tile[][], def: MapDefinition) {
   const points = [
     def.spawnPoint,
     ...def.portals.map(p => ({ x: p.x, y: p.y })),
-    ...def.features.filter(f => f.type !== 'wall').map(f => ({ x: f.x + Math.floor(f.width / 2), y: f.y + Math.floor(f.height / 2) })),
+    ...def.features.filter(f => f.type !== 'wall' && f.type !== 'fort').map(f => ({ x: f.x + Math.floor(f.width / 2), y: f.y + Math.floor(f.height / 2) })),
   ];
 
   for (let i = 0; i < points.length - 1; i++) {
@@ -297,7 +299,8 @@ function carvePath(tiles: Tile[][], x1: number, y1: number, x2: number, y2: numb
     'house_thatch', 'house_thatch_entry',
     'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
     'door', 'door_interior', 'door_iron',
-    'lantern', 'wood',
+    'lantern', 'iron_fence', 'wood',
+    'stone', 'mossy_stone', 'gate',
   ]);
 
   let cx = x1;
@@ -1322,47 +1325,106 @@ function placeForestGrove(tiles: Tile[][], f: MapFeature) {
 }
 
 function placeFort(tiles: Tile[][], f: MapFeature) {
-  if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
-  for (let dy = 0; dy < f.height; dy++) {
-    for (let dx = 0; dx < f.width; dx++) {
+  const W = f.width;
+  const H = f.height;
+  const gateX = Math.floor(W / 2);
+  const towerR = 3;
+
+  const inCornerTower = (dx: number, dy: number) =>
+    (dx < towerR && dy < towerR) ||
+    (dx >= W - towerR && dy < towerR) ||
+    (dx < towerR && dy >= H - towerR) ||
+    (dx >= W - towerR && dy >= H - towerR);
+
+  const isOuterWall = (dx: number, dy: number) =>
+    dx === 0 || dx === W - 1 || dy === 0 || dy === H - 1;
+
+  const isSecondWall = (dx: number, dy: number) =>
+    dx === 1 || dx === W - 2 || dy === 1 || dy === H - 2;
+
+  for (let dy = 0; dy < H; dy++) {
+    for (let dx = 0; dx < W; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
-      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-        // Outer stone walls
-        if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
-          if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
-            tiles[ty][tx] = createTile('gate', true);
-          } else {
-            tiles[ty][tx] = createTile('stone', false);
-          }
-        }
-        // Inner wall ring
-        else if (dx === 1 || dx === f.width - 2 || dy === 1 || dy === f.height - 2) {
-          if ((dx + dy) % 4 === 0) {
-            tiles[ty][tx] = createTile('stone', false);
-          } else {
-            tiles[ty][tx] = createTile('cobblestone', true);
-          }
-        }
-        // Corner towers
-        else if ((dx <= 3 && dy <= 3) || (dx >= f.width - 4 && dy <= 3) || 
-                 (dx <= 3 && dy >= f.height - 4) || (dx >= f.width - 4 && dy >= f.height - 4)) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+
+      // --- Corner towers: solid stone with lantern at center ---
+      if (inCornerTower(dx, dy)) {
+        const cxL = dx < W / 2 ? Math.floor(towerR / 2) : W - 1 - Math.floor(towerR / 2);
+        const cyL = dy < H / 2 ? Math.floor(towerR / 2) : H - 1 - Math.floor(towerR / 2);
+        if (dx === cxL && dy === cyL) {
+          tiles[ty][tx] = createTile('lantern', false);
+        } else {
           tiles[ty][tx] = createTile('stone', false);
         }
-        // Interior
-        else {
-          if (dx === Math.floor(f.width / 2) && dy === Math.floor(f.height / 2)) {
-            tiles[ty][tx] = createTile('campfire', true, { interactable: true, interactionId: f.interactionId || 'fort_campfire' });
-          } else if ((dx + dy * 3) % 11 === 0) {
-            tiles[ty][tx] = createTile('barrel', false);
-          } else if ((dx * 2 + dy) % 13 === 0) {
-            tiles[ty][tx] = createTile('crate', false);
-          } else {
-            tiles[ty][tx] = createTile('cobblestone', true);
-          }
+        continue;
+      }
+
+      // --- Gatehouse: 3-wide opening on south wall with flanking lanterns ---
+      if (dy === H - 1 && dx >= gateX - 1 && dx <= gateX + 1) {
+        tiles[ty][tx] = createTile('gate', true);
+        continue;
+      }
+      if (dy === H - 2 && (dx === gateX - 2 || dx === gateX + 2)) {
+        tiles[ty][tx] = createTile('lantern', false);
+        continue;
+      }
+      if (dy === H - 2 && dx >= gateX - 1 && dx <= gateX + 1) {
+        tiles[ty][tx] = createTile('cobblestone', true);
+        continue;
+      }
+
+      // --- Outer wall (double-thick stone) ---
+      if (isOuterWall(dx, dy)) {
+        tiles[ty][tx] = createTile('stone', false);
+        continue;
+      }
+      if (isSecondWall(dx, dy)) {
+        tiles[ty][tx] = createTile('stone', false);
+        continue;
+      }
+
+      // --- Wall-walk ring (iron_fence on the inside of the double wall) ---
+      if (dx === 2 || dx === W - 3 || dy === 2 || dy === H - 3) {
+        if ((dx + dy) % 3 === 0) {
+          tiles[ty][tx] = createTile('iron_fence', false);
+        } else {
+          tiles[ty][tx] = createTile('cobblestone', true);
         }
+        continue;
+      }
+
+      // --- Interior ---
+      if (dx === gateX && dy === Math.floor(H / 2)) {
+        tiles[ty][tx] = createTile('campfire', true, {
+          interactable: true,
+          interactionId: f.interactionId || 'fort_campfire',
+        });
+      } else if ((dx + dy * 3) % 11 === 0) {
+        tiles[ty][tx] = createTile('barrel', false);
+      } else if ((dx * 2 + dy) % 13 === 0) {
+        tiles[ty][tx] = createTile('crate', false);
+      } else {
+        tiles[ty][tx] = createTile('cobblestone', true);
       }
     }
+  }
+
+  // --- Exterior gatehouse frame: stone pillars + lanterns south of the gate ---
+  const frameY = f.y + H;
+  const frameLX = f.x + gateX - 2;
+  const frameRX = f.x + gateX + 2;
+  if (frameY < tiles.length) {
+    if (frameLX >= 0 && frameLX < tiles[0].length)
+      tiles[frameY][frameLX] = createTile('stone', false);
+    if (frameRX >= 0 && frameRX < tiles[0].length)
+      tiles[frameY][frameRX] = createTile('stone', false);
+    const torchLX = f.x + gateX - 1;
+    const torchRX = f.x + gateX + 1;
+    if (torchLX >= 0 && torchLX < tiles[0].length)
+      tiles[frameY][torchLX] = createTile('lantern', false);
+    if (torchRX >= 0 && torchRX < tiles[0].length)
+      tiles[frameY][torchRX] = createTile('lantern', false);
   }
 }
 
@@ -1741,7 +1803,8 @@ function placePortals(tiles: Tile[][], def: MapDefinition) {
                      def.name.toLowerCase().includes('shop') ||
                      def.name.toLowerCase().includes('cottage') ||
                      def.name.toLowerCase().includes('cabin') ||
-                     def.name.toLowerCase().includes('hut');
+                     def.name.toLowerCase().includes('hut') ||
+                     def.name.toLowerCase().includes('hollow');
   
   for (const portal of def.portals) {
     if (portal.y < tiles.length && portal.x < tiles[0].length) {
@@ -2019,6 +2082,18 @@ function stampCliffs(tiles: Tile[][], protectSouthCoastRows: boolean) {
         const targetTile = tiles[cy][x];
         if (targetTile.transition || targetTile.interactable || targetTile.type === 'stairs') continue;
         tiles[cy][x] = createTile('cliff', false, { elevation: lowerElevation });
+      }
+
+      // Buffer row: the cliff sprite extends visually beyond the tile grid, so mark
+      // one extra tile below the cliff body as non-walkable to keep entities from
+      // appearing inside the cliff face.
+      const bufferY = y + wallDepth;
+      if (bufferY < h && bufferY >= coastProtectMaxY) {
+        const bufTile = tiles[bufferY][x];
+        if (!bufTile.transition && !bufTile.interactable && bufTile.type !== 'stairs'
+            && !PATH_TILES.has(bufTile.type) && bufTile.type !== 'bridge') {
+          tiles[bufferY][x] = { ...bufTile, walkable: false };
+        }
       }
     }
   }

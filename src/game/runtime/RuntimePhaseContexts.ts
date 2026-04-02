@@ -75,6 +75,24 @@ export interface GameplayPreludeContext {
   walkFrameDuration: number;
   chargeTimeMin: number;
   chargeTimeMax: number;
+  lungeState: {
+    active: boolean;
+    recovering: boolean;
+    dirX: number;
+    dirY: number;
+    speed: number;
+    distanceRemaining: number;
+    recoveryTimer: number;
+    damage: number;
+    hitEnemyIds: Set<string>;
+  };
+  combatSystem: {
+    getEnemiesInRange: (position: { x: number; y: number }, range: number) => any[];
+    playerAttack: (enemy: any, damage: number, playerPosition: { x: number; y: number }, playerDirection: string) => { killed: boolean; staggered: boolean; backstab: boolean };
+  };
+  onLungeHit: (enemy: any, damage: number) => void;
+  onLungeEnd: () => void;
+  dodgeIFrameDuration: number;
 }
 
 export interface PlayerFrameContext {
@@ -134,6 +152,14 @@ export interface PlayerFrameContext {
   notify: (title: string, options?: { id?: string; description?: string; duration?: number }) => void;
   handleMapTransition: (targetMap: string, targetX: number, targetY: number) => void;
   handlePortalTransition: (targetMap: string, targetX: number, targetY: number) => void;
+  lungeState: {
+    active: boolean;
+    recovering: boolean;
+    dirX: number;
+    dirY: number;
+    speed: number;
+    distanceRemaining: number;
+  };
 }
 
 export interface EnemyAudioContext {

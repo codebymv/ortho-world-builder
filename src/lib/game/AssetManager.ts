@@ -143,10 +143,22 @@ export class AssetManager {
       capeMain: number; capeDark: number;
       pantColor: number; pantDark: number;
       bootColor: number; bootDark: number;
+      // Optional blade colour overrides (defaults to grey sword)
+      bladeMain?: number;
+      bladeHighlight?: number;
+      bladeShadow?: number;
+      guardColor?: number;
+      gripColor?: number;
+      // 'broad' produces a longer/wider blade + wide guard for a distinct silhouette
+      bladeStyle?: 'short' | 'broad';
     },
     spriteId?: string,
     bladeOnly: boolean = false,
-    includeSword: boolean = true
+    includeSword: boolean = true,
+    // When provided the exact weapon icon is composited onto the character canvas
+    // instead of drawing hardcoded sword pixels — creating a 1:1 match with the inventory UI.
+    weaponCanvas?: HTMLCanvasElement,
+    weaponScale: number = 1.0
   ): THREE.Texture {
     // Grid-based pixel art: 16 cols x 20 rows, 4px per cell = 64x80
     const G = 4; // grid cell size
@@ -161,6 +173,9 @@ export class AssetManager {
     const isRight = dir === 'right';
     const isSide = isLeft || isRight;
     const isUp = dir === 'up';
+
+    // Use hardcoded pixels only when no icon canvas is supplied (or for the blade-only glow mask).
+    const drawHardcodedSword = includeSword && (!weaponCanvas || bladeOnly);
 
     // Helper: draw a cell at grid position
     const cell = (gx: number, gy: number, color: number) => {
@@ -226,69 +241,105 @@ export class AssetManager {
         cell(m(11), dy + bob, p.capeDark);
         if (dy > 9) cell(m(12), dy + bob, p.capeDark);
       }
-      // Sword - traditional short sword
-      const BLADE = 0xC0D0E0;
-      const BLADE_H = 0xF0F4FF;
-      const BLADE_E = 0x90A8C0;
-      const GUARD = 0xE8C030;
-      const GRIP = 0x5D4037;
-      if (includeSword && atkFrame === 0) {
+      // Sword - colours driven by palette overrides (defaults match the Meek Short Sword)
+      const BLADE = p.bladeMain ?? 0xC0D0E0;
+      const BLADE_H = p.bladeHighlight ?? 0xF0F4FF;
+      const BLADE_E = p.bladeShadow ?? 0x90A8C0;
+      const GUARD = p.guardColor ?? 0xE8C030;
+      const GRIP = p.gripColor ?? 0x5D4037;
+      const bladeIsBroad = p.bladeStyle === 'broad';
+      if (drawHardcodedSword && atkFrame === 0) {
         // Wind-up: sword raised high behind head
         cell(m(7), 0 + bob, BLADE_H); cell(m(8), 1 + bob, BLADE); cell(m(9), 2 + bob, BLADE_E);
         cell(m(8), 0 + bob, BLADE_H); cell(m(9), 1 + bob, BLADE);
-        cell(m(8), 2 + bob, GUARD); cell(m(7), 2 + bob, GUARD);
+        if (bladeIsBroad) {
+          cell(m(7), 1 + bob, BLADE_H); // 3-px wide blade
+          cell(m(6), 2 + bob, GUARD); cell(m(7), 2 + bob, GUARD); cell(m(8), 2 + bob, GUARD); cell(m(9), 2 + bob, GUARD);
+        } else {
+          cell(m(8), 2 + bob, GUARD); cell(m(7), 2 + bob, GUARD);
+        }
         cell(m(7), 3 + bob, GRIP); cell(m(7), 4 + bob, GRIP);
-      } else if (includeSword && atkFrame === 1) {
+      } else if (drawHardcodedSword && atkFrame === 1) {
         // Mid-swing: sword coming down
         cell(m(2), 2 + bob, BLADE_H); cell(m(3), 3 + bob, BLADE); cell(m(4), 4 + bob, BLADE_E);
         cell(m(3), 2 + bob, BLADE_H); cell(m(4), 3 + bob, BLADE);
-        cell(m(4), 5 + bob, GUARD); cell(m(3), 5 + bob, GUARD);
+        if (bladeIsBroad) {
+          cell(m(1), 2 + bob, BLADE_H); // 3-px wide blade
+          cell(m(2), 5 + bob, GUARD); cell(m(3), 5 + bob, GUARD); cell(m(4), 5 + bob, GUARD); cell(m(5), 5 + bob, GUARD);
+        } else {
+          cell(m(4), 5 + bob, GUARD); cell(m(3), 5 + bob, GUARD);
+        }
         cell(m(3), 6 + bob, GRIP);
-      } else if (includeSword && atkFrame === 2) {
+      } else if (drawHardcodedSword && atkFrame === 2) {
         // Follow-through: swept low
         cell(m(1), 7 + bob, BLADE_H); cell(m(2), 8 + bob, BLADE); cell(m(3), 9 + bob, BLADE_E);
         cell(m(2), 7 + bob, BLADE_H); cell(m(3), 8 + bob, BLADE);
-        cell(m(3), 10 + bob, GUARD); cell(m(2), 10 + bob, GUARD);
+        if (bladeIsBroad) {
+          cell(m(0), 7 + bob, BLADE_H); // 3-px wide blade
+          cell(m(1), 10 + bob, GUARD); cell(m(2), 10 + bob, GUARD); cell(m(3), 10 + bob, GUARD); cell(m(4), 10 + bob, GUARD);
+        } else {
+          cell(m(3), 10 + bob, GUARD); cell(m(2), 10 + bob, GUARD);
+        }
         cell(m(2), 11 + bob, GRIP);
-      } else if (includeSword && isBlock) {
+      } else if (drawHardcodedSword && isBlock) {
         // Block: tall forward guard so the silhouette reads clearly at gameplay scale
         cell(m(4), 0 + bob, BLADE_H); cell(m(5), 1 + bob, BLADE); cell(m(6), 2 + bob, BLADE_E);
         cell(m(4), 1 + bob, BLADE_H); cell(m(5), 2 + bob, BLADE);
-        cell(m(3), 4 + bob, GUARD); cell(m(4), 4 + bob, GUARD); cell(m(5), 4 + bob, GUARD); cell(m(6), 4 + bob, GUARD);
+        if (bladeIsBroad) {
+          cell(m(3), 0 + bob, BLADE_H); cell(m(3), 1 + bob, BLADE_H); // 3-px wide blade
+          cell(m(2), 4 + bob, GUARD); cell(m(3), 4 + bob, GUARD); cell(m(4), 4 + bob, GUARD);
+          cell(m(5), 4 + bob, GUARD); cell(m(6), 4 + bob, GUARD); cell(m(7), 4 + bob, GUARD); // 6-px guard
+        } else {
+          cell(m(3), 4 + bob, GUARD); cell(m(4), 4 + bob, GUARD); cell(m(5), 4 + bob, GUARD); cell(m(6), 4 + bob, GUARD);
+        }
         cell(m(5), 5 + bob, GRIP); cell(m(5), 6 + bob, GRIP); cell(m(5), 7 + bob, GRIP);
         cell(m(5), 8 + bob, GUARD);
-      } else if (includeSword && state === 'charge') {
+      } else if (drawHardcodedSword && state === 'charge') {
         // Charge stance side view: sword extends forward into a ready guard.
-        // The glow overlay signals charge level — the pose is a held combat stance.
         if (frame === 0) {
-          // Arm starts to extend — sword angling toward forward
           cell(m(5), 3 + bob, BLADE_H); cell(m(6), 4 + bob, BLADE); cell(m(7), 5 + bob, BLADE_E);
           cell(m(5), 4 + bob, BLADE_H); cell(m(6), 5 + bob, BLADE);
-          cell(m(4), 6 + bob, GUARD); cell(m(5), 6 + bob, GUARD); cell(m(6), 6 + bob, GUARD);
+          if (bladeIsBroad) {
+            cell(m(4), 3 + bob, BLADE_H); cell(m(4), 4 + bob, BLADE_H); // 3-px wide
+            cell(m(3), 6 + bob, GUARD); cell(m(4), 6 + bob, GUARD); cell(m(5), 6 + bob, GUARD); cell(m(6), 6 + bob, GUARD); cell(m(7), 6 + bob, GUARD);
+          } else {
+            cell(m(4), 6 + bob, GUARD); cell(m(5), 6 + bob, GUARD); cell(m(6), 6 + bob, GUARD);
+          }
           cell(m(5), 7 + bob, GRIP); cell(m(5), 8 + bob, GRIP);
         } else {
-          // Frames 1 & 2: arm fully extended, sword held diagonally forward
           cell(m(3), 3 + bob, BLADE_H); cell(m(4), 4 + bob, BLADE); cell(m(5), 5 + bob, BLADE_E);
           cell(m(3), 4 + bob, BLADE_H); cell(m(4), 5 + bob, BLADE);
-          cell(m(2), 6 + bob, GUARD); cell(m(3), 6 + bob, GUARD); cell(m(4), 6 + bob, GUARD);
+          if (bladeIsBroad) {
+            cell(m(2), 3 + bob, BLADE_H); cell(m(2), 4 + bob, BLADE_H); // 3-px wide
+            cell(m(1), 6 + bob, GUARD); cell(m(2), 6 + bob, GUARD); cell(m(3), 6 + bob, GUARD); cell(m(4), 6 + bob, GUARD); cell(m(5), 6 + bob, GUARD);
+          } else {
+            cell(m(2), 6 + bob, GUARD); cell(m(3), 6 + bob, GUARD); cell(m(4), 6 + bob, GUARD);
+          }
           cell(m(4), 7 + bob, GRIP); cell(m(4), 8 + bob, GRIP);
         }
-      } else if (includeSword) {
-        // Idle: resting at side, traditional short sword
-        // Blade
-        cell(m(3), 3 + bob, BLADE_H); cell(m(4), 4 + bob, BLADE); cell(m(5), 5 + bob, BLADE_E);
-        cell(m(3), 4 + bob, BLADE_H); cell(m(4), 5 + bob, BLADE);
-        cell(m(3), 5 + bob, BLADE_H); cell(m(4), 6 + bob, BLADE);
-        
-        // Guard
-        cell(m(2), 7 + bob, GUARD); cell(m(3), 7 + bob, GUARD); cell(m(4), 7 + bob, GUARD); cell(m(5), 7 + bob, GUARD);
-        
-        // Grip & Pommel
-        cell(m(4), 8 + bob, GRIP);
-        cell(m(4), 9 + bob, GRIP);
-        cell(m(4), 10 + bob, GUARD);
-        cell(m(4), 9 + bob, GRIP);
-        cell(m(4), 10 + bob, GUARD); // Pommel
+      } else if (drawHardcodedSword) {
+        if (bladeIsBroad) {
+          // Broadsword idle: longer blade (tip 1 row higher), 3-px wide body, 6-px guard
+          cell(m(4), 2 + bob, BLADE_H); cell(m(5), 2 + bob, BLADE); // extra tip row
+          cell(m(3), 3 + bob, BLADE_H); cell(m(4), 3 + bob, BLADE); cell(m(5), 3 + bob, BLADE_E);
+          cell(m(3), 4 + bob, BLADE_H); cell(m(4), 4 + bob, BLADE); cell(m(5), 4 + bob, BLADE_E);
+          cell(m(3), 5 + bob, BLADE_H); cell(m(4), 5 + bob, BLADE); cell(m(5), 5 + bob, BLADE_E);
+          cell(m(3), 6 + bob, BLADE_H); cell(m(4), 6 + bob, BLADE); // narrows near guard
+          cell(m(0), 7 + bob, GUARD); cell(m(1), 7 + bob, GUARD); cell(m(2), 7 + bob, GUARD);
+          cell(m(3), 7 + bob, GUARD); cell(m(4), 7 + bob, GUARD); cell(m(5), 7 + bob, GUARD);
+          cell(m(4), 8 + bob, GRIP);
+          cell(m(4), 9 + bob, GRIP);
+          cell(m(4), 10 + bob, GUARD); // Pommel
+        } else {
+          // Short sword idle: resting at side
+          cell(m(3), 3 + bob, BLADE_H); cell(m(4), 4 + bob, BLADE); cell(m(5), 5 + bob, BLADE_E);
+          cell(m(3), 4 + bob, BLADE_H); cell(m(4), 5 + bob, BLADE);
+          cell(m(3), 5 + bob, BLADE_H); cell(m(4), 6 + bob, BLADE);
+          cell(m(2), 7 + bob, GUARD); cell(m(3), 7 + bob, GUARD); cell(m(4), 7 + bob, GUARD); cell(m(5), 7 + bob, GUARD);
+          cell(m(4), 8 + bob, GRIP);
+          cell(m(4), 9 + bob, GRIP);
+          cell(m(4), 10 + bob, GUARD); // Pommel
+        }
       }
       // Hair back
       cell(m(9), 0, p.hairDark); cell(m(10), 1, p.hairDark); cell(m(10), 2, p.hairDark);
@@ -350,73 +401,107 @@ export class AssetManager {
       cell(4, 9 + bob, p.capeDark); cell(11, 9 + bob, p.capeDark);
       cell(4, 10 + bob, p.capeDark); cell(11, 10 + bob, p.capeDark);
 
-      // Sword (front view) - traditional short sword
-      const BLADE = 0xC0D0E0;
-      const BLADE_H = 0xF0F4FF;
-      const BLADE_E = 0x90A8C0;
-      const GUARD = 0xE8C030;
-      const GRIP = 0x5D4037;
-      if (includeSword && atkFrame === 0) {
+      // Sword (front view) - colours driven by palette overrides
+      const BLADE = p.bladeMain ?? 0xC0D0E0;
+      const BLADE_H = p.bladeHighlight ?? 0xF0F4FF;
+      const BLADE_E = p.bladeShadow ?? 0x90A8C0;
+      const GUARD = p.guardColor ?? 0xE8C030;
+      const GRIP = p.gripColor ?? 0x5D4037;
+      const bladeIsBroad = p.bladeStyle === 'broad';
+      if (drawHardcodedSword && atkFrame === 0) {
         // Wind-up: sword raised overhead
         cell(5, 0 + bob, BLADE_H); cell(6, 0 + bob, BLADE); cell(7, 0 + bob, BLADE_E);
         cell(5, 1 + bob, BLADE_H); cell(6, 1 + bob, BLADE);
-        cell(8, 0 + bob, GUARD); cell(7, 0 + bob, GUARD);
+        if (bladeIsBroad) {
+          cell(4, 0 + bob, BLADE_H); // 3-px wide blade
+          cell(6, 0 + bob, GUARD); cell(7, 0 + bob, GUARD); cell(8, 0 + bob, GUARD); cell(9, 0 + bob, GUARD);
+        } else {
+          cell(8, 0 + bob, GUARD); cell(7, 0 + bob, GUARD);
+        }
         cell(7, 1 + bob, GRIP);
-      } else if (includeSword && atkFrame === 1) {
+      } else if (drawHardcodedSword && atkFrame === 1) {
         // Mid-swing: sword coming down
         cell(1, 3 + bob, BLADE_H); cell(2, 4 + bob, BLADE); cell(3, 5 + bob, BLADE_E);
         cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE);
-        cell(4, 6 + bob, GUARD); cell(3, 6 + bob, GUARD);
+        if (bladeIsBroad) {
+          cell(0, 3 + bob, BLADE_H); // 3-px wide blade
+          cell(2, 6 + bob, GUARD); cell(3, 6 + bob, GUARD); cell(4, 6 + bob, GUARD); cell(5, 6 + bob, GUARD);
+        } else {
+          cell(4, 6 + bob, GUARD); cell(3, 6 + bob, GUARD);
+        }
         cell(3, 7 + bob, GRIP);
-      } else if (includeSword && atkFrame === 2) {
+      } else if (drawHardcodedSword && atkFrame === 2) {
         // Follow-through: sword swept low
         cell(1, 9 + bob, BLADE_H); cell(2, 10 + bob, BLADE); cell(3, 11 + bob, BLADE_E);
         cell(2, 9 + bob, BLADE_H); cell(3, 10 + bob, BLADE);
-        cell(4, 12 + bob, GUARD); cell(3, 12 + bob, GUARD);
+        if (bladeIsBroad) {
+          cell(0, 9 + bob, BLADE_H); // 3-px wide blade
+          cell(2, 12 + bob, GUARD); cell(3, 12 + bob, GUARD); cell(4, 12 + bob, GUARD); cell(5, 12 + bob, GUARD);
+        } else {
+          cell(4, 12 + bob, GUARD); cell(3, 12 + bob, GUARD);
+        }
         cell(3, 13 + bob, GRIP);
-      } else if (includeSword && isBlock) {
+      } else if (drawHardcodedSword && isBlock) {
         // Block: sword drawn high across the body for a strong readable guard silhouette
         cell(3, 1 + bob, BLADE_H); cell(4, 2 + bob, BLADE); cell(5, 3 + bob, BLADE_E);
         cell(3, 2 + bob, BLADE_H); cell(4, 3 + bob, BLADE);
         cell(3, 3 + bob, BLADE_H); cell(4, 4 + bob, BLADE);
-        cell(2, 5 + bob, GUARD); cell(3, 5 + bob, GUARD); cell(4, 5 + bob, GUARD); cell(5, 5 + bob, GUARD);
+        if (bladeIsBroad) {
+          cell(2, 1 + bob, BLADE_H); cell(2, 2 + bob, BLADE_H); cell(2, 3 + bob, BLADE_H); // 3-px wide
+          cell(1, 5 + bob, GUARD); cell(2, 5 + bob, GUARD); cell(3, 5 + bob, GUARD); cell(4, 5 + bob, GUARD); cell(5, 5 + bob, GUARD); cell(6, 5 + bob, GUARD);
+        } else {
+          cell(2, 5 + bob, GUARD); cell(3, 5 + bob, GUARD); cell(4, 5 + bob, GUARD); cell(5, 5 + bob, GUARD);
+        }
         cell(4, 6 + bob, GRIP);
         cell(4, 7 + bob, GRIP);
         cell(4, 8 + bob, GRIP);
         cell(4, 9 + bob, GUARD);
-      } else if (includeSword && state === 'charge') {
-        // Charge stance: frame 0 keeps the idle sword shape so the transition is
-        // seamless — the glow alone signals "charge started".  Frames 1+2 raise the
-        // arm to match the attack mid-swing silhouette.
+      } else if (drawHardcodedSword && state === 'charge') {
         if (frame === 0) {
-          // Same geometry as idle — full-length blade, wide guard
+          cell(2, 4 + bob, BLADE_H); cell(3, 5 + bob, BLADE); cell(4, 6 + bob, BLADE_E);
+          cell(2, 5 + bob, BLADE_H); cell(3, 6 + bob, BLADE);
+          cell(2, 6 + bob, BLADE_H); cell(3, 7 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(1, 4 + bob, BLADE_H); cell(1, 5 + bob, BLADE_H); cell(1, 6 + bob, BLADE_H); // 3-px wide
+            cell(0, 8 + bob, GUARD); cell(1, 8 + bob, GUARD); cell(2, 8 + bob, GUARD); cell(3, 8 + bob, GUARD); cell(4, 8 + bob, GUARD); cell(5, 8 + bob, GUARD);
+          } else {
+            cell(1, 8 + bob, GUARD); cell(2, 8 + bob, GUARD); cell(3, 8 + bob, GUARD); cell(4, 8 + bob, GUARD);
+          }
+          cell(3, 9 + bob, GRIP); cell(3, 10 + bob, GRIP);
+        } else {
+          cell(2, 2 + bob, BLADE_H); cell(3, 3 + bob, BLADE); cell(4, 4 + bob, BLADE_E);
+          cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE);
+          cell(2, 4 + bob, BLADE_H); cell(3, 5 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(1, 2 + bob, BLADE_H); cell(1, 3 + bob, BLADE_H); cell(1, 4 + bob, BLADE_H); // 3-px wide
+            cell(0, 6 + bob, GUARD); cell(1, 6 + bob, GUARD); cell(2, 6 + bob, GUARD); cell(3, 6 + bob, GUARD); cell(4, 6 + bob, GUARD); cell(5, 6 + bob, GUARD);
+          } else {
+            cell(1, 6 + bob, GUARD); cell(2, 6 + bob, GUARD); cell(3, 6 + bob, GUARD); cell(4, 6 + bob, GUARD);
+          }
+          cell(3, 7 + bob, GRIP); cell(3, 8 + bob, GRIP);
+        }
+      } else if (drawHardcodedSword) {
+        if (bladeIsBroad) {
+          // Broadsword idle: longer blade (tip 1 row higher), 3-px wide, 6-px guard
+          cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE); cell(4, 5 + bob, BLADE_E); // extra tip row
+          cell(1, 4 + bob, BLADE_H); cell(2, 4 + bob, BLADE_H); cell(3, 5 + bob, BLADE); cell(4, 6 + bob, BLADE_E);
+          cell(1, 5 + bob, BLADE_H); cell(2, 5 + bob, BLADE_H); cell(3, 6 + bob, BLADE);
+          cell(2, 6 + bob, BLADE_H); cell(3, 7 + bob, BLADE);
+          cell(0, 8 + bob, GUARD); cell(1, 8 + bob, GUARD); cell(2, 8 + bob, GUARD);
+          cell(3, 8 + bob, GUARD); cell(4, 8 + bob, GUARD); cell(5, 8 + bob, GUARD);
+          cell(3, 9 + bob, GRIP);
+          cell(3, 10 + bob, GRIP);
+          cell(3, 11 + bob, GUARD); // Pommel
+        } else {
+          // Short sword idle: resting at left side
           cell(2, 4 + bob, BLADE_H); cell(3, 5 + bob, BLADE); cell(4, 6 + bob, BLADE_E);
           cell(2, 5 + bob, BLADE_H); cell(3, 6 + bob, BLADE);
           cell(2, 6 + bob, BLADE_H); cell(3, 7 + bob, BLADE);
           cell(1, 8 + bob, GUARD); cell(2, 8 + bob, GUARD); cell(3, 8 + bob, GUARD); cell(4, 8 + bob, GUARD);
-          cell(3, 9 + bob, GRIP); cell(3, 10 + bob, GRIP);
-        } else {
-          // Arm raised: identical idle sword shape shifted up 2 rows as a unit
-          cell(2, 2 + bob, BLADE_H); cell(3, 3 + bob, BLADE); cell(4, 4 + bob, BLADE_E);
-          cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE);
-          cell(2, 4 + bob, BLADE_H); cell(3, 5 + bob, BLADE);
-          cell(1, 6 + bob, GUARD); cell(2, 6 + bob, GUARD); cell(3, 6 + bob, GUARD); cell(4, 6 + bob, GUARD);
-          cell(3, 7 + bob, GRIP); cell(3, 8 + bob, GRIP);
+          cell(3, 9 + bob, GRIP);
+          cell(3, 10 + bob, GRIP);
+          cell(3, 11 + bob, GUARD); // Pommel
         }
-      } else if (includeSword) {
-        // Idle: resting at left side, traditional short sword
-        // Blade
-        cell(2, 4 + bob, BLADE_H); cell(3, 5 + bob, BLADE); cell(4, 6 + bob, BLADE_E);
-        cell(2, 5 + bob, BLADE_H); cell(3, 6 + bob, BLADE);
-        cell(2, 6 + bob, BLADE_H); cell(3, 7 + bob, BLADE);
-        
-        // Guard
-        cell(1, 8 + bob, GUARD); cell(2, 8 + bob, GUARD); cell(3, 8 + bob, GUARD); cell(4, 8 + bob, GUARD);
-        
-        // Grip & Pommel
-        cell(3, 9 + bob, GRIP);
-        cell(3, 10 + bob, GRIP);
-        cell(3, 11 + bob, GUARD); // Pommel
       }
 
       // Hair (top rows)
@@ -513,6 +598,69 @@ export class AssetManager {
           ctx.fillStyle = 'rgba(0,0,0,0.1)';
           ctx.fillRect(x + G - 1, y + G - 1, 1, 1);
         }
+      }
+    }
+
+    // Composite the weapon icon onto the character canvas so it matches the inventory UI exactly.
+    // cx/cy = the CHARACTER's grip/hand pixel position (derived from hardcoded sword cells).
+    // The icon is drawn with its grip area anchored at (cx, cy) then rotated.
+    if (weaponCanvas && !bladeOnly) {
+      const bobPx = bob * G;
+      interface WPose { cx: number; cy: number; angleDeg: number; scale: number }
+      let pose: WPose | null = null;
+
+      // Weapon icons are 32×32 (8 design-pixels × cellSize 4).  Scale 1.0 = native res.
+      // Grip anchor: ~(0.25, 0.81) of icon — averaged between sword grip at design (1.5,6.5)
+      // and broadsword grip at (2.5,6.5).  Max per-weapon error ≈ 2 px (half a cell).
+      //
+      // angleDeg = desired sword axis minus icon natural axis (~-60° from grip to tip).
+      // Mirror: left cx = W - right cx  (m(n) = 15-n ↔ n symmetry → pixel symmetry at W/2).
+      const AX = 0.25;
+      const AY = 0.8125;
+
+      if (isSide) {
+        // Right-facing grip positions from hardcoded cells: m(4)=col 11 → px 46, etc.
+        const cy0 = bobPx;
+        if (atkFrame === 0)      pose = { cx: 34, cy: 16 + cy0, angleDeg: -46, scale: 1.0 };
+        else if (atkFrame === 1) pose = { cx: 50, cy: 26 + cy0, angleDeg: -16, scale: 1.0 };
+        else if (atkFrame === 2) pose = { cx: 54, cy: 46 + cy0, angleDeg: -16, scale: 1.0 };
+        else if (isBlock)        pose = { cx: 42, cy: 26 + cy0, angleDeg: -21, scale: 1.0 };
+        else if (state === 'charge') {
+          if (frame === 0)       pose = { cx: 42, cy: 32 + cy0, angleDeg: -30, scale: 1.0 };
+          else                   pose = { cx: 46, cy: 32 + cy0, angleDeg: -17, scale: 1.0 };
+        } else {
+          pose = { cx: 46, cy: 36 + cy0, angleDeg: -20, scale: 1.0 };
+        }
+      } else if (!isUp) {
+        // Front view (down-facing) — sword on character's left side
+        const cy0 = bobPx;
+        if (atkFrame === 0)      pose = { cx: 30, cy:  6 + cy0, angleDeg: -93, scale: 1.0 };
+        else if (atkFrame === 1) pose = { cx: 14, cy: 30 + cy0, angleDeg: -57, scale: 1.0 };
+        else if (atkFrame === 2) pose = { cx: 14, cy: 54 + cy0, angleDeg: -57, scale: 1.0 };
+        else if (isBlock)        pose = { cx: 18, cy: 30 + cy0, angleDeg: -39, scale: 1.0 };
+        else if (state === 'charge') {
+          if (frame === 0)       pose = { cx: 14, cy: 40 + cy0, angleDeg: -40, scale: 1.0 };
+          else                   pose = { cx: 14, cy: 32 + cy0, angleDeg: -40, scale: 1.0 };
+        } else {
+          pose = { cx: 14, cy: 40 + cy0, angleDeg: -40, scale: 1.0 };
+        }
+      }
+
+      if (pose) {
+        const S = pose.scale * weaponScale;
+        const dw = weaponCanvas.width  * S;
+        const dh = weaponCanvas.height * S;
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        if (isLeft) {
+          ctx.translate(W - pose.cx, pose.cy);
+          ctx.scale(-1, 1);
+        } else {
+          ctx.translate(pose.cx, pose.cy);
+        }
+        ctx.rotate(pose.angleDeg * (Math.PI / 180));
+        ctx.drawImage(weaponCanvas, -dw * AX, -dh * AY, dw, dh);
+        ctx.restore();
       }
     }
 
@@ -683,7 +831,11 @@ export class AssetManager {
           const d = dir, s = state, fr = f;
           const spriteId = `player_${d}_${s}_${fr}`;
           const bladeId = `player_${d}_${s}_${fr}_blade`;
-          this.registerTexture(spriteId, () => this.createChibiCharacter(d, s, fr, heroPalette, spriteId));
+          this.registerTexture(spriteId, () => {
+            const tex = this.textures.get('sword');
+            const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
+            return this.createChibiCharacter(d, s, fr, heroPalette, spriteId, false, true, wc, 0.78);
+          });
           this.registerTexture(bladeId, () => this.createChibiCharacter(d, s, fr, heroPalette, bladeId, true));
         }
       }
@@ -924,6 +1076,49 @@ export class AssetManager {
       [C,        C,        WOLF_FUR_S,C,       WOLF_FUR_S,C,       WOLF_FUR_S,C,       C,        C],
     ], 4, 'enemy_wolf_attack'));
 
+    // Armored wolf — darker fur with iron plate accents
+    const AW_FUR  = 0x3E3E3E;
+    const AW_FUR_H = 0x505050;
+    const AW_FUR_S = 0x2A2A2A;
+    const AW_EYE  = 0xFF6D00;
+    const AW_SNOUT = 0x757575;
+    const AW_FANG = 0xF5F5F5;
+    const AW_PLATE = 0x78909C;
+    const AW_PLATE_H = 0x90A4AE;
+
+    this.registerTexture('enemy_armored_wolf', () => this.createSpriteTexture([
+      [C,       C,       AW_FUR,  AW_FUR_H, C,        C,        AW_FUR_H,AW_FUR,  C,       C],
+      [C,       AW_FUR,  AW_FUR_H,AW_FUR,   AW_PLATE_H,AW_PLATE_H,AW_FUR,AW_FUR_H,AW_FUR, C],
+      [C,       AW_FUR,  AW_EYE,  AW_FUR,   AW_PLATE, AW_PLATE, AW_EYE, AW_FUR,  C,       C],
+      [C,       C,       AW_FUR,  AW_SNOUT, AW_SNOUT, AW_SNOUT, AW_FUR, C,       C,       C],
+      [C,       C,       C,       AW_FANG,  AW_SNOUT, AW_FANG,  C,      C,       C,       C],
+      [AW_FUR_S,AW_PLATE,AW_PLATE,AW_PLATE_H,AW_FUR,  AW_PLATE_H,AW_PLATE,AW_PLATE,AW_FUR_S,C],
+      [C,       AW_FUR_S,AW_PLATE,AW_FUR,   AW_FUR_S, AW_FUR,  AW_PLATE,AW_FUR_S,C,       C],
+      [C,       C,       AW_FUR_S,C,        AW_FUR_S, C,       AW_FUR_S,C,       C,       C],
+    ], 4, 'enemy_armored_wolf'));
+
+    this.registerTexture('enemy_armored_wolf_telegraph', () => this.createSpriteTexture([
+      [C,       C,       C,       C,        C,        C,        C,       C,       C,       C],
+      [C,       C,       AW_FUR,  AW_FUR_H, AW_PLATE_H,AW_PLATE_H,AW_FUR_H,AW_FUR,C,      C],
+      [C,       AW_FUR,  0xFFFF00,AW_FUR,   AW_PLATE, AW_PLATE, 0xFFFF00,AW_FUR, C,       C],
+      [C,       C,       AW_FUR,  AW_SNOUT, 0xFF5722, AW_SNOUT, AW_FUR, C,       C,       C],
+      [C,       C,       C,       AW_FANG,  0xFF5722, AW_FANG,  C,      C,       C,       C],
+      [AW_FUR_S,AW_PLATE,AW_PLATE,AW_PLATE_H,AW_FUR_S,AW_PLATE_H,AW_PLATE,AW_PLATE,AW_FUR_S,C],
+      [C,       AW_FUR_S,AW_FUR_S,AW_FUR_S, AW_FUR_S, AW_FUR_S,AW_FUR_S,AW_FUR_S,C,       C],
+      [C,       AW_FUR_S,C,       AW_FUR_S, C,        AW_FUR_S,C,       AW_FUR_S,C,       C],
+    ], 4, 'enemy_armored_wolf_telegraph'));
+
+    this.registerTexture('enemy_armored_wolf_attack', () => this.createSpriteTexture([
+      [C,       C,       AW_FUR_H,AW_FUR_H, C,        C,        AW_FUR_H,AW_FUR_H,C,       C],
+      [C,       AW_FUR,  AW_FUR_H,AW_FUR,   AW_PLATE_H,AW_PLATE_H,AW_FUR,AW_FUR_H,AW_FUR, C],
+      [C,       AW_FUR,  0xFFFF00,AW_FUR,   AW_PLATE, AW_PLATE, 0xFFFF00,AW_FUR, C,       C],
+      [C,       AW_FANG, AW_FUR,  0xFF5722, 0xFF5722, 0xFF5722, AW_FUR, AW_FANG, C,       C],
+      [C,       C,       AW_FANG, 0xFF5722, 0xFF5722, 0xFF5722, AW_FANG,C,       C,       C],
+      [AW_FUR_S,AW_PLATE,AW_PLATE,AW_PLATE_H,AW_FUR,  AW_PLATE_H,AW_PLATE,AW_PLATE,AW_FUR_S,C],
+      [C,       AW_FUR_S,AW_PLATE,AW_FUR,   AW_FUR_S, AW_FUR,  AW_PLATE,AW_FUR_S,C,       C],
+      [C,       C,       AW_FUR_S,C,        AW_FUR_S, C,       AW_FUR_S,C,       C,       C],
+    ], 4, 'enemy_armored_wolf_attack'));
+
     const SHADOW_BODY = 0x311B92;
     const SHADOW_BODY_H = 0x4527A0;
     const SHADOW_BODY_S = 0x1A0A5E;
@@ -1091,6 +1286,71 @@ export class AssetManager {
     this.registerTexture('enemy_golem_telegraph', () => this.getTexture('enemy_golem')!);
     this.registerTexture('enemy_golem_attack', () => this.getTexture('enemy_golem')!);
 
+    // ========== BOSS: Hollow Guardian (corrupted treant) — 16x14 sprites ==========
+    const HG_BARK   = 0x3E2723;
+    const HG_BARK_H = 0x5D4037;
+    const HG_BARK_S = 0x1B0000;
+    const HG_CORE   = 0x7B1FA2;
+    const HG_EYE    = 0xCE93D8;
+    const HG_ROOT   = 0x4E342E;
+    const HG_MOSS   = 0x33691E;
+    const HG_GLOW   = 0xAB47BC;
+    const HG_EYE_B  = 0xEA80FC; // bright eye for telegraph/attack
+
+    // Idle: hunched posture, roots gripping ground, faint eye glow
+    this.registerTexture('enemy_hollow_guardian', () => this.createSpriteTexture([
+      [C,       C,       C,       C,       HG_MOSS, HG_MOSS, HG_MOSS, HG_MOSS, HG_MOSS, HG_MOSS, HG_MOSS, C,       C,       C,       C,       C      ],
+      [C,       C,       C,       HG_MOSS, HG_BARK, HG_BARK_H,HG_BARK,HG_GLOW, HG_BARK, HG_BARK_H,HG_BARK, HG_MOSS, C,       C,       C,       C      ],
+      [C,       C,       HG_MOSS, HG_BARK, HG_BARK_H,HG_BARK,HG_BARK_H,HG_BARK,HG_BARK_H,HG_BARK, HG_BARK_H,HG_BARK, HG_MOSS, C,       C,       C      ],
+      [C,       HG_MOSS, HG_BARK, HG_BARK_S,HG_EYE, HG_BARK_S,HG_BARK,HG_BARK, HG_BARK, HG_BARK_S,HG_EYE, HG_BARK_S,HG_BARK, HG_MOSS, C,       C      ],
+      [C,       HG_ROOT, HG_BARK, HG_BARK, HG_BARK_S,HG_BARK,HG_CORE, HG_GLOW, HG_CORE, HG_BARK, HG_BARK_S,HG_BARK, HG_BARK, HG_ROOT, C,       C      ],
+      [HG_ROOT, HG_BARK, HG_BARK_H,HG_BARK_S,HG_BARK,HG_BARK_S,HG_BARK,HG_CORE, HG_BARK, HG_BARK_S,HG_BARK, HG_BARK_S,HG_BARK_H,HG_BARK, HG_ROOT, C      ],
+      [C,       HG_BARK_S,HG_BARK,HG_BARK_H,HG_GLOW,HG_BARK_S,HG_BARK,HG_BARK_S,HG_BARK, HG_BARK_S,HG_GLOW, HG_BARK_H,HG_BARK, HG_BARK_S,C,       C      ],
+      [C,       C,       HG_BARK_S,HG_BARK,HG_BARK, HG_BARK, HG_BARK_S,HG_BARK, HG_BARK_S,HG_BARK, HG_BARK, HG_BARK, HG_BARK_S,C,       C,       C      ],
+      [C,       C,       HG_ROOT, HG_BARK_S,HG_BARK,HG_BARK, HG_BARK, HG_BARK, HG_BARK, HG_BARK, HG_BARK, HG_BARK_S,HG_ROOT, C,       C,       C      ],
+      [C,       HG_ROOT, C,       HG_ROOT, HG_BARK_S,HG_BARK,HG_BARK_S,C,       HG_BARK_S,HG_BARK, HG_BARK_S,HG_ROOT, C,       HG_ROOT, C,       C      ],
+      [C,       C,       C,       C,       HG_ROOT, HG_BARK_S,HG_ROOT, C,       HG_ROOT, HG_BARK_S,HG_ROOT, C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       HG_ROOT, C,       C,       C,       HG_ROOT, C,       C,       C,       C,       C,       C      ],
+      [C,       C,       HG_ROOT, C,       C,       C,       HG_ROOT, C,       HG_ROOT, C,       C,       C,       HG_ROOT, C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+    ], 4, 'enemy_hollow_guardian'));
+
+    // Telegraph: rearing up, arms raised high, eyes blazing bright
+    this.registerTexture('enemy_hollow_guardian_telegraph', () => this.createSpriteTexture([
+      [C,       C,       HG_MOSS, C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       HG_MOSS, C,       C      ],
+      [C,       HG_ROOT, HG_BARK, HG_MOSS, C,       C,       C,       C,       C,       C,       C,       C,       HG_MOSS, HG_BARK, HG_ROOT, C      ],
+      [C,       HG_BARK, HG_BARK_H,HG_BARK,HG_MOSS, C,       HG_MOSS, HG_MOSS, C,       C,       HG_MOSS, HG_BARK, HG_BARK_H,HG_BARK, C,       C      ],
+      [C,       HG_ROOT, HG_BARK, HG_BARK_H,HG_BARK,HG_BARK_H,HG_BARK,HG_GLOW, HG_BARK, HG_BARK_H,HG_BARK, HG_BARK_H,HG_BARK, HG_ROOT, C,       C      ],
+      [C,       C,       HG_MOSS, HG_BARK, HG_BARK_S,HG_EYE_B,HG_BARK_S,HG_BARK,HG_BARK_S,HG_EYE_B,HG_BARK_S,HG_BARK, HG_MOSS, C,       C,       C      ],
+      [C,       C,       C,       HG_BARK_S,HG_BARK,HG_BARK_S,HG_CORE, HG_GLOW, HG_CORE, HG_BARK_S,HG_BARK, HG_BARK_S,C,       C,       C,       C      ],
+      [C,       C,       C,       HG_BARK, HG_BARK_H,HG_BARK,HG_BARK_S,HG_CORE, HG_BARK_S,HG_BARK, HG_BARK_H,HG_BARK, C,       C,       C,       C      ],
+      [C,       C,       C,       HG_BARK_S,HG_BARK,HG_BARK_H,HG_GLOW, HG_BARK_S,HG_GLOW, HG_BARK_H,HG_BARK, HG_BARK_S,C,       C,       C,       C      ],
+      [C,       C,       C,       C,       HG_BARK_S,HG_BARK,HG_BARK, HG_BARK, HG_BARK, HG_BARK, HG_BARK_S,C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       HG_ROOT, HG_BARK_S,HG_BARK,HG_BARK_S,HG_BARK, HG_BARK_S,HG_ROOT, C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       HG_ROOT, HG_BARK_S,C,       HG_BARK_S,HG_ROOT, C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       HG_ROOT, C,       HG_ROOT, C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+    ], 4, 'enemy_hollow_guardian_telegraph'));
+
+    // Attack: arms slammed forward/down, roots lashing outward, maximum menace
+    this.registerTexture('enemy_hollow_guardian_attack', () => this.createSpriteTexture([
+      [C,       C,       C,       C,       C,       HG_MOSS, HG_MOSS, HG_MOSS, HG_MOSS, HG_MOSS, C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       HG_MOSS, HG_BARK, HG_BARK_H,HG_BARK,HG_GLOW, HG_BARK, HG_BARK_H,HG_BARK, HG_MOSS, C,       C,       C,       C      ],
+      [C,       C,       HG_MOSS, HG_BARK, HG_BARK_S,HG_EYE_B,HG_BARK_S,HG_BARK,HG_BARK_S,HG_EYE_B,HG_BARK_S,HG_BARK, HG_MOSS, C,       C,       C      ],
+      [C,       C,       HG_BARK_S,HG_BARK,HG_BARK, HG_BARK_S,HG_CORE, HG_GLOW, HG_CORE, HG_BARK_S,HG_BARK, HG_BARK, HG_BARK_S,C,       C,       C      ],
+      [C,       C,       HG_BARK, HG_BARK_H,HG_BARK_S,HG_BARK,HG_BARK_S,HG_CORE, HG_BARK_S,HG_BARK, HG_BARK_S,HG_BARK_H,HG_BARK, C,       C,       C      ],
+      [HG_ROOT, HG_BARK, HG_BARK_H,HG_GLOW,HG_BARK_S,HG_BARK,HG_BARK, HG_BARK_S,HG_BARK, HG_BARK, HG_BARK_S,HG_GLOW, HG_BARK_H,HG_BARK, HG_ROOT, C      ],
+      [HG_BARK, HG_BARK_H,HG_BARK,HG_BARK, HG_BARK, HG_BARK_S,C,      C,       C,       HG_BARK_S,HG_BARK, HG_BARK, HG_BARK, HG_BARK_H,HG_BARK, C      ],
+      [HG_ROOT, HG_GLOW, HG_BARK_S,C,      C,       C,       C,       C,       C,       C,       C,       C,       HG_BARK_S,HG_GLOW, HG_ROOT, C      ],
+      [C,       C,       C,       C,       C,       HG_BARK_S,HG_BARK,HG_BARK, HG_BARK, HG_BARK_S,C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       HG_ROOT, HG_BARK_S,HG_BARK,HG_BARK_S,HG_BARK, HG_BARK_S,HG_ROOT, C,       C,       C,       C,       C      ],
+      [C,       C,       C,       HG_ROOT, C,       HG_ROOT, HG_BARK_S,C,       HG_BARK_S,HG_ROOT, C,       HG_ROOT, C,       C,       C,       C      ],
+      [C,       HG_ROOT, C,       C,       C,       C,       HG_ROOT, C,       HG_ROOT, C,       C,       C,       C,       HG_ROOT, C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+    ], 4, 'enemy_hollow_guardian_attack'));
+
     // ========== Interaction indicator sprite ==========
     this.textures.set('interact_indicator', this.createSpriteTexture([
       [C,       C,       0xFFD700,0xFFD700,C,       C],
@@ -1105,7 +1365,7 @@ export class AssetManager {
     this.textures.set('grass', this.createColorTexture(0x4CAF50, 32, 32, 'noise'));
     this.textures.set('dirt', this.createColorTexture(0x8D6E63, 32, 32, 'noise'));
     this.textures.set('water', this.createColorTexture(0x1E88E5, 32, 32, 'noise'));
-    this.textures.set('stone', this.createColorTexture(0x897060, 32, 32, 'checker'));
+    this.textures.set('stone', this.createColorTexture(0x6E7B85, 32, 32, 'gradient'));
     this.textures.set('wood', this.createColorTexture(0x795548, 32, 32, 'gradient'));
     this.textures.set('tall_grass', this.createColorTexture(0x388E3C, 32, 32, 'noise'));
     this.textures.set('sand', this.createColorTexture(0xF5DEB3, 32, 32, 'noise'));
@@ -1863,6 +2123,52 @@ export class AssetManager {
       [C,BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,C],
     ]));
 
+    // Fallen ranger: ranger helm + cape pooled on a bloodstain (fort key POI)
+    const RM_BL = 0x2A0707;
+    const RM_BR = 0x5C1010;
+    const RM_BH = 0x8B1A1A;
+    const RM_CD = 0x0E1F3D;
+    const RM_CM = 0x1B355C;
+    const RM_CH = 0x3568A8;
+    const RM_HM = 0x78909C;
+    const RM_HS = 0x546E7A;
+    const RM_HH = 0xB0BEC5;
+    const RM_VV = 0x1C2529;
+    this.textures.set('ranger_remains', this.createSpriteTexture([
+      [C,     RM_BL, RM_BR, RM_BH, RM_BH, RM_BR, RM_BL, C,     C],
+      [RM_BL, RM_BR, RM_BH, RM_BR, RM_BH, RM_BR, RM_BH, RM_BL, C],
+      [RM_CD, RM_CM, RM_BR, RM_BH, RM_BR, RM_BH, RM_BR, RM_CM, RM_CD],
+      [RM_CD, RM_CH, RM_CM, RM_BR, RM_BH, RM_BR, RM_CM, RM_CH, RM_CD],
+      [C,     RM_CD, RM_HM, RM_HH, RM_HH, RM_HH, RM_HM, RM_CD, C],
+      [C,     C,     RM_HS, RM_HH, RM_VV, RM_HH, RM_HS, C,     C],
+      [C,     C,     RM_HS, RM_HM, RM_HM, RM_HM, RM_HS, C,     C],
+      [C,     RM_BL, RM_BR, RM_BR, RM_BR, RM_BR, RM_BR, RM_BL, C],
+    ]));
+
+    // Fort gate key — gold ring bow + iron shaft with two teeth
+    const FK_GH = 0xFFD54F;  // gold highlight
+    const FK_G  = 0xD4AF37;  // gold mid
+    const FK_GD = 0x8D7420;  // gold dark
+    const FK_SH = 0x90A4AE;  // iron highlight
+    const FK_S  = 0x607D8B;  // iron mid
+    const FK_SD = 0x37474F;  // iron dark
+    this.textures.set('fort_gate_key', this.createSpriteTexture([
+      // Ring / bow (rows 0-4) — hollow oval
+      [C,     FK_GH, FK_G,  FK_GD, FK_GD, FK_G,  FK_GH, C   ],
+      [FK_GH, FK_G,  C,     C,     C,     C,     FK_G,  C   ],
+      [FK_G,  FK_GD, C,     C,     C,     C,     FK_GD, FK_G],
+      [FK_GH, FK_G,  C,     C,     C,     C,     FK_G,  C   ],
+      [C,     FK_GH, FK_G,  FK_GD, FK_GD, FK_G,  FK_GH, C   ],
+      // Shaft (rows 5-11) at columns 3-4
+      [C,     C,     C,     FK_SH, FK_SD, C,     C,     C   ],
+      [C,     C,     C,     FK_SH, FK_SD, C,     C,     C   ],
+      [C,     C,     C,     FK_SH, FK_SD, FK_SH, FK_S,  C   ],  // tooth 1
+      [C,     C,     C,     FK_SH, FK_SD, C,     C,     C   ],
+      [C,     C,     C,     FK_SH, FK_SD, FK_SH, C,     C   ],  // tooth 2
+      [C,     C,     C,     FK_SH, FK_SD, C,     C,     C   ],
+      [C,     C,     C,     C,     FK_SD, C,     C,     C   ],  // tip
+    ], 4, 'fort_gate_key'));
+
     // Small environmental sprites
     const PETAL = 0xF48FB1;
     const PETAL_H = 0xF8BBD0;
@@ -2006,12 +2312,34 @@ export class AssetManager {
       [0x5D4037, 0x795548,0x795548,0x795548,0x795548,0x795548,0x5D4037],
     ]));
 
+    const GATE_IRON = 0x455A64;
+    const GATE_IRON_H = 0x607D8B;
+    const GATE_RIVET = 0x37474F;
+    const GATE_LOCK = 0xFFD54F;
     this.textures.set('gate', this.createSpriteTexture([
-      [0xA1887F, C,      C,      C,      C,      C,      0xA1887F],
-      [0x6D4C41, C,      C,      C,      C,      C,      0x6D4C41],
-      [0x6D4C41, C,      C,      C,      C,      C,      0x6D4C41],
-      [0x6D4C41, C,      C,      C,      C,      C,      0x6D4C41],
-      [0xA1887F, C,      C,      C,      C,      C,      0xA1887F],
+      [GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_IRON],
+      [GATE_RIVET,GATE_IRON,   GATE_RIVET,GATE_IRON,   GATE_RIVET,GATE_IRON,   GATE_RIVET,GATE_IRON],
+      [GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_LOCK,   GATE_LOCK, GATE_IRON,   GATE_IRON_H,GATE_IRON],
+      [GATE_RIVET,GATE_IRON,   GATE_RIVET,GATE_IRON,   GATE_RIVET,GATE_IRON,   GATE_RIVET,GATE_IRON],
+      [GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_IRON],
+      [GATE_IRON, GATE_RIVET,  GATE_IRON, GATE_RIVET,  GATE_IRON, GATE_RIVET,  GATE_IRON, GATE_RIVET],
+    ]));
+
+    // Fog gate — swirling white/grey mist wall
+    const FOG_W = 0xE0E0E0;
+    const FOG_L = 0xBDBDBD;
+    const FOG_M = 0x9E9E9E;
+    const FOG_D = 0x757575;
+    const FOG_P = 0xCE93D8; // faint purple tinge
+    this.textures.set('fog_gate', this.createSpriteTexture([
+      [C,     FOG_D, FOG_M, FOG_L, FOG_W, FOG_L, FOG_M, FOG_D, C,     C    ],
+      [FOG_D, FOG_M, FOG_W, FOG_L, FOG_P, FOG_L, FOG_W, FOG_M, FOG_D, C    ],
+      [FOG_M, FOG_W, FOG_P, FOG_W, FOG_L, FOG_W, FOG_P, FOG_W, FOG_M, C    ],
+      [FOG_L, FOG_P, FOG_W, FOG_L, FOG_M, FOG_L, FOG_W, FOG_P, FOG_L, C    ],
+      [FOG_W, FOG_L, FOG_M, FOG_D, FOG_P, FOG_D, FOG_M, FOG_L, FOG_W, C    ],
+      [FOG_M, FOG_W, FOG_P, FOG_M, FOG_L, FOG_M, FOG_P, FOG_W, FOG_M, C    ],
+      [FOG_D, FOG_M, FOG_L, FOG_W, FOG_P, FOG_W, FOG_L, FOG_M, FOG_D, C    ],
+      [C,     FOG_D, FOG_M, FOG_L, FOG_W, FOG_L, FOG_M, FOG_D, C,     C    ],
     ]));
 
     // Spike trap
@@ -2089,21 +2417,95 @@ export class AssetManager {
     const SW_E  = 0x90A8C0;  // blade shadow edge
     const SW_G  = 0xE8C030;  // gold guard / pommel
     const SW_GR = 0x5D4037;  // brown grip
+    const SW_GW = 0x8B7355;  // grip wrap highlight (lighter leather)
 
     const swordTex = this.createSpriteTexture([
       //       0      1      2      3      4      5      6      7
       /* 0 */ [C,     C,     C,     C,     C,     SW_H,  SW_H,  C    ],  // tip
       /* 1 */ [C,     C,     C,     C,     SW_H,  SW_B,  SW_H,  C    ],  // blade
-      /* 2 */ [C,     C,     C,     SW_H,  SW_B,  SW_H,  C,     C    ],  // blade
-      /* 3 */ [C,     C,     SW_H,  SW_B,  SW_E,  C,     C,     C    ],  // blade
-      /* 4 */ [C,     SW_G,  SW_B,  SW_E,  SW_G,  C,     C,     C    ],  // guard crossing diagonal
-      /* 5 */ [SW_G,  SW_GR, SW_E,  SW_G,  C,     C,     C,     C    ],  // guard center + grip start
-      /* 6 */ [C,     SW_GR, SW_GR, C,     C,     C,     C,     C    ],  // grip
+      /* 2 */ [C,     C,     C,     SW_H,  SW_B,  SW_E,  C,     C    ],  // blade
+      /* 3 */ [C,     C,     SW_G,  SW_B,  SW_E,  SW_G,  C,     C    ],  // guard cross 1
+      /* 4 */ [C,     SW_G,  SW_GR, SW_E,  SW_G,  C,     C,     C    ],  // guard cross 2
+      /* 5 */ [C,     C,     SW_GW, SW_GR, C,     C,     C,     C    ],  // grip wrap
+      /* 6 */ [C,     SW_GR, SW_GW, C,     C,     C,     C,     C    ],  // grip wrap
       /* 7 */ [SW_GR, SW_G,  C,     C,     C,     C,     C,     C    ],  // pommel
     ]);
     this.textures.set('sword', swordTex);
     if (swordTex.image instanceof HTMLCanvasElement) {
       this.textureDataUrls.set('sword', swordTex.image.toDataURL());
+    }
+
+    // Ornamental Broadsword inventory icon — straight blade that widens toward a wide
+    // ornate guard.  Blue-steel tones, gold guard with highlights, ruby gem pommel.
+    const BS_B  = 0x8AAEC8;  // blade body (blue-steel)
+    const BS_H  = 0xD0E4FF;  // blade highlight (bright edge)
+    const BS_E  = 0x5C7D99;  // blade shadow edge
+    const BS_G  = 0xDAA520;  // gold guard
+    const BS_GH = 0xFFD700;  // gold guard highlight
+    const BS_GR = 0x4E342E;  // dark leather grip
+    const BS_GW = 0x7A5D42;  // grip wrap highlight (lighter leather)
+    const BS_GM = 0xB22222;  // ruby gem pommel
+
+    const broadswordTex = this.createSpriteTexture([
+      //       0      1      2      3      4      5      6      7
+      /* 0 */ [C,     C,     C,     C,     C,     C,     BS_H,  C    ],  // tip
+      /* 1 */ [C,     C,     C,     C,     C,     BS_H,  BS_B,  C    ],  // blade
+      /* 2 */ [C,     C,     C,     C,     BS_H,  BS_B,  BS_E,  C    ],  // blade
+      /* 3 */ [C,     C,     C,     BS_H,  BS_B,  BS_E,  C,     C    ],  // blade
+      /* 4 */ [C,     C,     BS_GH, BS_B,  BS_E,  BS_GH, C,     C    ],  // guard cross 1
+      /* 5 */ [C,     BS_GH, BS_GR, BS_E,  BS_GH, C,     C,     C    ],  // guard cross 2
+      /* 6 */ [C,     C,     BS_GW, BS_GR, C,     C,     C,     C    ],  // grip wrap
+      /* 7 */ [C,     BS_GR, BS_GM, BS_GR, C,     C,     C,     C    ],  // pommel with ruby
+    ]);
+    this.textures.set('broadsword', broadswordTex);
+    if (broadswordTex.image instanceof HTMLCanvasElement) {
+      this.textureDataUrls.set('broadsword', broadswordTex.image.toDataURL());
+    }
+
+    // Broadsword player sprites — identical chibi silhouette with blue-steel blade tones
+    const heroBroadswordPalette = {
+      ...heroPalette,
+      bladeMain:      0x9BB8D0,  // blue-steel blade
+      bladeHighlight: 0xD0E4FF,  // bright blue-white edge
+      bladeShadow:    0x6A8BAA,  // darker blue shadow
+      guardColor:     0xDAA520,  // gold guard
+      gripColor:      0x4E342E,  // slightly darker leather grip
+      bladeStyle:     'broad' as const, // distinct wider/longer silhouette
+    };
+
+    for (const dir of dirs) {
+      for (const state of states) {
+        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' || state === 'block' ? 1 : 2;
+        for (let f = 0; f < maxFrames; f++) {
+          const d = dir, s = state, fr = f;
+          const spriteId = `player_broadsword_${d}_${s}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const tex = this.textures.get('broadsword');
+            const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
+            return this.createChibiCharacter(d, s, fr, heroBroadswordPalette, spriteId, false, true, wc, 1.0);
+          });
+        }
+      }
+    }
+    // Diagonal broadsword sprite aliases (reuse mirrored side views)
+    const bsDiagDirs = ['down_left', 'down_right', 'up_left', 'up_right'] as const;
+    const bsDiagBase = { down_left: 'left', down_right: 'right', up_left: 'left', up_right: 'right' } as const;
+    for (const dDir of bsDiagDirs) {
+      const base = bsDiagBase[dDir];
+      for (const state of states) {
+        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' || state === 'block' ? 1 : 2;
+        for (let f = 0; f < maxFrames; f++) {
+          const dd = dDir, b = base, s = state, fr = f;
+          const spriteId = `player_broadsword_${dd}_${s}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const baseTexture = this.getTexture(`player_broadsword_${b}_${s}_${fr}`)!;
+            if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
+              this.textureDataUrls.set(spriteId, baseTexture.image.toDataURL());
+            }
+            return baseTexture;
+          });
+        }
+      }
     }
 
     // Health Potion Sprite

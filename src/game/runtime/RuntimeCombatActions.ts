@@ -12,6 +12,8 @@ type PlayerAnimState =
   | 'charge'
   | 'hurt'
   | 'spin_attack'
+  | 'lunge'
+  | 'lunge_recovery'
   | 'drinking'
   | 'block';
 
@@ -81,6 +83,15 @@ interface RuntimeCombatActionOptions {
   spinFrameDuration: number;
   spinDirections: Direction8[];
   clearChargeState: () => void;
+  // Lunge attack (broadsword)
+  lungeDistMin: number;
+  lungeDistMax: number;
+  lungeSpeedBase: number;
+  lungeSpeedFull: number;
+  lungeRecoveryMin: number;
+  lungeRecoveryMax: number;
+  startLunge: (dirX: number, dirY: number, speed: number, distance: number, recovery: number, damage: number) => void;
+  onBossDefeated?: () => void;
 }
 
 export function createRuntimeCombatActions({
@@ -118,6 +129,14 @@ export function createRuntimeCombatActions({
   spinFrameDuration,
   spinDirections,
   clearChargeState,
+  lungeDistMin,
+  lungeDistMax,
+  lungeSpeedBase,
+  lungeSpeedFull,
+  lungeRecoveryMin,
+  lungeRecoveryMax,
+  startLunge,
+  onBossDefeated,
 }: RuntimeCombatActionOptions) {
   const onEnemyKilled = (enemy: Enemy) => {
     const nextKillCount = getKillCount() + 1;
@@ -126,11 +145,27 @@ export function createRuntimeCombatActions({
     enemyAudio.clearEnemy(enemy.id);
     if (enemy.essenceReward > 0) playItemGrab();
 
-    if (state.currentMap === 'forest') {
-      const forestKillCount = (Number(state.getFlag('forest_kill_count')) || 0) + 1;
-      state.setFlag('forest_kill_count', forestKillCount);
+    if (state.currentMap === 'forest' || state.currentMap === 'interior_hollow_arena') {
+      if (state.currentMap === 'forest') {
+        const forestKillCount = (Number(state.getFlag('forest_kill_count')) || 0) + 1;
+        state.setFlag('forest_kill_count', forestKillCount);
+      }
       if (enemy.type === 'golem') {
         state.setFlag('forest_golem_defeated', true);
+      }
+      if (enemy.type === 'hollow_guardian') {
+        state.setFlag('hollow_guardian_defeated', true);
+        const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
+        if (hunterQuest) {
+          hunterQuest.objectives[4] = 'Defeat the Hollow Guardian \u2713';
+        }
+        screenShake.shake(0.6, 0.5);
+        screenShake.hitStop(0.3);
+        particleSystem.emit(
+          new THREE.Vector3(enemy.position.x, enemy.position.y, 0.5),
+          40, 0x7C4DFF, 0.12, 2.0, 1.5,
+        );
+        if (onBossDefeated) onBossDefeated();
       }
     }
 
@@ -145,11 +180,19 @@ export function createRuntimeCombatActions({
       }
     }
 
-    notify(`Defeated ${enemy.name}!`, {
-      id: 'enemy-kill',
-      description: enemy.essenceReward > 0 ? `+${enemy.essenceReward} essence` : undefined,
-      duration: 2000,
-    });
+    if (enemy.type === 'hollow_guardian') {
+      notify('HOLLOW GUARDIAN VANQUISHED', {
+        id: 'boss-kill',
+        description: `+${enemy.essenceReward} essence. The fog lifts…`,
+        duration: 5000,
+      });
+    } else {
+      notify(`Defeated ${enemy.name}!`, {
+        id: 'enemy-kill',
+        description: enemy.essenceReward > 0 ? `+${enemy.essenceReward} essence` : undefined,
+        duration: 2000,
+      });
+    }
     triggerUIUpdate();
   };
 
@@ -246,7 +289,49 @@ export function createRuntimeCombatActions({
     }
   };
 
+  const dir8ToVector: Record<Direction8, { x: number; y: number }> = {
+    up: { x: 0, y: 1 }, down: { x: 0, y: -1 },
+    left: { x: -1, y: 0 }, right: { x: 1, y: 0 },
+    up_left: { x: -0.707, y: 0.707 }, up_right: { x: 0.707, y: 0.707 },
+    down_left: { x: -0.707, y: -0.707 }, down_right: { x: 0.707, y: -0.707 },
+  };
+
+  const performLungeAttack = (level: number) => {
+    const currentTime = Date.now();
+    if (state.player.isDodging || state.player.stamina < chargeAttackStaminaCost) {
+      clearChargeState();
+      setPlayerAnimState('idle');
+      return;
+    }
+
+    playSwordSwing();
+
+    const dir = dir8ToVector[getCurrentDir8()];
+    const distance = lungeDistMin + (lungeDistMax - lungeDistMin) * level;
+    const speed = lungeSpeedBase - (lungeSpeedBase - lungeSpeedFull) * level;
+    const recovery = lungeRecoveryMin + (lungeRecoveryMax - lungeRecoveryMin) * level;
+    const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
+    const damage = Math.floor(state.player.attackDamage * damageMultiplier);
+
+    state.player.lastAttackTime = currentTime;
+    state.player.stamina = Math.max(0, state.player.stamina - chargeAttackStaminaCost);
+    const lungeDuration = distance / speed;
+    state.player.lastStaminaUseTime = performance.now() / 1000 + lungeDuration + recovery;
+    state.player.attackAnimationTimer = lungeDuration + recovery;
+
+    setPlayerAnimState('lunge');
+    setAttackFrame(1);
+    clearChargeState();
+
+    startLunge(dir.x, dir.y, speed, distance, recovery, damage);
+  };
+
   const performChargeAttack = (level: number) => {
+    if (state.equippedWeaponId === 'ornamental_broadsword') {
+      performLungeAttack(level);
+      return;
+    }
+
     const currentTime = Date.now();
     if (state.player.isDodging || state.player.stamina < chargeAttackStaminaCost) {
       clearChargeState();

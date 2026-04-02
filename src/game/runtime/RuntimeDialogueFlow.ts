@@ -36,6 +36,8 @@ interface CreateRuntimeDialogueFlowOptions {
   activateSwitch: (doorId: string) => void;
   updateWorldChunksAtPlayer: () => void;
   syncWhisperingWoodsShortcutState: () => void;
+  syncHollowShortcutState: () => void;
+  syncForestFortGateState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
   hasDialogue: (interactionId: string) => boolean;
 }
@@ -65,6 +67,8 @@ export function createRuntimeDialogueFlow({
   activateSwitch,
   updateWorldChunksAtPlayer,
   syncWhisperingWoodsShortcutState,
+  syncHollowShortcutState,
+  syncForestFortGateState,
   showHeroOverlay,
   hasDialogue,
 }: CreateRuntimeDialogueFlowOptions) {
@@ -115,6 +119,8 @@ export function createRuntimeDialogueFlow({
     activateSwitch,
     updateWorldChunksAtPlayer,
     syncWhisperingWoodsShortcutState,
+    syncHollowShortcutState,
+    syncForestFortGateState,
     showHeroOverlay,
     hasDialogue,
   });

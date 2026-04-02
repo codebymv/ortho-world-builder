@@ -49,6 +49,10 @@ interface RuntimeActionPhaseOptions {
   syncOpenedChestState: () => void;
   syncHarvestedTempestGrassState: () => void;
   syncWhisperingWoodsShortcutState: () => void;
+  syncHollowShortcutState: () => void;
+  syncForestFortGateState: () => void;
+  syncHollowFogGateState: () => void;
+  syncHollowArenaExitState: () => void;
   handleMapTransition: (targetMap: string, targetX: number, targetY: number) => void;
   healCooldowns: MutableRefObject<Map<string, number>>;
   hasDialogue: (interactionId: string) => boolean;
@@ -68,6 +72,12 @@ interface RuntimeActionPhaseOptions {
   chargeDamageMult: number;
   dodgeIFrameDuration: number;
   dodgeStaminaCost: number;
+  lungeDistMin: number;
+  lungeDistMax: number;
+  lungeSpeedBase: number;
+  lungeSpeedFull: number;
+  lungeRecoveryMin: number;
+  lungeRecoveryMax: number;
 }
 
 export function setupRuntimeActionPhase({
@@ -96,6 +106,10 @@ export function setupRuntimeActionPhase({
   syncOpenedChestState,
   syncHarvestedTempestGrassState,
   syncWhisperingWoodsShortcutState,
+  syncHollowShortcutState,
+  syncForestFortGateState,
+  syncHollowFogGateState,
+  syncHollowArenaExitState,
   handleMapTransition,
   healCooldowns,
   hasDialogue,
@@ -115,6 +129,12 @@ export function setupRuntimeActionPhase({
   chargeDamageMult,
   dodgeIFrameDuration,
   dodgeStaminaCost,
+  lungeDistMin,
+  lungeDistMax,
+  lungeSpeedBase,
+  lungeSpeedFull,
+  lungeRecoveryMin,
+  lungeRecoveryMax,
 }: RuntimeActionPhaseOptions) {
   const sfx = createRuntimeSfx({
     processAudioElement,
@@ -206,6 +226,28 @@ export function setupRuntimeActionPhase({
     spinFrameDuration,
     spinDirections,
     clearChargeState,
+    lungeDistMin,
+    lungeDistMax,
+    lungeSpeedBase,
+    lungeSpeedFull,
+    lungeRecoveryMin,
+    lungeRecoveryMax,
+    startLunge: (dirX: number, dirY: number, speed: number, distance: number, recovery: number, damage: number) => {
+      runtimeSession.lunge.active = true;
+      runtimeSession.lunge.recovering = false;
+      runtimeSession.lunge.dirX = dirX;
+      runtimeSession.lunge.dirY = dirY;
+      runtimeSession.lunge.speed = speed;
+      runtimeSession.lunge.distanceRemaining = distance;
+      runtimeSession.lunge.recoveryTimer = recovery;
+      runtimeSession.lunge.damage = damage;
+      runtimeSession.lunge.hitEnemyIds.clear();
+    },
+    onBossDefeated: () => {
+      syncHollowArenaExitState();
+      syncHollowFogGateState();
+      showHeroOverlay('HOLLOW GUARDIAN VANQUISHED', 'The fog lifts…');
+    },
   });
 
   const { interactionSystem } = createRuntimeDialogueFlow({
@@ -239,6 +281,8 @@ export function setupRuntimeActionPhase({
       world.updateChunks(state.player.position.x, state.player.position.y);
     },
     syncWhisperingWoodsShortcutState,
+    syncHollowShortcutState,
+    syncForestFortGateState,
     showHeroOverlay,
     hasDialogue,
   });

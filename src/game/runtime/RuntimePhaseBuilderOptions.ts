@@ -62,6 +62,20 @@ export interface BuildRuntimePhaseContextsOptions {
   walkFrameDuration: number;
   chargeTimeMin: number;
   chargeTimeMax: number;
+  lungeState: {
+    active: boolean;
+    recovering: boolean;
+    dirX: number;
+    dirY: number;
+    speed: number;
+    distanceRemaining: number;
+    recoveryTimer: number;
+    damage: number;
+    hitEnemyIds: Set<string>;
+  };
+  onLungeHit: (enemy: any, damage: number) => void;
+  onLungeEnd: () => void;
+  dodgeIFrameDuration: number;
   textureCache: Map<string, THREE.Texture>;
   playerBaseScale: number;
   outlinePad: number;

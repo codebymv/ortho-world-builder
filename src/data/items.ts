@@ -34,6 +34,14 @@ export const items: Record<string, Item> = {
     type: 'key',
     sprite: 'key',
   },
+
+  fort_gate_key: {
+    id: 'fort_gate_key',
+    name: 'Fort Gate Key',
+    description: 'A heavy iron key taken from a dead ranger at the old chapel ruins in the west woods. It bears the same crest as the fort banner.',
+    type: 'key',
+    sprite: 'fort_gate_key',
+  },
   
   moonbloom: {
     id: 'moonbloom',
@@ -43,14 +51,34 @@ export const items: Record<string, Item> = {
     sprite: 'flower',
   },
 
+  manuscript_fragment: {
+    id: 'manuscript_fragment',
+    name: 'Manuscript Fragment',
+    description: 'Torn pages from the missing hunter. The writing speaks of corruption deeper in the woods and a guardian at its heart. The rest of the manuscript lies beyond the river.',
+    type: 'quest',
+    sprite: 'loose_pages',
+  },
+
   hunters_manuscript: {
     id: 'hunters_manuscript',
     name: "Hunter's Manuscript",
-    description: 'Loose weathered pages from the missing hunter, filled with grim notes about shadow creatures at the northern perimeter.',
+    description: 'The complete manuscript recovered from the Hollow. It details the corruption spreading through the Whispering Woods and the ancient guardian that protects its source.',
     type: 'quest',
     sprite: 'loose_pages',
   },
   
+  ornamental_broadsword: {
+    id: 'ornamental_broadsword',
+    name: 'Ornamental Broadsword',
+    description: 'A broad, heavy blade etched with faded ceremonial runes. Whoever carried it into these woods never carried it out.',
+    type: 'equipment',
+    sprite: 'broadsword',
+    stats: {
+      damage: 26,
+      range: 2.15,
+    },
+  },
+
   iron_sword: {
     id: 'iron_sword',
     name: 'Iron Sword',

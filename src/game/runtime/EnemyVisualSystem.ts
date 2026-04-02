@@ -85,15 +85,24 @@ export function applyEnemyVisuals({
     mat.map = enemyTex;
   }
 
+  const isPhase2 = enemyType === 'hollow_guardian' && (enemy as any).phase === 2;
   if (enemy.damageFlashTimer > 0) {
     enemy.damageFlashTimer -= deltaTime;
     mat.color.setHex(0xff0000);
   } else if (enemy.state === 'telegraphing') {
     const flashPhase = enemy.telegraphTimer / enemy.telegraphDuration;
-    const flash = Math.sin(flashPhase * Math.PI * 6) * 0.3 + 0.7;
-    mat.color.setRGB(1, flash, flash);
+    if (isPhase2) {
+      const flash = Math.sin(flashPhase * Math.PI * 8) * 0.4 + 0.6;
+      mat.color.setRGB(0.8, flash * 0.4, flash);
+    } else {
+      const flash = Math.sin(flashPhase * Math.PI * 6) * 0.3 + 0.7;
+      mat.color.setRGB(1, flash, flash);
+    }
   } else if (enemy.state === 'staggered') {
     mat.color.setHex(0xaaaaee);
+  } else if (isPhase2) {
+    const pulse = Math.sin(currentTime / 300) * 0.1 + 0.9;
+    mat.color.setRGB(pulse, 0.6 * pulse, 1.0);
   } else {
     mat.color.setHex(0xffffff);
   }
@@ -138,6 +147,14 @@ export function applyEnemyVisuals({
         scaleY *= 1 - stride * 0.04;
         rotation *= 0.35;
         break;
+      case 'hollow_guardian':
+        finalEnemyY += stride * 0.02;
+        scaleX *= 1 + stride * 0.025;
+        scaleY *= 1 - stride * 0.03;
+        rotation *= 0.2;
+        // Slow menacing root-pulse while moving
+        finalEnemyX += Math.sin(currentTime / 400 + seed) * 0.015;
+        break;
       case 'plant':
         finalEnemyX += Math.sin(currentTime / 260 + seed) * 0.02;
         rotation = moveWave * 0.025;
@@ -149,17 +166,23 @@ export function applyEnemyVisuals({
     const dy = state.player.position.y - enemy.position.y;
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
-    scaleX *= 1 + telegraphProgress * 0.15;
-    scaleY *= 1 - telegraphProgress * 0.12;
+    const isBoss = enemyType === 'hollow_guardian';
+    const scaleSwellX = isBoss ? 0.25 : 0.15;
+    const scaleSwellY = isBoss ? 0.20 : 0.12;
+    const windUp = isBoss ? 0.3 : 0.15;
+    const shakeBase = isBoss ? 0.06 : 0.03;
 
-    const windUpDist = telegraphProgress * 0.15;
+    scaleX *= 1 + telegraphProgress * scaleSwellX;
+    scaleY *= 1 - telegraphProgress * scaleSwellY;
+
+    const windUpDist = telegraphProgress * windUp;
     finalEnemyX += (dx / dist) * -windUpDist;
     finalEnemyY += (dy / dist) * -windUpDist;
 
-    const shakeIntensity = 0.03 * telegraphProgress * telegraphProgress;
+    const shakeIntensity = shakeBase * telegraphProgress * telegraphProgress;
     finalEnemyX += Math.sin(currentTime / 25 + seed) * shakeIntensity;
     finalEnemyY += Math.cos(currentTime / 30 + seed) * shakeIntensity;
-    rotation = Math.atan2(dy, dx) * 0.08 * telegraphProgress;
+    rotation = Math.atan2(dy, dx) * (isBoss ? 0.12 : 0.08) * telegraphProgress;
   } else if (enemy.state === 'recovering') {
     if (enemy.attackAnimationTimer > 0) {
       enemy.attackAnimationTimer -= deltaTime;
@@ -167,10 +190,16 @@ export function applyEnemyVisuals({
       const dy = state.player.position.y - enemy.position.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist > 0) {
+        const isBoss = enemyType === 'hollow_guardian';
+        const lungeDist = isBoss ? 0.7 : 0.4;
         const lungeProgress = enemy.attackAnimationTimer / 0.3;
-        const lungeDistance = Math.sin(lungeProgress * Math.PI) * 0.4;
+        const lungeDistance = Math.sin(lungeProgress * Math.PI) * lungeDist;
         finalEnemyX += (dx / dist) * lungeDistance;
         finalEnemyY += (dy / dist) * lungeDistance;
+        if (isBoss) {
+          scaleX *= 1 + Math.sin(lungeProgress * Math.PI) * 0.1;
+          scaleY *= 1 - Math.sin(lungeProgress * Math.PI) * 0.15;
+        }
       }
     }
     const recoverProgress = enemy.recoverTimer / enemy.recoverDuration;
@@ -179,7 +208,12 @@ export function applyEnemyVisuals({
     rotation = Math.sin(currentTime / 90 + seed) * 0.02;
   } else {
     const breathe = Math.sin(currentTime / 800 + seed * 3);
-    if (enemyType === 'shadow') {
+    if (enemyType === 'hollow_guardian') {
+      finalEnemyY += breathe * 0.035;
+      scaleX *= 1 + breathe * 0.025;
+      scaleY *= 1 - breathe * 0.02;
+      finalEnemyX += Math.sin(currentTime / 500 + seed) * 0.012;
+    } else if (enemyType === 'shadow') {
       finalEnemyY += breathe * 0.05;
       finalEnemyX += Math.cos(currentTime / 900 + seed) * 0.02;
       scaleX *= 1 + breathe * 0.012;

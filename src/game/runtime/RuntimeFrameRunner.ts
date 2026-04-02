@@ -78,31 +78,31 @@ export function runRuntimeFrame({
 
   const { deltaTime } = frameState;
 
-  const preludeState = runGameplayPrelude({
-    ...phaseContexts.gameplayPreludeContext,
-    currentTime,
-    deltaTime,
-    isBlocking: runtimeSession.combat.isBlocking,
-    playerAnimState: runtimeSession.animation.playerAnimState,
-    blockAngle: runtimeSession.combat.blockAngle,
-    portalCooldown: runtimeSession.loop.portalCooldown,
-    interactBuffered: runtimeSession.input.interactBuffered,
-    potionBuffered: runtimeSession.input.potionBuffered,
-    isLmbHeld: runtimeSession.input.isLmbHeld,
-    isChargingAttack: runtimeSession.animation.isChargingAttack,
-    chargeTimer: runtimeSession.animation.chargeTimer,
-    chargeLevel: runtimeSession.animation.chargeLevel,
-    currentDir8: runtimeSession.animation.currentDir8,
-    footstepTimer: runtimeSession.loop.footstepTimer,
-    attackFrame: runtimeSession.animation.attackFrame,
-    attackFrameTimer: runtimeSession.animation.attackFrameTimer,
-    spinDirIndex: runtimeSession.animation.spinDirIndex,
-    spinFrameTimer: runtimeSession.animation.spinFrameTimer,
-    drinkTimer: runtimeSession.animation.drinkTimer,
-    animTimer: runtimeSession.animation.animTimer,
-    animFrame: runtimeSession.animation.animFrame,
-    dodgeBuffered: runtimeSession.input.dodgeBuffered,
-  });
+  const preludeOpts = phaseContexts.gameplayPreludeContext as any;
+  preludeOpts.currentTime = currentTime;
+  preludeOpts.deltaTime = deltaTime;
+  preludeOpts.isBlocking = runtimeSession.combat.isBlocking;
+  preludeOpts.playerAnimState = runtimeSession.animation.playerAnimState;
+  preludeOpts.blockAngle = runtimeSession.combat.blockAngle;
+  preludeOpts.portalCooldown = runtimeSession.loop.portalCooldown;
+  preludeOpts.interactBuffered = runtimeSession.input.interactBuffered;
+  preludeOpts.potionBuffered = runtimeSession.input.potionBuffered;
+  preludeOpts.isLmbHeld = runtimeSession.input.isLmbHeld;
+  preludeOpts.isChargingAttack = runtimeSession.animation.isChargingAttack;
+  preludeOpts.chargeTimer = runtimeSession.animation.chargeTimer;
+  preludeOpts.chargeLevel = runtimeSession.animation.chargeLevel;
+  preludeOpts.currentDir8 = runtimeSession.animation.currentDir8;
+  preludeOpts.footstepTimer = runtimeSession.loop.footstepTimer;
+  preludeOpts.attackFrame = runtimeSession.animation.attackFrame;
+  preludeOpts.attackFrameTimer = runtimeSession.animation.attackFrameTimer;
+  preludeOpts.spinDirIndex = runtimeSession.animation.spinDirIndex;
+  preludeOpts.spinFrameTimer = runtimeSession.animation.spinFrameTimer;
+  preludeOpts.drinkTimer = runtimeSession.animation.drinkTimer;
+  preludeOpts.animTimer = runtimeSession.animation.animTimer;
+  preludeOpts.animFrame = runtimeSession.animation.animFrame;
+  preludeOpts.dodgeBuffered = runtimeSession.input.dodgeBuffered;
+
+  const preludeState = runGameplayPrelude(preludeOpts);
 
   runtimeSession.combat.isBlocking = preludeState.isBlocking;
   runtimeSession.combat.blockAngle = preludeState.blockAngle;
@@ -125,71 +125,71 @@ export function runRuntimeFrame({
   runtimeSession.input.dodgeBuffered = preludeState.dodgeBuffered;
 
   if (!state.dialogueActive) {
+    const pfOpts = phaseContexts.playerFrameContext as any;
+    pfOpts.currentTime = currentTime;
+    pfOpts.deltaTime = deltaTime;
+    pfOpts.playerAnimState = runtimeSession.animation.playerAnimState;
+    pfOpts.currentDir8 = runtimeSession.animation.currentDir8;
+    pfOpts.isChargingAttack = runtimeSession.animation.isChargingAttack;
+    pfOpts.chargeLevel = runtimeSession.animation.chargeLevel;
+    pfOpts.animFrame = runtimeSession.animation.animFrame;
+    pfOpts.attackFrame = runtimeSession.animation.attackFrame;
+    pfOpts.spinDirIndex = runtimeSession.animation.spinDirIndex;
+    pfOpts.spinDirections = spinDirections;
+    pfOpts.playerSmoothedElevation = runtimeSession.visual.playerSmoothedElevation;
+    pfOpts.swooshTimer = runtimeSession.visual.swooshTimer;
+    pfOpts.swooshFacing = runtimeSession.visual.swooshFacing;
+    pfOpts.spinSwooshTimer = runtimeSession.visual.spinSwooshTimer;
+    pfOpts.spinSwooshDuration = spinSwooshDuration;
+    pfOpts.heldConsumableSpriteId = runtimeSession.animation.heldConsumableSpriteId;
+    pfOpts.camera = camera;
+    pfOpts.cameraTarget = cameraTarget;
+    pfOpts.lastInteractionPrompt = lastInteractionPrompt;
+    pfOpts.transitionDebug = transitionDebug;
+    pfOpts.lastTransitionDebugRefreshAt = runtimeSession.visual.lastTransitionDebugRefreshAt;
+    pfOpts.portalCooldown = runtimeSession.loop.portalCooldown;
+    pfOpts.isMapModalOpen = isMapModalOpen;
+    pfOpts.isPlayerDead = isPlayerDead;
+    pfOpts.vignette = vignette;
+    pfOpts.particleSystem = particleSystem;
+
     ({
       playerSmoothedElevation: runtimeSession.visual.playerSmoothedElevation,
       swooshTimer: runtimeSession.visual.swooshTimer,
       spinSwooshTimer: runtimeSession.visual.spinSwooshTimer,
       lastInteractionPrompt,
       lastTransitionDebugRefreshAt: runtimeSession.visual.lastTransitionDebugRefreshAt,
-    } = runPlayerFramePhase({
-      ...phaseContexts.playerFrameContext,
-      currentTime,
-      deltaTime,
-      playerAnimState: runtimeSession.animation.playerAnimState,
-      currentDir8: runtimeSession.animation.currentDir8,
-      isChargingAttack: runtimeSession.animation.isChargingAttack,
-      chargeLevel: runtimeSession.animation.chargeLevel,
-      animFrame: runtimeSession.animation.animFrame,
-      attackFrame: runtimeSession.animation.attackFrame,
-      spinDirIndex: runtimeSession.animation.spinDirIndex,
-      spinDirections,
-      playerSmoothedElevation: runtimeSession.visual.playerSmoothedElevation,
-      swooshTimer: runtimeSession.visual.swooshTimer,
-      swooshFacing: runtimeSession.visual.swooshFacing,
-      spinSwooshTimer: runtimeSession.visual.spinSwooshTimer,
-      spinSwooshDuration,
-      heldConsumableSpriteId: runtimeSession.animation.heldConsumableSpriteId,
-      camera,
-      cameraTarget,
-      lastInteractionPrompt,
-      transitionDebug,
-      lastTransitionDebugRefreshAt: runtimeSession.visual.lastTransitionDebugRefreshAt,
-      portalCooldown: runtimeSession.loop.portalCooldown,
-      isMapModalOpen,
-      isPlayerDead,
-      vignette,
-      particleSystem,
-    }));
+    } = runPlayerFramePhase(pfOpts));
 
-    const enemyLoopResult = runEnemyLoop({
-      ...phaseContexts.enemyLoopContext,
-      currentTime,
-      deltaTime,
-      isBlocking: runtimeSession.combat.isBlocking,
-      blockStartTime: runtimeSession.combat.blockStartTime,
-      isPlayerDead,
-    });
+    const elOpts = phaseContexts.enemyLoopContext as any;
+    elOpts.currentTime = currentTime;
+    elOpts.deltaTime = deltaTime;
+    elOpts.isBlocking = runtimeSession.combat.isBlocking;
+    elOpts.blockStartTime = runtimeSession.combat.blockStartTime;
+    elOpts.isPlayerDead = isPlayerDead;
+
+    const enemyLoopResult = runEnemyLoop(elOpts);
 
     if (enemyLoopResult.playerDied) {
       onPlayerDied(enemyLoopResult.lostEssence);
     }
   }
 
+  const tailOpts = phaseContexts.runtimeLoopTailContext as any;
+  tailOpts.playerPosition = state.player.position;
+  tailOpts.activeNpcWorldPos = activeNpcWorldPos;
+  tailOpts.isDialogueActive = state.dialogueActive;
+  tailOpts.currentTime = currentTime;
+  tailOpts.deltaTime = deltaTime;
+  tailOpts.lastNpcScreenUpdate = runtimeSession.loop.lastNpcScreenUpdate;
+  tailOpts.lastNpcProjected = lastNpcProjected;
+  tailOpts.currentBiome = currentBiome;
+  tailOpts.lastAutoSaveTime = runtimeSession.loop.lastAutoSaveTime;
+
   ({
     lastNpcScreenUpdate: runtimeSession.loop.lastNpcScreenUpdate,
     lastAutoSaveTime: runtimeSession.loop.lastAutoSaveTime,
-  } = runRuntimeLoopTail({
-    ...phaseContexts.runtimeLoopTailContext,
-    playerPosition: state.player.position,
-    activeNpcWorldPos,
-    isDialogueActive: state.dialogueActive,
-    currentTime,
-    deltaTime,
-    lastNpcScreenUpdate: runtimeSession.loop.lastNpcScreenUpdate,
-    lastNpcProjected,
-    currentBiome,
-    lastAutoSaveTime: runtimeSession.loop.lastAutoSaveTime,
-  }));
+  } = runRuntimeLoopTail(tailOpts));
 
   return lastInteractionPrompt;
 }

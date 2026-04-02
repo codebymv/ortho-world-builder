@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { GameState, NPC } from '@/lib/game/GameState';
-import type { World } from '@/lib/game/World';
+import { INTERACTABLE_QUERY_RADIUS, type World } from '@/lib/game/World';
 
 type InteractionPrompt = string | null;
 
@@ -72,7 +72,11 @@ export function updateInteractionIndicator({
     { x: -1, y: 0 },
   ];
 
-  const interactableHit = world.getInteractableNear(state.player.position.x, state.player.position.y, 1.15);
+  const interactableHit = world.getInteractableNear(
+    state.player.position.x,
+    state.player.position.y,
+    INTERACTABLE_QUERY_RADIUS,
+  );
   if (interactableHit) {
     const { interactionId: intId, x, y } = interactableHit;
     if (

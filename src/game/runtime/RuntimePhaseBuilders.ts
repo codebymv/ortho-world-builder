@@ -44,6 +44,11 @@ export function buildGameplayPreludeContext(options: BuildRuntimePhaseContextsOp
     walkFrameDuration: options.walkFrameDuration,
     chargeTimeMin: options.chargeTimeMin,
     chargeTimeMax: options.chargeTimeMax,
+    lungeState: options.lungeState,
+    combatSystem: options.combatSystem,
+    onLungeHit: options.onLungeHit,
+    onLungeEnd: options.onLungeEnd,
+    dodgeIFrameDuration: options.dodgeIFrameDuration,
   };
 }
 
@@ -98,6 +103,7 @@ export function buildPlayerFrameContext(options: BuildRuntimePhaseContextsOption
     notify: options.notify,
     handleMapTransition: options.handleMapTransition,
     handlePortalTransition: options.handlePortalTransition,
+    lungeState: options.lungeState,
   };
 }
 

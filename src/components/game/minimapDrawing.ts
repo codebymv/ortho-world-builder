@@ -84,6 +84,44 @@ export interface DrawMinimapParams {
   nowMs: number;
 }
 
+let _cachedVisitedTiles: { x: number; y: number }[] = [];
+let _cachedVisitedSize = -1;
+let _cachedVisitedMapId = '';
+let _cachedVisitedMapW = 0;
+let _cachedVisitedMapH = 0;
+
+function getVisitedTilesForMap(
+  visited: Set<string>,
+  currentMapId: string,
+  w: number,
+  h: number,
+): { x: number; y: number }[] {
+  if (
+    visited.size === _cachedVisitedSize &&
+    currentMapId === _cachedVisitedMapId &&
+    w === _cachedVisitedMapW &&
+    h === _cachedVisitedMapH
+  ) {
+    return _cachedVisitedTiles;
+  }
+  _cachedVisitedSize = visited.size;
+  _cachedVisitedMapId = currentMapId;
+  _cachedVisitedMapW = w;
+  _cachedVisitedMapH = h;
+
+  const result: { x: number; y: number }[] = [];
+  for (const key of visited) {
+    const tile = parseVisitedTileKey(key);
+    if (!tile) continue;
+    if (tile.mapId !== null && tile.mapId !== currentMapId) continue;
+    if (tile.x >= 0 && tile.y >= 0 && tile.x < w && tile.y < h) {
+      result.push(tile);
+    }
+  }
+  _cachedVisitedTiles = result;
+  return result;
+}
+
 /**
  * Single source of truth for minimap + full map canvas rendering.
  */
@@ -95,10 +133,16 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
 
   const playerPosition = state.player.position;
   const npcs = state.npcs;
+  const primaryObjectiveMarkers = markers.filter(marker => isPrimaryObjectiveMarker(marker, state));
   const objectiveNpcIds = new Set(
     npcs
-      .filter(npc => isNpcObjectiveTarget(npc, currentMapId, markers.filter(marker => isPrimaryObjectiveMarker(marker, state))))
+      .filter(npc => isNpcObjectiveTarget(npc, currentMapId, primaryObjectiveMarkers))
       .map(npc => npc.id)
+  );
+  const objectiveNpcMarkerIds = new Set(
+    primaryObjectiveMarkers
+      .filter(marker => marker.type === 'quest' && npcs.some(npc => markerTargetsNpc(marker, npc)))
+      .map(marker => marker.id)
   );
 
   ctx.fillStyle = '#0a0806';
@@ -107,13 +151,7 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
   const playerTileX = Math.floor(playerPosition.x + w / 2);
   const playerTileY = Math.floor(playerPosition.y + h / 2);
 
-  const visibleVisitedTiles = Array.from(visited)
-    .map(parseVisitedTileKey)
-    .filter((tile): tile is NonNullable<typeof tile> => {
-      if (!tile) return false;
-      if (tile.mapId !== null && tile.mapId !== currentMapId) return false;
-      return tile.x >= 0 && tile.y >= 0 && tile.x < w && tile.y < h;
-    });
+  const visibleVisitedTiles = getVisitedTilesForMap(visited, currentMapId, w, h);
 
   if (visibleVisitedTiles.length === 0) {
     const revealRadius = 5;
@@ -148,8 +186,7 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
     const cx = mx + scale / 2;
     const cy = my + scale / 2;
 
-    const isNpcObjectiveMarker =
-      isPrimaryObjectiveMarker(marker, state) && marker.type === 'quest' && npcs.some(npc => markerTargetsNpc(marker, npc));
+    const isNpcObjectiveMarker = objectiveNpcMarkerIds.has(marker.id);
 
     ctx.beginPath();
     ctx.arc(cx, cy, Math.max(6, scale * 0.9), 0, Math.PI * 2);

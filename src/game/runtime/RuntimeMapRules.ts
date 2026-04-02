@@ -43,3 +43,24 @@ export function applyMapEntryProgression(state: GameState, targetMap: string) {
     deepQuest.objectives[1] = "Find the witch's hut checked";
   }
 }
+
+const CHECKMARK = '✓';
+
+/**
+ * Checks position-based quest objectives each frame.
+ * Returns true if any objective was updated (caller should save/refresh UI).
+ */
+export function checkPositionBasedProgression(state: GameState, playerTileY: number): boolean {
+  if (state.currentMap !== 'forest') return false;
+
+  const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
+  if (!hunterQuest) return false;
+
+  if (playerTileY < 75 && !state.getFlag('hollow_entered')) {
+    state.setFlag('hollow_entered', true);
+    hunterQuest.objectives[3] = `Cross the river into the Hollow ${CHECKMARK}`;
+    return true;
+  }
+
+  return false;
+}

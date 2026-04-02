@@ -33,6 +33,8 @@ interface InteractionSystemContext {
   activateSwitch: (doorId: string) => void;
   updateWorldChunksAtPlayer: () => void;
   syncWhisperingWoodsShortcutState: () => void;
+  syncHollowShortcutState: () => void;
+  syncForestFortGateState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
   hasDialogue: (interactionId: string) => boolean;
 }
@@ -159,6 +161,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     } else if (interactionId === 'golem_arena_chest' && context.items.golem_heart) {
       context.state.addItem({ ...context.items.golem_heart });
       bonusDescription = ' and a Golem Heart';
+    } else if (interactionId === 'forest_river_chest' && context.items.ornamental_broadsword) {
+      context.state.addItem({ ...context.items.ornamental_broadsword });
+      bonusDescription = ' and an Ornamental Broadsword';
     }
 
     context.state.setFlag(`${interactionId}_opened`, true);
@@ -171,6 +176,11 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       duration: 3000,
     });
     context.triggerUIUpdate();
+
+    if (interactionId === 'hollow_boss_chest' && context.hasDialogue('hollow_manuscript')) {
+      context.startDialogue('hollow_manuscript', undefined);
+    }
+
     return true;
   };
 
@@ -307,6 +317,78 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  const tryHandleHollowShortcutLever = (interactionId: string): boolean => {
+    if (interactionId !== 'hollow_shortcut_lever') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('hollow_shortcut_open')) {
+      context.notify('The hollow gate is already open.', { id: 'hollow-shortcut-open', duration: 1800 });
+      return true;
+    }
+
+    context.state.setFlag('hollow_shortcut_open', true);
+    context.syncHollowShortcutState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Shortcut Unlocked');
+    context.notify('Shortcut unlocked', {
+      id: 'hollow-shortcut-unlocked',
+      type: 'success',
+      description: 'A twisted gate of roots and iron groans open, revealing a path back to the Hollow bonfire.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
+  const tryHandleForestFortGate = (interactionId: string): boolean => {
+    if (interactionId !== 'forest_fort_gate') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('forest_fort_gate_open')) {
+      context.notify('The fort gate is already open.', { id: 'fort-gate-open', duration: 1800 });
+      return true;
+    }
+
+    if (!context.state.hasItem('fort_gate_key')) {
+      context.notify('The path ahead requires a key.', {
+        id: 'fort-gate-locked',
+        description: 'The iron gate is sealed tight. Scratched markings point west — toward the chapel ruins.',
+        duration: 4000,
+      });
+      return true;
+    }
+
+    context.state.setFlag('forest_fort_gate_open', true);
+    context.syncForestFortGateState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Fort Gate Opened');
+    context.notify('Fort gate unlocked', {
+      id: 'fort-gate-unlocked',
+      type: 'success',
+      description: 'The iron lock gives way. The fort is open.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
+  const tryHandleHollowFogGate = (interactionId: string): boolean => {
+    if (interactionId !== 'hollow_fog_gate') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('hollow_guardian_defeated')) {
+      context.notify('The fog has lifted.', { id: 'fog-gate-clear', duration: 1800 });
+      return true;
+    }
+
+    context.handleMapTransition('interior_hollow_arena', 18, 32);
+    return true;
+  };
+
   const tryHandleDialogueInteraction = (interactionId: string): boolean => {
     if (!context.hasDialogue(interactionId)) return false;
     context.startDialogue(interactionId, undefined);
@@ -324,6 +406,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleHealingSource,
     tryHandleShadowCastleGateSwitch,
     tryHandleForestShortcutLever,
+    tryHandleHollowShortcutLever,
+    tryHandleForestFortGate,
+    tryHandleHollowFogGate,
     tryHandleDialogueInteraction,
   };
 }

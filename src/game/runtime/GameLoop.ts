@@ -1,6 +1,7 @@
 import type { GameplayPreludeContext } from '@/game/runtime/RuntimePhaseContexts';
 import { updateNpcBehaviors } from '@/game/runtime/NpcBehaviorSystem';
 import { updatePlayerSimulation, type Direction8, type PlayerAnimState } from '@/game/runtime/PlayerSimulationSystem';
+import { checkPositionBasedProgression } from '@/game/runtime/RuntimeMapRules';
 
 interface AdvanceGameFrameOptions {
   currentTime: number;
@@ -148,6 +149,11 @@ export function runGameplayPrelude({
   emitDust,
   emitHeal,
   triggerMinimapUpdate,
+  lungeState,
+  combatSystem,
+  onLungeHit,
+  onLungeEnd,
+  dodgeIFrameDuration,
 }: RunGameplayPreludeOptions) {
   const nowSec = currentTime / 1000;
   if (state.player.iFrameTimer > 0) {
@@ -267,7 +273,18 @@ export function runGameplayPrelude({
     emitDust,
     emitHeal,
     triggerMinimapUpdate,
+    lungeState,
+    combatSystem,
+    onLungeHit,
+    onLungeEnd,
+    dodgeIFrameDuration,
   }));
+
+  const currentMap = world.getCurrentMap();
+  const tileY = Math.floor(state.player.position.y + currentMap.height / 2);
+  if (checkPositionBasedProgression(state, tileY)) {
+    triggerUIUpdateThrottled();
+  }
 
   return {
     isBlocking,

@@ -106,6 +106,23 @@ export class BiomeAmbience {
         type = 'dust';
         vy = 0.1 + Math.random() * 0.2;
         break;
+      case 'forest_hollow':
+        if (Math.random() > 0.6) {
+          color = 0x7E57C2;
+          size = 0.25 + Math.random() * 0.3;
+          lifetime = 3 + Math.random() * 3;
+          type = 'fog';
+          vx = (Math.random() - 0.5) * 0.2;
+          baseOpacity = 0.12;
+        } else {
+          color = Math.random() > 0.5 ? 0xAB47BC : 0x9C27B0;
+          size = 0.04 + Math.random() * 0.03;
+          lifetime = 2 + Math.random() * 2;
+          type = 'ember';
+          vy = 0.15 + Math.random() * 0.2;
+          baseOpacity = 0.6;
+        }
+        break;
       case 'grassland':
         color = 0xFFF9C4;
         size = 0.03 + Math.random() * 0.03;

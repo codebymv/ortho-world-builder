@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useMemo, useRef, memo } from 'react';
 import type { MutableRefObject } from 'react';
 import { WorldMap } from '@/lib/game/World';
 import type { MapMarker } from '@/lib/game/MapMarkers';
@@ -100,18 +100,20 @@ export const Minimap = memo(
         running = false;
         if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       };
-    }, [currentMap, currentMapId, refreshToken, markers, gameStateRef, visitedTilesRef, mapMarkersRef]);
+    }, [currentMap, currentMapId, refreshToken, gameStateRef, visitedTilesRef, mapMarkersRef]);
 
-    const currentMarkers = markers.filter(m => m.map === currentMapId);
-    const now = Date.now();
-    const recentMarkers = currentMarkers.filter(
-      m => m.permanent || now - m.createdAt < 120000 || now < m.pulseUntil
-    );
-    const objectiveMarkers = recentMarkers.filter(
-      m => m.type === 'quest' && gameStateRef.current && isPrimaryObjectiveMarker(m, gameStateRef.current)
-    );
-    const supportMarkers = recentMarkers.filter(m => m.type !== 'quest').slice(0, 4);
-    const visibleMarkers = [...objectiveMarkers, ...supportMarkers];
+    const visibleMarkers = useMemo(() => {
+      const currentMarkers = markers.filter(m => m.map === currentMapId);
+      const now = Date.now();
+      const recentMarkers = currentMarkers.filter(
+        m => m.permanent || now - m.createdAt < 120000 || now < m.pulseUntil
+      );
+      const objectiveMarkers = recentMarkers.filter(
+        m => m.type === 'quest' && gameStateRef.current && isPrimaryObjectiveMarker(m, gameStateRef.current)
+      );
+      const supportMarkers = recentMarkers.filter(m => m.type !== 'quest').slice(0, 4);
+      return [...objectiveMarkers, ...supportMarkers];
+    }, [markers, currentMapId, refreshToken, gameStateRef]);
 
     return (
       <div

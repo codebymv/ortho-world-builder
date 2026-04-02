@@ -39,6 +39,7 @@ export const NPC_SCALE_BY_ID: Record<string, number> = {
   farmer: 1.03,
   child: 0.86,
   forest_ranger: 1.04,
+  fort_quartermaster: 1.06,
 };
 
 export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
@@ -49,7 +50,9 @@ export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
   bandit: { baseScale: 1.12, footOffset: 0.24, strideAmp: 0.04, bobAmp: 0.05, squashAmp: 0.06, leanAmp: 0.05, hpBarOffset: 0.7 },
   golem: { baseScale: 1.72, footOffset: 0.28, strideAmp: 0.025, bobAmp: 0.03, squashAmp: 0.04, leanAmp: 0.025, hpBarOffset: 0.86 },
   spider: { baseScale: 1.08, footOffset: 0.14, strideAmp: 0.06, bobAmp: 0.02, squashAmp: 0.08, leanAmp: 0.06, hpBarOffset: 0.56 },
+  armored_wolf: { baseScale: 1.34, footOffset: 0.2, strideAmp: 0.045, bobAmp: 0.04, squashAmp: 0.06, leanAmp: 0.07, hpBarOffset: 0.68 },
   slime: { baseScale: 1.18, footOffset: 0.12, strideAmp: 0.02, bobAmp: 0.035, squashAmp: 0.12, leanAmp: 0.02, hpBarOffset: 0.58 },
+  hollow_guardian: { baseScale: 2.4, footOffset: 0.35, strideAmp: 0.015, bobAmp: 0.02, squashAmp: 0.06, leanAmp: 0.02, hpBarOffset: 1.2 },
 };
 
 export function createDefaultNpcData(): NPC[] {
@@ -65,6 +68,7 @@ export function createDefaultNpcData(): NPC[] {
     { id: 'farmer', name: 'Old Farmer', mapId: 'village', position: { x: -56, y: 35 }, dialogueId: 'farmer', sprite: 'npc_farmer' },
     { id: 'child', name: 'Village Child', mapId: 'village', position: { x: 5, y: -5 }, dialogueId: 'child', sprite: 'npc_child' },
     { id: 'forest_ranger', name: 'Forest Ranger', mapId: 'forest', position: { x: 158, y: 168 }, dialogueId: 'forest_ranger', sprite: 'npc_guard', questGiver: true },
+    { id: 'fort_quartermaster', name: 'Listless Merchant', mapId: 'forest', position: { x: -10, y: -22 }, dialogueId: 'fort_quartermaster', sprite: 'npc_merchant' },
   ];
 }
 
@@ -87,6 +91,8 @@ export function createNpcWanderState(npcData: NPC[]): Record<string, NpcWanderSt
                 ? 0.55
                 : npc.id === 'chapel_keeper'
                   ? 0.45
+                : npc.id === 'fort_quartermaster'
+                  ? 0.8
                 : 1.5,
       speed:
         npc.id === 'child'
@@ -101,6 +107,8 @@ export function createNpcWanderState(npcData: NPC[]): Record<string, NpcWanderSt
                 ? 0.18
                 : npc.id === 'chapel_keeper'
                   ? 0.14
+                : npc.id === 'fort_quartermaster'
+                  ? 0.22
                 : 0.5,
       pauseTimer: Math.random() * 3,
       isPaused: true,

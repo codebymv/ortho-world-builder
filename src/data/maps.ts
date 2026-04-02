@@ -347,14 +347,55 @@ const forestDef: MapDefinition = {
     { x: 20, y: 240, width: 30, height: 25, type: 'clearing', fill: 'dirt' },
     { x: 25, y: 245, width: 20, height: 15, type: 'camp', interactionId: 'spider_nest' },
 
+    // === THE HOLLOW — River Crossing (east-west barrier at y~78-86) ===
+    { x: 30, y: 78, width: 40, height: 6, type: 'wall', fill: 'water' },
+    { x: 68, y: 79, width: 44, height: 6, type: 'wall', fill: 'water' },
+    { x: 136, y: 78, width: 40, height: 6, type: 'wall', fill: 'water' },
+    { x: 190, y: 79, width: 50, height: 6, type: 'wall', fill: 'water' },
+    { x: 250, y: 78, width: 40, height: 6, type: 'wall', fill: 'water' },
+    // Bridges across the Hollow river
+    { x: 120, y: 78, width: 8, height: 6, type: 'bridge' },
+    { x: 178, y: 78, width: 6, height: 6, type: 'bridge' },
+
+    // === THE HOLLOW — Dark clearings and corrupted terrain (y < 75) ===
+    { x: 40, y: 30, width: 30, height: 30, type: 'clearing', fill: 'dark_grass' },
+    { x: 80, y: 40, width: 25, height: 25, type: 'clearing', fill: 'dark_grass' },
+    { x: 110, y: 50, width: 30, height: 22, type: 'clearing', fill: 'dark_grass' },
+    { x: 145, y: 35, width: 30, height: 30, type: 'clearing', fill: 'dark_grass' },
+    { x: 180, y: 45, width: 25, height: 25, type: 'clearing', fill: 'dark_grass' },
+    { x: 60, y: 55, width: 20, height: 20, type: 'clearing', fill: 'dark_grass' },
+    { x: 200, y: 30, width: 24, height: 20, type: 'clearing', fill: 'dark_grass' },
+    // Mossy stone patches — corruption seeping through
+    { x: 85, y: 35, width: 8, height: 6, type: 'clearing', fill: 'mossy_stone' },
+    { x: 155, y: 50, width: 6, height: 4, type: 'clearing', fill: 'mossy_stone' },
+    { x: 120, y: 25, width: 8, height: 6, type: 'clearing', fill: 'mossy_stone' },
+    // Paths through the Hollow (mossy stone trails)
+    { x: 120, y: 72, width: 8, height: 8, type: 'path', fill: 'dirt' },
+    { x: 122, y: 55, width: 6, height: 18, type: 'path', fill: 'dirt' },
+    { x: 118, y: 40, width: 8, height: 16, type: 'path', fill: 'dirt' },
+    { x: 120, y: 28, width: 6, height: 14, type: 'path', fill: 'dirt' },
+    // Side path to shortcut gate
+    { x: 100, y: 38, width: 20, height: 4, type: 'path', fill: 'dirt' },
+
+    // === THE HOLLOW — Fog Gate to Boss Arena ===
+    { x: 105, y: 12, width: 34, height: 20, type: 'clearing', fill: 'dark_grass' },
+
+    // === THE HOLLOW — Hunter trail camps ===
+    { x: 115, y: 65, width: 10, height: 8, type: 'abandoned_camp', interactionId: 'hollow_hunter_camp_1' },
+    { x: 130, y: 45, width: 8, height: 6, type: 'abandoned_camp', interactionId: 'hollow_hunter_camp_2' },
+    { x: 118, y: 28, width: 10, height: 8, type: 'abandoned_camp', interactionId: 'hollow_hunters_final_camp' },
+
+    // === THE HOLLOW — Shortcut gate (blocks path back to bonfire from boss side) ===
+    { x: 98, y: 40, width: 4, height: 4, type: 'gate', interactionId: 'hollow_gate' },
+
     // === FOREST LAKES ===
-    { x: 110, y: 80, width: 28, height: 20, type: 'lake' },
+    { x: 110, y: 87, width: 28, height: 13, type: 'lake' },
     { x: 240, y: 180, width: 20, height: 16, type: 'lake' },
     { x: 40, y: 200, width: 16, height: 12, type: 'lake' },
     { x: 180, y: 250, width: 22, height: 16, type: 'lake' },
 
     // === BRIDGES ===
-    { x: 120, y: 88, width: 8, height: 4, type: 'bridge' },
+    { x: 120, y: 92, width: 8, height: 4, type: 'bridge' },
     { x: 248, y: 186, width: 4, height: 4, type: 'bridge' },
 
     // === ANCIENT RUINS ===
@@ -422,12 +463,11 @@ const forestDef: MapDefinition = {
     { x: 118, y: 220, width: 18, height: 12, type: 'abandoned_camp', interactionId: 'hunters_last_camp' },
     { x: 144, y: 206, width: 16, height: 14, type: 'cemetery' },
     { x: 152, y: 220, width: 18, height: 12, type: 'destroyed_town', interactionId: 'hunter_wreck' },
-    { x: 170, y: 80, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage', interiorMap: 'interior_cottage_forest', interiorSpawnX: 6, interiorSpawnY: 8 },
+    { x: 170, y: 90, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage', interiorMap: 'interior_cottage_forest', interiorSpawnX: 6, interiorSpawnY: 8 },
     { x: 80, y: 50, width: 6, height: 6, type: 'cottage', interactionId: 'ruin_cottage' },
     { x: 210, y: 200, width: 6, height: 6, type: 'cottage', interactionId: 'hidden_cottage' },
 
     // === WATCHTOWERS ===
-    { x: 150, y: 130, width: 6, height: 6, type: 'watchtower' },
     { x: 100, y: 70, width: 6, height: 6, type: 'watchtower' },
     { x: 230, y: 90, width: 6, height: 6, type: 'watchtower' },
 
@@ -475,8 +515,25 @@ const forestDef: MapDefinition = {
     { x: 98, y: 234, width: 14, height: 12, type: 'wall', fill: 'water' },
     { x: 68, y: 206, width: 20, height: 22, type: 'cliff_face' },
     { x: 120, y: 218, width: 8, height: 12, type: 'cliff_face' },
-    // West branch off the central spine so travelers and AI can reach the mid-west forest without hugging the fort
+    // West branch off the central spine — optional exploration; ranger_north_spine_sign + whisper_wild_fork_sign frame the main quest lane vs. secrets
     { x: 100, y: 120, width: 40, height: 6, type: 'path', fill: 'dirt' },
+    // Chapel approach: paved link from west branch (south of old_chapel footprint y≤113) to the ranger remains at ~55,114
+    { x: 58, y: 120, width: 43, height: 6, type: 'path', fill: 'dirt' },
+    { x: 50, y: 114, width: 16, height: 10, type: 'path', fill: 'dirt' },
+
+    // === MID-ZONE CORRIDOR — tree walls funnelling the spine between ranger plateau and fort ===
+    // West tree wall (south segment, below the west-branch gap)
+    { x: 90, y: 128, width: 12, height: 18, type: 'wall', fill: 'tree' },
+    // West tree wall (north segment, above the west-branch gap)
+    { x: 92, y: 108, width: 10, height: 10, type: 'wall', fill: 'tree' },
+    // West palisade — closes gap between west tree wall and fort west wall
+    { x: 102, y: 131, width: 28, height: 15, type: 'wall', fill: 'tree' },
+    // East tree wall (south segment, below the east side-trail gap at ~y:130)
+    { x: 160, y: 136, width: 12, height: 12, type: 'wall', fill: 'tree' },
+    // East tree wall (north segment, above the east side-trail gap)
+    { x: 158, y: 108, width: 12, height: 20, type: 'wall', fill: 'tree' },
+    // East palisade — closes gap between fort east wall and east tree wall
+    { x: 152, y: 131, width: 8, height: 15, type: 'wall', fill: 'tree' },
   ],
   portals: [
     { x: 150, y: 291, targetMap: 'village', targetX: 120, targetY: 8 },
@@ -510,21 +567,29 @@ const forestDef: MapDefinition = {
     { x: 68, y: 196, interactionId: 'fort_chest_3' },
     { x: 111, y: 220, interactionId: 'forest_river_chest' },
     { x: 225, y: 155, interactionId: 'golem_arena_chest' },
+    // Fort garrison chest — inside the gate so entry feels earned
+    { x: 145, y: 128, interactionId: 'fort_garrison_chest' },
+    // Hollow boss arena chest — full manuscript
+    { x: 130, y: 16, interactionId: 'hollow_boss_chest' },
   ],
   interactables: [
     { x: 140, y: 170, type: 'sign', walkable: false, interactionId: 'ranger_sign' },
-    { x: 120, y: 90, type: 'sign', walkable: false, interactionId: 'bridge_sign' },
+    { x: 150, y: 162, type: 'sign', walkable: false, interactionId: 'ranger_north_spine_sign' },
+    { x: 150, y: 115, type: 'sign', walkable: false, interactionId: 'fort_north_approach_sign' },
+    { x: 150, y: 105, type: 'sign', walkable: false, interactionId: 'whisper_lake_runoff_sign' },
+    { x: 120, y: 122, type: 'sign', walkable: false, interactionId: 'whisper_wild_fork_sign' },
+    { x: 120, y: 98, type: 'sign', walkable: false, interactionId: 'bridge_sign' },
     { x: 60, y: 156, type: 'sign', walkable: false, interactionId: 'danger_sign' },
-    { x: 130, y: 44, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_north' },
+    { x: 130, y: 44, type: 'bonfire', walkable: false, interactionId: 'bonfire_hollow' },
+    { x: 141, y: 148, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_fort' },
     { x: 130, y: 206, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_south' },
     { x: 150, y: 260, type: 'sign', walkable: false, interactionId: 'forest_entry_sign' },
-    { x: 128, y: 198, type: 'sign', walkable: false, interactionId: 'hunter_warning_sign' },
     { x: 127, y: 205, type: 'shortcut_lever', walkable: false, interactionId: 'forest_shortcut_lever' },
     { x: 146, y: 240, type: 'stump', walkable: false, interactionId: 'stump_lore' },
     { x: 100, y: 100, type: 'stump', walkable: false, interactionId: 'stump_lore' },
     { x: 200, y: 90, type: 'stump', walkable: false, interactionId: 'stump_lore' },
     { x: 132, y: 188, type: 'sign', walkable: false, interactionId: 'hunter_cottage_sign' },
-    { x: 168, y: 86, type: 'sign', walkable: false, interactionId: 'forest_cottage_sign' },
+    { x: 168, y: 96, type: 'sign', walkable: false, interactionId: 'forest_cottage_sign' },
     { x: 90, y: 230, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 250, y: 190, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 45, y: 145, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
@@ -534,8 +599,9 @@ const forestDef: MapDefinition = {
     { x: 275, y: 270, type: 'well', walkable: false, interactionId: 'well' },
     { x: 25, y: 205, type: 'sign', walkable: false, interactionId: 'destroyed_town_sign' },
     { x: 258, y: 155, type: 'well', walkable: false, interactionId: 'ancient_fountain' },
-    { x: 135, y: 95, type: 'well', walkable: false, interactionId: 'ancient_well' },
+    { x: 140, y: 95, type: 'well', walkable: false, interactionId: 'ancient_well' },
     { x: 30, y: 35, type: 'bones_pile', walkable: true, interactionId: 'wolf_den_bones' },
+    { x: 55, y: 114, type: 'ranger_remains', walkable: true, interactionId: 'chapel_dead_ranger' },
     { x: 55, y: 107, type: 'altar', walkable: false, interactionId: 'old_chapel_altar' },
     { x: 262, y: 25, type: 'sign', walkable: false, interactionId: 'volcano_warning' },
     { x: 252, y: 142, type: 'sign', walkable: false, interactionId: 'temple_inscription' },
@@ -559,6 +625,17 @@ const forestDef: MapDefinition = {
     { x: 140, y: 48, type: 'flower', walkable: true, interactionId: 'moonbloom_pickup' },
     { x: 210, y: 105, type: 'flower', walkable: true, interactionId: 'moonbloom_pickup' },
     { x: 85, y: 185, type: 'flower', walkable: true, interactionId: 'moonbloom_pickup' },
+    // === THE HOLLOW — Warning signs at river crossing ===
+    { x: 118, y: 85, type: 'sign', walkable: false, interactionId: 'hollow_warning_sign' },
+    { x: 176, y: 85, type: 'sign', walkable: false, interactionId: 'hollow_warning_sign' },
+    // === THE HOLLOW — Hunter trail signs ===
+    { x: 122, y: 70, type: 'sign', walkable: false, interactionId: 'hollow_trail_sign_1' },
+    { x: 124, y: 50, type: 'sign', walkable: false, interactionId: 'hollow_trail_sign_2' },
+    { x: 120, y: 32, type: 'sign', walkable: false, interactionId: 'hollow_trail_sign_3' },
+    // === THE HOLLOW — Shortcut lever (boss side, opens gate back to bonfire) ===
+    { x: 96, y: 38, type: 'shortcut_lever', walkable: false, interactionId: 'hollow_shortcut_lever' },
+    // === THE HOLLOW — Hunters final camp (just before boss arena) ===
+    { x: 120, y: 26, type: 'campfire', walkable: false, interactionId: 'hollow_final_camp' },
   ],
   props: [
     { x: 144, y: 268, type: 'lantern', walkable: false },
@@ -571,8 +648,13 @@ const forestDef: MapDefinition = {
     { x: 160, y: 256, type: 'stump', walkable: false },
     { x: 146, y: 238, type: 'lantern', walkable: false },
     { x: 146, y: 222, type: 'lantern', walkable: false },
-    { x: 118, y: 88, type: 'lantern', walkable: false },
-    { x: 122, y: 88, type: 'lantern', walkable: false },
+    // Northward spine — ranger line of march (packed path ~146–154 x); keeps manuscript progression readable
+    { x: 152, y: 172, type: 'lantern', walkable: false },
+    { x: 152, y: 152, type: 'lantern', walkable: false },
+    { x: 152, y: 132, type: 'lantern', walkable: false },
+    { x: 152, y: 112, type: 'lantern', walkable: false },
+    { x: 118, y: 85, type: 'lantern', walkable: false },
+    { x: 122, y: 85, type: 'lantern', walkable: false },
     { x: 74, y: 40, type: 'bones_pile', walkable: true },
     { x: 82, y: 38, type: 'dead_tree', walkable: false },
     { x: 84, y: 42, type: 'cage', walkable: false },
@@ -644,7 +726,7 @@ const forestDef: MapDefinition = {
     { x: 233, y: 130, type: 'stump', walkable: false },
     { x: 237, y: 132, type: 'barrel', walkable: false },
     { x: 239, y: 132, type: 'crate', walkable: false },
-    { x: 174, y: 82, type: 'stump', walkable: false },
+    { x: 174, y: 88, type: 'stump', walkable: false },
     { x: 88, y: 181, type: 'stump', walkable: false },
     { x: 92, y: 182, type: 'barrel', walkable: false },
     { x: 176, y: 180, type: 'stump', walkable: false },
@@ -718,23 +800,26 @@ const forestDef: MapDefinition = {
   enemyZones: [
     // Zones are spread by quadrant / POI so packs are not stacked on one choke (esp. north gate).
 
-    // NE — bandit camp + wider road approach
-    { x: 210, y: 25, width: 20, height: 18, enemyType: 'bandit', count: 10 },
-    { x: 182, y: 46, width: 32, height: 14, enemyType: 'bandit', count: 6 },
+    // NE — Hollow shadow creatures (formerly bandits)
+    { x: 210, y: 25, width: 20, height: 18, enemyType: 'shadow', count: 6 },
+    { x: 182, y: 46, width: 32, height: 14, enemyType: 'shadow', count: 4 },
 
     // SW — spider nest + perimeter (offset from nest center)
     { x: 20, y: 240, width: 28, height: 22, enemyType: 'spider', count: 8 },
     { x: 55, y: 252, width: 22, height: 12, enemyType: 'spider', count: 4 },
 
-    // NW — ruins (clear of wolf den clearing center)
-    { x: 65, y: 25, width: 22, height: 16, enemyType: 'skeleton', count: 6 },
+    // NW — Hollow dark wolves + shadows (formerly skeletons)
+    { x: 65, y: 25, width: 22, height: 16, enemyType: 'wolf', count: 4 },
+    { x: 50, y: 50, width: 20, height: 16, enemyType: 'shadow', count: 3 },
 
     // Central — east of ranger plateau / inn (avoids fort footprint ~130–152, 120–138)
     { x: 166, y: 148, width: 18, height: 18, enemyType: 'wolf', count: 4 },
-    { x: 86, y: 116, width: 26, height: 18, enemyType: 'wolf', count: 5 },
+    // Fort garrison — armored wolves patrol the perimeter; regular wolves hang back west
+    { x: 110, y: 116, width: 18, height: 14, enemyType: 'armored_wolf', count: 3 },
+    { x: 86, y: 116, width: 20, height: 14, enemyType: 'wolf', count: 3 },
 
-    // North — single wide band along deep woods gate (replaces stacked twin boxes)
-    { x: 96, y: 4, width: 60, height: 16, enemyType: 'wolf', count: 12 },
+    // North — Hollow shadows near fog gate
+    { x: 96, y: 4, width: 60, height: 16, enemyType: 'shadow', count: 8 },
 
     // West — hidden grove plants
     { x: 18, y: 124, width: 22, height: 18, enemyType: 'plant', count: 5 },
@@ -770,7 +855,7 @@ const forestDef: MapDefinition = {
     { x: 245, y: 266, width: 16, height: 14, enemyType: 'plant', count: 4 },
     { x: 175, y: 175, width: 16, height: 14, enemyType: 'spider', count: 3 },
     { x: 105, y: 168, width: 14, height: 12, enemyType: 'wolf', count: 3 },
-    { x: 135, y: 90, width: 16, height: 14, enemyType: 'bandit', count: 4 },
+    { x: 142, y: 90, width: 16, height: 14, enemyType: 'shadow', count: 4 },
 
     // SW plateau + far E trail
     { x: 36, y: 192, width: 20, height: 16, enemyType: 'wolf', count: 4 },
@@ -1431,7 +1516,7 @@ const interiorCottageForestDef: MapDefinition = {
     { x: 2, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
     { x: 7, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
   ],
-  portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 173, targetY: 86 }],
+  portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 173, targetY: 96 }],
   chests: [{ x: 9, y: 6, interactionId: 'forest_cottage_chest' }],
   interactables: [],
   props: [
@@ -1615,6 +1700,49 @@ const interiorHunterCottageDef: MapDefinition = {
   ],
 };
 
+// ==================== INTERIOR: HOLLOW GUARDIAN ARENA ====================
+const interiorHollowArenaDef: MapDefinition = {
+  name: 'The Hollow',
+  subtitle: 'Lair of the Guardian',
+  width: 36,
+  height: 36,
+  spawnPoint: { x: 18, y: 32 },
+  seed: 9100,
+  baseTerrain: 'forest',
+  borderTile: 'dead_tree',
+  autoRoads: false,
+  coastalSouthBorder: false,
+  features: [
+    // Outer dead tree perimeter (solid ring)
+    { x: 0, y: 0, width: 36, height: 3, type: 'wall', fill: 'dead_tree' },
+    { x: 0, y: 33, width: 36, height: 3, type: 'wall', fill: 'dead_tree' },
+    { x: 0, y: 3, width: 3, height: 30, type: 'wall', fill: 'dead_tree' },
+    { x: 33, y: 3, width: 3, height: 30, type: 'wall', fill: 'dead_tree' },
+    // Inner clearing — corrupted dark arena floor
+    { x: 3, y: 3, width: 30, height: 30, type: 'clearing', fill: 'dark_grass' },
+    // Stone circle at center
+    { x: 10, y: 10, width: 16, height: 16, type: 'clearing', fill: 'mossy_stone' },
+    { x: 13, y: 13, width: 10, height: 10, type: 'clearing', fill: 'ruins_floor' },
+  ],
+  portals: [
+    { x: 18, y: 34, targetMap: 'forest', targetX: 122, targetY: 30 },
+  ],
+  chests: [],
+  interactables: [],
+  props: [
+    // Corner pillars
+    { x: 10, y: 10, type: 'statue', walkable: false },
+    { x: 25, y: 10, type: 'statue', walkable: false },
+    { x: 10, y: 25, type: 'statue', walkable: false },
+    { x: 25, y: 25, type: 'statue', walkable: false },
+    // Scattered bones
+    { x: 14, y: 8, type: 'bones', walkable: true },
+    { x: 22, y: 7, type: 'bones', walkable: true },
+    { x: 8, y: 16, type: 'bones', walkable: true },
+    { x: 27, y: 20, type: 'bones', walkable: true },
+  ],
+};
+
 // Lazy map generation - only generate when first accessed
 const mapCache: Record<string, WorldMap> = {};
 
@@ -1640,6 +1768,7 @@ export const mapDefinitions: Record<string, MapDefinition> = {
   interior_witch_cottage: interiorWitchCottageDef,
   interior_witch_hut: interiorWitchHutDef,
   interior_hunter_cottage: interiorHunterCottageDef,
+  interior_hollow_arena: interiorHollowArenaDef,
 };
 
 function getOrGenerateMap(key: string): WorldMap {

@@ -20,6 +20,7 @@ import { PauseMenu } from './game/PauseMenu';
 import { TransitionOverlay } from './game/TransitionOverlay';
 import { DeathOverlay } from './game/DeathOverlay';
 import { BonfireOverlay } from './game/BonfireOverlay';
+import { WeaponAcquiredOverlay } from './game/WeaponAcquiredOverlay';
 import { notify } from '@/lib/game/notificationBus';
 import { createProgressionService } from '@/game/domain/ProgressionService';
 import { createAudioProcessor } from '@/game/domain/AudioDirector';
@@ -109,6 +110,7 @@ const Game = () => {
   const [bonfireOverlaySubtitle, setBonfireOverlaySubtitle] = useState<string | null>(null);
   const [justPickedUpItem, setJustPickedUpItem] = useState<Item | null>(null);
   const [justGainedCurrency, setJustGainedCurrency] = useState<CurrencyGain | null>(null);
+  const [weaponAcquiredItem, setWeaponAcquiredItem] = useState<Item | null>(null);
   const bonfireOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const justPickedUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const justGainedCurrencyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -141,6 +143,10 @@ const Game = () => {
     if (!gameState) return;
 
     gameState.onItemAdded = (item: Item) => {
+      if (item.type === 'equipment') {
+        setWeaponAcquiredItem({ ...item });
+        return;
+      }
       setJustPickedUpItem({ ...item });
       if (justPickedUpTimerRef.current) {
         clearTimeout(justPickedUpTimerRef.current);
@@ -210,11 +216,41 @@ const Game = () => {
 
   const triggerUIUpdate = () => setUiVersion(prev => prev + 1);
   const lastUIUpdateRef = useRef(0);
+  const lastUiHudSnapshotRef = useRef<{
+    health: number;
+    stamina: number;
+    maxHealth: number;
+    maxStamina: number;
+    gold: number;
+    essence: number;
+  } | null>(null);
   const triggerUIUpdateThrottled = (now: number = performance.now()) => {
-    if (now - lastUIUpdateRef.current >= 50) {
-      lastUIUpdateRef.current = now;
-      setUiVersion(prev => prev + 1);
-    }
+    const state = gameStateRef.current;
+    if (!state) return;
+
+    const nextSnapshot = {
+      health: state.player.health,
+      stamina: Math.round(state.player.stamina),
+      maxHealth: state.player.maxHealth,
+      maxStamina: state.player.maxStamina,
+      gold: state.gold,
+      essence: state.essence,
+    };
+    const prevSnapshot = lastUiHudSnapshotRef.current;
+    const changed = !prevSnapshot ||
+      prevSnapshot.health !== nextSnapshot.health ||
+      prevSnapshot.stamina !== nextSnapshot.stamina ||
+      prevSnapshot.maxHealth !== nextSnapshot.maxHealth ||
+      prevSnapshot.maxStamina !== nextSnapshot.maxStamina ||
+      prevSnapshot.gold !== nextSnapshot.gold ||
+      prevSnapshot.essence !== nextSnapshot.essence;
+
+    if (!changed) return;
+    if (now - lastUIUpdateRef.current < 90) return;
+
+    lastUIUpdateRef.current = now;
+    lastUiHudSnapshotRef.current = nextSnapshot;
+    setUiVersion(prev => prev + 1);
   };
   const triggerMinimapUpdate = (force: boolean = false, now: number = performance.now()) => {
     if (force || now - lastMinimapRefreshRef.current >= 120) {
@@ -236,6 +272,22 @@ const Game = () => {
       setBonfireOverlayActive(false);
       bonfireOverlayTimerRef.current = null;
     }, 2900);
+  }, []);
+
+  const handlePlayPotionDrink = useCallback(() => {
+    playPotionDrinkRef.current?.();
+  }, []);
+
+  const handlePlayGrassChew = useCallback(() => {
+    playGrassChewRef.current?.();
+  }, []);
+
+  const handlePlayMenuOpen = useCallback(() => {
+    playMenuOpenRef.current?.();
+  }, []);
+
+  const handlePlayMenuClose = useCallback(() => {
+    playMenuCloseRef.current?.();
   }, []);
   const createDialogueProgression = () =>
     createProgressionService({
@@ -436,18 +488,10 @@ const Game = () => {
             triggerUIUpdate={triggerUIUpdate}
             justPickedUpItem={justPickedUpItem}
             justGainedCurrency={justGainedCurrency}
-            playPotionDrink={() => {
-              playPotionDrinkRef.current?.();
-            }}
-            playGrassChew={() => {
-              playGrassChewRef.current?.();
-            }}
-            playMenuOpen={() => {
-              playMenuOpenRef.current?.();
-            }}
-            playMenuClose={() => {
-              playMenuCloseRef.current?.();
-            }}
+            playPotionDrink={handlePlayPotionDrink}
+            playGrassChew={handlePlayGrassChew}
+            playMenuOpen={handlePlayMenuOpen}
+            playMenuClose={handlePlayMenuClose}
             musicRef={musicRef}
             showControls={showControls}
             interactionPrompt={interactionPrompt}
@@ -521,6 +565,22 @@ const Game = () => {
       <TransitionOverlay active={transitionActive} mapName={transitionMapName} mapSubtitle={transitionMapSubtitle} />
       <DeathOverlay active={deathActive} essenceLost={deathEssenceLost} onComplete={handleDeathComplete} />
       <BonfireOverlay active={bonfireOverlayActive} title={bonfireOverlayTitle} subtitle={bonfireOverlaySubtitle ?? undefined} />
+      <WeaponAcquiredOverlay
+        weapon={weaponAcquiredItem}
+        currentWeapon={
+          gameState
+            ? (gameState.equippedWeaponId
+                ? gameState.inventory.find(i => i.id === gameState.equippedWeaponId) ?? null
+                : gameState.inventory.find(i => i.type === 'equipment') ?? null)
+            : null
+        }
+        assetManager={assetManagerRef.current}
+        onEquip={(weaponId) => {
+          gameState?.setEquippedWeapon(weaponId);
+          triggerUIUpdate();
+        }}
+        onDismiss={() => setWeaponAcquiredItem(null)}
+      />
     </div>
   );
 };

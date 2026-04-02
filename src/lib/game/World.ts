@@ -17,8 +17,12 @@ export type TileType =
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
   | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter'
   | 'bed' | 'wardrobe' | 'fireplace' | 'weapon_rack' | 'alchemy_table' | 'cauldron'
-  | 'throne' | 'altar' | 'bloodstain' | 'chain' | 'shortcut_lever' | 'cage' | 'bones_pile'
-  | 'door' | 'door_interior' | 'door_iron';
+  | 'throne' | 'altar' | 'bloodstain' | 'chain' | 'shortcut_lever' | 'cage' | 'bones_pile' | 'ranger_remains'
+  | 'door' | 'door_interior' | 'door_iron'
+  | 'fog_gate';
+
+/** Pass as `getInteractableNear` radius from gameplay so gates / chunky facades stay in scan + reach. */
+export const INTERACTABLE_QUERY_RADIUS = 2.75;
 
 export interface Tile {
   type: TileType;
@@ -64,7 +68,8 @@ interface ChunkMesh {
 
 const RENDER_RADIUS = 32;
 const CULL_RADIUS = 42;
-const MAX_TILES_PER_FRAME = 200; // batch tile creation to prevent frame drops
+const MAX_TILES_PER_FRAME = 200; // steady-state budget while moving
+const INITIAL_LOAD_TILES_PER_FRAME = 320; // smoother initial/after-rebuild streaming without one-frame spikes
 const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'stairs', 'ladder']);
 const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'bones',
@@ -120,6 +125,14 @@ export class World {
   private readonly PRELOAD_EXTRA = 10; // extra tiles in movement direction
   private pendingTiles: Array<{ x: number; y: number; key: string }> = [];
   private isInitialLoad: boolean = true;
+  private mapRevision: number = 0;
+  private interactableCache: {
+    centerTileX: number;
+    centerTileY: number;
+    radius: number;
+    revision: number;
+    result: InteractableHit | null;
+  } | null = null;
   /** Meshes below the south coast tiles; not part of chunk streaming. */
   private southCoastBackdrop: THREE.Group | null = null;
   private southCoastBackdropDisposables: Array<{
@@ -246,10 +259,80 @@ export class World {
   private createPlaneMesh(texture: THREE.Texture, z: number, cacheKey: string): THREE.Mesh {
     const material = this.getCachedMaterial(texture, cacheKey);
     const mesh = new THREE.Mesh(this.sharedTileGeometry, material);
-    mesh.frustumCulled = false;
+    mesh.frustumCulled = true;
     mesh.position.z = z;
     mesh.matrixAutoUpdate = false;
     return mesh;
+  }
+
+  private tileKey(tileX: number, tileY: number): string {
+    return `${tileX},${tileY}`;
+  }
+
+  private shouldKeepTileActive(tileX: number, tileY: number): boolean {
+    if (this.lastChunkCenter.x === -9999 || this.lastChunkCenter.y === -9999) return false;
+    return Math.abs(tileX - this.lastChunkCenter.x) <= CULL_RADIUS &&
+      Math.abs(tileY - this.lastChunkCenter.y) <= CULL_RADIUS;
+  }
+
+  private removeActiveTileObject(key: string): void {
+    const object = this.activeMeshes.get(key);
+    if (!object) return;
+    this.scene.remove(object);
+    this.recycleObject(object);
+    this.activeMeshes.delete(key);
+  }
+
+  private attachTileObject(tileX: number, tileY: number, object: THREE.Object3D): void {
+    const isOverlay = this.isOverlayTileType(this.map.tiles[tileY]?.[tileX]?.type ?? 'grass');
+    const baseZ = isOverlay ? 0.01 : 0.0;
+    const visualYOffset = (this.map.tiles[tileY]?.[tileX]?.elevation ?? 0) * World.ELEVATION_Y_OFFSET;
+    const worldOffsetX = -this.map.width / 2;
+    const worldOffsetY = -this.map.height / 2;
+    object.position.set(worldOffsetX + tileX * this.tileSize, worldOffsetY + tileY * this.tileSize + visualYOffset, baseZ);
+    object.userData = {
+      ...object.userData,
+      tileX,
+      tileY,
+    };
+    if (isOverlay) {
+      const sortAnchorY = object.userData?.sortAnchorY ?? 0;
+      const worldY = worldOffsetY + tileY * this.tileSize + visualYOffset + sortAnchorY;
+      const ySort = Math.round(100000 - worldY * 10 + (object.userData?.renderOrderBias ?? 0));
+      this.applyOverlayRenderOrder(object, ySort);
+    }
+    object.updateMatrix();
+    if (object instanceof THREE.Group) object.updateMatrixWorld(false);
+    this.scene.add(object);
+    this.activeMeshes.set(this.tileKey(tileX, tileY), object);
+  }
+
+  private refreshTileRegion(minTileX: number, minTileY: number, maxTileX: number, maxTileY: number): void {
+    this.mapRevision += 1;
+    this.interactableCache = null;
+    const clampedMinX = Math.max(0, minTileX);
+    const clampedMinY = Math.max(0, minTileY);
+    const clampedMaxX = Math.min(this.map.width - 1, maxTileX);
+    const clampedMaxY = Math.min(this.map.height - 1, maxTileY);
+    if (clampedMinX > clampedMaxX || clampedMinY > clampedMaxY) return;
+
+    this.pendingTiles = this.pendingTiles.filter(({ x, y }) =>
+      x < clampedMinX || x > clampedMaxX || y < clampedMinY || y > clampedMaxY
+    );
+
+    for (let y = clampedMinY; y <= clampedMaxY; y++) {
+      for (let x = clampedMinX; x <= clampedMaxX; x++) {
+        const key = this.tileKey(x, y);
+        this.removeActiveTileObject(key);
+        if (!this.shouldKeepTileActive(x, y)) continue;
+
+        const tile = this.map.tiles[y]?.[x];
+        if (!tile || tile.hidden) continue;
+        const object = this.createTileObject(tile, x, y);
+        if (!object) continue;
+        this.attachTileObject(x, y, object);
+      }
+    }
   }
 
   private setRenderRole(object: THREE.Object3D, role: 'ground' | 'overlay'): void {
@@ -298,7 +381,7 @@ export class World {
     }
 
     const mesh = new THREE.Mesh(this.detailGeometry, mat);
-    mesh.frustumCulled = false;
+    mesh.frustumCulled = true;
     mesh.matrixAutoUpdate = false;
 
     const offsetX = (tileHash(tileX, tileY, 3) - 0.5) * 0.5;
@@ -332,7 +415,7 @@ export class World {
     }
 
     const mesh = new THREE.Mesh(this.shadowGeometry, mat);
-    mesh.frustumCulled = false;
+    mesh.frustumCulled = true;
     mesh.matrixAutoUpdate = false;
     mesh.position.set(0, 0, -0.32);
     mesh.rotation.z = rotation;
@@ -608,7 +691,7 @@ export class World {
       this.setRenderRole(mesh, 'ground');
       mesh.scale.set(1, gap, 1);
       mesh.position.set(0, this.tileSize * 0.5 + gap * 0.5, 0.04);
-      mesh.frustumCulled = false;
+      mesh.frustumCulled = true;
       mesh.matrixAutoUpdate = false;
       mesh.updateMatrix();
       parent.add(mesh);
@@ -627,7 +710,7 @@ export class World {
       this.setRenderRole(mesh, 'ground');
       mesh.scale.set(gap, 1, 1);
       mesh.position.set(this.tileSize * 0.5 + gap * 0.5, 0, 0.04);
-      mesh.frustumCulled = false;
+      mesh.frustumCulled = true;
       mesh.matrixAutoUpdate = false;
       mesh.updateMatrix();
       parent.add(mesh);
@@ -854,10 +937,8 @@ export class World {
 
     // Process pending tiles from previous frames (batched loading)
     if (this.pendingTiles.length > 0) {
-      const batchSize = this.isInitialLoad ? this.pendingTiles.length : MAX_TILES_PER_FRAME;
+      const batchSize = this.isInitialLoad ? INITIAL_LOAD_TILES_PER_FRAME : MAX_TILES_PER_FRAME;
       const batch = this.pendingTiles.splice(0, batchSize);
-      const worldOffsetX = -this.map.width / 2;
-      const worldOffsetY = -this.map.height / 2;
 
       for (const { x, y, key } of batch) {
         if (this.activeMeshes.has(key)) continue;
@@ -866,22 +947,7 @@ export class World {
 
         const object = this.createTileObject(tile, x, y);
         if (!object) continue;
-
-        const isOverlay = this.isOverlayTileType(tile.type);
-        const baseZ = isOverlay ? 0.01 : 0.0;
-        const visualYOffset = (tile.elevation ?? 0) * World.ELEVATION_Y_OFFSET;
-        object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize + visualYOffset, baseZ);
-        if (isOverlay) {
-          const sortAnchorY = object.userData?.sortAnchorY ?? 0;
-          const worldY = worldOffsetY + y * this.tileSize + visualYOffset + sortAnchorY;
-          const ySort = Math.round(100000 - worldY * 10 + (object.userData?.renderOrderBias ?? 0));
-          this.applyOverlayRenderOrder(object, ySort);
-        }
-        object.updateMatrix();
-        if (object instanceof THREE.Group) object.updateMatrixWorld(true);
-
-        this.scene.add(object);
-        this.activeMeshes.set(key, object);
+        this.attachTileObject(x, y, object);
       }
 
       if (this.pendingTiles.length === 0) this.isInitialLoad = false;
@@ -907,9 +973,8 @@ export class World {
 
     // Cull distant tiles (keep anything within cull radius to prevent flicker)
     for (const [key, object] of this.activeMeshes) {
-      const comma = key.indexOf(',');
-      const kx = comma > 0 ? +key.slice(0, comma) : NaN;
-      const ky = comma > 0 ? +key.slice(comma + 1) : NaN;
+      const kx = typeof object.userData?.tileX === 'number' ? object.userData.tileX : NaN;
+      const ky = typeof object.userData?.tileY === 'number' ? object.userData.tileY : NaN;
       if (Math.abs(kx - centerTileX) > CULL_RADIUS || Math.abs(ky - centerTileY) > CULL_RADIUS) {
         this.scene.remove(object);
         this.recycleObject(object);
@@ -921,7 +986,7 @@ export class World {
     this.pendingTiles = [];
     for (let y = startY; y <= endY; y++) {
       for (let x = startX; x <= endX; x++) {
-        const key = `${x},${y}`;
+        const key = this.tileKey(x, y);
         if (!this.activeMeshes.has(key)) {
           this.pendingTiles.push({ x, y, key });
         }
@@ -936,10 +1001,8 @@ export class World {
     });
 
     // Process first batch immediately (initial load gets all at once)
-    const immediateBatch = this.isInitialLoad ? this.pendingTiles.length : MAX_TILES_PER_FRAME;
+    const immediateBatch = this.isInitialLoad ? INITIAL_LOAD_TILES_PER_FRAME : MAX_TILES_PER_FRAME;
     const batch = this.pendingTiles.splice(0, immediateBatch);
-    const worldOffsetX = -this.map.width / 2;
-    const worldOffsetY = -this.map.height / 2;
 
     for (const { x, y, key } of batch) {
       if (this.activeMeshes.has(key)) continue;
@@ -948,29 +1011,15 @@ export class World {
 
       const object = this.createTileObject(tile, x, y);
       if (!object) continue;
-
-      const isOverlay = this.isOverlayTileType(tile.type);
-      // Ground tiles at z=0, overlay objects slightly above to fix depth-fighting
-      const baseZ = isOverlay ? 0.01 : 0.0;
-      const visualYOffset = (tile.elevation ?? 0) * World.ELEVATION_Y_OFFSET;
-      object.position.set(worldOffsetX + x * this.tileSize, worldOffsetY + y * this.tileSize + visualYOffset, baseZ);
-      if (isOverlay) {
-        const sortAnchorY = object.userData?.sortAnchorY ?? 0;
-        const worldY = worldOffsetY + y * this.tileSize + visualYOffset + sortAnchorY;
-        const ySort = Math.round(100000 - worldY * 10 + (object.userData?.renderOrderBias ?? 0));
-        this.applyOverlayRenderOrder(object, ySort);
-      }
-      object.updateMatrix();
-      if (object instanceof THREE.Group) object.updateMatrixWorld(true);
-
-      this.scene.add(object);
-      this.activeMeshes.set(key, object);
+      this.attachTileObject(x, y, object);
     }
 
     if (this.pendingTiles.length === 0) this.isInitialLoad = false;
   }
 
   rebuildChunks() {
+    this.mapRevision += 1;
+    this.interactableCache = null;
     this.disposeSouthCoastBackdrop();
     for (const [, object] of this.activeMeshes) {
       this.scene.remove(object);
@@ -1078,15 +1127,27 @@ export class World {
     return tile?.interactable && tile.interactionId ? tile.interactionId : null;
   }
 
-  getInteractableNear(x: number, y: number, radius: number = 1.15): InteractableHit | null {
+  getInteractableNear(x: number, y: number, radius: number = INTERACTABLE_QUERY_RADIUS): InteractableHit | null {
     const centerTileX = Math.floor(x + this.map.width / 2);
     const centerTileY = Math.floor(y + this.map.height / 2);
+    const cached = this.interactableCache;
+    if (
+      cached &&
+      cached.centerTileX === centerTileX &&
+      cached.centerTileY === centerTileY &&
+      cached.radius === radius &&
+      cached.revision === this.mapRevision
+    ) {
+      return cached.result;
+    }
     let best: InteractableHit | null = null;
     let bestDistSq = Number.POSITIVE_INFINITY;
+    const maxGateReach = 3;
+    const span = Math.max(2, Math.ceil(radius + maxGateReach));
 
-    for (let ty = centerTileY - 2; ty <= centerTileY + 2; ty++) {
+    for (let ty = centerTileY - span; ty <= centerTileY + span; ty++) {
       if (ty < 0 || ty >= this.map.height) continue;
-      for (let tx = centerTileX - 2; tx <= centerTileX + 2; tx++) {
+      for (let tx = centerTileX - span; tx <= centerTileX + span; tx++) {
         if (tx < 0 || tx >= this.map.width) continue;
         const tile = this.map.tiles[ty][tx];
         if (!tile?.interactable || !tile.interactionId) continue;
@@ -1109,6 +1170,13 @@ export class World {
       }
     }
 
+    this.interactableCache = {
+      centerTileX,
+      centerTileY,
+      radius,
+      revision: this.mapRevision,
+      result: best,
+    };
     return best;
   }
 
@@ -1144,11 +1212,20 @@ export class World {
       this.activateSwitch(targetTile.linkedTo);
     }
 
-    this.rebuildChunks();
+    this.refreshTileRegion(
+      Math.min(blockTileX, targetTileX) - 1,
+      Math.min(blockTileY, targetTileY) - 1,
+      Math.max(blockTileX, targetTileX) + 1,
+      Math.max(blockTileY, targetTileY) + 1,
+    );
     return true;
   }
 
   activateSwitch(doorId: string) {
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
     for (let y = 0; y < this.map.height; y++) {
       for (let x = 0; x < this.map.width; x++) {
         const tile = this.map.tiles[y][x];
@@ -1156,8 +1233,15 @@ export class World {
           tile.walkable = true;
           tile.type = 'stone';
           tile.activated = true;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
         }
       }
+    }
+    if (Number.isFinite(minX) && Number.isFinite(minY) && Number.isFinite(maxX) && Number.isFinite(maxY)) {
+      this.refreshTileRegion(minX - 1, minY - 1, maxX + 1, maxY + 1);
     }
   }
 
@@ -1177,11 +1261,20 @@ export class World {
     if (tile.type === 'well' || tile.type === 'tombstone' || tile.type === 'table' || tile.type === 'stump') {
       return 1.0;
     }
+    if (tile.type === 'gate') {
+      return 2.75;
+    }
+    if (tile.type === 'fog_gate') {
+      return 2.5;
+    }
     if (tile.type === 'chest' || tile.type === 'chest_opened') {
       return 0.9;
     }
     if (tile.type === 'flower' || tile.type === 'mushroom' || tile.type === 'tempest_grass') {
       return 0.85;
+    }
+    if (tile.type === 'ranger_remains' || tile.type === 'bones_pile') {
+      return 1.05;
     }
     return 0.9;
   }
@@ -1189,6 +1282,7 @@ export class World {
   revealHiddenArea(centerX: number, centerY: number, radius: number = 3) {
     const tileX = Math.floor(centerX + this.map.width / 2);
     const tileY = Math.floor(centerY + this.map.height / 2);
+    let revealedAny = false;
 
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
@@ -1197,15 +1291,20 @@ export class World {
         if (tx >= 0 && tx < this.map.width && ty >= 0 && ty < this.map.height) {
           if (this.map.tiles[ty][tx].hidden) {
             this.map.tiles[ty][tx].hidden = false;
+            revealedAny = true;
           }
         }
       }
     }
-    this.rebuildChunks();
+    if (revealedAny) {
+      this.refreshTileRegion(tileX - radius - 1, tileY - radius - 1, tileX + radius + 1, tileY + radius + 1);
+    }
   }
 
   loadMap(map: WorldMap) {
     this.map = map;
+    this.mapRevision += 1;
+    this.interactableCache = null;
     this.rebuildChunks();
   }
 

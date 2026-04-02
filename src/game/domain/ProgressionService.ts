@@ -81,8 +81,10 @@ export function createProgressionService(context: ProgressionServiceContext) {
         startNode = dialogue.nodes.find(node => node.id === 'deep_woods_active') ?? startNode;
       } else if (villageStage === 'after_deep_woods') {
         startNode = dialogue.nodes.find(node => node.id === 'shadow_watch') ?? startNode;
-      } else if (hunterQuest?.completed) {
+      } else if (hunterQuest?.active && state.getFlag('hunters_manuscript_collected')) {
         startNode = dialogue.nodes.find(node => node.id === 'quest_complete') ?? startNode;
+      } else if (hunterQuest?.active && state.getFlag('manuscript_fragment_collected')) {
+        startNode = dialogue.nodes.find(node => node.id === 'quest_active_fragment') ?? startNode;
       } else if (hunterQuest?.active) {
         startNode = dialogue.nodes.find(node => node.id === 'quest_active') ?? startNode;
       }
@@ -210,6 +212,55 @@ export function createProgressionService(context: ProgressionServiceContext) {
     }
   };
 
+  const applyFortQuartermasterPurchase = (state: GameState, nodeId: string) => {
+    if (nodeId === 'buy_tempest_grass') {
+      if (state.player.gold >= 8) {
+        state.spendGold(8);
+        state.addItem(context.items.tempest_grass);
+        context.notify('Purchased Tempest Grass!', {
+          type: 'success',
+          description: 'Spent 8 gold.',
+          duration: 2500,
+        });
+      } else {
+        context.notify('Not enough gold!', { id: 'no-gold', type: 'error', duration: 2000 });
+      }
+      context.triggerUIUpdate();
+    }
+
+    if (nodeId === 'buy_ephemeral_extract') {
+      if (state.player.gold >= 15) {
+        state.spendGold(15);
+        state.addItem(context.items.health_potion);
+        context.notify('Purchased Ephemeral Extract!', {
+          type: 'success',
+          description: 'Spent 15 gold.',
+          duration: 2500,
+        });
+      } else {
+        context.notify('Not enough gold!', { id: 'no-gold', type: 'error', duration: 2000 });
+      }
+      context.triggerUIUpdate();
+    }
+
+    if (nodeId === 'buy_broadsword') {
+      if (state.hasItem('ornamental_broadsword')) {
+        context.notify('Already owned.', { id: 'already-owned', duration: 2000 });
+      } else if (state.player.gold >= 280) {
+        state.spendGold(280);
+        state.addItem({ ...context.items.ornamental_broadsword });
+        context.notify('Purchased Ornamental Broadsword!', {
+          type: 'success',
+          description: 'Spent 280 gold. A heavy blade with ceremonial runes.',
+          duration: 3000,
+        });
+      } else {
+        context.notify('Not enough gold!', { id: 'no-gold', type: 'error', duration: 2000 });
+      }
+      context.triggerUIUpdate();
+    }
+  };
+
   const handleDialogueResponse = ({
     state,
     currentDialogue,
@@ -226,8 +277,52 @@ export function createProgressionService(context: ProgressionServiceContext) {
       applyMerchantPurchase(state, currentDialogue.node.id);
     }
 
+    if (state.currentDialogue === 'fort_quartermaster' && (nextId === 'shop' || nextId === 'end')) {
+      applyFortQuartermasterPurchase(state, currentDialogue.node.id);
+    }
+
+    if (state.currentDialogue === 'chapel_dead_ranger' && currentDialogue.node.id === 'take_key' && nextId === 'end') {
+      if (!state.getFlag('chapel_key_collected')) {
+        state.setFlag('chapel_key_collected', true);
+        state.addItem({ ...context.items.fort_gate_key });
+        context.notify('Fort Gate Key Acquired', {
+          id: 'fort-key-pickup',
+          type: 'success',
+          description: 'The key bears the same crest as the fort banner.',
+          duration: 3200,
+        });
+        shouldSave = true;
+        context.triggerUIUpdate();
+      }
+    }
+
     if (state.currentDialogue === 'hunter_clue' && nextId === 'complete_quest') {
-      const manuscriptConfig = context.criticalPathItems.hunter_clue;
+      const fragmentConfig = context.criticalPathItems.hunter_clue;
+      if (!state.getFlag(fragmentConfig.collectedFlag)) {
+        state.setFlag(fragmentConfig.collectedFlag, true);
+        if (!state.hasItem(fragmentConfig.itemId)) {
+          state.addItem({ ...context.items[fragmentConfig.itemId] });
+        }
+        context.notify('Manuscript Fragment Acquired', {
+          id: 'manuscript-fragment',
+          type: 'success',
+          description: 'Only a fragment — the rest lies beyond the river, deeper in the woods.',
+          duration: 3600,
+        });
+      }
+
+      const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
+      if (hunterQuest) {
+        hunterQuest.objectives[1] = `Find the Disparaged Cottage ${CHECKMARK}`;
+        hunterQuest.objectives[2] = `Find traces of the manuscript ${CHECKMARK}`;
+        context.triggerUIUpdate();
+        context.triggerMinimapUpdate(true);
+        shouldSave = true;
+      }
+    }
+
+    if (state.currentDialogue === 'hollow_manuscript' && nextId === 'complete_quest') {
+      const manuscriptConfig = context.criticalPathItems.hollow_manuscript;
       if (!state.getFlag(manuscriptConfig.collectedFlag)) {
         state.setFlag(manuscriptConfig.collectedFlag, true);
         if (!state.hasItem(manuscriptConfig.itemId)) {
@@ -236,15 +331,14 @@ export function createProgressionService(context: ProgressionServiceContext) {
         context.notify("Hunter's Manuscript Acquired", {
           id: 'hunters-manuscript',
           type: 'success',
-          description: 'The loose pages may be the clue the Elder needs.',
+          description: 'The complete manuscript — the elder must see this.',
           duration: 3600,
         });
       }
 
       const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
       if (hunterQuest) {
-        hunterQuest.objectives[1] = `Find the Disparaged Cottage ${CHECKMARK}`;
-        hunterQuest.objectives[2] = `Recover the Hunter's Manuscript ${CHECKMARK}`;
+        hunterQuest.objectives[5] = `Recover the complete manuscript ${CHECKMARK}`;
         context.addMarkersFromText('Village Elder', 'village');
         context.triggerUIUpdate();
         context.triggerMinimapUpdate(true);
@@ -255,7 +349,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
     if (state.currentDialogue === 'elder' && nextId === 'end' && currentDialogue.node.id === 'give_second_quest') {
       const hunterQuestPending = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
       if (hunterQuestPending) {
-        hunterQuestPending.objectives[3] = `Return to the elder with your findings ${CHECKMARK}`;
+        hunterQuestPending.objectives[6] = `Return to the elder with your findings ${CHECKMARK}`;
         state.completeQuest('find_hunter');
         context.notify('Quest Completed: The Missing Hunter!', {
           id: 'quest-done-hunter',

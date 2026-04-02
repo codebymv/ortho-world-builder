@@ -66,6 +66,14 @@ export function getInteractionPromptLabel(
   if (interactionId === 'hunter_clue') return "Read Hunter's Manuscript";
   if (interactionId === 'stump_lore') return 'Inspect Carvings';
   if (interactionId === 'wolf_den_bones') return 'Inspect Remains';
+  if (interactionId === 'chapel_dead_ranger') return 'Inspect Fallen Ranger';
+  if (interactionId === 'forest_fort_gate') {
+    if (state.getFlag('forest_fort_gate_open')) return 'Fort Gate (Open)';
+    return state.hasItem('fort_gate_key') ? 'Unlock Fort Gate' : 'Fort Gate (Locked — Key Required)';
+  }
+  if (interactionId === 'hollow_fog_gate') {
+    return state.getFlag('hollow_guardian_defeated') ? 'The Fog Has Lifted' : 'Enter the Fog';
+  }
   if (interactionId === 'old_chapel_altar') return 'Inspect Altar';
   if (interactionId === 'caravan_journal') return 'Read Journal';
   if (interactionId === 'spider_cocoon') return 'Inspect Cocoon';

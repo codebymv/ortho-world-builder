@@ -75,20 +75,31 @@ export function applyPlayerVisuals({
   }
 
   // Blade glow: shader-masked overlay only affects bright (sword) pixels.
+  const isBroadsword = state.equippedWeaponId === 'ornamental_broadsword';
   if (isChargingAttack && chargeLevel > 0) {
     const bladeOverlayMat = bladeOverlayMesh.material as THREE.ShaderMaterial;
 
     if (chargeLevel >= 1) {
       const fastPulse = Math.sin(currentTime / 30) * 0.5 + 0.5;
       const peakIntensity = 0.85 + fastPulse * 0.15;
-      (bladeOverlayMat.uniforms.glowColor.value as THREE.Color)
-        .setRGB(peakIntensity, peakIntensity * 0.82, peakIntensity * 0.35);
+      if (isBroadsword) {
+        (bladeOverlayMat.uniforms.glowColor.value as THREE.Color)
+          .setRGB(peakIntensity * 0.5, peakIntensity * 0.7, peakIntensity);
+      } else {
+        (bladeOverlayMat.uniforms.glowColor.value as THREE.Color)
+          .setRGB(peakIntensity, peakIntensity * 0.82, peakIntensity * 0.35);
+      }
       bladeOverlayMat.uniforms.opacity.value = 0.7 + fastPulse * 0.2;
     } else {
       const pulseCycle = Math.sin(currentTime / 55) * 0.5 + 0.5;
       const intensity = 0.25 + chargeLevel * 0.45 + pulseCycle * 0.3 * chargeLevel;
-      (bladeOverlayMat.uniforms.glowColor.value as THREE.Color)
-        .setRGB(intensity, intensity * 0.65, 0);
+      if (isBroadsword) {
+        (bladeOverlayMat.uniforms.glowColor.value as THREE.Color)
+          .setRGB(intensity * 0.4, intensity * 0.6, intensity * 0.9);
+      } else {
+        (bladeOverlayMat.uniforms.glowColor.value as THREE.Color)
+          .setRGB(intensity, intensity * 0.65, 0);
+      }
       bladeOverlayMat.uniforms.opacity.value = 0.35 + chargeLevel * 0.45;
     }
     bladeOverlayMesh.visible = true;

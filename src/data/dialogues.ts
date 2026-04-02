@@ -52,6 +52,13 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
+        id: 'quest_active_fragment',
+        text: "A **fragment**? There must be more. The hunter wouldn't have stopped there — he was __thorough__, stubborn to a fault. The writing speaks of a corruption deeper in the woods... beyond a river. Find the rest of the manuscript. That is our only hope of understanding what stirs in the forest.",
+        responses: [
+          { text: "I'll cross the river and find the rest.", nextId: 'end' },
+        ],
+      },
+      {
         id: 'quest_complete',
         text: "You've returned! And with such dire news about the forest. The **Deep Woods**... I sense the magical barrier has weakened. I need you to travel there and find the **witch**. She knows the source of this darkness. The path is now open to you.",
         responses: [
@@ -352,17 +359,33 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'ranger_sign',
     nodes: [{ id: 'start', text: "A weathered sign reads: '**Ranger Outpost** — Rest, resupply, and keep the fire lit. Follow the __blood-dark trail east__ for the **Disparaged Cottage**. __Northwest__ paths lead into wolf country.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
+  /** Pacing: after the cottage arc, the main quest continues up the central packed-earth spine; this sign anchors that read. */
+  ranger_north_spine_sign: {
+    id: 'ranger_north_spine_sign',
+    nodes: [{ id: 'start', text: "Nailed beside the __main verge__: '**Fort ahead. Keep to the packed spine.** If the south gate is barred, check the __chapel ruins to the west__ before pressing north.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  /** Just before the lake / bridge cluster — confirms the player is still on the critical path. */
+  whisper_lake_runoff_sign: {
+    id: 'whisper_lake_runoff_sign',
+    nodes: [{ id: 'start', text: "A slate shard wedged in a stump: '__Still on the spine.__' Under it, fresher chalk — '**Cross the bridge**, then pick up the **dark thread** where the reeds end. The manuscript trail does not turn aside here.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  /** Just north of the fort — confirms the player is on the right track toward the lake and Hollow. */
+  fort_north_approach_sign: {
+    id: 'fort_north_approach_sign',
+    nodes: [{ id: 'start', text: "A ranger stake, freshly cut: '**Lake crossing** ahead. Stay on the __spine__. The river is the last line before the **Hollow**.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  /** West branch off the spine — frames detours as deliberate exploration, not the authored quest line. */
+  whisper_wild_fork_sign: {
+    id: 'whisper_wild_fork_sign',
+    nodes: [{ id: 'start', text: "Scratched into the post: '__Chapel ruins.__ West path only. Patrols kept spare iron and lock keys there when the fort sealed early.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
   forest_shortcut_lever: {
     id: 'forest_shortcut_lever',
     nodes: [{ id: 'start', text: "A rain-darkened **gate lever** juts from a square timber plate beside the collapsed palisade. The mechanism looks old, but the route beyond would fold back toward the **Ranger Outpost**.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
-  hunter_warning_sign: {
-    id: 'hunter_warning_sign',
-    nodes: [{ id: 'start', text: "A split hunters' board leans against the ruined gate: '**Palisade broken. Keep moving.** Follow the __blood trail__ past the bonfire shelf and the **Disparaged Cottage** lies just ahead.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
-  },
   bridge_sign: {
     id: 'bridge_sign',
-    nodes: [{ id: 'start', text: "A sign posted near the bridge: '**Lake crossing** — Watch your step. Fish are biting!'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "A ranger waypost driven into the bank: '**Lake crossing** — last clean water before the river. Fill your skins here. Beyond the __northern ford__ the corruption sets in and the wood does not forgive.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   danger_sign: {
     id: 'danger_sign',
@@ -389,16 +412,78 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       { 
         id: 'start', 
-        text: "A cluster of **loose manuscript pages** rests on the stand, still catching the light. In the hunter's hand: '**Defeated by shadow creatures** near the northern perimeter. The forest is not safe. I must return to warn the village...'",
-        responses: [{ text: "Take the Hunter's Manuscript and return to the Elder", nextId: 'complete_quest' }]
+        text: "Torn **manuscript pages** rest on the stand, but many are missing. The hunter's scrawl reads: '**Only a fragment** of the text survived the journey. The corruption runs deeper — I pressed north past the river, following it to its source. If these pages are found, follow the trail north. The rest of the manuscript lies beyond the **Hollow**...'",
+        responses: [{ text: "Take the Manuscript Fragment", nextId: 'complete_quest' }]
       },
       { 
         id: 'complete_quest', 
-        text: "You secure the **Hunter's Manuscript**. Its final pages should reach the village elder.", 
+        text: "You take the **Manuscript Fragment**. The hunter's trail leads north, past the river, into the corrupted heart of the woods. The rest of the manuscript must be there.", 
         responses: [{ text: "[Continue]", nextId: 'end' }] 
       },
       { id: 'end', text: "", responses: [] }
     ],
+  },
+
+  hollow_manuscript: {
+    id: 'hollow_manuscript',
+    nodes: [
+      {
+        id: 'start',
+        text: "Inside the chest, beneath layers of dried moss and corruption, you find the **complete manuscript**. The hunter's final entry reads: 'The Guardian is the source — or the seal. I cannot tell which. The corruption flows from the earth itself. Take this knowledge to the elder. Let my journey mean something.'",
+        responses: [{ text: "Take the Hunter's Manuscript", nextId: 'complete_quest' }],
+      },
+      {
+        id: 'complete_quest',
+        text: "You secure the **complete Hunter's Manuscript**. Combined with the fragment, this is everything the elder needs. The path back to the village is long — but the Hollow's secrets are now yours to carry.",
+        responses: [{ text: "[Continue]", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  hollow_warning_sign: {
+    id: 'hollow_warning_sign',
+    nodes: [{ id: 'start', text: "Carved into a weathered post: '**The trees grow sick** beyond this river. Turn back if you value your life. Those who cross do not return unchanged.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+
+  hollow_trail_sign_1: {
+    id: 'hollow_trail_sign_1',
+    nodes: [{ id: 'start', text: "A hunter's carved marker in the bark: '**The corruption grows thicker here.** The manuscript speaks of a guardian — something ancient, bound to the roots. I press on.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+
+  hollow_trail_sign_2: {
+    id: 'hollow_trail_sign_2',
+    nodes: [{ id: 'start', text: "Scratched into a dead trunk: '**I can hear it breathing** in the dark. The ground pulses underfoot. If I don't return, tell the elder it was worth knowing.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+
+  hollow_trail_sign_3: {
+    id: 'hollow_trail_sign_3',
+    nodes: [{ id: 'start', text: "The last marker before the clearing. The hunter's hand was shaking: '**The arena is ahead.** Something guards this place. I leave the rest of the manuscript here — if it survives me.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+
+  hollow_final_camp: {
+    id: 'hollow_final_camp',
+    nodes: [{ id: 'start', text: "A dying campfire and a **broken sword** driven into the earth. The hunter's last camp. Whatever he found here, it found him first. The boss arena looms ahead.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+
+  hollow_shortcut_lever: {
+    id: 'hollow_shortcut_lever',
+    nodes: [{ id: 'start', text: "A crude lever mechanism bound in twisted roots and corroded iron. The path beyond would lead back toward the **Hollow bonfire**.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+
+  hollow_hunter_camp_1: {
+    id: 'hollow_hunter_camp_1',
+    nodes: [{ id: 'start', text: "An abandoned campsite. Supplies scattered, a torn bedroll. The hunter rested here — but not for long. Claw marks score the nearby trees.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+
+  hollow_hunter_camp_2: {
+    id: 'hollow_hunter_camp_2',
+    nodes: [{ id: 'start', text: "Another of the hunter's camps, more desperate than the last. A crude poultice bandage lies discarded. The corruption was already taking hold.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+
+  hollow_hunters_final_camp: {
+    id: 'hollow_hunters_final_camp',
+    nodes: [{ id: 'start', text: "The hunter's final resting place before the arena. His pack is here, empty. Only the trail markers remain — and whatever waits ahead.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   witch_sign: {
     id: 'witch_sign',
@@ -455,9 +540,17 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'temple_inscription',
     nodes: [{ id: 'start', text: "Shallow carvings run across the temple stones: '__Bind the wild heart. Keep the hill asleep.__' Moss obscures the rest.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
+  chapel_dead_ranger: {
+    id: 'chapel_dead_ranger',
+    nodes: [
+      { id: 'start', text: "A ranger slumped against the chapel steps. Dead for days — armour torn, a heavy **iron key** on his belt. A torn note in his hand reads: '__Fort overrun. Lock the gate. Don't let them inside the walls.__'", responses: [{ text: "Take the key.", nextId: 'take_key' }, { text: "Leave him.", nextId: 'end' }] },
+      { id: 'take_key', text: "You pull the key free. The crest on its bow matches the fort banner to the east.", responses: [{ text: "[Continue]", nextId: 'end' }] },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
   forest_fort_banner: {
     id: 'forest_fort_banner',
-    nodes: [{ id: 'start', text: "The banner's dye has long since bled into rust-brown threads. Even so, the old crest still shows a lantern above crossed spears: the mark of the forest watch.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A faded crest — lantern over crossed spears. Scratched below in charcoal: '**Gate sealed. Merchant inside.** Last spare key taken toward the __chapel ruins__.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   caravan_journal: {
     id: 'caravan_journal',
@@ -989,6 +1082,63 @@ export const dialogues: Record<string, Dialogue> = {
         responses: [{ text: "Stay safe out here.", nextId: 'end' }],
       },
       { id: 'end', text: "Keep the lanterns in sight when you can.", responses: [] },
+    ],
+  },
+  fort_quartermaster: {
+    id: 'fort_quartermaster',
+    nodes: [
+      {
+        id: 'start',
+        text: "…Hm? Oh. A customer. I have things. You have gold, presumably. Let's not make this longer than it needs to be.",
+        responses: [
+          { text: "What do you sell?", nextId: 'shop' },
+          { text: "Why are you out here?", nextId: 'rumors' },
+          { text: "Never mind.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'shop',
+        text: "**Tempest Grass** — __8 gold__. **Ephemeral Extract** — __15 gold__. **Ornamental Broadsword** — __280 gold__. That's the whole catalogue. Try not to look disappointed.",
+        responses: [
+          { text: "Tempest Grass. (8 gold)", nextId: 'buy_tempest_grass' },
+          { text: "Ephemeral Extract. (15 gold)", nextId: 'buy_ephemeral_extract' },
+          { text: "Ornamental Broadsword. (280 gold)", nextId: 'buy_broadsword' },
+          { text: "I'm good.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'buy_tempest_grass',
+        text: "Here. __8 gold__. Chew it, steep it, press it on things that bleed. I don't care which.",
+        responses: [
+          { text: "Anything else?", nextId: 'shop' },
+          { text: "That's all.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'buy_ephemeral_extract',
+        text: "One vial. __15 gold__. Drink it before you're dead, not after. Common mistake.",
+        responses: [
+          { text: "Anything else?", nextId: 'shop' },
+          { text: "That's all.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'buy_broadsword',
+        text: "Ceremonial piece. Previous owner didn't make it out. __280 gold__. Heavy, but it hits like it means it.",
+        responses: [
+          { text: "Anything else?", nextId: 'shop' },
+          { text: "That's all.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'rumors',
+        text: "The rangers posted me here. Then they stopped coming back. The wolves got plating from somewhere and the river up north started smelling wrong. I stay because the walls are thick and leaving sounds exhausting.",
+        responses: [
+          { text: "Show me what you've got.", nextId: 'shop' },
+          { text: "Hang in there.", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: "I'll be here. Obviously.", responses: [] },
     ],
   },
 };

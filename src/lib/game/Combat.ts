@@ -8,6 +8,8 @@ type CardinalDirection = 'up' | 'down' | 'left' | 'right';
 const BLOCK_DAMAGE_REDUCTION = 0.6;
 const PARRY_WINDOW = 0.25;
 const ENEMY_MOVE_RADIUS = 0.15;
+const DORMANCY_RANGE_SQ = 40 * 40;
+const _tmpOldPos = { x: 0, y: 0 };
 
 function trySlideEnemyMove(
   world: World,
@@ -79,6 +81,14 @@ export interface Enemy {
   staggerTimer: number;
   staggerDuration: number;
   poiseRegenTimer: number;
+  /** Seconds before this enemy can start a new attack telegraph (e.g. after lunge knockback). */
+  attackWindupLockTimer: number;
+  /** Enemy blueprint type key (e.g. 'wolf', 'hollow_guardian') derived from sprite name. */
+  type: string;
+  /** Boss phase (1=default, 2=enraged). Only meaningful for boss enemies. */
+  phase: number;
+  /** Set once when phase 2 transition triggers, to prevent repeated transitions. */
+  phaseTransitioned: boolean;
 }
 
 export interface AttackResult {
@@ -141,6 +151,10 @@ export class CombatSystem {
       staggerTimer: 0,
       staggerDuration: options.staggerDuration ?? 1.5,
       poiseRegenTimer: 0,
+      attackWindupLockTimer: 0,
+      type: sprite.replace('enemy_', ''),
+      phase: 1,
+      phaseTransitioned: false,
     };
 
     this.enemies.push(enemy);
@@ -167,7 +181,8 @@ export class CombatSystem {
     playerInvulnerable: boolean = false,
     playerBlocking: boolean = false,
     blockStartTime: number = 0,
-    world?: World
+    world?: World,
+    onPhaseChange?: (enemy: Enemy, phase: number) => void
   ): { parried: boolean; parryEnemyId: string | null } {
     const updateMovementVisuals = (enemy: Enemy, vx: number, vy: number, moving: boolean, cadence: number) => {
       if (moving) {
@@ -196,6 +211,16 @@ export class CombatSystem {
     for (const enemy of this.enemies) {
       if (enemy.state === 'dead') continue;
 
+      if (enemy.attackWindupLockTimer > 0) {
+        enemy.attackWindupLockTimer = Math.max(0, enemy.attackWindupLockTimer - deltaTime);
+      }
+
+      const dx = playerPosition.x - enemy.position.x;
+      const dy = playerPosition.y - enemy.position.y;
+      const distSq = dx * dx + dy * dy;
+
+      if (enemy.state === 'idle' && distSq > DORMANCY_RANGE_SQ) continue;
+
       if (enemy.state !== 'staggered') {
         enemy.poiseRegenTimer += deltaTime;
         if (enemy.poiseRegenTimer >= 1.5) {
@@ -204,9 +229,17 @@ export class CombatSystem {
         }
       }
 
-      const dx = playerPosition.x - enemy.position.x;
-      const dy = playerPosition.y - enemy.position.y;
-      const distSq = dx * dx + dy * dy;
+      // Phase 2 transition for the Hollow Guardian at 50% HP
+      if (enemy.type === 'hollow_guardian' && !enemy.phaseTransitioned && enemy.health <= enemy.maxHealth * 0.5) {
+        enemy.phase = 2;
+        enemy.phaseTransitioned = true;
+        enemy.speed *= 1.4;
+        enemy.telegraphDuration *= 0.75;
+        enemy.recoverDuration *= 0.7;
+        enemy.damage = Math.round(enemy.damage * 1.3);
+        if (onPhaseChange) onPhaseChange(enemy, 2);
+      }
+
       const chaseRangeSq = enemy.chaseRange * enemy.chaseRange;
       const attackRangeSq = enemy.attackRange * enemy.attackRange;
 
@@ -220,7 +253,8 @@ export class CombatSystem {
           const pdistSq = pdx * pdx + pdy * pdy;
 
           if (pdistSq > 0.01) {
-            const oldPos = { ...enemy.position };
+            _tmpOldPos.x = enemy.position.x;
+            _tmpOldPos.y = enemy.position.y;
             const pdist = Math.sqrt(pdistSq);
             const moveSpeed = enemy.speed * 0.4 * deltaTime * 60;
             const nvx = pdx / pdist;
@@ -230,7 +264,7 @@ export class CombatSystem {
             if (!world || world.canMoveTo(enemy.position.x, enemy.position.y, nextX, nextY, 0.15)) {
               enemy.position.x = nextX;
               enemy.position.y = nextY;
-              this.updateEnemyHash(enemy, oldPos);
+              this.updateEnemyHash(enemy, _tmpOldPos);
               updateMovementVisuals(enemy, nvx, nvy, true, 7);
             } else {
               updateMovementVisuals(enemy, 0, 0, false, 0);
@@ -254,6 +288,10 @@ export class CombatSystem {
           }
 
           if (distSq <= attackRangeSq) {
+            if (enemy.attackWindupLockTimer > 0) {
+              updateMovementVisuals(enemy, 0, 0, false, 0);
+              break;
+            }
             enemy.state = 'telegraphing';
             enemy.telegraphTimer = enemy.telegraphDuration;
             updateMovementVisuals(enemy, 0, 0, false, 0);
@@ -261,7 +299,8 @@ export class CombatSystem {
           }
 
           if (distSq > 0) {
-            const oldPos = { ...enemy.position };
+            _tmpOldPos.x = enemy.position.x;
+            _tmpOldPos.y = enemy.position.y;
             const dist = Math.sqrt(distSq);
             const moveSpeed = enemy.speed * deltaTime * 60;
             const nvx = dx / dist;
@@ -271,14 +310,14 @@ export class CombatSystem {
             if (!world) {
               enemy.position.x = nextX;
               enemy.position.y = nextY;
-              this.updateEnemyHash(enemy, oldPos);
+              this.updateEnemyHash(enemy, _tmpOldPos);
               updateMovementVisuals(enemy, nvx, nvy, true, 10);
             } else {
               const step = trySlideEnemyMove(world, enemy.position.x, enemy.position.y, nextX, nextY, ENEMY_MOVE_RADIUS);
               if (step.moved) {
                 enemy.position.x = step.x;
                 enemy.position.y = step.y;
-                this.updateEnemyHash(enemy, oldPos);
+                this.updateEnemyHash(enemy, _tmpOldPos);
                 updateMovementVisuals(enemy, step.vx, step.vy, true,10);
               } else {
                 updateMovementVisuals(enemy, 0, 0, false, 0);
@@ -325,7 +364,14 @@ export class CombatSystem {
           enemy.recoverTimer -= deltaTime;
           updateMovementVisuals(enemy, 0, 0, false, 0);
           if (enemy.recoverTimer <= 0) {
-            enemy.state = distSq <= chaseRangeSq ? 'chasing' : 'idle';
+            // Phase 2 root sweep: 30% chance for an immediate follow-up attack
+            if (enemy.type === 'hollow_guardian' && enemy.phase === 2 &&
+                distSq <= attackRangeSq * 2.25 && Math.random() < 0.3) {
+              enemy.state = 'telegraphing';
+              enemy.telegraphTimer = 0.6;
+            } else {
+              enemy.state = distSq <= chaseRangeSq ? 'chasing' : 'idle';
+            }
           }
           break;
         }

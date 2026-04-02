@@ -281,6 +281,11 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
 
     const syncEquippedWeapon = (preferredWeaponId?: string | null) => {
       state.setEquippedWeapon(preferredWeaponId ?? state.equippedWeaponId);
+      // Clear cached player textures so the new weapon's sprite set takes effect immediately
+      const cache = textureCacheRef.current;
+      for (const key of Array.from(cache.keys())) {
+        if (key.startsWith('player_')) cache.delete(key);
+      }
     };
 
     if (savedData) {
@@ -366,6 +371,14 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     const SPIN_DIRECTIONS: Direction8[] = ['down', 'left', 'up', 'right'];
     const SPIN_FRAME_DURATION = 0.06;
 
+    // Lunge attack (broadsword charge)
+    const LUNGE_DIST_MIN = 2.0;
+    const LUNGE_DIST_MAX = 4.0;
+    const LUNGE_SPEED_BASE = 14;
+    const LUNGE_SPEED_FULL = 8;
+    const LUNGE_RECOVERY_MIN = 0.15;
+    const LUNGE_RECOVERY_MAX = 0.45;
+
     // Blocking state
     const BLOCK_STAMINA_COST = 1.5;
     const DODGE_IFRAME_DURATION = 0.15;
@@ -390,7 +403,8 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     let killCount = killCountRef.current;
 
     const getPlayerTextureName = (dir: Direction8, animState: string, frame: number): string => {
-      return `player_${dir}_${animState}_${frame}`;
+      const weaponPrefix = state.equippedWeaponId === 'ornamental_broadsword' ? 'broadsword_' : '';
+      return `player_${weaponPrefix}${dir}_${animState}_${frame}`;
     };
 
     // Helper: get Y-based render order using the entity foot point with sub-tile precision
@@ -506,6 +520,10 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
 
     const {
       syncWhisperingWoodsShortcutState,
+      syncHollowShortcutState,
+      syncForestFortGateState,
+      syncHollowFogGateState,
+      syncHollowArenaExitState,
       syncVillageReactivityState,
       syncOpenedChestState,
       syncHarvestedTempestGrassState,
@@ -619,6 +637,10 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncOpenedChestState,
           syncHarvestedTempestGrassState,
           syncWhisperingWoodsShortcutState,
+          syncHollowShortcutState,
+          syncForestFortGateState,
+          syncHollowFogGateState,
+          syncHollowArenaExitState,
           handleMapTransition,
           healCooldowns,
           hasDialogue: interactionId => Boolean(dialogues[interactionId]),
@@ -641,6 +663,12 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           chargeDamageMult: CHARGE_DAMAGE_MULT,
           dodgeIFrameDuration: DODGE_IFRAME_DURATION,
           dodgeStaminaCost: 26,
+          lungeDistMin: LUNGE_DIST_MIN,
+          lungeDistMax: LUNGE_DIST_MAX,
+          lungeSpeedBase: LUNGE_SPEED_BASE,
+          lungeSpeedFull: LUNGE_SPEED_FULL,
+          lungeRecoveryMin: LUNGE_RECOVERY_MIN,
+          lungeRecoveryMax: LUNGE_RECOVERY_MAX,
         });
       } catch (error) {
         fatalRuntime.report(error, 'action phase setup');
@@ -794,6 +822,43 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           walkFrameDuration: WALK_FRAME_DURATION,
           chargeTimeMin: CHARGE_TIME_MIN,
           chargeTimeMax: CHARGE_TIME_MAX,
+          lungeState: runtimeSession.lunge,
+          onLungeHit: (enemy: any, damage: number) => {
+            const result = combatSystem.playerAttack(
+              enemy,
+              damage,
+              state.player.position,
+              state.player.direction,
+            );
+            const actualDamage = enemy.state === 'staggered' ? Math.floor(damage * 2) : damage;
+            floatingText.spawnDamage(enemy.position.x, enemy.position.y, actualDamage, true);
+            screenShake.shake(0.2, 0.15);
+            screenShake.hitStop(0.04);
+            if (result.backstab) {
+              floatingText.spawn(enemy.position.x, enemy.position.y + 0.6, 'BACKSTAB!', '#FFD700', 24);
+            }
+            if (result.staggered) {
+              floatingText.spawn(enemy.position.x, enemy.position.y + 0.4, 'STAGGER!', '#88AAFF', 20);
+            }
+            particleSystem.emitDamage(new THREE.Vector3(enemy.position.x, enemy.position.y, 0.3));
+            particleSystem.emitSparkles(new THREE.Vector3(enemy.position.x, enemy.position.y + 0.3, 0.5));
+            if (result.killed) {
+              const nextKillCount = killCountRef.current + 1;
+              killCountRef.current = nextKillCount;
+              killCount = nextKillCount;
+              enemyAudio.playDefeat(enemy);
+              enemyAudio.clearEnemy(enemy.id);
+              notify(`Defeated ${enemy.name}!`, {
+                id: 'enemy-kill',
+                description: enemy.essenceReward > 0 ? `+${enemy.essenceReward} essence` : undefined,
+                duration: 2000,
+              });
+            }
+          },
+          onLungeEnd: () => {
+            // Recovery complete — no additional SFX needed (swing played at lunge start)
+          },
+          dodgeIFrameDuration: DODGE_IFRAME_DURATION,
           textureCache: textureCacheRef.current,
           playerBaseScale: PLAYER_BASE_SCALE,
           outlinePad: OUTLINE_PAD,
@@ -883,7 +948,15 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           particleSystem,
           activeNpcWorldPos: activeNpcWorldPos.current,
           lastNpcProjected,
-          currentBiome: MAP_BIOMES[state.currentMap] || 'grassland',
+          currentBiome: (() => {
+            const baseBiome = MAP_BIOMES[state.currentMap] || 'grassland';
+            if (baseBiome === 'forest') {
+              const map = world.getCurrentMap();
+              const tileY = Math.floor(state.player.position.y + map.height / 2);
+              if (tileY < 75) return 'forest_hollow';
+            }
+            return baseBiome;
+          })(),
           onPlayerDied: lostEssence => {
             playerDeadRef.current = true;
             playGameOverSound();

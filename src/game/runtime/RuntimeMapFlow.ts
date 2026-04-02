@@ -6,6 +6,7 @@ import { getVillageReactivityStage } from '@/game/domain/VillageReactivity';
 import { mapDefinitions } from '@/data/maps';
 import { TILE_METADATA } from '@/data/tiles';
 import { spawnEnemiesFromMapZones } from '@/game/runtime/RuntimeWorldUtils';
+import { ENEMY_BLUEPRINTS } from '@/data/enemies';
 
 interface RuntimeMapTransitionServiceLike {
   transitionTo: (targetMap: string, targetX: number, targetY: number) => void;
@@ -263,6 +264,27 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
+  const syncHollowShortcutState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const shortcutOpen = state.getFlag('hollow_shortcut_open');
+    for (let y = 39; y <= 44; y++) {
+      for (let x = 96; x <= 103; x++) {
+        const existing = map.tiles[y]?.[x];
+        if (!existing) continue;
+        map.tiles[y][x] = shortcutOpen
+          ? { type: 'wooden_path', walkable: true, elevation: existing.elevation ?? 0 }
+          : {
+              type: 'gate',
+              walkable: false,
+              elevation: existing.elevation ?? 0,
+              interactionId: 'hollow_gate',
+            };
+      }
+    }
+    world.rebuildChunks();
+  };
+
   const syncOpenedChestState = () => {
     const map = world.getCurrentMap();
     let changed = false;
@@ -378,9 +400,153 @@ export function createRuntimeMapFlow({
     }
   };
 
+  const syncForestFortGateState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const gateOpen = state.getFlag('forest_fort_gate_open');
+    const FORT_X = 130, FORT_Y = 120, FORT_W = 22, FORT_H = 18;
+    const GATE_CX = FORT_X + Math.floor(FORT_W / 2); // 141
+    const SOUTH_Y = FORT_Y + FORT_H - 1; // 137
+    const TOWER_R = 3;
+
+    const inCornerTower = (dx: number, dy: number) =>
+      (dx < TOWER_R && dy < TOWER_R) ||
+      (dx >= FORT_W - TOWER_R && dy < TOWER_R) ||
+      (dx < TOWER_R && dy >= FORT_H - TOWER_R) ||
+      (dx >= FORT_W - TOWER_R && dy >= FORT_H - TOWER_R);
+
+    const towerCenter = (dx: number, dy: number) => {
+      const cxL = dx < FORT_W / 2 ? Math.floor(TOWER_R / 2) : FORT_W - 1 - Math.floor(TOWER_R / 2);
+      const cyL = dy < FORT_H / 2 ? Math.floor(TOWER_R / 2) : FORT_H - 1 - Math.floor(TOWER_R / 2);
+      return dx === cxL && dy === cyL;
+    };
+
+    for (let dy = 0; dy < FORT_H; dy++) {
+      for (let dx = 0; dx < FORT_W; dx++) {
+        const isOuter = dx === 0 || dx === FORT_W - 1 || dy === 0 || dy === FORT_H - 1;
+        const isSecond = dx === 1 || dx === FORT_W - 2 || dy === 1 || dy === FORT_H - 2;
+        const isThird = dx === 2 || dx === FORT_W - 3 || dy === 2 || dy === FORT_H - 3;
+        if (!isOuter && !isSecond && !isThird && !inCornerTower(dx, dy)) continue;
+        const tx = FORT_X + dx;
+        const ty = FORT_Y + dy;
+        const row = map.tiles[ty];
+        if (!row) continue;
+        const el = row[tx]?.elevation ?? 0;
+
+        // 3-wide gate on the south wall
+        if (ty === SOUTH_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
+          row[tx] = gateOpen
+            ? { type: 'stone' as TileType, walkable: true, elevation: el }
+            : { type: 'gate' as TileType, walkable: false, elevation: el, interactable: true, interactionId: 'forest_fort_gate' };
+          continue;
+        }
+
+        // Gatehouse approach (row inside south wall): lanterns flanking, cobblestone walkway
+        if (dy === FORT_H - 2 && dx >= GATE_CX - FORT_X - 2 && dx <= GATE_CX - FORT_X + 2) {
+          if (dx === GATE_CX - FORT_X - 2 || dx === GATE_CX - FORT_X + 2) {
+            row[tx] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+          } else {
+            row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          }
+          continue;
+        }
+
+        // Corner tower tiles: lantern at center, stone elsewhere
+        if (inCornerTower(dx, dy)) {
+          row[tx] = towerCenter(dx, dy)
+            ? { type: 'lantern' as TileType, walkable: false, elevation: el }
+            : { type: 'stone' as TileType, walkable: false, elevation: el };
+          continue;
+        }
+
+        // Third ring: iron fence / cobblestone pattern
+        if (isThird && !isOuter && !isSecond) {
+          row[tx] = (dx + dy) % 3 === 0
+            ? { type: 'iron_fence' as TileType, walkable: false, elevation: el }
+            : { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          continue;
+        }
+
+        // Outer and second wall: solid stone
+        row[tx] = { type: 'stone' as TileType, walkable: false, elevation: el };
+      }
+    }
+
+    // Exterior gatehouse frame (row south of fort)
+    const frameY = FORT_Y + FORT_H;
+    if (frameY < map.tiles.length) {
+      const frameRow = map.tiles[frameY];
+      if (frameRow) {
+        const el = frameRow[GATE_CX]?.elevation ?? 0;
+        const pillarL = GATE_CX - 2, pillarR = GATE_CX + 2;
+        const torchL = GATE_CX - 1, torchR = GATE_CX + 1;
+        if (pillarL >= 0) frameRow[pillarL] = { type: 'stone' as TileType, walkable: false, elevation: el };
+        if (pillarR < frameRow.length) frameRow[pillarR] = { type: 'stone' as TileType, walkable: false, elevation: el };
+        if (torchL >= 0) frameRow[torchL] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+        if (torchR < frameRow.length) frameRow[torchR] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+      }
+    }
+
+    world.rebuildChunks();
+  };
+
+  const syncHollowFogGateState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const defeated = state.getFlag('hollow_guardian_defeated');
+    // Place a 3-wide fog gate row at tile y=22 (south edge of the clearing), centred at x=122
+    const GATE_Y = 22;
+    const GATE_CX = 122;
+    for (let dx = -1; dx <= 1; dx++) {
+      const tx = GATE_CX + dx;
+      const row = map.tiles[GATE_Y];
+      if (!row) continue;
+      const el = row[tx]?.elevation ?? 0;
+      if (defeated) {
+        row[tx] = { type: 'dark_grass' as TileType, walkable: true, elevation: el };
+      } else {
+        row[tx] = {
+          type: 'fog_gate' as TileType,
+          walkable: false,
+          elevation: el,
+          interactable: true,
+          interactionId: 'hollow_fog_gate',
+        };
+      }
+    }
+    world.rebuildChunks();
+  };
+
+  const syncHollowArenaExitState = () => {
+    if (state.currentMap !== 'interior_hollow_arena') return;
+    const map = world.getCurrentMap();
+    const exitY = 34;
+    const exitX = 18;
+    const row = map.tiles[exitY];
+    if (!row) return;
+    const el = row[exitX]?.elevation ?? 0;
+    if (state.getFlag('hollow_guardian_defeated')) {
+      row[exitX] = {
+        type: 'door_interior' as TileType,
+        walkable: true,
+        elevation: el,
+        transition: { targetMap: 'forest', targetX: 122, targetY: 30 },
+        interactable: true,
+        interactionId: 'building_exit',
+      };
+    } else {
+      row[exitX] = { type: 'dead_tree' as TileType, walkable: false, elevation: el };
+    }
+    world.rebuildChunks();
+  };
+
   const syncPersistentMapState = () => {
     syncShadowCastleGateState();
     syncWhisperingWoodsShortcutState();
+    syncHollowShortcutState();
+    syncForestFortGateState();
+    syncHollowFogGateState();
+    syncHollowArenaExitState();
     syncVillageReactivityState();
     syncVillageInteriorReactivityState();
     syncOpenedChestState();
@@ -392,6 +558,25 @@ export function createRuntimeMapFlow({
     enemyVisuals.disposeAll();
     assetManager.warmupEnemyTexturesForZones(mapDefinitions[targetMap]?.enemyZones);
     spawnEnemiesFromMapZones(targetMap, map, combatSystem, world);
+
+    // Boss arena: spawn the Hollow Guardian at the arena center
+    if (targetMap === 'interior_hollow_arena' && !state.getFlag('hollow_guardian_defeated')) {
+      const bp = ENEMY_BLUEPRINTS.hollow_guardian;
+      if (bp) {
+        const arenaCenter = { x: 0, y: 0 }; // tile (18,18) -> world (18 - 18, 18 - 18)
+        combatSystem.spawnEnemy(bp.name, arenaCenter, bp.hp, bp.damage, bp.sprite, {
+          speed: bp.speed,
+          attackRange: bp.attackRange,
+          chaseRange: bp.chaseRange,
+          essenceReward: bp.essenceReward,
+          telegraphDuration: bp.telegraphDuration,
+          recoverDuration: bp.recoverDuration,
+          poise: bp.poise,
+          staggerDuration: bp.staggerDuration,
+        });
+      }
+    }
+
     console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
   };
 
@@ -427,6 +612,10 @@ export function createRuntimeMapFlow({
   return {
     syncShadowCastleGateState,
     syncWhisperingWoodsShortcutState,
+    syncHollowShortcutState,
+    syncForestFortGateState,
+    syncHollowFogGateState,
+    syncHollowArenaExitState,
     syncVillageReactivityState,
     syncVillageInteriorReactivityState,
     syncOpenedChestState,

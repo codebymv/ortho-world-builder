@@ -74,6 +74,8 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   // Forest locations
   { keywords: ['forest', 'whispering woods', 'woods'], tileX: 150, tileY: 150, map: 'forest', label: 'Whispering Woods', type: 'danger', color: '#228B22' },
   { keywords: ['ranger', 'ranger outpost'], tileX: 140, tileY: 170, map: 'forest', label: 'Ranger Outpost', type: 'poi', color: '#8FBC8F' },
+  // Fort gate key — use "chapel ruins" only (not plain "chapel") so village chapel dialogue does not ping the woods
+  { keywords: ['chapel ruins'], tileX: 55, tileY: 114, map: 'forest', label: 'Chapel Ruins (ranger remains)', type: 'poi', color: '#A1887F' },
   { keywords: ['disparaged cottage', 'hunter cottage', 'old shack', 'shack', 'run down old shack'], tileX: 137, tileY: 184, map: 'forest', label: 'Disparaged Cottage', type: 'quest', color: '#FFD700' },
   
   // Deep woods

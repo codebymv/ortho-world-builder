@@ -59,6 +59,7 @@ export function runRuntimeLoopTail({
     minDeltaPx: npcScreenMinPx,
   });
 
+  biomeAmbience.setBiome(currentBiome);
   biomeAmbience.update(deltaTime, playerPosition.x, playerPosition.y);
   weatherSystem.update(deltaTime, playerPosition.x, playerPosition.y, currentBiome);
   dayNightCycle.update(deltaTime, playerPosition.x, playerPosition.y);
