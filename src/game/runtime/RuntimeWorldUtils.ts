@@ -34,7 +34,13 @@ export function getInteractionPromptLabel(
     return interactionId === 'building_entrance' ? `Enter ${destinationName}` : `Exit to ${destinationName}`;
   }
 
-  if (interactionId.includes('bonfire')) return 'Rest at Bonfire';
+  if (interactionId.includes('bonfire')) {
+    const map = world.getCurrentMap();
+    const tx = Math.floor(x + map.width / 2);
+    const ty = Math.floor(y + map.height / 2);
+    const firstKey = `bonfire_first_${state.currentMap}_${tx}_${ty}`;
+    return state.getFlag(firstKey) ? 'Rest at Bonfire' : 'Kindle Bonfire';
+  }
   if (interactionId === 'moonbloom_pickup') return 'Pick Moonbloom';
   if (interactionId === 'tempest_grass_pickup') return 'Harvest Tempest Grass';
   if (interactionId === 'shadow_castle_gate_switch') return 'Open Inner Gate';
@@ -67,6 +73,10 @@ export function getInteractionPromptLabel(
   if (interactionId === 'stump_lore') return 'Inspect Carvings';
   if (interactionId === 'wolf_den_bones') return 'Inspect Remains';
   if (interactionId === 'chapel_dead_ranger') return 'Inspect Fallen Ranger';
+  if (interactionId === 'hollow_dead_ranger') return 'Inspect Fallen Ranger';
+  if (interactionId === 'dead_ranger_shortcut_note') return 'Inspect Fallen Ranger';
+  if (interactionId === 'witch_cauldron') return 'Inspect Cauldron';
+  if (interactionId === 'witch_altar') return 'Inspect Altar';
   if (interactionId === 'forest_fort_gate') {
     if (state.getFlag('forest_fort_gate_open')) return 'Fort Gate (Open)';
     return state.hasItem('fort_gate_key') ? 'Unlock Fort Gate' : 'Fort Gate (Locked — Key Required)';
@@ -81,6 +91,8 @@ export function getInteractionPromptLabel(
   if (interactionId === 'forest_fort_banner') return 'Inspect Banner';
   if (interactionId === 'volcano_warning') return 'Read Warning';
   if (interactionId === 'witch_cottage') return 'Inspect Cottage';
+  if (interactionId === 'logging_camp') return 'Inspect Camp';
+  if (interactionId === 'collapsed_cottage') return 'Inspect Ruins';
 
   if (dialogues[interactionId]) {
     const speakerName = interactionId.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
@@ -171,6 +183,7 @@ export function spawnEnemiesFromMapZones(mapKey: string, mapWorld: WorldMap, com
           recoverDuration: blueprint.recoverDuration,
           poise: blueprint.poise,
           staggerDuration: blueprint.staggerDuration,
+          behaviorOverrides: blueprint.behaviorOverrides,
         },
       );
     }

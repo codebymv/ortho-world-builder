@@ -18,6 +18,7 @@ interface CreateBonfireRestActionOptions {
   respawnEnemiesForCurrentMap: (targetMap: string, map: WorldMap) => void;
   triggerSave: () => void;
   triggerUIUpdate: () => void;
+  openBonfireMenu: () => void;
 }
 
 export function createBonfireRestAction({
@@ -31,17 +32,9 @@ export function createBonfireRestAction({
   respawnEnemiesForCurrentMap,
   triggerSave,
   triggerUIUpdate,
+  openBonfireMenu,
 }: CreateBonfireRestActionOptions) {
-  return (tileX: number, tileY: number) => {
-    state.player.health = state.player.maxHealth;
-    state.player.stamina = state.player.maxStamina;
-    playBonfireRestore();
-    state.lastBonfire = {
-      mapId: state.currentMap,
-      x: state.player.position.x,
-      y: state.player.position.y,
-    };
-
+  const kindleBonfire = (tileX: number, tileY: number) => {
     const map = world.getCurrentMap();
     const bonfireWorldX = tileX - map.width / 2 + 0.5;
     const bonfireWorldY = tileY - map.height / 2 + 0.5;
@@ -50,6 +43,13 @@ export function createBonfireRestAction({
 
     if (!state.getFlag(firstKey)) {
       state.setFlag(firstKey, true);
+
+      const row = map.tiles[tileY];
+      if (row && row[tileX]) {
+        row[tileX]!.type = 'bonfire' as any;
+        world.refreshMapTileRegion(tileX - 1, tileY - 1, tileX + 1, tileY + 1);
+      }
+
       playBonfireKindle();
       particleSystem.emitBonfireKindled(bonfireVec);
       particleSystem.emitSparkles(new THREE.Vector3(bonfireWorldX, bonfireWorldY + 0.1, 0.55));
@@ -57,21 +57,42 @@ export function createBonfireRestAction({
       notify('Flame kindled', {
         id: 'bonfire',
         type: 'success',
-        description: 'You will respawn here if you fall. Foes have returned.',
+        description: 'You will respawn here if you fall.',
         duration: 4000,
       });
     } else {
       particleSystem.emitBonfireKindled(bonfireVec);
-      notify('Rested at bonfire', {
-        id: 'bonfire',
-        type: 'success',
-        description: 'Health and stamina restored. Enemies have respawned.',
-        duration: 2500,
-      });
     }
 
+    state.lastBonfire = {
+      mapId: state.currentMap,
+      x: state.player.position.x,
+      y: state.player.position.y,
+    };
+
+    triggerSave();
+  };
+
+  const restAtBonfire = () => {
+    state.player.health = state.player.maxHealth;
+    state.player.stamina = state.player.maxStamina;
+    playBonfireRestore();
+    const map = world.getCurrentMap();
     respawnEnemiesForCurrentMap(state.currentMap, map);
+    notify('Rested at bonfire', {
+      id: 'bonfire',
+      type: 'success',
+      description: 'Health and stamina restored. Enemies have respawned.',
+      duration: 2500,
+    });
     triggerSave();
     triggerUIUpdate();
   };
+
+  const interact = (tileX: number, tileY: number) => {
+    kindleBonfire(tileX, tileY);
+    openBonfireMenu();
+  };
+
+  return { interact, restAtBonfire };
 }

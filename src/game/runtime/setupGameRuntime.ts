@@ -90,6 +90,7 @@ export interface RuntimeHostRefs {
   stopDialogueLoopRef: MutableRefObject<(() => void) | null>;
   playMenuOpenRef: MutableRefObject<(() => void) | null>;
   playMenuCloseRef: MutableRefObject<(() => void) | null>;
+  restAtBonfireRef: MutableRefObject<(() => void) | null>;
   killCountRef: MutableRefObject<number>;
 }
 
@@ -106,6 +107,7 @@ export interface RuntimeUiBindings {
   setTransitionDebugLines: Dispatch<SetStateAction<string[]>>;
   setInteractionPrompt: Dispatch<SetStateAction<InteractionPrompt>>;
   setBonfireOverlayActive: Dispatch<SetStateAction<boolean>>;
+  setBonfireMenuOpen: Dispatch<SetStateAction<boolean>>;
   setDeathEssenceLost: Dispatch<SetStateAction<number>>;
   setDeathActive: Dispatch<SetStateAction<boolean>>;
 }
@@ -125,6 +127,7 @@ export interface RuntimeCallbacks {
   switchMusicTrack: (mapId: string) => void;
   processAudioElement: (audio: HTMLAudioElement) => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
+  openBonfireMenu: () => void;
 }
 
 interface SetupGameRuntimeOptions {
@@ -169,6 +172,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       stopDialogueLoopRef,
       playMenuOpenRef,
       playMenuCloseRef,
+      restAtBonfireRef,
       killCountRef,
     },
     ui: {
@@ -184,6 +188,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       setTransitionDebugLines,
       setInteractionPrompt,
       setBonfireOverlayActive,
+      setBonfireMenuOpen,
       setDeathEssenceLost,
       setDeathActive,
     },
@@ -201,12 +206,24 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       switchMusicTrack,
       processAudioElement,
       showHeroOverlay,
+      openBonfireMenu,
     },
   } = options;
 
   const CRITICAL_ITEM_INTERACTION_IDS = new Set(Object.keys(criticalPathItems));
   const fatalRuntime = createFatalRuntimeReporter(mountElement);
   let fatalSetupError = false;
+
+  const bonfireMenuOpenRef = { current: false };
+  const wrappedOpenBonfireMenu = () => {
+    bonfireMenuOpenRef.current = true;
+    openBonfireMenu();
+  };
+  const closeBonfireMenu = () => {
+    bonfireMenuOpenRef.current = false;
+    pausedRef.current = false;
+    setBonfireMenuOpen(false);
+  };
 
     const runtime = createGameRuntime({
       mountElement,
@@ -383,7 +400,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
 
     // Blocking state
     const BLOCK_STAMINA_COST = 1.5;
-    const DODGE_IFRAME_DURATION = 0.15;
+    const DODGE_IFRAME_DURATION = 0.22;
 
     // LMB charge attack state
     // Death state - use ref so callback can reset it
@@ -672,6 +689,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           lungeSpeedFull: LUNGE_SPEED_FULL,
           lungeRecoveryMin: LUNGE_RECOVERY_MIN,
           lungeRecoveryMax: LUNGE_RECOVERY_MAX,
+          openBonfireMenu: wrappedOpenBonfireMenu,
         });
       } catch (error) {
         fatalRuntime.report(error, 'action phase setup');
@@ -699,6 +717,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           performDodge: () => {},
           performAttack: () => {},
           performChargeAttack: () => {},
+          restAtBonfire: () => {},
         };
       }
     })();
@@ -713,6 +732,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     stopDialogueLoopRef.current = stopDialogueLoop;
     playMenuOpenRef.current = playMenuOpen;
     playMenuCloseRef.current = playMenuClose;
+    restAtBonfireRef.current = restAtBonfire;
 
     const { keys, detachDomEvents } = (() => {
       try {
@@ -749,6 +769,8 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           camera,
           renderer,
           frustumSize,
+          bonfireMenuOpenRef,
+          closeBonfireMenu,
         });
       } catch (error) {
         fatalRuntime.report(error, 'input phase setup');
@@ -956,7 +978,8 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             if (baseBiome === 'forest') {
               const map = world.getCurrentMap();
               const tileY = Math.floor(state.player.position.y + map.height / 2);
-              if (tileY < 75) return 'forest_hollow';
+              if (tileY < 70) return 'forest_hollow';
+              if (tileY < 80) return Math.random() < 0.5 ? 'forest_hollow' : 'forest';
             }
             return baseBiome;
           })(),
@@ -1031,6 +1054,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           stopDialogueLoopRef.current = null;
           playMenuOpenRef.current = null;
           playMenuCloseRef.current = null;
+          restAtBonfireRef.current = null;
           gameStateRef.current = null;
           worldRef.current = null;
           assetManagerRef.current = null;

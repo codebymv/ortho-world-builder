@@ -269,7 +269,8 @@ export function updatePlayerSimulation({
 
     const wantsSprint = keys.shift && state.player.stamina > 0;
     state.player.isSprinting = wantsSprint;
-    const currentSpeed = wantsSprint ? state.player.sprintSpeed : state.player.speed;
+    const baseSpeed = wantsSprint ? state.player.sprintSpeed : state.player.speed;
+    const currentSpeed = state.player.snareTimer > 0 ? baseSpeed * state.player.snareSpeedMult : baseSpeed;
 
     if (wantsSprint) {
       state.player.stamina = Math.max(0, state.player.stamina - 16 * deltaTime);

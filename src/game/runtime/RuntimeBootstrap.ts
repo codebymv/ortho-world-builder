@@ -80,6 +80,10 @@ export function bootstrapRuntimeState(context: BootstrapContext) {
       normalizedMaxStamina,
       Math.max(0, staminaRatio * normalizedMaxStamina),
     );
+    state.player.level = savedData.player.level ?? 1;
+    state.player.vitality = savedData.player.vitality ?? 1;
+    state.player.endurance = savedData.player.endurance ?? 1;
+    state.player.strength = savedData.player.strength ?? 1;
     state.inventory = savedData.inventory;
 
     stripDeprecatedLoadout(state);

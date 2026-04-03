@@ -7,7 +7,7 @@ interface AmbientParticle {
   maxLifetime: number;
   baseY: number;
   phase: number;
-  type: 'firefly' | 'fog' | 'dust' | 'smoke' | 'snow' | 'ember';
+  type: 'firefly' | 'fog' | 'dust' | 'smoke' | 'snow' | 'ember' | 'leaf';
   active: boolean;
 }
 
@@ -16,7 +16,7 @@ export class BiomeAmbience {
   private scene: THREE.Scene;
   private currentBiome: string = '';
   private spawnTimer: number = 0;
-  private readonly MAX_PARTICLES = 40;
+  private readonly MAX_PARTICLES = 60;
 
   // Shared geometry for all ambient particles (avoids per-particle allocation)
   private readonly sharedGeometry = new THREE.PlaneGeometry(1, 1);
@@ -86,10 +86,20 @@ export class BiomeAmbience {
 
     switch (this.currentBiome) {
       case 'forest':
-        color = Math.random() > 0.5 ? 0xCDDC39 : 0xFFEB3B;
-        size = 0.06 + Math.random() * 0.04;
-        lifetime = 3 + Math.random() * 4;
-        type = 'firefly';
+        if (Math.random() < 0.3) {
+          color = Math.random() > 0.5 ? 0x8BC34A : 0x795548;
+          size = 0.06 + Math.random() * 0.02;
+          lifetime = 5 + Math.random() * 3;
+          type = 'leaf';
+          vx = 0.2 + Math.random() * 0.15;
+          vy = -0.08 - Math.random() * 0.04;
+          baseOpacity = 0.3;
+        } else {
+          color = Math.random() > 0.5 ? 0xCDDC39 : 0xFFEB3B;
+          size = 0.06 + Math.random() * 0.04;
+          lifetime = 3 + Math.random() * 4;
+          type = 'firefly';
+        }
         break;
       case 'swamp':
         color = 0x90A4AE;
@@ -180,6 +190,9 @@ export class BiomeAmbience {
       } else if (p.type === 'fog') {
         const scale = (0.3 + Math.sin(p.phase + p.lifetime) * 0.2) * (1 + p.lifetime * 0.1);
         p.mesh.scale.set(scale, scale, 1);
+      } else if (p.type === 'leaf') {
+        p.mesh.position.x += Math.sin(p.lifetime * 0.8 + p.phase) * 0.004;
+        p.mesh.rotation.z += deltaTime * (0.5 + Math.sin(p.phase) * 0.3);
       }
 
       // Fade in/out

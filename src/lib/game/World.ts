@@ -19,7 +19,8 @@ export type TileType =
   | 'bed' | 'wardrobe' | 'fireplace' | 'weapon_rack' | 'alchemy_table' | 'cauldron'
   | 'throne' | 'altar' | 'bloodstain' | 'chain' | 'shortcut_lever' | 'cage' | 'bones_pile' | 'ranger_remains'
   | 'door' | 'door_interior' | 'door_iron'
-  | 'fog_gate';
+  | 'fog_gate'
+  | 'bonfire_unlit';
 
 /** Pass as `getInteractableNear` radius from gameplay so gates / chunky facades stay in scan + reach. */
 export const INTERACTABLE_QUERY_RADIUS = 2.75;

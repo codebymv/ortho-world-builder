@@ -36,6 +36,8 @@ function trySlideEnemyMove(
   return { x: ox, y: oy, moved: false, vx: 0, vy: 0 };
 }
 
+import type { EnemyBehaviorOverrides } from '../../data/enemies';
+
 interface SpawnEnemyOptions {
   speed?: number;
   attackRange?: number;
@@ -45,6 +47,7 @@ interface SpawnEnemyOptions {
   recoverDuration?: number;
   poise?: number;
   staggerDuration?: number;
+  behaviorOverrides?: EnemyBehaviorOverrides;
 }
 
 export interface Enemy {
@@ -60,7 +63,7 @@ export interface Enemy {
   speed: number;
   attackRange: number;
   chaseRange: number;
-  state: 'idle' | 'chasing' | 'telegraphing' | 'attacking' | 'recovering' | 'staggered' | 'dead';
+  state: 'idle' | 'chasing' | 'telegraphing' | 'attacking' | 'recovering' | 'staggered' | 'dead' | 'retreating' | 'charging';
   lastAttackTime: number;
   attackCooldown: number;
   damageFlashTimer: number;
@@ -89,6 +92,14 @@ export interface Enemy {
   phase: number;
   /** Set once when phase 2 transition triggers, to prevent repeated transitions. */
   phaseTransitioned: boolean;
+  behaviorOverrides: EnemyBehaviorOverrides;
+  /** Set once when first poise break is absorbed by poiseImmunityFirstHit. */
+  poiseImmunityUsed: boolean;
+  /** Retreat timer for retreatAfterHit behavior. */
+  retreatTimer: number;
+  /** Charge-slam timer for Guardian Phase 2. */
+  chargeSlamTimer: number;
+  chargeSlamTarget: { x: number; y: number } | null;
 }
 
 export interface AttackResult {
@@ -155,6 +166,11 @@ export class CombatSystem {
       type: sprite.replace('enemy_', ''),
       phase: 1,
       phaseTransitioned: false,
+      behaviorOverrides: options.behaviorOverrides ?? {},
+      poiseImmunityUsed: false,
+      retreatTimer: 0,
+      chargeSlamTimer: 0,
+      chargeSlamTarget: null,
     };
 
     this.enemies.push(enemy);
@@ -223,8 +239,8 @@ export class CombatSystem {
 
       if (enemy.state !== 'staggered') {
         enemy.poiseRegenTimer += deltaTime;
-        if (enemy.poiseRegenTimer >= 1.5) {
-          enemy.poise = Math.min(enemy.maxPoise, enemy.poise + enemy.maxPoise * 0.15);
+        if (enemy.poiseRegenTimer >= 2.0) {
+          enemy.poise = Math.min(enemy.maxPoise, enemy.poise + enemy.maxPoise * 0.05);
           enemy.poiseRegenTimer = 0;
         }
       }
@@ -285,6 +301,18 @@ export class CombatSystem {
             enemy.state = 'idle';
             updateMovementVisuals(enemy, 0, 0, false, 0);
             break;
+          }
+
+          const bo = enemy.behaviorOverrides;
+          if (bo.rangedAttack && enemy.attackWindupLockTimer <= 0) {
+            const rangedRange = bo.rangedRange ?? 3.0;
+            if (distSq > attackRangeSq && distSq <= rangedRange * rangedRange * 4 &&
+                Math.random() < (bo.rangedChance ?? 0.5) * deltaTime * 2) {
+              enemy.state = 'telegraphing';
+              enemy.telegraphTimer = enemy.telegraphDuration * 0.8;
+              updateMovementVisuals(enemy, 0, 0, false, 0);
+              break;
+            }
           }
 
           if (distSq <= attackRangeSq) {
@@ -364,14 +392,107 @@ export class CombatSystem {
           enemy.recoverTimer -= deltaTime;
           updateMovementVisuals(enemy, 0, 0, false, 0);
           if (enemy.recoverTimer <= 0) {
-            // Phase 2 root sweep: 30% chance for an immediate follow-up attack
+            const bo = enemy.behaviorOverrides;
             if (enemy.type === 'hollow_guardian' && enemy.phase === 2 &&
-                distSq <= attackRangeSq * 2.25 && Math.random() < 0.3) {
+                distSq <= attackRangeSq * 2.25) {
+              const roll = Math.random();
+              if (roll < 0.2) {
+                enemy.state = 'charging';
+                enemy.chargeSlamTimer = 0.6;
+                const dist = Math.sqrt(distSq) || 1;
+                enemy.chargeSlamTarget = { x: playerPosition.x, y: playerPosition.y };
+                break;
+              } else if (roll < 0.5) {
+                enemy.state = 'telegraphing';
+                enemy.telegraphTimer = 0.6;
+                break;
+              }
+            }
+            if (bo.retreatAfterHit && enemy.attackAnimationTimer > 0) {
+              enemy.state = 'retreating';
+              enemy.retreatTimer = bo.retreatDuration ?? 1.0;
+              break;
+            }
+            if (bo.chainAttack && distSq <= attackRangeSq * 2.25 &&
+                Math.random() < (bo.chainChance ?? 0.3)) {
               enemy.state = 'telegraphing';
-              enemy.telegraphTimer = 0.6;
+              enemy.telegraphTimer = bo.chainTelegraph ?? enemy.telegraphDuration * 0.5;
             } else {
               enemy.state = distSq <= chaseRangeSq ? 'chasing' : 'idle';
             }
+          }
+          break;
+        }
+
+        case 'retreating': {
+          enemy.retreatTimer -= deltaTime;
+          if (enemy.retreatTimer <= 0) {
+            enemy.state = distSq <= chaseRangeSq ? 'chasing' : 'idle';
+            updateMovementVisuals(enemy, 0, 0, false, 0);
+            break;
+          }
+          const bo = enemy.behaviorOverrides;
+          const retreatSpeed = enemy.speed * (bo.retreatSpeedMult ?? 1.5) * deltaTime * 60;
+          const dist = Math.sqrt(distSq) || 1;
+          const rvx = -(dx / dist);
+          const rvy = -(dy / dist);
+          _tmpOldPos.x = enemy.position.x;
+          _tmpOldPos.y = enemy.position.y;
+          const rnx = enemy.position.x + rvx * retreatSpeed;
+          const rny = enemy.position.y + rvy * retreatSpeed;
+          if (!world || world.canMoveTo(enemy.position.x, enemy.position.y, rnx, rny, ENEMY_MOVE_RADIUS)) {
+            enemy.position.x = rnx;
+            enemy.position.y = rny;
+            this.updateEnemyHash(enemy, _tmpOldPos);
+            updateMovementVisuals(enemy, rvx, rvy, true, 12);
+          } else {
+            updateMovementVisuals(enemy, 0, 0, false, 0);
+          }
+          break;
+        }
+
+        case 'charging': {
+          enemy.chargeSlamTimer -= deltaTime;
+          if (enemy.chargeSlamTimer <= 0 || !enemy.chargeSlamTarget) {
+            const slamRange = 2.5;
+            const slamDx = playerPosition.x - enemy.position.x;
+            const slamDy = playerPosition.y - enemy.position.y;
+            const slamDistSq = slamDx * slamDx + slamDy * slamDy;
+            if (slamDistSq <= slamRange * slamRange && !playerInvulnerable) {
+              const slamDamage = Math.floor(enemy.damage * 1.5);
+              if (playerBlocking && this.gameState.player.guardBrokenTimer <= 0) {
+                this.gameState.player.stamina -= slamDamage * 0.8;
+                if (this.gameState.player.stamina <= 0) {
+                  this.gameState.player.stamina = 0;
+                  this.gameState.player.guardBrokenTimer = 1.2;
+                }
+                const reduced = Math.floor(slamDamage * (1 - BLOCK_DAMAGE_REDUCTION));
+                this.gameState.player.health = Math.max(0, this.gameState.player.health - reduced);
+              } else {
+                this.gameState.player.health = Math.max(0, this.gameState.player.health - slamDamage);
+              }
+              this.gameState.player.damageFlashTimer = 0.4;
+            }
+            enemy.chargeSlamTarget = null;
+            enemy.state = 'recovering';
+            enemy.recoverTimer = enemy.recoverDuration * 1.5;
+            enemy.attackAnimationTimer = 0.4;
+            updateMovementVisuals(enemy, 0, 0, false, 0);
+            break;
+          }
+          if (enemy.chargeSlamTarget) {
+            _tmpOldPos.x = enemy.position.x;
+            _tmpOldPos.y = enemy.position.y;
+            const cdx = enemy.chargeSlamTarget.x - enemy.position.x;
+            const cdy = enemy.chargeSlamTarget.y - enemy.position.y;
+            const cdist = Math.sqrt(cdx * cdx + cdy * cdy) || 1;
+            const chargeSpeed = enemy.speed * 3 * deltaTime * 60;
+            const cvx = cdx / cdist;
+            const cvy = cdy / cdist;
+            enemy.position.x += cvx * chargeSpeed;
+            enemy.position.y += cvy * chargeSpeed;
+            this.updateEnemyHash(enemy, _tmpOldPos);
+            updateMovementVisuals(enemy, cvx, cvy, true, 14);
           }
           break;
         }
@@ -398,22 +519,40 @@ export class CombatSystem {
     blockStartTime: number = 0,
     now: number = 0
   ): { parried: boolean } {
+    const player = this.gameState.player;
     const isParry = isBlocking && (now - blockStartTime) < PARRY_WINDOW;
 
     if (isParry) {
       enemy.state = 'staggered';
       enemy.staggerTimer = enemy.staggerDuration;
       enemy.damageFlashTimer = enemy.staggerDuration;
+      player.parryBonusTimer = 1.0;
+      player.iFrameTimer = Math.max(player.iFrameTimer, 0.5);
       return { parried: true };
     }
 
     let damage = enemy.damage;
-    if (isBlocking) {
+    if (isBlocking && player.guardBrokenTimer <= 0) {
+      player.stamina -= enemy.damage * 0.8;
+      if (player.stamina <= 0) {
+        player.stamina = 0;
+        player.guardBrokenTimer = 1.2;
+        player.damageFlashTimer = 0.6;
+        enemy.attackAnimationTimer = 0.3;
+        return { parried: false };
+      }
       damage = Math.floor(damage * (1 - BLOCK_DAMAGE_REDUCTION));
     }
-    this.gameState.player.health = Math.max(0, this.gameState.player.health - damage);
-    this.gameState.player.damageFlashTimer = 0.3;
+    player.health = Math.max(0, player.health - damage);
+    player.damageFlashTimer = 0.3;
     enemy.attackAnimationTimer = 0.3;
+
+    const bo = enemy.behaviorOverrides;
+    if (bo.snareOnHit && !isParry && !(isBlocking && player.guardBrokenTimer <= 0)) {
+      player.snareTimer = bo.snareDuration ?? 1.5;
+      player.snareSpeedMult = bo.snareSpeedMult ?? 0.6;
+    }
+
     return { parried: false };
   }
 
@@ -465,10 +604,15 @@ export class CombatSystem {
 
     targetEnemy.poise -= finalDamage;
     if (targetEnemy.poise <= 0 && targetEnemy.state !== 'staggered') {
-      targetEnemy.state = 'staggered';
-      targetEnemy.staggerTimer = targetEnemy.staggerDuration;
-      targetEnemy.damageFlashTimer = targetEnemy.staggerDuration;
-      isStaggered = true;
+      if (targetEnemy.behaviorOverrides.poiseImmunityFirstHit && !targetEnemy.poiseImmunityUsed) {
+        targetEnemy.poiseImmunityUsed = true;
+        targetEnemy.poise = Math.floor(targetEnemy.maxPoise * 0.5);
+      } else {
+        targetEnemy.state = 'staggered';
+        targetEnemy.staggerTimer = targetEnemy.staggerDuration;
+        targetEnemy.damageFlashTimer = targetEnemy.staggerDuration;
+        isStaggered = true;
+      }
     }
 
     targetEnemy.health = Math.max(0, targetEnemy.health - finalDamage);

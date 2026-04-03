@@ -1,3 +1,19 @@
+export interface EnemyBehaviorOverrides {
+  chainAttack?: boolean;
+  chainChance?: number;
+  chainTelegraph?: number;
+  retreatAfterHit?: boolean;
+  retreatDuration?: number;
+  retreatSpeedMult?: number;
+  rangedAttack?: boolean;
+  rangedRange?: number;
+  rangedChance?: number;
+  snareOnHit?: boolean;
+  snareDuration?: number;
+  snareSpeedMult?: number;
+  poiseImmunityFirstHit?: boolean;
+}
+
 export interface EnemyBlueprint {
   type: string;
   name: string;
@@ -12,6 +28,7 @@ export interface EnemyBlueprint {
   recoverDuration?: number;
   poise?: number;
   staggerDuration?: number;
+  behaviorOverrides?: EnemyBehaviorOverrides;
 }
 
 export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
@@ -28,6 +45,14 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     recoverDuration: 0.4,
     poise: 60,
     staggerDuration: 1.2,
+    behaviorOverrides: {
+      chainAttack: true,
+      chainChance: 0.6,
+      chainTelegraph: 0.3,
+      retreatAfterHit: true,
+      retreatDuration: 1.0,
+      retreatSpeedMult: 1.5,
+    },
   },
   shadow: {
     type: 'shadow',
@@ -42,6 +67,11 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     recoverDuration: 0.5,
     poise: 80,
     staggerDuration: 1.0,
+    behaviorOverrides: {
+      chainAttack: true,
+      chainChance: 0.3,
+      chainTelegraph: 0.55,
+    },
   },
   plant: {
     type: 'plant',
@@ -56,6 +86,11 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     recoverDuration: 1.0,
     poise: 120,
     staggerDuration: 0.8,
+    behaviorOverrides: {
+      snareOnHit: true,
+      snareDuration: 1.5,
+      snareSpeedMult: 0.6,
+    },
   },
   skeleton: {
     type: 'skeleton',
@@ -112,6 +147,11 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     recoverDuration: 0.3,
     poise: 30,
     staggerDuration: 1.8,
+    behaviorOverrides: {
+      rangedAttack: true,
+      rangedRange: 3.0,
+      rangedChance: 0.5,
+    },
   },
   hollow_guardian: {
     type: 'hollow_guardian',
@@ -142,6 +182,9 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 100,
     staggerDuration: 0.9,
     essenceReward: 25,
+    behaviorOverrides: {
+      poiseImmunityFirstHit: true,
+    },
   },
   slime: {
     type: 'slime',

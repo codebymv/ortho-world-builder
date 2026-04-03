@@ -25,6 +25,7 @@ export function runEnemyLoop({
   isPlayerDead,
   floatingText,
   screenShake,
+  particleSystem,
   outlinePad,
   enemyVisualProfiles,
   registry,
@@ -63,6 +64,8 @@ export function runEnemyLoop({
       floatingText.spawn(parriedEnemy.position.x, parriedEnemy.position.y + 0.5, 'PARRY!', '#00FFCC', 22);
       screenShake.shake(0.3, 0.1);
       screenShake.hitStop(0.08);
+      particleSystem.emitSparkles(new THREE.Vector3(parriedEnemy.position.x, parriedEnemy.position.y, 0.3));
+      particleSystem.emit(new THREE.Vector3(parriedEnemy.position.x, parriedEnemy.position.y, 0.4), 6, 0xFFD700, 0.5, 1.2, 1.0);
     }
   }
 

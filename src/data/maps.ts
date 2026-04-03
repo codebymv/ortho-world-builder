@@ -534,6 +534,131 @@ const forestDef: MapDefinition = {
     { x: 158, y: 108, width: 12, height: 20, type: 'wall', fill: 'tree' },
     // East palisade — closes gap between fort east wall and east tree wall
     { x: 152, y: 131, width: 8, height: 15, type: 'wall', fill: 'tree' },
+
+    // === WATERFALL BASE — mossy stone pool ===
+    { x: 176, y: 46, width: 4, height: 3, type: 'clearing', fill: 'mossy_stone' },
+
+    // === SOUTH ENTRY — broken wagon clearing ===
+    { x: 142, y: 276, width: 6, height: 4, type: 'clearing', fill: 'dirt' },
+
+    // ============================================================
+    // === CREEK SYSTEMS — winding water channels with bridges ===
+    // ============================================================
+
+    // --- South-east creek: runs from (200,230) curving south-east toward (260,270) ---
+    { x: 200, y: 232, width: 30, height: 3, type: 'wall', fill: 'water' },
+    { x: 228, y: 234, width: 3, height: 16, type: 'wall', fill: 'water' },
+    { x: 230, y: 248, width: 20, height: 3, type: 'wall', fill: 'water' },
+    { x: 248, y: 250, width: 3, height: 14, type: 'wall', fill: 'water' },
+    { x: 215, y: 232, width: 6, height: 3, type: 'bridge' },
+    { x: 228, y: 240, width: 3, height: 4, type: 'bridge' },
+    { x: 238, y: 248, width: 6, height: 3, type: 'bridge' },
+
+    // --- West creek: runs from the hidden grove lake (40,200) south past spider nest ---
+    { x: 38, y: 212, width: 3, height: 20, type: 'wall', fill: 'water' },
+    { x: 36, y: 230, width: 14, height: 3, type: 'wall', fill: 'water' },
+    { x: 38, y: 220, width: 3, height: 4, type: 'bridge' },
+
+    // --- Central-east stream: descends from east of golem arena (240,170) south ---
+    { x: 264, y: 165, width: 3, height: 22, type: 'wall', fill: 'water' },
+    { x: 264, y: 185, width: 14, height: 3, type: 'wall', fill: 'water' },
+    { x: 264, y: 174, width: 3, height: 4, type: 'bridge' },
+
+    // --- Far south creek: cuts across the entry approach (y~270) ---
+    { x: 110, y: 272, width: 28, height: 3, type: 'wall', fill: 'water' },
+    { x: 170, y: 273, width: 24, height: 3, type: 'wall', fill: 'water' },
+    { x: 128, y: 272, width: 6, height: 3, type: 'bridge' },
+    { x: 182, y: 273, width: 6, height: 3, type: 'bridge' },
+
+    // ============================================================
+    // === CLIFF FACES & ROCKY RIDGES — natural barriers ===
+    // ============================================================
+
+    // --- East ridge: rocky shelf from (270,100) to (280,150) ---
+    { x: 272, y: 100, width: 16, height: 50, type: 'cliff_face' },
+
+    // --- South-east rocky shelf ---
+    { x: 205, y: 240, width: 24, height: 8, type: 'cliff_face' },
+
+    // --- Central-south ridge: separates cemetery area from south trail ---
+    { x: 106, y: 248, width: 20, height: 6, type: 'cliff_face' },
+
+    // --- Far east rocky spur ---
+    { x: 285, y: 200, width: 10, height: 20, type: 'cliff_face' },
+
+    // ============================================================
+    // === ROCKY OUTCROPS & STONE CLEARINGS ===
+    // ============================================================
+
+    // --- Rocky outcrop south-east (fills empty zone x:210-240, y:210-230) ---
+    { x: 212, y: 212, width: 16, height: 10, type: 'clearing', fill: 'stone' },
+    { x: 214, y: 216, width: 8, height: 4, type: 'clearing', fill: 'mossy_stone' },
+
+    // --- Ancient stone circle (far east, x:275, y:140) ---
+    { x: 275, y: 140, width: 12, height: 10, type: 'clearing', fill: 'mossy_stone' },
+    { x: 278, y: 143, width: 6, height: 4, type: 'clearing', fill: 'ruins_floor' },
+
+    // --- Rocky shelf south of entry (fills x:200-230, y:270-285) ---
+    { x: 200, y: 275, width: 18, height: 10, type: 'clearing', fill: 'stone' },
+
+    // --- Mossy ruins east of spine (x:170, y:130) ---
+    { x: 172, y: 132, width: 10, height: 8, type: 'ruins' },
+
+    // ============================================================
+    // === DENSE TREE CORRIDORS — natural funnelling ===
+    // ============================================================
+
+    // --- East corridor: forces path around rocky shelf ---
+    { x: 260, y: 200, width: 8, height: 14, type: 'wall', fill: 'tree' },
+
+    // --- South-west tree wall: guides players toward spider nest ---
+    { x: 52, y: 236, width: 8, height: 22, type: 'wall', fill: 'tree' },
+
+    // --- Central-south tree cluster: breaks up empty grass ---
+    { x: 168, y: 240, width: 10, height: 8, type: 'wall', fill: 'tree' },
+
+    // --- Far south tree lines: frames the entry corridor ---
+    { x: 120, y: 282, width: 8, height: 8, type: 'wall', fill: 'tree' },
+    { x: 174, y: 282, width: 8, height: 8, type: 'wall', fill: 'tree' },
+
+    // ============================================================
+    // === NEW POIs — filling dead zones ===
+    // ============================================================
+
+    // --- Overgrown ruins (south-east, x:210, y:250) ---
+    { x: 212, y: 252, width: 14, height: 10, type: 'ruins' },
+
+    // --- Abandoned logging camp (central-south, x:165, y:235) ---
+    { x: 165, y: 236, width: 14, height: 10, type: 'abandoned_camp', interactionId: 'logging_camp' },
+    { x: 162, y: 234, width: 20, height: 14, type: 'clearing', fill: 'dirt' },
+
+    // --- Collapsed cottage (far east, x:280, y:160) ---
+    { x: 280, y: 160, width: 6, height: 6, type: 'cottage', interactionId: 'collapsed_cottage' },
+    { x: 276, y: 158, width: 14, height: 10, type: 'clearing', fill: 'grass' },
+
+    // --- Stone quarry (south-east, x:230, y:205) ---
+    { x: 228, y: 205, width: 16, height: 12, type: 'clearing', fill: 'stone' },
+    { x: 232, y: 208, width: 8, height: 6, type: 'clearing', fill: 'cobblestone' },
+
+    // --- Sunken garden (west, x:20, y:170) ---
+    { x: 18, y: 168, width: 14, height: 12, type: 'clearing', fill: 'grass' },
+    { x: 22, y: 172, width: 6, height: 4, type: 'garden' },
+
+    // --- Old well clearing (central, x:190, y:120) ---
+    { x: 188, y: 118, width: 12, height: 10, type: 'clearing', fill: 'grass' },
+
+    // --- Rocky pond (far south-west, x:30, y:280) ---
+    { x: 28, y: 278, width: 12, height: 8, type: 'lake' },
+
+    // --- Small pond (far east, x:275, y:220) ---
+    { x: 275, y: 220, width: 10, height: 8, type: 'lake' },
+
+    // --- Ruined shrine (south, x:80, y:280) ---
+    { x: 78, y: 278, width: 10, height: 8, type: 'clearing', fill: 'mossy_stone' },
+    { x: 80, y: 280, width: 6, height: 4, type: 'clearing', fill: 'ruins_floor' },
+
+    // --- Rocky ford (east, x:260, y:230) ---
+    { x: 258, y: 228, width: 10, height: 8, type: 'clearing', fill: 'mossy_stone' },
   ],
   portals: [
     { x: 150, y: 291, targetMap: 'village', targetX: 120, targetY: 8 },
@@ -571,6 +696,8 @@ const forestDef: MapDefinition = {
     { x: 145, y: 128, interactionId: 'fort_garrison_chest' },
     // Hollow boss arena chest — full manuscript
     { x: 130, y: 16, interactionId: 'hollow_boss_chest' },
+    // Hidden chest behind waterfall
+    { x: 180, y: 46, interactionId: 'waterfall_hidden_chest' },
   ],
   interactables: [
     { x: 140, y: 170, type: 'sign', walkable: false, interactionId: 'ranger_sign' },
@@ -636,6 +763,27 @@ const forestDef: MapDefinition = {
     { x: 96, y: 38, type: 'shortcut_lever', walkable: false, interactionId: 'hollow_shortcut_lever' },
     // === THE HOLLOW — Hunters final camp (just before boss arena) ===
     { x: 120, y: 26, type: 'campfire', walkable: false, interactionId: 'hollow_final_camp' },
+
+    // === SOUTH ENTRY CORRIDOR — environmental storytelling ===
+    { x: 148, y: 270, type: 'sign', walkable: false, interactionId: 'forest_milestone' },
+
+    // === HOLLOW APPROACH — fallen ranger and final warning ===
+    { x: 124, y: 28, type: 'ranger_remains', walkable: true, interactionId: 'hollow_dead_ranger' },
+    { x: 122, y: 26, type: 'sign', walkable: false, interactionId: 'hollow_final_warning' },
+
+    // === WITCH COTTAGE SURROUNDS ===
+    { x: 232, y: 134, type: 'cauldron', walkable: false, interactionId: 'witch_cauldron' },
+    { x: 228, y: 138, type: 'sign', walkable: false, interactionId: 'witch_circle_warning' },
+
+    // === GOLEM HIGHLAND APPROACH ===
+    { x: 210, y: 145, type: 'sign', walkable: false, interactionId: 'golem_highland_warning' },
+
+    // === SHORTCUT LEVER HINTS ===
+    { x: 130, y: 207, type: 'ranger_remains', walkable: true, interactionId: 'dead_ranger_shortcut_note' },
+    { x: 98, y: 40, type: 'sign', walkable: false, interactionId: 'hollow_lever_inscription' },
+
+    // === FORT INTERIOR ===
+    { x: 136, y: 130, type: 'sign', walkable: false, interactionId: 'fort_garrison_orders' },
   ],
   props: [
     { x: 144, y: 268, type: 'lantern', walkable: false },
@@ -745,6 +893,247 @@ const forestDef: MapDefinition = {
     { x: 206, y: 258, type: 'barrel', walkable: false },
     { x: 246, y: 268, type: 'lantern', walkable: false },
     { x: 66, y: 268, type: 'bones_pile', walkable: true },
+
+    // === SOUTH ENTRY CORRIDOR — broken wagon and scatter ===
+    { x: 152, y: 264, type: 'bones_pile', walkable: true },
+    { x: 148, y: 258, type: 'bones_pile', walkable: true },
+    { x: 144, y: 278, type: 'wagon', walkable: false },
+    { x: 146, y: 280, type: 'barrel', walkable: false },
+    { x: 148, y: 280, type: 'crate', walkable: false },
+    { x: 142, y: 276, type: 'bones_pile', walkable: true },
+
+    // === MAIN SPINE — stumps and mushroom rings ===
+    { x: 144, y: 230, type: 'stump', walkable: false },
+    { x: 156, y: 200, type: 'stump', walkable: false },
+    { x: 144, y: 180, type: 'stump', walkable: false },
+    { x: 156, y: 150, type: 'stump', walkable: false },
+    { x: 144, y: 140, type: 'stump', walkable: false },
+    { x: 156, y: 110, type: 'stump', walkable: false },
+    { x: 153, y: 243, type: 'mushroom', walkable: true },
+    { x: 155, y: 244, type: 'mushroom', walkable: true },
+    { x: 154, y: 246, type: 'mushroom', walkable: true },
+    { x: 143, y: 195, type: 'mushroom', walkable: true },
+    { x: 141, y: 196, type: 'mushroom', walkable: true },
+    { x: 142, y: 198, type: 'mushroom', walkable: true },
+    { x: 153, y: 135, type: 'mushroom', walkable: true },
+    { x: 155, y: 136, type: 'mushroom', walkable: true },
+    { x: 154, y: 138, type: 'mushroom', walkable: true },
+
+    // === MAIN SPINE — lanterns at forks ===
+    { x: 149, y: 161, type: 'lantern', walkable: false },
+    { x: 149, y: 114, type: 'lantern', walkable: false },
+    { x: 119, y: 121, type: 'lantern', walkable: false },
+    { x: 119, y: 97, type: 'lantern', walkable: false },
+
+    // === HOLLOW APPROACH — bones trail to fog gate ===
+    { x: 120, y: 34, type: 'bones_pile', walkable: true },
+    { x: 123, y: 32, type: 'bones_pile', walkable: true },
+    { x: 118, y: 30, type: 'bones_pile', walkable: true },
+    { x: 125, y: 28, type: 'bones_pile', walkable: true },
+
+    // === HOLLOW APPROACH — bloodstains near fog gate ===
+    { x: 121, y: 24, type: 'bloodstain', walkable: true },
+    { x: 123, y: 25, type: 'bloodstain', walkable: true },
+    { x: 119, y: 26, type: 'bloodstain', walkable: true },
+    { x: 125, y: 23, type: 'bloodstain', walkable: true },
+
+    // === HUNTER COTTAGE SURROUNDS ===
+    { x: 136, y: 190, type: 'lantern', walkable: false },
+    { x: 143, y: 186, type: 'bones_pile', walkable: true },
+    { x: 134, y: 186, type: 'fence', walkable: false },
+    { x: 135, y: 186, type: 'fence', walkable: false },
+    { x: 136, y: 186, type: 'fence', walkable: false },
+    { x: 140, y: 186, type: 'fence', walkable: false },
+    { x: 141, y: 186, type: 'fence', walkable: false },
+    { x: 134, y: 194, type: 'flower', walkable: true },
+    { x: 136, y: 194, type: 'flower', walkable: true },
+    { x: 138, y: 194, type: 'flower', walkable: true },
+    { x: 132, y: 192, type: 'tall_grass', walkable: true },
+    { x: 131, y: 191, type: 'tall_grass', walkable: true },
+    { x: 133, y: 193, type: 'tall_grass', walkable: true },
+
+    // === WITCH COTTAGE — altar prop ===
+    { x: 230, y: 140, type: 'altar', walkable: false },
+
+    // === GOLEM APPROACH — bones ===
+    { x: 212, y: 143, type: 'bones_pile', walkable: true },
+
+    // === WITCH COTTAGE SURROUNDS — mushroom ring ===
+    { x: 230, y: 132, type: 'mushroom', walkable: true },
+    { x: 234, y: 132, type: 'mushroom', walkable: true },
+    { x: 236, y: 134, type: 'mushroom', walkable: true },
+    { x: 236, y: 138, type: 'mushroom', walkable: true },
+    { x: 234, y: 140, type: 'mushroom', walkable: true },
+    { x: 230, y: 140, type: 'mushroom', walkable: true },
+    { x: 228, y: 138, type: 'mushroom', walkable: true },
+    { x: 228, y: 134, type: 'mushroom', walkable: true },
+    { x: 231, y: 139, type: 'bloodstain', walkable: true },
+
+    // === WATERFALL AREA ===
+    { x: 180, y: 44, type: 'flower', walkable: true },
+    { x: 182, y: 44, type: 'flower', walkable: true },
+    { x: 184, y: 44, type: 'flower', walkable: true },
+    { x: 176, y: 42, type: 'tall_grass', walkable: true },
+    { x: 178, y: 42, type: 'tall_grass', walkable: true },
+    { x: 180, y: 42, type: 'tall_grass', walkable: true },
+    { x: 182, y: 42, type: 'tall_grass', walkable: true },
+
+    // === FORT INTERIOR DETAIL ===
+    { x: 140, y: 130, type: 'campfire', walkable: false },
+    { x: 142, y: 132, type: 'bones_pile', walkable: true },
+    { x: 144, y: 132, type: 'bones_pile', walkable: true },
+    { x: 134, y: 126, type: 'barrel', walkable: false },
+    { x: 136, y: 126, type: 'crate', walkable: false },
+    { x: 148, y: 126, type: 'barrel', walkable: false },
+    { x: 150, y: 126, type: 'crate', walkable: false },
+    { x: 138, y: 134, type: 'weapon_rack', walkable: false },
+
+    // ============================================================
+    // === ENVIRONMENTAL SCATTER — rocks, stumps, wells, statues ===
+    // ============================================================
+
+    // --- East ridge approach: rocky scatter ---
+    { x: 274, y: 108, type: 'rock', walkable: false },
+    { x: 276, y: 112, type: 'rock', walkable: false },
+    { x: 278, y: 116, type: 'rock', walkable: false },
+    { x: 280, y: 110, type: 'rock', walkable: false },
+    { x: 282, y: 120, type: 'rock', walkable: false },
+    { x: 275, y: 124, type: 'rock', walkable: false },
+    { x: 284, y: 130, type: 'rock', walkable: false },
+    { x: 277, y: 136, type: 'stump', walkable: false },
+    { x: 288, y: 118, type: 'rock', walkable: false },
+    { x: 286, y: 140, type: 'rock', walkable: false },
+    { x: 274, y: 142, type: 'stump', walkable: false },
+
+    // --- South-east rocky shelf scatter ---
+    { x: 214, y: 218, type: 'rock', walkable: false },
+    { x: 218, y: 220, type: 'rock', walkable: false },
+    { x: 222, y: 216, type: 'rock', walkable: false },
+    { x: 220, y: 222, type: 'stump', walkable: false },
+    { x: 216, y: 214, type: 'rock', walkable: false },
+
+    // --- Ancient stone circle props (far east) ---
+    { x: 279, y: 144, type: 'statue', walkable: false },
+    { x: 281, y: 148, type: 'statue', walkable: false },
+
+    // --- Stone quarry debris ---
+    { x: 230, y: 206, type: 'rock', walkable: false },
+    { x: 234, y: 210, type: 'rock', walkable: false },
+    { x: 238, y: 208, type: 'rock', walkable: false },
+    { x: 232, y: 214, type: 'rock', walkable: false },
+    { x: 236, y: 212, type: 'stump', walkable: false },
+    { x: 240, y: 206, type: 'rock', walkable: false },
+    { x: 228, y: 210, type: 'rock', walkable: false },
+
+    // --- Old well clearing props ---
+    { x: 192, y: 122, type: 'well', walkable: false },
+    { x: 190, y: 120, type: 'flower', walkable: true },
+    { x: 194, y: 120, type: 'flower', walkable: true },
+    { x: 196, y: 124, type: 'stump', walkable: false },
+
+    // --- South-west stumps and rocks (near entry approach) ---
+    { x: 112, y: 274, type: 'rock', walkable: false },
+    { x: 116, y: 276, type: 'stump', walkable: false },
+    { x: 108, y: 278, type: 'rock', walkable: false },
+    { x: 174, y: 276, type: 'rock', walkable: false },
+    { x: 178, y: 278, type: 'stump', walkable: false },
+
+    // --- Creek-side vegetation (south-east creek) ---
+    { x: 202, y: 230, type: 'tall_grass', walkable: true },
+    { x: 206, y: 230, type: 'tall_grass', walkable: true },
+    { x: 210, y: 230, type: 'flower', walkable: true },
+    { x: 226, y: 236, type: 'tall_grass', walkable: true },
+    { x: 230, y: 236, type: 'flower', walkable: true },
+    { x: 232, y: 250, type: 'tall_grass', walkable: true },
+    { x: 236, y: 250, type: 'tall_grass', walkable: true },
+    { x: 246, y: 252, type: 'flower', walkable: true },
+
+    // --- West creek vegetation ---
+    { x: 36, y: 214, type: 'tall_grass', walkable: true },
+    { x: 40, y: 216, type: 'tall_grass', walkable: true },
+    { x: 42, y: 218, type: 'flower', walkable: true },
+    { x: 36, y: 226, type: 'tall_grass', walkable: true },
+    { x: 38, y: 228, type: 'flower', walkable: true },
+
+    // --- Far south creek vegetation ---
+    { x: 112, y: 270, type: 'tall_grass', walkable: true },
+    { x: 118, y: 270, type: 'tall_grass', walkable: true },
+    { x: 124, y: 274, type: 'flower', walkable: true },
+    { x: 136, y: 274, type: 'tall_grass', walkable: true },
+    { x: 172, y: 271, type: 'tall_grass', walkable: true },
+    { x: 178, y: 271, type: 'flower', walkable: true },
+    { x: 190, y: 275, type: 'tall_grass', walkable: true },
+
+    // --- Logging camp detail ---
+    { x: 166, y: 238, type: 'stump', walkable: false },
+    { x: 168, y: 238, type: 'stump', walkable: false },
+    { x: 170, y: 240, type: 'stump', walkable: false },
+    { x: 172, y: 236, type: 'barrel', walkable: false },
+    { x: 174, y: 238, type: 'crate', walkable: false },
+
+    // --- Collapsed cottage rubble ---
+    { x: 278, y: 162, type: 'rock', walkable: false },
+    { x: 282, y: 164, type: 'rock', walkable: false },
+    { x: 284, y: 162, type: 'stump', walkable: false },
+    { x: 280, y: 166, type: 'barrel', walkable: false },
+
+    // --- Sunken garden detail (west) ---
+    { x: 20, y: 170, type: 'flower', walkable: true },
+    { x: 24, y: 170, type: 'flower', walkable: true },
+    { x: 26, y: 174, type: 'flower', walkable: true },
+    { x: 20, y: 174, type: 'mushroom', walkable: true },
+    { x: 28, y: 176, type: 'tall_grass', walkable: true },
+
+    // --- Ruined shrine props ---
+    { x: 80, y: 280, type: 'statue', walkable: false },
+    { x: 84, y: 282, type: 'bones_pile', walkable: true },
+    { x: 82, y: 284, type: 'tombstone', walkable: false },
+
+    // --- South-east ruins scatter ---
+    { x: 214, y: 254, type: 'rock', walkable: false },
+    { x: 218, y: 256, type: 'rock', walkable: false },
+    { x: 222, y: 254, type: 'statue', walkable: false },
+    { x: 216, y: 258, type: 'bones_pile', walkable: true },
+
+    // --- Scattered rocks along central-east stream ---
+    { x: 262, y: 168, type: 'rock', walkable: false },
+    { x: 266, y: 172, type: 'rock', walkable: false },
+    { x: 268, y: 176, type: 'rock', walkable: false },
+    { x: 270, y: 180, type: 'rock', walkable: false },
+    { x: 266, y: 184, type: 'tall_grass', walkable: true },
+
+    // --- Large central grass zone scatter (x:160-200, y:100-130) ---
+    { x: 176, y: 108, type: 'rock', walkable: false },
+    { x: 180, y: 112, type: 'stump', walkable: false },
+    { x: 184, y: 106, type: 'mushroom', walkable: true },
+    { x: 188, y: 114, type: 'rock', walkable: false },
+    { x: 182, y: 118, type: 'flower', walkable: true },
+    { x: 186, y: 122, type: 'tall_grass', walkable: true },
+
+    // --- South-central empty zone scatter (x:100-140, y:230-250) ---
+    { x: 100, y: 236, type: 'stump', walkable: false },
+    { x: 104, y: 240, type: 'rock', walkable: false },
+    { x: 108, y: 244, type: 'stump', walkable: false },
+
+    // --- Rocky ford detail (east) ---
+    { x: 260, y: 230, type: 'rock', walkable: false },
+    { x: 262, y: 232, type: 'rock', walkable: false },
+    { x: 264, y: 234, type: 'tall_grass', walkable: true },
+    { x: 258, y: 234, type: 'flower', walkable: true },
+
+    // --- Central-south path variety (between paths y:220-240) ---
+    { x: 148, y: 224, type: 'rock', walkable: false },
+    { x: 152, y: 228, type: 'stump', walkable: false },
+    { x: 156, y: 226, type: 'mushroom', walkable: true },
+    { x: 160, y: 232, type: 'rock', walkable: false },
+
+    // --- Far-east midfield scatter (x:285-295, y:200-240) ---
+    { x: 288, y: 204, type: 'rock', walkable: false },
+    { x: 290, y: 210, type: 'rock', walkable: false },
+    { x: 286, y: 216, type: 'stump', walkable: false },
+    { x: 292, y: 222, type: 'rock', walkable: false },
+    { x: 288, y: 230, type: 'rock', walkable: false },
+    { x: 290, y: 236, type: 'stump', walkable: false },
   ],
   secretAreas: [
     { x: 256, y: 184, width: 8, height: 6, fill: 'grass' },
@@ -777,6 +1166,12 @@ const forestDef: MapDefinition = {
     { x: 204, y: 38, width: 42, height: 42, elevation: 2 },
     // === TIER 1: SE enchanted hills ===
     { x: 230, y: 222, width: 62, height: 62, elevation: 1 },
+    // === TIER 1: East ridge (rocky cliff shelf) ===
+    { x: 272, y: 100, width: 24, height: 50, elevation: 1 },
+    // === TIER 1: South-east rocky bluff ===
+    { x: 200, y: 236, width: 28, height: 16, elevation: 1 },
+    // === TIER 1: South-west rocky hill (near ruined shrine) ===
+    { x: 72, y: 274, width: 18, height: 16, elevation: 1 },
   ],
   stairways: [
     // All stairways start AT south_face = zone_y + zone_h - 1 so placeStairways
@@ -796,6 +1191,12 @@ const forestDef: MapDefinition = {
     // Hunter shack overlook: climb from the bloodstained bonfire shelf to the upper approach.
     // SE enchanted hills south: zone {x:230,y:222,h:62}, south_face=283
     { x: 248, y: 283, width: 6, height: 4, elevation: 1 },
+    // East ridge south face: zone {x:272,y:100,h:50}, south_face=149
+    { x: 280, y: 149, width: 6, height: 4, elevation: 1 },
+    // South-east bluff south face: zone {x:200,y:236,h:16}, south_face=251
+    { x: 210, y: 251, width: 6, height: 4, elevation: 1 },
+    // South-west rocky hill south: zone {x:72,y:274,h:16}, south_face=289
+    { x: 78, y: 289, width: 6, height: 4, elevation: 1 },
   ],
   enemyZones: [
     // Zones are spread by quadrant / POI so packs are not stacked on one choke (esp. north gate).
@@ -864,6 +1265,30 @@ const forestDef: MapDefinition = {
     { x: 142, y: 210, width: 18, height: 14, enemyType: 'wolf', count: 2 },
 
     { x: 215, y: 140, width: 20, height: 16, enemyType: 'golem', count: 1 },
+
+    // AUTHORED ENCOUNTER POD 1 — mid-spine fork, first multi-enemy test
+    { x: 146, y: 178, width: 6, height: 4, enemyType: 'wolf', count: 3 },
+    // AUTHORED ENCOUNTER POD 2 — river crossing approach, mixed threat
+    { x: 140, y: 88, width: 8, height: 6, enemyType: 'wolf', count: 2 },
+    { x: 148, y: 88, width: 8, height: 6, enemyType: 'shadow', count: 2 },
+    // AUTHORED ENCOUNTER POD 3 — hollow approach, highest pressure before boss
+    { x: 116, y: 33, width: 10, height: 8, enemyType: 'shadow', count: 4 },
+    { x: 116, y: 33, width: 10, height: 8, enemyType: 'plant', count: 1 },
+
+    // East ridge — wolves patrol the rocky shelf
+    { x: 274, y: 110, width: 16, height: 30, enemyType: 'wolf', count: 4 },
+    // Stone quarry — skeletons among the rubble
+    { x: 228, y: 205, width: 16, height: 12, enemyType: 'skeleton', count: 4 },
+    // Logging camp — wolves prowl the cleared area
+    { x: 162, y: 234, width: 18, height: 12, enemyType: 'wolf', count: 3 },
+    // Collapsed cottage — spiders nested in the ruins
+    { x: 276, y: 156, width: 14, height: 12, enemyType: 'spider', count: 3 },
+    // South creek crossing — slimes in the water margin
+    { x: 110, y: 270, width: 30, height: 6, enemyType: 'slime', count: 3 },
+    // Ruined shrine — shadows guard the ancient stones
+    { x: 76, y: 276, width: 14, height: 12, enemyType: 'shadow', count: 2 },
+    // Rocky ford — wolves at the mossy crossing
+    { x: 256, y: 226, width: 14, height: 10, enemyType: 'wolf', count: 2 },
   ],
 };
 

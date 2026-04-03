@@ -31,6 +31,14 @@ export interface PlayerState {
   staminaRegenRate: number;
   staminaRegenDelay: number;
   lastStaminaUseTime: number;
+  guardBrokenTimer: number;
+  parryBonusTimer: number;
+  snareTimer: number;
+  snareSpeedMult: number;
+  level: number;
+  vitality: number;
+  endurance: number;
+  strength: number;
 }
 
 export interface NPC {
@@ -144,6 +152,14 @@ export class GameState {
       staminaRegenRate: 44,
       staminaRegenDelay: 0.38,
       lastStaminaUseTime: 0,
+      guardBrokenTimer: 0,
+      parryBonusTimer: 0,
+      snareTimer: 0,
+      snareSpeedMult: 1.0,
+      level: 1,
+      vitality: 1,
+      endurance: 1,
+      strength: 1,
     };
 
     this.inventory = [{ ...items.meek_short_sword }];
@@ -238,8 +254,35 @@ export class GameState {
       this.inventory.find(item => item.type === 'equipment');
 
     this.equippedWeaponId = equipped?.id ?? null;
-    this.player.attackDamage = equipped?.stats?.damage ?? 20;
+    const baseDamage = equipped?.stats?.damage ?? 20;
+    this.player.attackDamage = baseDamage + (this.player.strength - 1) * 3;
     this.player.attackRange = equipped?.stats?.range ?? 2;
+  }
+
+  getLevelUpCost(): number {
+    return Math.floor(80 + (this.player.level - 1) * 40 + (this.player.level - 1) ** 1.8 * 12);
+  }
+
+  levelUpStat(stat: 'vitality' | 'endurance' | 'strength'): boolean {
+    const cost = this.getLevelUpCost();
+    if (this.player.essence < cost) return false;
+
+    this.player.essence -= cost;
+    this.player[stat] += 1;
+    this.player.level += 1;
+
+    this.player.maxHealth = 100 + (this.player.vitality - 1) * 20;
+    this.player.health = this.player.maxHealth;
+    this.player.maxStamina = 120 + (this.player.endurance - 1) * 15;
+    this.player.stamina = this.player.maxStamina;
+
+    const weapon = this.equippedWeaponId
+      ? this.inventory.find(i => i.id === this.equippedWeaponId)
+      : undefined;
+    const baseWeaponDamage = weapon?.stats?.damage ?? 20;
+    this.player.attackDamage = baseWeaponDamage + (this.player.strength - 1) * 3;
+
+    return true;
   }
 
   setFlag(flag: string, value: boolean | number) {

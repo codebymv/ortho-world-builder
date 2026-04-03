@@ -175,8 +175,12 @@ export function createRuntimeCombatActions({
       const forestKillCount = Number(state.getFlag('forest_kill_count')) || 0;
       const kills = Math.min(forestKillCount - baseline, 5);
       guardQuest.objectives[1] = `Defeat any hostile creatures (${kills}/5)`;
+      if (kills === 3) {
+        notify('The forest is beginning to fear you.', { id: 'guard-progress', duration: 3000 });
+      }
       if (kills >= 5) {
         guardQuest.objectives[1] = 'Defeat any hostile creatures (5/5) ✓';
+        screenShake.shake(0.15, 0.1);
       }
     }
 
@@ -251,21 +255,28 @@ export function createRuntimeCombatActions({
       target = facingEnemies[0];
     }
 
+    const parryBonus = state.player.parryBonusTimer > 0 ? 1.25 : 1;
+    const baseDamage = Math.floor(state.player.attackDamage * parryBonus);
+
     const result = combatSystem.playerAttack(
       target,
-      state.player.attackDamage,
+      baseDamage,
       state.player.position,
       state.player.direction,
     );
+
+    if (parryBonus > 1) {
+      state.player.parryBonusTimer = 0;
+    }
 
     const isCrit = target.state === 'recovering' || target.state === 'staggered';
     const isBackstab = result.backstab;
     const isStaggered = result.staggered;
 
-    let actualDamage = state.player.attackDamage;
-    if (isBackstab) actualDamage = Math.floor(state.player.attackDamage * 2.5);
-    else if (target.state === 'staggered') actualDamage = Math.floor(state.player.attackDamage * 2);
-    else if (isCrit) actualDamage = Math.floor(state.player.attackDamage * 1.5);
+    let actualDamage = baseDamage;
+    if (isBackstab) actualDamage = Math.floor(baseDamage * 2.5);
+    else if (target.state === 'staggered') actualDamage = Math.floor(baseDamage * 2);
+    else if (isCrit) actualDamage = Math.floor(baseDamage * 1.5);
 
     floatingText.spawnDamage(target.position.x, target.position.y, actualDamage, isCrit || isBackstab);
 
@@ -275,7 +286,7 @@ export function createRuntimeCombatActions({
       floatingText.spawn(target.position.x, target.position.y + 0.8, 'BACKSTAB!', '#FFD700', 24);
     } else {
       screenShake.shake(isCrit ? 0.2 : 0.1, isCrit ? 0.15 : 0.08);
-      if (isCrit) screenShake.hitStop(0.05);
+      screenShake.hitStop(isCrit ? 0.1 : 0.07);
     }
 
     if (isStaggered) {
@@ -386,7 +397,7 @@ export function createRuntimeCombatActions({
 
       floatingText.spawnDamage(target.position.x, target.position.y, actualDamage, true);
       screenShake.shake(0.25, 0.2);
-      screenShake.hitStop(0.06);
+      screenShake.hitStop(0.1);
 
       if (result.backstab) {
         floatingText.spawn(target.position.x, target.position.y + 0.6, 'BACKSTAB!', '#FFD700', 24);

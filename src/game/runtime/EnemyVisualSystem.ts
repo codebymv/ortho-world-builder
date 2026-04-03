@@ -172,8 +172,11 @@ export function applyEnemyVisuals({
     const windUp = isBoss ? 0.3 : 0.15;
     const shakeBase = isBoss ? 0.06 : 0.03;
 
-    scaleX *= 1 + telegraphProgress * scaleSwellX;
-    scaleY *= 1 - telegraphProgress * scaleSwellY;
+    const pulseBeat = telegraphProgress < 0.5
+      ? Math.sin(telegraphProgress * Math.PI * 4) * 0.08
+      : 0;
+    scaleX *= 1 + telegraphProgress * scaleSwellX + pulseBeat;
+    scaleY *= 1 - telegraphProgress * scaleSwellY + pulseBeat * 0.5;
 
     const windUpDist = telegraphProgress * windUp;
     finalEnemyX += (dx / dist) * -windUpDist;
@@ -206,6 +209,12 @@ export function applyEnemyVisuals({
     scaleX *= 0.92 + recoverProgress * 0.08;
     scaleY *= 0.88 + recoverProgress * 0.12;
     rotation = Math.sin(currentTime / 90 + seed) * 0.02;
+  } else if (enemy.state === 'charging') {
+    scaleX *= 1.15;
+    scaleY *= 0.85;
+    const shakeAmt = 0.05;
+    finalEnemyX += Math.sin(currentTime / 15 + seed) * shakeAmt;
+    finalEnemyY += Math.cos(currentTime / 20 + seed) * shakeAmt * 0.5;
   } else {
     const breathe = Math.sin(currentTime / 800 + seed * 3);
     if (enemyType === 'hollow_guardian') {

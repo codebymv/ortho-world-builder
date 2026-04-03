@@ -1141,4 +1141,48 @@ export const dialogues: Record<string, Dialogue> = {
       { id: 'end', text: "I'll be here. Obviously.", responses: [] },
     ],
   },
+
+  // === WHISPERING WOODS — NEW ENVIRONMENT LORE ===
+  forest_milestone: {
+    id: 'forest_milestone',
+    nodes: [{ id: 'start', text: "A moss-covered milestone. The words are barely legible: '**Whispering Woods** — Three leagues. Those who enter after dark should carry iron and regret.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  hollow_final_warning: {
+    id: 'hollow_final_warning',
+    nodes: [{ id: 'start', text: "Scratched into a flat stone with a blade: '**Bones of the brave litter the threshold.** The Guardian does not sleep. It does not forgive. It does not forget.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  hollow_dead_ranger: {
+    id: 'hollow_dead_ranger',
+    nodes: [{ id: 'start', text: "A ranger who fell here long ago. Their shield is cracked in two. Claw marks run deep across the chest plate. Whatever killed them was **massive**.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  witch_circle_warning: {
+    id: 'witch_circle_warning',
+    nodes: [{ id: 'start', text: "A ring of mushrooms encircles this place. The air smells of iron and old herbs. Someone — or something — has been **practicing** here.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  fort_garrison_orders: {
+    id: 'fort_garrison_orders',
+    nodes: [{ id: 'start', text: "A rotting notice pinned to the wall: '**Standing Order 14:** The armored wolves have broken the eastern perimeter. Hold the courtyard at all costs. Reinforcements are not coming. — Commander Hale'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  dead_ranger_shortcut_note: {
+    id: 'dead_ranger_shortcut_note',
+    nodes: [{ id: 'start', text: "A dead ranger clutches a bloodstained note: '**The lever…** three paces east of where I fell. Opens the path back to the outpost. Someone finish what I couldn't.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  hollow_lever_inscription: {
+    id: 'hollow_lever_inscription',
+    nodes: [{ id: 'start', text: "Scratched into the stone beside a rusted chain: '**Pull the chain** — don't make them walk the long way twice. The bonfire is just through the gate.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  golem_highland_warning: {
+    id: 'golem_highland_warning',
+    nodes: [{ id: 'start', text: "A cracked stone marker: '**Highland garrison — no survivors.** A stone colossus guards the eastern pass. It does not tire. It does not bleed. Bring something heavier than courage.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+
+  logging_camp: {
+    id: 'logging_camp',
+    nodes: [{ id: 'start', text: "A clearing of fresh stumps and rusted axes. The loggers left in a hurry — half-sawn trunks still lean against each other, and boot prints trail into the undergrowth. Whatever drove them off, they didn't stop to collect their pay.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+
+  collapsed_cottage: {
+    id: 'collapsed_cottage',
+    nodes: [{ id: 'start', text: "The roof has caved in, and ivy has claimed what the fire didn't. Through the rubble you can see a hearth still blackened with soot. Someone lived here once — the spiders live here now.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
 };

@@ -18,6 +18,10 @@ export interface SaveData {
     attackRange?: number;
     stamina: number;
     maxStamina: number;
+    level?: number;
+    vitality?: number;
+    endurance?: number;
+    strength?: number;
   };
   currentMap: string;
   inventory: Item[];
@@ -46,6 +50,10 @@ export class SaveManager {
         attackRange: state.player.attackRange,
         stamina: state.player.stamina,
         maxStamina: state.player.maxStamina,
+        level: state.player.level,
+        vitality: state.player.vitality,
+        endurance: state.player.endurance,
+        strength: state.player.strength,
       },
       currentMap: state.currentMap,
       inventory: state.inventory.map(i => ({ ...i })),

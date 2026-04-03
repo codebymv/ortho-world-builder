@@ -212,11 +212,19 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
         case 'forest': {
           const inHollow = y < 75;
           if (n1 > 0.45) {
-            tile = createTile(inHollow && n2 > 0.4 ? 'dead_tree' : 'tree', false);
+            tile = createTile(inHollow && n2 > 0.25 ? 'dead_tree' : 'tree', false);
           } else if (n1 > 0.35 && n2 > 0.5) {
-            tile = createTile(inHollow && n2 > 0.6 ? 'dead_tree' : 'tree', false);
+            tile = createTile(inHollow && n2 > 0.4 ? 'dead_tree' : 'tree', false);
           } else if (n2 < 0.08) {
             tile = createTile('mushroom', true);
+          } else if (inHollow && n3 > 0.85) {
+            tile = createTile('bones', true);
+          } else if (!inHollow && n1 > 0.28 && n1 < 0.32 && n2 > 0.6) {
+            tile = createTile('rock', false);
+          } else if (!inHollow && n1 > 0.20 && n1 < 0.23 && n3 > 0.5) {
+            tile = createTile('flower', true);
+          } else if (!inHollow && n1 > 0.32 && n1 < 0.35 && n2 < 0.3) {
+            tile = createTile('stump', false);
           } else if (n1 < 0.15) {
             tile = createTile('tall_grass', true);
           } else {
@@ -1866,12 +1874,14 @@ function placeInteractables(tiles: Tile[][], def: MapDefinition) {
     if (obj.y < tiles.length && obj.x < tiles[0].length) {
       const softInteractable =
         obj.type === 'bonfire' ||
+        obj.type === 'bonfire_unlit' ||
         obj.type === 'campfire' ||
         obj.type === 'sign' ||
         obj.type === 'chain' ||
         obj.type === 'shortcut_lever' ||
         obj.type === 'lantern';
-      tiles[obj.y][obj.x] = createTile(obj.type, softInteractable ? true : obj.walkable, {
+      const placedType = obj.type === 'bonfire' ? 'bonfire_unlit' : obj.type;
+      tiles[obj.y][obj.x] = createTile(placedType as TileType, softInteractable ? true : obj.walkable, {
         interactable: true,
         interactionId: obj.interactionId,
       });

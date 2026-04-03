@@ -31,6 +31,7 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   push_block: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.16 },
   campfire: { isOverlay: true, baseTile: 'dirt', scale: 0.8, sortTrim: 0.2 },
   bonfire: { isOverlay: true, baseTile: 'dirt', scale: 1.0, sortTrim: 0.16 },
+  bonfire_unlit: { isOverlay: true, baseTile: 'dirt', scale: 1.0, sortTrim: 0.16 },
   sign: { isOverlay: true, baseTile: 'dirt', scale: 1.08, sortTrim: 0.2, yOffset: 0.08 },
   well: { isOverlay: true, baseTile: 'stone', scale: 1.2, sortTrim: 0.18 },
   tombstone: { isOverlay: true, baseTile: 'grass', scale: 0.7, sortTrim: 0.16 },
@@ -85,12 +86,12 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
 export const DETAIL_CONFIG: Partial<Record<TileType, { chance: number; types: string[]; scale: number; opacity: number }>> = {
   grass: { chance: 0.18, types: ['detail_grass_tuft', 'detail_leaf', 'detail_pebble'], scale: 0.25, opacity: 0.5 },
   dirt: { chance: 0.12, types: ['detail_pebble', 'detail_crack', 'detail_twig'], scale: 0.22, opacity: 0.45 },
-  dark_grass: { chance: 0.22, types: ['detail_leaf', 'detail_grass_tuft', 'detail_mushroom_small'], scale: 0.28, opacity: 0.55 },
+  dark_grass: { chance: 0.30, types: ['detail_leaf', 'detail_grass_tuft', 'detail_mushroom_small', 'detail_bone_fragment'], scale: 0.28, opacity: 0.55 },
   cobblestone: { chance: 0.08, types: ['detail_crack', 'detail_pebble'], scale: 0.2, opacity: 0.35 },
   sand: { chance: 0.06, types: ['detail_pebble'], scale: 0.18, opacity: 0.3 },
   farmland: { chance: 0.1, types: ['detail_grass_tuft', 'detail_pebble'], scale: 0.2, opacity: 0.4 },
   stone: { chance: 0.1, types: ['detail_crack', 'detail_pebble'], scale: 0.2, opacity: 0.4 },
   wooden_path: { chance: 0.08, types: ['detail_crack', 'detail_leaf'], scale: 0.2, opacity: 0.35 },
   mossy_stone: { chance: 0.15, types: ['detail_leaf', 'detail_mushroom_small'], scale: 0.25, opacity: 0.5 },
-  ruins_floor: { chance: 0.14, types: ['detail_crack', 'detail_pebble'], scale: 0.22, opacity: 0.45 },
+  ruins_floor: { chance: 0.18, types: ['detail_crack', 'detail_pebble', 'detail_bone_fragment'], scale: 0.22, opacity: 0.45 },
 };

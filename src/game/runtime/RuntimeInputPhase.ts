@@ -32,6 +32,8 @@ interface SetupRuntimeInputPhaseOptions {
   camera: THREE.OrthographicCamera;
   renderer: THREE.WebGLRenderer;
   frustumSize: number;
+  bonfireMenuOpenRef: MutableRefObject<boolean>;
+  closeBonfireMenu: () => void;
 }
 
 export function setupRuntimeInputPhase({
@@ -60,6 +62,8 @@ export function setupRuntimeInputPhase({
   camera,
   renderer,
   frustumSize,
+  bonfireMenuOpenRef,
+  closeBonfireMenu,
 }: SetupRuntimeInputPhaseOptions) {
   const keys: Record<string, boolean> = {};
 
@@ -100,6 +104,8 @@ export function setupRuntimeInputPhase({
     setBlockStartTime: value => {
       runtimeSession.combat.blockStartTime = value;
     },
+    bonfireMenuOpenRef,
+    closeBonfireMenu,
   });
 
   const { handleMouseDown, handleMouseUp, handleContextMenu } = createPointerInputController({

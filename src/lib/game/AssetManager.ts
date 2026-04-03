@@ -2254,6 +2254,16 @@ export class AssetManager {
       [C,     0x5D4037,0x5D4037,0x5D4037,0x5D4037,0x5D4037,0x5D4037,C],
     ]));
 
+    // Bonfire (unlit) — cold wood pile with faint embers, no flame
+    this.textures.set('bonfire_unlit', this.createSpriteTexture([
+      [C,     C,     C,     0x4E342E,C,     C,     C,     C],
+      [C,     0x5D4037,0x4E342E,0x3E2723,0x4E342E,0x5D4037,C,     C],
+      [C,     0x3E2723,0x5D4037,0x4E342E,0x3E2723,0x5D4037,0x3E2723,C],
+      [0x4E342E,0x5D4037,0x795548,0x5D4037,0x5D4037,0x795548,0x5D4037,0x4E342E],
+      [0x3E2723,0x4E342E,0x5D4037,0x795548,0x795548,0x5D4037,0x4E342E,0x3E2723],
+      [C,     0x3E2723,0x4E342E,0x4E342E,0x4E342E,0x4E342E,0x3E2723,C],
+    ]));
+
     // Bonfire — taller violet/white flame (rest checkpoint)
     this.textures.set('bonfire', this.createSpriteTexture([
       [C,     C,     0xE1BEE7,0xFFFFFF,0xE1BEE7,C,     C,     C],

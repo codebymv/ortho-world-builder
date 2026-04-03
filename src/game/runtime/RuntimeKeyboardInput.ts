@@ -39,6 +39,8 @@ interface RuntimeKeyboardInputOptions {
   setIsBlocking: (value: boolean) => void;
   getIsBlocking: () => boolean;
   setBlockStartTime: (value: number) => void;
+  bonfireMenuOpenRef: MutableRefObject<boolean>;
+  closeBonfireMenu: () => void;
 }
 
 export function createKeyboardInputController({
@@ -68,6 +70,8 @@ export function createKeyboardInputController({
   setIsBlocking,
   getIsBlocking,
   setBlockStartTime,
+  bonfireMenuOpenRef,
+  closeBonfireMenu,
 }: RuntimeKeyboardInputOptions) {
   const cycleConsumable = (direction: -1 | 1) => {
     if (state.dialogueActive) return;
@@ -123,6 +127,10 @@ export function createKeyboardInputController({
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
+      if (bonfireMenuOpenRef.current) {
+        closeBonfireMenu();
+        return;
+      }
       if (mapModalOpenRef.current) {
         setMapModalOpenRef.current(false);
         return;

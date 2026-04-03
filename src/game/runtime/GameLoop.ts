@@ -159,6 +159,18 @@ export function runGameplayPrelude({
   if (state.player.iFrameTimer > 0) {
     state.player.iFrameTimer = Math.max(0, state.player.iFrameTimer - deltaTime);
   }
+  if (state.player.guardBrokenTimer > 0) {
+    state.player.guardBrokenTimer = Math.max(0, state.player.guardBrokenTimer - deltaTime);
+  }
+  if (state.player.parryBonusTimer > 0) {
+    state.player.parryBonusTimer = Math.max(0, state.player.parryBonusTimer - deltaTime);
+  }
+  if (state.player.snareTimer > 0) {
+    state.player.snareTimer = Math.max(0, state.player.snareTimer - deltaTime);
+    if (state.player.snareTimer <= 0) {
+      state.player.snareSpeedMult = 1.0;
+    }
+  }
   if (nowSec - state.player.lastStaminaUseTime > state.player.staminaRegenDelay) {
     state.player.stamina = Math.min(
       state.player.maxStamina,
@@ -167,7 +179,7 @@ export function runGameplayPrelude({
   }
 
   if (isBlocking) {
-    if (state.player.stamina <= 0) {
+    if (state.player.stamina <= 0 || state.player.guardBrokenTimer > 0) {
       isBlocking = false;
       if (playerAnimState === 'block') {
         playerAnimState = 'idle';

@@ -537,6 +537,32 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
+  const syncHollowPreGateState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const defeated = state.getFlag('hollow_guardian_defeated');
+    const PRE_GATE_Y = 30;
+    const PRE_GATE_CX = 122;
+    for (let dx = -2; dx <= 2; dx++) {
+      const tx = PRE_GATE_CX + dx;
+      const row = map.tiles[PRE_GATE_Y];
+      if (!row || tx < 0 || tx >= row.length) continue;
+      const el = row[tx]?.elevation ?? 0;
+      if (defeated) {
+        row[tx] = { type: 'dark_grass' as TileType, walkable: true, elevation: el };
+      } else {
+        row[tx] = {
+          type: 'fog_gate' as TileType,
+          walkable: false,
+          elevation: el,
+          interactable: true,
+          interactionId: 'hollow_fog_gate',
+        };
+      }
+    }
+    world.refreshMapTileRegion(PRE_GATE_CX - 3, PRE_GATE_Y - 1, PRE_GATE_CX + 3, PRE_GATE_Y + 1);
+  };
+
   const syncHollowArenaExitState = () => {
     if (state.currentMap !== 'interior_hollow_arena') return;
     const map = world.getCurrentMap();
@@ -560,17 +586,37 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
+  const syncBonfireKindledState = () => {
+    const map = world.getCurrentMap();
+    for (let y = 0; y < map.height; y++) {
+      const row = map.tiles[y];
+      if (!row) continue;
+      for (let x = 0; x < row.length; x++) {
+        const tile = row[x];
+        if (!tile) continue;
+        if (tile.type === 'bonfire_unlit' as TileType) {
+          const firstKey = `bonfire_first_${state.currentMap}_${x}_${y}`;
+          if (state.getFlag(firstKey)) {
+            tile.type = 'bonfire' as TileType;
+          }
+        }
+      }
+    }
+  };
+
   const syncPersistentMapState = () => {
     syncShadowCastleGateState();
     syncWhisperingWoodsShortcutState();
     syncHollowShortcutState();
     syncForestFortGateState();
     syncHollowFogGateState();
+    syncHollowPreGateState();
     syncHollowArenaExitState();
     syncVillageReactivityState();
     syncVillageInteriorReactivityState();
     syncOpenedChestState();
     syncHarvestedTempestGrassState();
+    syncBonfireKindledState();
   };
 
   const respawnEnemiesForCurrentMap = (targetMap: string, map: WorldMap) => {
@@ -593,6 +639,7 @@ export function createRuntimeMapFlow({
           recoverDuration: bp.recoverDuration,
           poise: bp.poise,
           staggerDuration: bp.staggerDuration,
+          behaviorOverrides: bp.behaviorOverrides,
         });
       }
     }
@@ -635,6 +682,7 @@ export function createRuntimeMapFlow({
     syncHollowShortcutState,
     syncForestFortGateState,
     syncHollowFogGateState,
+    syncHollowPreGateState,
     syncHollowArenaExitState,
     syncVillageReactivityState,
     syncVillageInteriorReactivityState,

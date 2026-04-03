@@ -179,6 +179,7 @@ export interface EnemyLoopContext {
   world: World;
   floatingText: FloatingTextSystem;
   screenShake: ScreenShake;
+  particleSystem: ParticleSystem;
   outlinePad: number;
   enemyVisualProfiles: Record<string, EnemyVisualProfile>;
   registry: EnemyVisualRegistry;

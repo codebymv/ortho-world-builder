@@ -20,6 +20,7 @@ import { PauseMenu } from './game/PauseMenu';
 import { TransitionOverlay } from './game/TransitionOverlay';
 import { DeathOverlay } from './game/DeathOverlay';
 import { BonfireOverlay } from './game/BonfireOverlay';
+import { BonfireMenu } from './game/BonfireMenu';
 import { WeaponAcquiredOverlay } from './game/WeaponAcquiredOverlay';
 import { notify } from '@/lib/game/notificationBus';
 import { createProgressionService } from '@/game/domain/ProgressionService';
@@ -65,6 +66,7 @@ const Game = () => {
   const stopDialogueLoopRef = useRef<(() => void) | null>(null);
   const playMenuOpenRef = useRef<(() => void) | null>(null);
   const playMenuCloseRef = useRef<(() => void) | null>(null);
+  const restAtBonfireRef = useRef<(() => void) | null>(null);
 
   // Audio processing system for compression and gain
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -110,6 +112,7 @@ const Game = () => {
   const [justPickedUpItem, setJustPickedUpItem] = useState<Item | null>(null);
   const [justGainedCurrency, setJustGainedCurrency] = useState<CurrencyGain | null>(null);
   const [weaponAcquiredItem, setWeaponAcquiredItem] = useState<Item | null>(null);
+  const [bonfireMenuOpen, setBonfireMenuOpen] = useState(false);
   const bonfireOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const justPickedUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const justGainedCurrencyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -414,6 +417,7 @@ const Game = () => {
     stopDialogueLoopRef,
     playMenuOpenRef,
     playMenuCloseRef,
+    restAtBonfireRef,
     killCountRef,
   } satisfies Omit<RuntimeHostRefs, 'mountElement'>;
 
@@ -430,6 +434,7 @@ const Game = () => {
     setTransitionDebugLines,
     setInteractionPrompt,
     setBonfireOverlayActive,
+    setBonfireMenuOpen,
     setDeathEssenceLost,
     setDeathActive,
   } satisfies RuntimeUiBindings;
@@ -449,6 +454,10 @@ const Game = () => {
     switchMusicTrack,
     processAudioElement,
     showHeroOverlay,
+    openBonfireMenu: () => {
+      pausedRef.current = true;
+      setBonfireMenuOpen(true);
+    },
   } satisfies RuntimeCallbacks;
 
   const setupRuntime = () => {
@@ -557,6 +566,23 @@ const Game = () => {
       <TransitionOverlay active={transitionActive} mapName={transitionMapName} mapSubtitle={transitionMapSubtitle} />
       <DeathOverlay active={deathActive} essenceLost={deathEssenceLost} onComplete={handleDeathComplete} />
       <BonfireOverlay active={bonfireOverlayActive} title={bonfireOverlayTitle} subtitle={bonfireOverlaySubtitle ?? undefined} />
+
+      {bonfireMenuOpen && gameState && (
+        <BonfireMenu
+          gameState={gameState}
+          onRest={() => {
+            restAtBonfireRef.current?.();
+          }}
+          onClose={() => {
+            setBonfireMenuOpen(false);
+            pausedRef.current = false;
+          }}
+          onLevelUp={(stat) => {
+            return gameState.levelUpStat(stat);
+          }}
+          triggerUIUpdate={triggerUIUpdate}
+        />
+      )}
       <WeaponAcquiredOverlay
         weapon={weaponAcquiredItem}
         currentWeapon={

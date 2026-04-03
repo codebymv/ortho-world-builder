@@ -78,6 +78,7 @@ interface RuntimeActionPhaseOptions {
   lungeSpeedFull: number;
   lungeRecoveryMin: number;
   lungeRecoveryMax: number;
+  openBonfireMenu: () => void;
 }
 
 export function setupRuntimeActionPhase({
@@ -135,6 +136,7 @@ export function setupRuntimeActionPhase({
   lungeSpeedFull,
   lungeRecoveryMin,
   lungeRecoveryMax,
+  openBonfireMenu,
 }: RuntimeActionPhaseOptions) {
   const sfx = createRuntimeSfx({
     processAudioElement,
@@ -142,7 +144,7 @@ export function setupRuntimeActionPhase({
     musicStarted,
   });
 
-  const performBonfireRest = createBonfireRestAction({
+  const bonfireActions = createBonfireRestAction({
     state,
     world: world as any,
     particleSystem: particleSystem as any,
@@ -153,7 +155,9 @@ export function setupRuntimeActionPhase({
     respawnEnemiesForCurrentMap,
     triggerSave,
     triggerUIUpdate,
+    openBonfireMenu,
   });
+  const performBonfireRest = bonfireActions.interact;
 
   const clearChargeState = () => {
     runtimeSession.animation.isChargingAttack = false;
@@ -340,5 +344,6 @@ export function setupRuntimeActionPhase({
     performDodge,
     performAttack,
     performChargeAttack,
+    restAtBonfire: bonfireActions.restAtBonfire,
   };
 }

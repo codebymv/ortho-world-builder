@@ -117,6 +117,7 @@ export function buildEnemyLoopContext(options: BuildRuntimePhaseContextsOptions)
     world: options.world,
     floatingText: options.floatingText,
     screenShake: options.screenShake,
+    particleSystem: options.particleSystem,
     outlinePad: options.outlinePad,
     enemyVisualProfiles: options.enemyVisualProfiles,
     registry: options.enemyVisuals,
