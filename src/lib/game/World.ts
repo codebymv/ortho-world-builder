@@ -1033,6 +1033,16 @@ export class World {
     this.rebuildSouthCoastBackdrop();
   }
 
+  /**
+   * Rebuild Three.js tile meshes only inside a map-tile rectangle.
+   * Prefer this over {@link rebuildChunks} for small edits: rebuildChunks tears down the
+   * south coast backdrop (deep blue) and all tiles, which produced a visible blue edge flash
+   * on chest opens / pickups when the GPU recomposited the frame.
+   */
+  refreshMapTileRegion(minTileX: number, minTileY: number, maxTileX: number, maxTileY: number): void {
+    this.refreshTileRegion(minTileX, minTileY, maxTileX, maxTileY);
+  }
+
   getTile(x: number, y: number): Tile | null {
     const tileX = Math.floor(x + this.map.width / 2);
     const tileY = Math.floor(y + this.map.height / 2);

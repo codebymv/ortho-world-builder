@@ -16,7 +16,6 @@ interface UpdatePortalWarpOptions {
   isPlayerDead: boolean;
   isMapModalOpen: boolean;
   camera: THREE.OrthographicCamera;
-  vignette: HTMLDivElement | null;
   particleSystem: ParticleSystem;
   samplePortalNearPlayer: () => PortalHint | null;
   isPortalDestinationUnlocked: (targetMap: string) => boolean;
@@ -38,8 +37,11 @@ export function createPortalWarpManager({
   let lastBarrierToastAt = -1e12;
   let blockedPortalHintTimer = 0;
   let portalLoopActive = false;
+  /** Require consecutive frames on a portal tile before charging (map churn caused spurious hits). */
+  let portalStableFrames = 0;
   const tmpVec3 = new THREE.Vector3();
   const PORTAL_CHARGE_SEC = 1.12;
+  const PORTAL_STABLE_FRAME_MIN = 6;
 
   const stopLoop = () => {
     if (!portalLoopActive) return;
@@ -63,7 +65,6 @@ export function createPortalWarpManager({
       isPlayerDead,
       isMapModalOpen,
       camera,
-      vignette,
       particleSystem,
       samplePortalNearPlayer,
       isPortalDestinationUnlocked,
@@ -77,33 +78,35 @@ export function createPortalWarpManager({
         warpCharge = 0;
         particleAccumulator = 0;
         blockedPortalHintTimer = 0;
+        portalStableFrames = 0;
         stopLoop();
-        if (vignette) {
-          vignette.style.opacity = '0';
-        }
         return;
       }
 
-      const nearPortal = samplePortalNearPlayer();
-      if (!nearPortal) {
+      const rawPortal = samplePortalNearPlayer();
+      if (!rawPortal) {
+        portalStableFrames = 0;
         warpCharge = Math.max(0, warpCharge - deltaTime * 2.4);
         particleAccumulator = 0;
         blockedPortalHintTimer = 0;
         stopLoop();
-        if (vignette) vignette.style.opacity = '0';
         return;
       }
+      portalStableFrames = Math.min(portalStableFrames + 1, 120);
+      if (portalStableFrames < PORTAL_STABLE_FRAME_MIN) {
+        warpCharge = Math.max(0, warpCharge - deltaTime * 2.4);
+        particleAccumulator = 0;
+        blockedPortalHintTimer = 0;
+        stopLoop();
+        return;
+      }
+
+      const nearPortal = rawPortal;
 
       if (!isPortalDestinationUnlocked(nearPortal.targetMap)) {
         warpCharge = Math.max(0, warpCharge - deltaTime * 2.8);
         blockedPortalHintTimer += deltaTime;
         stopLoop();
-        if (vignette) {
-          const pulse = 0.18 + Math.sin(currentTime * 0.006) * 0.06;
-          vignette.style.opacity = String(pulse);
-          vignette.style.background =
-            'radial-gradient(circle at 50% 52%, rgba(140,30,70,0.55) 0%, rgba(40,0,60,0.5) 50%, transparent 72%)';
-        }
         particleAccumulator += deltaTime;
         if (particleAccumulator > 0.14) {
           particleAccumulator = 0;
@@ -125,12 +128,6 @@ export function createPortalWarpManager({
       blockedPortalHintTimer = 0;
       warpCharge = Math.min(1, warpCharge + deltaTime / PORTAL_CHARGE_SEC);
       startLoop();
-      if (vignette) {
-        const opacity = warpCharge * (0.42 + Math.sin(currentTime * 0.01) * 0.08);
-        vignette.style.opacity = String(Math.min(0.68, opacity));
-        vignette.style.background =
-          'radial-gradient(circle at 50% 46%, rgba(200,120,255,0.55) 0%, rgba(80,40,200,0.4) 38%, rgba(0,220,200,0.2) 62%, transparent 82%)';
-      }
 
       particleAccumulator += deltaTime;
       const emitEvery = Math.max(0.028, 0.055 - warpCharge * 0.028);
@@ -151,16 +148,15 @@ export function createPortalWarpManager({
         warpCharge = 0;
         particleAccumulator = 0;
         stopLoop();
-        if (vignette) vignette.style.opacity = '0';
         handleMapTransition(nearPortal.targetMap, nearPortal.targetX, nearPortal.targetY);
       }
     },
-    reset(vignette: HTMLDivElement | null) {
+    reset() {
       warpCharge = 0;
       particleAccumulator = 0;
       blockedPortalHintTimer = 0;
+      portalStableFrames = 0;
       stopLoop();
-      if (vignette) vignette.style.opacity = '0';
     },
   };
 }

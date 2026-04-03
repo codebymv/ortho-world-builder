@@ -52,7 +52,6 @@ const Game = () => {
   const worldRef = useRef<World | null>(null);
   const textureCacheRef = useRef<Map<string, THREE.Texture>>(new Map());
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const portalVignetteRef = useRef<HTMLDivElement | null>(null);
   const killCountRef = useRef(0);
   const syncVillageReactivityRef = useRef<(() => void) | null>(null);
   const playPotionDrinkRef = useRef<(() => void) | null>(null);
@@ -390,7 +389,6 @@ const Game = () => {
     worldRef,
     gameStateRef,
     textureCacheRef,
-    portalVignetteRef,
     musicRef,
     musicStarted,
     bonfireOverlayTimerRef,
@@ -471,12 +469,6 @@ const Game = () => {
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
-      <div
-        ref={portalVignetteRef}
-        className="pointer-events-none fixed inset-0 z-[35]"
-        style={{ opacity: 0, mixBlendMode: 'screen', transition: 'opacity 120ms ease-out' }}
-        aria-hidden
-      />
       <div ref={mountRef} className="w-full h-full" />
       
       {gameState && (

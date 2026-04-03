@@ -29,7 +29,6 @@ export interface PortalWarpManagerLike {
     isPlayerDead: boolean;
     isMapModalOpen: boolean;
     camera: THREE.OrthographicCamera;
-    vignette: HTMLDivElement | null;
     particleSystem: ParticleSystem;
     samplePortalNearPlayer: () => PortalHint | null;
     isPortalDestinationUnlocked: (targetMap: string) => boolean;
@@ -140,6 +139,7 @@ export interface PlayerFrameContext {
   isNpcPriorityCueTarget: (npc: NPC) => boolean;
   isPortalDestinationUnlocked: (targetMap: string) => boolean;
   samplePortalNearPlayer: () => PortalHint | null;
+  samplePortalForWarpFoot: () => PortalHint | null;
   getMapDisplayName: (mapId: string) => string;
   criticalItemInteractionIds: Set<string>;
   isCollectedCriticalItem: (interactionId: string) => boolean;

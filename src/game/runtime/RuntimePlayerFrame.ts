@@ -28,7 +28,6 @@ interface RunPlayerFramePhaseOptions extends PlayerFrameContext {
   portalCooldown: number;
   isMapModalOpen: boolean;
   isPlayerDead: boolean;
-  vignette: HTMLDivElement | null;
   particleSystem: any;
   lungeState: {
     active: boolean;
@@ -76,6 +75,7 @@ export function runPlayerFramePhase({
   isNpcPriorityCueTarget,
   isPortalDestinationUnlocked,
   samplePortalNearPlayer,
+  samplePortalForWarpFoot,
   getMapDisplayName,
   criticalItemInteractionIds,
   isCollectedCriticalItem,
@@ -91,7 +91,6 @@ export function runPlayerFramePhase({
   portalCooldown,
   isMapModalOpen,
   isPlayerDead,
-  vignette,
   particleSystem,
   lungeState,
   notify,
@@ -337,9 +336,8 @@ export function runPlayerFramePhase({
     isPlayerDead,
     isMapModalOpen,
     camera,
-    vignette,
     particleSystem,
-    samplePortalNearPlayer,
+    samplePortalNearPlayer: samplePortalForWarpFoot,
     isPortalDestinationUnlocked,
     notify,
     handleMapTransition: handlePortalTransition,

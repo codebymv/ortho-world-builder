@@ -91,6 +91,7 @@ export function buildPlayerFrameContext(options: BuildRuntimePhaseContextsOption
     isNpcPriorityCueTarget: options.isNpcPriorityCueTarget,
     isPortalDestinationUnlocked: options.isPortalDestinationUnlocked,
     samplePortalNearPlayer: options.samplePortalNearPlayer,
+    samplePortalForWarpFoot: options.samplePortalForWarpFoot,
     getMapDisplayName: options.getMapDisplayName,
     criticalItemInteractionIds: options.criticalItemInteractionIds,
     isCollectedCriticalItem: options.isCollectedCriticalItem,

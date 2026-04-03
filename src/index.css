@@ -5,6 +5,12 @@
 /* Game canvas vignette for premium feel */
 canvas {
   box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.5);
+  outline: none;
+}
+
+canvas:focus,
+canvas:focus-visible {
+  outline: none;
 }
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 

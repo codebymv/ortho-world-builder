@@ -205,14 +205,15 @@ const JustPickedUpDisplay = React.memo(({
 
   return (
     <div className="fixed left-1/2 bottom-20 z-40 -translate-x-1/2 pointer-events-none">
-      <div className="flex flex-col items-center transform transition-all duration-300 animate-in fade-in slide-in-from-bottom-3">
+      {/* No backdrop-blur / tailwind animate-in here: those promoted a full compositor layer and caused edge halos on some GPUs when this mounts after pickups. */}
+      <div className="flex flex-col items-center transform transition-opacity duration-200">
         <span className="text-[11px] text-[#F5DEB3] font-bold mb-1.5 uppercase tracking-wider text-center drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
           {item.name}
         </span>
-        <div className="w-16 h-16 bg-[#1A0F0A]/95 backdrop-blur-md border-[1.5px] border-[#DAA520] rounded-lg flex items-center justify-center shadow-xl relative overflow-hidden">
+        <div className="w-16 h-16 bg-[#1A0F0A] border-[1.5px] border-[#DAA520] rounded-lg flex items-center justify-center shadow-xl relative overflow-hidden">
           {getItemIcon(item, "w-12 h-12", assetManager)}
         </div>
-        <span className="text-[9px] text-[#F5DEB3] mt-2 font-mono bg-[#1A0F0A]/95 backdrop-blur border border-[#5C3A21] px-2.5 py-0.5 rounded-md uppercase tracking-widest shadow-lg drop-shadow-md">
+        <span className="text-[9px] text-[#F5DEB3] mt-2 font-mono bg-[#1A0F0A] border border-[#5C3A21] px-2.5 py-0.5 rounded-md uppercase tracking-widest shadow-lg drop-shadow-md">
           Acquired
         </span>
       </div>

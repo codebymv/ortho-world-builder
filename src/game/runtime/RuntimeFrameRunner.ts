@@ -26,7 +26,6 @@ interface RunRuntimeFrameOptions {
   spinSwooshDuration: number;
   transitionDebug: boolean;
   lastInteractionPrompt: string | null;
-  vignette: HTMLDivElement | null;
   particleSystem: ParticleSystem;
   activeNpcWorldPos: { x: number; y: number } | null;
   lastNpcProjected: { x: number; y: number };
@@ -52,7 +51,6 @@ export function runRuntimeFrame({
   spinSwooshDuration,
   transitionDebug,
   lastInteractionPrompt,
-  vignette,
   particleSystem,
   activeNpcWorldPos,
   lastNpcProjected,
@@ -150,7 +148,6 @@ export function runRuntimeFrame({
     pfOpts.portalCooldown = runtimeSession.loop.portalCooldown;
     pfOpts.isMapModalOpen = isMapModalOpen;
     pfOpts.isPlayerDead = isPlayerDead;
-    pfOpts.vignette = vignette;
     pfOpts.particleSystem = particleSystem;
 
     ({

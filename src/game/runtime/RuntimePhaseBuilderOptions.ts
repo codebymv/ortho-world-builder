@@ -111,6 +111,7 @@ export interface BuildRuntimePhaseContextsOptions {
   ) => string | null;
   isPortalDestinationUnlocked: (targetMap: string) => boolean;
   samplePortalNearPlayer: () => PortalHint | null;
+  samplePortalForWarpFoot: () => PortalHint | null;
   getMapDisplayName: (mapId: string) => string;
   criticalItemInteractionIds: Set<string>;
   isCollectedCriticalItem: (interactionId: string) => boolean;

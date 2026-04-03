@@ -37,7 +37,11 @@ import { createRuntimeSessionState } from '@/game/runtime/RuntimeSessionState';
 import { createDeathRespawnHandler, queueRuntimeStartupNotifications } from '@/game/runtime/RuntimeStartupFlow';
 import { performRuntimeTeardown } from '@/game/runtime/RuntimeTeardown';
 import { createFatalRuntimeReporter } from '@/game/runtime/RuntimeFatalError';
-import { createPortalSampler, createSetActiveNpcsForCurrentMap } from '@/game/runtime/RuntimeWorldAdapters';
+import {
+  createPortalSampler,
+  createPortalWarpFootSampler,
+  createSetActiveNpcsForCurrentMap,
+} from '@/game/runtime/RuntimeWorldAdapters';
 import { buildRuntimePhaseContexts } from '@/game/runtime/RuntimePhaseContextBuilder';
 
 type InteractionPrompt = string | null;
@@ -61,7 +65,6 @@ export interface RuntimeHostRefs {
   worldRef: MutableRefObject<World | null>;
   gameStateRef: MutableRefObject<GameState | null>;
   textureCacheRef: MutableRefObject<Map<string, THREE.Texture>>;
-  portalVignetteRef: MutableRefObject<HTMLDivElement | null>;
   musicRef: MutableRefObject<HTMLAudioElement | null>;
   musicStarted: MutableRefObject<boolean>;
   bonfireOverlayTimerRef: MutableRefObject<ReturnType<typeof setTimeout> | null>;
@@ -141,7 +144,6 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       worldRef,
       gameStateRef,
       textureCacheRef,
-      portalVignetteRef,
       musicRef,
       musicStarted,
       bonfireOverlayTimerRef,
@@ -416,6 +418,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     };
 
     const samplePortalNearPlayer = createPortalSampler(state, world);
+    const samplePortalForWarpFoot = createPortalWarpFootSampler(state, world);
 
     // === SHADOW SYSTEM ===
 
@@ -887,6 +890,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           getInteractionPromptLabel: phaseAdapters.resolveInteractionPrompt,
           isPortalDestinationUnlocked: phaseAdapters.isPortalDestinationUnlocked,
           samplePortalNearPlayer,
+          samplePortalForWarpFoot,
           getMapDisplayName,
           criticalItemInteractionIds: CRITICAL_ITEM_INTERACTION_IDS,
           isCollectedCriticalItem: phaseAdapters.isCollectedCriticalItem,
@@ -944,7 +948,6 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           spinSwooshDuration: SPIN_SWOOSH_DURATION,
           transitionDebug,
           lastInteractionPrompt: lastInteractionPromptRef.current,
-          vignette: portalVignetteRef.current,
           particleSystem,
           activeNpcWorldPos: activeNpcWorldPos.current,
           lastNpcProjected,
@@ -1012,7 +1015,6 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
         rafId,
         effectTimeouts,
         cancelEnemyPrewarm,
-        portalVignette: portalVignetteRef.current,
         clearRuntimeRefs: () => {
           fatalRuntime.clear();
           stopDialogueLoopRef.current?.();

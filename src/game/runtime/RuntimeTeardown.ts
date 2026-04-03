@@ -2,7 +2,6 @@ interface RuntimeTeardownOptions {
   rafId: number;
   effectTimeouts: ReturnType<typeof setTimeout>[];
   cancelEnemyPrewarm?: () => void;
-  portalVignette: HTMLDivElement | null;
   clearRuntimeRefs: () => void;
   detachDomEvents: () => void;
   mountElement: HTMLDivElement;
@@ -14,7 +13,6 @@ export function performRuntimeTeardown({
   rafId,
   effectTimeouts,
   cancelEnemyPrewarm,
-  portalVignette,
   clearRuntimeRefs,
   detachDomEvents,
   mountElement,
@@ -25,10 +23,6 @@ export function performRuntimeTeardown({
   cancelAnimationFrame(rafId);
   effectTimeouts.forEach(clearTimeout);
   effectTimeouts.length = 0;
-
-  if (portalVignette) {
-    portalVignette.style.opacity = '0';
-  }
 
   clearRuntimeRefs();
   detachDomEvents();

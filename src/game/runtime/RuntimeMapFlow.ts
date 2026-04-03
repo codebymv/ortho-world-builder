@@ -288,6 +288,16 @@ export function createRuntimeMapFlow({
   const syncOpenedChestState = () => {
     const map = world.getCurrentMap();
     let changed = false;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    const grow = (tx: number, ty: number) => {
+      minX = Math.min(minX, tx - 1);
+      maxX = Math.max(maxX, tx + 1);
+      minY = Math.min(minY, ty - 1);
+      maxY = Math.max(maxY, ty + 1);
+    };
     for (let y = 0; y < map.height; y++) {
       for (let x = 0; x < map.width; x++) {
         const tile = map.tiles[y][x];
@@ -296,20 +306,26 @@ export function createRuntimeMapFlow({
         if (opened && tile.type === 'chest') {
           map.tiles[y][x] = { ...tile, type: 'chest_opened' };
           changed = true;
+          grow(x, y);
         } else if (!opened && tile.type === 'chest_opened') {
           map.tiles[y][x] = { ...tile, type: 'chest' };
           changed = true;
+          grow(x, y);
         }
       }
     }
-    if (changed) {
-      world.rebuildChunks();
+    if (changed && Number.isFinite(minX)) {
+      world.refreshMapTileRegion(minX, minY, maxX, maxY);
     }
   };
 
   const syncHarvestedTempestGrassState = () => {
     const map = world.getCurrentMap();
     let changed = false;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
 
     for (let y = 0; y < map.height; y++) {
       for (let x = 0; x < map.width; x++) {
@@ -335,11 +351,15 @@ export function createRuntimeMapFlow({
           elevation: tile.elevation ?? 0,
         };
         changed = true;
+        minX = Math.min(minX, x - 1);
+        maxX = Math.max(maxX, x + 1);
+        minY = Math.min(minY, y - 1);
+        maxY = Math.max(maxY, y + 1);
       }
     }
 
-    if (changed) {
-      world.rebuildChunks();
+    if (changed && Number.isFinite(minX)) {
+      world.refreshMapTileRegion(minX, minY, maxX, maxY);
     }
   };
 

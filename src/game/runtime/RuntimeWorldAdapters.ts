@@ -18,6 +18,7 @@ export function createSetActiveNpcsForCurrentMap(
   };
 }
 
+/** For interaction prompts: small offsets help catch portal when standing slightly offset on the tile. */
 export function createPortalSampler(state: GameState, world: World) {
   return (): TransitionLike | null => {
     const px = state.player.position.x;
@@ -34,6 +35,17 @@ export function createPortalSampler(state: GameState, world: World) {
       if (transition) return transition;
     }
 
+    return null;
+  };
+}
+
+/** For auto-warp charge only: foot tile must be `portal` so adjacent chests / pickups never start warp FX. */
+export function createPortalWarpFootSampler(state: GameState, world: World) {
+  return (): TransitionLike | null => {
+    const px = state.player.position.x;
+    const py = state.player.position.y;
+    const tile = world.getTile(px, py);
+    if (tile?.type === 'portal' && tile.transition) return tile.transition;
     return null;
   };
 }
