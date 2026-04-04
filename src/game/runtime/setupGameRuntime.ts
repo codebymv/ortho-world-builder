@@ -629,6 +629,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       performDodge,
       performAttack,
       performChargeAttack,
+      restAtBonfire,
     } = (() => {
       try {
         return setupRuntimeActionPhase({

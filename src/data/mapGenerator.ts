@@ -944,12 +944,14 @@ function placePath(tiles: Tile[][], f: MapFeature) {
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         const existing = tiles[ty][tx];
-        // Never pave over structure sprites or interactive transition doors.
+        // Never pave over structure sprites, authored interactables, or transitions.
         if (
           HOUSE_TYPES.has(existing.type) ||
           existing.type === 'door' ||
           existing.type === 'door_interior' ||
           existing.type === 'door_iron' ||
+          existing.interactable ||
+          existing.transition ||
           existing.interactionId === 'building_entrance' ||
           existing.interactionId === 'building_exit'
         ) {
@@ -2019,7 +2021,7 @@ function cleanupIllogicalPlacements(tiles: Tile[][], def: MapDefinition) {
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const tile = tiles[y][x];
-      if (!SPACED_DECORATIONS.has(tile.type)) continue;
+      if (!SPACED_DECORATIONS.has(tile.type) || tile.interactable) continue;
       // Check neighborhood for other decorations (only previously visited cells)
       for (let dy = -MIN_DECORATION_SPACING; dy <= MIN_DECORATION_SPACING; dy++) {
         for (let dx = -MIN_DECORATION_SPACING; dx <= MIN_DECORATION_SPACING; dx++) {
@@ -2029,7 +2031,9 @@ function cleanupIllogicalPlacements(tiles: Tile[][], def: MapDefinition) {
           if (ny < 0 || ny >= h || nx < 0 || nx >= w) continue;
           // Only check tiles that come AFTER in scan order (remove duplicates going forward)
           if (ny < y || (ny === y && nx <= x)) continue;
-          if (SPACED_DECORATIONS.has(tiles[ny][nx].type)) {
+          const neighbor = tiles[ny][nx];
+          if (neighbor.interactable) continue;
+          if (SPACED_DECORATIONS.has(neighbor.type)) {
             // Remove the neighbor (keep the first one encountered)
             const baseTerrain = def.baseTerrain === 'forest' ? 'grass' : 
                                def.baseTerrain === 'ruins' ? 'stone' : 'grass';
