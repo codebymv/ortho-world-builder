@@ -12,7 +12,7 @@ export type TileType =
   | 'volcanic_rock' | 'ash' | 'ruins_floor' | 'waterfall' | 'snow'
   | 'dead_tree' | 'destroyed_house' | 'statue'
   | 'cliff' | 'cliff_edge' | 'cobblestone' | 'farmland' | 'wheat'
-  | 'iron_fence' | 'hedge' | 'scarecrow' | 'hay_bale' | 'lantern'
+  | 'iron_fence' | 'hedge' | 'scarecrow' | 'windmill' | 'hay_bale' | 'lantern'
   | 'dark_grass' | 'mossy_stone' | 'wooden_path' | 'stairs' | 'ladder'
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
   | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter'
@@ -22,8 +22,9 @@ export type TileType =
   | 'fog_gate'
   | 'bonfire_unlit';
 
-/** Pass as `getInteractableNear` radius from gameplay so gates / chunky facades stay in scan + reach. */
-export const INTERACTABLE_QUERY_RADIUS = 2.75;
+/** Pass as `getInteractableNear` radius from gameplay so gates / chunky facades stay in scan + reach.
+ * Must be >= every `getInteractableReach` value so the min() cap does not shrink large reaches. */
+export const INTERACTABLE_QUERY_RADIUS = 3.25;
 
 export interface Tile {
   type: TileType;
@@ -817,7 +818,9 @@ export class World {
           ? 1300
           : tile.type === 'chest' || tile.type === 'chest_opened'
             ? 900
-            : 0;
+            : tile.type === 'windmill'
+              ? 850
+              : 0;
 
     group.userData = {
       tileType: tile.type,
@@ -826,7 +829,8 @@ export class World {
     };
 
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
-    const overlayMesh = this.createPlaneMesh(overlayTexture, 0.1, `overlay_${tile.type}`);
+    const overlayZ = tile.type === 'windmill' ? 0.22 : 0.1;
+    const overlayMesh = this.createPlaneMesh(overlayTexture, overlayZ, `overlay_${tile.type}`);
     this.setRenderRole(baseMesh, 'ground');
     this.setRenderRole(overlayMesh, 'overlay');
 
@@ -1083,16 +1087,20 @@ export class World {
     const toElevation = toTile.elevation ?? 0;
     if (fromElevation === toElevation) return true;
 
-    const connectsLevels = fromTile?.type === 'stairs' || toTile.type === 'stairs';
+    // Map transitions / portals must stay reachable even if elevation metadata is inconsistent.
+    if (fromTile?.transition || toTile.transition) return true;
+
+    const connectsLevels =
+      fromTile?.type === 'stairs' ||
+      toTile.type === 'stairs' ||
+      fromTile?.type === 'ladder' ||
+      toTile.type === 'ladder';
     if (connectsLevels) {
       return Math.abs(toElevation - fromElevation) <= 1;
     }
 
-    // Only treat height changes as blocking when the map actually draws a height tile.
-    // This keeps collision aligned with visible cliffs while side seams are still flat-art.
-    const fromShowsHeight = !!fromTile && HEIGHT_TILE_TYPES.has(fromTile.type);
-    const toShowsHeight = HEIGHT_TILE_TYPES.has(toTile.type);
-    return !fromShowsHeight && !toShowsHeight;
+    // Block raw elevation steps (north/south stamped cliffs, elevation seams, missed buffers).
+    return false;
   }
 
   isWalkable(x: number, y: number, r: number = 0): boolean {
@@ -1153,6 +1161,13 @@ export class World {
     }
     let best: InteractableHit | null = null;
     let bestDistSq = Number.POSITIVE_INFINITY;
+    /** On equal distance, prefer map transitions so doors are not “stolen” by nearer lanterns/signs. */
+    let bestPriority = -1;
+    const interactablePriority = (tile: Tile): number => {
+      if (tile.interactionId === 'building_exit' || tile.interactionId === 'building_entrance') return 2;
+      return 0;
+    };
+
     const maxGateReach = 3;
     const span = Math.max(2, Math.ceil(radius + maxGateReach));
 
@@ -1169,15 +1184,19 @@ export class World {
         const dy = y - tileCenterY;
         const distSq = dx * dx + dy * dy;
         const reach = Math.min(radius, this.getInteractableReach(tile));
-        if (distSq > reach * reach || distSq >= bestDistSq) continue;
+        if (distSq > reach * reach) continue;
 
-        bestDistSq = distSq;
-        best = {
-          interactionId: tile.interactionId,
-          tileType: tile.type,
-          x: tileCenterX,
-          y: tileCenterY,
-        };
+        const pr = interactablePriority(tile);
+        if (distSq < bestDistSq || (distSq === bestDistSq && pr > bestPriority)) {
+          bestDistSq = distSq;
+          bestPriority = pr;
+          best = {
+            interactionId: tile.interactionId,
+            tileType: tile.type,
+            x: tileCenterX,
+            y: tileCenterY,
+          };
+        }
       }
     }
 
@@ -1257,37 +1276,39 @@ export class World {
   }
 
   private getInteractableReach(tile: Tile): number {
+    // Distances are in world units (~1.0 between adjacent tile centres). Old values (≤1.0) forced the
+    // player to nearly overlap the tile; these targets allow comfortable adjacency and slight diagonals.
     if (tile.interactionId === 'building_entrance' || tile.interactionId === 'building_exit') {
-      return 1.15;
+      return 1.55;
     }
     if (tile.type === 'door' || tile.type === 'door_interior' || tile.type === 'door_iron' || tile.type === 'portal') {
-      return 0.75;
-    }
-    if (tile.type === 'bonfire' || tile.type === 'campfire') {
       return 1.2;
     }
+    if (tile.type === 'bonfire' || tile.type === 'campfire') {
+      return 1.65;
+    }
     if (tile.type === 'sign' || tile.type === 'chain' || tile.type === 'shortcut_lever' || tile.type === 'lantern') {
-      return 1.1;
+      return 1.45;
     }
     if (tile.type === 'well' || tile.type === 'tombstone' || tile.type === 'table' || tile.type === 'stump') {
-      return 1.0;
+      return 1.4;
     }
     if (tile.type === 'gate') {
-      return 2.75;
+      return 3.0;
     }
     if (tile.type === 'fog_gate') {
-      return 2.5;
+      return 2.85;
     }
     if (tile.type === 'chest' || tile.type === 'chest_opened') {
-      return 0.9;
+      return 1.5;
     }
     if (tile.type === 'flower' || tile.type === 'mushroom' || tile.type === 'tempest_grass') {
-      return 0.85;
+      return 1.5;
     }
     if (tile.type === 'ranger_remains' || tile.type === 'bones_pile') {
-      return 1.05;
+      return 1.5;
     }
-    return 0.9;
+    return 1.4;
   }
 
   revealHiddenArea(centerX: number, centerY: number, radius: number = 3) {

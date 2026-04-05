@@ -2123,26 +2123,29 @@ export class AssetManager {
       [C,BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,C],
     ]));
 
-    // Fallen ranger: ranger helm + cape pooled on a bloodstain (fort key POI)
-    const RM_BL = 0x2A0707;
-    const RM_BR = 0x5C1010;
-    const RM_BH = 0x8B1A1A;
-    const RM_CD = 0x0E1F3D;
-    const RM_CM = 0x1B355C;
-    const RM_CH = 0x3568A8;
-    const RM_HM = 0x78909C;
-    const RM_HS = 0x546E7A;
-    const RM_HH = 0xB0BEC5;
-    const RM_VV = 0x1C2529;
+    // Fallen ranger: top-down lying figure — helmet at top, chest armour, cape body, blood pooling at edges.
+    // Row order: helmet dome → visor (eye-slits) → wide shoulders → chest → waist/cape → legs → feet/blood.
+    const RM_BL = 0x2A0707;  // dried blood darkest
+    const RM_BR = 0x5C1010;  // blood dark
+    const RM_BH = 0x8B1A1A;  // blood mid
+    const RM_CD = 0x0E1F3D;  // cape very dark blue
+    const RM_CM = 0x1B355C;  // cape mid blue
+    const RM_CH = 0x3568A8;  // cape highlight blue
+    const RM_HM = 0x78909C;  // helmet mid gray
+    const RM_HS = 0x546E7A;  // helmet shadow
+    const RM_HH = 0xB0BEC5;  // helmet highlight (pale blue-gray)
+    const RM_VV = 0x1C2529;  // visor slot (near-black)
+    const RM_AM = 0x9E9E9E;  // chest armour plate mid (steel gray)
+    const RM_AH = 0xC8C8C8;  // chest armour plate highlight
     this.textures.set('ranger_remains', this.createSpriteTexture([
-      [C,     RM_BL, RM_BR, RM_BH, RM_BH, RM_BR, RM_BL, C,     C],
-      [RM_BL, RM_BR, RM_BH, RM_BR, RM_BH, RM_BR, RM_BH, RM_BL, C],
-      [RM_CD, RM_CM, RM_BR, RM_BH, RM_BR, RM_BH, RM_BR, RM_CM, RM_CD],
-      [RM_CD, RM_CH, RM_CM, RM_BR, RM_BH, RM_BR, RM_CM, RM_CH, RM_CD],
-      [C,     RM_CD, RM_HM, RM_HH, RM_HH, RM_HH, RM_HM, RM_CD, C],
-      [C,     C,     RM_HS, RM_HH, RM_VV, RM_HH, RM_HS, C,     C],
-      [C,     C,     RM_HS, RM_HM, RM_HM, RM_HM, RM_HS, C,     C],
-      [C,     RM_BL, RM_BR, RM_BR, RM_BR, RM_BR, RM_BR, RM_BL, C],
+      [C,     C,     RM_HS, RM_HM, RM_HH, RM_HM, RM_HS, C,     C    ],  // helmet dome top
+      [C,     RM_BH, RM_HS, RM_HH, RM_HH, RM_HH, RM_HS, RM_BH, C    ],  // helmet sides + blood
+      [RM_BR, RM_BH, RM_HS, RM_VV, RM_HH, RM_VV, RM_HS, RM_BH, RM_BR],  // visor — two dark eye-slits
+      [RM_BL, RM_BR, RM_AH, RM_AH, RM_AM, RM_AH, RM_AH, RM_BR, RM_BL],  // wide shoulders — steel plate
+      [RM_BH, RM_CM, RM_AM, RM_AH, RM_AM, RM_AH, RM_AM, RM_CM, RM_BH],  // chest armour + cape edges
+      [C,     RM_CD, RM_CM, RM_CH, RM_AM, RM_CH, RM_CM, RM_CD, C    ],  // waist — cape wrapping torso
+      [C,     RM_BL, RM_CD, RM_CM, RM_CM, RM_CM, RM_CD, RM_BL, C    ],  // legs / lower cape
+      [C,     C,     RM_BL, RM_BR, RM_BH, RM_BR, RM_BL, C,     C    ],  // feet / blood pool
     ]));
 
     // Fort gate key — gold ring bow + iron shaft with two teeth
@@ -2283,13 +2286,19 @@ export class AssetManager {
       [C,     C,     0x4A148C,0xCE93D8,0x4A148C,C,     C],
     ]));
 
+    // Tombstone — rounded top, etched cross in center body, narrow base.
+    // Cross: vertical = rows 2-4 at cols 3-4; horizontal = row 3 at cols 2-5.
+    const TS_H = 0x9E9E9E;   // stone highlight
+    const TS_M = 0x757575;   // stone mid
+    const TS_D = 0x616161;   // stone dark
+    const TS_C = 0xBBBBBB;   // etched cross (lighter, worn-pale carving)
     this.textures.set('tombstone', this.createSpriteTexture([
-      [C,     C,     0x9E9E9E,0x757575,0x757575,0x9E9E9E,C,     C],
-      [C,     0x757575,0x757575,0x616161,0x616161,0x757575,0x757575,C],
-      [C,     0x757575,0x616161,0x757575,0x757575,0x616161,0x757575,C],
-      [C,     0x616161,0x757575,0x757575,0x757575,0x757575,0x616161,C],
-      [C,     0x616161,0x616161,0x616161,0x616161,0x616161,0x616161,C],
-      [C,     C,     0x616161,0x616161,0x616161,0x616161,C,     C],
+      [C,     C,     TS_H,  TS_H,  TS_H,  TS_H,  C,     C    ],  // rounded top
+      [C,     TS_M,  TS_M,  TS_M,  TS_M,  TS_M,  TS_M,  C    ],  // upper body
+      [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // cross — vertical arm (top)
+      [C,     TS_D,  TS_C,  TS_C,  TS_C,  TS_C,  TS_D,  C    ],  // cross — horizontal arm
+      [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // cross — vertical arm (bottom)
+      [C,     C,     TS_D,  TS_D,  TS_D,  TS_D,  C,     C    ],  // base
     ]));
 
     this.textures.set('stump', this.createSpriteTexture([
@@ -2418,6 +2427,28 @@ export class AssetManager {
       [C,      C,      C,      SC_SHIRT,SC_SHIRT,C,      C,      C],
       [C,      C,      C,      0x5D4037,0x5D4037,C,      C,      C],
       [C,      C,      C,      0x5D4037,0x5D4037,C,      C,      C],
+    ]));
+
+    // Windmill — rural landmark (forest cliff inlet / plateau edge accents)
+    const WM_B = 0xECEFF1;
+    const WM_BD = 0x90A4AE;
+    const WM_CAP = 0xC62828;
+    const WM_HUB = 0x4E342E;
+    const WM_TW = 0xD7CCC8;
+    const WM_TWD = 0x8D6E63;
+    const WM_ST = 0xBDBDBD;
+    const WM_STD = 0x616161;
+    this.textures.set('windmill', this.createSpriteTexture([
+      [C,     WM_B,  WM_BD, WM_B,  WM_BD, WM_B,  WM_BD, WM_B,  C    ],
+      [WM_BD, WM_B,  WM_CAP,WM_CAP,WM_HUB,WM_CAP,WM_CAP,WM_B,  WM_BD],
+      [C,     WM_CAP,WM_CAP,WM_TW, WM_HUB, WM_TW, WM_CAP,WM_CAP,C    ],
+      [C,     C,     WM_TWD,WM_TW, WM_TW, WM_TW, WM_TWD, C,     C    ],
+      [C,     C,     WM_TW, WM_TW, WM_TW, WM_TW, WM_TW, C,     C    ],
+      [C,     C,     WM_TWD,WM_TW, WM_TW, WM_TW, WM_TWD, C,     C    ],
+      [C,     C,     WM_TW, WM_TW, WM_TW, WM_TW, WM_TW, C,     C    ],
+      [C,     WM_STD,WM_ST, WM_ST, WM_ST, WM_ST, WM_ST, WM_STD,C    ],
+      [C,     WM_ST, WM_ST, WM_ST, WM_ST, WM_ST,  WM_ST, WM_ST, C    ],
+      [C,     WM_STD,WM_STD,WM_ST, WM_ST, WM_ST, WM_ST, WM_STD,C    ],
     ]));
 
     // Sword (Matches Player Buster Blade — fully diagonal, tip top-right to pommel bottom-left)

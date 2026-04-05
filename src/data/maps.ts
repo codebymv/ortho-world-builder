@@ -327,13 +327,15 @@ const forestDef: MapDefinition = {
     { x: 250, y: 50, width: 20, height: 16, type: 'clearing', fill: 'grass' },
     { x: 150, y: 50, width: 30, height: 20, type: 'clearing', fill: 'grass' },
     { x: 138, y: 246, width: 24, height: 18, type: 'clearing', fill: 'dirt' },
-    { x: 126, y: 156, width: 48, height: 24, type: 'clearing', fill: 'dirt' },
+    // Ends at y=171 so the ranger cabin approach (172+) can stay grass until the y=175 artery.
+    { x: 126, y: 156, width: 48, height: 16, type: 'clearing', fill: 'dirt' },
     { x: 116, y: 192, width: 48, height: 24, type: 'clearing', fill: 'dirt' },
     { x: 126, y: 180, width: 26, height: 14, type: 'clearing', fill: 'dirt' },
 
     // === RANGER OUTPOST ===
     { x: 136, y: 164, width: 10, height: 8, type: 'inn_building', interactionId: 'ranger_cabin', interiorMap: 'interior_ranger_cabin', interiorSpawnX: 7, interiorSpawnY: 5 },
-    { x: 156, y: 170, width: 12, height: 10, type: 'camp', interactionId: 'ranger_camp' },
+    // South of cabin: sit below the y=178 east–west artery so the approach stays mostly grass.
+    { x: 156, y: 180, width: 12, height: 10, type: 'camp', interactionId: 'ranger_camp' },
 
     // === BANDIT CAMP (north-east) ===
     { x: 210, y: 40, width: 20, height: 16, type: 'camp', interactionId: 'forest_bandit_camp' },
@@ -415,10 +417,10 @@ const forestDef: MapDefinition = {
     { x: 26, y: 208, width: 14, height: 8, type: 'abandoned_camp', interactionId: 'caravan_wreck' },
     { x: 144, y: 228, width: 5, height: 4, type: 'broken_wagon' },
     { x: 148, y: 118, width: 5, height: 4, type: 'broken_wagon' },
-    { x: 156, y: 172, width: 4, height: 1, type: 'market_stall_row' },
-    { x: 160, y: 174, width: 4, height: 1, type: 'market_stall_row' },
+    { x: 156, y: 182, width: 4, height: 1, type: 'market_stall_row' },
+    { x: 160, y: 184, width: 4, height: 1, type: 'market_stall_row' },
     { x: 150, y: 214, width: 5, height: 4, type: 'broken_wagon' },
-    { x: 118, y: 176, width: 5, height: 4, type: 'broken_wagon' },
+    { x: 118, y: 179, width: 5, height: 4, type: 'broken_wagon' },
 
     // === WATERFALL (north) — large summit cascade; clearing placed first, fall overwrites the chasm
     { x: 126, y: 36, width: 48, height: 16, type: 'clearing', fill: 'grass' },
@@ -453,15 +455,20 @@ const forestDef: MapDefinition = {
     { x: 50, y: 100, width: 10, height: 14, type: 'church', interactionId: 'old_chapel' },
 
     // === SCATTERED COTTAGES (hermits, woodcutters) ===
-    { x: 90, y: 180, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage', interiorMap: 'interior_woodcutter_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
+    // Moved north of the cliff_face (y=186+) so frontY=176 is reachable from the y=178 artery.
+    // Ruined shell (matches forest_hermit treatment) — was an enterable woodcutter hut; chest moved outside.
+    { x: 90, y: 170, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage_ruin' },
     { x: 230, y: 130, width: 6, height: 6, type: 'cottage', interactionId: 'witch_cottage', interiorMap: 'interior_witch_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
+    // Flat grass shelf west of cliff-1 — cleared before the cliff stamps so trees don't seal the bypass trail.
+    // Cliff-1 (x=60+) overwrites the overlap zone; only x=44-59 survives as walkable grass.
+    { x: 44, y: 180, width: 35, height: 33, type: 'clearing', fill: 'grass' },
+
     // Hunter shack is teased from below, then reached by wrapping around a cliff-backed approach.
     { x: 60, y: 186, width: 62, height: 26, type: 'cliff_face' },
     { x: 134, y: 182, width: 6, height: 6, type: 'cottage', interactionId: 'hunter_cottage', interiorMap: 'interior_hunter_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
     { x: 108, y: 196, width: 28, height: 14, type: 'ruined_fort', interactionId: 'hunter_gate_ruin' },
     { x: 136, y: 192, width: 72, height: 18, type: 'cliff_face' },
     { x: 118, y: 220, width: 18, height: 12, type: 'abandoned_camp', interactionId: 'hunters_last_camp' },
-    { x: 144, y: 206, width: 16, height: 14, type: 'cemetery' },
     { x: 152, y: 220, width: 18, height: 12, type: 'destroyed_town', interactionId: 'hunter_wreck' },
     { x: 170, y: 90, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage', interiorMap: 'interior_cottage_forest', interiorSpawnX: 6, interiorSpawnY: 8 },
     { x: 80, y: 50, width: 6, height: 6, type: 'cottage', interactionId: 'ruin_cottage' },
@@ -484,19 +491,21 @@ const forestDef: MapDefinition = {
 
     // === SOUTH QUADRANT POIs (below y:250 — fills the empty stretch before the village portal) ===
     { x: 200, y: 260, width: 16, height: 12, type: 'abandoned_camp', interactionId: 'southern_outpost' },
+    // Abandoned shack prop only (ruined facade + overgrowth); no interior — see placeCottage forest_hermit branch.
     { x: 60, y: 270, width: 6, height: 6, type: 'cottage', interactionId: 'forest_hermit' },
     { x: 250, y: 270, width: 10, height: 14, type: 'church', interactionId: 'overgrown_shrine' },
     { x: 176, y: 176, width: 18, height: 14, type: 'clearing', fill: 'grass' },
-    { x: 104, y: 170, width: 14, height: 12, type: 'clearing', fill: 'dirt' },
+    { x: 104, y: 180, width: 14, height: 12, type: 'clearing', fill: 'dirt' },
 
     // === MAIN TRAILS: basin to ridge, then branching into shelves ===
     { x: 146, y: 258, width: 8, height: 38, type: 'path', fill: 'dirt' },
     { x: 132, y: 184, width: 42, height: 10, type: 'path', fill: 'dirt' },
     { x: 146, y: 82, width: 8, height: 102, type: 'path', fill: 'dirt' },
     { x: 92, y: 74, width: 106, height: 6, type: 'path', fill: 'dirt' },
-    { x: 74, y: 168, width: 72, height: 6, type: 'path', fill: 'dirt' },
-    { x: 54, y: 152, width: 6, height: 18, type: 'path', fill: 'dirt' },
-    { x: 154, y: 168, width: 80, height: 6, type: 'path', fill: 'dirt' },
+    { x: 74, y: 178, width: 72, height: 6, type: 'path', fill: 'dirt' },
+    // Stops at y=161 so dirt does not sit on the grove south_face (y=163); path+dirt blocks stampCliffs.
+    { x: 54, y: 152, width: 6, height: 10, type: 'path', fill: 'dirt' },
+    { x: 154, y: 178, width: 80, height: 6, type: 'path', fill: 'dirt' },
     // Narrow vs x=233 so path does not cover witch cottage door (233,133).
     { x: 228, y: 122, width: 5, height: 46, type: 'path', fill: 'dirt' },
     { x: 234, y: 148, width: 22, height: 4, type: 'path', fill: 'dirt' },
@@ -509,6 +518,14 @@ const forestDef: MapDefinition = {
     { x: 120, y: 212, width: 10, height: 4, type: 'path', fill: 'dirt' },
     { x: 126, y: 218, width: 22, height: 4, type: 'path', fill: 'dirt' },
     { x: 146, y: 214, width: 4, height: 18, type: 'path', fill: 'dirt' },
+    // Small cemetery on hunter shelf — must be after y=204–219 path strips or dirt overwrites gate (walkable) and nibbles the back fence.
+    { x: 144, y: 206, width: 16, height: 14, type: 'cemetery' },
+    // === NE RIDGE DESCENT CORRIDOR — links mid-zone stairway to eastern spine ===
+    // North-south spur from stairway base (y≈123) south to the east-west artery at y=178.
+    // The existing path {x:154,y:178,w:80} already covers the full horizontal span so no
+    // extra connector is needed — the spur hits it naturally at y=178.
+    { x: 201, y: 123, width: 4, height: 56, type: 'path', fill: 'dirt' },
+
     // River cut separating the skeleton shelf from the bonfire/shortcut shelf until the loop reconnects farther east.
     { x: 86, y: 196, width: 22, height: 18, type: 'wall', fill: 'water' },
     { x: 90, y: 208, width: 20, height: 18, type: 'wall', fill: 'water' },
@@ -516,6 +533,17 @@ const forestDef: MapDefinition = {
     { x: 98, y: 234, width: 14, height: 12, type: 'wall', fill: 'water' },
     { x: 68, y: 206, width: 20, height: 22, type: 'cliff_face' },
     { x: 120, y: 218, width: 8, height: 12, type: 'cliff_face' },
+
+    // === WESTERN BYPASS — placed AFTER all cliffs so these tiles override buffer rows ===
+    // Cliff-1 buffer marks y=212-213, x=60-121 non-walkable.  The west-cliff marks x=68-87,
+    // y=206-227 non-walkable.  This clearing restores a walkable strip so the bypass trail
+    // and its east-west connector can stamp passable dirt on top.
+    { x: 44, y: 213, width: 92, height: 6, type: 'clearing', fill: 'grass' },
+    // Narrow dirt trail pressed against cliff-1's west face (x<60, safe from cliff stamps).
+    { x: 54, y: 180, width: 4, height: 35, type: 'path', fill: 'dirt' },
+    // East-west connector: links the bonfire-plateau path network to the trail head.
+    { x: 54, y: 214, width: 74, height: 4, type: 'path', fill: 'dirt' },
+
     // West branch off the central spine — optional exploration; ranger_north_spine_sign + whisper_wild_fork_sign frame the main quest lane vs. secrets
     { x: 100, y: 120, width: 40, height: 6, type: 'path', fill: 'dirt' },
     // Chapel approach: paved link from west branch (south of old_chapel footprint y≤113) to the ranger remains at ~55,114
@@ -660,6 +688,15 @@ const forestDef: MapDefinition = {
 
     // --- Rocky ford (east, x:260, y:230) ---
     { x: 258, y: 228, width: 10, height: 8, type: 'clearing', fill: 'mossy_stone' },
+
+    // --- Cliff inlet west of ranger plateau — x=106–111 only so x≥112 plateau is not paved over.
+    { x: 106, y: 164, width: 6, height: 10, type: 'clearing', fill: 'dirt' },
+
+    // --- West hidden grove south rim — picket cordon along shelf_face y=163 (meets plateau at x=112) ---
+    // Blocks descent onto the wolf shelf; stampCliffs skips fence/gate/iron_fence caps on this row.
+    { x: 4, y: 163, width: 108, height: 1, type: 'wall', fill: 'fence' },
+    // Heavier band at the trail head — reads as a sealed gate line you can swap to walkable `gate` later.
+    { x: 56, y: 163, width: 5, height: 1, type: 'wall', fill: 'iron_fence' },
   ],
   portals: [
     { x: 150, y: 291, targetMap: 'village', targetX: 120, targetY: 8 },
@@ -671,6 +708,8 @@ const forestDef: MapDefinition = {
     { x: 74, y: 70, interactionId: 'forest_chest_1' },
     { x: 216, y: 110, interactionId: 'forest_chest_2' },
     { x: 33, y: 135, interactionId: 'hidden_grove_chest' },
+    // Former interior_woodcutter_cottage loot (exterior prop only now).
+    { x: 93, y: 177, interactionId: 'forest_woodcutter_chest' },
     { x: 265, y: 85, interactionId: 'ruins_chest_1' },
     { x: 42, y: 38, interactionId: 'wolf_den_chest' },
     { x: 230, y: 230, interactionId: 'forest_lake_chest' },
@@ -692,6 +731,8 @@ const forestDef: MapDefinition = {
     { x: 208, y: 66, interactionId: 'fort_chest_2' },
     { x: 68, y: 196, interactionId: 'fort_chest_3' },
     { x: 111, y: 220, interactionId: 'forest_river_chest' },
+    // Near hunter approach / river shelf — player-facing coords ~(8, 66) inside small cemetery.
+    { x: 158, y: 216, interactionId: 'forest_cemetery_chest' },
     { x: 225, y: 155, interactionId: 'golem_arena_chest' },
     // Fort garrison chest — inside the gate so entry feels earned
     { x: 145, y: 128, interactionId: 'fort_garrison_chest' },
@@ -701,28 +742,27 @@ const forestDef: MapDefinition = {
     { x: 180, y: 46, interactionId: 'waterfall_hidden_chest' },
   ],
   interactables: [
-    { x: 140, y: 170, type: 'sign', walkable: false, interactionId: 'ranger_sign' },
-    { x: 150, y: 162, type: 'sign', walkable: false, interactionId: 'ranger_north_spine_sign' },
-    { x: 150, y: 115, type: 'sign', walkable: false, interactionId: 'fort_north_approach_sign' },
-    { x: 150, y: 105, type: 'sign', walkable: false, interactionId: 'whisper_lake_runoff_sign' },
-    { x: 120, y: 122, type: 'sign', walkable: false, interactionId: 'whisper_wild_fork_sign' },
     { x: 120, y: 98, type: 'sign', walkable: false, interactionId: 'bridge_sign' },
-    { x: 60, y: 156, type: 'sign', walkable: false, interactionId: 'danger_sign' },
+    // Moved just north of the wolf zone (y=148) so the warning precedes the threat.
+    { x: 60, y: 146, type: 'sign', walkable: false, interactionId: 'danger_sign' },
+    // South rim of west grove — explains the fence line and that the shelf may open after the pack is dealt with.
+    { x: 62, y: 162, type: 'sign', walkable: false, interactionId: 'west_grove_fence_sign' },
     { x: 130, y: 44, type: 'bonfire', walkable: false, interactionId: 'bonfire_hollow' },
     { x: 141, y: 148, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_fort' },
     { x: 130, y: 206, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_south' },
-    { x: 150, y: 260, type: 'sign', walkable: false, interactionId: 'forest_entry_sign' },
-    { x: 127, y: 205, type: 'shortcut_lever', walkable: false, interactionId: 'forest_shortcut_lever' },
+    // Lever is on the NORTH side of the ranger gate (y=199-202) so the player must first
+    // navigate the long way around through the forest to reach the cottage, then on the way
+    // back south they pull the lever to open the shortcut home to the Ranger Outpost.
+    { x: 127, y: 196, type: 'shortcut_lever', walkable: false, interactionId: 'forest_shortcut_lever' },
     { x: 146, y: 240, type: 'stump', walkable: false, interactionId: 'stump_lore' },
     { x: 100, y: 100, type: 'stump', walkable: false, interactionId: 'stump_lore' },
     { x: 200, y: 90, type: 'stump', walkable: false, interactionId: 'stump_lore' },
     { x: 132, y: 188, type: 'sign', walkable: false, interactionId: 'hunter_cottage_sign' },
-    { x: 168, y: 96, type: 'sign', walkable: false, interactionId: 'forest_cottage_sign' },
     { x: 87, y: 228, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 250, y: 190, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 45, y: 145, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 170, y: 182, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
-    { x: 160, y: 175, type: 'campfire', walkable: false, interactionId: 'campfire' },
+    { x: 160, y: 185, type: 'campfire', walkable: false, interactionId: 'campfire' },
     { x: 35, y: 250, type: 'campfire', walkable: false, interactionId: 'campfire' },
     { x: 275, y: 270, type: 'well', walkable: false, interactionId: 'well' },
     { x: 25, y: 205, type: 'sign', walkable: false, interactionId: 'destroyed_town_sign' },
@@ -733,7 +773,6 @@ const forestDef: MapDefinition = {
     { x: 55, y: 107, type: 'altar', walkable: false, interactionId: 'old_chapel_altar' },
     { x: 262, y: 25, type: 'sign', walkable: false, interactionId: 'volcano_warning' },
     { x: 252, y: 142, type: 'sign', walkable: false, interactionId: 'temple_inscription' },
-    { x: 132, y: 122, type: 'sign', walkable: false, interactionId: 'forest_fort_banner' },
     { x: 28, y: 210, type: 'sign', walkable: false, interactionId: 'caravan_journal' },
     { x: 22, y: 248, type: 'cage', walkable: false, interactionId: 'spider_cocoon' },
     // Potion pickups in forest clearings and paths
@@ -753,13 +792,8 @@ const forestDef: MapDefinition = {
     { x: 140, y: 48, type: 'flower', walkable: true, interactionId: 'moonbloom_pickup' },
     { x: 210, y: 105, type: 'flower', walkable: true, interactionId: 'moonbloom_pickup' },
     { x: 85, y: 185, type: 'flower', walkable: true, interactionId: 'moonbloom_pickup' },
-    // === THE HOLLOW — Warning signs at river crossing ===
+    // === THE HOLLOW — Warning sign at river crossing (one is enough) ===
     { x: 118, y: 85, type: 'sign', walkable: false, interactionId: 'hollow_warning_sign' },
-    { x: 176, y: 85, type: 'sign', walkable: false, interactionId: 'hollow_warning_sign' },
-    // === THE HOLLOW — Hunter trail signs ===
-    { x: 122, y: 70, type: 'sign', walkable: false, interactionId: 'hollow_trail_sign_1' },
-    { x: 124, y: 50, type: 'sign', walkable: false, interactionId: 'hollow_trail_sign_2' },
-    { x: 120, y: 32, type: 'sign', walkable: false, interactionId: 'hollow_trail_sign_3' },
     // === THE HOLLOW — Shortcut lever (boss side, opens gate back to bonfire) ===
     { x: 96, y: 38, type: 'shortcut_lever', walkable: false, interactionId: 'hollow_shortcut_lever' },
     // === THE HOLLOW — Hunters final camp (just before boss arena) ===
@@ -774,15 +808,14 @@ const forestDef: MapDefinition = {
 
     // === WITCH COTTAGE SURROUNDS ===
     { x: 232, y: 134, type: 'cauldron', walkable: false, interactionId: 'witch_cauldron' },
-    { x: 228, y: 138, type: 'sign', walkable: false, interactionId: 'witch_circle_warning' },
-
-    // === GOLEM HIGHLAND APPROACH ===
-    { x: 210, y: 145, type: 'sign', walkable: false, interactionId: 'golem_highland_warning' },
 
     // === SHORTCUT LEVER HINTS ===
-    { x: 130, y: 207, type: 'ranger_remains', walkable: true, interactionId: 'dead_ranger_shortcut_note' },
-    { x: 98, y: 40, type: 'sign', walkable: false, interactionId: 'hollow_lever_inscription' },
-
+    // Ranger remains placed on the SOUTH face of the gate (bonfire side) as a lore hint
+    // that someone tried to force through the barred gate from this side.
+    { x: 130, y: 203, type: 'ranger_remains', walkable: true, interactionId: 'dead_ranger_shortcut_note' },
+    // Sign on the bonfire plateau — visible after the player hits the gate and looks around.
+    // Points them to the western bypass trail that circles cliff-1 to reach the cottage.
+    { x: 128, y: 208, type: 'sign', walkable: false, interactionId: 'cliff_trail_sign' },
     // === FORT INTERIOR ===
     { x: 136, y: 130, type: 'sign', walkable: false, interactionId: 'fort_garrison_orders' },
   ],
@@ -798,7 +831,7 @@ const forestDef: MapDefinition = {
     { x: 146, y: 238, type: 'lantern', walkable: false },
     { x: 146, y: 222, type: 'lantern', walkable: false },
     // Northward spine — ranger line of march (packed path ~146–154 x); keeps manuscript progression readable
-    { x: 152, y: 172, type: 'lantern', walkable: false },
+    { x: 152, y: 182, type: 'lantern', walkable: false },
     { x: 152, y: 152, type: 'lantern', walkable: false },
     { x: 152, y: 132, type: 'lantern', walkable: false },
     { x: 152, y: 112, type: 'lantern', walkable: false },
@@ -810,6 +843,17 @@ const forestDef: MapDefinition = {
     { x: 56, y: 152, type: 'dead_tree', walkable: false },
     { x: 62, y: 150, type: 'bones_pile', walkable: true },
     { x: 64, y: 154, type: 'cage', walkable: false },
+    // Grove south rim — cordon clutter (pairs with west_grove_fence_sign).
+    { x: 52, y: 162, type: 'barrel', walkable: false },
+    { x: 54, y: 161, type: 'crate', walkable: false },
+    { x: 68, y: 162, type: 'chain', walkable: false },
+    { x: 88, y: 162, type: 'lantern', walkable: false },
+    { x: 96, y: 162, type: 'stump', walkable: false },
+    { x: 104, y: 162, type: 'dead_tree', walkable: false },
+    // Wolf shelf below the rim (unreachable until a gate opens) — visible tease beyond the fence.
+    { x: 72, y: 168, type: 'bones_pile', walkable: true },
+    { x: 84, y: 170, type: 'dead_tree', walkable: false },
+    { x: 92, y: 169, type: 'stump', walkable: false },
     { x: 66, y: 158, type: 'wagon', walkable: false },
     { x: 70, y: 160, type: 'barrel', walkable: false },
     { x: 72, y: 160, type: 'crate', walkable: false },
@@ -829,6 +873,8 @@ const forestDef: MapDefinition = {
     { x: 209, y: 66, type: 'crate', walkable: false },
     { x: 66, y: 196, type: 'barrel', walkable: false },
     { x: 70, y: 196, type: 'crate', walkable: false },
+    // Cliff inlet dirt pocket — west of el1 seam so terrain seam-fillers do not sit on top of the sprite.
+    { x: 110, y: 166, type: 'windmill', walkable: false },
     { x: 124, y: 203, type: 'bloodstain', walkable: true },
     { x: 129, y: 205, type: 'bloodstain', walkable: true },
     { x: 136, y: 209, type: 'bloodstain', walkable: true },
@@ -853,10 +899,10 @@ const forestDef: MapDefinition = {
     { x: 136, y: 168, type: 'bench', walkable: false },
     { x: 144, y: 168, type: 'lantern', walkable: false },
     { x: 150, y: 168, type: 'crate', walkable: false },
-    { x: 153, y: 169, type: 'barrel', walkable: false },
-    { x: 162, y: 170, type: 'cart', walkable: false },
-    { x: 166, y: 174, type: 'crate', walkable: false },
-    { x: 168, y: 174, type: 'barrel', walkable: false },
+    { x: 153, y: 179, type: 'barrel', walkable: false },
+    { x: 162, y: 180, type: 'cart', walkable: false },
+    { x: 166, y: 184, type: 'crate', walkable: false },
+    { x: 168, y: 184, type: 'barrel', walkable: false },
     { x: 123, y: 196, type: 'bones_pile', walkable: true },
     { x: 131, y: 201, type: 'bones_pile', walkable: true },
     { x: 134, y: 206, type: 'cage', walkable: false },
@@ -882,7 +928,7 @@ const forestDef: MapDefinition = {
     { x: 181, y: 182, type: 'stump', walkable: false },
     { x: 188, y: 183, type: 'lantern', walkable: false },
     { x: 191, y: 187, type: 'bones_pile', walkable: true },
-    { x: 108, y: 174, type: 'dead_tree', walkable: false },
+    { x: 108, y: 181, type: 'dead_tree', walkable: false },
     { x: 114, y: 176, type: 'bones_pile', walkable: true },
     { x: 118, y: 179, type: 'dead_tree', walkable: false },
     { x: 156, y: 120, type: 'dead_tree', walkable: false },
@@ -956,8 +1002,9 @@ const forestDef: MapDefinition = {
     // === WITCH COTTAGE — altar prop ===
     { x: 230, y: 140, type: 'altar', walkable: false },
 
-    // === GOLEM APPROACH — bones ===
+    // === GOLEM APPROACH — scattered bones and a fallen ranger ===
     { x: 212, y: 143, type: 'bones_pile', walkable: true },
+    { x: 216, y: 146, type: 'ranger_remains', walkable: true, interactionId: 'highland_garrison_remains' },
 
     // === WITCH COTTAGE SURROUNDS — mushroom ring ===
     { x: 230, y: 132, type: 'mushroom', walkable: true },
@@ -1158,7 +1205,9 @@ const forestDef: MapDefinition = {
     // === TIER 1: NW ridge (wolf den / ruins area) ===
     { x: 4, y: 2, width: 50, height: 70, elevation: 1 },
     // === TIER 1: West hidden grove hill ===
-    { x: 4, y: 108, width: 72, height: 56, elevation: 1 },
+    // Width reaches x=111 so the south cliff meets the ranger plateau (x=112) with no el0 gap
+    // players could slip through to bypass the Disparaged Cottage / gate arc.
+    { x: 4, y: 108, width: 108, height: 56, elevation: 1 },
     // === TIER 1: Central ranger plateau ===
     { x: 112, y: 148, width: 80, height: 52, elevation: 1 },
     // === TIER 1: East temple terrace ===
@@ -1173,6 +1222,11 @@ const forestDef: MapDefinition = {
     { x: 200, y: 236, width: 28, height: 16, elevation: 1 },
     // === TIER 1: South-west rocky hill (near ruined shrine) ===
     { x: 72, y: 274, width: 18, height: 16, elevation: 1 },
+    // === GROUND LEVEL: Western bypass corridor ===
+    // Force elevation=0 across the entire zone so stampCliffs (which runs after placeFeatures)
+    // cannot auto-generate blocking cliff art that would seal the narrow bypass trail.
+    // Covers x=44-135 (trail west of cliff-1, plus connector strip) y=180-223.
+    { x: 44, y: 180, width: 92, height: 44, elevation: 0 },
   ],
   stairways: [
     // All stairways start AT south_face = zone_y + zone_h - 1 so placeStairways
@@ -1187,9 +1241,8 @@ const forestDef: MapDefinition = {
     { x: 248, y: 193, width: 6, height: 4, elevation: 1 },
     // Second access to NE temple ridge from central trail
     { x: 228, y: 193, width: 6, height: 4, elevation: 1 },
-    // West hidden grove south face: zone {x:4,y:108,h:56}, south_face=163
-    { x: 54, y: 163, width: 6, height: 4, elevation: 1 },
-    // Hunter shack overlook: climb from the bloodstained bonfire shelf to the upper approach.
+    // West hidden grove (y=163): no stair — cliff runs the full shelf/Grove–plateau seam so this
+    // cannot shortcut the Disparaged Cottage / ranger-gate arc.
     // SE enchanted hills south: zone {x:230,y:222,h:62}, south_face=283
     { x: 248, y: 283, width: 6, height: 4, elevation: 1 },
     // East ridge south face: zone {x:272,y:100,h:50}, south_face=149
@@ -1198,6 +1251,10 @@ const forestDef: MapDefinition = {
     { x: 210, y: 251, width: 6, height: 4, elevation: 1 },
     // South-west rocky hill south: zone {x:72,y:274,h:16}, south_face=289
     { x: 78, y: 289, width: 6, height: 4, elevation: 1 },
+    // NE fortress ridge south face mid-corridor: zone {x:194,y:24,h:96}, south_face=119.
+    // Creates a traversal break in the otherwise unbroken 97-tile cliff face and eliminates
+    // the sky-gap seam visible at approximately world (51, 28) near this cliff boundary.
+    { x: 199, y: 119, width: 6, height: 4, elevation: 1 },
   ],
   enemyZones: [
     // Zones are spread by quadrant / POI so packs are not stacked on one choke (esp. north gate).
@@ -1225,7 +1282,8 @@ const forestDef: MapDefinition = {
 
     // West — hidden grove plants
     { x: 18, y: 124, width: 22, height: 18, enemyType: 'plant', count: 5 },
-    { x: 52, y: 148, width: 18, height: 16, enemyType: 'wolf', count: 4 },
+    // Stops at y=162 so patrols do not spawn on the south_face fence row (y=163).
+    { x: 52, y: 148, width: 18, height: 15, enemyType: 'wolf', count: 4 },
 
     // E — lakeside spiders + temple skeletons
     { x: 230, y: 176, width: 24, height: 14, enemyType: 'spider', count: 5 },
@@ -1237,7 +1295,7 @@ const forestDef: MapDefinition = {
     { x: 164, y: 278, width: 18, height: 10, enemyType: 'wolf', count: 2 },
 
     // Enchanted groves
-    { x: 72, y: 140, width: 28, height: 24, enemyType: 'plant', count: 8 },
+    { x: 72, y: 140, width: 28, height: 23, enemyType: 'plant', count: 8 },
     { x: 236, y: 240, width: 26, height: 20, enemyType: 'plant', count: 7 },
     { x: 48, y: 260, width: 26, height: 20, enemyType: 'plant', count: 6 },
 
@@ -1255,8 +1313,8 @@ const forestDef: MapDefinition = {
     { x: 195, y: 256, width: 16, height: 14, enemyType: 'wolf', count: 3 },
     { x: 55, y: 266, width: 18, height: 14, enemyType: 'spider', count: 3 },
     { x: 245, y: 266, width: 16, height: 14, enemyType: 'plant', count: 4 },
-    { x: 175, y: 175, width: 16, height: 14, enemyType: 'spider', count: 3 },
-    { x: 105, y: 168, width: 14, height: 12, enemyType: 'wolf', count: 3 },
+    { x: 175, y: 178, width: 16, height: 14, enemyType: 'spider', count: 3 },
+    { x: 105, y: 178, width: 14, height: 12, enemyType: 'wolf', count: 3 },
     { x: 142, y: 90, width: 16, height: 14, enemyType: 'shadow', count: 4 },
 
     // SW plateau + far E trail
@@ -1268,7 +1326,7 @@ const forestDef: MapDefinition = {
     { x: 215, y: 140, width: 20, height: 16, enemyType: 'golem', count: 1 },
 
     // AUTHORED ENCOUNTER POD 1 — mid-spine fork, first multi-enemy test
-    { x: 146, y: 178, width: 6, height: 4, enemyType: 'wolf', count: 3 },
+    { x: 146, y: 181, width: 6, height: 4, enemyType: 'wolf', count: 3 },
     // AUTHORED ENCOUNTER POD 2 — river crossing approach, mixed threat
     { x: 140, y: 88, width: 8, height: 6, enemyType: 'wolf', count: 2 },
     { x: 148, y: 88, width: 8, height: 6, enemyType: 'shadow', count: 2 },
@@ -1305,9 +1363,11 @@ const deepWoodsDef: MapDefinition = {
   borderTile: 'tree',
   features: [
     // === WITCH'S HUT ===
-    { x: 60, y: 60, width: 10, height: 8, type: 'inn_building', interactionId: 'witch_hut', interiorMap: 'interior_witch_hut', interiorSpawnX: 6, interiorSpawnY: 2 },
+    // Clearings placed FIRST so the building is stamped on top; reversed order previously caused
+    // clearing tiles to overwrite the entrance (building_entrance disappeared after generation).
     { x: 50, y: 52, width: 24, height: 20, type: 'clearing', fill: 'swamp' },
     { x: 44, y: 54, width: 36, height: 24, type: 'clearing', fill: 'dirt' },
+    { x: 60, y: 60, width: 10, height: 8, type: 'inn_building', interactionId: 'witch_hut', interiorMap: 'interior_witch_hut', interiorSpawnX: 6, interiorSpawnY: 2 },
 
     // === ANCIENT SHRINE ===
     { x: 160, y: 40, width: 24, height: 20, type: 'ruins' },
@@ -1408,8 +1468,8 @@ const deepWoodsDef: MapDefinition = {
     // South threshold and first warning shelf
     { x: 114, y: 178, type: 'lantern', walkable: false },
     { x: 126, y: 178, type: 'lantern', walkable: false },
-    { x: 112, y: 170, type: 'dead_tree', walkable: false },
-    { x: 128, y: 170, type: 'dead_tree', walkable: false },
+    { x: 112, y: 177, type: 'dead_tree', walkable: false },
+    { x: 128, y: 177, type: 'dead_tree', walkable: false },
     { x: 118, y: 166, type: 'bones_pile', walkable: true },
     { x: 122, y: 164, type: 'cage', walkable: false },
     // Ancient shrine vicinity
@@ -2009,7 +2069,7 @@ const interiorWoodcutterCottageDef: MapDefinition = {
     { x: 7, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
   ],
   portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 93, targetY: 186 }],
-  chests: [{ x: 9, y: 6, interactionId: 'forest_woodcutter_chest' }],
+  chests: [],
   interactables: [],
   props: [
     { x: 3, y: 3, type: 'bed', walkable: false },

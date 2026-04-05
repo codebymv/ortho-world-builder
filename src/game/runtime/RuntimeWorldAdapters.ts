@@ -39,13 +39,31 @@ export function createPortalSampler(state: GameState, world: World) {
   };
 }
 
-/** For auto-warp charge only: foot tile must be `portal` so adjacent chests / pickups never start warp FX. */
+/**
+ * Auto-warp: prefer strict foot-on-portal; if the physics read misses the portal cell by a hair, use the
+ * same 0.7 cardinal probes as the travel prompt. Skip probes when standing on a chest so we never warp
+ * from a loot tile that sits next to a portal.
+ */
 export function createPortalWarpFootSampler(state: GameState, world: World) {
   return (): TransitionLike | null => {
     const px = state.player.position.x;
     const py = state.player.position.y;
-    const tile = world.getTile(px, py);
-    if (tile?.type === 'portal' && tile.transition) return tile.transition;
+
+    const center = world.getTile(px, py);
+    if (center?.type === 'portal' && center.transition) return center.transition;
+
+    if (center?.type === 'chest' || center?.type === 'chest_opened') return null;
+
+    for (const dir of [
+      { x: 0, y: 1 },
+      { x: 0, y: -1 },
+      { x: 1, y: 0 },
+      { x: -1, y: 0 },
+    ] as const) {
+      const t = world.getAutoTransitionAt(px + dir.x * 0.7, py + dir.y * 0.7);
+      if (t) return t;
+    }
+
     return null;
   };
 }

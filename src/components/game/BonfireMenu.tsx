@@ -1,6 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { Sparkles } from 'lucide-react';
 import type { GameState } from '@/lib/game/GameState';
+
+// Inline essence icon — matches the HUD's violet-300 sparkle (`size` bumps cost readouts)
+const EssenceIcon = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
+  <Sparkles
+    className={`inline-block text-violet-300 relative -top-px ml-0.5 ${size === 'md' ? 'w-4 h-4' : 'w-3 h-3'}`}
+  />
+);
 
 interface BonfireMenuProps {
   gameState: GameState;
@@ -10,10 +17,30 @@ interface BonfireMenuProps {
   triggerUIUpdate: () => void;
 }
 
-const STAT_INFO: Record<string, { label: string; description: string; color: string }> = {
-  vitality: { label: 'Vigor', description: 'Max HP +20', color: '#E57373' },
-  endurance: { label: 'Endurance', description: 'Max Stamina +15', color: '#81C784' },
-  strength: { label: 'Strength', description: 'Attack +3', color: '#FFB74D' },
+// Pixel-art flame SVG matching the in-game bonfire sprite palette:
+// pale-purple tip → deep-purple upper → gold mid → amber base → dark wood log
+const PixelFlame = () => (
+  <svg
+    width="28"
+    height="32"
+    viewBox="0 0 7 8"
+    style={{ imageRendering: 'pixelated', display: 'block', margin: '0 auto 8px' }}
+  >
+    <rect x="3" y="0" width="1" height="1" fill="#FFFFFF" />
+    <rect x="2" y="1" width="3" height="1" fill="#E1BEE7" />
+    <rect x="1" y="2" width="5" height="1" fill="#BA68C8" />
+    <rect x="1" y="3" width="5" height="1" fill="#FFD54F" />
+    <rect x="0" y="4" width="7" height="1" fill="#FF6F00" />
+    <rect x="0" y="5" width="7" height="1" fill="#5D4037" />
+    <rect x="1" y="6" width="5" height="1" fill="#4E342E" />
+    <rect x="2" y="7" width="3" height="1" fill="#3E2723" />
+  </svg>
+);
+
+const STAT_INFO: Record<string, { label: string; description: string }> = {
+  vitality:  { label: 'Vigor',      description: 'Max HP +20'      },
+  endurance: { label: 'Endurance',  description: 'Max Stamina +15' },
+  strength:  { label: 'Strength',   description: 'Attack +3'       },
 };
 
 export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, triggerUIUpdate }: BonfireMenuProps) => {
@@ -24,11 +51,8 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, triggerUIUp
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (view === 'level-up') {
-          setView('main');
-        } else {
-          onClose();
-        }
+        if (view === 'level-up') setView('main');
+        else onClose();
         e.preventDefault();
       }
     };
@@ -41,136 +65,151 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, triggerUIUp
   const canAfford = p.essence >= cost;
 
   const handleLevelUp = (stat: 'vitality' | 'endurance' | 'strength') => {
-    if (onLevelUp(stat)) {
-      bump();
-      triggerUIUpdate();
-    }
+    if (onLevelUp(stat)) { bump(); triggerUIUpdate(); }
   };
 
   void version;
 
+  /* ─── Level-up view ─────────────────────────────────────────────── */
   if (view === 'level-up') {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 pointer-events-auto">
         <div className="bg-[#1A0F0A]/95 border-2 border-[#8B5A2B] rounded-lg p-8 max-w-lg w-full mx-4 shadow-2xl animate-scale-in">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-[#DAA520] uppercase tracking-widest">Level Up</h2>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-[#CE93D8]">
-                <span className="text-[10px] uppercase tracking-wider text-[#BA68C8] mr-1">Essence</span>
-                {p.essence}
+
+          {/* Header row */}
+          <div className="flex items-baseline justify-between mb-5">
+            <h2 className="text-base font-bold text-[#DAA520] uppercase tracking-[0.25em]">
+              Level Up
+            </h2>
+            <span className="text-xs text-[#8B7355] uppercase tracking-wider">
+              {p.essence}<EssenceIcon size="md" />
+            </span>
+          </div>
+
+          {/* Soul level + cost */}
+          <div className="flex items-center justify-between px-3 py-2.5 border border-[#3A2215] bg-[#120806] mb-4">
+            <div>
+              <span className="text-[10px] uppercase tracking-wider text-[#8B7355]">Soul Level</span>
+              <span className="ml-2 text-base font-bold text-[#F5DEB3]">{p.level}</span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] uppercase tracking-wider text-[#8B7355]">Cost</span>
+              <span className={`ml-2 text-base font-bold ${canAfford ? 'text-[#DAA520]' : 'text-[#5C4033]'}`}>
+                {cost}<EssenceIcon />
               </span>
             </div>
           </div>
 
-          <div className="mb-4 flex items-center justify-between p-3 bg-[#2D1B11]/60 border border-[#5C3A21] rounded-sm">
-            <div>
-              <span className="text-[10px] uppercase tracking-wider text-[#DAA520]">Soul Level</span>
-              <span className="ml-2 text-xl font-bold text-[#F5DEB3]">{p.level}</span>
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] uppercase tracking-wider text-[#DAA520]">Next Level</span>
-              <span className={`ml-2 text-lg font-bold ${canAfford ? 'text-[#CE93D8]' : 'text-[#8B7355]'}`}>{cost}</span>
-              <span className="ml-1 text-[10px] text-[#BA68C8]">essence</span>
-            </div>
-          </div>
-
-          <div className="space-y-2 mb-6">
+          {/* Stat rows — all labels share the same muted-amber tone */}
+          <div className="space-y-[2px] mb-5">
             {(['vitality', 'endurance', 'strength'] as const).map(stat => {
               const info = STAT_INFO[stat];
               return (
                 <div
                   key={stat}
-                  className="flex items-center justify-between p-3 bg-[#2D1B11]/40 border border-[#5C3A21]/50 rounded-sm"
+                  className="flex items-center justify-between px-3 py-2.5 border border-[#3A2215] bg-[#1E1008]/40"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold uppercase tracking-wider" style={{ color: info.color }}>{info.label}</span>
-                      <span className="text-lg font-bold text-[#F5DEB3]">{p[stat]}</span>
-                    </div>
-                    <span className="text-[10px] text-[#8B7355]">{info.description}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#A09070]">
+                      {info.label}
+                    </span>
+                    <span className="ml-3 text-sm font-bold text-[#F5DEB3]">{p[stat]}</span>
+                    <span className="ml-2 text-[10px] text-[#5C4033]">{info.description}</span>
                   </div>
-                  <Button
+                  <button
                     onClick={() => handleLevelUp(stat)}
                     disabled={!canAfford}
-                    className={`ml-4 px-4 py-2 text-xs font-bold uppercase tracking-wider border ${
+                    className={`ml-4 w-8 h-7 shrink-0 text-xs font-bold border transition-colors ${
                       canAfford
-                        ? 'bg-[#4A148C]/60 hover:bg-[#6A1B9A]/70 text-[#E1BEE7] border-[#7B1FA2]'
-                        : 'bg-[#2D1B11]/40 text-[#5C3A21] border-[#3E2723] cursor-not-allowed'
+                        ? 'border-[#5C3A21] text-[#DAA520] hover:bg-[#3D2B21] hover:border-[#DAA520]'
+                        : 'border-[#2A1A0F] text-[#3D2B21] cursor-not-allowed'
                     }`}
                   >
                     +1
-                  </Button>
+                  </button>
                 </div>
               );
             })}
           </div>
 
-          <div className="grid grid-cols-3 gap-2 mb-6 text-center">
-            <div className="p-2 bg-[#2D1B11]/30 rounded-sm border border-[#5C3A21]/30">
-              <div className="text-[9px] uppercase tracking-wider text-[#E57373]">HP</div>
-              <div className="text-sm font-bold text-[#F5DEB3]">{p.maxHealth}</div>
-            </div>
-            <div className="p-2 bg-[#2D1B11]/30 rounded-sm border border-[#5C3A21]/30">
-              <div className="text-[9px] uppercase tracking-wider text-[#81C784]">Stamina</div>
-              <div className="text-sm font-bold text-[#F5DEB3]">{p.maxStamina}</div>
-            </div>
-            <div className="p-2 bg-[#2D1B11]/30 rounded-sm border border-[#5C3A21]/30">
-              <div className="text-[9px] uppercase tracking-wider text-[#FFB74D]">Attack</div>
-              <div className="text-sm font-bold text-[#F5DEB3]">{p.attackDamage}</div>
-            </div>
+          {/* Current stat readout — horizontal dividers, no colored labels */}
+          <div className="flex items-center justify-around px-3 py-2.5 border border-[#3A2215] bg-[#120806] mb-5">
+            {[
+              { label: 'HP',      value: p.maxHealth     },
+              { label: 'Stamina', value: p.maxStamina    },
+              { label: 'Attack',  value: p.attackDamage  },
+            ].map((item, i, arr) => (
+              <div key={item.label} className="flex items-center gap-3">
+                <div className="text-center">
+                  <div className="text-[9px] uppercase tracking-wider text-[#8B7355]">{item.label}</div>
+                  <div className="text-sm font-bold text-[#F5DEB3]">{item.value}</div>
+                </div>
+                {i < arr.length - 1 && <div className="w-px h-6 bg-[#3A2215]" />}
+              </div>
+            ))}
           </div>
 
-          <Button
+          {/* Back */}
+          <button
             onClick={() => setView('main')}
-            className="w-full bg-[#5C3A21] hover:bg-[#8B5A2B] text-[#F5DEB3] font-bold py-3 border border-[#5C3A21] uppercase tracking-wider"
+            className="w-full py-2.5 border border-[#5C3A21] text-[#8B7355] hover:text-[#F5DEB3] hover:bg-[#2D1B11] text-xs font-bold uppercase tracking-[0.2em] transition-colors"
           >
-            Back
-          </Button>
+            ← Back
+          </button>
         </div>
       </div>
     );
   }
 
+  /* ─── Main view ─────────────────────────────────────────────────── */
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 pointer-events-auto">
       <div className="bg-[#1A0F0A]/95 border-2 border-[#8B5A2B] rounded-lg p-8 max-w-sm w-full mx-4 shadow-2xl animate-scale-in">
-        <div className="text-center mb-8">
-          <div className="w-8 h-8 mx-auto mb-3 rounded-full bg-gradient-to-t from-[#FF6F00] via-[#FFD54F] to-[#E1BEE7] opacity-80" />
-          <h2 className="text-2xl font-bold text-[#DAA520] uppercase tracking-[0.3em]"
-            style={{ fontFamily: '"Times New Roman", Georgia, serif' }}
+
+        {/* Pixel flame + title */}
+        <div className="text-center mb-6">
+          <PixelFlame />
+          <h2
+            className="text-xl font-bold text-[#DAA520] uppercase"
+            style={{ fontFamily: '"Times New Roman", Georgia, serif', letterSpacing: '0.35em' }}
           >
             Bonfire
           </h2>
-          <p className="text-[10px] text-[#8B7355] uppercase tracking-widest mt-1">Level {p.level}</p>
+          <p className="text-xs text-[#8B7355] uppercase tracking-widest mt-1">
+            Level {p.level}&nbsp;&nbsp;·&nbsp;&nbsp;{p.essence}<EssenceIcon />
+          </p>
         </div>
 
-        <div className="space-y-2 mb-6">
-          <Button
-            onClick={() => {
-              onRest();
-              onClose();
-            }}
-            className="w-full bg-[#8B5A2B] hover:bg-[#A0522D] text-white font-bold py-3 border border-[#5C3A21] uppercase tracking-wider"
+        <div className="border-t border-[#3A2215] mb-4" />
+
+        {/* Menu items — styled as text-list selections, not colored buttons */}
+        <div className="space-y-[2px] mb-4">
+          <button
+            onClick={() => { onRest(); onClose(); }}
+            className="w-full text-left px-4 py-3 border border-[#3A2215] text-[#F5DEB3] text-sm font-bold uppercase tracking-wider hover:bg-[#2D1B11] hover:border-[#8B5A2B] hover:text-[#FFD98A] transition-colors"
           >
-            Rest
-          </Button>
-          <Button
+            Rest at Flame
+          </button>
+          <button
             onClick={() => setView('level-up')}
-            className="w-full bg-[#4A148C]/50 hover:bg-[#6A1B9A]/60 text-[#E1BEE7] font-bold py-3 border border-[#7B1FA2]/50 uppercase tracking-wider"
+            className="w-full text-left px-4 py-3 border border-[#3A2215] text-[#F5DEB3] text-sm font-bold uppercase tracking-wider hover:bg-[#2D1B11] hover:border-[#8B5A2B] hover:text-[#FFD98A] transition-colors"
           >
             Level Up
-            <span className="ml-2 text-[10px] text-[#BA68C8] normal-case tracking-normal">({cost} essence)</span>
-          </Button>
+            <span className="ml-2 inline-flex items-center text-xs font-semibold text-[#B8A590] normal-case tracking-normal">
+              ({cost}<EssenceIcon size="md" />)
+            </span>
+          </button>
         </div>
 
-        <Button
+        <div className="border-t border-[#2A1A0F] mb-3" />
+
+        {/* Leave — muted, at bottom */}
+        <button
           onClick={onClose}
-          variant="ghost"
-          className="w-full text-[#8B7355] hover:text-[#DAA520] hover:bg-[#2D1B11] font-bold py-2 uppercase tracking-wider text-xs"
+          className="w-full py-2 text-[#5C4033] hover:text-[#8B7355] text-xs font-bold uppercase tracking-[0.2em] transition-colors"
         >
           Leave
-        </Button>
+        </button>
       </div>
     </div>
   );

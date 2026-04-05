@@ -309,7 +309,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.notify('Shortcut unlocked', {
       id: 'forest-shortcut-unlocked',
       type: 'success',
-      description: 'A rain-slick gate groans open toward the Ranger Outpost.',
+      description: 'The barred gate below groans open — a path back to the Ranger Outpost is now clear.',
       duration: 3200,
     });
     context.triggerSave();

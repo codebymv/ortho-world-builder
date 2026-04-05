@@ -357,31 +357,11 @@ export const dialogues: Record<string, Dialogue> = {
   // === MAP INTERACTABLES ===
   ranger_sign: {
     id: 'ranger_sign',
-    nodes: [{ id: 'start', text: "A weathered sign reads: '**Ranger Outpost** — Rest, resupply, and keep the fire lit. Follow the __blood-dark trail east__ for the **Disparaged Cottage**. __Northwest__ paths lead into wolf country.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
-  },
-  /** Pacing: after the cottage arc, the main quest continues up the central packed-earth spine; this sign anchors that read. */
-  ranger_north_spine_sign: {
-    id: 'ranger_north_spine_sign',
-    nodes: [{ id: 'start', text: "Nailed beside the __main verge__: '**Fort ahead. Keep to the packed spine.** If the south gate is barred, check the __chapel ruins to the west__ before pressing north.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
-  /** Just before the lake / bridge cluster — confirms the player is still on the critical path. */
-  whisper_lake_runoff_sign: {
-    id: 'whisper_lake_runoff_sign',
-    nodes: [{ id: 'start', text: "A slate shard wedged in a stump: '__Still on the spine.__' Under it, fresher chalk — '**Cross the bridge**, then pick up the **dark thread** where the reeds end. The manuscript trail does not turn aside here.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
-  /** Just north of the fort — confirms the player is on the right track toward the lake and Hollow. */
-  fort_north_approach_sign: {
-    id: 'fort_north_approach_sign',
-    nodes: [{ id: 'start', text: "A ranger stake, freshly cut: '**Lake crossing** ahead. Stay on the __spine__. The river is the last line before the **Hollow**.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
-  /** West branch off the spine — frames detours as deliberate exploration, not the authored quest line. */
-  whisper_wild_fork_sign: {
-    id: 'whisper_wild_fork_sign',
-    nodes: [{ id: 'start', text: "Scratched into the post: '__Chapel ruins.__ West path only. Patrols kept spare iron and lock keys there when the fort sealed early.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A weathered sign reads: '**Ranger Outpost** — Rest, resupply, and keep the fire lit. Follow the __blood-dark trail west__ for the **Disparaged Cottage**. __Northwest__ paths lead into wolf country.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   forest_shortcut_lever: {
     id: 'forest_shortcut_lever',
-    nodes: [{ id: 'start', text: "A rain-darkened **gate lever** juts from a square timber plate beside the collapsed palisade. The mechanism looks old, but the route beyond would fold back toward the **Ranger Outpost**.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "A heavy **iron gate lever** set into a mossy stone pillar. Someone has scratched an arrow into the post pointing south — toward the **Ranger Outpost**. Pull this and the barred gate below opens, cutting the long way back short.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   bridge_sign: {
     id: 'bridge_sign',
@@ -391,10 +371,6 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'danger_sign',
     nodes: [{ id: 'start', text: "**WARNING:** __Wolf territory__ ahead. The ruin road is faster, but only experienced hunters should proceed.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
-  forest_entry_sign: {
-    id: 'forest_entry_sign',
-    nodes: [{ id: 'start', text: "A carved wooden sign: '**Welcome to the Whispering Woods**. Stay on the __paths__. The __ranger fire__ burns on the rise ahead.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
-  },
   destroyed_town_sign: {
     id: 'destroyed_town_sign',
     nodes: [{ id: 'start', text: "A broken road marker lists no village name, only a warning carved later by an unsteady hand: '__Do not rebuild here.__ The dead were walking before the roofs were cold.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
@@ -402,10 +378,6 @@ export const dialogues: Record<string, Dialogue> = {
   hunter_cottage_sign: {
     id: 'hunter_cottage_sign',
     nodes: [{ id: 'start', text: "A crude board hangs by a single nail: '**Disparaged Cottage**.' Someone has scratched a second line beneath it: '__Do not linger after dark.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
-  forest_cottage_sign: {
-    id: 'forest_cottage_sign',
-    nodes: [{ id: 'start', text: "A faded placard reads: '**Wayfarer's Cottage**.' The latch is clean and the threshold recently swept.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   hunter_clue: {
     id: 'hunter_clue',
@@ -444,21 +416,6 @@ export const dialogues: Record<string, Dialogue> = {
   hollow_warning_sign: {
     id: 'hollow_warning_sign',
     nodes: [{ id: 'start', text: "Carved into a weathered post: '**The trees grow sick** beyond this river. Turn back if you value your life. Those who cross do not return unchanged.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
-
-  hollow_trail_sign_1: {
-    id: 'hollow_trail_sign_1',
-    nodes: [{ id: 'start', text: "A hunter's carved marker in the bark: '**The corruption grows thicker here.** The manuscript speaks of a guardian — something ancient, bound to the roots. I press on.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
-
-  hollow_trail_sign_2: {
-    id: 'hollow_trail_sign_2',
-    nodes: [{ id: 'start', text: "Scratched into a dead trunk: '**I can hear it breathing** in the dark. The ground pulses underfoot. If I don't return, tell the elder it was worth knowing.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
-
-  hollow_trail_sign_3: {
-    id: 'hollow_trail_sign_3',
-    nodes: [{ id: 'start', text: "The last marker before the clearing. The hunter's hand was shaking: '**The arena is ahead.** Something guards this place. I leave the rest of the manuscript here — if it survives me.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
 
   hollow_final_camp: {
@@ -528,6 +485,10 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'wolf_den_bones',
     nodes: [{ id: 'start', text: "The bones are picked clean and stacked almost neatly. A snapped spear shaft lies among them, suggesting the wolves dragged more than deer back to this hollow.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
+  highland_garrison_remains: {
+    id: 'highland_garrison_remains',
+    nodes: [{ id: 'start', text: "A ranger in heavy plate, crumpled at the tree line. The armour is cracked clean through the chestpiece — not cut, **crushed**. A garrison patch is still pinned at the shoulder. No others survived to carry him back.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
   old_chapel_altar: {
     id: 'old_chapel_altar',
     nodes: [{ id: 'start', text: "A stone altar sinks into the damp floor. Melted wax and fern roots share the same cracks. Someone still leaves tiny offerings here: feathers, beads, and silver thread.", responses: [{ text: "[Pay respects]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
@@ -547,10 +508,6 @@ export const dialogues: Record<string, Dialogue> = {
       { id: 'take_key', text: "You pull the key free. The crest on its bow matches the fort banner to the east.", responses: [{ text: "[Continue]", nextId: 'end' }] },
       { id: 'end', text: '', responses: [] },
     ],
-  },
-  forest_fort_banner: {
-    id: 'forest_fort_banner',
-    nodes: [{ id: 'start', text: "A faded crest — lantern over crossed spears. Scratched below in charcoal: '**Gate sealed. Merchant inside.** Last spare key taken toward the __chapel ruins__.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   caravan_journal: {
     id: 'caravan_journal',
@@ -982,17 +939,6 @@ export const dialogues: Record<string, Dialogue> = {
       { id: 'end', text: "The forest hums quietly around the hut.", responses: [] },
     ],
   },
-  forest_hermit: {
-    id: 'forest_hermit',
-    nodes: [
-      {
-        id: 'start',
-        text: "A narrow cottage stands under sagging branches. Bundles of dried moss hang in the window and a dozen tiny bottles line the sill. Whoever lives here studies the woods by patience, not force.",
-        responses: [{ text: "Move on.", nextId: 'end' }],
-      },
-      { id: 'end', text: "A faint herbal scent follows you back to the path.", responses: [] },
-    ],
-  },
   southern_outpost: {
     id: 'southern_outpost',
     nodes: [
@@ -1155,27 +1101,22 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'hollow_dead_ranger',
     nodes: [{ id: 'start', text: "A ranger who fell here long ago. Their shield is cracked in two. Claw marks run deep across the chest plate. Whatever killed them was **massive**.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
-  witch_circle_warning: {
-    id: 'witch_circle_warning',
-    nodes: [{ id: 'start', text: "A ring of mushrooms encircles this place. The air smells of iron and old herbs. Someone — or something — has been **practicing** here.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
   fort_garrison_orders: {
     id: 'fort_garrison_orders',
     nodes: [{ id: 'start', text: "A rotting notice pinned to the wall: '**Standing Order 14:** The armored wolves have broken the eastern perimeter. Hold the courtyard at all costs. Reinforcements are not coming. — Commander Hale'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   dead_ranger_shortcut_note: {
     id: 'dead_ranger_shortcut_note',
-    nodes: [{ id: 'start', text: "A dead ranger clutches a bloodstained note: '**The lever…** three paces east of where I fell. Opens the path back to the outpost. Someone finish what I couldn't.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A dead ranger slumped against the bars. A crumpled note reads: '__The gate won't budge from this side — lever is on the other side of the wall. Tried the cliff face to the west. Narrow trail but it loops around behind the cottage.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
-  hollow_lever_inscription: {
-    id: 'hollow_lever_inscription',
-    nodes: [{ id: 'start', text: "Scratched into the stone beside a rusted chain: '**Pull the chain** — don't make them walk the long way twice. The bonfire is just through the gate.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  cliff_trail_sign: {
+    id: 'cliff_trail_sign',
+    nodes: [{ id: 'start', text: "A rough board nailed to a stump. Words are burned into the wood: '**CLIFF TRAIL — WEST FACE.** Gate won't open from here. Trail circles the cliff and comes up __behind the Disparaged Cottage__.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
-  golem_highland_warning: {
-    id: 'golem_highland_warning',
-    nodes: [{ id: 'start', text: "A cracked stone marker: '**Highland garrison — no survivors.** A stone colossus guards the eastern pass. It does not tire. It does not bleed. Bring something heavier than courage.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  west_grove_fence_sign: {
+    id: 'west_grove_fence_sign',
+    nodes: [{ id: 'start', text: "Carved into a ranger post: '**Wolf shelf — cordoned.** Stay on the high ground until command clears the pack. __A proper gate__ may replace this picket line after the ridge is safe again.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
-
   logging_camp: {
     id: 'logging_camp',
     nodes: [{ id: 'start', text: "A clearing of fresh stumps and rusted axes. The loggers left in a hurry — half-sawn trunks still lean against each other, and boot prints trail into the undergrowth. Whatever drove them off, they didn't stop to collect their pay.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],

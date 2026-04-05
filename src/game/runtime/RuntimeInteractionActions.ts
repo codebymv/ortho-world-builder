@@ -128,11 +128,38 @@ export function runInteractionCheck({
   notify,
   handleMapTransition,
 }: InteractionCheckOptions) {
+  void handleMapTransition; // building transitions go through interactionSystem.tryHandleBuildingTransition
   const checkX = state.player.position.x;
   const checkY = state.player.position.y;
 
   if (interactionSystem.tryReclaimDroppedEssence(checkX, checkY)) {
     return;
+  }
+
+  // Doors / building entrances first so wide interactable radii never block exits (F-key).
+  const doorProbeOffsets = [
+    { x: 0, y: 0 },
+    { x: 0, y: 0.7 },
+    { x: 0, y: -0.7 },
+    { x: 0.7, y: 0 },
+    { x: -0.7, y: 0 },
+  ];
+  for (const dir of doorProbeOffsets) {
+    const px = checkX + dir.x;
+    const py = checkY + dir.y;
+    const doorId = world.getInteractableAt(px, py);
+    if (doorId !== 'building_exit' && doorId !== 'building_entrance') continue;
+    if (
+      interactionSystem.tryHandleBuildingTransition(
+        doorId,
+        px,
+        py,
+        true,
+        (x, y) => world.getTransitionAt(x, y),
+      )
+    ) {
+      return;
+    }
   }
 
   const interactableHit = world.getInteractableNear(checkX, checkY, INTERACTABLE_QUERY_RADIUS);
@@ -171,24 +198,5 @@ export function runInteractionCheck({
 
   if (interactionSystem.tryInteractWithNearbyNpc(3.0)) {
     return;
-  }
-
-  const transitionOffsets = [
-    { x: 0, y: 0 },
-    { x: 0, y: 0.7 }, { x: 0, y: -0.7 },
-    { x: 0.7, y: 0 }, { x: -0.7, y: 0 },
-  ];
-
-  for (const dir of transitionOffsets) {
-    const px = checkX + dir.x;
-    const py = checkY + dir.y;
-    const interactionId = world.getInteractableAt(px, py);
-    if (interactionId !== 'building_exit' && interactionId !== 'building_entrance') continue;
-
-    const transition = world.getTransitionAt(px, py);
-    if (transition) {
-      handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
-      return;
-    }
   }
 }

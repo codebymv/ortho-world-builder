@@ -22,14 +22,15 @@ const WEATHER_CONFIGS: Record<WeatherType, {
 }> = {
   clear: { color: 0, count: 0, sizeMin: 0, sizeMax: 0, speedY: 0, speedX: 0, opacity: 0, spread: 0, bgTint: 0, bgOpacity: 0 },
   rain: {
-    color: 0x9BAFE6, count: 120, sizeMin: 0.026, sizeMax: 0.075,
-    speedY: -8, speedX: -1.5, opacity: 0.68, spread: 20,
-    bgTint: 0x445566, bgOpacity: 0.15,
+    // Brighter blue-white streaks, more drops, higher minimum opacity so no drop disappears.
+    color: 0xBBCCFF, count: 200, sizeMin: 0.04, sizeMax: 0.10,
+    speedY: -10, speedX: -1.5, opacity: 0.85, spread: 22,
+    bgTint: 0x3a4e66, bgOpacity: 0.22,
   },
   heavy_rain: {
-    color: 0x8EA3DE, count: 200, sizeMin: 0.038, sizeMax: 0.1,
-    speedY: -12, speedX: -3, opacity: 0.8, spread: 24,
-    bgTint: 0x334455, bgOpacity: 0.3,
+    color: 0xAABBFF, count: 300, sizeMin: 0.055, sizeMax: 0.14,
+    speedY: -14, speedX: -3, opacity: 0.92, spread: 26,
+    bgTint: 0x283344, bgOpacity: 0.38,
   },
   snow: {
     color: 0xEEEEFF, count: 100, sizeMin: 0.04, sizeMax: 0.1,
@@ -37,9 +38,9 @@ const WEATHER_CONFIGS: Record<WeatherType, {
     bgTint: 0xCCCCDD, bgOpacity: 0.1,
   },
   storm: {
-    color: 0x8A9CDD, count: 180, sizeMin: 0.036, sizeMax: 0.09,
-    speedY: -14, speedX: -5, opacity: 0.82, spread: 26,
-    bgTint: 0x222233, bgOpacity: 0.4,
+    color: 0x99AAEE, count: 280, sizeMin: 0.055, sizeMax: 0.13,
+    speedY: -18, speedX: -6, opacity: 0.95, spread: 28,
+    bgTint: 0x1a1f2e, bgOpacity: 0.48,
   },
   fog: {
     color: 0xBBBBCC, count: 40, sizeMin: 0.3, sizeMax: 0.8,
@@ -58,7 +59,7 @@ export class WeatherSystem {
   private weatherTimer = 0;
   private nextWeatherChange = 60; // seconds until next weather change
   private readonly sharedGeometry = new THREE.PlaneGeometry(1, 1);
-  private readonly MAX_PARTICLES = 200;
+  private readonly MAX_PARTICLES = 320;
   private overlay: THREE.Mesh | null = null;
   /** Seconds until next lightning attempt (storm only). */
   private lightningCooldown = 4 + Math.random() * 5;
@@ -229,9 +230,10 @@ export class WeatherSystem {
           p.active = true;
           p.mesh.visible = true;
           const size = cfg.sizeMin + Math.random() * (cfg.sizeMax - cfg.sizeMin);
+          const isRainType = activeWeather === 'rain' || activeWeather === 'heavy_rain' || activeWeather === 'storm';
           p.mesh.scale.set(
-            activeWeather === 'rain' || activeWeather === 'heavy_rain' || activeWeather === 'storm' ? size * 0.34 : size,
-            activeWeather === 'rain' || activeWeather === 'heavy_rain' || activeWeather === 'storm' ? size * 3.8 : size,
+            isRainType ? size * 0.28 : size,
+            isRainType ? size * 5.5 : size,
             1
           );
           p.mesh.position.set(
@@ -246,7 +248,8 @@ export class WeatherSystem {
           );
           const mat = p.mesh.material as THREE.MeshBasicMaterial;
           mat.color.setHex(cfg.color);
-          mat.opacity = cfg.opacity * (0.5 + Math.random() * 0.5);
+          // Minimum floor raised from 50% → 70% so no drop fades nearly invisible.
+          mat.opacity = cfg.opacity * (0.7 + Math.random() * 0.3);
           activeCount++;
         }
       }

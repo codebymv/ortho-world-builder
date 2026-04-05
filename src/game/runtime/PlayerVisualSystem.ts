@@ -164,15 +164,17 @@ export function applyPlayerVisuals({
     heldItemMesh.visible = false;
   }
 
+  // Shadow and outline track the visual (lunged) position so they don't separate from the
+  // sprite body during attack swings, spin attacks, or lunge moves.
   playerShadow.position.set(
-    state.player.position.x,
-    getPlayerVisualY(state.player.position.x, state.player.position.y) - 0.35,
+    playerVisualX,
+    playerVisualY - 0.35,
     0.05,
   );
 
   playerOutline.position.set(
-    state.player.position.x,
-    getPlayerVisualY(state.player.position.x, state.player.position.y) + (isBlocking ? 0.03 : 0),
+    playerVisualX,
+    effectiveVisualY,
     0.79,
   );
   playerOutline.scale.set(effectiveScaleX * outlinePad, effectiveScaleY * outlinePad, 1);
