@@ -46,9 +46,9 @@ export const items: Record<string, Item> = {
   moonbloom: {
     id: 'moonbloom',
     name: 'Moonbloom Flower',
-    description: 'A rare flower that glows faintly with silvery light. Prized by alchemists and merchants.',
+    description: 'A rare blossom of deep indigo, violet, and ember-red. Even in shade it seems to hold a sliver of moonlight.',
     type: 'quest',
-    sprite: 'flower',
+    sprite: 'moonbloom',
   },
 
   manuscript_fragment: {

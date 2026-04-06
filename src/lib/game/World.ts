@@ -4,7 +4,7 @@ import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
 
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'stone' | 'wood' 
-  | 'tree' | 'house' | 'house_entry' | 'house_blue' | 'house_blue_entry' | 'house_green' | 'house_green_entry' | 'house_thatch' | 'house_thatch_entry' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'rock' | 'chest' | 'chest_opened' | 'portal' | 'flower' | 'tempest_grass'
+  | 'tree' | 'house' | 'house_entry' | 'house_blue' | 'house_blue_entry' | 'house_green' | 'house_green_entry' | 'house_thatch' | 'house_thatch_entry' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'rock' | 'chest' | 'chest_opened' | 'portal' | 'flower' | 'moonbloom' | 'tempest_grass'
   | 'tall_grass' | 'bridge' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
   | 'campfire' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
@@ -41,6 +41,8 @@ export interface Tile {
   linkedTo?: string;
   pushable?: boolean;
   activated?: boolean;
+  /** Set for `stairs` when map stairways use `axis: 'ew'` — treads run east–west. */
+  stairAxis?: 'ns' | 'ew';
 }
 
 export interface WorldMap {
@@ -61,6 +63,40 @@ export interface InteractableHit {
   y: number;
 }
 
+export interface CollisionDebugTile {
+  tileX: number;
+  tileY: number;
+  type: TileType;
+  walkable: boolean;
+  elevation: number;
+  interactable: boolean;
+  transition: boolean;
+}
+
+export interface CollisionDebugSample extends CollisionDebugTile {
+  label: 'tl' | 'tr' | 'bl' | 'br';
+  worldX: number;
+  worldY: number;
+}
+
+export interface CollisionDebugProbe {
+  label: 'left' | 'right' | 'up' | 'down';
+  allowed: boolean;
+}
+
+export interface CollisionDebugSnapshot {
+  worldX: number;
+  worldY: number;
+  radius: number;
+  tileX: number;
+  tileY: number;
+  currentTile: CollisionDebugTile | null;
+  samples: CollisionDebugSample[];
+  nearbyTiles: CollisionDebugTile[];
+  probes: CollisionDebugProbe[];
+  scanRadius: number;
+}
+
 interface ChunkMesh {
   mesh: THREE.Mesh;
   tileX: number;
@@ -76,6 +112,7 @@ const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge',
 const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'bones',
   'flower',
+  'moonbloom',
   'tempest_grass',
   'hay_bale',
   'mushroom',
@@ -329,7 +366,7 @@ export class World {
         if (!this.shouldKeepTileActive(x, y)) continue;
 
         const tile = this.map.tiles[y]?.[x];
-        if (!tile || tile.hidden) continue;
+        if (!tile) continue;
         const object = this.createTileObject(tile, x, y);
         if (!object) continue;
         this.attachTileObject(x, y, object);
@@ -555,6 +592,9 @@ export class World {
     this.setRenderRole(overlayMesh, 'overlay');
     overlayMesh.scale.set(1, scale, 1);
     overlayMesh.position.y = yOffset;
+    if (tile.type === 'stairs' && tile.stairAxis === 'ew') {
+      overlayMesh.rotation.z = Math.PI / 2;
+    }
 
     baseMesh.updateMatrix();
     overlayMesh.updateMatrix();
@@ -948,7 +988,7 @@ export class World {
       for (const { x, y, key } of batch) {
         if (this.activeMeshes.has(key)) continue;
         const tile = this.map.tiles[y]?.[x];
-        if (!tile || tile.hidden) continue;
+        if (!tile) continue;
 
         const object = this.createTileObject(tile, x, y);
         if (!object) continue;
@@ -1012,7 +1052,7 @@ export class World {
     for (const { x, y, key } of batch) {
       if (this.activeMeshes.has(key)) continue;
       const tile = this.map.tiles[y]?.[x];
-      if (!tile || tile.hidden) continue;
+      if (!tile) continue;
 
       const object = this.createTileObject(tile, x, y);
       if (!object) continue;
@@ -1099,7 +1139,15 @@ export class World {
       return Math.abs(toElevation - fromElevation) <= 1;
     }
 
-    // Block raw elevation steps (north/south stamped cliffs, elevation seams, missed buffers).
+    // stampCliffs only generates blocking art at north→south elevation drops.
+    // East-west and south→north transitions have no cliff tiles, so any walkable-to-walkable
+    // single elevation step is safe to cross — the non-walkable cliff tiles themselves are
+    // the actual barriers, not the elevation number alone.
+    if (Math.abs(toElevation - fromElevation) <= 1) {
+      return true;
+    }
+
+    // Block multi-step elevation jumps (missed buffers, edge cases).
     return false;
   }
 
@@ -1122,6 +1170,80 @@ export class World {
            this.canMoveTo(fromX + r, fromY - r, toX + r, toY - r) &&
            this.canMoveTo(fromX - r, fromY + r, toX - r, toY + r) &&
            this.canMoveTo(fromX + r, fromY + r, toX + r, toY + r);
+  }
+
+  getCollisionDebugSnapshot(x: number, y: number, r: number = 0.2, scanRadius: number = 3): CollisionDebugSnapshot {
+    const tileX = Math.floor(x + this.map.width / 2);
+    const tileY = Math.floor(y + this.map.height / 2);
+    const toDebugTile = (tx: number, ty: number, tile: Tile | null): CollisionDebugTile | null => {
+      if (!tile) return null;
+      return {
+        tileX: tx,
+        tileY: ty,
+        type: tile.type,
+        walkable: this.isTileWalkable(tile),
+        elevation: tile.elevation ?? 0,
+        interactable: !!tile.interactable,
+        transition: !!tile.transition,
+      };
+    };
+
+    const currentTile = toDebugTile(tileX, tileY, this.getTile(x, y));
+    const nearbyTiles: CollisionDebugTile[] = [];
+    for (let ty = tileY - scanRadius; ty <= tileY + scanRadius; ty++) {
+      for (let tx = tileX - scanRadius; tx <= tileX + scanRadius; tx++) {
+        if (ty < 0 || ty >= this.map.height || tx < 0 || tx >= this.map.width) continue;
+        const tile = this.map.tiles[ty][tx];
+        const debugTile = toDebugTile(tx, ty, tile);
+        if (debugTile) nearbyTiles.push(debugTile);
+      }
+    }
+
+    const samples: CollisionDebugSample[] = ([
+      ['tl', -r, -r],
+      ['tr', r, -r],
+      ['bl', -r, r],
+      ['br', r, r],
+    ] as const).map(([label, ox, oy]) => {
+      const wx = x + ox;
+      const wy = y + oy;
+      const stx = Math.floor(wx + this.map.width / 2);
+      const sty = Math.floor(wy + this.map.height / 2);
+      const base = toDebugTile(stx, sty, this.getTile(wx, wy));
+      return {
+        label,
+        worldX: wx,
+        worldY: wy,
+        tileX: base?.tileX ?? stx,
+        tileY: base?.tileY ?? sty,
+        type: base?.type ?? 'grass',
+        walkable: base?.walkable ?? false,
+        elevation: base?.elevation ?? 0,
+        interactable: base?.interactable ?? false,
+        transition: base?.transition ?? false,
+      };
+    });
+
+    const step = 0.35;
+    const probes: CollisionDebugProbe[] = [
+      { label: 'left', allowed: this.canMoveTo(x, y, x - step, y, r) },
+      { label: 'right', allowed: this.canMoveTo(x, y, x + step, y, r) },
+      { label: 'up', allowed: this.canMoveTo(x, y, x, y - step, r) },
+      { label: 'down', allowed: this.canMoveTo(x, y, x, y + step, r) },
+    ];
+
+    return {
+      worldX: x,
+      worldY: y,
+      radius: r,
+      tileX,
+      tileY,
+      currentTile,
+      samples,
+      nearbyTiles,
+      probes,
+      scanRadius,
+    };
   }
 
   private getBaseTileWalkability(tileType: TileType): boolean {
@@ -1302,7 +1424,7 @@ export class World {
     if (tile.type === 'chest' || tile.type === 'chest_opened') {
       return 1.5;
     }
-    if (tile.type === 'flower' || tile.type === 'mushroom' || tile.type === 'tempest_grass') {
+    if (tile.type === 'flower' || tile.type === 'moonbloom' || tile.type === 'mushroom' || tile.type === 'tempest_grass') {
       return 1.5;
     }
     if (tile.type === 'ranger_remains' || tile.type === 'bones_pile') {
@@ -1311,6 +1433,7 @@ export class World {
     return 1.4;
   }
 
+  /** Clears `hidden` on tiles in range after e.g. a puzzle reveal. Tiles still render while hidden — see `placeSecretAreas` — so the map never shows void. */
   revealHiddenArea(centerX: number, centerY: number, radius: number = 3) {
     const tileX = Math.floor(centerX + this.map.width / 2);
     const tileY = Math.floor(centerY + this.map.height / 2);

@@ -363,6 +363,50 @@ export function createRuntimeMapFlow({
     }
   };
 
+  const syncHarvestedMoonbloomState = () => {
+    const map = world.getCurrentMap();
+    let changed = false;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (let y = 0; y < map.height; y++) {
+      for (let x = 0; x < map.width; x++) {
+        const tile = map.tiles[y][x];
+        if (tile.interactionId !== 'moonbloom_pickup') continue;
+        if (tile.type !== 'moonbloom') continue;
+
+        const worldX = x - map.width / 2;
+        const worldY = y - map.height / 2;
+        const picked = state.getFlag(`moonbloom_${state.currentMap}_${worldX}_${worldY}`);
+        if (!picked) continue;
+
+        const baseType = resolveHarvestedBaseTile(
+          map,
+          x,
+          y,
+          TILE_METADATA.moonbloom?.baseTile ?? 'grass'
+        );
+
+        map.tiles[y][x] = {
+          type: baseType,
+          walkable: WALKABLE_BASE_TILES.has(baseType),
+          elevation: tile.elevation ?? 0,
+        };
+        changed = true;
+        minX = Math.min(minX, x - 1);
+        maxX = Math.max(maxX, x + 1);
+        minY = Math.min(minY, y - 1);
+        maxY = Math.max(maxY, y + 1);
+      }
+    }
+
+    if (changed && Number.isFinite(minX)) {
+      world.refreshMapTileRegion(minX, minY, maxX, maxY);
+    }
+  };
+
   const syncVillageReactivityState = () => {
     if (state.currentMap !== 'village') return;
 
@@ -458,6 +502,14 @@ export function createRuntimeMapFlow({
           row[tx] = gateOpen
             ? { type: 'stone' as TileType, walkable: true, elevation: el }
             : { type: 'gate' as TileType, walkable: false, elevation: el, interactable: true, interactionId: 'forest_fort_gate' };
+          continue;
+        }
+
+        // 3-wide mountain stairway on the north wall — always open.
+        // The cliff band at y=114-121 blocks all lateral bypass; this is the only exit northward.
+        // Players enter from the south (key required), traverse the fort, and exit here onto the ridge.
+        if (ty === FORT_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
+          row[tx] = { type: 'stone' as TileType, walkable: true, elevation: el };
           continue;
         }
 
@@ -616,6 +668,7 @@ export function createRuntimeMapFlow({
     syncVillageInteriorReactivityState();
     syncOpenedChestState();
     syncHarvestedTempestGrassState();
+    syncHarvestedMoonbloomState();
     syncBonfireKindledState();
   };
 
@@ -688,6 +741,7 @@ export function createRuntimeMapFlow({
     syncVillageInteriorReactivityState,
     syncOpenedChestState,
     syncHarvestedTempestGrassState,
+    syncHarvestedMoonbloomState,
     syncPersistentMapState,
     handleMapTransition,
     handlePortalTransition,

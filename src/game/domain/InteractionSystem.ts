@@ -26,6 +26,7 @@ interface InteractionSystemContext {
   performBonfireRest: (tileX: number, tileY: number) => void;
   syncOpenedChestState: () => void;
   syncHarvestedTempestGrassState: () => void;
+  syncHarvestedMoonbloomState: () => void;
   getInteractionCooldown: (interactionId: string) => number;
   setInteractionCooldown: (interactionId: string, timestamp: number) => void;
   healCooldownMs: number;
@@ -115,9 +116,10 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
     context.notify('Picked Moonbloom', {
       type: 'success',
-      description: 'A silvery petal glimmers in your pack.',
+      description: 'Deep color folds into your pack like bottled dusk.',
       duration: 2500,
     });
+    context.syncHarvestedMoonbloomState();
     context.triggerUIUpdate();
     context.triggerSave();
     return true;

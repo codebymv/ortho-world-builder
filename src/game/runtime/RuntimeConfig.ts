@@ -44,13 +44,16 @@ export const NPC_SCALE_BY_ID: Record<string, number> = {
 
 export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
   wolf: { baseScale: 1.22, footOffset: 0.18, strideAmp: 0.05, bobAmp: 0.045, squashAmp: 0.07, leanAmp: 0.08, hpBarOffset: 0.62 },
-  shadow: { baseScale: 1.12, footOffset: 0.12, strideAmp: 0.03, bobAmp: 0.05, squashAmp: 0.04, leanAmp: 0.03, hpBarOffset: 0.62 },
+  shadow: { baseScale: 1.28, footOffset: 0.16, strideAmp: 0.02, bobAmp: 0.06, squashAmp: 0.03, leanAmp: 0.02, hpBarOffset: 0.72 },
+  shadow_lurker: { baseScale: 1.28, footOffset: 0.16, strideAmp: 0.012, bobAmp: 0.04, squashAmp: 0.02, leanAmp: 0.01, hpBarOffset: 0.72 },
+  void_wisp: { baseScale: 1.12, footOffset: 0.12, strideAmp: 0.03, bobAmp: 0.05, squashAmp: 0.04, leanAmp: 0.03, hpBarOffset: 0.62 },
   plant: { baseScale: 1.14, footOffset: 0.16, strideAmp: 0.02, bobAmp: 0.03, squashAmp: 0.03, leanAmp: 0.04, hpBarOffset: 0.64 },
   skeleton: { baseScale: 1.18, footOffset: 0.22, strideAmp: 0.04, bobAmp: 0.04, squashAmp: 0.05, leanAmp: 0.05, hpBarOffset: 0.66 },
   bandit: { baseScale: 1.12, footOffset: 0.24, strideAmp: 0.04, bobAmp: 0.05, squashAmp: 0.06, leanAmp: 0.05, hpBarOffset: 0.7 },
   golem: { baseScale: 1.72, footOffset: 0.28, strideAmp: 0.025, bobAmp: 0.03, squashAmp: 0.04, leanAmp: 0.025, hpBarOffset: 0.86 },
   spider: { baseScale: 1.08, footOffset: 0.14, strideAmp: 0.06, bobAmp: 0.02, squashAmp: 0.08, leanAmp: 0.06, hpBarOffset: 0.56 },
   armored_wolf: { baseScale: 1.34, footOffset: 0.2, strideAmp: 0.045, bobAmp: 0.04, squashAmp: 0.06, leanAmp: 0.07, hpBarOffset: 0.68 },
+  stone_sentinel: { baseScale: 1.68, footOffset: 0.24, strideAmp: 0.035, bobAmp: 0.02, squashAmp: 0.04, leanAmp: 0.035, hpBarOffset: 0.82 },
   slime: { baseScale: 1.18, footOffset: 0.12, strideAmp: 0.02, bobAmp: 0.035, squashAmp: 0.12, leanAmp: 0.02, hpBarOffset: 0.58 },
   hollow_guardian: { baseScale: 2.4, footOffset: 0.35, strideAmp: 0.015, bobAmp: 0.02, squashAmp: 0.06, leanAmp: 0.02, hpBarOffset: 1.2 },
 };

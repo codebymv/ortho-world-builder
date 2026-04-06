@@ -48,6 +48,7 @@ interface RuntimeActionPhaseOptions {
   respawnEnemiesForCurrentMap: (targetMap: string, map: any) => void;
   syncOpenedChestState: () => void;
   syncHarvestedTempestGrassState: () => void;
+  syncHarvestedMoonbloomState: () => void;
   syncWhisperingWoodsShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncForestFortGateState: () => void;
@@ -106,6 +107,7 @@ export function setupRuntimeActionPhase({
   respawnEnemiesForCurrentMap,
   syncOpenedChestState,
   syncHarvestedTempestGrassState,
+  syncHarvestedMoonbloomState,
   syncWhisperingWoodsShortcutState,
   syncHollowShortcutState,
   syncForestFortGateState,
@@ -272,6 +274,7 @@ export function setupRuntimeActionPhase({
     performBonfireRest,
     syncOpenedChestState,
     syncHarvestedTempestGrassState,
+    syncHarvestedMoonbloomState,
     getInteractionCooldown: interactionId => healCooldowns.current.get(interactionId) || 0,
     setInteractionCooldown: (interactionId, timestamp) => {
       healCooldowns.current.set(interactionId, timestamp);

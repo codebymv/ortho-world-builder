@@ -363,10 +363,6 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'forest_shortcut_lever',
     nodes: [{ id: 'start', text: "A heavy **iron gate lever** set into a mossy stone pillar. Someone has scratched an arrow into the post pointing south — toward the **Ranger Outpost**. Pull this and the barred gate below opens, cutting the long way back short.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
-  bridge_sign: {
-    id: 'bridge_sign',
-    nodes: [{ id: 'start', text: "A ranger waypost driven into the bank: '**Lake crossing** — last clean water before the river. Fill your skins here. Beyond the __northern ford__ the corruption sets in and the wood does not forgive.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
-  },
   danger_sign: {
     id: 'danger_sign',
     nodes: [{ id: 'start', text: "**WARNING:** __Wolf territory__ ahead. The ruin road is faster, but only experienced hunters should proceed.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
@@ -508,10 +504,6 @@ export const dialogues: Record<string, Dialogue> = {
       { id: 'take_key', text: "You pull the key free. The crest on its bow matches the fort banner to the east.", responses: [{ text: "[Continue]", nextId: 'end' }] },
       { id: 'end', text: '', responses: [] },
     ],
-  },
-  caravan_journal: {
-    id: 'caravan_journal',
-    nodes: [{ id: 'start', text: "Most of the ledger is ruined by rain, but the last page remains: '__Lost two mules at dusk. Heard bells in the trees. Leaving the crates and making for the south gate before moonrise.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   spider_cocoon: {
     id: 'spider_cocoon',
@@ -1125,5 +1117,21 @@ export const dialogues: Record<string, Dialogue> = {
   collapsed_cottage: {
     id: 'collapsed_cottage',
     nodes: [{ id: 'start', text: "The roof has caved in, and ivy has claimed what the fire didn't. Through the rubble you can see a hearth still blackened with soot. Someone lived here once — the spiders live here now.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  river_east_waypost: {
+    id: 'river_east_waypost',
+    nodes: [{ id: 'start', text: "A ranger waypost, half-sunk in the bank. Scratched into the post below the rot line: '**NORTH CROSSING — STONE HILL.** River ends here. Climb the ridge ahead.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  cliff_inlet_marker: {
+    id: 'cliff_inlet_marker',
+    nodes: [{ id: 'start', text: "A weathered post with a carved arrow pointing south. Burned letters below read: '**GATE PASSAGE.** Ranger outpost — half a league south. Gate is locked. Find another way or turn back.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  cliff_sanctum_warning: {
+    id: 'cliff_sanctum_warning',
+    nodes: [{ id: 'start', text: "Scratched into a broken stone slab: '**DO NOT DESCEND.** The plateau below belongs to the __Stone Sentinels__ now. They do not sleep, they do not tire, and they do not forget a face that has passed through here alive. — Last garrison ranger'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  cliff_top_sentinel_chest: {
+    id: 'cliff_top_sentinel_chest',
+    nodes: [{ id: 'start', text: "A commander's lockbox, half-buried in collapsed masonry. The latch is rusted but the contents are intact. Whoever left it here did not come back for it.", responses: [{ text: "[Open]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
 };

@@ -1119,46 +1119,205 @@ export class AssetManager {
       [C,       C,       AW_FUR_S,C,        AW_FUR_S, C,       AW_FUR_S,C,       C,       C],
     ], 4, 'enemy_armored_wolf_attack'));
 
-    const SHADOW_BODY = 0x311B92;
-    const SHADOW_BODY_H = 0x4527A0;
-    const SHADOW_BODY_S = 0x1A0A5E;
-    const SHADOW_EYE = 0xFF1744;
-    const SHADOW_GLOW = 0xD500F9;
-    const SHADOW_WISP = 0x7C4DFF;
+    // Stone Sentinel — imposing stone-armored beast with layered rock plates, glowing
+    // crystal eyes, heavy pauldrons, and thick legs. 12x10 grid at scale 4 for detail.
+    const SS_STONE  = 0x546E7A;  // base blue-grey stone
+    const SS_STONE_H= 0x78909C;  // stone highlight
+    const SS_STONE_S= 0x37474F;  // stone deep shadow
+    const SS_PLATE  = 0x607D8B;  // armour plate mid
+    const SS_PLATE_H= 0x90A4AE;  // armour plate highlight
+    const SS_PLATE_S= 0x455A64;  // armour plate shadow
+    const SS_FUR    = 0x424242;  // dark charcoal fur between plates
+    const SS_FUR_H  = 0x616161;  // fur highlight
+    const SS_FUR_S  = 0x212121;  // fur deep shadow
+    const SS_EYE    = 0x64FFDA;  // aqua crystal glow
+    const SS_EYE_RIM= 0x80DEEA;  // eye rim glow
+    const SS_SNOUT  = 0x757575;  // stone-grey muzzle
+    const SS_FANG   = 0xECEFF1;  // pale bone fang
+    const SS_RUNE   = 0x4DD0E1;  // faint rune glow on chest plate
+    const SS_CLAW   = 0xBDBDBD;  // stone claw tips
+
+    this.registerTexture('enemy_stone_sentinel', () => this.createSpriteTexture([
+      [C,        C,        C,        SS_FUR,   SS_FUR_H, C,        C,        SS_FUR_H, SS_FUR,   C,        C,        C       ],
+      [C,        C,        SS_FUR,   SS_STONE_H,SS_FUR_H,SS_PLATE_H,SS_PLATE_H,SS_FUR_H,SS_STONE_H,SS_FUR,  C,        C       ],
+      [C,        SS_PLATE, SS_FUR_H, SS_EYE_RIM,SS_EYE, SS_STONE, SS_STONE, SS_EYE,  SS_EYE_RIM,SS_FUR_H,SS_PLATE, C       ],
+      [C,        C,        SS_FUR,   SS_SNOUT, SS_SNOUT, SS_SNOUT, SS_SNOUT, SS_SNOUT,SS_FUR,   C,        C,        C       ],
+      [C,        C,        C,        SS_FANG,  SS_SNOUT, SS_SNOUT, SS_SNOUT, SS_FANG, C,        C,        C,        C       ],
+      [C,        SS_PLATE_S,SS_PLATE,SS_PLATE_H,SS_PLATE,SS_RUNE,  SS_PLATE, SS_PLATE_H,SS_PLATE,SS_PLATE_S,C,       C       ],
+      [SS_FUR_S, SS_PLATE, SS_PLATE_H,SS_PLATE_S,SS_STONE,SS_STONE_S,SS_STONE,SS_PLATE_S,SS_PLATE_H,SS_PLATE,SS_FUR_S,C      ],
+      [C,        SS_FUR_S, SS_STONE, SS_STONE_S,SS_FUR_S,SS_STONE_S,SS_FUR_S,SS_STONE_S,SS_STONE, SS_FUR_S, C,       C       ],
+      [C,        C,        SS_FUR_S, SS_CLAW,  C,        SS_FUR_S, C,        SS_CLAW, SS_FUR_S, C,        C,        C       ],
+      [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
+    ], 4, 'enemy_stone_sentinel'));
+
+    this.registerTexture('enemy_stone_sentinel_telegraph', () => this.createSpriteTexture([
+      [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
+      [C,        C,        SS_FUR,   SS_STONE_H,SS_FUR_H,SS_PLATE_H,SS_PLATE_H,SS_FUR_H,SS_STONE_H,SS_FUR,  C,        C       ],
+      [C,        SS_PLATE, SS_FUR_H, SS_EYE_RIM,SS_RUNE, SS_STONE, SS_STONE, SS_RUNE, SS_EYE_RIM,SS_FUR_H,SS_PLATE, C       ],
+      [C,        C,        SS_FUR,   SS_SNOUT, 0xFF5722, SS_SNOUT, 0xFF5722, SS_SNOUT,SS_FUR,   C,        C,        C       ],
+      [C,        C,        C,        SS_FANG,  0xFF5722, 0xFF5722, 0xFF5722, SS_FANG, C,        C,        C,        C       ],
+      [C,        SS_PLATE_S,SS_PLATE,SS_PLATE_H,SS_RUNE, SS_RUNE,  SS_RUNE,  SS_PLATE_H,SS_PLATE,SS_PLATE_S,C,       C       ],
+      [SS_FUR_S, SS_PLATE, SS_PLATE_H,SS_PLATE_S,SS_FUR_S,SS_STONE_S,SS_FUR_S,SS_PLATE_S,SS_PLATE_H,SS_PLATE,SS_FUR_S,C      ],
+      [C,        SS_FUR_S, SS_FUR_S, SS_FUR_S, SS_FUR_S,SS_FUR_S, SS_FUR_S,SS_FUR_S, SS_FUR_S, SS_FUR_S, C,        C       ],
+      [C,        C,        SS_FUR_S, SS_CLAW,  C,        SS_FUR_S, C,        SS_CLAW, SS_FUR_S, C,        C,        C       ],
+      [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
+    ], 4, 'enemy_stone_sentinel_telegraph'));
+
+    this.registerTexture('enemy_stone_sentinel_attack', () => this.createSpriteTexture([
+      [C,        C,        C,        SS_FUR_H, SS_FUR_H, C,        C,        SS_FUR_H,SS_FUR_H, C,        C,        C       ],
+      [C,        C,        SS_FUR,   SS_STONE_H,SS_FUR_H,SS_PLATE_H,SS_PLATE_H,SS_FUR_H,SS_STONE_H,SS_FUR,  C,        C       ],
+      [C,        SS_PLATE_H,SS_FUR_H,SS_EYE_RIM,SS_RUNE,SS_STONE, SS_STONE, SS_RUNE, SS_EYE_RIM,SS_FUR_H,SS_PLATE_H,C       ],
+      [C,        SS_FANG,  SS_FUR,   0xFF5722, 0xFF5722, 0xFF5722, 0xFF5722, 0xFF5722,SS_FUR,   SS_FANG,  C,        C       ],
+      [C,        C,        SS_FANG,  0xFF5722, 0xFF5722, 0xFF5722, 0xFF5722, 0xFF5722,SS_FANG,  C,        C,        C       ],
+      [C,        SS_PLATE_S,SS_PLATE,SS_PLATE_H,SS_PLATE,SS_RUNE,  SS_PLATE, SS_PLATE_H,SS_PLATE,SS_PLATE_S,C,       C       ],
+      [SS_FUR_S, SS_PLATE, SS_PLATE_H,SS_PLATE_S,SS_STONE,SS_STONE_S,SS_STONE,SS_PLATE_S,SS_PLATE_H,SS_PLATE,SS_FUR_S,C      ],
+      [C,        SS_FUR_S, SS_STONE, SS_STONE_S,SS_FUR_S,SS_STONE_S,SS_FUR_S,SS_STONE_S,SS_STONE, SS_FUR_S, C,       C       ],
+      [C,        C,        SS_FUR_S, SS_CLAW,  C,        SS_FUR_S, C,        SS_CLAW, SS_FUR_S, C,        C,        C       ],
+      [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
+    ], 4, 'enemy_stone_sentinel_attack'));
+
+    // ========== VOID WISP — old shadow design preserved for later use ==========
+    const VW_BODY  = 0x311B92;
+    const VW_BODY_H = 0x4527A0;
+    const VW_BODY_S = 0x1A0A5E;
+    const VW_EYE   = 0xFF1744;
+    const VW_GLOW  = 0xD500F9;
+    const VW_WISP  = 0x7C4DFF;
+
+    this.registerTexture('enemy_void_wisp', () => this.createSpriteTexture([
+      [C,       C,        VW_WISP, VW_BODY_H,VW_BODY_H,VW_BODY_H,VW_WISP,C,        C,       C],
+      [C,       VW_BODY,  VW_BODY_H,VW_EYE,  VW_BODY,  VW_EYE,   VW_BODY_H,VW_BODY,C,       C],
+      [C,       VW_BODY_S,VW_BODY, VW_BODY,  VW_GLOW,  VW_BODY,  VW_BODY, VW_BODY_S,C,      C],
+      [VW_WISP, VW_BODY,  VW_BODY_S,VW_BODY, VW_BODY_S,VW_BODY,  VW_BODY_S,VW_BODY,VW_WISP, C],
+      [C,       VW_BODY_S,VW_BODY, VW_BODY,  VW_BODY,  VW_BODY,  VW_BODY, VW_BODY_S,C,      C],
+      [C,       C,        VW_BODY_S,VW_BODY,  VW_BODY_S,VW_BODY,  VW_BODY_S,C,       C,      C],
+      [C,       C,        VW_WISP, VW_BODY_S,VW_BODY,  VW_BODY_S,VW_WISP, C,        C,      C],
+      [C,       VW_WISP,  C,       C,        VW_WISP,  C,        C,       VW_WISP,  C,      C],
+    ], 4, 'enemy_void_wisp'));
+
+    const VW_EYE_GLOW = 0xFF5252;
+    const VW_CHARGE = 0xEA80FC;
+    this.registerTexture('enemy_void_wisp_telegraph', () => this.createSpriteTexture([
+      [VW_CHARGE,C,        VW_WISP,  VW_BODY_H,VW_BODY_H,VW_BODY_H,VW_WISP, C,        VW_CHARGE,C],
+      [C,       VW_BODY,  VW_BODY_H,VW_EYE_GLOW,VW_BODY,VW_EYE_GLOW,VW_BODY_H,VW_BODY,C,      C],
+      [C,       VW_BODY_S,VW_CHARGE,VW_BODY,  VW_GLOW,  VW_BODY,  VW_CHARGE,VW_BODY_S,C,      C],
+      [VW_CHARGE,VW_BODY, VW_BODY_S,VW_CHARGE,VW_GLOW,  VW_CHARGE,VW_BODY_S,VW_BODY,VW_CHARGE,C],
+      [C,       VW_BODY_S,VW_BODY,  VW_BODY,  VW_BODY,  VW_BODY,  VW_BODY, VW_BODY_S,C,      C],
+      [C,       C,        VW_BODY_S,VW_BODY,  VW_BODY_S,VW_BODY,  VW_BODY_S,C,       C,      C],
+      [C,       C,        VW_WISP,  VW_BODY_S,VW_BODY,  VW_BODY_S,VW_WISP, C,        C,      C],
+      [C,       VW_WISP,  C,        C,        VW_WISP,  C,        C,       VW_WISP,  C,      C],
+    ], 4, 'enemy_void_wisp_telegraph'));
+
+    this.registerTexture('enemy_void_wisp_attack', () => this.createSpriteTexture([
+      [C,       VW_WISP,  VW_CHARGE,VW_BODY_H,VW_BODY_H,VW_BODY_H,VW_CHARGE,VW_WISP,C,      C],
+      [VW_WISP, VW_BODY,  VW_BODY_H,VW_EYE_GLOW,VW_GLOW,VW_EYE_GLOW,VW_BODY_H,VW_BODY,VW_WISP,C],
+      [VW_CHARGE,VW_BODY_S,VW_BODY, VW_GLOW,  VW_CHARGE,VW_GLOW,  VW_BODY, VW_BODY_S,VW_CHARGE,C],
+      [VW_WISP, VW_BODY,  VW_BODY_S,VW_BODY,  VW_BODY_S,VW_BODY,  VW_BODY_S,VW_BODY,VW_WISP, C],
+      [C,       VW_BODY_S,VW_BODY,  VW_BODY,  VW_BODY,  VW_BODY,  VW_BODY, VW_BODY_S,C,      C],
+      [C,       C,        VW_BODY_S,VW_BODY,  VW_BODY_S,VW_BODY,  VW_BODY_S,C,       C,      C],
+      [C,       C,        VW_WISP,  VW_BODY_S,VW_BODY,  VW_BODY_S,VW_WISP, C,        C,      C],
+      [C,       VW_WISP,  C,        C,        VW_WISP,  C,        C,       VW_WISP,  C,      C],
+    ], 4, 'enemy_void_wisp_attack'));
+
+    // ========== SHADOW REAPER — tall hooded figure, skull mask, curved scythe ==========
+    // Sprite: 10 wide × 12 tall @ 4px/cell.
+    //
+    // Layout top→bottom:
+    //   Rows  0- 1  pointed hood peak, narrow
+    //   Rows  2- 3  skull/mask face, single cyan eye in hood opening
+    //   Rows  4- 5  wide shoulders; scythe handle exits left shoulder
+    //   Rows  6- 7  scythe blade (idle: hanging left); lower cloak body
+    //   Rows  8- 9  tattered robe hem
+    //   Rows 10-11  trailing dark wisps / tendrils
+    //
+    // Attack arc: blade swings from left-hang (idle) → raised left (telegraph) → sweeps right (attack)
+    const RK_CK  = 0x080C18;   // cloak deep navy-black
+    const RK_CKH = 0x181E38;   // cloak fold — catches dim light
+    const RK_CKS = 0x030406;   // cloak deepest shadow
+    const RK_HD  = 0x000408;   // hood interior void
+    const RK_SK  = 0xD8CEBB;   // skull bone — warm ivory
+    const RK_SKH = 0xEEE4D4;   // skull highlight
+    const RK_SKS = 0x988A7C;   // skull shadow
+    const RK_EYE = 0x44FFEE;   // eye glow — teal cyan
+    const RK_BL  = 0xD8ECF8;   // scythe blade — pale silver-blue
+    const RK_BLS = 0x5888A4;   // scythe blade shadow/edge
+    const RK_HN  = 0x1C1008;   // scythe handle — near-black wood
+    const RK_WSP = 0x10162C;   // trailing wisps — dark indigo
 
     this.registerTexture('enemy_shadow', () => this.createSpriteTexture([
-      [C,          C,           SHADOW_WISP, SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_WISP,C,          C,          C],
-      [C,          SHADOW_BODY, SHADOW_BODY_H,SHADOW_EYE,  SHADOW_BODY, SHADOW_EYE,   SHADOW_BODY_H,SHADOW_BODY,C,         C],
-      [C,          SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY,  SHADOW_GLOW, SHADOW_BODY,  SHADOW_BODY,SHADOW_BODY_S,C,         C],
-      [SHADOW_WISP,SHADOW_BODY, SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,SHADOW_BODY, SHADOW_BODY_S,SHADOW_BODY,SHADOW_WISP,C],
-      [C,          SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY,  SHADOW_BODY, SHADOW_BODY,  SHADOW_BODY,SHADOW_BODY_S,C,         C],
-      [C,          C,           SHADOW_BODY_S,SHADOW_BODY, SHADOW_BODY_S,SHADOW_BODY, SHADOW_BODY_S,C,          C,         C],
-      [C,          C,           SHADOW_WISP, SHADOW_BODY_S,SHADOW_BODY,  SHADOW_BODY_S,SHADOW_WISP,C,          C,         C],
-      [C,          SHADOW_WISP, C,           C,            SHADOW_WISP,  C,            C,          SHADOW_WISP,C,         C],
+      //        0        1        2        3        4        5        6        7        8        9
+      // hood peak — narrow 2-px point
+      [C,       C,       C,       C,       RK_CKH,  RK_CKH,  C,       C,       C,       C      ],
+      // hood upper — widens, void interior appears
+      [C,       C,       C,       RK_CKS,  RK_CK,   RK_HD,   RK_CKS,  C,       C,       C      ],
+      // skull face — bone catches faint light, single eye glows teal
+      [C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYE,  RK_CK,   RK_CKS,  C,       C      ],
+      // skull lower jaw
+      [C,       C,       RK_CKS,  RK_CK,   RK_SKS,  RK_SK,   RK_CK,   RK_CKS,  C,       C      ],
+      // wide shoulders — broadest point; handle exits at col 1
+      [C,       RK_HN,   RK_CKS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKH,  RK_CKS,  C,       C      ],
+      // upper body; handle continues, blade starts col 0–1
+      [RK_HN,   RK_BLS,  RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CK,   RK_CKS,  C,       C      ],
+      // scythe blade curves down-left; lower cloak body
+      [RK_BL,   RK_BLS,  RK_CKS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKS,  C,       C,       C      ],
+      // blade tip fades; mid robe narrows
+      [C,       RK_BLS,  RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
+      // lower robe — slightly ragged
+      [C,       C,       RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_WSP,  C,       C,       C      ],
+      // robe hem — tattered edges begin
+      [C,       C,       RK_WSP,  RK_CKS,  RK_CK,   RK_CKS,  RK_WSP,  C,       C,       C      ],
+      // wisp tendrils — scattered, floating
+      [C,       RK_WSP,  C,       RK_WSP,  RK_CKS,  RK_WSP,  C,       RK_WSP,  C,       C      ],
+      // root wisps — final trailing flecks
+      [RK_WSP,  C,       C,       C,       RK_WSP,  C,       C,       C,       RK_WSP,  C      ],
     ], 4, 'enemy_shadow'));
 
-    const SHADOW_EYE_GLOW = 0xFF5252;
-    const SHADOW_CHARGE = 0xEA80FC;
+    const RK_EYG = 0x88FFFF;   // eye — intensified teal (telegraph/attack)
+    const RK_CHG = 0x2828A8;   // cold ethereal charge energy
+    const RK_SLH = 0xF0F8FF;   // blade slash flash — near-white
+
     this.registerTexture('enemy_shadow_telegraph', () => this.createSpriteTexture([
-      [SHADOW_CHARGE,C,       SHADOW_WISP, SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_WISP,C,         SHADOW_CHARGE,C],
-      [C,          SHADOW_BODY, SHADOW_BODY_H,SHADOW_EYE_GLOW,SHADOW_BODY,SHADOW_EYE_GLOW,SHADOW_BODY_H,SHADOW_BODY,C,C],
-      [C,          SHADOW_BODY_S,SHADOW_CHARGE,SHADOW_BODY,SHADOW_GLOW,SHADOW_BODY,SHADOW_CHARGE,SHADOW_BODY_S,C,  C],
-      [SHADOW_CHARGE,SHADOW_BODY,SHADOW_BODY_S,SHADOW_CHARGE,SHADOW_GLOW,SHADOW_CHARGE,SHADOW_BODY_S,SHADOW_BODY,SHADOW_CHARGE,C],
-      [C,          SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY,SHADOW_BODY,SHADOW_BODY,SHADOW_BODY,SHADOW_BODY_S,C,     C],
-      [C,          C,           SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,C,        C,     C],
-      [C,          C,           SHADOW_WISP, SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,SHADOW_WISP,C,         C,     C],
-      [C,          SHADOW_WISP, C,           C,           SHADOW_WISP, C,           C,          SHADOW_WISP,C,     C],
+      //        0        1        2        3        4        5        6        7        8        9
+      // hood — charge sparks appear at corners
+      [C,       C,       C,       RK_CHG,  RK_CKH,  RK_CKH,  RK_CHG,  C,       C,       C      ],
+      [C,       C,       RK_CHG,  RK_CKS,  RK_CK,   RK_HD,   RK_CKS,  RK_CHG,  C,       C      ],
+      // eye intensifies
+      [C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYG,  RK_CK,   RK_CKS,  C,       C      ],
+      // scythe arm raises — handle swings up toward col 2
+      [C,       C,       RK_HN,   RK_CKS,  RK_SKS,  RK_SK,   RK_CK,   RK_CKS,  C,       C      ],
+      // blade raised to row 4-5, pointing upward-left
+      [RK_BLS,  RK_HN,   RK_BLS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKH,  RK_CKS,  C,       C      ],
+      [RK_BL,   RK_BLS,  RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CK,   RK_CKS,  C,       C      ],
+      // cloak billows — charge energy outlines body
+      [C,       RK_CHG,  RK_CKS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKS,  RK_CHG,  C,       C      ],
+      [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
+      [C,       C,       RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_WSP,  C,       C,       C      ],
+      // wisps spread wider as energy rises
+      [C,       RK_WSP,  RK_WSP,  RK_CKS,  RK_CK,   RK_CKS,  RK_WSP,  RK_WSP,  C,       C      ],
+      [RK_WSP,  C,       RK_WSP,  RK_WSP,  RK_CKS,  RK_WSP,  RK_WSP,  C,       RK_WSP,  C      ],
+      [RK_WSP,  C,       C,       RK_WSP,  C,       RK_WSP,  C,       C,       RK_WSP,  C      ],
     ], 4, 'enemy_shadow_telegraph'));
 
     this.registerTexture('enemy_shadow_attack', () => this.createSpriteTexture([
-      [C,          SHADOW_WISP, SHADOW_CHARGE,SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_BODY_H,SHADOW_CHARGE,SHADOW_WISP,C,C],
-      [SHADOW_WISP,SHADOW_BODY, SHADOW_BODY_H,SHADOW_EYE_GLOW,SHADOW_GLOW,SHADOW_EYE_GLOW,SHADOW_BODY_H,SHADOW_BODY,SHADOW_WISP,C],
-      [SHADOW_CHARGE,SHADOW_BODY_S,SHADOW_BODY,SHADOW_GLOW,SHADOW_CHARGE,SHADOW_GLOW,SHADOW_BODY,SHADOW_BODY_S,SHADOW_CHARGE,C],
-      [SHADOW_WISP,SHADOW_BODY,SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,SHADOW_BODY,SHADOW_WISP,C],
-      [C,          SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY,SHADOW_BODY,SHADOW_BODY,SHADOW_BODY,SHADOW_BODY_S,C,         C],
-      [C,          C,           SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,C,        C,         C],
-      [C,          C,           SHADOW_WISP, SHADOW_BODY_S,SHADOW_BODY,SHADOW_BODY_S,SHADOW_WISP,C,         C,         C],
-      [C,          SHADOW_WISP, C,           C,           SHADOW_WISP, C,           C,          SHADOW_WISP,C,         C],
+      //        0        1        2        3        4        5        6        7        8        9
+      // hood stable — attack is fast and controlled
+      [C,       C,       C,       C,       RK_CKH,  RK_CKH,  C,       C,       C,       C      ],
+      [C,       C,       C,       RK_CKS,  RK_CK,   RK_HD,   RK_CKS,  C,       C,       C      ],
+      // eye at full glow
+      [C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYG,  RK_CK,   RK_CKS,  C,       C      ],
+      [C,       C,       RK_CKS,  RK_CK,   RK_SKS,  RK_SK,   RK_CK,   RK_CKS,  C,       C      ],
+      // shoulders — blade has swung to right side
+      [C,       C,       RK_CKS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKH,  RK_HN,   RK_BLS,  C      ],
+      // blade sweeps right; handle follows
+      [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_HN,   RK_BL,   RK_SLH,  C      ],
+      // slash flash — bright arc at blade tip
+      [C,       C,       C,       RK_CKH,  RK_CK,   RK_CK,   RK_BLS,  RK_SLH,  C,       C      ],
+      [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
+      [C,       C,       RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_WSP,  C,       C,       C      ],
+      // wisps burst outward on strike
+      [C,       RK_WSP,  RK_WSP,  RK_CKS,  RK_CK,   RK_CKS,  RK_WSP,  RK_WSP,  C,       C      ],
+      [RK_WSP,  C,       RK_WSP,  RK_WSP,  RK_CKS,  RK_WSP,  RK_WSP,  C,       RK_WSP,  C      ],
+      [RK_WSP,  C,       C,       RK_WSP,  C,       RK_WSP,  C,       C,       RK_WSP,  C      ],
     ], 4, 'enemy_shadow_attack'));
 
     // ========== NEW ENEMY: Plant Monster ==========
@@ -2188,6 +2347,29 @@ export class AssetManager {
       [C,     STEM,  STEM_S, STEM,  STEM,  C],
     ], 4, 'flower'));
 
+    // Moonbloom — layered indigo / violet / crimson bloom (quest key item)
+    const MB_B = 0x303F9F;
+    const MB_BH = 0x5C6BC0;
+    const MB_P = 0x6A1B9A;
+    const MB_PH = 0x9575CD;
+    const MB_PL = 0xCE93D8;
+    const MB_R = 0xB71C1C;
+    const MB_RH = 0xE53935;
+    const MB_RC = 0xFF5252;
+    const MB_GL = 0xE8EAF6;
+    const MB_ST = 0x00897B;
+    const MB_SD = 0x004D40;
+    this.textures.set('moonbloom', this.createSpriteTexture([
+      [C,      MB_BH,  MB_PH,  MB_RH,  MB_RH,  MB_PH,  MB_BH,  C],
+      [MB_BH,  MB_P,   MB_R,   MB_RC,  MB_RC,  MB_R,   MB_P,   MB_BH],
+      [MB_PH,  MB_R,   MB_GL,  MB_RC,  MB_RC,  MB_GL,  MB_R,   MB_PH],
+      [MB_RH,  MB_RC,  MB_RC,  MB_PL,  MB_PL,  MB_RC,  MB_RC,  MB_RH],
+      [MB_PH,  MB_R,   MB_GL,  MB_RC,  MB_RC,  MB_GL,  MB_R,   MB_PH],
+      [MB_B,   MB_PH,  MB_RH,  MB_R,   MB_R,   MB_RH,  MB_PH,  MB_B],
+      [C,      MB_ST,  MB_ST,  MB_ST,  MB_ST,  MB_ST,  MB_ST,  C],
+      [C,      C,      MB_SD,  MB_ST,  MB_ST,  MB_SD,  C,      C],
+    ], 4, 'moonbloom'));
+
     const HERB = 0x3FAE63;
     const HERB_H = 0x83E48C;
     const HERB_S = 0x1F7A3E;
@@ -2429,26 +2611,52 @@ export class AssetManager {
       [C,      C,      C,      0x5D4037,0x5D4037,C,      C,      C],
     ]));
 
-    // Windmill — rural landmark (forest cliff inlet / plateau edge accents)
-    const WM_B = 0xECEFF1;
-    const WM_BD = 0x90A4AE;
-    const WM_CAP = 0xC62828;
-    const WM_HUB = 0x4E342E;
-    const WM_TW = 0xD7CCC8;
-    const WM_TWD = 0x8D6E63;
-    const WM_ST = 0xBDBDBD;
-    const WM_STD = 0x616161;
+    // Windmill — 10×18 sprite: 4 distinct blade arms in "+" orientation,
+    // conical cap, limestone tower with window + door, stone base.
+    //
+    // Blade layout (rows 0-9): top blade goes up (rows 0-3), hub + E/W blades
+    // fill rows 4-5, bottom blade goes down (rows 6-9).  Transparent gaps
+    // between arms make each of the 4 blades read separately.
+    const WM_SL  = 0xFAF2DE;   // sail canvas – light
+    const WM_SM  = 0xDACA9C;   // sail canvas – mid
+    const WM_SD  = 0xB8A878;   // sail canvas – dark edge
+    const WM_FR  = 0x6D4C41;   // blade wooden frame/strut
+    const WM_HB  = 0x3E2723;   // hub centre
+    const WM_HH  = 0x5D4037;   // hub ring / blade root
+    const WM_CAH = 0xC28E58;   // cap highlight
+    const WM_CAM = 0xA07040;   // cap body
+    const WM_CAD = 0x7A5030;   // cap shadow
+    const WM_TWL = 0xEEE8DC;   // tower light (warm limestone)
+    const WM_TWM = 0xCCC0A8;   // tower mid
+    const WM_TWD = 0xA09880;   // tower shadow
+    const WM_WIN = 0x2C3840;   // window / door opening
+    const WM_BSL = 0xAAAAAA;   // stone base bright
+    const WM_BSD = 0x787878;   // stone base dark
     this.textures.set('windmill', this.createSpriteTexture([
-      [C,     WM_B,  WM_BD, WM_B,  WM_BD, WM_B,  WM_BD, WM_B,  C    ],
-      [WM_BD, WM_B,  WM_CAP,WM_CAP,WM_HUB,WM_CAP,WM_CAP,WM_B,  WM_BD],
-      [C,     WM_CAP,WM_CAP,WM_TW, WM_HUB, WM_TW, WM_CAP,WM_CAP,C    ],
-      [C,     C,     WM_TWD,WM_TW, WM_TW, WM_TW, WM_TWD, C,     C    ],
-      [C,     C,     WM_TW, WM_TW, WM_TW, WM_TW, WM_TW, C,     C    ],
-      [C,     C,     WM_TWD,WM_TW, WM_TW, WM_TW, WM_TWD, C,     C    ],
-      [C,     C,     WM_TW, WM_TW, WM_TW, WM_TW, WM_TW, C,     C    ],
-      [C,     WM_STD,WM_ST, WM_ST, WM_ST, WM_ST, WM_ST, WM_STD,C    ],
-      [C,     WM_ST, WM_ST, WM_ST, WM_ST, WM_ST,  WM_ST, WM_ST, C    ],
-      [C,     WM_STD,WM_STD,WM_ST, WM_ST, WM_ST, WM_ST, WM_STD,C    ],
+      // ── top blade (N arm, rows 0-3) ─ cols 3-6 only, rest transparent ────
+      [C,       C,       C,       WM_SD,   WM_SL,   WM_SL,   WM_SD,   C,       C,       C      ],
+      [C,       C,       C,       WM_SM,   WM_SL,   WM_SL,   WM_SM,   C,       C,       C      ],
+      [C,       C,       C,       WM_SM,   WM_SL,   WM_SL,   WM_SM,   C,       C,       C      ],
+      [C,       C,       C,       WM_FR,   WM_HH,   WM_HH,   WM_FR,   C,       C,       C      ],
+      // ── hub + left (W) blade + right (E) blade (rows 4-5) ────────────────
+      [WM_SD,   WM_SM,   WM_SM,   WM_FR,   WM_HB,   WM_HB,   WM_FR,   WM_SM,   WM_SM,   WM_SD  ],
+      [WM_SD,   WM_SM,   WM_SM,   WM_FR,   WM_HB,   WM_HB,   WM_FR,   WM_SM,   WM_SM,   WM_SD  ],
+      // ── bottom blade (S arm, rows 6-9) ─ cols 3-6 only ───────────────────
+      [C,       C,       C,       WM_FR,   WM_HH,   WM_HH,   WM_FR,   C,       C,       C      ],
+      [C,       C,       C,       WM_SM,   WM_SL,   WM_SL,   WM_SM,   C,       C,       C      ],
+      [C,       C,       C,       WM_SM,   WM_SL,   WM_SL,   WM_SM,   C,       C,       C      ],
+      [C,       C,       C,       WM_SD,   WM_SL,   WM_SL,   WM_SD,   C,       C,       C      ],
+      // ── conical cap (rows 10-12) ──────────────────────────────────────────
+      [C,       C,       C,       C,       WM_CAH,  WM_CAD,  C,       C,       C,       C      ],
+      [C,       C,       C,       WM_CAH,  WM_CAM,  WM_CAD,  WM_CAD,  C,       C,       C      ],
+      [C,       C,       WM_CAH,  WM_CAM,  WM_CAM,  WM_CAD,  WM_CAD,  C,       C,       C      ],
+      // ── limestone tower (rows 13-16) ─────────────────────────────────────
+      [C,       C,       WM_TWL,  WM_TWL,  WM_TWL,  WM_TWM,  WM_TWD,  C,       C,       C      ],
+      [C,       C,       WM_TWL,  WM_WIN,  WM_TWL,  WM_TWM,  WM_TWD,  C,       C,       C      ],
+      [C,       WM_TWL,  WM_TWL,  WM_TWM,  WM_TWL,  WM_TWM,  WM_TWD,  WM_TWD,  C,       C      ],
+      [C,       WM_TWL,  WM_TWL,  WM_TWM,  WM_WIN,  WM_TWM,  WM_TWD,  WM_TWD,  C,       C      ],
+      // ── stone base (row 17) ───────────────────────────────────────────────
+      [WM_BSL,  WM_BSL,  WM_BSL,  WM_BSL,  WM_BSL,  WM_BSL,  WM_BSD,  WM_BSD,  C,       C      ],
     ]));
 
     // Sword (Matches Player Buster Blade — fully diagonal, tip top-right to pommel bottom-left)

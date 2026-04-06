@@ -90,8 +90,18 @@ export function createBonfireRestAction({
   };
 
   const interact = (tileX: number, tileY: number) => {
-    kindleBonfire(tileX, tileY);
-    openBonfireMenu();
+    const firstKey = `bonfire_first_${state.currentMap}_${tileX}_${tileY}`;
+    const alreadyKindled = state.getFlag(firstKey);
+
+    if (alreadyKindled) {
+      // Bonfire is already lit — kindle updates respawn point then open the menu.
+      kindleBonfire(tileX, tileY);
+      openBonfireMenu();
+    } else {
+      // First interaction: kindle (shows hero overlay, particles, sfx) but keep menu closed
+      // so the "Flame Kindled" hero text is fully visible.
+      kindleBonfire(tileX, tileY);
+    }
   };
 
   return { interact, restAtBonfire };

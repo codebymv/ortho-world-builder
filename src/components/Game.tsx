@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { GameState } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
-import { World } from '@/lib/game/World';
+import { World, type CollisionDebugSnapshot } from '@/lib/game/World';
 import { MapMarker, extractMarkersFromText } from '@/lib/game/MapMarkers';
 import { SaveManager } from '@/lib/game/SaveManager';
 import { allMaps } from '@/data/maps';
@@ -105,6 +105,8 @@ const Game = () => {
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [transitionDebugEnabled, setTransitionDebugEnabled] = useState(false);
   const [transitionDebugLines, setTransitionDebugLines] = useState<string[]>([]);
+  const [collisionDebugEnabled, setCollisionDebugEnabled] = useState(false);
+  const [collisionDebugSnapshot, setCollisionDebugSnapshot] = useState<CollisionDebugSnapshot | null>(null);
   const [interactionPrompt, setInteractionPrompt] = useState<InteractionPrompt>(null);
   const [bonfireOverlayActive, setBonfireOverlayActive] = useState(false);
   const [bonfireOverlayTitle, setBonfireOverlayTitle] = useState('Flame Kindled');
@@ -260,6 +262,14 @@ const Game = () => {
       setMinimapVersion(prev => prev + 1);
     }
   };
+  const refreshCollisionDebug = useCallback(() => {
+    const state = gameStateRef.current;
+    const world = worldRef.current;
+    if (!state || !world) return;
+    setCollisionDebugSnapshot(
+      world.getCollisionDebugSnapshot(state.player.position.x, state.player.position.y, 0.2, 3),
+    );
+  }, []);
   const showHeroOverlay = useCallback((title: string, subtitle?: string) => {
     playHeroEventRef.current?.();
     if (bonfireOverlayTimerRef.current) {
@@ -340,6 +350,37 @@ const Game = () => {
       previousMapModalOpenRef.current = mapModalOpen;
     }
   }, [mapModalOpen]);
+
+  useEffect(() => {
+    const handleCollisionDebugToggle = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'b' || e.repeat) return;
+      setCollisionDebugEnabled(prev => {
+        const next = !prev;
+        if (next) {
+          refreshCollisionDebug();
+          notify('Collision debug ON', {
+            id: 'collision-debug-on',
+            description: 'Shows nearby tiles, player corner samples, and movement probes.',
+            duration: 2400,
+          });
+        } else {
+          setCollisionDebugSnapshot(null);
+          notify('Collision debug OFF', { id: 'collision-debug-off', duration: 1600 });
+        }
+        return next;
+      });
+    };
+
+    window.addEventListener('keydown', handleCollisionDebugToggle);
+    return () => window.removeEventListener('keydown', handleCollisionDebugToggle);
+  }, [refreshCollisionDebug]);
+
+  useEffect(() => {
+    if (!collisionDebugEnabled) return;
+    refreshCollisionDebug();
+    const interval = window.setInterval(refreshCollisionDebug, 100);
+    return () => window.clearInterval(interval);
+  }, [collisionDebugEnabled, refreshCollisionDebug]);
 
   const handleDialogueResponse = (nextId: string, givesQuest?: string) => {
     if (!gameState || !currentDialogue) return;
@@ -507,6 +548,59 @@ const Game = () => {
               ) : (
                 <div className="font-mono leading-4 text-[#C8B18A]">No nearby transitions in scan radius.</div>
               )}
+            </div>
+          )}
+          {collisionDebugEnabled && collisionDebugSnapshot && (
+            <div className="fixed left-4 top-56 z-[80] w-[22rem] border border-[#2A4A2A] bg-[#081208]/92 p-2 text-[11px] text-[#D7F7D7] shadow-lg pointer-events-none">
+              <div className="font-bold text-[#9CFF9C]">COLLISION DEBUG (B)</div>
+              <div className="font-mono leading-4">
+                pos {collisionDebugSnapshot.worldX.toFixed(2)},{collisionDebugSnapshot.worldY.toFixed(2)} | tile {collisionDebugSnapshot.tileX},{collisionDebugSnapshot.tileY}
+              </div>
+              {collisionDebugSnapshot.currentTile && (
+                <div className="font-mono leading-4">
+                  current {collisionDebugSnapshot.currentTile.type} | walk {collisionDebugSnapshot.currentTile.walkable ? 'Y' : 'N'} | elev {collisionDebugSnapshot.currentTile.elevation}
+                </div>
+              )}
+              <div className="mt-1 font-mono leading-4">
+                probes {collisionDebugSnapshot.probes.map(p => `${p.label[0]}:${p.allowed ? 'Y' : 'N'}`).join('  ')}
+              </div>
+              <div
+                className="mt-2 grid gap-[2px]"
+                style={{ gridTemplateColumns: `repeat(${collisionDebugSnapshot.scanRadius * 2 + 1}, minmax(0, 1fr))` }}
+              >
+                {collisionDebugSnapshot.nearbyTiles.map(tile => {
+                  const isPlayerTile = tile.tileX === collisionDebugSnapshot.tileX && tile.tileY === collisionDebugSnapshot.tileY;
+                  const bg = tile.transition
+                    ? '#0EA5E9'
+                    : tile.interactable
+                      ? '#F59E0B'
+                      : tile.walkable
+                        ? '#166534'
+                        : '#991B1B';
+                  return (
+                    <div
+                      key={`cd-${tile.tileX}-${tile.tileY}`}
+                      className="h-8 border text-[9px] font-mono leading-[10px] text-white flex flex-col items-center justify-center"
+                      style={{
+                        backgroundColor: bg,
+                        borderColor: isPlayerTile ? '#FFFFFF' : 'rgba(255,255,255,0.2)',
+                      }}
+                    >
+                      <div>{tile.tileX},{tile.tileY}</div>
+                      <div>{tile.type.slice(0, 4)}</div>
+                      <div>E{tile.elevation}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-2 text-[10px] text-[#B6DDB6]">green walkable, red blocked, amber interactable, blue transition, white border player tile</div>
+              <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-1">
+                {collisionDebugSnapshot.samples.map(sample => (
+                  <div key={`sample-${sample.label}`} className="font-mono leading-4">
+                    {sample.label}: {sample.tileX},{sample.tileY} {sample.type} {sample.walkable ? 'Y' : 'N'} e{sample.elevation}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           <div className="fixed top-16 right-4 z-30 flex flex-col gap-2 pointer-events-none">

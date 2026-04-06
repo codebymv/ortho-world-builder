@@ -55,6 +55,8 @@ export interface Stairway {
   width: number;
   height: number;
   elevation: number;
+  /** Default `ns`: stride climbs along map ±Y (north/south). `ew`: rotate stair sprite 90° for ±X approaches. */
+  axis?: 'ns' | 'ew';
 }
 
 export interface Ladder {
@@ -1722,10 +1724,15 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
         // Visual facade sprite — non-walkable in all cases.
         tiles[ty][tx] = createTile(facadeTile, false);
       } else if (hasInterior) {
-        // Block the ENTIRE footprint for interior cottages. Building_entrance stamps (entryY /
-        // frontY, applied after this loop) selectively restore walkability so players cannot
-        // side-enter through upper body rows or the wide-scale sprite art.
-        tiles[ty][tx] = createTile('grass', false);
+        // Keep only the upper cottage body blocked. Interior cottages use oversized facade art,
+        // and the player collision radius needs a few walkable rows in front of the facade to
+        // actually step onto the visible pad from the sides and approach the entrance cleanly.
+        // Entry triggers are still stamped explicitly below, and the facade sprite tile remains
+        // non-walkable via the branch above.
+        // For oversized interior-cottage facades, keep only the top strip blocked.
+        // Remaining footprint rows must be walkable so no invisible "non-walkable grass"
+        // bands remain on the visible approach pad.
+        tiles[ty][tx] = createTile('grass', dy >= 1);
       } else if (dy < bodyRows) {
         tiles[ty][tx] = createTile('wood', false);
       } else if (dx === anchors.centerX && dy === f.height - 1) {
@@ -2023,7 +2030,7 @@ const INCOMPATIBLE_BASE: Set<TileType> = new Set([
 
 // Decoration overlay types that should only appear on land
 const LAND_DECORATIONS: Set<TileType> = new Set([
-  'flower', 'tall_grass', 'mushroom', 'rock', 'tree', 'dead_tree',
+  'flower', 'moonbloom', 'tall_grass', 'mushroom', 'rock', 'tree', 'dead_tree',
   'stump', 'bones', 'scarecrow', 'hay_bale', 'tombstone',
 ]);
 
@@ -2253,6 +2260,7 @@ function placeStairways(tiles: Tile[][], def: MapDefinition) {
           interactable: existing.interactable,
           interactionId: existing.interactionId,
           hidden: existing.hidden,
+          ...(stair.axis === 'ew' ? { stairAxis: 'ew' as const } : {}),
         });
       }
     }
@@ -2269,6 +2277,61 @@ function placeLadders(tiles: Tile[][], def: MapDefinition) {
         const existing = tiles[ty][tx];
         tiles[ty][tx] = createTile('ladder', true, {
           elevation: ladder.elevation,
+          transition: existing.transition,
+          interactable: existing.interactable,
+          interactionId: existing.interactionId,
+          hidden: existing.hidden,
+        });
+      }
+    }
+  }
+}
+
+function enforceInteriorCottageAprons(tiles: Tile[][], def: MapDefinition) {
+  for (const f of def.features) {
+    if (f.type !== 'cottage') continue;
+    const hasInterior = !!(f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined);
+    if (!hasInterior) continue;
+
+    const centerX = f.x + Math.floor(f.width / 2);
+    const entryY = f.y + f.height - 3;
+    const frontY = f.y + f.height;
+
+    // Pass 1: normalize any accidental non-walkable grass bands around the approach/foundation.
+    // This catches edge cases introduced by later elevation/cliff passes and map-specific seams.
+    const normalizeMinX = f.x - 2;
+    const normalizeMaxX = f.x + f.width + 2;
+    const normalizeMinY = f.y - 8;
+    const normalizeMaxY = f.y + f.height + 3;
+    for (let ty = normalizeMinY; ty <= normalizeMaxY; ty++) {
+      for (let tx = normalizeMinX; tx <= normalizeMaxX; tx++) {
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        const existing = tiles[ty][tx];
+        if (existing.type === 'portal' || existing.type === 'chest') continue;
+        if (HOUSE_TYPES.has(existing.type)) continue;
+        if (!existing.walkable && (existing.type === 'grass' || existing.type === 'dirt' || existing.type === 'dark_grass')) {
+          tiles[ty][tx] = {
+            ...existing,
+            walkable: true,
+          };
+        }
+      }
+    }
+
+    // Pass 2: enforce a guaranteed center apron lane to the exterior doorway.
+    const apronMinX = centerX - 2;
+    const apronMaxX = centerX + 2;
+    const apronMinY = entryY - 1;
+    const apronMaxY = frontY + 2;
+    for (let ty = apronMinY; ty <= apronMaxY; ty++) {
+      for (let tx = apronMinX; tx <= apronMaxX; tx++) {
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        const existing = tiles[ty][tx];
+        if (existing.type === 'portal' || existing.type === 'chest') continue;
+        if (HOUSE_TYPES.has(existing.type)) continue;
+
+        tiles[ty][tx] = createTile('dirt', true, {
+          elevation: existing.elevation,
           transition: existing.transition,
           interactable: existing.interactable,
           interactionId: existing.interactionId,
@@ -2323,6 +2386,8 @@ export function generateMap(def: MapDefinition): WorldMap {
   stampCliffs(tiles, useCoastalSouthBorder(def));
   placeStairways(tiles, def);
   placeLadders(tiles, def);
+  // Final pass: keep interior cottage approaches traversable even after elevation/cliff stamping.
+  enforceInteriorCottageAprons(tiles, def);
   validateMapTransitions(tiles, def);
   validateAuthoredPlacements(tiles, def);
 

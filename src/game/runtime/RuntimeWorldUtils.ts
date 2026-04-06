@@ -85,7 +85,6 @@ export function getInteractionPromptLabel(
     return state.getFlag('hollow_guardian_defeated') ? 'The Fog Has Lifted' : 'Enter the Fog';
   }
   if (interactionId === 'old_chapel_altar') return 'Inspect Altar';
-  if (interactionId === 'caravan_journal') return 'Read Journal';
   if (interactionId === 'spider_cocoon') return 'Inspect Cocoon';
   if (interactionId === 'temple_inscription') return 'Read Inscription';
   if (interactionId === 'forest_fort_banner') return 'Inspect Banner';
