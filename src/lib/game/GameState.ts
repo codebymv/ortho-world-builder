@@ -96,6 +96,15 @@ export interface CurrencyGain {
   amount: number;
 }
 
+export interface WorldItem {
+  /** Unique instance id (e.g. uuid or `itemId_mapId_x_y`) */
+  instanceId: string;
+  itemId: string;
+  mapId: string;
+  x: number;
+  y: number;
+}
+
 export class GameState {
   player: PlayerState;
   inventory: Item[];
@@ -113,6 +122,8 @@ export class GameState {
   dialogueActive: boolean;
   currentDialogue: string | null;
   gameFlags: Record<string, boolean | number>;
+  /** Items dropped in the world (persisted across sessions) */
+  worldItems: WorldItem[];
   onItemAdded: ((item: Item) => void) | null;
   onCurrencyGained: ((gain: CurrencyGain) => void) | null;
 
@@ -173,6 +184,7 @@ export class GameState {
     this.equippedWeaponId = items.meek_short_sword.id;
     this.lastBonfire = null;
     this.droppedEssence = null;
+    this.worldItems = [];
     this.quests = [];
     this.npcs = [];
   }

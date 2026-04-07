@@ -321,7 +321,7 @@ export function runGameplayPrelude({
   const currentMap = world.getCurrentMap();
   const tileY = Math.floor(state.player.position.y + currentMap.height / 2);
   if (checkPositionBasedProgression(state, tileY)) {
-    triggerUIUpdateThrottled();
+    triggerUIUpdateThrottled(currentTime);
   }
 
   return {

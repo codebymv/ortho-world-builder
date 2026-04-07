@@ -85,26 +85,51 @@ export function applyEnemyVisuals({
     mat.map = enemyTex;
   }
 
-  const isPhase2 = enemyType === 'hollow_guardian' && (enemy as any).phase === 2;
+  const bossPhase = (enemyType === 'hollow_guardian' || enemyType === 'golem')
+    ? ((enemy as any).phase as number ?? 1)
+    : 1;
+  const isPhase2 = bossPhase === 2;
+  const isPhase3 = bossPhase === 3;
+  const isGolem = enemyType === 'golem';
   if (enemy.damageFlashTimer > 0) {
     enemy.damageFlashTimer -= deltaTime;
-    mat.color.setHex(0xff0000);
+    mat.color.setHex(isGolem ? 0xff6600 : 0xff0000);
   } else if (enemy.state === 'telegraphing') {
     const flashPhase = enemy.telegraphTimer / enemy.telegraphDuration;
-    if (isPhase2) {
+    if (isGolem && isPhase2) {
+      // Cracked golem phase 2 telegraph: angry orange-red strobe
+      const flash = Math.sin(flashPhase * Math.PI * 9) * 0.4 + 0.6;
+      mat.color.setRGB(flash, flash * 0.5, flash * 0.1);
+    } else if (isGolem) {
+      const flash = Math.sin(flashPhase * Math.PI * 6) * 0.3 + 0.7;
+      mat.color.setRGB(flash, flash * 0.7, flash * 0.35);
+    } else if (isPhase3) {
+      const flash = Math.sin(flashPhase * Math.PI * 10) * 0.45 + 0.55;
+      mat.color.setRGB(flash * 0.4, flash, flash);
+    } else if (isPhase2) {
       const flash = Math.sin(flashPhase * Math.PI * 8) * 0.4 + 0.6;
-      mat.color.setRGB(0.8, flash * 0.4, flash);
+      mat.color.setRGB(flash * 0.3, flash, flash);
     } else {
       const flash = Math.sin(flashPhase * Math.PI * 6) * 0.3 + 0.7;
       mat.color.setRGB(1, flash, flash);
     }
   } else if (enemy.state === 'staggered') {
-    mat.color.setHex(0xaaaaee);
-  } else if (isPhase2) {
+    mat.color.setHex(isGolem ? 0xddaa77 : 0xaaaaee);
+  } else if (isGolem && isPhase2) {
+    // Cracked golem phase 2 idle: smoldering ember glow
     const pulse = Math.sin(currentTime / 300) * 0.1 + 0.9;
-    mat.color.setRGB(pulse, 0.6 * pulse, 1.0);
+    mat.color.setRGB(pulse, pulse * 0.55, pulse * 0.2);
+  } else if (isPhase3) {
+    const pulse = Math.sin(currentTime / 200) * 0.15 + 0.85;
+    mat.color.setRGB(pulse * 0.3, pulse, pulse);
+    mat.opacity = 0.75 + Math.sin(currentTime / 120) * 0.15;
+    mat.transparent = true;
+  } else if (isPhase2) {
+    const pulse = Math.sin(currentTime / 350) * 0.08 + 0.92;
+    mat.color.setRGB(pulse * 0.35, pulse, pulse);
   } else {
     mat.color.setHex(0xffffff);
+    mat.opacity = 1.0;
   }
 
   let finalEnemyX = enemy.position.x;
@@ -148,12 +173,12 @@ export function applyEnemyVisuals({
         rotation *= 0.35;
         break;
       case 'hollow_guardian':
-        finalEnemyY += stride * 0.02;
-        scaleX *= 1 + stride * 0.025;
-        scaleY *= 1 - stride * 0.03;
-        rotation *= 0.2;
-        // Slow menacing root-pulse while moving
-        finalEnemyX += Math.sin(currentTime / 400 + seed) * 0.015;
+        // Shade-like ethereal float — glides rather than stomps
+        finalEnemyY += Math.sin(currentTime / 200 + seed) * 0.06;
+        finalEnemyX += Math.cos(currentTime / 250 + seed) * 0.03;
+        scaleX *= 1 + stride * 0.02;
+        scaleY *= 1 - stride * 0.02;
+        rotation *= 0.3;
         break;
       case 'plant':
         finalEnemyX += Math.sin(currentTime / 260 + seed) * 0.02;
@@ -167,10 +192,12 @@ export function applyEnemyVisuals({
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
     const isBoss = enemyType === 'hollow_guardian';
-    const scaleSwellX = isBoss ? 0.25 : 0.15;
-    const scaleSwellY = isBoss ? 0.20 : 0.12;
+    // Phase 3 gets more dramatic swell/shake
+    const phaseMultiplier = isPhase3 ? 1.4 : isPhase2 ? 1.15 : 1.0;
+    const scaleSwellX = (isBoss ? 0.28 : 0.15) * phaseMultiplier;
+    const scaleSwellY = (isBoss ? 0.22 : 0.12) * phaseMultiplier;
     const windUp = isBoss ? 0.3 : 0.15;
-    const shakeBase = isBoss ? 0.06 : 0.03;
+    const shakeBase = (isBoss ? 0.07 : 0.03) * phaseMultiplier;
 
     const pulseBeat = telegraphProgress < 0.5
       ? Math.sin(telegraphProgress * Math.PI * 4) * 0.08
@@ -218,10 +245,11 @@ export function applyEnemyVisuals({
   } else {
     const breathe = Math.sin(currentTime / 800 + seed * 3);
     if (enemyType === 'hollow_guardian') {
-      finalEnemyY += breathe * 0.035;
-      scaleX *= 1 + breathe * 0.025;
-      scaleY *= 1 - breathe * 0.02;
-      finalEnemyX += Math.sin(currentTime / 500 + seed) * 0.012;
+      // Deep, slow ethereal float — like a giant shade hovering
+      finalEnemyY += breathe * 0.06;
+      finalEnemyX += Math.cos(currentTime / 700 + seed) * 0.025;
+      scaleX *= 1 + breathe * 0.018;
+      scaleY *= 1 - breathe * 0.018;
     } else if (enemyType === 'shadow') {
       finalEnemyY += breathe * 0.05;
       finalEnemyX += Math.cos(currentTime / 900 + seed) * 0.02;

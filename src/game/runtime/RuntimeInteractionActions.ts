@@ -22,9 +22,11 @@ interface InteractionSystemLike {
   tryHandleForestShortcutLever: (interactionId: string) => boolean;
   tryHandleGroveShelfShortcutLever: (interactionId: string) => boolean;
   tryHandleHollowShortcutLever: (interactionId: string) => boolean;
+  tryHandleHollowFogGate: (interactionId: string) => boolean;
   tryHandleForestFortGate: (interactionId: string) => boolean;
   tryHandleBlightedRoot: (interactionId: string) => boolean;
   tryHandleDialogueInteraction: (interactionId: string) => boolean;
+  tryPickupWorldItems: (x: number, y: number) => void;
 }
 
 interface RuntimeWorldLike {
@@ -173,6 +175,9 @@ export function runInteractionCheck({
   void handleMapTransition; // building transitions go through interactionSystem.tryHandleBuildingTransition
   const checkX = state.player.position.x;
   const checkY = state.player.position.y;
+
+  // Passive world item pickup — always runs first, no keypress needed
+  interactionSystem.tryPickupWorldItems(checkX, checkY);
 
   if (interactionSystem.tryReclaimDroppedEssence(checkX, checkY)) {
     return;

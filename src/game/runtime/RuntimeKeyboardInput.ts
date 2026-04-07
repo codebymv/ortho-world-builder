@@ -1,16 +1,6 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { GameState } from '@/lib/game/GameState';
-
-type PlayerAnimState =
-  | 'idle'
-  | 'walk'
-  | 'attack'
-  | 'dodge'
-  | 'charge'
-  | 'hurt'
-  | 'spin_attack'
-  | 'drinking'
-  | 'block';
+import type { PlayerAnimState } from '@/game/runtime/PlayerSimulationSystem';
 
 interface RuntimeKeyboardInputOptions {
   state: GameState;

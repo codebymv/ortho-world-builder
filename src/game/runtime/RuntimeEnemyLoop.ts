@@ -3,6 +3,7 @@ import { SharedGeometry } from '@/lib/game/AssetManager';
 import type { Enemy } from '@/lib/game/Combat';
 import { applyEnemyVisuals, updateDeadEnemyVisual } from '@/game/runtime/EnemyVisualSystem';
 import type { EnemyLoopContext } from '@/game/runtime/RuntimePhaseContexts';
+import { ENEMY_BLUEPRINTS } from '@/data/enemies';
 
 interface RunEnemyLoopOptions extends EnemyLoopContext {
   currentTime: number;
@@ -46,10 +47,65 @@ export function runEnemyLoop({
     blockStartTime,
     world,
     (enemy, phase) => {
+      const spawnShade = (offset: { x: number; y: number }) => {
+        const bp = ENEMY_BLUEPRINTS.shadow_lurker;
+        if (!bp) return;
+        combatSystem.spawnEnemy(
+          bp.name,
+          { x: enemy.position.x + offset.x, y: enemy.position.y + offset.y },
+          bp.hp,
+          bp.damage,
+          bp.sprite,
+          {
+            speed: bp.speed,
+            attackRange: bp.attackRange,
+            chaseRange: bp.chaseRange,
+            essenceReward: 0,
+            telegraphDuration: bp.telegraphDuration,
+            recoverDuration: bp.recoverDuration,
+            poise: bp.poise,
+            staggerDuration: bp.staggerDuration,
+            behaviorOverrides: bp.behaviorOverrides,
+          },
+        );
+      };
+
+      if (enemy.type === 'golem' && phase === 2) {
+        screenShake.shake(0.9, 0.5);
+        screenShake.hitStop(0.35);
+        particleSystem.emit(
+          new THREE.Vector3(enemy.position.x, enemy.position.y, 0.5),
+          50, 0x997755, 0.12, 2.4, 1.6,
+        );
+        return;
+      }
+
       if (phase === 2) {
-        floatingText.spawn(enemy.position.x, enemy.position.y + 1.0, 'The Guardian awakens...', '#CE93D8', 20);
+        floatingText.spawn(enemy.position.x, enemy.position.y + 1.2, 'Rise, my shades...', '#44FFEE', 20);
         screenShake.shake(0.6, 0.3);
         screenShake.hitStop(0.3);
+        particleSystem.emit(
+          new THREE.Vector3(enemy.position.x, enemy.position.y, 0.5),
+          20, 0x44FFEE, 0.1, 1.8, 1.2,
+        );
+        // Summon 2 Hollow Shades flanking the boss
+        for (const off of [{ x: -2.5, y: -1.5 }, { x: 2.5, y: 1.5 }]) {
+          spawnShade(off);
+        }
+      }
+
+      if (phase === 3) {
+        floatingText.spawn(enemy.position.x, enemy.position.y + 1.2, 'Darkness consumes all...', '#44FFEE', 20);
+        screenShake.shake(0.8, 0.4);
+        screenShake.hitStop(0.4);
+        particleSystem.emit(
+          new THREE.Vector3(enemy.position.x, enemy.position.y, 0.5),
+          35, 0x44FFEE, 0.12, 2.2, 1.5,
+        );
+        // Summon 3 Hollow Shades surrounding the boss
+        for (const off of [{ x: -3.0, y: 0.0 }, { x: 1.5, y: -2.5 }, { x: 1.5, y: 2.5 }]) {
+          spawnShade(off);
+        }
       }
     },
     state.player.stealthDetectionMult,

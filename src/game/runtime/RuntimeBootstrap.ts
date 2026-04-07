@@ -98,6 +98,7 @@ export function bootstrapRuntimeState(context: BootstrapContext) {
     reconcileCriticalQuestItems(state, items, criticalPathItems);
     state.lastBonfire = savedData.lastBonfire ?? null;
     state.droppedEssence = savedData.droppedEssence ?? null;
+    state.worldItems = savedData.worldItems ?? [];
 
     setMapMarkers(savedData.mapMarkers || []);
     if (savedData.visitedTiles) {

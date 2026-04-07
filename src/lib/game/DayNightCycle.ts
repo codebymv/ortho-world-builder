@@ -11,12 +11,15 @@ const TIME_COLORS: Record<TimeOfDay, { tint: number; opacity: number; bgColor: n
 
 const FULL_CYCLE_DURATION = 240;
 
+const INDOOR_BG_COLOR = 0x0D0D1A;
+
 export class DayNightCycle {
   private overlay: THREE.Mesh;
   private scene: THREE.Scene;
   private time: number = 0;
   private currentPhase: TimeOfDay = 'day';
   private sceneBackground: THREE.Color;
+  private _isIndoor: boolean = false;
   // Pre-allocated colors to avoid per-frame allocation
   private readonly _colorA = new THREE.Color();
   private readonly _colorB = new THREE.Color();
@@ -40,7 +43,20 @@ export class DayNightCycle {
   getPhase(): TimeOfDay { return this.currentPhase; }
   getNormalizedTime(): number { return this.time; }
 
+  setIndoor(isIndoor: boolean) {
+    this._isIndoor = isIndoor;
+    if (isIndoor) {
+      this.sceneBackground.setHex(INDOOR_BG_COLOR);
+      (this.overlay.material as THREE.MeshBasicMaterial).opacity = 0;
+    }
+  }
+
   update(deltaTime: number, playerX: number, playerY: number) {
+    if (this._isIndoor) {
+      this.overlay.position.x = playerX;
+      this.overlay.position.y = playerY;
+      return;
+    }
     this.time = (this.time + deltaTime / FULL_CYCLE_DURATION) % 1;
 
     let phase: TimeOfDay;

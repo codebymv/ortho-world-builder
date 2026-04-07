@@ -1538,10 +1538,15 @@ function placeFort(tiles: Tile[][], f: MapFeature) {
 
       // --- Interior ---
       if (dx === gateX && dy === Math.floor(H / 2)) {
-        tiles[ty][tx] = createTile('campfire', true, {
-          interactable: true,
-          interactionId: f.interactionId || 'fort_campfire',
-        });
+        // River forest fort: no central fire — keep courtyard open stone only
+        if (f.interactionId === 'forest_fort') {
+          tiles[ty][tx] = createTile('cobblestone', true);
+        } else {
+          tiles[ty][tx] = createTile('campfire', true, {
+            interactable: true,
+            interactionId: f.interactionId || 'fort_campfire',
+          });
+        }
       } else if ((dx + dy * 3) % 11 === 0) {
         tiles[ty][tx] = createTile('barrel', false);
       } else if ((dx * 2 + dy) % 13 === 0) {

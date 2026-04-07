@@ -1,0 +1,36 @@
+import type { MapDefinition } from '@/data/mapGenerator';
+
+export const interiorHollowArenaDef: MapDefinition = {
+  name: 'The Hollow',
+  subtitle: 'Lair of the Apparition',
+  width: 36,
+  height: 36,
+  spawnPoint: { x: 18, y: 32 },
+  seed: 9100,
+  baseTerrain: 'forest',
+  borderTile: 'dead_tree',
+  autoRoads: false,
+  coastalSouthBorder: false,
+  features: [
+    { x: 0, y: 0, width: 36, height: 3, type: 'wall', fill: 'dead_tree' },
+    { x: 0, y: 33, width: 36, height: 3, type: 'wall', fill: 'dead_tree' },
+    { x: 0, y: 3, width: 3, height: 30, type: 'wall', fill: 'dead_tree' },
+    { x: 33, y: 3, width: 3, height: 30, type: 'wall', fill: 'dead_tree' },
+    { x: 3, y: 3, width: 30, height: 30, type: 'clearing', fill: 'dark_grass' },
+    { x: 10, y: 10, width: 16, height: 16, type: 'clearing', fill: 'mossy_stone' },
+    { x: 13, y: 13, width: 10, height: 10, type: 'clearing', fill: 'ruins_floor' },
+  ],
+  portals: [{ x: 18, y: 34, targetMap: 'forest', targetX: 122, targetY: 20 }],
+  chests: [],
+  interactables: [],
+  props: [
+    { x: 10, y: 10, type: 'statue', walkable: false },
+    { x: 25, y: 10, type: 'statue', walkable: false },
+    { x: 10, y: 25, type: 'statue', walkable: false },
+    { x: 25, y: 25, type: 'statue', walkable: false },
+    { x: 14, y: 8, type: 'bones', walkable: true },
+    { x: 22, y: 7, type: 'bones', walkable: true },
+    { x: 8, y: 16, type: 'bones', walkable: true },
+    { x: 27, y: 20, type: 'bones', walkable: true },
+  ],
+};

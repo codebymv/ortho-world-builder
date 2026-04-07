@@ -13,6 +13,7 @@ import type { Direction8 } from '@/game/runtime/PlayerSimulationSystem';
 import type { EnemyVisualRegistry } from '@/game/runtime/EnemyVisualRegistry';
 import type { EnemyVisualProfile, NpcWanderState } from '@/game/runtime/RuntimeConfig';
 import type { EnemyLoopContext, PortalHint, PortalWarpManagerLike } from '@/game/runtime/RuntimePhaseContexts';
+import type { WorldItemRendererInstance } from '@/game/runtime/WorldItemRenderer';
 
 export interface BuildRuntimePhaseContextsOptions {
   state: GameState;
@@ -141,4 +142,5 @@ export interface BuildRuntimePhaseContextsOptions {
   npcScreenMinPx: number;
   autoSaveInterval: number;
   triggerSave: () => void;
+  worldItemRenderer: WorldItemRendererInstance;
 }

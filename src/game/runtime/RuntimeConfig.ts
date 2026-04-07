@@ -58,7 +58,7 @@ export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
   armored_wolf: { baseScale: 1.34, footOffset: 0.2, strideAmp: 0.045, bobAmp: 0.04, squashAmp: 0.06, leanAmp: 0.07, hpBarOffset: 0.68 },
   stone_sentinel: { baseScale: 1.68, footOffset: 0.24, strideAmp: 0.035, bobAmp: 0.02, squashAmp: 0.04, leanAmp: 0.035, hpBarOffset: 0.82 },
   slime: { baseScale: 1.18, footOffset: 0.12, strideAmp: 0.02, bobAmp: 0.035, squashAmp: 0.12, leanAmp: 0.02, hpBarOffset: 0.58 },
-  hollow_guardian: { baseScale: 2.4, footOffset: 0.35, strideAmp: 0.015, bobAmp: 0.02, squashAmp: 0.06, leanAmp: 0.02, hpBarOffset: 1.2 },
+  hollow_guardian: { baseScale: 2.6, footOffset: 0.22, strideAmp: 0.012, bobAmp: 0.04, squashAmp: 0.03, leanAmp: 0.02, hpBarOffset: 1.35 },
 };
 
 export function createDefaultNpcData(): NPC[] {

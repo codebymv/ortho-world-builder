@@ -276,7 +276,7 @@ export function setupRuntimeActionPhase({
     onBossDefeated: () => {
       syncHollowArenaExitState();
       syncHollowFogGateState();
-      showHeroOverlay('HOLLOW GUARDIAN VANQUISHED', 'The fog lifts…');
+      showHeroOverlay('HOLLOW APPARITION VANQUISHED', 'The fog lifts…');
     },
   });
 

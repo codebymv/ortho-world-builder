@@ -154,5 +154,8 @@ export function buildRuntimeLoopTailContext(options: BuildRuntimePhaseContextsOp
     particleSystem: options.particleSystem,
     autoSaveInterval: options.autoSaveInterval,
     triggerSave: options.triggerSave,
+    worldItemRenderer: options.worldItemRenderer,
+    state: options.state,
+    assetManager: options.assetManager,
   };
 }

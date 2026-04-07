@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { applyPlayerVisuals, resolvePlayerTexture } from '@/game/runtime/PlayerVisualSystem';
 import { applySmoothedCameraFollow, updateInteractionIndicator } from '@/game/runtime/RuntimePresentation';
 import type { PlayerFrameContext } from '@/game/runtime/RuntimePhaseContexts';
+import { items } from '@/data/items';
 
 interface RunPlayerFramePhaseOptions extends PlayerFrameContext {
   currentTime: number;
@@ -374,6 +375,11 @@ export function runPlayerFramePhase({
     isConsumablePickupCollected,
     lastInteractionPrompt,
     setInteractionPrompt,
+    worldItems: state.worldItems,
+    getItemName: (itemId: string) => {
+      const found = items[itemId];
+      return found ? found.name : null;
+    },
     meshes: {
       indicatorMesh: meshes.indicatorMesh,
       indicatorMaterial: meshes.indicatorMaterial,

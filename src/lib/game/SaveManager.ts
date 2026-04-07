@@ -1,8 +1,8 @@
-import { GameState, Item, Quest, LastBonfire, DroppedEssence } from './GameState';
+import { GameState, Item, Quest, LastBonfire, DroppedEssence, WorldItem } from './GameState';
 import { MapMarker } from './MapMarkers';
 
 const SAVE_KEY = 'rpg_save_data';
-const SAVE_VERSION = 4;
+const SAVE_VERSION = 5;
 
 export interface SaveData {
   version: number;
@@ -28,8 +28,9 @@ export interface SaveData {
   equippedWeaponId?: string | null;
   lastBonfire: LastBonfire | null;
   droppedEssence: DroppedEssence | null;
+  worldItems: WorldItem[];
   quests: Quest[];
-  gameFlags: Record<string, boolean>;
+  gameFlags: Record<string, boolean | number>;
   mapMarkers: MapMarker[];
   visitedTiles: string[];
 }
@@ -60,6 +61,7 @@ export class SaveManager {
       equippedWeaponId: state.equippedWeaponId,
       lastBonfire: state.lastBonfire ? { ...state.lastBonfire } : null,
       droppedEssence: state.droppedEssence ? { ...state.droppedEssence } : null,
+      worldItems: state.worldItems.map(wi => ({ ...wi })),
       quests: state.quests.map(q => ({ ...q, objectives: [...q.objectives], reward: q.reward ? { ...q.reward } : undefined })),
       gameFlags: { ...state.gameFlags },
       mapMarkers: mapMarkers.map(m => ({ ...m })),
@@ -79,11 +81,12 @@ export class SaveManager {
       const data: SaveData = JSON.parse(raw);
       if (data.version !== SAVE_VERSION) {
         // Migrate from older versions
-        if (data.version === 3 || data.version === 2) {
+        if (data.version === 4 || data.version === 3 || data.version === 2) {
           const oldData = data as unknown as SaveData & { player: { estusCharges?: number; maxEstusCharges?: number } };
           const migrated: SaveData = {
             ...oldData,
             version: SAVE_VERSION,
+            worldItems: (oldData as any).worldItems ?? [],
             player: {
               position: oldData.player.position,
               direction: oldData.player.direction,
@@ -100,7 +103,7 @@ export class SaveManager {
           return migrated;
         }
         if (data.version === 1) {
-          const v1 = data as unknown as Omit<SaveData, 'lastBonfire' | 'droppedEssence' | 'player'> & {
+          const v1 = data as unknown as Omit<SaveData, 'lastBonfire' | 'droppedEssence' | 'worldItems' | 'player'> & {
             player: SaveData['player'] & { essence?: number };
           };
           return {
@@ -112,6 +115,7 @@ export class SaveManager {
             },
             lastBonfire: null,
             droppedEssence: null,
+            worldItems: [],
           } as SaveData;
         }
         return null;

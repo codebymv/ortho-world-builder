@@ -1707,68 +1707,117 @@ export class AssetManager {
     this.registerTexture('enemy_golem_telegraph', () => this.getTexture('enemy_golem')!);
     this.registerTexture('enemy_golem_attack', () => this.getTexture('enemy_golem')!);
 
-    // ========== BOSS: Hollow Guardian (corrupted treant) — 16x14 sprites ==========
-    const HG_BARK   = 0x3E2723;
-    const HG_BARK_H = 0x5D4037;
-    const HG_BARK_S = 0x1B0000;
-    const HG_CORE   = 0x7B1FA2;
-    const HG_EYE    = 0xCE93D8;
-    const HG_ROOT   = 0x4E342E;
-    const HG_MOSS   = 0x33691E;
-    const HG_GLOW   = 0xAB47BC;
-    const HG_EYE_B  = 0xEA80FC; // bright eye for telegraph/attack
+    // ========== BOSS: Hollow Apparition (giant shade, tall hooded figure) — 16x16 sprites ==========
+    // Reuses the RK_* shade palette. Boss-specific extras:
+    const HA_CRWN = 0x1A3A4A;  // crown ridge — dark teal-grey, tops the oversized hood
+    const HA_CORE = 0x227777;  // chest core glow — muted teal (brighter on attack)
+    const HA_SUMM = 0x55FFEE;  // summoning arc — bright teal flash on attack/phase change
 
-    // Idle: hunched posture, roots gripping ground, faint eye glow
+    // Idle: towering hooded shade, dual teal eyes, energy-tendril arms, long trailing wisps
     this.registerTexture('enemy_hollow_guardian', () => this.createSpriteTexture([
-      [C,       C,       C,       C,       HG_MOSS, HG_MOSS, HG_MOSS, HG_MOSS, HG_MOSS, HG_MOSS, HG_MOSS, C,       C,       C,       C,       C      ],
-      [C,       C,       C,       HG_MOSS, HG_BARK, HG_BARK_H,HG_BARK,HG_GLOW, HG_BARK, HG_BARK_H,HG_BARK, HG_MOSS, C,       C,       C,       C      ],
-      [C,       C,       HG_MOSS, HG_BARK, HG_BARK_H,HG_BARK,HG_BARK_H,HG_BARK,HG_BARK_H,HG_BARK, HG_BARK_H,HG_BARK, HG_MOSS, C,       C,       C      ],
-      [C,       HG_MOSS, HG_BARK, HG_BARK_S,HG_EYE, HG_BARK_S,HG_BARK,HG_BARK, HG_BARK, HG_BARK_S,HG_EYE, HG_BARK_S,HG_BARK, HG_MOSS, C,       C      ],
-      [C,       HG_ROOT, HG_BARK, HG_BARK, HG_BARK_S,HG_BARK,HG_CORE, HG_GLOW, HG_CORE, HG_BARK, HG_BARK_S,HG_BARK, HG_BARK, HG_ROOT, C,       C      ],
-      [HG_ROOT, HG_BARK, HG_BARK_H,HG_BARK_S,HG_BARK,HG_BARK_S,HG_BARK,HG_CORE, HG_BARK, HG_BARK_S,HG_BARK, HG_BARK_S,HG_BARK_H,HG_BARK, HG_ROOT, C      ],
-      [C,       HG_BARK_S,HG_BARK,HG_BARK_H,HG_GLOW,HG_BARK_S,HG_BARK,HG_BARK_S,HG_BARK, HG_BARK_S,HG_GLOW, HG_BARK_H,HG_BARK, HG_BARK_S,C,       C      ],
-      [C,       C,       HG_BARK_S,HG_BARK,HG_BARK, HG_BARK, HG_BARK_S,HG_BARK, HG_BARK_S,HG_BARK, HG_BARK, HG_BARK, HG_BARK_S,C,       C,       C      ],
-      [C,       C,       HG_ROOT, HG_BARK_S,HG_BARK,HG_BARK, HG_BARK, HG_BARK, HG_BARK, HG_BARK, HG_BARK, HG_BARK_S,HG_ROOT, C,       C,       C      ],
-      [C,       HG_ROOT, C,       HG_ROOT, HG_BARK_S,HG_BARK,HG_BARK_S,C,       HG_BARK_S,HG_BARK, HG_BARK_S,HG_ROOT, C,       HG_ROOT, C,       C      ],
-      [C,       C,       C,       C,       HG_ROOT, HG_BARK_S,HG_ROOT, C,       HG_ROOT, HG_BARK_S,HG_ROOT, C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       HG_ROOT, C,       C,       C,       HG_ROOT, C,       C,       C,       C,       C,       C      ],
-      [C,       C,       HG_ROOT, C,       C,       C,       HG_ROOT, C,       HG_ROOT, C,       C,       C,       HG_ROOT, C,       C,       C      ],
-      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      // row 0 — narrow hood peak with crown ridge
+      [C,       C,       C,       C,       C,       C,       HA_CRWN, RK_CKH,  HA_CRWN, C,       C,       C,       C,       C,       C,       C      ],
+      // row 1 — hood widens
+      [C,       C,       C,       C,       C,       RK_CKS,  RK_CKH,  RK_CK,   RK_CKH,  RK_CKS,  C,       C,       C,       C,       C,       C      ],
+      // row 2 — deep hood interior
+      [C,       C,       C,       C,       RK_CKS,  RK_CK,   RK_HD,   RK_HD,   RK_HD,   RK_CK,   RK_CKS,  C,       C,       C,       C,       C      ],
+      // row 3 — dual teal eye sockets (boss has two glowing eyes unlike regular shade)
+      [C,       C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYE,  RK_HD,   RK_EYE,  RK_SKH,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
+      // row 4 — skull jaw, bone plates flanking void
+      [C,       C,       RK_CKS,  RK_CK,   RK_SKS,  RK_SK,   RK_CKS,  RK_SKS,  RK_SK,   RK_CKS,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
+      // row 5 — wide shoulders begin, chest core flickers
+      [C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  HA_CORE, RK_CKS,  HA_CORE, RK_CKS,  RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
+      // row 6 — broadest shoulder width; energy tendril arms start
+      [RK_CKS,  RK_CK,   RK_CKH,  RK_BLS,  RK_CKH,  RK_CK,   RK_CKH,  RK_CK,   RK_CKH,  RK_BLS,  RK_CKH,  RK_CKH,  RK_CK,   RK_CKS,  C,       C      ],
+      // row 7 — tendrils reach outward, core pulses at center
+      [RK_BL,   RK_BLS,  RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   HA_CORE, RK_CK,   RK_CKS,  RK_CKH,  RK_CK,   RK_BLS,  RK_BL,   C,       C      ],
+      // row 8 — lower body, cloak narrows
+      [C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
+      // row 9 — robe narrows further
+      [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   C,       C,       C,       C      ],
+      // row 10 — robe hem, wisps emerge
+      [C,       C,       RK_CKS,  RK_CK,   RK_WSP,  RK_CKS,  RK_CKH,  RK_CKS,  RK_WSP,  RK_CK,   RK_CKS,  C,       C,       C,       C,       C      ],
+      // row 11 — wisp tendrils spread wide
+      [C,       RK_WSP,  RK_CKS,  RK_WSP,  RK_CK,   RK_CKS,  RK_WSP,  RK_CKS,  RK_CK,   RK_WSP,  RK_CKS,  RK_WSP,  C,       C,       C,       C      ],
+      // row 12 — wisps scatter across full width
+      [RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  RK_CKS,  C,       RK_CKS,  RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       C,       C      ],
+      // row 13 — sparse floating wisps
+      [C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       C,       C,       C      ],
+      // row 14 — fading wisp traces
+      [RK_WSP,  C,       C,       C,       RK_WSP,  C,       RK_WSP,  C,       C,       RK_WSP,  C,       C,       C,       RK_WSP,  C,       C      ],
+      // row 15 — last ghostly tendrils
+      [C,       C,       RK_WSP,  C,       C,       C,       C,       RK_WSP,  C,       C,       C,       C,       RK_WSP,  C,       C,       C      ],
     ], 4, 'enemy_hollow_guardian'));
 
-    // Telegraph: rearing up, arms raised high, eyes blazing bright
+    // Telegraph: hunches forward, arms pull inward gathering void energy, eyes blaze, CHG charge outline
     this.registerTexture('enemy_hollow_guardian_telegraph', () => this.createSpriteTexture([
-      [C,       C,       HG_MOSS, C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       HG_MOSS, C,       C      ],
-      [C,       HG_ROOT, HG_BARK, HG_MOSS, C,       C,       C,       C,       C,       C,       C,       C,       HG_MOSS, HG_BARK, HG_ROOT, C      ],
-      [C,       HG_BARK, HG_BARK_H,HG_BARK,HG_MOSS, C,       HG_MOSS, HG_MOSS, C,       C,       HG_MOSS, HG_BARK, HG_BARK_H,HG_BARK, C,       C      ],
-      [C,       HG_ROOT, HG_BARK, HG_BARK_H,HG_BARK,HG_BARK_H,HG_BARK,HG_GLOW, HG_BARK, HG_BARK_H,HG_BARK, HG_BARK_H,HG_BARK, HG_ROOT, C,       C      ],
-      [C,       C,       HG_MOSS, HG_BARK, HG_BARK_S,HG_EYE_B,HG_BARK_S,HG_BARK,HG_BARK_S,HG_EYE_B,HG_BARK_S,HG_BARK, HG_MOSS, C,       C,       C      ],
-      [C,       C,       C,       HG_BARK_S,HG_BARK,HG_BARK_S,HG_CORE, HG_GLOW, HG_CORE, HG_BARK_S,HG_BARK, HG_BARK_S,C,       C,       C,       C      ],
-      [C,       C,       C,       HG_BARK, HG_BARK_H,HG_BARK,HG_BARK_S,HG_CORE, HG_BARK_S,HG_BARK, HG_BARK_H,HG_BARK, C,       C,       C,       C      ],
-      [C,       C,       C,       HG_BARK_S,HG_BARK,HG_BARK_H,HG_GLOW, HG_BARK_S,HG_GLOW, HG_BARK_H,HG_BARK, HG_BARK_S,C,       C,       C,       C      ],
-      [C,       C,       C,       C,       HG_BARK_S,HG_BARK,HG_BARK, HG_BARK, HG_BARK, HG_BARK, HG_BARK_S,C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       HG_ROOT, HG_BARK_S,HG_BARK,HG_BARK_S,HG_BARK, HG_BARK_S,HG_ROOT, C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       HG_ROOT, HG_BARK_S,C,       HG_BARK_S,HG_ROOT, C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       C,       HG_ROOT, C,       HG_ROOT, C,       C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      // row 0 — hood peak with charge sparks
+      [C,       C,       C,       C,       C,       RK_CHG,  HA_CRWN, RK_CKH,  HA_CRWN, RK_CHG,  C,       C,       C,       C,       C,       C      ],
+      // row 1 — charge energy outlines hood
+      [C,       C,       C,       C,       RK_CHG,  RK_CKS,  RK_CKH,  RK_CK,   RK_CKH,  RK_CKS,  RK_CHG,  C,       C,       C,       C,       C      ],
+      // row 2 — hood interior lit by charge
+      [C,       C,       C,       RK_CKS,  RK_CK,   RK_CHG,  RK_HD,   RK_HD,   RK_HD,   RK_CHG,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
+      // row 3 — eyes blaze at full intensity
+      [C,       C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYG,  RK_HD,   RK_EYG,  RK_SKH,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
+      // row 4 — jaw
+      [C,       C,       RK_CKS,  RK_CK,   RK_SKS,  RK_SK,   RK_CKS,  RK_SKS,  RK_SK,   RK_CKS,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
+      // row 5 — shoulders hunch forward, core SUMM energy flares
+      [C,       RK_CHG,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  HA_SUMM, RK_CKS,  HA_SUMM, RK_CKS,  RK_CKH,  RK_CK,   RK_CHG,  C,       C,       C      ],
+      // row 6 — arms pull inward, charge energy at shoulder tips
+      [RK_CHG,  RK_CK,   RK_CKH,  RK_BLS,  RK_CKH,  RK_CK,   RK_CKH,  RK_CK,   RK_CKH,  RK_BLS,  RK_CKH,  RK_CKH,  RK_CK,   RK_CHG,  C,       C      ],
+      // row 7 — tendrils gather to center, void pool forms
+      [C,       RK_BLS,  RK_CKS,  RK_BLS,  RK_CKH,  RK_BLS,  RK_CHG,  HA_SUMM, RK_CHG,  RK_BLS,  RK_CKH,  RK_BLS,  RK_CKS,  C,       C,       C      ],
+      // row 8 — body compressed inward
+      [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CHG,  RK_CK,   RK_CHG,  RK_CKS,  RK_CKH,  RK_CK,   C,       C,       C,       C      ],
+      // row 9 — body gathered tight
+      [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   C,       C,       C,       C      ],
+      // row 10 — wisps pulled upward (contracted)
+      [C,       C,       C,       RK_CKS,  RK_WSP,  RK_CKS,  RK_CKH,  RK_CKS,  RK_WSP,  RK_CKS,  C,       C,       C,       C,       C,       C      ],
+      // row 11 — tighter wisps
+      [C,       C,       RK_WSP,  RK_CKS,  RK_CK,   RK_WSP,  RK_CKS,  RK_WSP,  RK_CK,   RK_CKS,  RK_WSP,  C,       C,       C,       C,       C      ],
+      // row 12 — sparse contracted wisps
+      [C,       RK_WSP,  C,       RK_WSP,  C,       RK_CKS,  C,       RK_CKS,  C,       RK_WSP,  C,       RK_WSP,  C,       C,       C,       C      ],
+      // row 13 — minimal trailing wisps
+      [C,       C,       RK_WSP,  C,       C,       RK_WSP,  C,       RK_WSP,  C,       C,       RK_WSP,  C,       C,       C,       C,       C      ],
+      // row 14 — last wisps (almost gone)
+      [C,       C,       C,       C,       RK_WSP,  C,       C,       C,       RK_WSP,  C,       C,       C,       C,       C,       C,       C      ],
+      // row 15 — void
       [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
     ], 4, 'enemy_hollow_guardian_telegraph'));
 
-    // Attack: arms slammed forward/down, roots lashing outward, maximum menace
+    // Attack: arms thrust wide, slash arcs erupt, wisps explode outward, SUMM core flares
     this.registerTexture('enemy_hollow_guardian_attack', () => this.createSpriteTexture([
-      [C,       C,       C,       C,       C,       HG_MOSS, HG_MOSS, HG_MOSS, HG_MOSS, HG_MOSS, C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       HG_MOSS, HG_BARK, HG_BARK_H,HG_BARK,HG_GLOW, HG_BARK, HG_BARK_H,HG_BARK, HG_MOSS, C,       C,       C,       C      ],
-      [C,       C,       HG_MOSS, HG_BARK, HG_BARK_S,HG_EYE_B,HG_BARK_S,HG_BARK,HG_BARK_S,HG_EYE_B,HG_BARK_S,HG_BARK, HG_MOSS, C,       C,       C      ],
-      [C,       C,       HG_BARK_S,HG_BARK,HG_BARK, HG_BARK_S,HG_CORE, HG_GLOW, HG_CORE, HG_BARK_S,HG_BARK, HG_BARK, HG_BARK_S,C,       C,       C      ],
-      [C,       C,       HG_BARK, HG_BARK_H,HG_BARK_S,HG_BARK,HG_BARK_S,HG_CORE, HG_BARK_S,HG_BARK, HG_BARK_S,HG_BARK_H,HG_BARK, C,       C,       C      ],
-      [HG_ROOT, HG_BARK, HG_BARK_H,HG_GLOW,HG_BARK_S,HG_BARK,HG_BARK, HG_BARK_S,HG_BARK, HG_BARK, HG_BARK_S,HG_GLOW, HG_BARK_H,HG_BARK, HG_ROOT, C      ],
-      [HG_BARK, HG_BARK_H,HG_BARK,HG_BARK, HG_BARK, HG_BARK_S,C,      C,       C,       HG_BARK_S,HG_BARK, HG_BARK, HG_BARK, HG_BARK_H,HG_BARK, C      ],
-      [HG_ROOT, HG_GLOW, HG_BARK_S,C,      C,       C,       C,       C,       C,       C,       C,       C,       HG_BARK_S,HG_GLOW, HG_ROOT, C      ],
-      [C,       C,       C,       C,       C,       HG_BARK_S,HG_BARK,HG_BARK, HG_BARK, HG_BARK_S,C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       HG_ROOT, HG_BARK_S,HG_BARK,HG_BARK_S,HG_BARK, HG_BARK_S,HG_ROOT, C,       C,       C,       C,       C      ],
-      [C,       C,       C,       HG_ROOT, C,       HG_ROOT, HG_BARK_S,C,       HG_BARK_S,HG_ROOT, C,       HG_ROOT, C,       C,       C,       C      ],
-      [C,       HG_ROOT, C,       C,       C,       C,       HG_ROOT, C,       HG_ROOT, C,       C,       C,       C,       HG_ROOT, C,       C      ],
-      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      // row 0 — hood stable
+      [C,       C,       C,       C,       C,       C,       HA_CRWN, RK_CKH,  HA_CRWN, C,       C,       C,       C,       C,       C,       C      ],
+      // row 1
+      [C,       C,       C,       C,       C,       RK_CKS,  RK_CKH,  RK_CK,   RK_CKH,  RK_CKS,  C,       C,       C,       C,       C,       C      ],
+      // row 2
+      [C,       C,       C,       C,       RK_CKS,  RK_CK,   RK_HD,   RK_HD,   RK_HD,   RK_CK,   RK_CKS,  C,       C,       C,       C,       C      ],
+      // row 3 — eyes full blaze
+      [C,       C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYG,  RK_HD,   RK_EYG,  RK_SKH,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
+      // row 4
+      [C,       C,       RK_CKS,  RK_CK,   RK_SKS,  RK_SK,   RK_CKS,  RK_SKS,  RK_SK,   RK_CKS,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
+      // row 5 — core erupts with SUMM energy
+      [C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_SLH,  HA_SUMM, RK_SLH,  HA_SUMM, RK_SLH,  RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
+      // row 6 — arms swing fully outward; slash arc at tips
+      [RK_SLH,  RK_BL,   RK_BLS,  RK_CKH,  RK_CK,   RK_CKH,  RK_CK,   RK_CKH,  RK_CK,   RK_CKH,  RK_BLS,  RK_BL,   RK_SLH,  C,       C,       C      ],
+      // row 7 — slash arc extends to full width, SUMM flash at ends
+      [HA_SUMM, RK_SLH,  RK_BLS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   HA_SUMM, RK_CK,   RK_CKS,  RK_CKH,  RK_BLS,  RK_SLH,  HA_SUMM, C,       C      ],
+      // row 8 — body center
+      [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   C,       C,       C,       C      ],
+      // row 9
+      [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   C,       C,       C,       C      ],
+      // row 10 — wisps burst outward
+      [C,       RK_WSP,  RK_CKS,  RK_WSP,  RK_CK,   RK_WSP,  RK_CKH,  RK_WSP,  RK_CK,   RK_WSP,  RK_CKS,  RK_WSP,  C,       C,       C,       C      ],
+      // row 11 — wisps exploding wide
+      [RK_WSP,  C,       RK_WSP,  RK_CKS,  RK_WSP,  RK_CKS,  RK_WSP,  RK_CKS,  RK_WSP,  RK_CKS,  RK_WSP,  C,       RK_WSP,  C,       C,       C      ],
+      // row 12 — wisps scatter
+      [C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  RK_CKS,  RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       C,       C,       C      ],
+      // row 13 — wisps burst further
+      [RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       C,       RK_WSP,  C,       C      ],
+      // row 14 — last burst traces
+      [C,       C,       C,       RK_WSP,  C,       C,       C,       RK_WSP,  C,       C,       RK_WSP,  C,       C,       C,       C,       C      ],
+      // row 15 — void
       [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
     ], 4, 'enemy_hollow_guardian_attack'));
 

@@ -43,6 +43,7 @@ import {
   createSetActiveNpcsForCurrentMap,
 } from '@/game/runtime/RuntimeWorldAdapters';
 import { buildRuntimePhaseContexts } from '@/game/runtime/RuntimePhaseContextBuilder';
+import { createWorldItemRenderer } from '@/game/runtime/WorldItemRenderer';
 
 type InteractionPrompt = string | null;
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
@@ -413,8 +414,11 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     // LMB charge attack state
     // Death state - use ref so callback can reset it
 
-    // Set biome for loaded map
+    // Set biome and day/night mode for loaded map
     biomeAmbience.setBiome(MAP_BIOMES[startMap] || 'grassland');
+    dayNightCycle.setIndoor(startMap.startsWith('interior_'));
+
+    const worldItemRenderer = createWorldItemRenderer(scene);
 
     let disposed = false;
     let rafId = 0;
@@ -575,6 +579,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       showTransitionOverlay: showTransitionOverlay,
       setBiomeForMap: (mapId: string) => {
         biomeAmbience.setBiome(MAP_BIOMES[mapId] || 'grassland');
+        dayNightCycle.setIndoor(mapId.startsWith('interior_'));
       },
       switchMusicTrack,
       triggerSave,
@@ -975,6 +980,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           npcScreenMinPx: NPC_SCREEN_MIN_PX,
           autoSaveInterval: AUTO_SAVE_INTERVAL,
           triggerSave,
+          worldItemRenderer,
         });
       } catch (error) {
         fatalRuntime.report(error, 'phase context setup');
@@ -1133,6 +1139,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             spinSwooshMesh,
             spinSwooshMaterial,
           });
+          worldItemRenderer.dispose();
         },
       });
     };

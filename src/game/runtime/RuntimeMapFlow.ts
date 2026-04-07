@@ -248,7 +248,7 @@ export function createRuntimeMapFlow({
     const map = world.getCurrentMap();
     const shortcutOpen = state.getFlag('whispering_woods_shortcut_open');
     for (let y = 199; y <= 202; y++) {
-      for (let x = 122; x <= 136; x++) {
+      for (let x = 121; x <= 136; x++) {
         const existing = map.tiles[y]?.[x];
         if (!existing) continue;
         map.tiles[y][x] = shortcutOpen

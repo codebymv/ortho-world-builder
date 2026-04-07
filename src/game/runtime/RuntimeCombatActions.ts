@@ -171,12 +171,25 @@ export function createRuntimeCombatActions({
       }
       if (enemy.type === 'golem') {
         state.setFlag('forest_golem_defeated', true);
+        // Drop the Golem Heart as a world item at the enemy's position
+        state.worldItems.push({
+          instanceId: `golem_heart_${state.currentMap}_${Math.round(enemy.position.x)}_${Math.round(enemy.position.y)}`,
+          itemId: 'golem_heart',
+          mapId: state.currentMap,
+          x: enemy.position.x,
+          y: enemy.position.y,
+        });
+        screenShake.shake(0.5, 0.4);
+        particleSystem.emit(
+          new THREE.Vector3(enemy.position.x, enemy.position.y, 0.5),
+          30, 0xAA8844, 0.1, 1.8, 1.2,
+        );
       }
       if (enemy.type === 'hollow_guardian') {
         state.setFlag('hollow_guardian_defeated', true);
         const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
         if (hunterQuest) {
-          hunterQuest.objectives[4] = 'Defeat the Hollow Guardian \u2713';
+          hunterQuest.objectives[4] = 'Defeat the Hollow Apparition \u2713';
         }
         screenShake.shake(0.6, 0.5);
         screenShake.hitStop(0.3);
@@ -204,7 +217,7 @@ export function createRuntimeCombatActions({
     }
 
     if (enemy.type === 'hollow_guardian') {
-      notify('HOLLOW GUARDIAN VANQUISHED', {
+      notify('HOLLOW APPARITION VANQUISHED', {
         id: 'boss-kill',
         description: `+${enemy.essenceReward} essence. The fog lifts…`,
         duration: 5000,

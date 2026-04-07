@@ -11,7 +11,7 @@ const ENEMY_MOVE_RADIUS = 0.15;
 const DORMANCY_RANGE_SQ = 40 * 40;
 // Faction enemies only begin fighting each other once the player is within this radius.
 // Keeps pre-staged battles in stasis until the player is close enough to witness the start.
-const FACTION_FIGHT_WAKE_SQ = 16 * 16;
+const FACTION_FIGHT_WAKE_SQ = 10 * 10;
 const _tmpOldPos = { x: 0, y: 0 };
 
 function trySlideEnemyMove(
@@ -304,7 +304,23 @@ export class CombatSystem {
         }
       }
 
-      // Phase 2 transition for the Hollow Guardian at 50% HP
+      // Stone Golem phase 2 at 50% HP — cracks appear, becomes faster and more aggressive
+      if (enemy.type === 'golem' && !enemy.phaseTransitioned && enemy.health <= enemy.maxHealth * 0.5) {
+        enemy.phase = 2;
+        enemy.phaseTransitioned = true;
+        enemy.speed *= 1.35;
+        enemy.telegraphDuration *= 0.8;
+        enemy.recoverDuration *= 0.75;
+        enemy.damage = Math.round(enemy.damage * 1.2);
+        enemy.attackRange *= 1.15;
+        // Shorter snare on the cracked golem — still punishing but not as oppressive
+        if (enemy.behaviorOverrides.snareDuration) {
+          enemy.behaviorOverrides = { ...enemy.behaviorOverrides, snareDuration: 0.5, chainChance: 0.6 };
+        }
+        if (onPhaseChange) onPhaseChange(enemy, 2);
+      }
+
+      // Phase 2 transition for the Hollow Apparition at 50% HP — gains speed and aggression
       if (enemy.type === 'hollow_guardian' && !enemy.phaseTransitioned && enemy.health <= enemy.maxHealth * 0.5) {
         enemy.phase = 2;
         enemy.phaseTransitioned = true;
@@ -313,6 +329,14 @@ export class CombatSystem {
         enemy.recoverDuration *= 0.7;
         enemy.damage = Math.round(enemy.damage * 1.3);
         if (onPhaseChange) onPhaseChange(enemy, 2);
+      }
+      // Phase 3 transition at 25% HP — second summon wave, final enrage
+      if (enemy.type === 'hollow_guardian' && enemy.phase === 2 && enemy.health <= enemy.maxHealth * 0.25) {
+        enemy.phase = 3;
+        enemy.speed *= 1.2;
+        enemy.telegraphDuration *= 0.85;
+        enemy.damage = Math.round(enemy.damage * 1.15);
+        if (onPhaseChange) onPhaseChange(enemy, 3);
       }
 
       const effectiveChaseRange = enemy.playerAggroed

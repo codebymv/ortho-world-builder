@@ -161,9 +161,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     } else if (interactionId === 'boss_arena_chest' && context.items.crystal_greatsword) {
       context.state.addItem({ ...context.items.crystal_greatsword });
       bonusDescription = ' and a Crystal Greatsword';
-    } else if (interactionId === 'golem_arena_chest' && context.items.golem_heart) {
-      context.state.addItem({ ...context.items.golem_heart });
-      bonusDescription = ' and a Golem Heart';
     } else if (interactionId === 'forest_river_chest' && context.items.ornamental_broadsword) {
       context.state.addItem({ ...context.items.ornamental_broadsword });
       bonusDescription = ' and an Ornamental Broadsword';
@@ -451,6 +448,41 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  /** Auto-pickup world items in proximity (called every player movement frame). */
+  const tryPickupWorldItems = (px: number, py: number): void => {
+    const currentMap = context.state.currentMap;
+    const toRemove: string[] = [];
+
+    for (const wi of context.state.worldItems) {
+      if (wi.mapId !== currentMap) continue;
+      const dx = px - wi.x;
+      const dy = py - wi.y;
+      if (dx * dx + dy * dy >= 1.5 * 1.5) continue;
+
+      const itemDef = context.items[wi.itemId];
+      if (!itemDef) continue;
+
+      context.state.addItem({ ...itemDef });
+      context.playItemGrab();
+      context.emitSparkles(new THREE.Vector3(wi.x, wi.y, 0.5));
+      context.notify(`${itemDef.name} obtained`, {
+        id: `world-item-pickup-${wi.instanceId}`,
+        type: 'success',
+        description: itemDef.description,
+        duration: 3000,
+      });
+      toRemove.push(wi.instanceId);
+    }
+
+    if (toRemove.length > 0) {
+      context.state.worldItems = context.state.worldItems.filter(
+        wi => !toRemove.includes(wi.instanceId),
+      );
+      context.triggerSave();
+      context.triggerUIUpdate();
+    }
+  };
+
   return {
     tryInteractWithNearbyNpc,
     tryReclaimDroppedEssence,
@@ -468,5 +500,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleHollowFogGate,
     tryHandleBlightedRoot,
     tryHandleDialogueInteraction,
+    tryPickupWorldItems,
   };
 }

@@ -60,11 +60,11 @@ export function createRuntimePhaseAdapters({
       ),
     isPortalDestinationUnlocked,
     isCollectedCriticalItem: (interactionId: string) =>
-      state.getFlag(criticalPathItems[interactionId].collectedFlag),
-    isChestOpened: (interactionId: string) => state.getFlag(`${interactionId}_opened`),
+      !!state.getFlag(criticalPathItems[interactionId].collectedFlag),
+    isChestOpened: (interactionId: string) => !!state.getFlag(`${interactionId}_opened`),
     isConsumablePickupCollected: (interactionId: string, x: number, y: number) =>
       interactionId === 'tempest_grass_pickup'
-        ? state.getFlag(`tempest_grass_${state.currentMap}_${Math.round(x)}_${Math.round(y)}`)
+        ? !!state.getFlag(`tempest_grass_${state.currentMap}_${Math.round(x)}_${Math.round(y)}`)
         : false,
     setInteractionPrompt,
     closeDialogueSession,

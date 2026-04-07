@@ -9,6 +9,7 @@ import type { World } from '@/lib/game/World';
 import type { BiomeAmbience } from '@/lib/game/BiomeAmbience';
 import type { WeatherSystem } from '@/lib/game/WeatherSystem';
 import type { DayNightCycle } from '@/lib/game/DayNightCycle';
+import type { WorldItemRendererInstance } from '@/game/runtime/WorldItemRenderer';
 import type { Direction8 } from '@/game/runtime/PlayerSimulationSystem';
 import type { EnemyVisualRegistry } from '@/game/runtime/EnemyVisualRegistry';
 import type { EnemyVisualProfile, NpcWanderState } from '@/game/runtime/RuntimeConfig';
@@ -214,6 +215,9 @@ export interface RuntimeLoopTailContext {
   particleSystem: ParticleSystem;
   autoSaveInterval: number;
   triggerSave: () => void;
+  worldItemRenderer: WorldItemRendererInstance;
+  state: GameState;
+  assetManager: AssetManager;
 }
 
 interface CreateRuntimePhaseContextsOptions {

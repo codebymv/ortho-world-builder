@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { GameState, NPC } from '@/lib/game/GameState';
+import type { GameState, NPC, WorldItem } from '@/lib/game/GameState';
 import { INTERACTABLE_QUERY_RADIUS, type World } from '@/lib/game/World';
 
 type InteractionPrompt = string | null;
@@ -37,6 +37,8 @@ interface UpdateInteractionIndicatorOptions {
   lastInteractionPrompt: InteractionPrompt;
   setInteractionPrompt: (prompt: InteractionPrompt) => void;
   meshes: InteractionIndicatorMeshes;
+  worldItems: WorldItem[];
+  getItemName: (itemId: string) => string | null;
 }
 
 export function updateInteractionIndicator({
@@ -56,11 +58,14 @@ export function updateInteractionIndicator({
   lastInteractionPrompt,
   setInteractionPrompt,
   meshes,
+  worldItems,
+  getItemName,
 }: UpdateInteractionIndicatorOptions): InteractionPrompt {
   let showIndicator = false;
   let indicatorX = 0;
   let indicatorY = 0;
   let indicatorIsObjectiveNpc = false;
+  let indicatorIsWorldItem = false;
   let nextInteractionPrompt: InteractionPrompt = null;
   const interactionRange = 2.0;
 
@@ -131,6 +136,26 @@ export function updateInteractionIndicator({
   }
 
   if (!showIndicator) {
+    const pickupRangeSq = interactionRange * interactionRange;
+    let closestDistSq = pickupRangeSq;
+    for (const wi of worldItems) {
+      if (wi.mapId !== state.currentMap) continue;
+      const wdx = state.player.position.x - wi.x;
+      const wdy = state.player.position.y - wi.y;
+      const distSq = wdx * wdx + wdy * wdy;
+      if (distSq < closestDistSq) {
+        closestDistSq = distSq;
+        showIndicator = true;
+        indicatorIsWorldItem = true;
+        indicatorX = wi.x;
+        indicatorY = wi.y;
+        const name = getItemName(wi.itemId) ?? wi.itemId;
+        nextInteractionPrompt = name;
+      }
+    }
+  }
+
+  if (!showIndicator) {
     const interactionRangeSq = interactionRange * interactionRange;
     let closestDistSq = interactionRangeSq;
     for (const npc of state.npcs) {
@@ -179,7 +204,9 @@ export function updateInteractionIndicator({
       0.8 + Math.sin(currentTime / 250) * 0.15,
       1,
     );
-    indicatorMaterial.color.setHex(indicatorIsObjectiveNpc ? 0xffe596 : 0xffffff);
+    indicatorMaterial.color.setHex(
+      indicatorIsObjectiveNpc ? 0xffe596 : indicatorIsWorldItem ? 0xffd966 : 0xffffff,
+    );
     objectiveIndicatorRingMesh.visible = indicatorIsObjectiveNpc;
     objectiveIndicatorOuterMesh.visible = indicatorIsObjectiveNpc;
     if (indicatorIsObjectiveNpc) {

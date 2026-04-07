@@ -239,8 +239,8 @@ const Game = () => {
       stamina: Math.round(state.player.stamina),
       maxHealth: state.player.maxHealth,
       maxStamina: state.player.maxStamina,
-      gold: state.gold,
-      essence: state.essence,
+      gold: state.player.gold,
+      essence: state.player.essence,
     };
     const prevSnapshot = lastUiHudSnapshotRef.current;
     const changed = !prevSnapshot ||
@@ -706,5 +706,4 @@ const Game = () => {
 };
 
 export default Game;
-
 
