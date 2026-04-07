@@ -124,6 +124,33 @@ export function createProgressionService(context: ProgressionServiceContext) {
       }
     }
 
+    if (dialogueId === 'blighted_root') {
+      if (state.getFlag('blighted_root_destroyed')) {
+        startNode = dialogue.nodes.find(node => node.id === 'already_destroyed') ?? startNode;
+      }
+    }
+
+    if (dialogueId === 'petra_ashveil') {
+      if (state.getFlag('petra_heart_delivered')) {
+        startNode = dialogue.nodes.find(node => node.id === 'after_delivery') ?? startNode;
+      } else if (state.hasItem('golem_heart')) {
+        startNode = dialogue.nodes.find(node => node.id === 'has_heart') ?? startNode;
+      }
+    }
+
+    if (dialogueId === 'grove_warden') {
+      const groveQuest = state.quests.find(q => q.id === 'blighted_heart');
+      if (groveQuest?.completed) {
+        startNode = dialogue.nodes.find(node => node.id === 'after_quest') ?? startNode;
+      } else if (groveQuest?.active && !groveQuest.completed) {
+        if (state.getFlag('blighted_root_destroyed')) {
+          startNode = dialogue.nodes.find(node => node.id === 'quest_turnin') ?? startNode;
+        } else {
+          startNode = dialogue.nodes.find(node => node.id === 'quest_active') ?? startNode;
+        }
+      }
+    }
+
     if (['blacksmith', 'healer', 'apothecary', 'chapel_keeper', 'farmer', 'child', 'innkeeper'].includes(dialogueId)) {
       startNode = selectVillageReactivityNode(state, dialogue, startNode);
     }
@@ -438,6 +465,90 @@ export function createProgressionService(context: ProgressionServiceContext) {
           id: 'quest-done-merchant',
           type: 'success',
           description: 'Your purse grows heavier.',
+          duration: 6000,
+        });
+        context.triggerUIUpdate();
+        shouldSave = true;
+      }
+    }
+
+    if (state.currentDialogue === 'blighted_root' && currentDialogue.node.id === 'destroy' && nextId === 'end') {
+      if (!state.getFlag('blighted_root_destroyed')) {
+        state.setFlag('blighted_root_destroyed', true);
+      }
+      let blightedRootProgress = false;
+      // Grant the quest item whenever it is still missing (decoupled from flag — avoids softlocks).
+      if (context.items.blighted_root_shard && !state.hasItem('blighted_root_shard')) {
+        state.addItem({ ...context.items.blighted_root_shard });
+        context.notify('Blighted Root Destroyed', {
+          id: 'blighted-root-destroyed',
+          type: 'success',
+          description: 'A gnarled shard pulses in your hands. Return it to Warden Callum.',
+          duration: 3600,
+        });
+        shouldSave = true;
+        blightedRootProgress = true;
+      }
+      const groveQuest = state.quests.find(q => q.id === 'blighted_heart' && q.active && !q.completed);
+      if (groveQuest) {
+        groveQuest.objectives[1] = `Find and destroy the Blighted Root ${CHECKMARK}`;
+        context.addMarkersFromText('Warden Callum', state.currentMap);
+        shouldSave = true;
+        blightedRootProgress = true;
+      }
+      if (blightedRootProgress) {
+        context.triggerUIUpdate();
+        context.triggerMinimapUpdate(true);
+      }
+    }
+
+    if (state.currentDialogue === 'blighted_root' && currentDialogue.node.id === 'already_destroyed' && nextId === 'end') {
+      const heartQuest = state.quests.find(q => q.id === 'blighted_heart');
+      if (!heartQuest?.completed && context.items.blighted_root_shard && !state.hasItem('blighted_root_shard')) {
+        state.addItem({ ...context.items.blighted_root_shard });
+        context.notify('Blighted Root Destroyed', {
+          id: 'blighted-root-destroyed-return',
+          type: 'success',
+          description: 'You pry loose a last loose fragment from the dead growth. Return it to Warden Callum.',
+          duration: 3600,
+        });
+        const groveQuest = state.quests.find(q => q.id === 'blighted_heart' && q.active && !q.completed);
+        if (groveQuest) {
+          groveQuest.objectives[1] = `Find and destroy the Blighted Root ${CHECKMARK}`;
+          context.addMarkersFromText('Warden Callum', state.currentMap);
+        }
+        context.triggerUIUpdate();
+        context.triggerMinimapUpdate(true);
+        shouldSave = true;
+      }
+    }
+
+    if (state.currentDialogue === 'petra_ashveil' && nextId === 'end' && currentDialogue.node.id === 'deliver_heart') {
+      if (!state.getFlag('petra_heart_delivered') && state.hasItem('golem_heart')) {
+        state.removeItem('golem_heart');
+        state.addEssence(2000);
+        state.setFlag('petra_heart_delivered', true);
+        context.notify('Golem Heart Sold!', {
+          id: 'petra-heart-sold',
+          type: 'success',
+          description: 'Petra Ashveil paid 2,000 essence for the Golem Heart.',
+          duration: 4000,
+        });
+        context.triggerUIUpdate();
+        shouldSave = true;
+      }
+    }
+
+    if (state.currentDialogue === 'grove_warden' && nextId === 'end' && currentDialogue.node.id === 'reward') {
+      const groveQuest = state.quests.find(q => q.id === 'blighted_heart' && q.active && !q.completed);
+      if (groveQuest && state.getFlag('blighted_root_destroyed')) {
+        state.removeItem('blighted_root_shard');
+        groveQuest.objectives[2] = `Return to Warden Callum ${CHECKMARK}`;
+        state.completeQuest('blighted_heart');
+        context.notify('Quest Completed: The Blighted Heart!', {
+          id: 'quest-done-grove',
+          type: 'success',
+          description: 'The grove will heal. Three Verdant Tonics and 75 gold earned.',
           duration: 6000,
         });
         context.triggerUIUpdate();

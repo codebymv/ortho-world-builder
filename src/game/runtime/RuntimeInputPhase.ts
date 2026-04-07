@@ -96,14 +96,6 @@ export function setupRuntimeInputPhase({
       runtimeSession.animation.playerAnimState = value;
     },
     getPlayerAnimState: () => runtimeSession.animation.playerAnimState,
-    playBlock,
-    setIsBlocking: value => {
-      runtimeSession.combat.isBlocking = value;
-    },
-    getIsBlocking: () => runtimeSession.combat.isBlocking,
-    setBlockStartTime: value => {
-      runtimeSession.combat.blockStartTime = value;
-    },
     bonfireMenuOpenRef,
     closeBonfireMenu,
   });
@@ -150,6 +142,7 @@ export function setupRuntimeInputPhase({
       runtimeSession.input.lmbHoldStartTime = value;
     },
     chargeTimeMin,
+    getComboWindowTimer: () => runtimeSession.animation.comboWindowTimer,
   });
 
   const handleResize = createViewportResizeHandler({

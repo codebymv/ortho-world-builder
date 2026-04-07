@@ -6,7 +6,7 @@ import { World } from '@/lib/game/World';
 import { ENEMY_BLUEPRINTS, DEFAULT_ENEMY } from '@/data/enemies';
 import { getPrimaryObjectiveText, MapMarker, isNpcObjectiveTarget } from '@/lib/game/MapMarkers';
 import { SaveManager } from '@/lib/game/SaveManager';
-import { allMaps } from '@/data/maps';
+import { allMaps, subscribeMapHotReload } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
 import { notify } from '@/lib/game/notificationBus';
 import type { WorldMap } from '@/lib/game/World';
@@ -91,6 +91,7 @@ export interface RuntimeHostRefs {
   playMenuOpenRef: MutableRefObject<(() => void) | null>;
   playMenuCloseRef: MutableRefObject<(() => void) | null>;
   restAtBonfireRef: MutableRefObject<(() => void) | null>;
+  travelToBonfireRef: MutableRefObject<((entry: import('@/data/bonfires').BonfireEntry) => void) | null>;
   killCountRef: MutableRefObject<number>;
 }
 
@@ -173,6 +174,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       playMenuOpenRef,
       playMenuCloseRef,
       restAtBonfireRef,
+      travelToBonfireRef,
       killCountRef,
     },
     ui: {
@@ -379,6 +381,12 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     const DRINK_DURATION = 0.8; // seconds to drink potion
     const ATTACK_FRAME_DURATION = 0.1;
 
+    // Combo chain constants
+    // Each element corresponds to combo step 0 (light), 1 (follow-up), 2 (finisher).
+    const COMBO_FRAME_MULTIPLIERS: [number, number, number] = [1.0, 0.85, 0.72];
+    const COMBO_DAMAGE_MULTIPLIERS: [number, number, number] = [1.0, 1.0, 1.4];
+    const COMBO_WINDOW_DURATION = 0.30; // seconds after a swing completes to chain the next hit
+
     // Charge attack state
     const CHARGE_TIME_MIN = 0.4;
     const CHARGE_TIME_MAX = 1.2;
@@ -537,9 +545,16 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       () => syncVillageNpcReactivity(state, npcData, npcWander),
     );
 
+    const showTransitionOverlay = (mapName: string, mapSubtitle?: string) => {
+      setTransitionMapName(mapName);
+      setTransitionMapSubtitle(mapSubtitle ?? '');
+      setTransitionActive(true);
+      effectTimeouts.push(setTimeout(() => setTransitionActive(false), 800));
+    };
 
     const {
       syncWhisperingWoodsShortcutState,
+      syncGroveShelfShortcutState,
       syncHollowShortcutState,
       syncForestFortGateState,
       syncHollowFogGateState,
@@ -557,12 +572,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       world,
       allMaps,
       notify,
-      showTransitionOverlay: (mapName: string, mapSubtitle?: string) => {
-        setTransitionMapName(mapName);
-        setTransitionMapSubtitle(mapSubtitle ?? '');
-        setTransitionActive(true);
-        effectTimeouts.push(setTimeout(() => setTransitionActive(false), 800));
-      },
+      showTransitionOverlay: showTransitionOverlay,
       setBiomeForMap: (mapId: string) => {
         biomeAmbience.setBiome(MAP_BIOMES[mapId] || 'grassland');
       },
@@ -607,6 +617,17 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     respawnEnemiesForCurrentMap(state.currentMap, world.getCurrentMap());
     setActiveNpcsForCurrentMap();
 
+    if (import.meta.hot) {
+      subscribeMapHotReload(() => {
+        const mapId = state.currentMap;
+        world.loadMap(allMaps[mapId]);
+        syncPersistentMapState();
+        world.updateChunks(state.player.position.x, state.player.position.y);
+        respawnEnemiesForCurrentMap(mapId, world.getCurrentMap());
+        setActiveNpcsForCurrentMap();
+      });
+    }
+
     const {
       enemyAudio,
       playFootstep,
@@ -630,7 +651,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       performDodge,
       performAttack,
       performChargeAttack,
+      triggerComboChain,
       restAtBonfire,
+      travelToBonfire,
     } = (() => {
       try {
         return setupRuntimeActionPhase({
@@ -660,6 +683,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncHarvestedTempestGrassState,
           syncHarvestedMoonbloomState,
           syncWhisperingWoodsShortcutState,
+          syncGroveShelfShortcutState,
           syncHollowShortcutState,
           syncForestFortGateState,
           syncHollowFogGateState,
@@ -686,6 +710,8 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           chargeDamageMult: CHARGE_DAMAGE_MULT,
           dodgeIFrameDuration: DODGE_IFRAME_DURATION,
           dodgeStaminaCost: 26,
+          comboFrameMultipliers: COMBO_FRAME_MULTIPLIERS,
+          comboDamageMultipliers: COMBO_DAMAGE_MULTIPLIERS,
           lungeDistMin: LUNGE_DIST_MIN,
           lungeDistMax: LUNGE_DIST_MAX,
           lungeSpeedBase: LUNGE_SPEED_BASE,
@@ -693,6 +719,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           lungeRecoveryMin: LUNGE_RECOVERY_MIN,
           lungeRecoveryMax: LUNGE_RECOVERY_MAX,
           openBonfireMenu: wrappedOpenBonfireMenu,
+          showTransitionOverlay,
         });
       } catch (error) {
         fatalRuntime.report(error, 'action phase setup');
@@ -720,7 +747,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           performDodge: () => {},
           performAttack: () => {},
           performChargeAttack: () => {},
+          triggerComboChain: () => null,
           restAtBonfire: () => {},
+          travelToBonfire: () => {},
         };
       }
     })();
@@ -736,6 +765,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     playMenuOpenRef.current = playMenuOpen;
     playMenuCloseRef.current = playMenuClose;
     restAtBonfireRef.current = restAtBonfire;
+    travelToBonfireRef.current = travelToBonfire;
 
     const { keys, detachDomEvents } = (() => {
       try {
@@ -887,6 +917,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             // Recovery complete — no additional SFX needed (swing played at lunge start)
           },
           dodgeIFrameDuration: DODGE_IFRAME_DURATION,
+          triggerComboChain,
+          comboWindowDuration: COMBO_WINDOW_DURATION,
+          getComboFrameDuration: (step: number) => ATTACK_FRAME_DURATION * (COMBO_FRAME_MULTIPLIERS[step] ?? 1),
           textureCache: textureCacheRef.current,
           playerBaseScale: PLAYER_BASE_SCALE,
           outlinePad: OUTLINE_PAD,
@@ -912,6 +945,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           essenceOrbMesh,
           essenceOrbMaterial,
           swooshDuration: SWOOSH_DURATION,
+          comboStep: runtimeSession.animation.comboStep,
           getInteractionPromptLabel: phaseAdapters.resolveInteractionPrompt,
           isPortalDestinationUnlocked: phaseAdapters.isPortalDestinationUnlocked,
           samplePortalNearPlayer,
@@ -1058,6 +1092,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           playMenuOpenRef.current = null;
           playMenuCloseRef.current = null;
           restAtBonfireRef.current = null;
+          travelToBonfireRef.current = null;
           gameStateRef.current = null;
           worldRef.current = null;
           assetManagerRef.current = null;

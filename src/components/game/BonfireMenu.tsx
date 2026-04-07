@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import type { GameState } from '@/lib/game/GameState';
+import { type BonfireEntry, getKindledBonfiresForMap } from '@/data/bonfires';
 
 // Inline essence icon — matches the HUD's violet-300 sparkle (`size` bumps cost readouts)
 const EssenceIcon = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
@@ -14,6 +15,7 @@ interface BonfireMenuProps {
   onRest: () => void;
   onClose: () => void;
   onLevelUp: (stat: 'vitality' | 'endurance' | 'strength') => boolean;
+  onTravel: (entry: BonfireEntry) => void;
   triggerUIUpdate: () => void;
 }
 
@@ -43,15 +45,15 @@ const STAT_INFO: Record<string, { label: string; description: string }> = {
   strength:  { label: 'Strength',   description: 'Attack +3'       },
 };
 
-export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, triggerUIUpdate }: BonfireMenuProps) => {
-  const [view, setView] = useState<'main' | 'level-up'>('main');
+export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, triggerUIUpdate }: BonfireMenuProps) => {
+  const [view, setView] = useState<'main' | 'level-up' | 'fast-travel'>('main');
   const [version, setVersion] = useState(0);
   const bump = useCallback(() => setVersion(v => v + 1), []);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (view === 'level-up') setView('main');
+        if (view === 'level-up' || view === 'fast-travel') setView('main');
         else onClose();
         e.preventDefault();
       }
@@ -161,6 +163,72 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, triggerUIUp
     );
   }
 
+  /* ─── Fast travel view ──────────────────────────────────────────── */
+  if (view === 'fast-travel') {
+    const kindled = getKindledBonfiresForMap(gameState.currentMap, gameState.gameFlags as Record<string, boolean | number>);
+    const lb = gameState.lastBonfire;
+    const isCurrentBonfire = (entry: BonfireEntry) =>
+      lb !== null &&
+      Math.round(lb.x * 2) === Math.round((entry.tileX - 0.5) * 2) &&
+      Math.round(lb.y * 2) === Math.round((entry.tileY - 0.5) * 2);
+    const others = kindled.filter(e => !isCurrentBonfire(e));
+
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 pointer-events-auto">
+        <div className="bg-[#1A0F0A]/95 border-2 border-[#8B5A2B] rounded-lg p-8 max-w-sm w-full mx-4 shadow-2xl animate-scale-in">
+
+          <div className="flex items-baseline justify-between mb-5">
+            <h2 className="text-base font-bold text-[#DAA520] uppercase tracking-[0.25em]">
+              Fast Travel
+            </h2>
+            <span className="text-xs text-[#8B7355] uppercase tracking-wider">
+              {gameState.currentMap.replace(/_/g, ' ')}
+            </span>
+          </div>
+
+          <div className="border-t border-[#3A2215] mb-4" />
+
+          <div className="space-y-[2px] mb-5 max-h-64 overflow-y-auto">
+            {kindled.map(entry => {
+              const isCurrent = isCurrentBonfire(entry);
+              return (
+                <button
+                  key={entry.id}
+                  disabled={isCurrent}
+                  onClick={() => { onTravel(entry); }}
+                  className={`w-full text-left px-4 py-3 border text-sm font-bold uppercase tracking-wider transition-colors ${
+                    isCurrent
+                      ? 'border-[#2A1A0F] text-[#3D2B21] cursor-not-allowed bg-[#120806]/40'
+                      : 'border-[#3A2215] text-[#F5DEB3] hover:bg-[#2D1B11] hover:border-[#8B5A2B] hover:text-[#FFD98A]'
+                  }`}
+                >
+                  {entry.name}
+                  {isCurrent && (
+                    <span className="ml-2 text-[10px] normal-case tracking-normal text-[#5C4033]">
+                      (here)
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            {others.length === 0 && (
+              <p className="px-4 py-3 text-xs text-[#5C4033] italic">
+                No other bonfires discovered in this area.
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={() => setView('main')}
+            className="w-full py-2.5 border border-[#5C3A21] text-[#8B7355] hover:text-[#F5DEB3] hover:bg-[#2D1B11] text-xs font-bold uppercase tracking-[0.2em] transition-colors"
+          >
+            ← Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   /* ─── Main view ─────────────────────────────────────────────────── */
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 pointer-events-auto">
@@ -198,6 +266,12 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, triggerUIUp
             <span className="ml-2 inline-flex items-center text-xs font-semibold text-[#B8A590] normal-case tracking-normal">
               ({cost}<EssenceIcon size="md" />)
             </span>
+          </button>
+          <button
+            onClick={() => setView('fast-travel')}
+            className="w-full text-left px-4 py-3 border border-[#3A2215] text-[#F5DEB3] text-sm font-bold uppercase tracking-wider hover:bg-[#2D1B11] hover:border-[#8B5A2B] hover:text-[#FFD98A] transition-colors"
+          >
+            Fast Travel
           </button>
         </div>
 

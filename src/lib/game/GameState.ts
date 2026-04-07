@@ -35,6 +35,8 @@ export interface PlayerState {
   parryBonusTimer: number;
   snareTimer: number;
   snareSpeedMult: number;
+  stealthTimer: number;
+  stealthDetectionMult: number;
   level: number;
   vitality: number;
   endurance: number;
@@ -58,6 +60,8 @@ export interface Item {
   type: 'consumable' | 'key' | 'quest' | 'equipment';
   sprite: string;
   healAmount?: number;
+  buffType?: 'stealth';
+  buffDuration?: number;
   stats?: {
     damage?: number;
     range?: number;
@@ -156,6 +160,8 @@ export class GameState {
       parryBonusTimer: 0,
       snareTimer: 0,
       snareSpeedMult: 1.0,
+      stealthTimer: 0,
+      stealthDetectionMult: 1.0,
       level: 1,
       vitality: 1,
       endurance: 1,

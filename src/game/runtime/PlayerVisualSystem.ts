@@ -185,9 +185,16 @@ export function applyPlayerVisuals({
     state.player.damageFlashTimer -= deltaTime;
     const flashIntensity = Math.sin(state.player.damageFlashTimer * 30) > 0 ? 0xff0000 : 0xff6666;
     playerMaterial.color.setHex(flashIntensity);
+    playerMaterial.opacity = 1;
   } else if (state.player.isDodging) {
     playerMaterial.opacity = 0.6;
+  } else if (state.player.stealthTimer > 0) {
+    // Pulse between 0.35 and 0.55 to give a subtle shimmer while stealthed.
+    const pulse = Math.sin(currentTime / 200) * 0.1 + 0.45;
+    playerMaterial.opacity = pulse;
+    playerMaterial.color.setHex(0xaaffcc);
   } else {
+    playerMaterial.color.setHex(0xffffff);
     playerMaterial.opacity = 1;
   }
 
@@ -205,6 +212,7 @@ interface ResolvePlayerTextureOptions {
   currentDir8: string;
   animFrame: number;
   attackFrame: number;
+  comboStep: number;
   spinDirIndex: number;
   spinDirections: string[];
   getPlayerTextureName: (direction: string, state: string, frame: number) => string;
@@ -219,6 +227,7 @@ export function resolvePlayerTexture({
   currentDir8,
   animFrame,
   attackFrame,
+  comboStep,
   spinDirIndex,
   spinDirections,
   getPlayerTextureName,
@@ -233,7 +242,8 @@ export function resolvePlayerTexture({
   } else if (playerAnimState === 'charge') {
     textureKey = getPlayerTextureName(currentDir8, 'charge', Math.min(animFrame, 2));
   } else if (playerAnimState === 'attack') {
-    textureKey = getPlayerTextureName(currentDir8, 'attack', Math.min(attackFrame, 2));
+    // Use combo-step-specific texture: attack_0, attack_1, attack_2
+    textureKey = getPlayerTextureName(currentDir8, `attack_${comboStep}`, Math.min(attackFrame, 2));
   } else if (playerAnimState === 'dodge') {
     textureKey = getPlayerTextureName(currentDir8, 'walk', animFrame);
   } else if (playerAnimState === 'drinking') {

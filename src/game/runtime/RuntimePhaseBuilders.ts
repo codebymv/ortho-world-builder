@@ -12,6 +12,7 @@ export function buildGameplayPreludeContext(options: BuildRuntimePhaseContextsOp
     world: options.world,
     blockStaminaCost: options.blockStaminaCost ?? 0,
     triggerUIUpdateThrottled: options.triggerUIUpdateThrottled,
+    notify: options.notify,
     activeNpcIndices: options.activeNpcIndices,
     npcData: options.npcData,
     npcWander: options.npcWander,
@@ -49,6 +50,9 @@ export function buildGameplayPreludeContext(options: BuildRuntimePhaseContextsOp
     onLungeHit: options.onLungeHit,
     onLungeEnd: options.onLungeEnd,
     dodgeIFrameDuration: options.dodgeIFrameDuration,
+    triggerComboChain: options.triggerComboChain,
+    comboWindowDuration: options.comboWindowDuration,
+    getComboFrameDuration: options.getComboFrameDuration,
   };
 }
 
@@ -86,6 +90,7 @@ export function buildPlayerFrameContext(options: BuildRuntimePhaseContextsOption
       essenceOrbMaterial: options.essenceOrbMaterial,
     },
     swooshDuration: options.swooshDuration,
+    comboStep: options.comboStep,
     screenShake: options.screenShake,
     getInteractionPromptLabel: options.getInteractionPromptLabel,
     isNpcPriorityCueTarget: options.isNpcPriorityCueTarget,

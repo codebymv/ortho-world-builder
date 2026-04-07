@@ -9,6 +9,9 @@ const BLOCK_DAMAGE_REDUCTION = 0.6;
 const PARRY_WINDOW = 0.25;
 const ENEMY_MOVE_RADIUS = 0.15;
 const DORMANCY_RANGE_SQ = 40 * 40;
+// Faction enemies only begin fighting each other once the player is within this radius.
+// Keeps pre-staged battles in stasis until the player is close enough to witness the start.
+const FACTION_FIGHT_WAKE_SQ = 16 * 16;
 const _tmpOldPos = { x: 0, y: 0 };
 
 function trySlideEnemyMove(
@@ -48,6 +51,8 @@ interface SpawnEnemyOptions {
   poise?: number;
   staggerDuration?: number;
   behaviorOverrides?: EnemyBehaviorOverrides;
+  /** Faction key. Enemies with different (non-empty) factions will attack each other. */
+  faction?: string;
 }
 
 export interface Enemy {
@@ -100,6 +105,12 @@ export interface Enemy {
   /** Charge-slam timer for Guardian Phase 2. */
   chargeSlamTimer: number;
   chargeSlamTarget: { x: number; y: number } | null;
+  /** Faction this enemy belongs to (e.g. 'undead', 'beast'). Enemies from different factions fight each other. */
+  faction: string;
+  /** The opposing-faction enemy this enemy is currently targeting (null = target player). */
+  factionTarget: Enemy | null;
+  /** True once the player has attacked this enemy, permanently overriding faction targeting. */
+  playerAggroed: boolean;
 }
 
 export interface AttackResult {
@@ -171,6 +182,9 @@ export class CombatSystem {
       retreatTimer: 0,
       chargeSlamTimer: 0,
       chargeSlamTarget: null,
+      faction: options.faction ?? '',
+      factionTarget: null,
+      playerAggroed: false,
     };
 
     this.enemies.push(enemy);
@@ -198,7 +212,8 @@ export class CombatSystem {
     playerBlocking: boolean = false,
     blockStartTime: number = 0,
     world?: World,
-    onPhaseChange?: (enemy: Enemy, phase: number) => void
+    onPhaseChange?: (enemy: Enemy, phase: number) => void,
+    stealthDetectionMult: number = 1.0
   ): { parried: boolean; parryEnemyId: string | null } {
     const updateMovementVisuals = (enemy: Enemy, vx: number, vy: number, moving: boolean, cadence: number) => {
       if (moving) {
@@ -231,11 +246,55 @@ export class CombatSystem {
         enemy.attackWindupLockTimer = Math.max(0, enemy.attackWindupLockTimer - deltaTime);
       }
 
-      const dx = playerPosition.x - enemy.position.x;
-      const dy = playerPosition.y - enemy.position.y;
-      const distSq = dx * dx + dy * dy;
+      // Dormancy: always measured against the player so the battle only activates on approach.
+      const playerDx = playerPosition.x - enemy.position.x;
+      const playerDy = playerPosition.y - enemy.position.y;
+      const playerDistSq = playerDx * playerDx + playerDy * playerDy;
 
-      if (enemy.state === 'idle' && distSq > DORMANCY_RANGE_SQ) continue;
+      if (enemy.state === 'idle' && playerDistSq > DORMANCY_RANGE_SQ) continue;
+
+      // Faction target resolution — find the nearest alive enemy from a different faction.
+      // Only runs when the enemy has a faction and the player hasn't aggroed it yet.
+      let dx: number;
+      let dy: number;
+      let distSq: number;
+
+      if (enemy.faction && !enemy.playerAggroed && playerDistSq <= FACTION_FIGHT_WAKE_SQ) {
+        // Player is close enough — resolve faction targeting so the fight begins.
+        if (!enemy.factionTarget || enemy.factionTarget.state === 'dead') {
+          enemy.factionTarget = null;
+          const nearby = this.getEnemiesInRange(enemy.position, enemy.chaseRange * 1.5);
+          let bestDistSq = Infinity;
+          for (const candidate of nearby) {
+            if (candidate === enemy || candidate.state === 'dead') continue;
+            if (!candidate.faction || candidate.faction === enemy.faction) continue;
+            const cdx = candidate.position.x - enemy.position.x;
+            const cdy = candidate.position.y - enemy.position.y;
+            const cDistSq = cdx * cdx + cdy * cdy;
+            if (cDistSq < bestDistSq) {
+              bestDistSq = cDistSq;
+              enemy.factionTarget = candidate;
+            }
+          }
+        }
+        if (enemy.factionTarget && enemy.factionTarget.state !== 'dead') {
+          dx = enemy.factionTarget.position.x - enemy.position.x;
+          dy = enemy.factionTarget.position.y - enemy.position.y;
+          distSq = dx * dx + dy * dy;
+        } else {
+          enemy.factionTarget = null;
+          dx = playerDx;
+          dy = playerDy;
+          distSq = playerDistSq;
+        }
+      } else {
+        // Either no faction, player-aggroed, or player is too far away to trigger faction fight.
+        // Clear any stale faction target so the enemy stays in stasis.
+        if (!enemy.playerAggroed) enemy.factionTarget = null;
+        dx = playerDx;
+        dy = playerDy;
+        distSq = playerDistSq;
+      }
 
       if (enemy.state !== 'staggered') {
         enemy.poiseRegenTimer += deltaTime;
@@ -256,7 +315,10 @@ export class CombatSystem {
         if (onPhaseChange) onPhaseChange(enemy, 2);
       }
 
-      const chaseRangeSq = enemy.chaseRange * enemy.chaseRange;
+      const effectiveChaseRange = enemy.playerAggroed
+        ? enemy.chaseRange
+        : enemy.chaseRange * stealthDetectionMult;
+      const chaseRangeSq = effectiveChaseRange * effectiveChaseRange;
       const attackRangeSq = enemy.attackRange * enemy.attackRange;
 
       switch (enemy.state) {
@@ -289,7 +351,9 @@ export class CombatSystem {
             updateMovementVisuals(enemy, 0, 0, false, 0);
           }
 
-          if (distSq <= chaseRangeSq) {
+          // Start chasing if target is in range. For faction enemies, also engage immediately
+          // when a faction target has been detected (regardless of exact distance).
+          if (distSq <= chaseRangeSq || enemy.factionTarget !== null) {
             enemy.state = 'chasing';
           }
           break;
@@ -362,16 +426,26 @@ export class CombatSystem {
           updateMovementVisuals(enemy, 0, 0, false, 0);
 
           if (enemy.telegraphTimer <= 0) {
-            const newDx = playerPosition.x - enemy.position.x;
-            const newDy = playerPosition.y - enemy.position.y;
-            const newDistSq = newDx * newDx + newDy * newDy;
             const extAttackRangeSq = attackRangeSq * 1.69;
 
-            if (newDistSq <= extAttackRangeSq && !playerInvulnerable) {
-              const result = this.attackPlayer(enemy, playerBlocking, blockStartTime, now);
-              if (result.parried) {
-                parried = true;
-                parryEnemyId = enemy.id;
+            if (enemy.factionTarget && enemy.factionTarget.state !== 'dead') {
+              // Attack the faction target instead of the player
+              const ftDx = enemy.factionTarget.position.x - enemy.position.x;
+              const ftDy = enemy.factionTarget.position.y - enemy.position.y;
+              const ftDistSq = ftDx * ftDx + ftDy * ftDy;
+              if (ftDistSq <= extAttackRangeSq) {
+                this.enemyAttackEnemy(enemy, enemy.factionTarget);
+              }
+            } else {
+              const newDx = playerPosition.x - enemy.position.x;
+              const newDy = playerPosition.y - enemy.position.y;
+              const newDistSq = newDx * newDx + newDy * newDy;
+              if (newDistSq <= extAttackRangeSq && !playerInvulnerable) {
+                const result = this.attackPlayer(enemy, playerBlocking, blockStartTime, now);
+                if (result.parried) {
+                  parried = true;
+                  parryEnemyId = enemy.id;
+                }
               }
             }
             enemy.state = 'recovering';
@@ -513,6 +587,26 @@ export class CombatSystem {
     return { parried, parryEnemyId };
   }
 
+  private enemyAttackEnemy(attacker: Enemy, target: Enemy): void {
+    target.poise -= attacker.damage;
+    if (target.poise <= 0 && target.state !== 'staggered') {
+      target.state = 'staggered';
+      target.staggerTimer = target.staggerDuration;
+      target.damageFlashTimer = target.staggerDuration;
+    }
+
+    target.health = Math.max(0, target.health - attacker.damage);
+    target.damageFlashTimer = Math.max(target.damageFlashTimer, 0.2);
+    target.poiseRegenTimer = 0;
+
+    if (target.health <= 0) {
+      target.state = 'dead';
+      this._enemiesDirty = true;
+      // Award the player half the normal essence for witnessing the kill
+      this.gameState.addEssence(Math.floor(target.essenceReward * 0.5));
+    }
+  }
+
   private attackPlayer(
     enemy: Enemy,
     isBlocking: boolean = false,
@@ -624,6 +718,19 @@ export class CombatSystem {
       this._enemiesDirty = true;
       this.gameState.addEssence(targetEnemy.essenceReward);
       return { killed: true, staggered: false, backstab: isBackstab };
+    }
+
+    // Player attacking a faction enemy: permanently override faction targeting for the target
+    // and alert nearby same-faction allies (pack response).
+    if (targetEnemy.faction) {
+      targetEnemy.playerAggroed = true;
+      const PACK_ALERT_RANGE = 8;
+      const allies = this.getEnemiesInRange(targetEnemy.position, PACK_ALERT_RANGE);
+      for (const ally of allies) {
+        if (ally !== targetEnemy && ally.faction === targetEnemy.faction && ally.state !== 'dead') {
+          ally.playerAggroed = true;
+        }
+      }
     }
 
     return { killed: false, staggered: isStaggered, backstab: isBackstab };

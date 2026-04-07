@@ -222,7 +222,7 @@ export function createRandomAudioPool(config: RandomAudioPoolConfig) {
   };
 }
 
-const ENEMY_AUDIO_TYPES = ['skeleton', 'slime', 'wolf'] as const;
+const ENEMY_AUDIO_TYPES = ['skeleton', 'slime', 'wolf', 'shadow', 'spider'] as const;
 type EnemyAudioType = typeof ENEMY_AUDIO_TYPES[number];
 
 interface EnemyAudioDirectorConfig {
@@ -251,6 +251,18 @@ export function createEnemyAudioDirector(config: EnemyAudioDirectorConfig) {
       poolSize: 2,
       processAudioElement: config.processAudioElement,
     }),
+    shadow: createSequentialAudioPool({
+      src: './audio/reaper_defeat.mp3',
+      volume: 0.50,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
+    spider: createSequentialAudioPool({
+      src: './audio/spider_defeat.mp3',
+      volume: 0.44,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
   };
   const walkPools: Record<EnemyAudioType, ReturnType<typeof createSequentialAudioPool>> = {
     skeleton: createSequentialAudioPool({
@@ -271,11 +283,24 @@ export function createEnemyAudioDirector(config: EnemyAudioDirectorConfig) {
       poolSize: 2,
       processAudioElement: config.processAudioElement,
     }),
+    shadow: createSequentialAudioPool({
+      src: './audio/reaper_walk.mp3',
+      volume: 0.30,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
+    spider: createSequentialAudioPool({
+      src: './audio/spider_walk.mp3',
+      volume: 0.22,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
   };
 
   const getEnemyAudioType = (enemy: Enemy): EnemyAudioType | null => {
     const type = enemy.sprite.replace('enemy_', '') as EnemyAudioType | string;
-    if (type === 'skeleton' || type === 'slime' || type === 'wolf') return type;
+    if (type === 'skeleton' || type === 'slime' || type === 'wolf' || type === 'shadow' || type === 'spider') return type;
+    if (type === 'skeleton_captain') return 'skeleton';
     return null;
   };
 
@@ -314,6 +339,8 @@ export function createEnemyAudioDirector(config: EnemyAudioDirectorConfig) {
     const baseInterval =
       type === 'wolf' ? 0.52 :
       type === 'skeleton' ? 0.64 :
+      type === 'shadow' ? 1.20 :
+      type === 'spider' ? 0.58 :
       0.78;
     walkCooldowns.set(enemy.id, nowSeconds + baseInterval + Math.random() * 0.18);
   };

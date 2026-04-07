@@ -158,7 +158,9 @@ export class AssetManager {
     // When provided the exact weapon icon is composited onto the character canvas
     // instead of drawing hardcoded sword pixels — creating a 1:1 match with the inventory UI.
     weaponCanvas?: HTMLCanvasElement,
-    weaponScale: number = 1.0
+    weaponScale: number = 1.0,
+    // Combo step: 0=default swing, 1=backhand return, 2=overhead finisher
+    comboStep: number = 0,
   ): THREE.Texture {
     // Grid-based pixel art: 16 cols x 20 rows, 4px per cell = 64x80
     const G = 4; // grid cell size
@@ -248,39 +250,112 @@ export class AssetManager {
       const GUARD = p.guardColor ?? 0xE8C030;
       const GRIP = p.gripColor ?? 0x5D4037;
       const bladeIsBroad = p.bladeStyle === 'broad';
-      if (drawHardcodedSword && atkFrame === 0) {
-        // Wind-up: sword raised high behind head
-        cell(m(7), 0 + bob, BLADE_H); cell(m(8), 1 + bob, BLADE); cell(m(9), 2 + bob, BLADE_E);
-        cell(m(8), 0 + bob, BLADE_H); cell(m(9), 1 + bob, BLADE);
-        if (bladeIsBroad) {
-          cell(m(7), 1 + bob, BLADE_H); // 3-px wide blade
-          cell(m(6), 2 + bob, GUARD); cell(m(7), 2 + bob, GUARD); cell(m(8), 2 + bob, GUARD); cell(m(9), 2 + bob, GUARD);
+      if (drawHardcodedSword && atkFrame >= 0 && comboStep === 0) {
+        // ===== COMBO STEP 0: right-to-left slash (original) =====
+        if (atkFrame === 0) {
+          cell(m(7), 0 + bob, BLADE_H); cell(m(8), 1 + bob, BLADE); cell(m(9), 2 + bob, BLADE_E);
+          cell(m(8), 0 + bob, BLADE_H); cell(m(9), 1 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(m(7), 1 + bob, BLADE_H);
+            cell(m(6), 2 + bob, GUARD); cell(m(7), 2 + bob, GUARD); cell(m(8), 2 + bob, GUARD); cell(m(9), 2 + bob, GUARD);
+          } else {
+            cell(m(8), 2 + bob, GUARD); cell(m(7), 2 + bob, GUARD);
+          }
+          cell(m(7), 3 + bob, GRIP); cell(m(7), 4 + bob, GRIP);
+        } else if (atkFrame === 1) {
+          cell(m(2), 2 + bob, BLADE_H); cell(m(3), 3 + bob, BLADE); cell(m(4), 4 + bob, BLADE_E);
+          cell(m(3), 2 + bob, BLADE_H); cell(m(4), 3 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(m(1), 2 + bob, BLADE_H);
+            cell(m(2), 5 + bob, GUARD); cell(m(3), 5 + bob, GUARD); cell(m(4), 5 + bob, GUARD); cell(m(5), 5 + bob, GUARD);
+          } else {
+            cell(m(4), 5 + bob, GUARD); cell(m(3), 5 + bob, GUARD);
+          }
+          cell(m(3), 6 + bob, GRIP);
         } else {
-          cell(m(8), 2 + bob, GUARD); cell(m(7), 2 + bob, GUARD);
+          cell(m(1), 7 + bob, BLADE_H); cell(m(2), 8 + bob, BLADE); cell(m(3), 9 + bob, BLADE_E);
+          cell(m(2), 7 + bob, BLADE_H); cell(m(3), 8 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(m(0), 7 + bob, BLADE_H);
+            cell(m(1), 10 + bob, GUARD); cell(m(2), 10 + bob, GUARD); cell(m(3), 10 + bob, GUARD); cell(m(4), 10 + bob, GUARD);
+          } else {
+            cell(m(3), 10 + bob, GUARD); cell(m(2), 10 + bob, GUARD);
+          }
+          cell(m(2), 11 + bob, GRIP);
         }
-        cell(m(7), 3 + bob, GRIP); cell(m(7), 4 + bob, GRIP);
-      } else if (drawHardcodedSword && atkFrame === 1) {
-        // Mid-swing: sword coming down
-        cell(m(2), 2 + bob, BLADE_H); cell(m(3), 3 + bob, BLADE); cell(m(4), 4 + bob, BLADE_E);
-        cell(m(3), 2 + bob, BLADE_H); cell(m(4), 3 + bob, BLADE);
-        if (bladeIsBroad) {
-          cell(m(1), 2 + bob, BLADE_H); // 3-px wide blade
-          cell(m(2), 5 + bob, GUARD); cell(m(3), 5 + bob, GUARD); cell(m(4), 5 + bob, GUARD); cell(m(5), 5 + bob, GUARD);
+      } else if (drawHardcodedSword && atkFrame >= 0 && comboStep === 1) {
+        // ===== COMBO STEP 1: backhand return — left-to-right (mirrored arc) =====
+        // Blade starts low-left (where step 0 ended) and sweeps up-right
+        if (atkFrame === 0) {
+          // Wind-up from low opposite side
+          cell(m(1), 9 + bob, BLADE_H); cell(m(2), 8 + bob, BLADE); cell(m(3), 7 + bob, BLADE_E);
+          cell(m(2), 9 + bob, BLADE_H); cell(m(3), 8 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(m(0), 9 + bob, BLADE_H);
+            cell(m(1), 10 + bob, GUARD); cell(m(2), 10 + bob, GUARD); cell(m(3), 10 + bob, GUARD); cell(m(4), 10 + bob, GUARD);
+          } else {
+            cell(m(3), 10 + bob, GUARD); cell(m(2), 10 + bob, GUARD);
+          }
+          cell(m(2), 11 + bob, GRIP);
+        } else if (atkFrame === 1) {
+          // Mid-swing: blade crossing through center, rising
+          cell(m(11), 4 + bob, BLADE_H); cell(m(10), 5 + bob, BLADE); cell(m(9), 6 + bob, BLADE_E);
+          cell(m(10), 4 + bob, BLADE_H); cell(m(9), 5 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(m(12), 4 + bob, BLADE_H);
+            cell(m(9), 7 + bob, GUARD); cell(m(10), 7 + bob, GUARD); cell(m(11), 7 + bob, GUARD); cell(m(12), 7 + bob, GUARD);
+          } else {
+            cell(m(10), 7 + bob, GUARD); cell(m(9), 7 + bob, GUARD);
+          }
+          cell(m(9), 8 + bob, GRIP);
         } else {
-          cell(m(4), 5 + bob, GUARD); cell(m(3), 5 + bob, GUARD);
+          // Follow-through: swept high on opposite side
+          cell(m(12), 1 + bob, BLADE_H); cell(m(11), 2 + bob, BLADE); cell(m(10), 3 + bob, BLADE_E);
+          cell(m(11), 1 + bob, BLADE_H); cell(m(10), 2 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(m(13), 1 + bob, BLADE_H);
+            cell(m(10), 4 + bob, GUARD); cell(m(11), 4 + bob, GUARD); cell(m(12), 4 + bob, GUARD); cell(m(13), 4 + bob, GUARD);
+          } else {
+            cell(m(11), 4 + bob, GUARD); cell(m(10), 4 + bob, GUARD);
+          }
+          cell(m(10), 5 + bob, GRIP);
         }
-        cell(m(3), 6 + bob, GRIP);
-      } else if (drawHardcodedSword && atkFrame === 2) {
-        // Follow-through: swept low
-        cell(m(1), 7 + bob, BLADE_H); cell(m(2), 8 + bob, BLADE); cell(m(3), 9 + bob, BLADE_E);
-        cell(m(2), 7 + bob, BLADE_H); cell(m(3), 8 + bob, BLADE);
-        if (bladeIsBroad) {
-          cell(m(0), 7 + bob, BLADE_H); // 3-px wide blade
-          cell(m(1), 10 + bob, GUARD); cell(m(2), 10 + bob, GUARD); cell(m(3), 10 + bob, GUARD); cell(m(4), 10 + bob, GUARD);
+      } else if (drawHardcodedSword && atkFrame >= 0 && comboStep === 2) {
+        // ===== COMBO STEP 2: overhead slam finisher — vertical downward =====
+        if (atkFrame === 0) {
+          // Wind-up: blade raised straight overhead
+          cell(m(7), -1 + bob, BLADE_H); cell(m(7), 0 + bob, BLADE); cell(m(7), 1 + bob, BLADE_E);
+          cell(m(8), -1 + bob, BLADE_H); cell(m(8), 0 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(m(6), -1 + bob, BLADE_H); cell(m(6), 0 + bob, BLADE_H);
+            cell(m(5), 2 + bob, GUARD); cell(m(6), 2 + bob, GUARD); cell(m(7), 2 + bob, GUARD); cell(m(8), 2 + bob, GUARD); cell(m(9), 2 + bob, GUARD);
+          } else {
+            cell(m(6), 2 + bob, GUARD); cell(m(7), 2 + bob, GUARD); cell(m(8), 2 + bob, GUARD);
+          }
+          cell(m(7), 3 + bob, GRIP); cell(m(7), 4 + bob, GRIP);
+        } else if (atkFrame === 1) {
+          // Slam: blade coming straight down in front
+          cell(m(5), 3 + bob, BLADE_H); cell(m(5), 4 + bob, BLADE); cell(m(5), 5 + bob, BLADE_E);
+          cell(m(6), 3 + bob, BLADE_H); cell(m(6), 4 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(m(4), 3 + bob, BLADE_H); cell(m(4), 4 + bob, BLADE_H);
+            cell(m(3), 6 + bob, GUARD); cell(m(4), 6 + bob, GUARD); cell(m(5), 6 + bob, GUARD); cell(m(6), 6 + bob, GUARD); cell(m(7), 6 + bob, GUARD);
+          } else {
+            cell(m(5), 6 + bob, GUARD); cell(m(6), 6 + bob, GUARD);
+          }
+          cell(m(5), 7 + bob, GRIP);
         } else {
-          cell(m(3), 10 + bob, GUARD); cell(m(2), 10 + bob, GUARD);
+          // Planted low: blade embedded past body
+          cell(m(4), 9 + bob, BLADE_H); cell(m(4), 10 + bob, BLADE); cell(m(4), 11 + bob, BLADE_E);
+          cell(m(5), 9 + bob, BLADE_H); cell(m(5), 10 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(m(3), 9 + bob, BLADE_H); cell(m(3), 10 + bob, BLADE_H);
+            cell(m(2), 12 + bob, GUARD); cell(m(3), 12 + bob, GUARD); cell(m(4), 12 + bob, GUARD); cell(m(5), 12 + bob, GUARD); cell(m(6), 12 + bob, GUARD);
+          } else {
+            cell(m(4), 12 + bob, GUARD); cell(m(5), 12 + bob, GUARD);
+          }
+          cell(m(4), 13 + bob, GRIP);
         }
-        cell(m(2), 11 + bob, GRIP);
       } else if (drawHardcodedSword && isBlock) {
         // Block: tall forward guard so the silhouette reads clearly at gameplay scale
         cell(m(4), 0 + bob, BLADE_H); cell(m(5), 1 + bob, BLADE); cell(m(6), 2 + bob, BLADE_E);
@@ -408,39 +483,111 @@ export class AssetManager {
       const GUARD = p.guardColor ?? 0xE8C030;
       const GRIP = p.gripColor ?? 0x5D4037;
       const bladeIsBroad = p.bladeStyle === 'broad';
-      if (drawHardcodedSword && atkFrame === 0) {
-        // Wind-up: sword raised overhead
-        cell(5, 0 + bob, BLADE_H); cell(6, 0 + bob, BLADE); cell(7, 0 + bob, BLADE_E);
-        cell(5, 1 + bob, BLADE_H); cell(6, 1 + bob, BLADE);
-        if (bladeIsBroad) {
-          cell(4, 0 + bob, BLADE_H); // 3-px wide blade
-          cell(6, 0 + bob, GUARD); cell(7, 0 + bob, GUARD); cell(8, 0 + bob, GUARD); cell(9, 0 + bob, GUARD);
+      if (drawHardcodedSword && atkFrame >= 0 && comboStep === 0) {
+        // ===== COMBO STEP 0: left slash (original) =====
+        if (atkFrame === 0) {
+          cell(5, 0 + bob, BLADE_H); cell(6, 0 + bob, BLADE); cell(7, 0 + bob, BLADE_E);
+          cell(5, 1 + bob, BLADE_H); cell(6, 1 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(4, 0 + bob, BLADE_H);
+            cell(6, 0 + bob, GUARD); cell(7, 0 + bob, GUARD); cell(8, 0 + bob, GUARD); cell(9, 0 + bob, GUARD);
+          } else {
+            cell(8, 0 + bob, GUARD); cell(7, 0 + bob, GUARD);
+          }
+          cell(7, 1 + bob, GRIP);
+        } else if (atkFrame === 1) {
+          cell(1, 3 + bob, BLADE_H); cell(2, 4 + bob, BLADE); cell(3, 5 + bob, BLADE_E);
+          cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(0, 3 + bob, BLADE_H);
+            cell(2, 6 + bob, GUARD); cell(3, 6 + bob, GUARD); cell(4, 6 + bob, GUARD); cell(5, 6 + bob, GUARD);
+          } else {
+            cell(4, 6 + bob, GUARD); cell(3, 6 + bob, GUARD);
+          }
+          cell(3, 7 + bob, GRIP);
         } else {
-          cell(8, 0 + bob, GUARD); cell(7, 0 + bob, GUARD);
+          cell(1, 9 + bob, BLADE_H); cell(2, 10 + bob, BLADE); cell(3, 11 + bob, BLADE_E);
+          cell(2, 9 + bob, BLADE_H); cell(3, 10 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(0, 9 + bob, BLADE_H);
+            cell(2, 12 + bob, GUARD); cell(3, 12 + bob, GUARD); cell(4, 12 + bob, GUARD); cell(5, 12 + bob, GUARD);
+          } else {
+            cell(4, 12 + bob, GUARD); cell(3, 12 + bob, GUARD);
+          }
+          cell(3, 13 + bob, GRIP);
         }
-        cell(7, 1 + bob, GRIP);
-      } else if (drawHardcodedSword && atkFrame === 1) {
-        // Mid-swing: sword coming down
-        cell(1, 3 + bob, BLADE_H); cell(2, 4 + bob, BLADE); cell(3, 5 + bob, BLADE_E);
-        cell(2, 3 + bob, BLADE_H); cell(3, 4 + bob, BLADE);
-        if (bladeIsBroad) {
-          cell(0, 3 + bob, BLADE_H); // 3-px wide blade
-          cell(2, 6 + bob, GUARD); cell(3, 6 + bob, GUARD); cell(4, 6 + bob, GUARD); cell(5, 6 + bob, GUARD);
+      } else if (drawHardcodedSword && atkFrame >= 0 && comboStep === 1) {
+        // ===== COMBO STEP 1: backhand return — right-to-left (mirrored from step 0) =====
+        if (atkFrame === 0) {
+          // Start from low-left (mirror of step 0 follow-through)
+          cell(1, 9 + bob, BLADE_H); cell(2, 10 + bob, BLADE); cell(3, 11 + bob, BLADE_E);
+          cell(2, 9 + bob, BLADE_H); cell(3, 10 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(0, 9 + bob, BLADE_H);
+            cell(2, 12 + bob, GUARD); cell(3, 12 + bob, GUARD); cell(4, 12 + bob, GUARD); cell(5, 12 + bob, GUARD);
+          } else {
+            cell(4, 12 + bob, GUARD); cell(3, 12 + bob, GUARD);
+          }
+          cell(3, 13 + bob, GRIP);
+        } else if (atkFrame === 1) {
+          // Mid-backhand: blade crossing to the right side
+          cell(12, 4 + bob, BLADE_H); cell(11, 5 + bob, BLADE); cell(10, 6 + bob, BLADE_E);
+          cell(11, 4 + bob, BLADE_H); cell(10, 5 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(13, 4 + bob, BLADE_H);
+            cell(10, 7 + bob, GUARD); cell(11, 7 + bob, GUARD); cell(12, 7 + bob, GUARD); cell(13, 7 + bob, GUARD);
+          } else {
+            cell(11, 7 + bob, GUARD); cell(10, 7 + bob, GUARD);
+          }
+          cell(10, 8 + bob, GRIP);
         } else {
-          cell(4, 6 + bob, GUARD); cell(3, 6 + bob, GUARD);
+          // Follow-through: swept high-right
+          cell(11, 0 + bob, BLADE_H); cell(10, 1 + bob, BLADE); cell(9, 2 + bob, BLADE_E);
+          cell(10, 0 + bob, BLADE_H); cell(9, 1 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(12, 0 + bob, BLADE_H);
+            cell(8, 2 + bob, GUARD); cell(9, 2 + bob, GUARD); cell(10, 2 + bob, GUARD); cell(11, 2 + bob, GUARD);
+          } else {
+            cell(9, 2 + bob, GUARD); cell(10, 2 + bob, GUARD);
+          }
+          cell(9, 3 + bob, GRIP);
         }
-        cell(3, 7 + bob, GRIP);
-      } else if (drawHardcodedSword && atkFrame === 2) {
-        // Follow-through: sword swept low
-        cell(1, 9 + bob, BLADE_H); cell(2, 10 + bob, BLADE); cell(3, 11 + bob, BLADE_E);
-        cell(2, 9 + bob, BLADE_H); cell(3, 10 + bob, BLADE);
-        if (bladeIsBroad) {
-          cell(0, 9 + bob, BLADE_H); // 3-px wide blade
-          cell(2, 12 + bob, GUARD); cell(3, 12 + bob, GUARD); cell(4, 12 + bob, GUARD); cell(5, 12 + bob, GUARD);
+      } else if (drawHardcodedSword && atkFrame >= 0 && comboStep === 2) {
+        // ===== COMBO STEP 2: overhead slam — straight down =====
+        if (atkFrame === 0) {
+          // Wind-up: blade raised high overhead center
+          cell(7, -1 + bob, BLADE_H); cell(7, 0 + bob, BLADE); cell(8, -1 + bob, BLADE_E);
+          cell(8, 0 + bob, BLADE_H); cell(7, 1 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(6, -1 + bob, BLADE_H); cell(6, 0 + bob, BLADE_H);
+            cell(5, 2 + bob, GUARD); cell(6, 2 + bob, GUARD); cell(7, 2 + bob, GUARD); cell(8, 2 + bob, GUARD); cell(9, 2 + bob, GUARD);
+          } else {
+            cell(6, 2 + bob, GUARD); cell(7, 2 + bob, GUARD); cell(8, 2 + bob, GUARD);
+          }
+          cell(7, 3 + bob, GRIP);
+        } else if (atkFrame === 1) {
+          // Slam: blade straight down center
+          cell(7, 4 + bob, BLADE_H); cell(7, 5 + bob, BLADE); cell(7, 6 + bob, BLADE_E);
+          cell(8, 4 + bob, BLADE_H); cell(8, 5 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(6, 4 + bob, BLADE_H); cell(6, 5 + bob, BLADE_H);
+            cell(5, 7 + bob, GUARD); cell(6, 7 + bob, GUARD); cell(7, 7 + bob, GUARD); cell(8, 7 + bob, GUARD); cell(9, 7 + bob, GUARD);
+          } else {
+            cell(7, 7 + bob, GUARD); cell(8, 7 + bob, GUARD);
+          }
+          cell(7, 8 + bob, GRIP);
         } else {
-          cell(4, 12 + bob, GUARD); cell(3, 12 + bob, GUARD);
+          // Planted: embedded low
+          cell(7, 10 + bob, BLADE_H); cell(7, 11 + bob, BLADE); cell(7, 12 + bob, BLADE_E);
+          cell(8, 10 + bob, BLADE_H); cell(8, 11 + bob, BLADE);
+          if (bladeIsBroad) {
+            cell(6, 10 + bob, BLADE_H); cell(6, 11 + bob, BLADE_H);
+            cell(5, 13 + bob, GUARD); cell(6, 13 + bob, GUARD); cell(7, 13 + bob, GUARD); cell(8, 13 + bob, GUARD); cell(9, 13 + bob, GUARD);
+          } else {
+            cell(7, 13 + bob, GUARD); cell(8, 13 + bob, GUARD);
+          }
+          cell(7, 14 + bob, GRIP);
         }
-        cell(3, 13 + bob, GRIP);
       } else if (drawHardcodedSword && isBlock) {
         // Block: sword drawn high across the body for a strong readable guard silhouette
         cell(3, 1 + bob, BLADE_H); cell(4, 2 + bob, BLADE); cell(5, 3 + bob, BLADE_E);
@@ -619,26 +766,48 @@ export class AssetManager {
       const AY = 0.8125;
 
       if (isSide) {
-        // Right-facing grip positions from hardcoded cells: m(4)=col 11 → px 46, etc.
         const cy0 = bobPx;
-        if (atkFrame === 0)      pose = { cx: 34, cy: 16 + cy0, angleDeg: -46, scale: 1.0 };
-        else if (atkFrame === 1) pose = { cx: 50, cy: 26 + cy0, angleDeg: -16, scale: 1.0 };
-        else if (atkFrame === 2) pose = { cx: 54, cy: 46 + cy0, angleDeg: -16, scale: 1.0 };
-        else if (isBlock)        pose = { cx: 42, cy: 26 + cy0, angleDeg: -21, scale: 1.0 };
-        else if (state === 'charge') {
+        if (atkFrame >= 0 && comboStep === 0) {
+          if (atkFrame === 0)      pose = { cx: 34, cy: 16 + cy0, angleDeg: -46, scale: 1.0 };
+          else if (atkFrame === 1) pose = { cx: 50, cy: 26 + cy0, angleDeg: -16, scale: 1.0 };
+          else                     pose = { cx: 54, cy: 46 + cy0, angleDeg: -16, scale: 1.0 };
+        } else if (atkFrame >= 0 && comboStep === 1) {
+          // Backhand return: blade starts low, sweeps high on opposite side
+          if (atkFrame === 0)      pose = { cx: 12, cy: 46 + cy0, angleDeg: 16, scale: 1.0 };
+          else if (atkFrame === 1) pose = { cx: 42, cy: 32 + cy0, angleDeg: 40, scale: 1.0 };
+          else                     pose = { cx: 50, cy: 14 + cy0, angleDeg: 50, scale: 1.0 };
+        } else if (atkFrame >= 0 && comboStep === 2) {
+          // Overhead slam: vertical trajectory
+          if (atkFrame === 0)      pose = { cx: 32, cy:  8 + cy0, angleDeg: -90, scale: 1.0 };
+          else if (atkFrame === 1) pose = { cx: 24, cy: 28 + cy0, angleDeg: -80, scale: 1.0 };
+          else                     pose = { cx: 20, cy: 52 + cy0, angleDeg: -75, scale: 1.0 };
+        } else if (isBlock) {
+          pose = { cx: 42, cy: 26 + cy0, angleDeg: -21, scale: 1.0 };
+        } else if (state === 'charge') {
           if (frame === 0)       pose = { cx: 42, cy: 32 + cy0, angleDeg: -30, scale: 1.0 };
           else                   pose = { cx: 46, cy: 32 + cy0, angleDeg: -17, scale: 1.0 };
         } else {
           pose = { cx: 46, cy: 36 + cy0, angleDeg: -20, scale: 1.0 };
         }
       } else if (!isUp) {
-        // Front view (down-facing) — sword on character's left side
         const cy0 = bobPx;
-        if (atkFrame === 0)      pose = { cx: 30, cy:  6 + cy0, angleDeg: -93, scale: 1.0 };
-        else if (atkFrame === 1) pose = { cx: 14, cy: 30 + cy0, angleDeg: -57, scale: 1.0 };
-        else if (atkFrame === 2) pose = { cx: 14, cy: 54 + cy0, angleDeg: -57, scale: 1.0 };
-        else if (isBlock)        pose = { cx: 18, cy: 30 + cy0, angleDeg: -39, scale: 1.0 };
-        else if (state === 'charge') {
+        if (atkFrame >= 0 && comboStep === 0) {
+          if (atkFrame === 0)      pose = { cx: 30, cy:  6 + cy0, angleDeg: -93, scale: 1.0 };
+          else if (atkFrame === 1) pose = { cx: 14, cy: 30 + cy0, angleDeg: -57, scale: 1.0 };
+          else                     pose = { cx: 14, cy: 54 + cy0, angleDeg: -57, scale: 1.0 };
+        } else if (atkFrame >= 0 && comboStep === 1) {
+          // Backhand: blade from right side sweeping to left
+          if (atkFrame === 0)      pose = { cx: 14, cy: 54 + cy0, angleDeg: -57, scale: 1.0 };
+          else if (atkFrame === 1) pose = { cx: 50, cy: 30 + cy0, angleDeg: -123, scale: 1.0 };
+          else                     pose = { cx: 44, cy:  8 + cy0, angleDeg: -110, scale: 1.0 };
+        } else if (atkFrame >= 0 && comboStep === 2) {
+          // Overhead slam: centered vertical
+          if (atkFrame === 0)      pose = { cx: 32, cy:  4 + cy0, angleDeg: -90, scale: 1.0 };
+          else if (atkFrame === 1) pose = { cx: 32, cy: 28 + cy0, angleDeg: -90, scale: 1.0 };
+          else                     pose = { cx: 32, cy: 56 + cy0, angleDeg: -90, scale: 1.0 };
+        } else if (isBlock) {
+          pose = { cx: 18, cy: 30 + cy0, angleDeg: -39, scale: 1.0 };
+        } else if (state === 'charge') {
           if (frame === 0)       pose = { cx: 14, cy: 40 + cy0, angleDeg: -40, scale: 1.0 };
           else                   pose = { cx: 14, cy: 32 + cy0, angleDeg: -40, scale: 1.0 };
         } else {
@@ -841,6 +1010,23 @@ export class AssetManager {
       }
     }
 
+    // Combo step attack textures: attack_0 (= attack), attack_1 (backhand), attack_2 (finisher)
+    for (const dir of dirs) {
+      for (let step = 0; step < 3; step++) {
+        for (let f = 0; f < 3; f++) {
+          const d = dir, cs = step, fr = f;
+          const spriteId = `player_${d}_attack_${cs}_${fr}`;
+          const bladeId = `player_${d}_attack_${cs}_${fr}_blade`;
+          this.registerTexture(spriteId, () => {
+            const tex = this.textures.get('sword');
+            const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
+            return this.createChibiCharacter(d, 'attack', fr, heroPalette, spriteId, false, true, wc, 0.78, cs);
+          });
+          this.registerTexture(bladeId, () => this.createChibiCharacter(d, 'attack', fr, heroPalette, bladeId, true, true, undefined, 1.0, cs));
+        }
+      }
+    }
+
     // Diagonal sprites reuse side views
     const diagDirs = ['down_left', 'down_right', 'up_left', 'up_right'] as const;
     const diagBase = { down_left: 'left', down_right: 'right', up_left: 'left', up_right: 'right' } as const;
@@ -862,6 +1048,32 @@ export class AssetManager {
           });
           this.registerTexture(bladeId, () => {
             const baseTexture = this.getTexture(`player_${b}_${s}_${fr}_blade`)!;
+            if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
+              this.textureDataUrls.set(bladeId, baseTexture.image.toDataURL());
+            }
+            return baseTexture;
+          });
+        }
+      }
+    }
+
+    // Diagonal combo step aliases
+    for (const dDir of diagDirs) {
+      const base = diagBase[dDir];
+      for (let step = 0; step < 3; step++) {
+        for (let f = 0; f < 3; f++) {
+          const dd = dDir, b = base, cs = step, fr = f;
+          const spriteId = `player_${dd}_attack_${cs}_${fr}`;
+          const bladeId = `player_${dd}_attack_${cs}_${fr}_blade`;
+          this.registerTexture(spriteId, () => {
+            const baseTexture = this.getTexture(`player_${b}_attack_${cs}_${fr}`)!;
+            if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
+              this.textureDataUrls.set(spriteId, baseTexture.image.toDataURL());
+            }
+            return baseTexture;
+          });
+          this.registerTexture(bladeId, () => {
+            const baseTexture = this.getTexture(`player_${b}_attack_${cs}_${fr}_blade`)!;
             if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
               this.textureDataUrls.set(bladeId, baseTexture.image.toDataURL());
             }
@@ -993,6 +1205,31 @@ export class AssetManager {
       bootColor: 0x6D4C41, bootDark: 0x5D4037,
     };
     this.registerTexture('npc_child', () => this.createChibiCharacter('down', 'idle', 0, childPalette, 'npc_child', false, false));
+
+    const groveWardenPalette = {
+      hair: 0x8B4513, hairLight: 0xA0522D, hairDark: 0x5C2E0A,
+      skin: 0xD2A679, skinLight: 0xE0BB8A, skinShadow: 0xB08050,
+      eyeIris: 0x556B2F, eyeIrisDark: 0x3B4A1F,
+      tunicMain: 0x4A5D3A, tunicLight: 0x5E7648, tunicDark: 0x33422A,
+      trimColor: 0xB87333, trimLight: 0xD4944A,
+      capeMain: 0x3B5028, capeDark: 0x283A1A,
+      pantColor: 0x4E3B2A, pantDark: 0x362818,
+      bootColor: 0x3E2C1A, bootDark: 0x2A1C0E,
+    };
+    this.registerTexture('npc_grove_warden', () => this.createChibiCharacter('down', 'idle', 0, groveWardenPalette, 'npc_grove_warden', false, false));
+
+    // Field archaeologist — dusty slate coat, amber trim, tawny auburn hair
+    const petraPalette = {
+      hair: 0x9E6B3C, hairLight: 0xBE8B52, hairDark: 0x7A4E28,
+      skin: 0xFFE0BD, skinLight: 0xFFF0D8, skinShadow: 0xE8C4A0,
+      eyeIris: 0xC07830, eyeIrisDark: 0x8A5018,
+      tunicMain: 0x607060, tunicLight: 0x788878, tunicDark: 0x485048,
+      trimColor: 0xC09030, trimLight: 0xE8B840,
+      capeMain: 0x8A8070, capeDark: 0x6A6054,
+      pantColor: 0x5A5040, pantDark: 0x3E3828,
+      bootColor: 0x4A3020, bootDark: 0x321E10,
+    };
+    this.registerTexture('npc_petra', () => this.createChibiCharacter('down', 'idle', 0, petraPalette, 'npc_petra', false, false));
 
     // ========== NEW ENEMY: Spider ==========
     const SPIDER_BODY = 0x212121;
@@ -1392,6 +1629,31 @@ export class AssetManager {
     this.registerTexture('enemy_skeleton_telegraph', () => this.getTexture('enemy_skeleton_down_charge_1')!);
     this.registerTexture('enemy_skeleton_attack', () => this.getTexture('enemy_skeleton_down_attack_1')!);
 
+    // ========== NEW ENEMY: Skeleton Captain ==========
+    // Blackened iron armor, crimson trim, blazing red eyes — a veteran undead commander.
+    const skeletonCaptainPalette = {
+      hair: 0x37474F, hairLight: 0x546E7A, hairDark: 0x263238,
+      skin: 0xCFD8DC, skinLight: 0xECEFF1, skinShadow: 0x90A4AE,
+      eyeIris: 0xFF1744, eyeIrisDark: 0xD50000,
+      tunicMain: 0x424242, tunicLight: 0x616161, tunicDark: 0x212121,
+      trimColor: 0xB71C1C, trimLight: 0xE53935,
+      capeMain: 0x37474F, capeDark: 0x263238,
+      pantColor: 0x37474F, pantDark: 0x263238,
+      bootColor: 0x212121, bootDark: 0x0D0D0D,
+    };
+    for (const dir of ['up', 'down', 'left', 'right'] as const) {
+      for (const state of ['idle', 'walk', 'attack', 'charge'] as const) {
+        const frames = state === 'attack' || state === 'charge' ? 3 : state === 'walk' ? 2 : 1;
+        for (let frame = 0; frame < frames; frame++) {
+          const spriteId = `enemy_skeleton_captain_${dir}_${state}_${frame}`;
+          this.registerTexture(spriteId, () => this.createChibiCharacter(dir, state, frame, skeletonCaptainPalette, spriteId));
+        }
+      }
+    }
+    this.registerTexture('enemy_skeleton_captain', () => this.getTexture('enemy_skeleton_captain_down_idle_0')!);
+    this.registerTexture('enemy_skeleton_captain_telegraph', () => this.getTexture('enemy_skeleton_captain_down_charge_1')!);
+    this.registerTexture('enemy_skeleton_captain_attack', () => this.getTexture('enemy_skeleton_captain_down_attack_1')!);
+
     // ========== NEW ENEMY: Bandit ==========
     const banditPalette = {
       hair: 0x4E342E, hairLight: 0x6D4C41, hairDark: 0x3E2723,
@@ -1529,7 +1791,92 @@ export class AssetManager {
     this.textures.set('tall_grass', this.createColorTexture(0x388E3C, 32, 32, 'noise'));
     this.textures.set('sand', this.createColorTexture(0xF5DEB3, 32, 32, 'noise'));
     this.textures.set('swamp', this.createColorTexture(0x556B2F, 32, 32, 'noise'));
-    this.textures.set('bridge', this.createColorTexture(0x8D6E63, 32, 32, 'checker'));
+    // ── bridge: rickety wooden planks running E–W, bridge travels N–S ──────────
+    // Rail edges (L/R columns), plank rows with dark cracks between them.
+    const BR_RAIL  = 0x7A4F1E; // rail cap — dark aged timber
+    const BR_SIDE  = 0x3E2208; // rail shadow / side face
+    const BR_PL    = 0xC49050; // plank highlight (warm sunlit oak)
+    const BR_PM    = 0x9B6A35; // plank mid-tone
+    const BR_PD    = 0x6B4220; // plank shadow
+    const BR_GP    = 0x22110A; // crack / gap between planks
+    const BR_KN    = 0x5A3418; // wood knot accent
+    this.textures.set('bridge', this.createSpriteTexture([
+      // north rail
+      [BR_SIDE, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_SIDE],
+      // crack
+      [BR_SIDE, BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_SIDE],
+      // plank 1 — light lead edge, knot on col 4
+      [BR_SIDE, BR_PL,   BR_PM,   BR_PD,   BR_KN,   BR_PM,   BR_PD,   BR_PM,   BR_PL,   BR_PD,   BR_PM,   BR_SIDE],
+      // plank 1 low
+      [BR_SIDE, BR_PM,   BR_PD,   BR_PM,   BR_PM,   BR_PD,   BR_PM,   BR_PD,   BR_PM,   BR_PM,   BR_PD,   BR_SIDE],
+      // crack
+      [BR_SIDE, BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_SIDE],
+      // plank 2
+      [BR_SIDE, BR_PL,   BR_PM,   BR_PL,   BR_PD,   BR_PM,   BR_KN,   BR_PM,   BR_PD,   BR_PL,   BR_PM,   BR_SIDE],
+      // plank 2 low
+      [BR_SIDE, BR_PM,   BR_PD,   BR_PM,   BR_PM,   BR_PD,   BR_PM,   BR_PL,   BR_PM,   BR_PD,   BR_PM,   BR_SIDE],
+      // crack
+      [BR_SIDE, BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_SIDE],
+      // plank 3 — wider gap highlight on right half
+      [BR_SIDE, BR_PL,   BR_PM,   BR_PD,   BR_PM,   BR_PL,   BR_PM,   BR_KN,   BR_PD,   BR_PM,   BR_PL,   BR_SIDE],
+      // plank 3 low
+      [BR_SIDE, BR_PM,   BR_PD,   BR_PM,   BR_PD,   BR_PM,   BR_PM,   BR_PD,   BR_PM,   BR_PD,   BR_PM,   BR_SIDE],
+      // crack
+      [BR_SIDE, BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_SIDE],
+      // plank 4
+      [BR_SIDE, BR_PL,   BR_PM,   BR_KN,   BR_PM,   BR_PD,   BR_PL,   BR_PM,   BR_PM,   BR_PD,   BR_PL,   BR_SIDE],
+      // plank 4 low
+      [BR_SIDE, BR_PM,   BR_PD,   BR_PM,   BR_PM,   BR_PM,   BR_PD,   BR_PM,   BR_PD,   BR_PM,   BR_PD,   BR_SIDE],
+      // crack
+      [BR_SIDE, BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_SIDE],
+      // south rail
+      [BR_SIDE, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_SIDE],
+      [BR_SIDE, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_SIDE],
+    ], 2, 'bridge'));
+
+    // ── bridge_corrupted: same plank structure, rotted + hollow-tainted ─────────
+    // Planks are darker, redder, warped; corruption seeps through cracks as voids.
+    const BC_RAIL  = 0x5A2E1A; // corrupted rail — near-black reddish wood
+    const BC_SIDE  = 0x2A1008; // side shadow
+    const BC_PL    = 0x9B5030; // plank highlight (reddish-brown, corrupted)
+    const BC_PM    = 0x6B3020; // plank mid
+    const BC_PD    = 0x3E1A10; // plank dark
+    const BC_GP    = 0x0C1820; // gap — shows void/dark water (bluish-black)
+    const BC_VD    = 0x102030; // void/corruption seep in crack
+    const BC_CR    = 0x1A2810; // corruption growths on planks (dark green-black)
+    this.textures.set('bridge_corrupted', this.createSpriteTexture([
+      // north rail — crumbling
+      [BC_SIDE, BC_RAIL, BC_CR,   BC_RAIL, BC_RAIL, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_RAIL, BC_CR,   BC_SIDE],
+      // wide void crack (more exposed than normal bridge)
+      [BC_SIDE, BC_VD,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_SIDE],
+      // plank 1 — warped, corruption blotch col 5
+      [BC_SIDE, BC_PL,   BC_PM,   BC_PD,   BC_PM,   BC_CR,   BC_PD,   BC_PM,   BC_PL,   BC_PD,   BC_PM,   BC_SIDE],
+      // plank 1 low — missing chunk col 7 (void)
+      [BC_SIDE, BC_PM,   BC_PD,   BC_PM,   BC_PM,   BC_PD,   BC_PM,   BC_VD,   BC_PM,   BC_PM,   BC_PD,   BC_SIDE],
+      // crack — void seep pools
+      [BC_SIDE, BC_GP,   BC_VD,   BC_GP,   BC_VD,   BC_GP,   BC_VD,   BC_GP,   BC_VD,   BC_GP,   BC_VD,   BC_SIDE],
+      // plank 2 — heavy rot, corruption col 2
+      [BC_SIDE, BC_PL,   BC_CR,   BC_PL,   BC_PD,   BC_PM,   BC_PD,   BC_PM,   BC_PD,   BC_PL,   BC_PM,   BC_SIDE],
+      // plank 2 low — gap in plank col 9 (void)
+      [BC_SIDE, BC_PM,   BC_PD,   BC_PM,   BC_PM,   BC_CR,   BC_PM,   BC_PL,   BC_PM,   BC_VD,   BC_PM,   BC_SIDE],
+      // wide crack — void bleeding through
+      [BC_SIDE, BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_SIDE],
+      // plank 3 — almost gone, mostly void with thin plank fragments
+      [BC_SIDE, BC_VD,   BC_PD,   BC_VD,   BC_PM,   BC_CR,   BC_PM,   BC_VD,   BC_PD,   BC_PM,   BC_VD,   BC_SIDE],
+      // plank 3 fragments
+      [BC_SIDE, BC_VD,   BC_PM,   BC_VD,   BC_PD,   BC_VD,   BC_PM,   BC_VD,   BC_PM,   BC_VD,   BC_PD,   BC_SIDE],
+      // near-full void — almost collapsed
+      [BC_SIDE, BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_GP,   BC_SIDE],
+      // last plank fragments barely holding
+      [BC_SIDE, BC_PD,   BC_VD,   BC_PD,   BC_VD,   BC_CR,   BC_VD,   BC_PD,   BC_VD,   BC_PD,   BC_VD,   BC_SIDE],
+      // collapse row
+      [BC_SIDE, BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_SIDE],
+      // void dominant
+      [BC_SIDE, BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_SIDE],
+      // north face — corruption rail remnant
+      [BC_SIDE, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_SIDE],
+      [BC_SIDE, BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_SIDE],
+    ], 2, 'bridge_corrupted'));
     this.textures.set('lava', this.createColorTexture(0xE65100, 32, 32, 'noise'));
     this.textures.set('ice', this.createColorTexture(0xB3E5FC, 32, 32, 'checker'));
     this.textures.set('pressure_plate', this.createColorTexture(0x607D8B, 32, 32, 'checker'));
@@ -2041,6 +2388,48 @@ export class AssetManager {
       [C,     WHEEL_H,WHEEL, WHEEL_H,WHEEL, WHEEL_H,C,     C],
     ]));
 
+    // ===== Riverbank props =====
+    const HULL     = 0x5D4037;   // dark weathered wood — hull planks
+    const HULL_H   = 0x795548;   // lighter highlight
+    const HULL_S   = 0x4E342E;   // deep shadow grain
+    const NAIL     = 0x37474F;   // iron nail heads
+    const WATER_V  = 0x1565C0;   // water visible through holes
+    const RIB      = 0x6D4C41;   // exposed rib strake
+    const CLOTH    = 0xB71C1C;   // tattered sail scrap — faded red
+    const CLOTH_D  = 0x7F0000;
+
+    // boat_wreck — half-sunken rowboat viewed from top-down: broken bow at top, stern angled down
+    this.textures.set('boat_wreck', this.createSpriteTexture([
+      //      0       1       2       3       4       5       6       7       8       9
+      [C,      C,      HULL_H, HULL_H, HULL_H, HULL_H, C,      C,      C,      C    ],
+      [C,      HULL_H, HULL,   WATER_V,WATER_V,HULL,   HULL_H, C,      C,      C    ],
+      [HULL_H, HULL,   RIB,    WATER_V,WATER_V,RIB,    HULL,   HULL_H, C,      C    ],
+      [HULL,   HULL_S, RIB,    CLOTH,  CLOTH_D,RIB,    HULL_S, HULL,   NAIL,   C    ],
+      [HULL_S, NAIL,   HULL_S, CLOTH_D,CLOTH,  HULL_S, NAIL,   HULL_S, HULL_S, C    ],
+      [C,      HULL_S, HULL,   HULL_S, HULL_S, HULL,   HULL_S, C,      C,      C    ],
+      [C,      C,      HULL_S, HULL,   HULL,   HULL_S, C,      C,      C,      C    ],
+      [C,      C,      C,      HULL_S, HULL_S, C,      C,      C,      C,      C    ],
+    ], 4, 'boat_wreck'));
+
+    const PLANK   = 0x78909C;   // grey-weathered dock board
+    const PLANK_H = 0x90A4AE;   // lighter board face
+    const PLANK_S = 0x546E7A;   // shadow between planks
+    const PLANK_D = 0x37474F;   // dark gap showing water below
+    const PPOST   = 0x4E342E;   // mooring post — dark wood
+
+    // dock — top-down weathered wooden planking: posts at corners, plank gaps showing water
+    this.textures.set('dock', this.createSpriteTexture([
+      //      0        1        2        3        4        5        6        7
+      [PPOST,  PLANK_D, PLANK_H, PLANK,   PLANK,   PLANK_H, PLANK_D, PPOST  ],
+      [PLANK_D,PLANK_H, PLANK,   PLANK_S, PLANK_S, PLANK,   PLANK_H, PLANK_D],
+      [PLANK_H,PLANK,   PLANK_S, PLANK_H, PLANK_H, PLANK_S, PLANK,   PLANK_H],
+      [PLANK,  PLANK_S, PLANK_H, PLANK,   PLANK,   PLANK_H, PLANK_S, PLANK  ],
+      [PLANK,  PLANK_S, PLANK_H, PLANK,   PLANK,   PLANK_H, PLANK_S, PLANK  ],
+      [PLANK_H,PLANK,   PLANK_S, PLANK_H, PLANK_H, PLANK_S, PLANK,   PLANK_H],
+      [PLANK_D,PLANK_H, PLANK,   PLANK_S, PLANK_S, PLANK,   PLANK_H, PLANK_D],
+      [PPOST,  PLANK_D, PLANK_H, PLANK,   PLANK,   PLANK_H, PLANK_D, PPOST  ],
+    ], 4, 'dock'));
+
     this.textures.set('market_stall', this.createSpriteTexture([
       [C,     CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,C,     C],
       [C,     CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,C,     C],
@@ -2398,6 +2787,45 @@ export class AssetManager {
       [C,       C,       PAPER_S, PAPER_H, PAPER,   PAPER_S, C,       C],
     ], 4, 'loose_pages'));
 
+    // Blighted Root Shard — gnarled dark bark fragment with pulsing green corruption veins
+    const BR_BARK  = 0x3E2723;   // dark bark
+    const BR_BARK_H = 0x5D4037;  // bark highlight
+    const BR_BARK_D = 0x1B0F0A;  // bark deep shadow
+    const BR_VEIN  = 0x76FF03;   // corruption vein glow
+    const BR_VEIN_D = 0x4CAF50;  // corruption vein dark
+    const BR_PULSE = 0xCCFF90;   // bright pulse center
+    const BR_THORN = 0x2E1A0E;   // sharp thorn tips
+    this.textures.set('blighted_root_shard', this.createSpriteTexture([
+      [C,        C,        BR_THORN, BR_BARK_H,C,        C,        BR_THORN, C       ],
+      [C,        BR_THORN, BR_BARK,  BR_VEIN,  BR_BARK_H,BR_BARK,  BR_BARK_H,C       ],
+      [C,        BR_BARK_H,BR_VEIN_D,BR_BARK,  BR_PULSE, BR_BARK,  BR_VEIN,  BR_THORN],
+      [BR_THORN, BR_BARK,  BR_BARK_H,BR_VEIN,  BR_BARK,  BR_VEIN_D,BR_BARK,  C       ],
+      [C,        BR_BARK_D,BR_VEIN,  BR_BARK,  BR_VEIN,  BR_BARK_H,BR_BARK_D,C       ],
+      [C,        BR_BARK,  BR_BARK_D,BR_PULSE, BR_BARK,  BR_VEIN,  BR_BARK,  C       ],
+      [C,        C,        BR_BARK,  BR_VEIN_D,BR_BARK_H,BR_BARK_D,C,        C       ],
+      [C,        C,        C,        BR_BARK_D,BR_THORN, C,        C,        C       ],
+    ], 4, 'blighted_root_shard'));
+
+    // Golem Heart — dense stone core with warm amber inner glow, cracked exterior
+    const GH_STONE  = 0x757575;  // stone surface
+    const GH_STONE_H = 0x9E9E9E; // stone highlight
+    const GH_STONE_D = 0x424242; // stone shadow
+    const GH_CRACK  = 0x212121;  // deep cracks
+    const GH_GLOW   = 0xFF8F00;  // amber glow
+    const GH_GLOW_H = 0xFFB300;  // bright glow center
+    const GH_PULSE  = 0xFFD54F;  // hottest core
+    const GH_EMBER  = 0xE65100;  // deep ember edge
+    this.textures.set('golem_heart', this.createSpriteTexture([
+      [C,         C,         GH_STONE_H,GH_STONE,  GH_STONE,  GH_STONE_H,C,         C        ],
+      [C,         GH_STONE_H,GH_STONE,  GH_CRACK,  GH_STONE,  GH_STONE,  GH_STONE_H,C        ],
+      [GH_STONE_H,GH_STONE,  GH_GLOW,   GH_GLOW_H, GH_GLOW,   GH_CRACK,  GH_STONE,  GH_STONE_H],
+      [GH_STONE,  GH_CRACK,  GH_GLOW_H, GH_PULSE,  GH_PULSE,  GH_GLOW_H, GH_STONE,  GH_STONE  ],
+      [GH_STONE,  GH_STONE,  GH_GLOW,   GH_PULSE,  GH_PULSE,  GH_GLOW,   GH_CRACK,  GH_STONE  ],
+      [GH_STONE_H,GH_CRACK,  GH_EMBER,  GH_GLOW_H, GH_GLOW,   GH_STONE,  GH_STONE,  GH_STONE_D],
+      [C,         GH_STONE,  GH_STONE_D,GH_CRACK,  GH_STONE,  GH_STONE_D,GH_STONE,  C        ],
+      [C,         C,         GH_STONE_D,GH_STONE,  GH_STONE,  GH_STONE_D,C,         C        ],
+    ], 4, 'golem_heart'));
+
     this.textures.set('mushroom', this.createSpriteTexture([
       [C,        C,        0xE53935,0xEF5350,0xE53935,0xEF5350,C,       C],
       [C,        0xE53935, 0xFFFFFF,0xE53935,0xE53935,0xFFFFFF, 0xE53935,C],
@@ -2736,6 +3164,22 @@ export class AssetManager {
         }
       }
     }
+
+    // Broadsword combo step attack textures
+    for (const dir of dirs) {
+      for (let step = 0; step < 3; step++) {
+        for (let f = 0; f < 3; f++) {
+          const d = dir, cs = step, fr = f;
+          const spriteId = `player_broadsword_${d}_attack_${cs}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const tex = this.textures.get('broadsword');
+            const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
+            return this.createChibiCharacter(d, 'attack', fr, heroBroadswordPalette, spriteId, false, true, wc, 1.0, cs);
+          });
+        }
+      }
+    }
+
     // Diagonal broadsword sprite aliases (reuse mirrored side views)
     const bsDiagDirs = ['down_left', 'down_right', 'up_left', 'up_right'] as const;
     const bsDiagBase = { down_left: 'left', down_right: 'right', up_left: 'left', up_right: 'right' } as const;
@@ -2748,6 +3192,24 @@ export class AssetManager {
           const spriteId = `player_broadsword_${dd}_${s}_${fr}`;
           this.registerTexture(spriteId, () => {
             const baseTexture = this.getTexture(`player_broadsword_${b}_${s}_${fr}`)!;
+            if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
+              this.textureDataUrls.set(spriteId, baseTexture.image.toDataURL());
+            }
+            return baseTexture;
+          });
+        }
+      }
+    }
+
+    // Diagonal broadsword combo step aliases
+    for (const dDir of bsDiagDirs) {
+      const base = bsDiagBase[dDir];
+      for (let step = 0; step < 3; step++) {
+        for (let f = 0; f < 3; f++) {
+          const dd = dDir, b = base, cs = step, fr = f;
+          const spriteId = `player_broadsword_${dd}_attack_${cs}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const baseTexture = this.getTexture(`player_broadsword_${b}_attack_${cs}_${fr}`)!;
             if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
               this.textureDataUrls.set(spriteId, baseTexture.image.toDataURL());
             }
@@ -2779,6 +3241,34 @@ export class AssetManager {
     this.textures.set('potion', potionTex);
     if (potionTex.image instanceof HTMLCanvasElement) {
       this.textureDataUrls.set('potion', potionTex.image.toDataURL());
+    }
+
+    // Verdant Tonic — tall narrow flask, teal-blue liquid, leaf cork stopper
+    const VT_G  = 0x90A4AE;  // pale glass
+    const VT_GD = 0x78909C;  // glass dark
+    const VT_L  = 0x00ACC1;  // teal liquid
+    const VT_LH = 0x26C6DA;  // teal highlight
+    const VT_LS = 0x00838F;  // teal shadow
+    const VT_LG = 0x4DD0E1;  // liquid gleam
+    const VT_CK = 0x558B2F;  // leaf-green cork
+    const VT_CH = 0x7CB342;  // cork highlight
+
+    const tonicTex = this.createSpriteTexture([
+      //       0      1      2      3      4      5
+      /* 0 */ [C,     C,     VT_CH, VT_CK, C,     C    ],
+      /* 1 */ [C,     C,     VT_CK, VT_CK, C,     C    ],
+      /* 2 */ [C,     C,     VT_G,  VT_GD, C,     C    ],
+      /* 3 */ [C,     VT_G,  VT_LG, VT_L,  VT_GD, C    ],
+      /* 4 */ [C,     VT_G,  VT_LH, VT_L,  VT_GD, C    ],
+      /* 5 */ [VT_G,  VT_LH, VT_L,  VT_L,  VT_LS, VT_GD],
+      /* 6 */ [VT_G,  VT_L,  VT_L,  VT_LS, VT_LS, VT_GD],
+      /* 7 */ [VT_G,  VT_LH, VT_L,  VT_L,  VT_LS, VT_GD],
+      /* 8 */ [C,     VT_G,  VT_L,  VT_LS, VT_GD, C    ],
+      /* 9 */ [C,     C,     VT_GD, VT_GD, C,     C    ],
+    ], 4, 'verdant_tonic');
+    this.textures.set('verdant_tonic', tonicTex);
+    if (tonicTex.image instanceof HTMLCanvasElement) {
+      this.textureDataUrls.set('verdant_tonic', tonicTex.image.toDataURL());
     }
 
     const TG_WRAP = 0x8D6E63;

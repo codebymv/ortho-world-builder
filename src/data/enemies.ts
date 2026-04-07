@@ -29,6 +29,8 @@ export interface EnemyBlueprint {
   poise?: number;
   staggerDuration?: number;
   behaviorOverrides?: EnemyBehaviorOverrides;
+  /** Optional faction key. Enemies with different factions will fight each other. */
+  faction?: string;
 }
 
 export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
@@ -145,6 +147,24 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     recoverDuration: 0.7,
     poise: 70,
     staggerDuration: 1.4,
+  },
+  skeleton_captain: {
+    type: 'skeleton_captain',
+    name: 'Skeleton Captain',
+    hp: 110,
+    damage: 20,
+    sprite: 'enemy_skeleton_captain',
+    speed: 0.032,
+    attackRange: 1.8,
+    chaseRange: 7,
+    telegraphDuration: 0.85,
+    recoverDuration: 0.65,
+    poise: 120,
+    staggerDuration: 1.2,
+    essenceReward: 40,
+    behaviorOverrides: {
+      poiseImmunityFirstHit: true,
+    },
   },
   bandit: {
     type: 'bandit',

@@ -83,6 +83,8 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   door: { isOverlay: true, baseTile: 'dirt', scale: 1.2, sortTrim: 1.45 },
   door_interior: { isOverlay: true, baseTile: 'wood_floor', scale: 1.2, sortTrim: 1.45 },
   door_iron: { isOverlay: true, baseTile: 'stone', scale: 1.2, sortTrim: 1.45 },
+  boat_wreck: { isOverlay: true, baseTile: 'water', scale: 2.4, sortTrim: 0.1 },
+  dock: { isOverlay: true, baseTile: 'water', scale: 1.8, sortTrim: 0.12 },
 };
 
 export const DETAIL_CONFIG: Partial<Record<TileType, { chance: number; types: string[]; scale: number; opacity: number }>> = {

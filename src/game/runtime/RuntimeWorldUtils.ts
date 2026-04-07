@@ -47,6 +47,9 @@ export function getInteractionPromptLabel(
   if (interactionId === 'forest_shortcut_lever') {
     return state.getFlag('whispering_woods_shortcut_open') ? 'Shortcut Unlocked' : 'Unbar Ranger Gate';
   }
+  if (interactionId === 'grove_shelf_shortcut_lever') {
+    return state.getFlag('grove_shelf_shortcut_open') ? 'Shortcut Unlocked' : 'Unbar Trail Gate';
+  }
 
   if (criticalItemInteractionIds.has(interactionId)) {
     const config = criticalPathItems[interactionId];
@@ -183,6 +186,7 @@ export function spawnEnemiesFromMapZones(mapKey: string, mapWorld: WorldMap, com
           poise: blueprint.poise,
           staggerDuration: blueprint.staggerDuration,
           behaviorOverrides: blueprint.behaviorOverrides,
+          faction: zone.faction ?? blueprint.faction,
         },
       );
     }

@@ -34,6 +34,7 @@ interface InteractionSystemContext {
   activateSwitch: (doorId: string) => void;
   updateWorldChunksAtPlayer: () => void;
   syncWhisperingWoodsShortcutState: () => void;
+  syncGroveShelfShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncForestFortGateState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
@@ -103,7 +104,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     if (context.items.moonbloom) {
       context.state.addItem({ ...context.items.moonbloom });
     }
-    context.playItemGrab();
+    context.playGrassPull();
     context.emitSparkles(new THREE.Vector3(px, py, 0.3));
 
     const merchantQuest = context.state.quests.find(q => q.id === 'merchants_request' && q.active && !q.completed);
@@ -319,6 +320,31 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  const tryHandleGroveShelfShortcutLever = (interactionId: string): boolean => {
+    if (interactionId !== 'grove_shelf_shortcut_lever') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('grove_shelf_shortcut_open')) {
+      context.notify('The trail gate is already open.', { id: 'grove-shelf-shortcut-open', duration: 1800 });
+      return true;
+    }
+
+    context.state.setFlag('grove_shelf_shortcut_open', true);
+    context.syncGroveShelfShortcutState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Shortcut Unlocked');
+    context.notify('Shortcut unlocked', {
+      id: 'grove-shelf-shortcut-unlocked',
+      type: 'success',
+      description: 'The iron gate at the trail head groans open — the path back through the Whispering Woods is clear.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
   const tryHandleHollowShortcutLever = (interactionId: string): boolean => {
     if (interactionId !== 'hollow_shortcut_lever') return false;
     if (context.state.currentMap !== 'forest') return true;
@@ -391,6 +417,34 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  const tryHandleBlightedRoot = (interactionId: string): boolean => {
+    if (interactionId !== 'blighted_root') return false;
+    if (!context.state.getFlag('blighted_root_destroyed')) return false;
+
+    const quest = context.state.quests.find(q => q.id === 'blighted_heart');
+    if (!quest?.completed && context.items.blighted_root_shard && !context.state.hasItem('blighted_root_shard')) {
+      context.state.addItem({ ...context.items.blighted_root_shard });
+      context.playItemGrab();
+      context.showHeroOverlay('Blighted Root Shard');
+      context.notify('Shard recovered', {
+        id: 'blighted-root-shard-recovery',
+        type: 'success',
+        description: 'A gnarled shard from the dead growth. Return it to Warden Callum.',
+        duration: 3600,
+      });
+      const activeQuest = context.state.quests.find(q => q.id === 'blighted_heart' && q.active && !q.completed);
+      if (activeQuest) {
+        activeQuest.objectives[1] = `Find and destroy the Blighted Root \u2713`;
+      }
+      context.triggerSave();
+      context.triggerUIUpdate();
+      return true;
+    }
+
+    context.notify('Nothing more remains here.', { id: 'blighted-root-empty', duration: 1800 });
+    return true;
+  };
+
   const tryHandleDialogueInteraction = (interactionId: string): boolean => {
     if (!context.hasDialogue(interactionId)) return false;
     context.startDialogue(interactionId, undefined);
@@ -408,9 +462,11 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleHealingSource,
     tryHandleShadowCastleGateSwitch,
     tryHandleForestShortcutLever,
+    tryHandleGroveShelfShortcutLever,
     tryHandleHollowShortcutLever,
     tryHandleForestFortGate,
     tryHandleHollowFogGate,
+    tryHandleBlightedRoot,
     tryHandleDialogueInteraction,
   };
 }

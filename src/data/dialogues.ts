@@ -1072,8 +1072,17 @@ export const dialogues: Record<string, Dialogue> = {
         id: 'rumors',
         text: "The rangers posted me here. Then they stopped coming back. The wolves got plating from somewhere and the river up north started smelling wrong. I stay because the walls are thick and leaving sounds exhausting.",
         responses: [
+          { text: "What's beyond this fort?", nextId: 'hollow_hint' },
           { text: "Show me what you've got.", nextId: 'shop' },
           { text: "Hang in there.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'hollow_hint',
+        text: "North exit drops you into a corridor between the cliffs. **Follow the lanterns west** along the ridge path until you hit the stairway gap. Past that... the Hollow. That's where the hunters went. None of them came back. You look like you might, though. Barely.",
+        responses: [
+          { text: "Show me what you've got.", nextId: 'shop' },
+          { text: "I'll manage.", nextId: 'end' },
         ],
       },
       { id: 'end', text: "I'll be here. Obviously.", responses: [] },
@@ -1105,10 +1114,6 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'cliff_trail_sign',
     nodes: [{ id: 'start', text: "A rough board nailed to a stump. Words are burned into the wood: '**CLIFF TRAIL — WEST FACE.** Gate won't open from here. Trail circles the cliff and comes up __behind the Disparaged Cottage__.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
-  west_grove_fence_sign: {
-    id: 'west_grove_fence_sign',
-    nodes: [{ id: 'start', text: "Carved into a ranger post: '**Wolf shelf — cordoned.** Stay on the high ground until command clears the pack. __A proper gate__ may replace this picket line after the ridge is safe again.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
   logging_camp: {
     id: 'logging_camp',
     nodes: [{ id: 'start', text: "A clearing of fresh stumps and rusted axes. The loggers left in a hurry — half-sawn trunks still lean against each other, and boot prints trail into the undergrowth. Whatever drove them off, they didn't stop to collect their pay.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
@@ -1120,7 +1125,11 @@ export const dialogues: Record<string, Dialogue> = {
   },
   river_east_waypost: {
     id: 'river_east_waypost',
-    nodes: [{ id: 'start', text: "A ranger waypost, half-sunk in the bank. Scratched into the post below the rot line: '**NORTH CROSSING — STONE HILL.** River ends here. Climb the ridge ahead.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A ranger waypost near the stone sentinels. Scratched below the rot line: '**FORTRESS GATE AHEAD.** Garrison locked the river crossing. Key is at the old chapel — west along the south bank.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  fort_north_waypost: {
+    id: 'fort_north_waypost',
+    nodes: [{ id: 'start', text: "A ranger waypost just outside the fort's north gate. An arrow carved deep into the post points west. Below it: '**RIDGE PATH — WEST.** Follow the lanterns to the stairway gap. The Hollow lies beyond.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   cliff_inlet_marker: {
     id: 'cliff_inlet_marker',
@@ -1133,5 +1142,137 @@ export const dialogues: Record<string, Dialogue> = {
   cliff_top_sentinel_chest: {
     id: 'cliff_top_sentinel_chest',
     nodes: [{ id: 'start', text: "A commander's lockbox, half-buried in collapsed masonry. The latch is rusted but the contents are intact. Whoever left it here did not come back for it.", responses: [{ text: "[Open]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  grove_warden: {
+    id: 'grove_warden',
+    nodes: [
+      {
+        id: 'start',
+        text: "Don't mind the bandages. I earned them the hard way. Name's **Callum** — ranger, or what's left of one. I went into that grove to the west thinking I'd thin the growth. The growth thinned me instead.",
+        responses: [
+          { text: "What grove?", nextId: 'grove_info' },
+          { text: "What happened to you?", nextId: 'wounds' },
+          { text: "I should move on.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'grove_info',
+        text: "The **enchanted grove**, southwest of here. Used to be flowers and mushroom rings — scholars loved the place. Now something's __rotting__ it from the inside. A **Blighted Root** pushed up through the center. Since then the plants have turned vicious. They don't just grow anymore. They *hunt*.",
+        responses: [
+          { text: "Can it be stopped?", nextId: 'offer' },
+          { text: "Sounds like your problem.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'wounds',
+        text: "Went in alone. Arrogant. The vine-things hit from every angle — thorns the size of daggers, roots that grab your ankles. I cut my way out, but left most of my nerve in there. The corruption is spreading. If that root isn't torn out, this whole corridor will be grove by next season.",
+        responses: [
+          { text: "What do you need?", nextId: 'offer' },
+          { text: "Rest up.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'offer',
+        text: "Find the **Blighted Root** at the heart of the grove and destroy it. Tear out a shard as proof. The plants will fight you for it, but you look harder to kill than I was. Bring me the shard and I'll brew you something from the purified sap — a **Verdant Tonic**. Stronger than anything the apothecary stocks.",
+        responses: [
+          { text: "I'll clear the grove.", nextId: 'end', givesQuest: 'blighted_heart' },
+          { text: "Not now.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'quest_active',
+        text: "The grove's still sick. I can feel it from here — the air tastes like copper and rotting leaves. Head **southwest**. Follow the fence line past the danger sign. The **Blighted Root** is at the center of the grove, where the flowers used to be thickest.",
+        responses: [{ text: "I'm working on it.", nextId: 'end' }],
+      },
+      {
+        id: 'quest_turnin',
+        text: "That shard… you actually tore it out. The air's already lighter — can you feel it? Give it here. I know how to render this down.",
+        responses: [{ text: "Here. It's yours.", nextId: 'reward' }],
+      },
+      {
+        id: 'reward',
+        text: "Three vials of **Verdant Tonic**, brewed fresh from the purified sap. Each one hits harder than an Ephemeral Extract. And take this gold — the ranger fund owes you more than it can pay. The grove will heal now. Slowly, but it will heal.",
+        responses: [{ text: "Thanks, Callum.", nextId: 'end' }],
+      },
+      {
+        id: 'after_quest',
+        text: "The grove's calming down. Fewer thorns on the wind, the mushroom rings are coming back. You did what I couldn't. If the Hollow doesn't kill you, nothing will.",
+        responses: [{ text: "Stay safe.", nextId: 'end' }],
+      },
+      { id: 'end', text: "Watch the roots out there. They remember.", responses: [] },
+    ],
+  },
+  petra_ashveil: {
+    id: 'petra_ashveil',
+    nodes: [
+      {
+        id: 'start',
+        text: "These cliff formations are extraordinary — and that rumbling I heard last night... I've been camped here since dawn. Name's **Petra Ashveil**, field researcher out of the Ashfen Academy. If you're heading further in, keep an eye out for stone-core fragments. A genuine golem remain would be worth a great deal to the right people.",
+        responses: [
+          { text: "What are you looking for?", nextId: 'research' },
+          { text: "Have you seen a Stone Golem?", nextId: 'golem_seen' },
+          { text: "Safe travels.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'has_heart',
+        text: "Is that... a __Golem Heart__? That crystallised core — the density, the faint resonance — that's *exactly* what I came here for. I can offer you **2,000 essence** for it right now. The academy will reimburse me. Eventually.",
+        responses: [
+          { text: "Deal. Take it.", nextId: 'deliver_heart' },
+          { text: "I'll hold onto it.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'research',
+        text: "Stone golems leave behind a mineralised core when they fall — we call it a **Golem Heart**. Dense, warm to the touch, faintly luminous. The last confirmed specimen was recovered __four decades ago__. If one of those constructs still walks these highlands, it's the find of a generation. The academy has been waiting for proof.",
+        responses: [
+          { text: "I may have encountered one.", nextId: 'golem_seen' },
+          { text: "Good luck with that.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'golem_seen',
+        text: "You've *seen* one? Alive? Then the old survey maps were right — this highland shelf matches every description. They're drawn to elevated granite deposits. If you manage to bring it down, the **core** it leaves behind would be worth more than most people earn in a year. Bring it to me and we'll settle on a fair price.",
+        responses: [
+          { text: "I'll keep that in mind.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'deliver_heart',
+        text: "Remarkable. The crystalline lattice alone — this will rewrite three chapters of the Compendium. **2,000 essence**, as agreed. Safe travels out there, and if anyone asks, you found it in a river bed.",
+        responses: [{ text: "Pleasure doing business.", nextId: 'end' }],
+      },
+      {
+        id: 'after_delivery',
+        text: "I'll need three pack mules just to get this back to Ashfen. Worth every step. The Compendium thanks you.",
+        responses: [{ text: "Good luck.", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  blighted_root: {
+    id: 'blighted_root',
+    nodes: [
+      {
+        id: 'start',
+        text: "A massive, pulsating growth of twisted bark and dark veins pushes up from the earth. The air around it reeks of decay. Thorned tendrils coil outward in every direction, feeding the corruption that has overtaken the grove. This is the source.",
+        responses: [
+          { text: "[Tear out a shard]", nextId: 'destroy' },
+          { text: "[Leave it]", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'destroy',
+        text: "You drive your blade into the root and wrench free a **Blighted Root Shard**. The growth shudders violently. Dark ichor sprays from the wound as the tendrils convulse and begin to wither. The grove groans — a sound like a held breath finally released.",
+        responses: [{ text: "[Take the shard]", nextId: 'end' }],
+      },
+      {
+        id: 'already_destroyed',
+        text: "The remains of the Blighted Root slump in a ring of dead bark and dried ichor. Without its heart, the corruption is fading. New shoots of green are already pushing through the blackened soil.",
+        responses: [{ text: "[Continue]", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
   },
 };

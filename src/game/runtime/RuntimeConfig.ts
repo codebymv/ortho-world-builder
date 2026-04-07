@@ -40,6 +40,8 @@ export const NPC_SCALE_BY_ID: Record<string, number> = {
   child: 0.86,
   forest_ranger: 1.04,
   fort_quartermaster: 1.06,
+  grove_warden: 1.04,
+  petra_ashveil: 1.02,
 };
 
 export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
@@ -49,6 +51,7 @@ export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
   void_wisp: { baseScale: 1.12, footOffset: 0.12, strideAmp: 0.03, bobAmp: 0.05, squashAmp: 0.04, leanAmp: 0.03, hpBarOffset: 0.62 },
   plant: { baseScale: 1.14, footOffset: 0.16, strideAmp: 0.02, bobAmp: 0.03, squashAmp: 0.03, leanAmp: 0.04, hpBarOffset: 0.64 },
   skeleton: { baseScale: 1.18, footOffset: 0.22, strideAmp: 0.04, bobAmp: 0.04, squashAmp: 0.05, leanAmp: 0.05, hpBarOffset: 0.66 },
+  skeleton_captain: { baseScale: 1.54, footOffset: 0.26, strideAmp: 0.03, bobAmp: 0.035, squashAmp: 0.05, leanAmp: 0.04, hpBarOffset: 0.80 },
   bandit: { baseScale: 1.12, footOffset: 0.24, strideAmp: 0.04, bobAmp: 0.05, squashAmp: 0.06, leanAmp: 0.05, hpBarOffset: 0.7 },
   golem: { baseScale: 1.72, footOffset: 0.28, strideAmp: 0.025, bobAmp: 0.03, squashAmp: 0.04, leanAmp: 0.025, hpBarOffset: 0.86 },
   spider: { baseScale: 1.08, footOffset: 0.14, strideAmp: 0.06, bobAmp: 0.02, squashAmp: 0.08, leanAmp: 0.06, hpBarOffset: 0.56 },
@@ -71,7 +74,9 @@ export function createDefaultNpcData(): NPC[] {
     { id: 'farmer', name: 'Old Farmer', mapId: 'village', position: { x: -56, y: 35 }, dialogueId: 'farmer', sprite: 'npc_farmer' },
     { id: 'child', name: 'Village Child', mapId: 'village', position: { x: 5, y: -5 }, dialogueId: 'child', sprite: 'npc_child' },
     { id: 'forest_ranger', name: 'Forest Ranger', mapId: 'forest', position: { x: 158, y: 168 }, dialogueId: 'forest_ranger', sprite: 'npc_guard', questGiver: true },
-    { id: 'fort_quartermaster', name: 'Listless Merchant', mapId: 'forest', position: { x: -10, y: -22 }, dialogueId: 'fort_quartermaster', sprite: 'npc_merchant' },
+    { id: 'fort_quartermaster', name: 'Listless Merchant', mapId: 'forest', position: { x: 80, y: 13 }, dialogueId: 'fort_quartermaster', sprite: 'npc_merchant' },
+    { id: 'grove_warden', name: 'Warden Callum', mapId: 'forest', position: { x: 7, y: -1 }, dialogueId: 'grove_warden', sprite: 'npc_grove_warden', questGiver: true },
+    { id: 'petra_ashveil', name: 'Petra the Researcher', mapId: 'forest', position: { x: 12, y: -37 }, dialogueId: 'petra_ashveil', sprite: 'npc_petra' },
   ];
 }
 
@@ -96,6 +101,10 @@ export function createNpcWanderState(npcData: NPC[]): Record<string, NpcWanderSt
                   ? 0.45
                 : npc.id === 'fort_quartermaster'
                   ? 0.8
+                : npc.id === 'grove_warden'
+                  ? 0.6
+                : npc.id === 'petra_ashveil'
+                  ? 0.4
                 : 1.5,
       speed:
         npc.id === 'child'
@@ -112,6 +121,10 @@ export function createNpcWanderState(npcData: NPC[]): Record<string, NpcWanderSt
                   ? 0.14
                 : npc.id === 'fort_quartermaster'
                   ? 0.22
+                : npc.id === 'grove_warden'
+                  ? 0.16
+                : npc.id === 'petra_ashveil'
+                  ? 0.12
                 : 0.5,
       pauseTimer: Math.random() * 3,
       isPaused: true,

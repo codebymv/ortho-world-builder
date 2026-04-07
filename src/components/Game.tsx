@@ -32,6 +32,7 @@ import {
   type RuntimeHostRefs,
   type RuntimeUiBindings,
 } from '@/game/runtime/setupGameRuntime';
+import type { BonfireEntry } from '@/data/bonfires';
 import { useGameMusic } from '@/game/runtime/useGameMusic';
 import { useGameRuntime } from '@/game/runtime/useGameRuntime';
 
@@ -67,6 +68,7 @@ const Game = () => {
   const playMenuOpenRef = useRef<(() => void) | null>(null);
   const playMenuCloseRef = useRef<(() => void) | null>(null);
   const restAtBonfireRef = useRef<(() => void) | null>(null);
+  const travelToBonfireRef = useRef<((entry: BonfireEntry) => void) | null>(null);
 
   // Audio processing system for compression and gain
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -459,6 +461,7 @@ const Game = () => {
     playMenuOpenRef,
     playMenuCloseRef,
     restAtBonfireRef,
+    travelToBonfireRef,
     killCountRef,
   } satisfies Omit<RuntimeHostRefs, 'mountElement'>;
 
@@ -673,6 +676,11 @@ const Game = () => {
           }}
           onLevelUp={(stat) => {
             return gameState.levelUpStat(stat);
+          }}
+          onTravel={(entry) => {
+            travelToBonfireRef.current?.(entry);
+            setBonfireMenuOpen(false);
+            pausedRef.current = false;
           }}
           triggerUIUpdate={triggerUIUpdate}
         />

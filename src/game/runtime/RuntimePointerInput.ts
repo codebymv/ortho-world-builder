@@ -39,6 +39,7 @@ interface PointerInputOptions {
   getLmbHoldStartTime: () => number;
   setLmbHoldStartTime: (value: number) => void;
   chargeTimeMin: number;
+  getComboWindowTimer: () => number;
 }
 
 export function createPointerInputController({
@@ -65,6 +66,7 @@ export function createPointerInputController({
   getLmbHoldStartTime,
   setLmbHoldStartTime,
   chargeTimeMin,
+  getComboWindowTimer,
 }: PointerInputOptions) {
   const clearChargeState = () => {
     setIsLmbHeld(false);
@@ -89,13 +91,30 @@ export function createPointerInputController({
     if (e.button === 0) {
       if (!state.dialogueActive && !state.player.isDodging) {
         const currentTime = Date.now();
+        const playerAnimState = getPlayerAnimState();
+
+        // Mid-swing: call performAttack directly so it can set comboInputBuffered.
+        // Bypass the charge system entirely — the combo chain handles its own timing.
+        if (playerAnimState === 'attack') {
+          performAttack();
+          return;
+        }
+
+        // In the combo chain window (after animation ends, before window expires):
+        // register the mousedown so mouseup can call performAttack for the chain.
+        // Bypass the attackCooldown gate since the chain has its own timing logic.
+        if (getComboWindowTimer() > 0) {
+          setIsLmbHeld(true);
+          setLmbHoldStartTime(currentTime);
+          return;
+        }
+
+        // Normal flow: respect the cooldown gate and start the charge system
         if (currentTime - state.player.lastAttackTime >= state.player.attackCooldown) {
           setIsLmbHeld(true);
           setLmbHoldStartTime(currentTime);
-          const playerAnimState = getPlayerAnimState();
           if (
             !getIsChargingAttack() &&
-            playerAnimState !== 'attack' &&
             playerAnimState !== 'spin_attack' &&
             playerAnimState !== 'lunge' &&
             playerAnimState !== 'lunge_recovery' &&

@@ -72,7 +72,7 @@ export interface MapFeature {
   y: number;
   width: number;
   height: number;
-  type: 'building' | 'inn_building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'secret_cave' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano' | 'boss_arena' | 'abandoned_camp' | 'cemetery' | 'cliff_face' | 'farm' | 'iron_fence_border' | 'hedge_maze' | 'cobble_plaza' | 'forest_grove' | 'fort' | 'enchanted_grove' | 'church' | 'ruined_fort' | 'cottage' | 'watchtower' | 'broken_wagon' | 'market_stall_row';
+  type: 'building' | 'inn_building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'bridge_corrupted' | 'secret_cave' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano' | 'boss_arena' | 'abandoned_camp' | 'cemetery' | 'cliff_face' | 'farm' | 'iron_fence_border' | 'hedge_maze' | 'cobble_plaza' | 'forest_grove' | 'fort' | 'enchanted_grove' | 'church' | 'ruined_fort' | 'cottage' | 'watchtower' | 'broken_wagon' | 'market_stall_row';
   tiles?: Partial<Record<string, Tile>>; // specific tile overrides by "dx,dy"
   fill?: TileType;
   border?: TileType;
@@ -95,6 +95,8 @@ export interface MapDefinition {
   autoRoads?: boolean;
   /** When false, south map edge uses normal borderTile (e.g. inn rooms). Default: large overworld maps use sea cliff + ocean on the south edge. */
   coastalSouthBorder?: boolean;
+  /** When true (and map is large), all four edges use the same sea cliff + deep water band as the south coast (Greenleaf-style rim on every side). */
+  coastalBorderAllSides?: boolean;
   features: MapFeature[];
   portals: Array<{
     x: number;
@@ -139,6 +141,8 @@ export interface MapDefinition {
     height: number;
     enemyType: string;
     count: number;
+    /** Optional faction key. Enemies with different factions attack each other before targeting the player. */
+    faction?: string;
   }>;
 }
 
@@ -151,6 +155,20 @@ const CLIFF_SPRITE_BUFFER_ROWS = 2;
 function useCoastalSouthBorder(def: MapDefinition): boolean {
   if (def.coastalSouthBorder === false) return false;
   return def.width >= 48 && def.height >= 48;
+}
+
+function useCoastalAllSides(def: MapDefinition): boolean {
+  return def.coastalBorderAllSides === true && def.width >= 48 && def.height >= 48;
+}
+
+function coastalBandTile(relFromOuter: number): Tile {
+  if (relFromOuter <= 1) {
+    return createTile('water', false);
+  }
+  if (relFromOuter === COASTAL_SOUTH_ROWS - 1) {
+    return createTile('cliff_edge', false);
+  }
+  return createTile('cliff', false);
 }
 
 const STRUCTURE_FEATURE_TYPES: Set<MapFeature['type']> = new Set([
@@ -176,21 +194,36 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
     const row: Tile[] = [];
     for (let x = 0; x < def.width; x++) {
       const borderSize = 2;
-      // South edge (low y = screen bottom): dramatic sea cliff + ocean, full width on large maps.
-      // Layout from south: y=0,1 = deep water; y=2..COASTAL_SOUTH_ROWS-2 = cliff body; y=COASTAL_SOUTH_ROWS-1 = cliff_edge cap.
-      if (useCoastalSouthBorder(def) && y < COASTAL_SOUTH_ROWS) {
-        if (y <= 1) {
-          row.push(createTile('water', false));
-        } else if (y === COASTAL_SOUTH_ROWS - 1) {
-          row.push(createTile('cliff_edge', false));
-        } else {
-          row.push(createTile('cliff', false));
+      const S = COASTAL_SOUTH_ROWS;
+      const allSides = useCoastalAllSides(def);
+
+      if (allSides) {
+        if (y < S) {
+          row.push(coastalBandTile(y));
+          continue;
         }
-        continue;
-      }
-      if (x < borderSize || x >= def.width - borderSize || y < borderSize || y >= def.height - borderSize) {
-        row.push(createTile(def.borderTile, false));
-        continue;
+        if (def.height - 1 - y < S) {
+          row.push(coastalBandTile(def.height - 1 - y));
+          continue;
+        }
+        if (x < S) {
+          row.push(coastalBandTile(x));
+          continue;
+        }
+        if (def.width - 1 - x < S) {
+          row.push(coastalBandTile(def.width - 1 - x));
+          continue;
+        }
+      } else {
+        // South edge (low y = screen bottom): dramatic sea cliff + ocean, full width on large maps.
+        if (useCoastalSouthBorder(def) && y < S) {
+          row.push(coastalBandTile(y));
+          continue;
+        }
+        if (x < borderSize || x >= def.width - borderSize || y < borderSize || y >= def.height - borderSize) {
+          row.push(createTile(def.borderTile, false));
+          continue;
+        }
       }
 
       const n1 = smoothNoise(x, y, def.seed, 12);
@@ -404,6 +437,9 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
         break;
       case 'bridge':
         placeBridge(tiles, feature);
+        break;
+      case 'bridge_corrupted':
+        placeBridgeCorrupted(tiles, feature);
         break;
       case 'path':
         placePath(tiles, feature);
@@ -949,11 +985,27 @@ function placeBridge(tiles: Tile[][], f: MapFeature) {
   }
 }
 
+function placeBridgeCorrupted(tiles: Tile[][], f: MapFeature) {
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
+        tiles[ty][tx] = createTile('bridge_corrupted', true);
+      }
+    }
+  }
+}
+
 // Objects path strips may replace when unwalkable (carve through forest). Other unwalkable tiles
 // (house foundations, water) are left alone so collision matches authored structures.
 // Fence / gate / iron_fence are always skipped (gates are walkable and would otherwise be paved over).
+/** Unwalkable terrain types an authored path strip is allowed to replace with path fill (dirt etc.). */
 const PATH_BLOCKERS: Set<TileType> = new Set([
   'tree', 'rock', 'stump', 'dead_tree', 'hedge',
+  // Carve through decorative cliff_face stamps when a path runs over them (e.g. south-bank artery
+  // y=148 vs funnel block at x=144–153) so elevation seam fillers do not show as sky strips.
+  'cliff_edge', 'cliff',
 ]);
 
 function placePath(tiles: Tile[][], f: MapFeature) {
@@ -2023,7 +2075,7 @@ function placeSecretAreas(tiles: Tile[][], def: MapDefinition) {
 
 // Tiles that should not have decoration overlays on or adjacent to them
 const INCOMPATIBLE_BASE: Set<TileType> = new Set([
-  'water', 'lava', 'ice', 'swamp', 'waterfall', 'bridge',
+  'water', 'lava', 'ice', 'swamp', 'waterfall', 'bridge', 'bridge_corrupted',
   // Cliff faces: trees growing out of vertical rock walls look wrong
   'cliff', 'cliff_edge',
 ]);
@@ -2036,7 +2088,7 @@ const LAND_DECORATIONS: Set<TileType> = new Set([
 
 // Path-type tiles that trees/rocks should be cleared away from
 const PATH_TILES: Set<TileType> = new Set([
-  'dirt', 'cobblestone', 'wooden_path', 'wood_floor', 'bridge', 'sand',
+  'dirt', 'cobblestone', 'wooden_path', 'wood_floor', 'bridge', 'bridge_corrupted', 'sand',
 ]);
 
 /**
@@ -2058,7 +2110,7 @@ function applySouthCliffSpriteWalkabilityBuffer(
       if (ty >= h || ty < coastProtectMaxY) continue;
       const bufTile = tiles[ty][x];
       if (!bufTile.transition && !bufTile.interactable && bufTile.type !== 'stairs'
-          && !PATH_TILES.has(bufTile.type) && bufTile.type !== 'bridge') {
+          && !PATH_TILES.has(bufTile.type) && bufTile.type !== 'bridge' && bufTile.type !== 'bridge_corrupted') {
         tiles[ty][x] = { ...bufTile, walkable: false };
       }
     }
@@ -2197,12 +2249,17 @@ function applyElevationZones(tiles: Tile[][], def: MapDefinition) {
 // Vertical cliff art: only when the tile to the NORTH (smaller y) is higher than the tile to the SOUTH.
 // The complementary “south/east neighbor higher” case is filled at render time in World.appendTerrainSeamFillers
 // so paths and portal rows do not show sky gaps.
-function stampCliffs(tiles: Tile[][], protectSouthCoastRows: boolean) {
+function stampCliffs(tiles: Tile[][], def: MapDefinition) {
   const h = tiles.length;
   const w = tiles[0].length;
   const elevations = tiles.map(row => row.map(tile => tile.elevation ?? 0));
-  // Protect the coastal zone at low y values (south = bottom of screen).
-  const coastProtectMaxY = protectSouthCoastRows ? COASTAL_SOUTH_ROWS : 0;
+  const S = COASTAL_SOUTH_ROWS;
+  const protectRing = useCoastalAllSides(def);
+  const protectSouthOnly = useCoastalSouthBorder(def) && !protectRing;
+  const coastProtectMaxY = protectSouthOnly ? S : 0;
+
+  const cellInCoastalRing = (tx: number, ty: number): boolean =>
+    protectRing && (ty < S || ty >= h - S || tx < S || tx >= w - S);
 
   for (let y = 1; y < h; y++) {
     for (let x = 0; x < w; x++) {
@@ -2225,8 +2282,11 @@ function stampCliffs(tiles: Tile[][], protectSouthCoastRows: boolean) {
       // handled by the walkability system's "visible height indicator" heuristic.
       if (PATH_TILES.has(upperTile.type) || PATH_TILES.has(lowerTile.type)) continue;
 
-      // Skip if the cliff_edge cap row falls inside the protected coastal zone.
-      if (y - 1 < coastProtectMaxY) continue;
+      if (protectRing) {
+        if (cellInCoastalRing(x, y - 1) || cellInCoastalRing(x, y)) continue;
+      } else if (y - 1 < coastProtectMaxY) {
+        continue;
+      }
       tiles[y - 1][x] = createTile('cliff_edge', false, { elevation: upperElevation });
 
       // Extra wall tiles proportional to elevation drop — a 2-step drop gets 3 cliff tiles
@@ -2235,7 +2295,11 @@ function stampCliffs(tiles: Tile[][], protectSouthCoastRows: boolean) {
       for (let depth = 0; depth < wallDepth; depth++) {
         const cy = y + depth;
         if (cy >= h) break;
-        if (cy < coastProtectMaxY) continue; // skip rows inside coastal zone
+        if (protectRing) {
+          if (cellInCoastalRing(x, cy)) continue;
+        } else if (cy < coastProtectMaxY) {
+          continue;
+        }
         const targetTile = tiles[cy][x];
         if (targetTile.transition || targetTile.interactable || targetTile.type === 'stairs') continue;
         tiles[cy][x] = createTile('cliff', false, { elevation: lowerElevation });
@@ -2383,7 +2447,7 @@ export function generateMap(def: MapDefinition): WorldMap {
   }
 
   applyElevationZones(tiles, def);
-  stampCliffs(tiles, useCoastalSouthBorder(def));
+  stampCliffs(tiles, def);
   placeStairways(tiles, def);
   placeLadders(tiles, def);
   // Final pass: keep interior cottage approaches traversable even after elevation/cliff stamping.
@@ -2399,5 +2463,6 @@ export function generateMap(def: MapDefinition): WorldMap {
     tiles,
     spawnPoint: def.spawnPoint,
     coastalSouthBackdrop: useCoastalSouthBorder(def),
+    coastalBorderAllSides: useCoastalAllSides(def),
   };
 }

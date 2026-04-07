@@ -76,6 +76,9 @@ export interface BuildRuntimePhaseContextsOptions {
   onLungeHit: (enemy: any, damage: number) => void;
   onLungeEnd: () => void;
   dodgeIFrameDuration: number;
+  triggerComboChain: () => { frameDuration: number } | null;
+  comboWindowDuration: number;
+  getComboFrameDuration: (step: number) => number;
   textureCache: Map<string, THREE.Texture>;
   playerBaseScale: number;
   outlinePad: number;
@@ -101,6 +104,7 @@ export interface BuildRuntimePhaseContextsOptions {
   essenceOrbMesh: THREE.Mesh;
   essenceOrbMaterial: THREE.MeshBasicMaterial;
   swooshDuration: number;
+  comboStep: number;
   getInteractionPromptLabel: (
     interactionId: string,
     promptState: GameState,

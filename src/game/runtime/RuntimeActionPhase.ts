@@ -50,6 +50,7 @@ interface RuntimeActionPhaseOptions {
   syncHarvestedTempestGrassState: () => void;
   syncHarvestedMoonbloomState: () => void;
   syncWhisperingWoodsShortcutState: () => void;
+  syncGroveShelfShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncForestFortGateState: () => void;
   syncHollowFogGateState: () => void;
@@ -73,6 +74,8 @@ interface RuntimeActionPhaseOptions {
   chargeDamageMult: number;
   dodgeIFrameDuration: number;
   dodgeStaminaCost: number;
+  comboFrameMultipliers: readonly [number, number, number];
+  comboDamageMultipliers: readonly [number, number, number];
   lungeDistMin: number;
   lungeDistMax: number;
   lungeSpeedBase: number;
@@ -80,6 +83,7 @@ interface RuntimeActionPhaseOptions {
   lungeRecoveryMin: number;
   lungeRecoveryMax: number;
   openBonfireMenu: () => void;
+  showTransitionOverlay: (mapName: string, mapSubtitle?: string) => void;
 }
 
 export function setupRuntimeActionPhase({
@@ -109,6 +113,7 @@ export function setupRuntimeActionPhase({
   syncHarvestedTempestGrassState,
   syncHarvestedMoonbloomState,
   syncWhisperingWoodsShortcutState,
+  syncGroveShelfShortcutState,
   syncHollowShortcutState,
   syncForestFortGateState,
   syncHollowFogGateState,
@@ -132,6 +137,8 @@ export function setupRuntimeActionPhase({
   chargeDamageMult,
   dodgeIFrameDuration,
   dodgeStaminaCost,
+  comboFrameMultipliers,
+  comboDamageMultipliers,
   lungeDistMin,
   lungeDistMax,
   lungeSpeedBase,
@@ -139,6 +146,7 @@ export function setupRuntimeActionPhase({
   lungeRecoveryMin,
   lungeRecoveryMax,
   openBonfireMenu,
+  showTransitionOverlay,
 }: RuntimeActionPhaseOptions) {
   const sfx = createRuntimeSfx({
     processAudioElement,
@@ -155,6 +163,7 @@ export function setupRuntimeActionPhase({
     playBonfireKindle: sfx.playBonfireKindle,
     playBonfireRestore: sfx.playBonfireRestore,
     respawnEnemiesForCurrentMap,
+    showTransitionOverlay,
     triggerSave,
     triggerUIUpdate,
     openBonfireMenu,
@@ -179,7 +188,7 @@ export function setupRuntimeActionPhase({
     dodgeStaminaCost,
   });
 
-  const { performAttack, performChargeAttack } = createRuntimeCombatActions({
+  const { performAttack, performChargeAttack, triggerComboChain } = createRuntimeCombatActions({
     state,
     combatSystem,
     floatingText,
@@ -232,6 +241,21 @@ export function setupRuntimeActionPhase({
     spinFrameDuration,
     spinDirections,
     clearChargeState,
+    getComboStep: () => runtimeSession.animation.comboStep,
+    setComboStep: value => {
+      runtimeSession.animation.comboStep = value;
+    },
+    getComboWindowTimer: () => runtimeSession.animation.comboWindowTimer,
+    setComboWindowTimer: value => {
+      runtimeSession.animation.comboWindowTimer = value;
+    },
+    getComboInputBuffered: () => runtimeSession.input.comboInputBuffered,
+    setComboInputBuffered: value => {
+      runtimeSession.input.comboInputBuffered = value;
+    },
+    getPlayerAnimState: () => runtimeSession.animation.playerAnimState,
+    comboFrameMultipliers,
+    comboDamageMultipliers,
     lungeDistMin,
     lungeDistMax,
     lungeSpeedBase,
@@ -288,6 +312,7 @@ export function setupRuntimeActionPhase({
       world.updateChunks(state.player.position.x, state.player.position.y);
     },
     syncWhisperingWoodsShortcutState,
+    syncGroveShelfShortcutState,
     syncHollowShortcutState,
     syncForestFortGateState,
     showHeroOverlay,
@@ -347,6 +372,8 @@ export function setupRuntimeActionPhase({
     performDodge,
     performAttack,
     performChargeAttack,
+    triggerComboChain,
     restAtBonfire: bonfireActions.restAtBonfire,
+    travelToBonfire: bonfireActions.travelToBonfire,
   };
 }

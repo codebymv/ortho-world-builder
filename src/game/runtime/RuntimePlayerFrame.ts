@@ -12,6 +12,7 @@ interface RunPlayerFramePhaseOptions extends PlayerFrameContext {
   chargeLevel: number;
   animFrame: number;
   attackFrame: number;
+  comboStep: number;
   spinDirIndex: number;
   spinDirections: string[];
   playerSmoothedElevation: number;
@@ -52,6 +53,7 @@ export function runPlayerFramePhase({
   chargeLevel,
   animFrame,
   attackFrame,
+  comboStep,
   spinDirIndex,
   spinDirections,
   playerBaseScale,
@@ -105,6 +107,7 @@ export function runPlayerFramePhase({
     currentDir8,
     animFrame,
     attackFrame,
+    comboStep,
     spinDirIndex,
     spinDirections,
     getPlayerTextureName,
@@ -130,12 +133,50 @@ export function runPlayerFramePhase({
       : 0;
   const stride = Math.abs(moveWave);
 
-  if (playerAnimState === 'attack' && attackFrame === 1) {
-    const lungeAmount = 0.15;
-    if (facing4 === 'up') attackOffsetY = lungeAmount;
-    else if (facing4 === 'down') attackOffsetY = -lungeAmount;
-    else if (facing4 === 'left') attackOffsetX = -lungeAmount;
-    else if (facing4 === 'right') attackOffsetX = lungeAmount;
+  if (playerAnimState === 'attack') {
+    // Step 0: standard forward lunge on frame 1
+    // Step 1: backhand — body pulls back slightly on frame 0, then drifts perpendicular on frame 1
+    // Step 2: finisher — slight wind-up pull on frame 0, heavy forward plunge on frame 1
+    if (comboStep === 0 && attackFrame === 1) {
+      const lungeAmount = 0.15;
+      if (facing4 === 'up') attackOffsetY = lungeAmount;
+      else if (facing4 === 'down') attackOffsetY = -lungeAmount;
+      else if (facing4 === 'left') attackOffsetX = -lungeAmount;
+      else if (facing4 === 'right') attackOffsetX = lungeAmount;
+    } else if (comboStep === 1) {
+      if (attackFrame === 0) {
+        // Pull back slightly (recoil from step 0)
+        const recoil = -0.06;
+        if (facing4 === 'up') attackOffsetY = recoil;
+        else if (facing4 === 'down') attackOffsetY = -recoil;
+        else if (facing4 === 'left') attackOffsetX = -recoil;
+        else if (facing4 === 'right') attackOffsetX = recoil;
+      } else if (attackFrame === 1) {
+        // Perpendicular drift with slight forward motion — the backhand whip
+        const lungeAmount = 0.10;
+        const perpDrift = 0.10;
+        if (facing4 === 'up') { attackOffsetY = lungeAmount; attackOffsetX = -perpDrift; }
+        else if (facing4 === 'down') { attackOffsetY = -lungeAmount; attackOffsetX = perpDrift; }
+        else if (facing4 === 'left') { attackOffsetX = -lungeAmount; attackOffsetY = -perpDrift; }
+        else if (facing4 === 'right') { attackOffsetX = lungeAmount; attackOffsetY = perpDrift; }
+      }
+    } else if (comboStep === 2) {
+      if (attackFrame === 0) {
+        // Wind-up pull: slight upward/backward lean
+        const windUp = -0.08;
+        if (facing4 === 'up') attackOffsetY = windUp;
+        else if (facing4 === 'down') attackOffsetY = -windUp;
+        else if (facing4 === 'left') attackOffsetX = -windUp;
+        else if (facing4 === 'right') attackOffsetX = windUp;
+      } else if (attackFrame === 1) {
+        // Heavy forward slam
+        const lungeAmount = 0.24;
+        if (facing4 === 'up') attackOffsetY = lungeAmount;
+        else if (facing4 === 'down') attackOffsetY = -lungeAmount;
+        else if (facing4 === 'left') attackOffsetX = -lungeAmount;
+        else if (facing4 === 'right') attackOffsetX = lungeAmount;
+      }
+    }
   } else if (playerAnimState === 'spin_attack') {
     const spinDir = spinDirections[Math.min(spinDirIndex, spinDirections.length - 1)];
     const lungeAmount = 0.1;
@@ -188,6 +229,38 @@ export function runPlayerFramePhase({
     visualRotation = t * Math.PI * 2 * (state.player.dodgeDirection.x >= 0 ? -1 : 1);
   }
 
+  // Per-combo-step visual differentiation
+  if (playerAnimState === 'attack') {
+    if (comboStep === 0 && attackFrame === 1) {
+      // Standard swing: lean into the slash
+      visualRotation += facing4 === 'right' ? 0.06 : facing4 === 'left' ? -0.06 : 0.03;
+    } else if (comboStep === 1) {
+      if (attackFrame === 0) {
+        // Coil back — slight opposite lean telegraphing the backhand
+        visualRotation += facing4 === 'right' ? 0.05 : facing4 === 'left' ? -0.05 : -0.03;
+      } else if (attackFrame === 1) {
+        // Backhand whip: body twists opposite direction from step 0
+        visualRotation += facing4 === 'right' ? -0.12 : facing4 === 'left' ? 0.12 : 0.08;
+        visualScaleX *= 0.97; // slight horizontal squeeze for speed impression
+      }
+    } else if (comboStep === 2) {
+      if (attackFrame === 0) {
+        // Wind-up: body rises/coils — stretch tall, narrow
+        visualScaleX *= 0.95;
+        visualScaleY *= 1.08;
+      } else if (attackFrame === 1) {
+        // Slam impact: squash wide, strong forward rotation
+        visualScaleX *= 1.08;
+        visualScaleY *= 1.14;
+        visualRotation += facing4 === 'right' ? 0.14 : facing4 === 'left' ? -0.14 : -0.09;
+      } else {
+        // Follow-through settle
+        visualScaleX *= 1.03;
+        visualScaleY *= 0.97;
+      }
+    }
+  }
+
   const targetElevation = world.getElevationAt(state.player.position.x, state.player.position.y);
   playerSmoothedElevation += (targetElevation - playerSmoothedElevation) * Math.min(1, 12 * deltaTime);
 
@@ -236,7 +309,13 @@ export function runPlayerFramePhase({
       right: 0,
     };
     const baseAngle = swooshDirAngles[swooshFacing] ?? 0;
-    meshes.swooshMesh.rotation.z = baseAngle - Math.PI * 0.375 + progress * 0.2;
+    // Per-combo-step arc direction:
+    //   Step 0: standard left-to-right sweep
+    //   Step 1: reversed arc (right-to-left, matching backhand)
+    //   Step 2: top-to-bottom vertical slam
+    const comboArcOffset = comboStep === 1 ? Math.PI * 0.85 : comboStep === 2 ? Math.PI * 0.45 : 0;
+    const arcSweep = comboStep === 2 ? progress * 0.35 : progress * 0.2;
+    meshes.swooshMesh.rotation.z = baseAngle + comboArcOffset - Math.PI * 0.375 + arcSweep;
 
     const swooshDist = state.player.attackRange * 0.4;
     const swooshOffsets: Record<string, { x: number; y: number }> = {

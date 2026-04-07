@@ -264,26 +264,23 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
-  const syncHollowShortcutState = () => {
+  const syncGroveShelfShortcutState = () => {
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
-    const shortcutOpen = state.getFlag('hollow_shortcut_open');
-    for (let y = 39; y <= 44; y++) {
-      for (let x = 96; x <= 103; x++) {
-        const existing = map.tiles[y]?.[x];
-        if (!existing) continue;
-        map.tiles[y][x] = shortcutOpen
-          ? { type: 'wooden_path', walkable: true, elevation: existing.elevation ?? 0 }
-          : {
-              type: 'gate',
-              walkable: false,
-              elevation: existing.elevation ?? 0,
-              interactionId: 'hollow_gate',
-            };
-      }
+    const shortcutOpen = state.getFlag('grove_shelf_shortcut_open');
+    for (let x = 56; x <= 60; x++) {
+      const existing = map.tiles[163]?.[x];
+      if (!existing) continue;
+      map.tiles[163][x] = shortcutOpen
+        ? { type: 'dirt', walkable: true, elevation: existing.elevation ?? 0 }
+        : { type: 'iron_fence', walkable: false, elevation: existing.elevation ?? 0 };
     }
     world.rebuildChunks();
   };
+
+  // No-op: fog gate clears after boss defeat, making the corridor fully walkable
+  // back to the bonfire. No separate shortcut gate needed. Kept as stub for plumbing.
+  const syncHollowShortcutState = () => {};
 
   const syncOpenedChestState = () => {
     const map = world.getCurrentMap();
@@ -468,9 +465,9 @@ export function createRuntimeMapFlow({
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
     const gateOpen = state.getFlag('forest_fort_gate_open');
-    const FORT_X = 130, FORT_Y = 120, FORT_W = 22, FORT_H = 18;
-    const GATE_CX = FORT_X + Math.floor(FORT_W / 2); // 141
-    const SOUTH_Y = FORT_Y + FORT_H - 1; // 137
+    const FORT_X = 222, FORT_Y = 153, FORT_W = 16, FORT_H = 20;
+    const GATE_CX = FORT_X + Math.floor(FORT_W / 2); // 230
+    const SOUTH_Y = FORT_Y + FORT_H - 1; // 172
     const TOWER_R = 3;
 
     const inCornerTower = (dx: number, dy: number) =>
@@ -505,11 +502,19 @@ export function createRuntimeMapFlow({
           continue;
         }
 
-        // 3-wide mountain stairway on the north wall — always open.
-        // The cliff band at y=114-121 blocks all lateral bypass; this is the only exit northward.
-        // Players enter from the south (key required), traverse the fort, and exit here onto the ridge.
+        // 3-wide passage on the north wall — always open, cobblestone so it's visually distinct.
         if (ty === FORT_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
-          row[tx] = { type: 'stone' as TileType, walkable: true, elevation: el };
+          row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          continue;
+        }
+
+        // North exit approach (row inside north wall, dy=1): lanterns + cobblestone mirror the south gate
+        if (dy === 1 && dx >= GATE_CX - FORT_X - 2 && dx <= GATE_CX - FORT_X + 2) {
+          if (dx === GATE_CX - FORT_X - 2 || dx === GATE_CX - FORT_X + 2) {
+            row[tx] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+          } else {
+            row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          }
           continue;
         }
 
@@ -559,6 +564,24 @@ export function createRuntimeMapFlow({
       }
     }
 
+    // Exterior north exit frame (row north of fort) — cobblestone runway so exit is obvious
+    const northFrameY = FORT_Y - 1;
+    if (northFrameY >= 0 && northFrameY < map.tiles.length) {
+      const nRow = map.tiles[northFrameY];
+      if (nRow) {
+        const el = nRow[GATE_CX]?.elevation ?? 0;
+        for (let nx = GATE_CX - 2; nx <= GATE_CX + 2; nx++) {
+          if (nx >= 0 && nx < nRow.length) {
+            if (nx === GATE_CX - 2 || nx === GATE_CX + 2) {
+              nRow[nx] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+            } else {
+              nRow[nx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+            }
+          }
+        }
+      }
+    }
+
     world.rebuildChunks();
   };
 
@@ -566,10 +589,9 @@ export function createRuntimeMapFlow({
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
     const defeated = state.getFlag('hollow_guardian_defeated');
-    // Place a 3-wide fog gate row at tile y=22 (south edge of the clearing), centred at x=122
-    const GATE_Y = 22;
+    const GATE_Y = 18;
     const GATE_CX = 122;
-    for (let dx = -1; dx <= 1; dx++) {
+    for (let dx = -2; dx <= 2; dx++) {
       const tx = GATE_CX + dx;
       const row = map.tiles[GATE_Y];
       if (!row) continue;
@@ -589,32 +611,6 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
-  const syncHollowPreGateState = () => {
-    if (state.currentMap !== 'forest') return;
-    const map = world.getCurrentMap();
-    const defeated = state.getFlag('hollow_guardian_defeated');
-    const PRE_GATE_Y = 30;
-    const PRE_GATE_CX = 122;
-    for (let dx = -2; dx <= 2; dx++) {
-      const tx = PRE_GATE_CX + dx;
-      const row = map.tiles[PRE_GATE_Y];
-      if (!row || tx < 0 || tx >= row.length) continue;
-      const el = row[tx]?.elevation ?? 0;
-      if (defeated) {
-        row[tx] = { type: 'dark_grass' as TileType, walkable: true, elevation: el };
-      } else {
-        row[tx] = {
-          type: 'fog_gate' as TileType,
-          walkable: false,
-          elevation: el,
-          interactable: true,
-          interactionId: 'hollow_fog_gate',
-        };
-      }
-    }
-    world.refreshMapTileRegion(PRE_GATE_CX - 3, PRE_GATE_Y - 1, PRE_GATE_CX + 3, PRE_GATE_Y + 1);
-  };
-
   const syncHollowArenaExitState = () => {
     if (state.currentMap !== 'interior_hollow_arena') return;
     const map = world.getCurrentMap();
@@ -628,7 +624,7 @@ export function createRuntimeMapFlow({
         type: 'door_interior' as TileType,
         walkable: true,
         elevation: el,
-        transition: { targetMap: 'forest', targetX: 122, targetY: 30 },
+        transition: { targetMap: 'forest', targetX: 122, targetY: 20 },
         interactable: true,
         interactionId: 'building_exit',
       };
@@ -659,10 +655,10 @@ export function createRuntimeMapFlow({
   const syncPersistentMapState = () => {
     syncShadowCastleGateState();
     syncWhisperingWoodsShortcutState();
+    syncGroveShelfShortcutState();
     syncHollowShortcutState();
     syncForestFortGateState();
     syncHollowFogGateState();
-    syncHollowPreGateState();
     syncHollowArenaExitState();
     syncVillageReactivityState();
     syncVillageInteriorReactivityState();
@@ -677,6 +673,40 @@ export function createRuntimeMapFlow({
     enemyVisuals.disposeAll();
     assetManager.warmupEnemyTexturesForZones(mapDefinitions[targetMap]?.enemyZones);
     spawnEnemiesFromMapZones(targetMap, map, combatSystem, world);
+
+    if (targetMap === 'forest') {
+      const spawnBattleEnemy = (
+        enemyKey: keyof typeof ENEMY_BLUEPRINTS,
+        position: { x: number; y: number },
+        faction: string,
+      ) => {
+        const bp = ENEMY_BLUEPRINTS[enemyKey];
+        if (!bp) return;
+        combatSystem.spawnEnemy(bp.name, position, bp.hp, bp.damage, bp.sprite, {
+          speed: bp.speed,
+          attackRange: bp.attackRange,
+          chaseRange: bp.chaseRange,
+          essenceReward: bp.essenceReward,
+          telegraphDuration: bp.telegraphDuration,
+          recoverDuration: bp.recoverDuration,
+          poise: bp.poise,
+          staggerDuration: bp.staggerDuration,
+          behaviorOverrides: bp.behaviorOverrides,
+          faction,
+        });
+      };
+
+      // Fixed faction skirmish on the river road near world ~(64, 0).
+      // Explicit positions avoid random zone placement failing on this narrow corridor.
+      // Undead side — 3 regular skeletons + 1 captain
+      spawnBattleEnemy('skeleton', { x: 58.5, y: -0.6 }, 'undead');
+      spawnBattleEnemy('skeleton', { x: 59.8, y: 0.4 }, 'undead');
+      spawnBattleEnemy('skeleton', { x: 57.5, y: 0.8 }, 'undead');
+      spawnBattleEnemy('skeleton_captain', { x: 59.0, y: 0.0 }, 'undead');
+      // Beast side — 2 armored wolves
+      spawnBattleEnemy('armored_wolf', { x: 66.2, y: -0.3 }, 'beast');
+      spawnBattleEnemy('armored_wolf', { x: 67.1, y: 0.7 }, 'beast');
+    }
 
     // Boss arena: spawn the Hollow Guardian at the arena center
     if (targetMap === 'interior_hollow_arena' && !state.getFlag('hollow_guardian_defeated')) {
@@ -732,10 +762,10 @@ export function createRuntimeMapFlow({
   return {
     syncShadowCastleGateState,
     syncWhisperingWoodsShortcutState,
+    syncGroveShelfShortcutState,
     syncHollowShortcutState,
     syncForestFortGateState,
     syncHollowFogGateState,
-    syncHollowPreGateState,
     syncHollowArenaExitState,
     syncVillageReactivityState,
     syncVillageInteriorReactivityState,

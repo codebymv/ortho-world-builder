@@ -20,8 +20,10 @@ interface InteractionSystemLike {
   ) => boolean;
   tryHandleShadowCastleGateSwitch: (interactionId: string) => boolean;
   tryHandleForestShortcutLever: (interactionId: string) => boolean;
+  tryHandleGroveShelfShortcutLever: (interactionId: string) => boolean;
   tryHandleHollowShortcutLever: (interactionId: string) => boolean;
   tryHandleForestFortGate: (interactionId: string) => boolean;
+  tryHandleBlightedRoot: (interactionId: string) => boolean;
   tryHandleDialogueInteraction: (interactionId: string) => boolean;
 }
 
@@ -65,19 +67,55 @@ export function useHealthPotionAction({
   drinkDuration,
 }: PotionActionOptions) {
   let activeItem = state.inventory[state.activeItemIndex];
-  if (activeItem?.type !== 'consumable' || typeof activeItem.healAmount !== 'number' || activeItem.healAmount <= 0) {
-    const firstConsumableIdx = state.inventory.findIndex(
-      i => i.type === 'consumable' && typeof i.healAmount === 'number' && i.healAmount > 0,
+
+  // Accept consumables that either heal OR apply a buff.
+  const isUsable = (i: typeof activeItem) =>
+    i?.type === 'consumable' &&
+    (
+      (typeof i.healAmount === 'number' && i.healAmount > 0) ||
+      i.buffType === 'stealth'
     );
-    if (firstConsumableIdx === -1) return;
-    state.activeItemIndex = firstConsumableIdx;
-    activeItem = state.inventory[firstConsumableIdx];
+
+  if (!isUsable(activeItem)) {
+    const firstUsableIdx = state.inventory.findIndex(isUsable);
+    if (firstUsableIdx === -1) return;
+    state.activeItemIndex = firstUsableIdx;
+    activeItem = state.inventory[firstUsableIdx];
     triggerUIUpdate();
   }
-  if (state.player.health >= state.player.maxHealth) {
+
+  // Stealth buff — does not require low health.
+  if (activeItem.buffType === 'stealth') {
+    const duration = activeItem.buffDuration ?? 14;
+    state.player.stealthTimer = duration;
+    state.player.stealthDetectionMult = 0.25;
+    playPotionDrink?.();
+    setPlayerAnimState?.('drinking');
+    setHeldConsumableSpriteId?.(activeItem.sprite);
+    if (typeof drinkDuration === 'number') setDrinkTimer?.(drinkDuration);
+    state.removeItem(activeItem.id);
+    if (state.activeItemIndex >= state.inventory.length) {
+      state.activeItemIndex = Math.max(0, state.inventory.length - 1);
+    }
+    particleSystem.emitHeal(new THREE.Vector3(state.player.position.x, state.player.position.y, 0.3));
+    notify('Verdant Tonic Active', {
+      id: 'stealth-active',
+      type: 'success',
+      description: `Enemies will not detect you for ${duration} seconds.`,
+      duration: 3000,
+    });
+    triggerUIUpdate();
+    return;
+  }
+
+  // Tempest Grass — allow use when stamina is depleted even if HP is full.
+  const atFullHealth = state.player.health >= state.player.maxHealth;
+  const atFullStamina = state.player.stamina >= state.player.maxStamina;
+  if (atFullHealth && (activeItem.id !== 'tempest_grass' || atFullStamina)) {
     notify('Already at full health!', { id: 'full-health', duration: 1500 });
     return;
   }
+
   if (activeItem.id === 'health_potion') {
     playPotionDrink?.();
   } else if (activeItem.id === 'tempest_grass') {
@@ -88,16 +126,20 @@ export function useHealthPotionAction({
   if (typeof drinkDuration === 'number') {
     setDrinkTimer?.(drinkDuration);
   }
-  state.player.health = Math.min(state.player.maxHealth, state.player.health + activeItem.healAmount);
+  state.player.health = Math.min(state.player.maxHealth, state.player.health + (activeItem.healAmount ?? 0));
+  if (activeItem.id === 'tempest_grass') {
+    state.player.stamina = state.player.maxStamina;
+  }
   state.removeItem(activeItem.id);
   if (state.activeItemIndex >= state.inventory.length) {
     state.activeItemIndex = Math.max(0, state.inventory.length - 1);
   }
   particleSystem.emitHeal(new THREE.Vector3(state.player.position.x, state.player.position.y, 0.3));
+  const staminaNote = activeItem.id === 'tempest_grass' ? ' Stamina fully restored.' : '';
   notify(`Used ${activeItem.name}`, {
     id: `used-${activeItem.id}`,
     type: 'success',
-    description: `Restored ${activeItem.healAmount} health.`,
+    description: `Restored ${activeItem.healAmount} health.${staminaNote}`,
     duration: 2000,
   });
   triggerUIUpdate();
@@ -190,9 +232,11 @@ export function runInteractionCheck({
     )) return;
     if (interactionSystem.tryHandleShadowCastleGateSwitch(interactionId)) return;
     if (interactionSystem.tryHandleForestShortcutLever(interactionId)) return;
+    if (interactionSystem.tryHandleGroveShelfShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleHollowShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleForestFortGate(interactionId)) return;
     if (interactionSystem.tryHandleHollowFogGate(interactionId)) return;
+    if (interactionSystem.tryHandleBlightedRoot(interactionId)) return;
     if (interactionSystem.tryHandleDialogueInteraction(interactionId)) return;
   }
 

@@ -1,7 +1,7 @@
 import { GameState, type CurrencyGain } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { Button } from '@/components/ui/button';
-import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield, Sword, Map as MapIcon, Key, Sparkles } from 'lucide-react';
+import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield, Sword, Map as MapIcon, Key, Sparkles, ChevronRight, ChevronDown } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { notify } from '@/lib/game/notificationBus';
 
@@ -239,6 +239,8 @@ export const GameUI = ({
   const [showInventory, setShowInventory] = useState(false);
   const [showQuests, setShowQuests] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  /** Compact controls help: closed by default so HUD stays minimal; click to expand rectangular panel. */
+  const [controlsHelpOpen, setControlsHelpOpen] = useState(false);
 
   const activeQuests = gameState.quests.filter(q => q.active && !q.completed);
   void refreshToken;
@@ -291,7 +293,7 @@ export const GameUI = ({
             />
           </div>
 
-          {/* Center: Combat bars + objective */}
+          {/* Center: Combat bars + stealth badge + objective */}
           <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-6">
             <CombatBars
               health={gameState.player.health}
@@ -299,6 +301,12 @@ export const GameUI = ({
               stamina={gameState.player.stamina}
               maxStamina={gameState.player.maxStamina}
             />
+            {gameState.player.stealthTimer > 0 && (
+              <div className="flex items-center gap-1.5 bg-emerald-900/70 border border-emerald-500/60 rounded-full px-2.5 py-0.5 animate-pulse">
+                <span className="text-[9px] font-bold text-emerald-300 tracking-widest uppercase">Cloaked</span>
+                <span className="text-[9px] font-bold text-emerald-200">{Math.ceil(gameState.player.stealthTimer)}s</span>
+              </div>
+            )}
             {activeQuests.length > 0 && (
               <CurrentObjective title={activeQuests[0].title} />
             )}
@@ -402,8 +410,30 @@ export const GameUI = ({
                       item.type === 'consumable' ? 'hover:border-[#DAA520] cursor-pointer' : 'hover:border-[#5C3A21]/70'
                     }`}
                     onClick={() => {
-                      if (item.type === 'consumable' && typeof item.healAmount === 'number' && item.healAmount > 0) {
-                        if (gameState.player.health >= gameState.player.maxHealth) {
+                      if (item.type !== 'consumable') return;
+
+                      // Stealth buff (verdant tonic) — no heal required.
+                      if (item.buffType === 'stealth') {
+                        const duration = item.buffDuration ?? 14;
+                        gameState.player.stealthTimer = duration;
+                        gameState.player.stealthDetectionMult = 0.25;
+                        playPotionDrink?.();
+                        gameState.removeItem(item.id);
+                        notify('Verdant Tonic Active', {
+                          id: 'stealth-active',
+                          type: 'success',
+                          description: `Enemies will not detect you for ${duration} seconds.`,
+                          duration: 3000,
+                        });
+                        triggerUIUpdate();
+                        setShowInventory(true);
+                        return;
+                      }
+
+                      if (typeof item.healAmount === 'number' && item.healAmount > 0) {
+                        const atFullHealth = gameState.player.health >= gameState.player.maxHealth;
+                        const atFullStamina = gameState.player.stamina >= gameState.player.maxStamina;
+                        if (atFullHealth && (item.id !== 'tempest_grass' || atFullStamina)) {
                           notify('Already at full health!', { id: 'full-health', duration: 1500 });
                           return;
                         }
@@ -413,11 +443,15 @@ export const GameUI = ({
                           playGrassChew?.();
                         }
                         gameState.player.health = Math.min(gameState.player.maxHealth, gameState.player.health + item.healAmount);
+                        if (item.id === 'tempest_grass') {
+                          gameState.player.stamina = gameState.player.maxStamina;
+                        }
                         gameState.removeItem(item.id);
+                        const staminaNote = item.id === 'tempest_grass' ? ' Stamina fully restored.' : '';
                         notify(`Used ${item.name}`, {
                           id: `used-${item.id}`,
                           type: 'success',
-                          description: `Restored ${item.healAmount} health.`,
+                          description: `Restored ${item.healAmount} health.${staminaNote}`,
                           duration: 2000,
                         });
                         triggerUIUpdate();
@@ -514,27 +548,73 @@ export const GameUI = ({
         </div>
       )}
 
-      {/* Controls Help (auto-hide) */}
+      {/* Controls help: collapsible rectangular panel (same kbd / text colors as before) */}
       {showControls && (
-        <div className="fixed bottom-4 left-4 bg-[#1A0F0A]/80 backdrop-blur-sm border border-[#5C3A21] rounded-sm p-2 z-40 shadow-sm pointer-events-auto transition-opacity duration-1000">
-          <div className="flex flex-wrap gap-3 items-center">
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">WASD</kbd> Move</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">LMB</kbd> Attack</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">HOLD LMB</kbd> Charge</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Dodge Roll</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">CTRL/RMB</kbd> Block</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SHIFT</kbd> Sprint</p>
-            <p className="text-[10px] text-[#D3D3D3]">
-              <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">F</kbd>
-              {interactionPrompt || 'Interact'}
-            </p>
-            <p className="text-[10px] text-[#C9A0FF]">Portals — stand nearby; warp charges automatically</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Q/E</kbd> Item</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">←/→</kbd> Weapon</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Z</kbd> Use Item</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">M</kbd> Map</p>
-            <p className="text-[10px] text-[#D3D3D3]"><kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">ESC</kbd> Pause</p>
-          </div>
+        <div className="fixed bottom-4 left-4 z-40 pointer-events-auto flex flex-col items-start gap-1.5">
+          <button
+            type="button"
+            title="Show or hide control bindings"
+            aria-expanded={controlsHelpOpen}
+            aria-controls="game-controls-help-panel"
+            onClick={() => setControlsHelpOpen(o => !o)}
+            className="flex items-center gap-1.5 bg-[#1A0F0A]/80 backdrop-blur-sm border border-[#5C3A21] rounded-sm px-2 py-1 shadow-sm hover:bg-[#2D1B11]/70 transition-colors"
+          >
+            <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] text-[10px] font-bold leading-none py-0.5">?</kbd>
+            <span className="text-[10px] font-bold text-[#DAA520] uppercase tracking-wider">Controls</span>
+            {controlsHelpOpen ? (
+              <ChevronDown className="w-3.5 h-3.5 text-[#DAA520] shrink-0" aria-hidden />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 text-[#DAA520] shrink-0" aria-hidden />
+            )}
+          </button>
+          {controlsHelpOpen && (
+            <div
+              id="game-controls-help-panel"
+              role="region"
+              aria-label="Control bindings"
+              className="bg-[#1A0F0A]/80 backdrop-blur-sm border border-[#5C3A21] rounded-sm p-2.5 shadow-sm w-[min(92vw,20rem)] max-h-[min(70vh,24rem)] overflow-y-auto"
+            >
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                <p className="text-[10px] text-[#D3D3D3]">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">WASD</kbd> Move
+                </p>
+                <p className="text-[10px] text-[#D3D3D3]">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">LMB</kbd> Attack
+                </p>
+                <p className="text-[10px] text-[#D3D3D3]">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">HOLD LMB</kbd> Charge
+                </p>
+                <p className="text-[10px] text-[#D3D3D3]">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Dodge Roll
+                </p>
+                <p className="text-[10px] text-[#D3D3D3]">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">RMB</kbd> Block
+                </p>
+                <p className="text-[10px] text-[#D3D3D3]">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SHIFT</kbd> Sprint
+                </p>
+                <p className="text-[10px] text-[#D3D3D3] col-span-2">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">F</kbd>
+                  {interactionPrompt || 'Interact'}
+                </p>
+                <p className="text-[10px] text-[#D3D3D3]">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Q/E</kbd> Item
+                </p>
+                <p className="text-[10px] text-[#D3D3D3]">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">←/→</kbd> Weapon
+                </p>
+                <p className="text-[10px] text-[#D3D3D3]">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Z</kbd> Use Item
+                </p>
+                <p className="text-[10px] text-[#D3D3D3]">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">M</kbd> Map
+                </p>
+                <p className="text-[10px] text-[#D3D3D3] col-span-2">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">ESC</kbd> Pause
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -85,6 +85,13 @@ interface UpdatePlayerSimulationOptions {
   onLungeHit: (enemy: any, damage: number) => void;
   onLungeEnd: () => void;
   dodgeIFrameDuration: number;
+  // Combo chain state
+  comboStep: number;
+  comboWindowTimer: number;
+  comboInputBuffered: boolean;
+  comboWindowDuration: number;
+  getComboFrameDuration: (step: number) => number;
+  triggerComboChain: () => { frameDuration: number } | null;
 }
 
 export interface PlayerSimulationResult {
@@ -102,6 +109,9 @@ export interface PlayerSimulationResult {
   animTimer: number;
   animFrame: number;
   dodgeBuffered: boolean;
+  comboStep: number;
+  comboWindowTimer: number;
+  comboInputBuffered: boolean;
 }
 
 export function updatePlayerSimulation({
@@ -148,6 +158,12 @@ export function updatePlayerSimulation({
   onLungeHit,
   onLungeEnd,
   dodgeIFrameDuration,
+  comboStep,
+  comboWindowTimer,
+  comboInputBuffered,
+  comboWindowDuration,
+  getComboFrameDuration,
+  triggerComboChain,
 }: UpdatePlayerSimulationOptions): PlayerSimulationResult {
   const revealVisibleTiles = () => {
     const currentMap = world.getCurrentMap();
@@ -208,6 +224,9 @@ export function updatePlayerSimulation({
       animTimer,
       animFrame,
       dodgeBuffered,
+      comboStep,
+      comboWindowTimer,
+      comboInputBuffered,
     };
   }
 
@@ -217,11 +236,11 @@ export function updatePlayerSimulation({
   let moveY = 0;
   let moved = false;
 
-  if (keys.w || keys.arrowup) {
+  if (keys.w) {
     moveY += 1;
     moved = true;
   }
-  if (keys.s || keys.arrowdown) {
+  if (keys.s) {
     moveY -= 1;
     moved = true;
   }
@@ -335,13 +354,36 @@ export function updatePlayerSimulation({
     if (attackFrameTimer <= 0) {
       attackFrame++;
       if (attackFrame >= 3) {
+        // Swing complete — open the combo chain window
         playerAnimState = moved ? 'walk' : 'idle';
         attackFrame = 0;
+        comboWindowTimer = comboWindowDuration;
+
+        // If input was buffered during the swing, chain immediately
+        if (comboInputBuffered && comboStep < 2) {
+          comboInputBuffered = false;
+          const chainResult = triggerComboChain();
+          if (chainResult) {
+            comboStep = comboStep + 1; // keep local var in sync with the setter inside triggerComboChain
+            attackFrame = 0;
+            attackFrameTimer = chainResult.frameDuration;
+            playerAnimState = 'attack';
+            comboWindowTimer = 0;
+          }
+        }
       } else {
-        attackFrameTimer = attackFrameDuration;
+        attackFrameTimer = getComboFrameDuration(comboStep);
       }
     }
     state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
+  }
+
+  // Tick combo chain window; reset combo step when it expires without input
+  if (comboWindowTimer > 0) {
+    comboWindowTimer = Math.max(0, comboWindowTimer - deltaTime);
+    if (comboWindowTimer <= 0) {
+      comboStep = 0;
+    }
   }
 
   if (playerAnimState === 'spin_attack') {
@@ -494,5 +536,8 @@ export function updatePlayerSimulation({
     animTimer,
     animFrame,
     dodgeBuffered,
+    comboStep,
+    comboWindowTimer,
+    comboInputBuffered,
   };
 }

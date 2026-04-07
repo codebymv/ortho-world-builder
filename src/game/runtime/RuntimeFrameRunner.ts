@@ -99,6 +99,9 @@ export function runRuntimeFrame({
   preludeOpts.animTimer = runtimeSession.animation.animTimer;
   preludeOpts.animFrame = runtimeSession.animation.animFrame;
   preludeOpts.dodgeBuffered = runtimeSession.input.dodgeBuffered;
+  preludeOpts.comboStep = runtimeSession.animation.comboStep;
+  preludeOpts.comboWindowTimer = runtimeSession.animation.comboWindowTimer;
+  preludeOpts.comboInputBuffered = runtimeSession.input.comboInputBuffered;
 
   const preludeState = runGameplayPrelude(preludeOpts);
 
@@ -121,6 +124,9 @@ export function runRuntimeFrame({
   runtimeSession.animation.animTimer = preludeState.animTimer;
   runtimeSession.animation.animFrame = preludeState.animFrame;
   runtimeSession.input.dodgeBuffered = preludeState.dodgeBuffered;
+  runtimeSession.animation.comboStep = preludeState.comboStep;
+  runtimeSession.animation.comboWindowTimer = preludeState.comboWindowTimer;
+  runtimeSession.input.comboInputBuffered = preludeState.comboInputBuffered;
 
   if (!state.dialogueActive) {
     const pfOpts = phaseContexts.playerFrameContext as any;
@@ -132,6 +138,7 @@ export function runRuntimeFrame({
     pfOpts.chargeLevel = runtimeSession.animation.chargeLevel;
     pfOpts.animFrame = runtimeSession.animation.animFrame;
     pfOpts.attackFrame = runtimeSession.animation.attackFrame;
+    pfOpts.comboStep = runtimeSession.animation.comboStep;
     pfOpts.spinDirIndex = runtimeSession.animation.spinDirIndex;
     pfOpts.spinDirections = spinDirections;
     pfOpts.playerSmoothedElevation = runtimeSession.visual.playerSmoothedElevation;

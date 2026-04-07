@@ -38,7 +38,7 @@ export const PauseMenu = ({ onResume, questSummary }: PauseMenuProps) => {
               ['LMB', 'Attack'],
               ['Hold LMB', 'Charge Attack'],
               ['Space', 'Dodge Roll'],
-              ['Ctrl / RMB', 'Block'],
+              ['RMB', 'Block'],
               ['F', 'Interact'],
               ['Z', 'Use Item'],
               ['Q / E', 'Cycle Items'],

@@ -156,7 +156,7 @@ const villageDef: MapDefinition = {
     { x: 35, y: 28, interactionId: 'cemetery_chest' },
   ],
   interactables: [
-    { x: 120, y: 104, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
+    { x: 120, y: 104, type: 'bonfire', walkable: false, interactionId: 'bonfire_village' },
     { x: 119, y: 82, type: 'well', walkable: false, interactionId: 'fountain' },
     { x: 108, y: 100, type: 'sign', walkable: false, interactionId: 'village_sign' },
     { x: 155, y: 72, type: 'sign', walkable: false, interactionId: 'market_sign' },
@@ -315,6 +315,8 @@ const forestDef: MapDefinition = {
   baseTerrain: 'forest',
   borderTile: 'tree',
   autoRoads: false,
+  /** Full ocean + cliff rim on north, east, and west like the default south coast (Greenleaf-style). */
+  coastalBorderAllSides: true,
   features: [
     // === FOREST CLEARINGS ===
     { x: 60, y: 60, width: 30, height: 24, type: 'clearing', fill: 'grass' },
@@ -349,14 +351,43 @@ const forestDef: MapDefinition = {
     { x: 20, y: 240, width: 30, height: 25, type: 'clearing', fill: 'dirt' },
     { x: 25, y: 245, width: 20, height: 15, type: 'camp', interactionId: 'spider_nest' },
 
-    // === THE HOLLOW — River Crossing (east-west barrier at y~78-86) ===
-    { x: 30, y: 78, width: 40, height: 6, type: 'wall', fill: 'water' },
-    { x: 68, y: 79, width: 44, height: 6, type: 'wall', fill: 'water' },
-    { x: 136, y: 78, width: 40, height: 6, type: 'wall', fill: 'water' },
+    // === HOLLOW APPROACH RIVER — single smooth flowing river replacing the old flat barrier + lake ===
+    // Flows west-to-east with a natural southward meander through the old lake zone.
+    // The NW seal (28,64,64×16) terminates at y=79; this river picks up seamlessly at y=80.
+    // Water tiles are placed first; the decayed bridge overwrites the crossing span.
+    // At x=118–130 the water spans y=81–95; bridge matches exactly so y=80 is walkable
+    // ground on the hollow side and y=96 (cliff gap) is walkable on the approach side.
+
+    // NW seal: blocks the y=74 crosspath west of x=92 from dropping south without the correct approach.
+    { x: 28, y: 64, width: 64, height: 16, type: 'wall', fill: 'water' },
+    // West run: straight channel east from map edge, connecting off the NW seal
+    { x: 4, y: 80, width: 104, height: 7, type: 'wall', fill: 'water' },
+    // Curve 1 — river bends gently southward entering the meander
+    { x: 104, y: 80, width: 12, height: 11, type: 'wall', fill: 'water' },
+    // Meander belly — river pools south through the old lake zone (ends y=95, not y=96)
+    { x: 110, y: 84, width: 14, height: 12, type: 'wall', fill: 'water' },
+    // Crossing zone — river widens under the bridge (y=81–95, exactly matching bridge height)
+    { x: 116, y: 81, width: 18, height: 15, type: 'wall', fill: 'water' },
+    // Curve 2 — river swings back north-east after the crossing
+    { x: 130, y: 80, width: 10, height: 11, type: 'wall', fill: 'water' },
+    // East exit — narrows back to channel, connects to the far hollow river sections
+    { x: 134, y: 78, width: 44, height: 8, type: 'wall', fill: 'water' },
+    // Far hollow river sections (unchanged — east of the meander)
     { x: 190, y: 79, width: 50, height: 6, type: 'wall', fill: 'water' },
     { x: 250, y: 78, width: 40, height: 6, type: 'wall', fill: 'water' },
-    // Bridges across the Hollow river
-    { x: 120, y: 78, width: 8, height: 6, type: 'bridge' },
+    // Decayed bridge spanning the hollow entrance (x=118–130, y=81–95).
+    // South edge at y=95 connects to cliff gap at y=96; north edge exits onto y=80 hollow ground.
+    // Bridge is intact on the approach (south) side and progressively crumbles toward the Hollow
+    // (north), with the water showing through the collapsed sections on the hollow end.
+    //
+    // South section — fully intact boarding (y=88–95, 12 wide)
+    { x: 118, y: 88, width: 12, height: 8, type: 'bridge' },
+    // Mid section — corrupted (y=84–88, 11 wide): transition zone between intact and decayed
+    { x: 119, y: 84, width: 11, height: 5, type: 'bridge_corrupted' },
+    // North decay — two corrupted stubs with river exposed between them (y=81–84)
+    { x: 119, y: 81, width: 4, height: 4, type: 'bridge_corrupted' },   // west stub
+    { x: 125, y: 81, width: 4, height: 4, type: 'bridge_corrupted' },   // east stub (gap at x=123–124)
+    // Secondary bridge east of the far river (unchanged)
     { x: 178, y: 78, width: 6, height: 6, type: 'bridge' },
 
     // === THE HOLLOW — Dark clearings and corrupted terrain (y < 75) ===
@@ -376,28 +407,44 @@ const forestDef: MapDefinition = {
     { x: 122, y: 55, width: 6, height: 18, type: 'path', fill: 'dirt' },
     { x: 118, y: 40, width: 8, height: 16, type: 'path', fill: 'dirt' },
     { x: 120, y: 28, width: 6, height: 14, type: 'path', fill: 'dirt' },
-    // Side path to shortcut gate
-    { x: 100, y: 38, width: 20, height: 4, type: 'path', fill: 'dirt' },
+    // Path continues to the fog gate at y=18 so the terminus is readable on-screen.
+    { x: 120, y: 18, width: 6, height: 11, type: 'path', fill: 'dirt' },
 
-    // === THE HOLLOW — Fog Gate to Boss Arena ===
-    { x: 105, y: 12, width: 34, height: 20, type: 'clearing', fill: 'dark_grass' },
+    // === THE HOLLOW — Fog Gate terminus (y=18) ===
+    // Ceremonial cleared apron behind the gate so it reads as the hard end of the path,
+    // not a random tree line in the forest.
+    { x: 100, y: 2, width: 48, height: 34, type: 'clearing', fill: 'dirt' },
+    // Everything north of y=18 is sealed. The fog gate (5 tiles, x=120-124) is placed at
+    // runtime by syncHollowFogGateState and clears to dark_grass after the boss is defeated.
+    // Cliff block directly behind the gate so there is no visible grass/tree space beyond it.
+    { x: 100, y: 2, width: 48, height: 16, type: 'cliff_face' },
+    // Gate shoulders only around the terminus so the gate is visible and cannot be flanked.
+    { x: 100, y: 18, width: 20, height: 10, type: 'cliff_face' },
+    { x: 125, y: 18, width: 23, height: 10, type: 'cliff_face' },
+
+    // === THE HOLLOW — Corridor walls funneling player from bonfire to fog gate ===
+    // Lower corridor returns to dead-tree walls deeper in the Hollow.
+    { x: 100, y: 28, width: 16, height: 44, type: 'wall', fill: 'dead_tree' },
+    { x: 130, y: 28, width: 18, height: 44, type: 'wall', fill: 'dead_tree' },
 
     // === THE HOLLOW — Hunter trail camps ===
     { x: 115, y: 65, width: 10, height: 8, type: 'abandoned_camp', interactionId: 'hollow_hunter_camp_1' },
     { x: 130, y: 45, width: 8, height: 6, type: 'abandoned_camp', interactionId: 'hollow_hunter_camp_2' },
     { x: 118, y: 28, width: 10, height: 8, type: 'abandoned_camp', interactionId: 'hollow_hunters_final_camp' },
 
-    // === THE HOLLOW — Shortcut gate (blocks path back to bonfire from boss side) ===
-    { x: 98, y: 40, width: 4, height: 4, type: 'gate', interactionId: 'hollow_gate' },
-
+    // === HOLLOW APPROACH BARRIER — cliff_face forms the south river bank ===
+    // Flanking prevention: players can only enter the Hollow via the decayed bridge at x=118–130.
+    // The river (y=81–95) sits in the cliff channel; these cliff walls form the south bank at y=96.
+    // West segment: map edge to x=118 (just west of bridge).
+    { x: 4, y: 96, width: 114, height: 8, type: 'cliff_face' },
+    // East segment: x=130 to map edge (just east of bridge).
+    { x: 130, y: 96, width: 162, height: 8, type: 'cliff_face' },
     // === FOREST LAKES ===
-    { x: 110, y: 87, width: 28, height: 13, type: 'lake' },
     { x: 240, y: 180, width: 20, height: 16, type: 'lake' },
     { x: 40, y: 200, width: 16, height: 12, type: 'lake' },
     { x: 180, y: 250, width: 22, height: 16, type: 'lake' },
 
     // === BRIDGES ===
-    { x: 120, y: 92, width: 8, height: 4, type: 'bridge' },
     { x: 248, y: 186, width: 4, height: 4, type: 'bridge' },
 
     // === ANCIENT RUINS ===
@@ -432,8 +479,8 @@ const forestDef: MapDefinition = {
     // === VOLCANO (far north-east) ===
     { x: 260, y: 20, width: 28, height: 24, type: 'volcano' },
 
-    // === FIELD BOSS ARENA (central-east) ===
-    { x: 220, y: 150, width: 24, height: 24, type: 'boss_arena', interactionId: 'golem_boss' },
+    // === FIELD BOSS ARENA — stone golem guards the south approach to the fort ===
+    { x: 210, y: 175, width: 20, height: 18, type: 'boss_arena', interactionId: 'golem_boss' },
 
     // === ENCHANTED GROVES with plant monsters ===
     { x: 70, y: 140, width: 30, height: 26, type: 'enchanted_grove' },
@@ -441,7 +488,10 @@ const forestDef: MapDefinition = {
     { x: 50, y: 260, width: 26, height: 22, type: 'enchanted_grove' },
 
     // === FORTS (strategic positions) ===
-    { x: 130, y: 120, width: 22, height: 18, type: 'fort', interactionId: 'forest_fort' },
+    // Forest fort relocated to the river's east terminus — spans the crossing so the key
+    // gate is south-facing (player approach) and north exit leads to the post-river corridor.
+    // Stone golems guard the approach; the vine-monster grove is the key-free western alternate.
+    { x: 222, y: 153, width: 16, height: 20, type: 'fort', interactionId: 'forest_fort' },
     { x: 200, y: 60, width: 18, height: 16, type: 'fort', interactionId: 'north_fort' },
     { x: 60, y: 190, width: 20, height: 16, type: 'fort', interactionId: 'south_fort' },
 
@@ -452,8 +502,8 @@ const forestDef: MapDefinition = {
 
     // === FOREST CHURCHES (ancient, overgrown) ===
     { x: 180, y: 130, width: 12, height: 16, type: 'church', interactionId: 'forest_church' },
-    // Old chapel relocated southwest of the fort gate (y=150) so it stays south of the cliff
-    // chokepoint at y=114. Players reach it by walking west from the fort approach artery.
+    // Old chapel south of the cliff at y=114. Players get the fort key here then travel east
+    // along the south bank to the new fort at the river's east terminus.
     { x: 40, y: 150, width: 10, height: 14, type: 'church', interactionId: 'old_chapel' },
 
     // === SCATTERED COTTAGES (hermits, woodcutters) ===
@@ -555,17 +605,46 @@ const forestDef: MapDefinition = {
     // plateau (x=60-79) for y=178-185. Below y=185 the cliff_face above handles the seal.
     { x: 58, y: 178, width: 3, height: 6, type: 'wall', fill: 'tree' },
 
-    // === FORT CLIFF CHOKEPOINT — embeds the fort in a continuous cliff band ===
-    // The cliff runs the full map width at y=114-121, broken only by a 4-tile stairway gap
-    // at x=140-143 (aligned with the fort's north-face centre, GATE_CX=141).
-    // The south gate (y=137) is the only way IN; the north stairway is the only way OUT north.
-    // West wing: map edge → fort west wall (x=130 is inside the fort at y=120, so stop at x=139)
-    { x: 4, y: 114, width: 136, height: 8, type: 'cliff_face' },
-    // East wing: east of stairway gap (x=144) → past the east tree corridor
-    { x: 144, y: 114, width: 88, height: 8, type: 'cliff_face' },
-    // Ridge connector — placed AFTER cliffs so dirt overrides cliff art at the overlap tiles.
-    // Bridges the stairway gap (x=140-143) east to the existing central spine (x=146).
-    { x: 138, y: 110, width: 10, height: 6, type: 'path', fill: 'dirt' },
+    // === CLIFF BARRIER — continuous east-west barrier broken only by grove gap + fort ===
+    // West segment: map edge → enchanted grove gap at x=68.
+    { x: 4, y: 114, width: 64, height: 8, type: 'cliff_face' },
+    // Central segment: east of grove gap → river/fort area. Stairway gap at x=148-151 lets
+    // post-fort players progress north after crossing. Split into sub-segments so the
+    // cliff-top walkway clearing (x=198-227, y=114-121) can override the middle section.
+    { x: 100, y: 114, width: 48, height: 8, type: 'cliff_face' },
+    { x: 152, y: 114, width: 46, height: 8, type: 'cliff_face' },
+    // East sub-segment: from cliff-top exit (x=228) to the vertical column.
+    { x: 228, y: 114, width: 4, height: 8, type: 'cliff_face' },
+    // East seal on the stairway-gap approach — blocks players from walking west along y=107-113
+    // from the highland east to the lantern-lit ridge connector path; forces cliff corridor entry.
+    // Extended north to y=107 to also seal the upper approach at UI (8, -43).
+    { x: 154, y: 104, width: 4, height: 18, type: 'cliff_face' },
+
+    // === CLIFF-TOP WALKWAY — walkable grass layer on top of the central cliff ===
+    // Same pattern as the sentinel plateau: clearing placed AFTER cliff_face features
+    // so grass overwrites cliff art. Entry stair at south face (x=203), exit stair at
+    // north face (x=223). Elevation zone (el1) matches the highlands so stampCliffs
+    // does not re-stamp cliff art on the north boundary.
+    // Width=30 (x=198-227) stops before the east cliff sub-segment at x=228.
+    { x: 198, y: 114, width: 30, height: 8, type: 'clearing', fill: 'grass' },
+    // North-face cliff barrier — forces the player to use the exit stairway at x=223-227
+    // rather than walking directly south from the highland chest area onto the walkway.
+    // Gap left at x=223-227 for the stairway; east sealed against the x=228 sub-segment.
+    { x: 198, y: 112, width: 25, height: 2, type: 'cliff_face' },
+    { x: 228, y: 112, width: 2, height: 2, type: 'cliff_face' },
+    // South-face plug — seals x=208-217 between the entry stair east edge (x=208) and the
+    // vertical column west edge (x=218), making the stair the only way up from below.
+    { x: 208, y: 121, width: 10, height: 6, type: 'cliff_face' },
+    // Vertical cliff column — narrower (4 wide) so the north-bank corridor can reach the fort exit.
+    { x: 218, y: 118, width: 4, height: 38, type: 'cliff_face' },
+    // East wall: blocks bypass east of the fort.
+    { x: 238, y: 118, width: 30, height: 56, type: 'cliff_face' },
+    // Cliff plugs sealing the grass (left) and sand (right) side passages —
+    // forces the player through the central dirt corridor only.
+    { x: 227, y: 121, width: 1, height: 6, type: 'cliff_face' },
+    { x: 233, y: 121, width: 5, height: 6, type: 'cliff_face' },
+    // Ridge connector — stairway gap (x=148-151) to the central spine.
+    { x: 146, y: 110, width: 8, height: 6, type: 'path', fill: 'dirt' },
 
     // === WESTERN BYPASS — placed AFTER all cliffs so these tiles override buffer rows ===
     // Cliff-1 buffer marks y=212-213, x=60-121 non-walkable.  The west-cliff marks x=68-87,
@@ -577,24 +656,31 @@ const forestDef: MapDefinition = {
     // East-west connector: links the bonfire-plateau path network to the trail head.
     { x: 54, y: 214, width: 74, height: 4, type: 'path', fill: 'dirt' },
 
-    // === CHAPEL APPROACH (west artery from fort gate to relocated old_chapel at x=40,y=150) ===
-    // Runs west from x=141 (fort gate level) to x=50 (chapel steps), at y=152-156.
-    // Connects to the north-bank path at x=141 on the east side.
-    { x: 50, y: 152, width: 92, height: 5, type: 'path', fill: 'dirt' },
+    // === SOUTH-BANK ARTERY — chapel (west) to fort (east) ===
+    // Segment 1: chapel to the start of the river's south meander (x=50–186, y=165–169).
+    // Stops before Curve 1 at x=187 to avoid overlapping the water.
+    { x: 50, y: 165, width: 136, height: 5, type: 'path', fill: 'dirt' },
+    // Segment 2: curves south around the deep meander (Curve 2 belly is at y=170),
+    // then leads east to the fort's south gate approach (x=186–234, y=173–177).
+    { x: 186, y: 173, width: 48, height: 5, type: 'path', fill: 'dirt' },
 
-    // === MID-ZONE CORRIDOR — tree walls funnelling the spine between ranger plateau and fort ===
-    // West tree wall (south segment, below the west-branch gap)
-    { x: 90, y: 128, width: 12, height: 18, type: 'wall', fill: 'tree' },
-    // West tree wall (north segment, above the west-branch gap)
-    { x: 92, y: 108, width: 10, height: 10, type: 'wall', fill: 'tree' },
-    // West palisade — closes gap between west tree wall and fort west wall
-    { x: 102, y: 131, width: 28, height: 15, type: 'wall', fill: 'tree' },
-    // East tree wall (south segment, below the east side-trail gap at ~y:130)
-    { x: 160, y: 136, width: 12, height: 12, type: 'wall', fill: 'tree' },
-    // East tree wall (north segment, above the east side-trail gap)
-    { x: 158, y: 108, width: 12, height: 20, type: 'wall', fill: 'tree' },
-    // East palisade — closes gap between fort east wall and east tree wall
-    { x: 152, y: 131, width: 8, height: 15, type: 'wall', fill: 'tree' },
+    // === MID-ZONE CORRIDOR — tree walls channelling the south bank toward the fort ===
+    // Light tree cover west of the fort approach; not a hard wall, just visual guidance.
+    { x: 170, y: 138, width: 10, height: 14, type: 'wall', fill: 'tree' },
+    { x: 196, y: 142, width: 8, height: 12, type: 'wall', fill: 'tree' },
+
+    // === RUINED RANGER CHECKPOINT — world ~(53, 7) ===
+    // Burned-out patrol post on the ridge descent path. Tells the story of the ranger
+    // collapse before the player reaches the fort.
+    { x: 205, y: 132, width: 12, height: 12, type: 'ruins' },
+
+    // === ONE-WAY FUNNEL GATING — seals plateau exits so players flow toward chapel/fort ===
+    // East artery block: cliff wall at the plateau's east edge stops the y=178 artery
+    // from leading into the temple/skeleton terrace. Visible but unreachable for now.
+    { x: 152, y: 172, width: 6, height: 14, type: 'cliff_face' },
+    // North spine block: cliff across the N-S spine where it meets the plateau's north edge.
+    // Forces the player west toward the chapel instead of north to the broken bridge dead-end.
+    { x: 144, y: 148, width: 10, height: 6, type: 'cliff_face' },
 
     // === WATERFALL BASE — mossy stone pool ===
     { x: 176, y: 46, width: 4, height: 3, type: 'clearing', fill: 'mossy_stone' },
@@ -723,12 +809,16 @@ const forestDef: MapDefinition = {
 
     // --- Cliff inlet west of ranger plateau — x=106–111 only so x≥112 plateau is not paved over.
     { x: 106, y: 164, width: 6, height: 10, type: 'clearing', fill: 'dirt' },
+    // --- Windmill plot (world ~-41, 22) — dirt pad just south of the river / inlet lane.
+    { x: 104, y: 168, width: 12, height: 10, type: 'clearing', fill: 'dirt' },
 
     // --- West hidden grove south rim — picket cordon along shelf_face y=163 (meets plateau at x=112) ---
     // Blocks descent onto the wolf shelf; stampCliffs skips fence/gate/iron_fence caps on this row.
     { x: 4, y: 163, width: 108, height: 1, type: 'wall', fill: 'fence' },
     // Heavier band at the trail head — reads as a sealed gate line you can swap to walkable `gate` later.
     { x: 56, y: 163, width: 5, height: 1, type: 'wall', fill: 'iron_fence' },
+    // Short sand-pinch blocker tucked closer to the grass edge.
+    { x: 100, y: 162, width: 1, height: 1, type: 'wall', fill: 'fence' },
 
     // ============================================================
     // === WHISPERING RIVER — winding east toward golem mountain ===
@@ -758,9 +848,13 @@ const forestDef: MapDefinition = {
     { x: 146, y: 155, width: 8, height: 2, type: 'bridge' },
     { x: 146, y: 159, width: 8, height: 3, type: 'bridge' },
 
-    // North-bank path: bonfire area east all the way to the NE spur at the golem mountain (x=141–228, y=148–152)
-    // Height=5 keeps it above the curve-4 water band at y=153; player crosses via the golem-area spur
-    { x: 141, y: 148, width: 88, height: 5, type: 'path', fill: 'dirt' },
+    // Tiny sand lip under the west-grove blocker so it reads as beach, not water.
+    { x: 100, y: 161, width: 1, height: 1, type: 'clearing', fill: 'sand' },
+
+    // North-bank corridor: post-crossing path. Player exits fort north at y=153 onto this
+    // path, walks west to the cliff stairway gap at x=148-151, then proceeds north.
+    // Extended east to x=234 so it connects to the fort's north exit at x=229-231.
+    { x: 100, y: 148, width: 134, height: 5, type: 'path', fill: 'dirt' },
   ],
   portals: [
     { x: 150, y: 291, targetMap: 'village', targetX: 120, targetY: 8 },
@@ -769,7 +863,8 @@ const forestDef: MapDefinition = {
     { x: 280, y: 20, targetMap: 'ruins', targetX: 100, targetY: 115 },
   ],
   chests: [
-    { x: 74, y: 70, interactionId: 'forest_chest_1' },
+    // Shifted east: Hollow river west seal (x≈28–91, y≈64–79) covers old spot.
+    { x: 102, y: 72, interactionId: 'forest_chest_1' },
     { x: 216, y: 110, interactionId: 'forest_chest_2' },
     { x: 33, y: 135, interactionId: 'hidden_grove_chest' },
     // Former interior_woodcutter_cottage loot (exterior prop only now).
@@ -791,7 +886,7 @@ const forestDef: MapDefinition = {
     { x: 80, y: 150, interactionId: 'enchanted_chest_1' },
     { x: 248, y: 250, interactionId: 'enchanted_chest_2' },
     { x: 58, y: 268, interactionId: 'enchanted_chest_3' },
-    { x: 138, y: 128, interactionId: 'fort_chest_1' },
+    { x: 232, y: 161, interactionId: 'fort_chest_1' },
     { x: 208, y: 66, interactionId: 'fort_chest_2' },
     { x: 68, y: 196, interactionId: 'fort_chest_3' },
     // Hidden chest on the cliff-top plateau — reward for finding the north descent.
@@ -799,21 +894,24 @@ const forestDef: MapDefinition = {
     { x: 111, y: 220, interactionId: 'forest_river_chest' },
     // Near hunter approach / river shelf — player-facing coords ~(8, 66) inside small cemetery.
     { x: 158, y: 216, interactionId: 'forest_cemetery_chest' },
-    { x: 225, y: 155, interactionId: 'golem_arena_chest' },
+    { x: 218, y: 183, interactionId: 'golem_arena_chest' },
     // Fort garrison chest — inside the gate so entry feels earned
-    { x: 145, y: 128, interactionId: 'fort_garrison_chest' },
-    // Hollow boss arena chest — full manuscript
-    { x: 130, y: 16, interactionId: 'hollow_boss_chest' },
+    { x: 228, y: 161, interactionId: 'fort_garrison_chest' },
+    // Hollow boss reward — full manuscript on the approach path, clearly south of the gate terminus.
+    { x: 122, y: 22, interactionId: 'hollow_boss_chest' },
     // Hidden chest behind waterfall
     { x: 180, y: 46, interactionId: 'waterfall_hidden_chest' },
+    // West grove rim — world (-52, 12); reach from inside the cordon, not the river sand pinch.
+    { x: 98, y: 162, interactionId: 'west_grove_hidden_rim_chest' },
   ],
   interactables: [
     // Moved just north of the wolf zone (y=148) so the warning precedes the threat.
     { x: 60, y: 146, type: 'sign', walkable: false, interactionId: 'danger_sign' },
-    // South rim of west grove — explains the fence line and that the shelf may open after the pack is dealt with.
-    { x: 62, y: 162, type: 'sign', walkable: false, interactionId: 'west_grove_fence_sign' },
-    { x: 130, y: 44, type: 'bonfire', walkable: false, interactionId: 'bonfire_hollow' },
-    { x: 144, y: 154, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_fort' },
+    // Blighted Root — corrupted growth at the center of the enchanted grove. Quest target for grove_warden.
+    { x: 85, y: 153, type: 'stump', walkable: false, interactionId: 'blighted_root' },
+    { x: 124, y: 72, type: 'bonfire', walkable: false, interactionId: 'bonfire_hollow' },
+    // Bonfire on the north-bank corridor near Warden Callum — world (6, 4).
+    { x: 156, y: 154, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_fort' },
     { x: 130, y: 206, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_south' },
     // Lever is on the NORTH side of the ranger gate (y=199-202) so the player must first
     // navigate the long way around through the forest to reach the cottage, then on the way
@@ -840,7 +938,8 @@ const forestDef: MapDefinition = {
     { x: 252, y: 142, type: 'sign', walkable: false, interactionId: 'temple_inscription' },
     { x: 22, y: 248, type: 'cage', walkable: false, interactionId: 'spider_cocoon' },
     // Potion pickups in forest clearings and paths
-    { x: 68, y: 65, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    // West of Hollow river seal strip (was 68,65 — flooded by north-west water seal).
+    { x: 22, y: 66, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 210, y: 108, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 148, y: 162, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 85, y: 225, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
@@ -854,41 +953,48 @@ const forestDef: MapDefinition = {
     { x: 75, y: 100, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     // Moonbloom flowers for Merchant's Request quest
     { x: 140, y: 48, type: 'moonbloom', walkable: true, interactionId: 'moonbloom_pickup' },
-    { x: 210, y: 105, type: 'moonbloom', walkable: true, interactionId: 'moonbloom_pickup' },
-    { x: 85, y: 185, type: 'moonbloom', walkable: true, interactionId: 'moonbloom_pickup' },
-    // === THE HOLLOW — Warning sign at river crossing (one is enough) ===
-    { x: 118, y: 85, type: 'sign', walkable: false, interactionId: 'hollow_warning_sign' },
-    // === THE HOLLOW — Shortcut lever (boss side, opens gate back to bonfire) ===
-    { x: 96, y: 38, type: 'shortcut_lever', walkable: false, interactionId: 'hollow_shortcut_lever' },
+    { x: 210, y: 107, type: 'moonbloom', walkable: true, interactionId: 'moonbloom_pickup' },
+    { x: 85, y: 181, type: 'moonbloom', walkable: true, interactionId: 'moonbloom_pickup' },
+    // === THE HOLLOW — Warning sign at the new bridge entry (south side of cliff barrier) ===
+    { x: 118, y: 105, type: 'sign', walkable: false, interactionId: 'hollow_warning_sign' },
+    // Lantern trail guiding player toward the Hollow bridge.
+    { x: 122, y: 110, type: 'lantern', walkable: true },
+    { x: 122, y: 106, type: 'lantern', walkable: true },
+    { x: 122, y: 100, type: 'lantern', walkable: true },
+    // Hollow shortcut lever removed — fog gate clears after boss defeat; corridor is open.
     // === THE HOLLOW — Hunters final camp (just before boss arena) ===
     { x: 120, y: 26, type: 'campfire', walkable: false, interactionId: 'hollow_final_camp' },
 
     // === SOUTH ENTRY CORRIDOR — environmental storytelling ===
     { x: 148, y: 270, type: 'sign', walkable: false, interactionId: 'forest_milestone' },
 
-    // === HOLLOW APPROACH — fallen ranger and final warning ===
-    { x: 124, y: 28, type: 'ranger_remains', walkable: true, interactionId: 'hollow_dead_ranger' },
+    // === HOLLOW APPROACH — bloodstain and final warning ===
+    { x: 124, y: 28, type: 'bloodstain', walkable: true },
     { x: 122, y: 26, type: 'sign', walkable: false, interactionId: 'hollow_final_warning' },
 
     // === WITCH COTTAGE SURROUNDS ===
     { x: 232, y: 134, type: 'cauldron', walkable: false, interactionId: 'witch_cauldron' },
 
     // === SHORTCUT LEVER HINTS ===
-    // Ranger remains placed on the SOUTH face of the gate (bonfire side) as a lore hint
-    // that someone tried to force through the barred gate from this side.
-    { x: 130, y: 203, type: 'ranger_remains', walkable: true, interactionId: 'dead_ranger_shortcut_note' },
+    // Bloodstain on the SOUTH face of the gate — environmental hint that someone fell here.
+    { x: 130, y: 203, type: 'bloodstain', walkable: true },
     // Sign on the bonfire plateau — visible after the player hits the gate and looks around.
     // Points them to the western bypass trail that circles cliff-1 to reach the cottage.
     { x: 128, y: 208, type: 'sign', walkable: false, interactionId: 'cliff_trail_sign' },
     // === FORT INTERIOR ===
-    { x: 136, y: 130, type: 'sign', walkable: false, interactionId: 'fort_garrison_orders' },
+    { x: 228, y: 159, type: 'sign', walkable: false, interactionId: 'fort_garrison_orders' },
     // === CLIFF-TOP PLATEAU ===
     // Passage marker at the cliff-inlet entrance — south-facing so it's readable approaching from north.
     { x: 111, y: 184, type: 'sign', walkable: false, interactionId: 'cliff_inlet_marker' },
-    // === WHISPERING RIVER — east-bank waypost ===
-    // Planted just past the river's east terminus. The only northern crossing is via the
-    // stone-hill path through the golem approach, so this waypost makes that route legible.
-    { x: 224, y: 164, type: 'sign', walkable: false, interactionId: 'river_east_waypost' },
+    // === GOLEM APPROACH — waypost before the fort ===
+    // On the south-bank artery east of the golem arena, pointing toward the fort gate.
+    { x: 216, y: 168, type: 'sign', walkable: false, interactionId: 'river_east_waypost' },
+
+    // Grove shelf shortcut lever — north of the iron gate, west of the gap (x=56–60).
+    { x: 55, y: 162, type: 'shortcut_lever', walkable: false, interactionId: 'grove_shelf_shortcut_lever' },
+
+    // === FORT NORTH EXIT — waypost directing player west toward the Hollow ===
+    { x: 228, y: 150, type: 'sign', walkable: false, interactionId: 'fort_north_waypost' },
   ],
   props: [
     { x: 144, y: 268, type: 'lantern', walkable: false },
@@ -914,7 +1020,33 @@ const forestDef: MapDefinition = {
     { x: 56, y: 152, type: 'dead_tree', walkable: false },
     { x: 62, y: 150, type: 'bones_pile', walkable: true },
     { x: 64, y: 154, type: 'cage', walkable: false },
-    // Grove south rim — cordon clutter (pairs with west_grove_fence_sign).
+
+    // === SOUTH-BANK BREADCRUMBS ===
+    // Segment 1 breadcrumbs (y=165-169 artery, before the meander detour).
+    { x: 60, y: 167, type: 'bloodstain', walkable: true },
+    { x: 80, y: 166, type: 'bloodstain', walkable: true },
+    { x: 100, y: 168, type: 'bloodstain', walkable: true },
+    { x: 120, y: 167, type: 'bloodstain', walkable: true },
+    { x: 140, y: 166, type: 'bloodstain', walkable: true },
+    { x: 160, y: 168, type: 'bloodstain', walkable: true },
+    { x: 180, y: 167, type: 'bloodstain', walkable: true },
+    // Segment 2 breadcrumbs (y=173-177 detour south of the meander).
+    { x: 194, y: 175, type: 'bloodstain', walkable: true },
+    { x: 210, y: 174, type: 'bloodstain', walkable: true },
+    { x: 224, y: 175, type: 'bloodstain', walkable: true },
+    // Lanterns along the south bank.
+    { x: 90, y: 166, type: 'lantern', walkable: false },
+    { x: 150, y: 166, type: 'lantern', walkable: false },
+    { x: 202, y: 174, type: 'lantern', walkable: false },
+    // === NORTH-BANK CORRIDOR LANTERN TRAIL ===
+    // Guides the player west from the fort's north exit to the stair gap at x=148-151.
+    // Path is at y=148-152; lanterns placed on the path edge.
+    { x: 225, y: 149, type: 'lantern', walkable: false },
+    { x: 195, y: 149, type: 'lantern', walkable: false },
+    { x: 180, y: 149, type: 'lantern', walkable: false },
+    { x: 165, y: 149, type: 'lantern', walkable: false },
+    { x: 150, y: 149, type: 'lantern', walkable: false },
+    // Grove south rim — cordon clutter.
     { x: 52, y: 162, type: 'barrel', walkable: false },
     { x: 54, y: 161, type: 'crate', walkable: false },
     { x: 68, y: 162, type: 'chain', walkable: false },
@@ -944,8 +1076,8 @@ const forestDef: MapDefinition = {
     { x: 209, y: 66, type: 'crate', walkable: false },
     { x: 66, y: 196, type: 'barrel', walkable: false },
     { x: 70, y: 196, type: 'crate', walkable: false },
-    // Upper cliff inlet — windmill on the western approach path pocket (world ~-40, -16).
-    { x: 110, y: 166, type: 'windmill', walkable: false },
+    // Windmill plot — was beside removed river-adjacent stairs; now world (-41, 22) / tile (109,172).
+    { x: 109, y: 172, type: 'windmill', walkable: false },
 
     // === LOWER CLIFF INLET (world -39, 37 / tile 111,187) ===
     // The cliff walls form a 14-tile-wide bowl from y=186-191 (x=104-117 open).
@@ -1098,9 +1230,9 @@ const forestDef: MapDefinition = {
     // === WITCH COTTAGE — altar prop ===
     { x: 230, y: 140, type: 'altar', walkable: false },
 
-    // === GOLEM APPROACH — scattered bones and a fallen ranger ===
-    { x: 212, y: 143, type: 'bones_pile', walkable: true },
-    { x: 216, y: 146, type: 'ranger_remains', walkable: true, interactionId: 'highland_garrison_remains' },
+    // === GOLEM APPROACH — scattered bones on the south-bank approach to the fort ===
+    { x: 214, y: 178, type: 'bones_pile', walkable: true },
+    { x: 220, y: 180, type: 'bloodstain', walkable: true },
 
     // === WITCH COTTAGE SURROUNDS — mushroom ring ===
     { x: 230, y: 132, type: 'mushroom', walkable: true },
@@ -1319,6 +1451,28 @@ const forestDef: MapDefinition = {
     { x: 178, y: 150, type: 'lantern', walkable: false },
     { x: 160, y: 150, type: 'lantern', walkable: false },
     { x: 193, y: 152, type: 'bones_pile', walkable: true },
+
+    // === RUINED RANGER CHECKPOINT props — world ~(53, 7) ===
+    { x: 208, y: 134, type: 'destroyed_house', walkable: false },
+    { x: 205, y: 133, type: 'campfire', walkable: false },
+    { x: 212, y: 133, type: 'stump', walkable: false },
+    { x: 213, y: 136, type: 'barrel', walkable: false },
+    { x: 211, y: 138, type: 'barrel', walkable: false },
+    { x: 209, y: 140, type: 'bones_pile', walkable: true },
+    { x: 206, y: 141, type: 'bloodstain', walkable: true },
+    { x: 214, y: 140, type: 'cart', walkable: false },
+
+    // === RIVERBANK PENINSULA — world ~(52, 7) ===
+    // A collapsed river outpost: broken dock, sunken rowboat, scattered debris suggesting
+    // the checkpoint once ferried supplies across the Whispering River before the war.
+    { x: 204, y: 158, type: 'boat_wreck', walkable: false },
+    { x: 206, y: 155, type: 'dock', walkable: true },
+    { x: 202, y: 156, type: 'barrel', walkable: false },
+    { x: 204, y: 155, type: 'crate', walkable: false },
+    { x: 200, y: 158, type: 'bones_pile', walkable: true },
+    { x: 201, y: 156, type: 'bloodstain', walkable: true },
+    { x: 203, y: 153, type: 'bones', walkable: true },
+    { x: 205, y: 153, type: 'stump', walkable: false },
     { x: 177, y: 152, type: 'bones_pile', walkable: true },
     { x: 163, y: 151, type: 'bloodstain', walkable: true },
     { x: 155, y: 152, type: 'rock', walkable: false },
@@ -1348,6 +1502,8 @@ const forestDef: MapDefinition = {
     // Width reaches x=111 so the south cliff meets the ranger plateau (x=112) with no el0 gap
     // players could slip through to bypass the Disparaged Cottage / gate arc.
     { x: 4, y: 108, width: 108, height: 56, elevation: 1 },
+    // === TIER 1: Cliff-top walkway (sentinel-style raised grass on the central cliff barrier) ===
+    { x: 198, y: 114, width: 30, height: 8, elevation: 1 },
     // === TIER 1: Central ranger plateau ===
     { x: 112, y: 148, width: 80, height: 52, elevation: 1 },
     // === TIER 1: East temple terrace ===
@@ -1402,6 +1558,20 @@ const forestDef: MapDefinition = {
     // North face stairway: connects cliff-top plateau (y=185) through cliff_edge/cliff body to
     // the inner sanctum (y=190).  NS axis — treads descend south.
     { x: 68, y: 185, width: 5, height: 6, elevation: 0 },
+    // === CLIFF-TOP WALKWAY STAIRWAYS ===
+    // South entry: el0 (north-bank corridor) → el1 (cliff-top walkway).
+    // stampCliffs stamps cliff_edge at y=121 + cliff wall at y=122-124 (drop el1→el0).
+    // Stair spans y=119-126: 3 tiles on the cliff-top, 4 tiles through the cliff art,
+    // 2 tiles of ground below. elevation=0 so el0 ground connects; stairs tile lets
+    // the player cross the 1-step diff up to el1 cliff-top (canWalkTo allows stairs ±1).
+    { x: 203, y: 119, width: 5, height: 8, elevation: 0 },
+    // North exit: el1 (cliff-top walkway, y=114) → el1 (NE fortress ridge, y=113).
+    // Both sides are el1 so stampCliffs generates no cliff art here. The stairway
+    // provides a visual cue and cuts through any residual cliff art from the original
+    // cliff_face feature. Spans y=112-117: 2 tiles in highlands, 4 tiles on cliff-top.
+    { x: 223, y: 112, width: 5, height: 6, elevation: 1 },
+    // Funnel-drop stair at x=110 removed — it read as stray steps into the river; el1↔el0
+    // along the shelf is handled by the cliff seam + south-bank corridor without that block.
   ],
   enemyZones: [
     // Zones are spread by quadrant / POI so packs are not stacked on one choke (esp. north gate).
@@ -1417,6 +1587,9 @@ const forestDef: MapDefinition = {
     // NW — Hollow dark wolves + shadows (formerly skeletons)
     { x: 65, y: 25, width: 22, height: 16, enemyType: 'wolf', count: 4 },
     { x: 50, y: 50, width: 20, height: 16, enemyType: 'shadow', count: 3 },
+
+    // Lone Hollow Shade (reaper) at the cliff stretch end — world (9, -44) / tile (159, 106).
+    { x: 156, y: 104, width: 6, height: 4, enemyType: 'shadow', count: 1 },
 
     // Central — east of ranger plateau / inn (avoids fort footprint ~130–152, 120–138)
     { x: 166, y: 148, width: 18, height: 18, enemyType: 'wolf', count: 4 },
@@ -1477,7 +1650,7 @@ const forestDef: MapDefinition = {
     { x: 110, y: 200, width: 14, height: 12, enemyType: 'skeleton', count: 2 },
     { x: 142, y: 210, width: 18, height: 14, enemyType: 'wolf', count: 2 },
 
-    { x: 215, y: 140, width: 20, height: 16, enemyType: 'golem', count: 1 },
+    { x: 212, y: 177, width: 18, height: 14, enemyType: 'golem', count: 1 },
 
     // AUTHORED ENCOUNTER POD 1 — mid-spine fork, first multi-enemy test
     { x: 146, y: 181, width: 6, height: 4, enemyType: 'wolf', count: 3 },
@@ -1600,8 +1773,8 @@ const deepWoodsDef: MapDefinition = {
     { x: 60, y: 65, interactionId: 'witch_chest' },
   ],
   interactables: [
-    { x: 118, y: 38, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
-    { x: 52, y: 72, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
+    { x: 118, y: 38, type: 'bonfire', walkable: false, interactionId: 'bonfire_deep_woods_north' },
+    { x: 52, y: 72, type: 'bonfire', walkable: false, interactionId: 'bonfire_deep_woods_west' },
     { x: 64, y: 66, type: 'sign', walkable: false, interactionId: 'witch_sign' },
     { x: 120, y: 30, type: 'sign', walkable: false, interactionId: 'temple_sign' },
     { x: 120, y: 175, type: 'sign', walkable: false, interactionId: 'deep_woods_sign' },
@@ -1757,6 +1930,7 @@ const deepWoodsDef: MapDefinition = {
 
     // === Boss ===
     { x: 85, y: 35, width: 18, height: 14, enemyType: 'golem', count: 1 },
+
   ],
 };
 
@@ -1824,7 +1998,7 @@ const ruinsDef: MapDefinition = {
     { x: 35, y: 22, interactionId: 'ruins_west_chest' },
   ],
   interactables: [
-    { x: 100, y: 56, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
+    { x: 100, y: 56, type: 'bonfire', walkable: false, interactionId: 'bonfire_ruins' },
     { x: 100, y: 50, type: 'well', walkable: false, interactionId: 'ancient_fountain' },
     { x: 35, y: 25, type: 'sign', walkable: false, interactionId: 'ancient_tablet' },
     { x: 160, y: 25, type: 'sign', walkable: false, interactionId: 'ancient_tablet_2' },
@@ -1928,7 +2102,7 @@ const shadowCastleDef: MapDefinition = {
     { x: 100, y: 12, interactionId: 'boss_arena_chest' },
   ],
   interactables: [
-    { x: 100, y: 101, type: 'bonfire', walkable: false, interactionId: 'bonfire_rest' },
+    { x: 100, y: 101, type: 'bonfire', walkable: false, interactionId: 'bonfire_shadow_castle' },
     { x: 100, y: 40, type: 'sign', walkable: false, interactionId: 'temple_sign' },
     { x: 100, y: 52, type: 'sign', walkable: false, interactionId: 'shadow_castle_gate_switch' },
     { x: 84, y: 88, type: 'campfire', walkable: false, interactionId: 'campfire' },
@@ -2365,7 +2539,7 @@ const interiorHollowArenaDef: MapDefinition = {
     { x: 13, y: 13, width: 10, height: 10, type: 'clearing', fill: 'ruins_floor' },
   ],
   portals: [
-    { x: 18, y: 34, targetMap: 'forest', targetX: 122, targetY: 30 },
+    { x: 18, y: 34, targetMap: 'forest', targetX: 122, targetY: 20 },
   ],
   chests: [],
   interactables: [],
@@ -2390,6 +2564,17 @@ function clearMapCache() {
   for (const key of Object.keys(mapCache)) {
     delete mapCache[key];
   }
+}
+
+/** Dev-only: after HMR edits to this module, World must call `loadMap(allMaps[id])` — cache clear alone is not enough. */
+const mapHotReloadSubscribers: Array<() => void> = [];
+
+export function subscribeMapHotReload(handler: () => void): () => void {
+  mapHotReloadSubscribers.push(handler);
+  return () => {
+    const i = mapHotReloadSubscribers.indexOf(handler);
+    if (i !== -1) mapHotReloadSubscribers.splice(i, 1);
+  };
 }
 
 export const mapDefinitions: Record<string, MapDefinition> = {
@@ -2433,5 +2618,15 @@ export const allMaps: Record<string, WorldMap> = new Proxy({} as Record<string, 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     clearMapCache();
+  });
+  import.meta.hot.accept(() => {
+    clearMapCache();
+    for (const fn of mapHotReloadSubscribers) {
+      try {
+        fn();
+      } catch (err) {
+        console.warn('[maps hot reload]', err);
+      }
+    }
   });
 }

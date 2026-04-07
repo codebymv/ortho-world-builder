@@ -73,6 +73,23 @@ export const quests: Record<string, Quest> = {
     },
   },
 
+  blighted_heart: {
+    id: 'blighted_heart',
+    title: 'The Blighted Heart',
+    description: 'Warden Callum says a corrupted growth at the heart of the western enchanted grove is spreading blight across the woods. Enter the grove, destroy the Blighted Root, and bring proof back to the warden.',
+    objectives: [
+      'Enter the enchanted grove west of the corridor',
+      'Find and destroy the Blighted Root',
+      'Return to Warden Callum',
+    ],
+    completed: false,
+    active: false,
+    reward: {
+      gold: 75,
+      items: ['verdant_tonic', 'verdant_tonic', 'verdant_tonic'],
+    },
+  },
+
   rangers_request: {
     id: 'rangers_request',
     title: "The Ranger's Request",

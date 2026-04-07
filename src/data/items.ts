@@ -13,7 +13,7 @@ export const items: Record<string, Item> = {
   tempest_grass: {
     id: 'tempest_grass',
     name: 'Tempest Grass',
-    description: 'A wild healing herb bundled with twine. Restores 35 health when chewed or steeped.',
+    description: 'A wild healing herb bundled with twine. Restores 35 health and fully replenishes stamina when chewed.',
     type: 'consumable',
     sprite: 'tempest_grass_item',
     healAmount: 35,
@@ -127,12 +127,30 @@ export const items: Record<string, Item> = {
     },
   },
 
+  verdant_tonic: {
+    id: 'verdant_tonic',
+    name: 'Verdant Tonic',
+    description: 'A thick, bitter draught brewed from purified grove sap. Cloaks your presence for 14 seconds — enemies will not detect you unless you are nearly on top of them.',
+    type: 'consumable',
+    sprite: 'verdant_tonic',
+    buffType: 'stealth',
+    buffDuration: 14,
+  },
+
+  blighted_root_shard: {
+    id: 'blighted_root_shard',
+    name: 'Blighted Root Shard',
+    description: 'A gnarled, pulsing fragment torn from the heart of the corrupted grove. It still twitches faintly in your hands.',
+    type: 'quest',
+    sprite: 'blighted_root_shard',
+  },
+
   golem_heart: {
     id: 'golem_heart',
     name: 'Golem Heart',
     description: 'A dense core chipped from the Stone Golem. It is warm to the touch and thrums with the memory of impossible weight.',
     type: 'quest',
-    sprite: 'key',
+    sprite: 'golem_heart',
   },
 
   ranger_badge: {

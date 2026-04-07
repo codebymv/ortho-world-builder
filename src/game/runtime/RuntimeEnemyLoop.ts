@@ -52,6 +52,7 @@ export function runEnemyLoop({
         screenShake.hitStop(0.3);
       }
     },
+    state.player.stealthDetectionMult,
   );
 
   if (state.player.health < playerHealthBeforeUpdate) {

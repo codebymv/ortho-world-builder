@@ -33,6 +33,9 @@ export function createRuntimeSessionState({
       chargeLevel: 0,
       spinDirIndex: 0,
       spinFrameTimer: 0,
+      // Combo chain state
+      comboStep: 0,        // 0=first hit, 1=second, 2=third/finisher
+      comboWindowTimer: 0, // time remaining to chain the next hit
     },
     lunge: {
       active: false,
@@ -57,6 +60,7 @@ export function createRuntimeSessionState({
       interactBuffered: false,
       dodgeBuffered: false,
       potionBuffered: false,
+      comboInputBuffered: false, // LMB pressed during active swing; chains on animation end
     },
     loop: {
       lastAutoSaveTime: initialLastAutoSaveTime,

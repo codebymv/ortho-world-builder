@@ -28,22 +28,22 @@ interface ApplyEnemyVisualsOptions {
 }
 
 function resolveSpriteKey(enemy: Enemy, enemyType: string): string {
-  if (enemyType === 'bandit') {
-    const banditState = enemy.state === 'telegraphing'
+  if (enemyType === 'bandit' || enemyType === 'skeleton_captain') {
+    const animState = enemy.state === 'telegraphing'
       ? 'charge'
       : enemy.state === 'recovering' && enemy.attackAnimationTimer > 0
         ? 'attack'
         : enemy.moveBlend > 0.25
           ? 'walk'
           : 'idle';
-    const banditFrame = banditState === 'walk'
+    const animFrame = animState === 'walk'
       ? Math.floor(enemy.moveCycle * 2.4) % 2
-      : banditState === 'charge'
+      : animState === 'charge'
         ? Math.min(2, Math.floor((1 - enemy.telegraphTimer / enemy.telegraphDuration) * 3))
-        : banditState === 'attack'
+        : animState === 'attack'
           ? 1
           : 0;
-    return `enemy_bandit_${enemy.facing}_${banditState}_${banditFrame}`;
+    return `enemy_${enemyType}_${enemy.facing}_${animState}_${animFrame}`;
   }
   if (enemy.state === 'telegraphing') return `${enemy.sprite}_telegraph`;
   if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return `${enemy.sprite}_attack`;

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { GameState } from '@/lib/game/GameState';
 import type { World, WorldMap } from '@/lib/game/World';
+import type { BonfireEntry } from '@/data/bonfires';
 
 interface RuntimeParticleSystemLike {
   emitBonfireKindled: (position: THREE.Vector3) => void;
@@ -16,6 +17,7 @@ interface CreateBonfireRestActionOptions {
   playBonfireKindle: () => void;
   playBonfireRestore: () => void;
   respawnEnemiesForCurrentMap: (targetMap: string, map: WorldMap) => void;
+  showTransitionOverlay: (mapName: string, mapSubtitle?: string) => void;
   triggerSave: () => void;
   triggerUIUpdate: () => void;
   openBonfireMenu: () => void;
@@ -30,6 +32,7 @@ export function createBonfireRestAction({
   playBonfireKindle,
   playBonfireRestore,
   respawnEnemiesForCurrentMap,
+  showTransitionOverlay,
   triggerSave,
   triggerUIUpdate,
   openBonfireMenu,
@@ -104,5 +107,28 @@ export function createBonfireRestAction({
     }
   };
 
-  return { interact, restAtBonfire };
+  const travelToBonfire = (entry: BonfireEntry) => {
+    const map = world.getCurrentMap();
+    const worldX = entry.tileX - map.width / 2 + 0.5;
+    const worldY = entry.tileY - map.height / 2 + 0.5;
+
+    state.player.position = { x: worldX, y: worldY };
+    state.player.health = state.player.maxHealth;
+    state.player.stamina = state.player.maxStamina;
+    state.lastBonfire = { mapId: entry.mapId, x: worldX, y: worldY };
+
+    respawnEnemiesForCurrentMap(state.currentMap, map);
+    showTransitionOverlay(map.name, map.subtitle);
+    playBonfireRestore();
+    notify('Arrived at bonfire', {
+      id: 'bonfire-travel',
+      type: 'success',
+      description: 'Health and stamina restored. Enemies have respawned.',
+      duration: 2500,
+    });
+    triggerSave();
+    triggerUIUpdate();
+  };
+
+  return { interact, restAtBonfire, travelToBonfire };
 }

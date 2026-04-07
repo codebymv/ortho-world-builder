@@ -88,6 +88,9 @@ interface RunGameplayPreludeOptions extends GameplayPreludeContext {
   animTimer: number;
   animFrame: number;
   dodgeBuffered: boolean;
+  comboStep: number;
+  comboWindowTimer: number;
+  comboInputBuffered: boolean;
 }
 
 export function runGameplayPrelude({
@@ -154,6 +157,13 @@ export function runGameplayPrelude({
   onLungeHit,
   onLungeEnd,
   dodgeIFrameDuration,
+  comboStep,
+  comboWindowTimer,
+  comboInputBuffered,
+  triggerComboChain,
+  comboWindowDuration,
+  getComboFrameDuration,
+  notify,
 }: RunGameplayPreludeOptions) {
   const nowSec = currentTime / 1000;
   if (state.player.iFrameTimer > 0) {
@@ -169,6 +179,13 @@ export function runGameplayPrelude({
     state.player.snareTimer = Math.max(0, state.player.snareTimer - deltaTime);
     if (state.player.snareTimer <= 0) {
       state.player.snareSpeedMult = 1.0;
+    }
+  }
+  if (state.player.stealthTimer > 0) {
+    state.player.stealthTimer = Math.max(0, state.player.stealthTimer - deltaTime);
+    if (state.player.stealthTimer <= 0) {
+      state.player.stealthDetectionMult = 1.0;
+      notify('Stealth faded.', { id: 'stealth-faded', duration: 2000 });
     }
   }
   if (nowSec - state.player.lastStaminaUseTime > state.player.staminaRegenDelay) {
@@ -246,6 +263,9 @@ export function runGameplayPrelude({
     animTimer,
     animFrame,
     dodgeBuffered,
+    comboStep,
+    comboWindowTimer,
+    comboInputBuffered,
   } = updatePlayerSimulation({
     state,
     world,
@@ -290,6 +310,12 @@ export function runGameplayPrelude({
     onLungeHit,
     onLungeEnd,
     dodgeIFrameDuration,
+    comboStep,
+    comboWindowTimer,
+    comboInputBuffered,
+    comboWindowDuration,
+    getComboFrameDuration,
+    triggerComboChain,
   }));
 
   const currentMap = world.getCurrentMap();
@@ -318,5 +344,8 @@ export function runGameplayPrelude({
     animTimer,
     animFrame,
     dodgeBuffered,
+    comboStep,
+    comboWindowTimer,
+    comboInputBuffered,
   };
 }

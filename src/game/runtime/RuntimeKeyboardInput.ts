@@ -35,10 +35,6 @@ interface RuntimeKeyboardInputOptions {
   setDodgeBuffered: (value: boolean) => void;
   setPlayerAnimState: (value: PlayerAnimState) => void;
   getPlayerAnimState: () => PlayerAnimState;
-  playBlock: () => void;
-  setIsBlocking: (value: boolean) => void;
-  getIsBlocking: () => boolean;
-  setBlockStartTime: (value: number) => void;
   bonfireMenuOpenRef: MutableRefObject<boolean>;
   closeBonfireMenu: () => void;
 }
@@ -66,10 +62,6 @@ export function createKeyboardInputController({
   setDodgeBuffered,
   setPlayerAnimState,
   getPlayerAnimState,
-  playBlock,
-  setIsBlocking,
-  getIsBlocking,
-  setBlockStartTime,
   bonfireMenuOpenRef,
   closeBonfireMenu,
 }: RuntimeKeyboardInputOptions) {
@@ -173,7 +165,8 @@ export function createKeyboardInputController({
     if (pausedRef.current || mapModalOpenRef.current || playerDeadRef.current) return;
 
     const lk = e.key.toLowerCase();
-    if (lk !== 'arrowleft' && lk !== 'arrowright') {
+    // Movement is WASD only — arrow keys reserved for weapon / item cycling.
+    if (lk !== 'arrowleft' && lk !== 'arrowright' && lk !== 'arrowup' && lk !== 'arrowdown') {
       keys[lk] = true;
     }
     if (lk === 'f' && !state.dialogueActive) {
@@ -201,23 +194,6 @@ export function createKeyboardInputController({
       e.preventDefault();
       setDodgeBuffered(true);
     }
-    if (e.key === 'Control' && !state.dialogueActive) {
-      if (!getIsBlocking() && !state.player.isDodging && state.player.stamina > 0) {
-        setIsBlocking(true);
-        setBlockStartTime(performance.now() / 1000);
-        playBlock();
-        const playerAnimState = getPlayerAnimState();
-        if (
-          playerAnimState !== 'attack' &&
-          playerAnimState !== 'spin_attack' &&
-          playerAnimState !== 'drinking' &&
-          playerAnimState !== 'block'
-        ) {
-          setPlayerAnimState('block');
-        }
-      }
-      keys.control = true;
-    }
     if (e.key === 'Shift') {
       keys.shift = true;
     }
@@ -228,15 +204,6 @@ export function createKeyboardInputController({
     keys[e.key.toLowerCase()] = false;
     if (e.key === 'Shift') {
       keys.shift = false;
-    }
-    if (e.key === 'Control') {
-      keys.control = false;
-      if (getIsBlocking()) {
-        setIsBlocking(false);
-        if (getPlayerAnimState() === 'block') {
-          setPlayerAnimState('idle');
-        }
-      }
     }
   };
 

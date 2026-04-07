@@ -42,6 +42,7 @@ export interface GameplayPreludeContext {
   world: World;
   blockStaminaCost: number;
   triggerUIUpdateThrottled: (now: number) => void;
+  notify: (title: string, options?: { id?: string; description?: string; duration?: number }) => void;
   activeNpcIndices: number[];
   npcData: NPC[];
   npcWander: Record<string, NpcWanderState>;
@@ -92,6 +93,9 @@ export interface GameplayPreludeContext {
   onLungeHit: (enemy: any, damage: number) => void;
   onLungeEnd: () => void;
   dodgeIFrameDuration: number;
+  triggerComboChain: () => { frameDuration: number } | null;
+  comboWindowDuration: number;
+  getComboFrameDuration: (step: number) => number;
 }
 
 export interface PlayerFrameContext {
@@ -127,6 +131,7 @@ export interface PlayerFrameContext {
     essenceOrbMaterial: THREE.MeshBasicMaterial;
   };
   swooshDuration: number;
+  comboStep: number;
   screenShake: ScreenShake;
   getInteractionPromptLabel: (
     interactionId: string,

@@ -83,6 +83,16 @@ interface RuntimeCombatActionOptions {
   spinFrameDuration: number;
   spinDirections: Direction8[];
   clearChargeState: () => void;
+  // Combo chain state
+  getComboStep: () => number;
+  setComboStep: (value: number) => void;
+  getComboWindowTimer: () => number;
+  setComboWindowTimer: (value: number) => void;
+  getComboInputBuffered: () => boolean;
+  setComboInputBuffered: (value: boolean) => void;
+  getPlayerAnimState: () => string;
+  comboFrameMultipliers: readonly [number, number, number];
+  comboDamageMultipliers: readonly [number, number, number];
   // Lunge attack (broadsword)
   lungeDistMin: number;
   lungeDistMax: number;
@@ -129,6 +139,15 @@ export function createRuntimeCombatActions({
   spinFrameDuration,
   spinDirections,
   clearChargeState,
+  getComboStep,
+  setComboStep,
+  getComboWindowTimer,
+  setComboWindowTimer,
+  getComboInputBuffered,
+  setComboInputBuffered,
+  getPlayerAnimState,
+  comboFrameMultipliers,
+  comboDamageMultipliers,
   lungeDistMin,
   lungeDistMax,
   lungeSpeedBase,
@@ -200,29 +219,13 @@ export function createRuntimeCombatActions({
     triggerUIUpdate();
   };
 
-  const performAttack = () => {
-    const currentTime = Date.now();
-    if (currentTime - state.player.lastAttackTime < state.player.attackCooldown) return;
-    if (state.player.isDodging) return;
-    if (state.player.stamina < attackStaminaCost) return;
-    if (getIsBlocking()) {
-      setIsBlocking(false);
-    }
-
-    playSwordSwing();
-    playBladeSheath();
-    setSwooshTimer(swooshDuration);
-    setSwooshFacing(dir8to4(getCurrentDir8()));
-
-    const attackAnimationDuration = attackFrameDuration * 3;
-    state.player.lastAttackTime = currentTime;
-    state.player.stamina = Math.max(0, state.player.stamina - attackStaminaCost);
-    // Keep stamina recovery locked until the swing animation has actually resolved.
-    state.player.lastStaminaUseTime = performance.now() / 1000 + attackAnimationDuration;
-    setPlayerAnimState('attack');
-    setAttackFrame(0);
-    setAttackFrameTimer(attackFrameDuration);
-    state.player.attackAnimationTimer = attackAnimationDuration;
+  const _applyAttackDamage = (step: number) => {
+    const dirOffsets: Record<Direction4, { x: number; y: number }> = {
+      up: { x: 0, y: 1 },
+      down: { x: 0, y: -1 },
+      left: { x: -1, y: 0 },
+      right: { x: 1, y: 0 },
+    };
 
     const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, state.player.attackRange);
     if (enemiesInRange.length === 0) {
@@ -232,42 +235,27 @@ export function createRuntimeCombatActions({
       else if (direction === 'down') attackPos.y -= 1;
       else if (direction === 'left') attackPos.x -= 1;
       else if (direction === 'right') attackPos.x += 1;
-
       particleSystem.emit(new THREE.Vector3(attackPos.x, attackPos.y, 0.3), 4, 0xffffff, 0.3, 1, 1);
       return;
     }
 
     let target = enemiesInRange[0];
     const direction = dir8to4(getCurrentDir8());
-    const dirOffsets: Record<Direction4, { x: number; y: number }> = {
-      up: { x: 0, y: 1 },
-      down: { x: 0, y: -1 },
-      left: { x: -1, y: 0 },
-      right: { x: 1, y: 0 },
-    };
     const dir = dirOffsets[direction];
     const facingEnemies = enemiesInRange.filter(enemy => {
       const dx = enemy.position.x - state.player.position.x;
       const dy = enemy.position.y - state.player.position.y;
       return (dx * dir.x + dy * dir.y) > 0;
     });
-    if (facingEnemies.length > 0) {
-      target = facingEnemies[0];
-    }
+    if (facingEnemies.length > 0) target = facingEnemies[0];
 
     const parryBonus = state.player.parryBonusTimer > 0 ? 1.25 : 1;
-    const baseDamage = Math.floor(state.player.attackDamage * parryBonus);
+    const stepDamageMult = comboDamageMultipliers[step] ?? 1;
+    const baseDamage = Math.floor(state.player.attackDamage * parryBonus * stepDamageMult);
 
-    const result = combatSystem.playerAttack(
-      target,
-      baseDamage,
-      state.player.position,
-      state.player.direction,
-    );
+    const result = combatSystem.playerAttack(target, baseDamage, state.player.position, state.player.direction);
 
-    if (parryBonus > 1) {
-      state.player.parryBonusTimer = 0;
-    }
+    if (parryBonus > 1) state.player.parryBonusTimer = 0;
 
     const isCrit = target.state === 'recovering' || target.state === 'staggered';
     const isBackstab = result.backstab;
@@ -285,19 +273,100 @@ export function createRuntimeCombatActions({
       screenShake.hitStop(0.1);
       floatingText.spawn(target.position.x, target.position.y + 0.8, 'BACKSTAB!', '#FFD700', 24);
     } else {
-      screenShake.shake(isCrit ? 0.2 : 0.1, isCrit ? 0.15 : 0.08);
-      screenShake.hitStop(isCrit ? 0.1 : 0.07);
+      const shakeIntensity = step === 2 ? 0.25 : (isCrit ? 0.2 : 0.1);
+      const shakeDuration = step === 2 ? 0.18 : (isCrit ? 0.15 : 0.08);
+      const hitStopDuration = step === 2 ? 0.13 : (isCrit ? 0.1 : 0.07);
+      screenShake.shake(shakeIntensity, shakeDuration);
+      screenShake.hitStop(hitStopDuration);
     }
 
     if (isStaggered) {
       floatingText.spawn(target.position.x, target.position.y + 0.6, 'STAGGER!', '#88AAFF', 20);
     }
 
+    // Finisher: emit extra sparkles on step 2
+    if (step === 2) {
+      particleSystem.emitSparkles(new THREE.Vector3(target.position.x, target.position.y + 0.3, 0.5));
+    }
+
     particleSystem.emitDamage(new THREE.Vector3(target.position.x, target.position.y, 0.3));
 
-    if (result.killed) {
-      onEnemyKilled(target);
+    if (result.killed) onEnemyKilled(target);
+  };
+
+  // Core attack logic for a given combo step (0=first hit, 1=second, 2=finisher).
+  // Returns the frameDuration so callers (e.g. simulation) can sync local timer variables.
+  const _executeAttackStep = (step: number, skipCooldown = false): number => {
+    const currentTime = Date.now();
+    if (!skipCooldown && currentTime - state.player.lastAttackTime < state.player.attackCooldown) return 0;
+    if (state.player.isDodging) return 0;
+    if (state.player.stamina < attackStaminaCost) return 0;
+
+    if (getIsBlocking()) setIsBlocking(false);
+
+    playSwordSwing();
+    playBladeSheath();
+    setSwooshTimer(swooshDuration);
+    setSwooshFacing(dir8to4(getCurrentDir8()));
+
+    const frameDuration = attackFrameDuration * (comboFrameMultipliers[step] ?? 1);
+    const attackAnimationDuration = frameDuration * 3;
+
+    state.player.lastAttackTime = currentTime;
+    state.player.stamina = Math.max(0, state.player.stamina - attackStaminaCost);
+    state.player.lastStaminaUseTime = performance.now() / 1000 + attackAnimationDuration;
+    setPlayerAnimState('attack');
+    setAttackFrame(0);
+    setAttackFrameTimer(frameDuration);
+    state.player.attackAnimationTimer = attackAnimationDuration;
+
+    _applyAttackDamage(step);
+    return frameDuration;
+  };
+
+  const performAttack = () => {
+    const animState = getPlayerAnimState();
+    const step = getComboStep();
+
+    // During active swing: buffer the next hit rather than ignoring input
+    if (animState === 'attack') {
+      if (step < 2) setComboInputBuffered(true);
+      return;
     }
+
+    if (state.player.isDodging) return;
+    if (state.player.stamina < attackStaminaCost) return;
+
+    // In combo window: chain immediately to the next step
+    if (getComboWindowTimer() > 0 && step < 2) {
+      const nextStep = step + 1;
+      setComboStep(nextStep);
+      setComboWindowTimer(0);
+      _executeAttackStep(nextStep, true);
+      return;
+    }
+
+    // Fresh attack: reset combo to step 0
+    setComboStep(0);
+    setComboWindowTimer(0);
+    _executeAttackStep(0);
+  };
+
+  // Called by PlayerSimulationSystem when a buffered input fires at animation end.
+  // Returns the new frameDuration so the simulation can update its local timer variables.
+  const triggerComboChain = (): { frameDuration: number } | null => {
+    const step = getComboStep();
+    if (step >= 2) return null;
+    if (state.player.isDodging) return null;
+    if (state.player.stamina < attackStaminaCost) return null;
+
+    const nextStep = step + 1;
+    setComboStep(nextStep);
+    setComboInputBuffered(false);
+
+    const frameDuration = _executeAttackStep(nextStep, true);
+    if (frameDuration === 0) return null;
+    return { frameDuration };
   };
 
   const dir8ToVector: Record<Direction8, { x: number; y: number }> = {
@@ -419,5 +488,6 @@ export function createRuntimeCombatActions({
     onEnemyKilled,
     performAttack,
     performChargeAttack,
+    triggerComboChain,
   };
 }

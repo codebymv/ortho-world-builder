@@ -5,7 +5,7 @@ import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'stone' | 'wood' 
   | 'tree' | 'house' | 'house_entry' | 'house_blue' | 'house_blue_entry' | 'house_green' | 'house_green_entry' | 'house_thatch' | 'house_thatch_entry' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'rock' | 'chest' | 'chest_opened' | 'portal' | 'flower' | 'moonbloom' | 'tempest_grass'
-  | 'tall_grass' | 'bridge' | 'sand' | 'swamp' | 'lava' | 'ice'
+  | 'tall_grass' | 'bridge' | 'bridge_corrupted' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
   | 'campfire' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
   | 'fence' | 'gate' | 'barrel' | 'crate' | 'spike_trap' | 'bones'
@@ -20,7 +20,8 @@ export type TileType =
   | 'throne' | 'altar' | 'bloodstain' | 'chain' | 'shortcut_lever' | 'cage' | 'bones_pile' | 'ranger_remains'
   | 'door' | 'door_interior' | 'door_iron'
   | 'fog_gate'
-  | 'bonfire_unlit';
+  | 'bonfire_unlit'
+  | 'boat_wreck' | 'dock';
 
 /** Pass as `getInteractableNear` radius from gameplay so gates / chunky facades stay in scan + reach.
  * Must be >= every `getInteractableReach` value so the min() cap does not shrink large reaches. */
@@ -54,6 +55,8 @@ export interface WorldMap {
   spawnPoint: { x: number; y: number };
   /** When true, World draws an extra south backdrop (cliff/ocean) below the tile grid so the camera does not show empty void past the coast. */
   coastalSouthBackdrop?: boolean;
+  /** When true, deep-ocean planes also extend past the north, east, and west map edges (matches coastalBorderAllSides generation). */
+  coastalBorderAllSides?: boolean;
 }
 
 export interface InteractableHit {
@@ -174,11 +177,13 @@ export class World {
   } | null = null;
   /** Meshes below the south coast tiles; not part of chunk streaming. */
   private southCoastBackdrop: THREE.Group | null = null;
+  /** Geometries for optional extra coast planes; material + texture shared (see rebuild). */
   private southCoastBackdropDisposables: Array<{
     geometry: THREE.BufferGeometry;
     material: THREE.Material;
     texture?: THREE.Texture;
   }> = [];
+  private coastalBackdropShared: { material: THREE.MeshBasicMaterial; texture: THREE.Texture } | null = null;
   private materialCache: Map<string, THREE.MeshBasicMaterial> = new Map();
   private detailGeometry: THREE.PlaneGeometry;
   private shadowGeometry: THREE.PlaneGeometry;
@@ -905,33 +910,35 @@ export class World {
     }
     for (const d of this.southCoastBackdropDisposables) {
       d.geometry.dispose();
-      d.material.dispose();
-      d.texture?.dispose();
     }
     this.southCoastBackdropDisposables = [];
+    if (this.coastalBackdropShared) {
+      this.coastalBackdropShared.material.dispose();
+      this.coastalBackdropShared.texture.dispose();
+      this.coastalBackdropShared = null;
+    }
   }
 
   /**
-   * Fills the view south of the map with deep ocean so the camera does not show empty
-   * void past the water tiles. The cliff drama is provided by the COASTAL_SOUTH_ROWS tile
-   * rows stamped by the map generator; the backdrop just continues the ocean indefinitely.
+   * Deep-ocean planes past map edges so the camera does not show empty void beyond the
+   * coastal water tiles. South-only for village-style maps; north/east/west added when
+   * {@link WorldMap.coastalBorderAllSides} is set.
    */
   private rebuildSouthCoastBackdrop() {
     this.disposeSouthCoastBackdrop();
-    if (!this.map.coastalSouthBackdrop) return;
+    const south = !!this.map.coastalSouthBackdrop;
+    const allSides = !!this.map.coastalBorderAllSides;
+    if (!south && !allSides) return;
 
     const w = this.map.width;
     const h = this.map.height;
     const ts = this.tileSize;
+    const worldOffsetX = -w / 2;
     const worldOffsetY = -h / 2;
-    // South = low y = low world Y. The backdrop fills the void below row 0 (the southernmost water row).
-    const southEdgeY = worldOffsetY - ts * 0.5; // bottom edge of row 0
 
     const group = new THREE.Group();
-    group.name = 'southCoastBackdrop';
+    group.name = 'coastalBackdrops';
 
-    // Deep-ocean canvas: subtle depth gradient, same hue family as water tile (0x1E88E5)
-    // but darker/deeper so it reads as ocean depth rather than more flat terrain.
     const cw = 4;
     const ch = 64;
     const c = document.createElement('canvas');
@@ -952,20 +959,46 @@ export class World {
     tex.wrapT = THREE.RepeatWrapping;
     tex.colorSpace = THREE.SRGBColorSpace;
 
-    // Wide, tall plane — enough to fill any camera view below the tile grid.
-    const planeW = w * ts + 20;
-    const planeH = 32;
-    const geom = new THREE.PlaneGeometry(planeW, planeH);
     const mat = new THREE.MeshBasicMaterial({
       map: tex,
       depthWrite: false,
       depthTest: false,
     });
-    const mesh = new THREE.Mesh(geom, mat);
-    mesh.position.set(0, southEdgeY - planeH * 0.5, -0.15);
-    mesh.renderOrder = -4000;
-    group.add(mesh);
-    this.southCoastBackdropDisposables.push({ geometry: geom, material: mat, texture: tex });
+    this.coastalBackdropShared = { material: mat, texture: tex };
+
+    const planeStrip = 32;
+    const addMesh = (geom: THREE.PlaneGeometry, px: number, py: number) => {
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.set(px, py, -0.15);
+      mesh.renderOrder = -4000;
+      group.add(mesh);
+      this.southCoastBackdropDisposables.push({ geometry: geom, material: mat });
+    };
+
+    if (south) {
+      const southEdgeY = worldOffsetY - ts * 0.5;
+      const planeW = w * ts + 20;
+      const geom = new THREE.PlaneGeometry(planeW, planeStrip);
+      addMesh(geom, 0, southEdgeY - planeStrip * 0.5);
+    }
+
+    if (allSides) {
+      const northEdgeY = worldOffsetY + (h - 1) * ts + ts * 0.5;
+      const planeW = w * ts + 20;
+      const northGeom = new THREE.PlaneGeometry(planeW, planeStrip);
+      addMesh(northGeom, 0, northEdgeY + planeStrip * 0.5);
+
+      const stripLong = h * ts + 20;
+      const westEdgeX = worldOffsetX - ts * 0.5;
+      const eastEdgeX = worldOffsetX + (w - 1) * ts + ts * 0.5;
+      const midY = worldOffsetY + ((h - 1) * ts) * 0.5;
+
+      const westGeom = new THREE.PlaneGeometry(planeStrip, stripLong);
+      addMesh(westGeom, westEdgeX - planeStrip * 0.5, midY);
+
+      const eastGeom = new THREE.PlaneGeometry(planeStrip, stripLong);
+      addMesh(eastGeom, eastEdgeX + planeStrip * 0.5, midY);
+    }
 
     this.scene.add(group);
     this.southCoastBackdrop = group;
