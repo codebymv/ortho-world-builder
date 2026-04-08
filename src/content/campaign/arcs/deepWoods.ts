@@ -6,7 +6,7 @@ export const deepWoodsArc: CampaignArc = {
   act: 2,
   summary:
     'The Deep Woods escalate the campaign from frontier danger into occult corruption, with the witch and shrine road revealing the larger shadow threat.',
-  maps: ['village', 'deep_woods', 'interior_witch_hut', 'ruins'],
+  maps: ['village', 'deep_woods', 'interior_witch_hut', 'gilrhym'],
   quests: ['clear_deep_woods'],
   beats: [
     {
@@ -37,12 +37,36 @@ export const deepWoodsArc: CampaignArc = {
       quests: ['clear_deep_woods'],
     },
     {
-      id: 'ancient-ruins-branch',
-      label: 'Ancient Ruins Branch',
+      id: 'gilrhym-arrival',
+      label: 'Gilrhym Arrival',
       role: 'discovery',
       summary:
-        'The ruins deepen the history of the world and reinforce that the Deep Woods are sitting on top of an older, buried civilization.',
-      maps: ['ruins'],
+        'After the Hollow boss, the player reaches the outskirts of Gilrhym and meets Oliver, who contextualizes the corruption and reanimation plaguing the land.',
+      maps: ['gilrhym'],
+    },
+    {
+      id: 'gilrhym-exploration',
+      label: 'City Navigation',
+      role: 'investigation',
+      summary:
+        'The player navigates the fallen city from outskirts through market district to the dense rooftop layer, uncovering lore about the rogue faction.',
+      maps: ['gilrhym'],
+    },
+    {
+      id: 'gilrhym-scythe',
+      label: 'Terminus Scythe',
+      role: 'discovery',
+      summary:
+        'At the city midpoint the player discovers the Terminus Scythe, a two-handed weapon radiating dark matter energy.',
+      maps: ['gilrhym'],
+    },
+    {
+      id: 'gilrhym-boss',
+      label: 'The Ashen Reaver',
+      role: 'boss',
+      summary:
+        'The corrupted knight-commander of the Gilrhym guard awaits in the cathedral plaza, enforcing the rogue faction\'s will.',
+      maps: ['gilrhym'],
     },
     {
       id: 'elder-report',

@@ -505,17 +505,125 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'market_sign',
     nodes: [{ id: 'start', text: "**The Market District** — Finest wares in all of __Greenleaf Village__!", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
-  ancient_tablet: {
-    id: 'ancient_tablet',
-    nodes: [{ id: 'start', text: "The ancient tablet bears inscriptions in a forgotten language. You can make out: '__...the key lies where **shadows** converge...__'", responses: [{ text: "[Study further]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  // ========== GILRHYM DIALOGUES ==========
+  oliver: {
+    id: 'oliver',
+    nodes: [
+      {
+        id: 'start',
+        text: "A warrior slumps against a shattered wall, clutching a wound at his side. He looks up with grim relief. \"You're alive. I didn't think anyone else made it past the woods. Name's **Oliver**. I was part of the __Gilrhym city guard__... what's left of it.\"",
+        responses: [
+          { text: "What happened here?", nextId: 'what_happened' },
+          { text: "Who did this?", nextId: 'faction' },
+          { text: "I need to keep moving.", nextId: 'warning' },
+        ],
+      },
+      {
+        id: 'what_happened',
+        text: "\"A **rogue faction** calling themselves the __Ashen Court__ — they unearthed forbidden magic from beneath the cathedral. Cracked open seals that were never meant to be broken. The dead in our cemeteries **rose**. The forests around the city — every creature **turned**. Even the stone itself came alive. Golems. Shades. Things that shouldn't exist.\"",
+        responses: [
+          { text: "That explains the creatures in the woods...", nextId: 'context' },
+          { text: "Tell me about Gilrhym.", nextId: 'about_gilrhym' },
+          { text: "Have you seen a hunter pass through?", nextId: 'hunter' },
+        ],
+      },
+      {
+        id: 'context',
+        text: "\"Aye. Every possessed wolf, every skeleton, every hollow shade you fought getting here — that's __their__ doing. The corruption radiates outward from the city. The Whispering Woods, the Deep Woods... it all connects back to what the Ashen Court unleashed under that **cathedral**.\"",
+        responses: [
+          { text: "Who leads the Ashen Court?", nextId: 'faction' },
+          { text: "What's deeper in the city?", nextId: 'warning' },
+        ],
+      },
+      {
+        id: 'faction',
+        text: "\"I don't know their leader's name. Only their **sigil** — a cracked seal dripping black flame. They wear dark robes and they move through the city like they own it now. The worst of it... they turned our **captain**. Commander Aldric. He's... he's not himself anymore. They call him the __Ashen Reaver__ now. He guards the cathedral plaza.\"",
+        responses: [
+          { text: "Tell me about the city.", nextId: 'about_gilrhym' },
+          { text: "Any advice for getting through?", nextId: 'warning' },
+        ],
+      },
+      {
+        id: 'about_gilrhym',
+        text: "\"Gilrhym was the largest trade city in the region. Cobblestone streets, a thriving **market district**, manors lining every boulevard. Now it's... rubble and bones. The outer districts aren't so bad — you can still navigate the streets. But deeper in, near the **upper city**, the buildings collapse into each other. Alleyways become mazes. Some folk escaped across the __rooftops__ before the streets filled with the dead.\"",
+        responses: [
+          { text: "Have you seen a hunter come through?", nextId: 'hunter' },
+          { text: "I'll head in. Any warnings?", nextId: 'warning' },
+        ],
+      },
+      {
+        id: 'hunter',
+        text: "\"A hunter? ...Aye, actually. Saw a man in leather and furs heading toward the **inner city** days ago. Stubborn sort. I called out to warn him but he pressed on without a word. Haven't seen him since. If he went past the market district... I wouldn't hold out hope. But if anyone could survive, a woodsman might.\"",
+        responses: [
+          { text: "I'll look for him.", nextId: 'warning' },
+          { text: "Tell me about the Ashen Court.", nextId: 'faction' },
+        ],
+      },
+      {
+        id: 'warning',
+        text: "\"The outskirts are manageable — slimes and a few skeletons. Past the **cemetery** things get worse. The **market district** is crawling with shadows and skeletal captains. And the upper city...\" He winces. \"The **rooftops** can be safer than the streets up there. Stone sentinels patrol below. If you make it to the cathedral plaza... that's where __the Reaver__ waits. Be ready for a fight you won't forget.\"",
+        responses: [
+          { text: "[Continue]", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
   },
-  ancient_tablet_2: {
-    id: 'ancient_tablet_2',
-    nodes: [{ id: 'start', text: "Another tablet, cracked with age: '__...three trials await those who seek the vault. **Strength**. **Wisdom**. **Courage**.__'", responses: [{ text: "[Remember this]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  gilrhym_gate_sign: {
+    id: 'gilrhym_gate_sign',
+    nodes: [{ id: 'start', text: "A cracked stone plaque beside the broken gate reads: '**Welcome to Gilrhym** — __Jewel of the Eastern Trade Routes__.' Below, someone has scratched in desperate letters: 'TURN BACK.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
-  vault_inscription: {
-    id: 'vault_inscription',
-    nodes: [{ id: 'start', text: "Golden letters shimmer on the wall: '**The Vault of Ancients**. Here rest __treasures of a civilization long forgotten__.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  gilrhym_notice_board: {
+    id: 'gilrhym_notice_board',
+    nodes: [{ id: 'start', text: "A notice board covered in torn papers. One intact posting reads: '__BY ORDER OF THE ASHEN COURT__ — All citizens are to surrender themselves to the cathedral for **purification**. Resistance will be met with absolute force. The age of the living is over. The age of the __eternal__ begins.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  gilrhym_hunter_trace: {
+    id: 'gilrhym_hunter_trace',
+    nodes: [{ id: 'start', text: "A torn strip of leather is caught on a broken iron railing, along with a few scattered supplies — dried meat, a flint striker, and an empty quiver. Someone passed through here recently, heading **north** into the city.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  gilrhym_cemetery_marker: {
+    id: 'gilrhym_cemetery_marker',
+    nodes: [{ id: 'start', text: "The cemetery gates hang open. An inscription on the archway reads: '__Here rest the honored dead of Gilrhym.__' The ground is torn up from the inside. Coffins lie splintered and empty. Whatever was buried here is no longer at rest.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  gilrhym_residential_notice: {
+    id: 'gilrhym_residential_notice',
+    nodes: [{ id: 'start', text: "A faded residential bulletin: '__DISTRICT LOCKDOWN IN EFFECT.__ All outer district residents must barricade doors at sundown. The city guard is... __no longer operational__.' The rest is stained with something dark.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  gilrhym_fallen_guard: {
+    id: 'gilrhym_fallen_guard',
+    nodes: [{ id: 'start', text: "A memorial plaque on a broken wall: '**Commander Aldric** — Faithful servant of Gilrhym, Captain of the City Guard, Shield of the People.' Below, someone has carved: '__He did not fall. He was taken.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  gilrhym_church_altar: {
+    id: 'gilrhym_church_altar',
+    nodes: [{ id: 'start', text: "The church altar is cracked down the middle. A faded text reads: '__Saint Velmara, patron of Gilrhym, guide us through the dark.__ The cathedral was built above her final resting place — where she sealed the **Wellspring of Souls** a thousand years ago.' The seal, it seems, did not hold.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  gilrhym_market_ledger: {
+    id: 'gilrhym_market_ledger',
+    nodes: [{ id: 'start', text: "A merchant's ledger, still open: '__Day 47 since the rising. No caravans. No customers. Strange men in dark robes came through the market yesterday demanding tribute for the Ashen Court.__ I hid in the cellar. The screaming from the cathedral went on all night.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  gilrhym_inn_notice: {
+    id: 'gilrhym_inn_notice',
+    nodes: [{ id: 'start', text: "A notice pinned to the inn door: '**CLOSED INDEFINITELY.** If you're reading this, the city has already fallen. Take what supplies you can carry and head for the __southern gate__. Do not go toward the cathedral. Do not go at night.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  gilrhym_scythe_inscription: {
+    id: 'gilrhym_scythe_inscription',
+    nodes: [{ id: 'start', text: "An inscription on a cracked pedestal: '**The Terminus Scythe** — forged in the age before Gilrhym, when the __boundary between death and life__ was a door that swung both ways. Its blade cuts not flesh, but the threads that bind a soul to this world.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  gilrhym_rooftop_journal: {
+    id: 'gilrhym_rooftop_journal',
+    nodes: [{ id: 'start', text: "A rain-damaged journal wedged under a roof tile: '__Day 12. The streets below are impossible now. Sentinels patrol in pairs. We've been moving across the rooftops — jumping between buildings, using old wooden walkways the builders left. It's the only way through the upper city.__ Day 15. Maren didn't make the last jump. I'm alone now.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  gilrhym_guard_orders: {
+    id: 'gilrhym_guard_orders',
+    nodes: [{ id: 'start', text: "Guard orders nailed to a post: '__ALL UNITS — Fall back to the cathedral perimeter. Commander Aldric has been... compromised. Do NOT engage the entity in the plaza.__ Repeat: the creature wearing the Commander's armor is NOT Commander Aldric. Retreat south. This is our last transmission.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  gilrhym_cathedral_inscription: {
+    id: 'gilrhym_cathedral_inscription',
+    nodes: [{ id: 'start', text: "Ancient stonework frames the cathedral entrance. The inscription reads: '__Beneath this stone lies the Wellspring of Souls, sealed by Saint Velmara's sacrifice. Let none break this covenant, lest the boundary between worlds shatter and the dead walk among the living.__' The seal below the text is cracked wide open.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  gilrhym_reaver_plaque: {
+    id: 'gilrhym_reaver_plaque',
+    nodes: [{ id: 'start', text: "A guard's memorial, defaced with dark symbols: '**In honor of the Gilrhym Guard, who stood against the dark.** Only one remains — bound in servitude to those he swore to destroy.' Below, in a different hand: '__The Reaver serves. The Reaver endures. The Reaver will not fall.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   campfire: {
     id: 'campfire',

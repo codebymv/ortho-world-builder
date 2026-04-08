@@ -206,6 +206,22 @@ export function createRuntimeCombatActions({
           }
         }
       }
+      if (enemy.type === 'ashen_reaver') {
+        state.setFlag('ashen_reaver_defeated', true);
+        screenShake.shake(0.7, 0.6);
+        screenShake.hitStop(0.35);
+        particleSystem.emit(
+          new THREE.Vector3(enemy.position.x, enemy.position.y, 0.5),
+          50, 0xFF4400, 0.14, 2.5, 1.8,
+        );
+        if (onBossDefeated) onBossDefeated();
+        for (const e of combatSystem.getAllEnemies()) {
+          if (e.id !== enemy.id && e.state !== 'dead') {
+            e.health = 0;
+            e.state = 'dead';
+          }
+        }
+      }
     }
 
     const guardQuest = state.quests.find(q => q.id === 'guard_duty' && q.active && !q.completed);
@@ -426,9 +442,83 @@ export function createRuntimeCombatActions({
     startLunge(dir.x, dir.y, speed, distance, recovery, damage);
   };
 
+  const performArcSlash = (level: number) => {
+    const currentTime = Date.now();
+    if (state.player.isDodging || state.player.stamina < chargeAttackStaminaCost) {
+      clearChargeState();
+      setPlayerAnimState('idle');
+      return;
+    }
+
+    playSwordSwing();
+    playBladeSheath();
+
+    state.player.lastAttackTime = currentTime;
+    state.player.stamina = Math.max(0, state.player.stamina - chargeAttackStaminaCost);
+    state.player.lastStaminaUseTime = performance.now() / 1000 + 0.6;
+    setPlayerAnimState('spin_attack');
+    setSpinDirIndex(0);
+    setSpinFrameTimer(spinFrameDuration);
+    setAttackFrame(1);
+    state.player.attackAnimationTimer = 0.6;
+    clearChargeState();
+
+    const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
+    const arcDamage = Math.floor(state.player.attackDamage * damageMultiplier);
+    const arcRange = 5 + level * 3;
+    const arcWidth = 2.0;
+
+    const direction = dir8to4(getCurrentDir8());
+    const dx = direction === 'right' ? 1 : direction === 'left' ? -1 : 0;
+    const dy = direction === 'up' ? 1 : direction === 'down' ? -1 : 0;
+
+    const hitEnemyIds = new Set<string>();
+    const steps = 6;
+    for (let i = 1; i <= steps; i++) {
+      const t = (i / steps) * arcRange;
+      const checkPos = {
+        x: state.player.position.x + dx * t,
+        y: state.player.position.y + dy * t,
+      };
+      const enemiesAtStep = combatSystem.getEnemiesInRange(checkPos, arcWidth);
+      for (const target of enemiesAtStep) {
+        if (hitEnemyIds.has(target.id)) continue;
+        hitEnemyIds.add(target.id);
+
+        const result = combatSystem.playerAttack(target, arcDamage, state.player.position, state.player.direction);
+        floatingText.spawnDamage(target.position.x, target.position.y, arcDamage, true);
+        screenShake.shake(0.15, 0.15);
+
+        if (result.staggered) {
+          floatingText.spawn(target.position.x, target.position.y + 0.4, 'STAGGER!', '#88AAFF', 20);
+        }
+        particleSystem.emitDamage(new THREE.Vector3(target.position.x, target.position.y, 0.3));
+      }
+
+      particleSystem.emit(
+        new THREE.Vector3(checkPos.x, checkPos.y, 0.3),
+        3, 0x6A0DAD, 0.2, 0.8, 0.6,
+      );
+    }
+
+    if (hitEnemyIds.size === 0) {
+      const endPos = {
+        x: state.player.position.x + dx * arcRange,
+        y: state.player.position.y + dy * arcRange,
+      };
+      particleSystem.emit(new THREE.Vector3(endPos.x, endPos.y, 0.3), 6, 0x6A0DAD, 0.3, 1, 0.8);
+    }
+
+    setSpinSwooshTimer(spinSwooshDuration);
+  };
+
   const performChargeAttack = (level: number) => {
     if (state.equippedWeaponId === 'ornamental_broadsword') {
       performLungeAttack(level);
+      return;
+    }
+    if (state.equippedWeaponId === 'terminus_scythe') {
+      performArcSlash(level);
       return;
     }
 

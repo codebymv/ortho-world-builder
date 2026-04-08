@@ -13,6 +13,8 @@ export const quests: Record<string, Quest> = {
       'Cross the river into the Hollow',
       'Defeat the Hollow Apparition',
       'Recover the complete manuscript',
+      "Follow the hunter's trail to Gilrhym",
+      'Investigate the inner city',
       'Return to the elder with your findings',
     ],
     completed: false,

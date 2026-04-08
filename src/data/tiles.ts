@@ -86,6 +86,19 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   door_iron: { isOverlay: true, baseTile: 'stone', scale: 1.2, sortTrim: 1.45 },
   boat_wreck: { isOverlay: true, baseTile: 'water', scale: 2.4, sortTrim: 0.1 },
   dock: { isOverlay: true, baseTile: 'water', scale: 1.8, sortTrim: 0.12 },
+  street_lamp: { isOverlay: true, baseTile: 'cobblestone', scale: 1.6, sortTrim: 0.08, yOffset: -0.1 },
+  iron_railing: { isOverlay: true, baseTile: 'cobblestone', scale: 1.0, sortTrim: 0.22 },
+  fountain: { isOverlay: true, baseTile: 'cobblestone', scale: 1.8, sortTrim: 0.1 },
+  pillar: { isOverlay: true, baseTile: 'cobblestone', scale: 1.6, sortTrim: 0.06 },
+  sewer_grate: { isOverlay: true, baseTile: 'cobblestone_dark', scale: 0.8, sortTrim: 0.28 },
+  hanging_sign: { isOverlay: true, baseTile: 'cobblestone', scale: 1.2, sortTrim: 0.1, yOffset: -0.15 },
+  wall_torch: { isOverlay: true, baseTile: 'brick', scale: 0.9, sortTrim: 0.14 },
+  awning: { isOverlay: true, baseTile: 'cobblestone', scale: 1.8, sortTrim: 0.08, yOffset: -0.12 },
+  rubble: { isOverlay: true, baseTile: 'cobblestone', scale: 1.2, sortTrim: 0.18 },
+  broken_stall: { isOverlay: true, baseTile: 'cobblestone', scale: 1.8, sortTrim: 0.12 },
+  crate_stack: { isOverlay: true, baseTile: 'cobblestone', scale: 1.2, sortTrim: 0.1 },
+  barrel_stack: { isOverlay: true, baseTile: 'cobblestone', scale: 1.2, sortTrim: 0.1 },
+  chimney: { isOverlay: true, baseTile: 'roof_tile', scale: 1.0, sortTrim: 0.14 },
 };
 
 export const DETAIL_CONFIG: Partial<Record<TileType, { chance: number; types: string[]; scale: number; opacity: number }>> = {
@@ -99,4 +112,6 @@ export const DETAIL_CONFIG: Partial<Record<TileType, { chance: number; types: st
   wooden_path: { chance: 0.08, types: ['detail_crack', 'detail_leaf'], scale: 0.2, opacity: 0.35 },
   mossy_stone: { chance: 0.15, types: ['detail_leaf', 'detail_mushroom_small'], scale: 0.25, opacity: 0.5 },
   ruins_floor: { chance: 0.18, types: ['detail_crack', 'detail_pebble', 'detail_bone_fragment'], scale: 0.22, opacity: 0.45 },
+  cobblestone_dark: { chance: 0.12, types: ['detail_crack', 'detail_pebble', 'detail_bone_fragment'], scale: 0.22, opacity: 0.4 },
+  brick: { chance: 0.10, types: ['detail_crack', 'detail_pebble'], scale: 0.2, opacity: 0.38 },
 };

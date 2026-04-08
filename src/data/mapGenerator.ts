@@ -90,7 +90,7 @@ export interface MapDefinition {
   height: number;
   spawnPoint: { x: number; y: number };
   seed: number;
-  baseTerrain: 'grassland' | 'forest' | 'swamp' | 'ruins' | 'dungeon';
+  baseTerrain: 'grassland' | 'forest' | 'swamp' | 'ruins' | 'dungeon' | 'city';
   borderTile: TileType;
   autoRoads?: boolean;
   /** When false, south map edge uses normal borderTile (e.g. inn rooms). Default: large overworld maps use sea cliff + ocean on the south edge. */
@@ -297,6 +297,26 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
           }
           break;
 
+        case 'city':
+          if (n1 > 0.75 && n2 > 0.5) {
+            tile = createTile('cobblestone_dark', true);
+          } else if (n1 > 0.6 && n2 < 0.2) {
+            tile = createTile('stone', true);
+          } else if (n2 < 0.06) {
+            tile = createTile('bones', true);
+          } else if (n1 < 0.3 && n2 > 0.6) {
+            tile = createTile('cobblestone_dark', true);
+          } else if (n1 > 0.5 && n3 > 0.7) {
+            tile = createTile('brick', true);
+          } else if (n3 > 0.92 && n1 < 0.25) {
+            tile = createTile('sewer_grate', true);
+          } else if (n3 > 0.85 && n1 < 0.3) {
+            tile = createTile('tall_grass', true);
+          } else {
+            tile = createTile('cobblestone', true);
+          }
+          break;
+
         case 'dungeon':
           if (n1 > 0.6) {
             tile = createTile('stone', false);
@@ -399,13 +419,13 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 
     switch (feature.type) {
       case 'building':
-        placeBuilding(tiles, feature, false);
+        placeBuilding(tiles, feature, false, def.baseTerrain);
         break;
       case 'inn_building':
         if (feature.interactionId === 'ranger_cabin') {
           placeCottage(tiles, feature);
         } else {
-          placeBuilding(tiles, feature, true);
+          placeBuilding(tiles, feature, true, def.baseTerrain);
         }
         break;
       case 'broken_wagon':
@@ -421,7 +441,7 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
         placeClearing(tiles, feature);
         break;
       case 'wall':
-        placeWall(tiles, feature);
+        placeWall(tiles, feature, def.baseTerrain);
         break;
       case 'ruins':
         placeRuinsFeature(tiles, feature);
@@ -481,7 +501,7 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
         placeHedgeMaze(tiles, feature);
         break;
       case 'cobble_plaza':
-        placeCobblePlaza(tiles, feature);
+        placeCobblePlaza(tiles, feature, def.baseTerrain);
         break;
       case 'forest_grove':
         placeForestGrove(tiles, feature);
@@ -569,7 +589,8 @@ function isOnInvalidTerrain(tiles: Tile[][], fx: number, fy: number, fw: number,
   return badCount / total > 0.2;
 }
 
-function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean) {
+function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean, baseTerrain?: string) {
+  const isCity = baseTerrain === 'city';
   // Skip if this building would be on water/lava or too close to another building.
   // Market / inn cluster buildings are intentionally adjacent so skip the spacing guard for them.
   const allowNearbyCluster = /shop_|^inn$|witch_hut/.test(f.interactionId ?? '');
@@ -594,7 +615,8 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean) 
       )
     : baseVariant;
   
-  // First, clear a yard around the building (3-tile border of grass)
+  const yardFill: TileType = isCity ? 'brick' : 'grass';
+  // First, clear a yard around the building (3-tile border)
   const yardPad = 4;
   for (let dy = -yardPad; dy < f.height + yardPad; dy++) {
     for (let dx = -yardPad; dx < f.width + yardPad; dx++) {
@@ -606,7 +628,7 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean) 
             existing.type === 'chest' || existing.interactable) continue;
         if (!existing.walkable || existing.type === 'water' || existing.type === 'tree' || 
             existing.type === 'rock' || existing.type === 'swamp') {
-          tiles[ty][tx] = createTile('grass', true);
+          tiles[ty][tx] = createTile(yardFill, true);
         }
       }
     }
@@ -642,7 +664,7 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean) 
           // Match placeCottage: block the whole depth band so wide facade sprites align with collision.
           tiles[ty][tx] = createTile('dirt', false);
         } else if (dy === f.height - 1 && (dx === centerX - 1 || dx === centerX + 1) && f.width >= 4) {
-          tiles[ty][tx] = createTile('lantern', false);
+          tiles[ty][tx] = createTile(isCity ? 'street_lamp' : 'lantern', false);
         } else {
           // Block all remaining interior tiles. Only the building_entrance stamps (entryY / frontY)
           // selectively restore walkability so players cannot side-enter through upper body rows.
@@ -717,8 +739,7 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean) 
           // Solid wooden wall — warm brown rather than cold grey stone
           tiles[ty][tx] = createTile('wood', false);
         } else if (dy === f.height - 1 && (dx === Math.floor(f.width / 2) - 1 || dx === Math.floor(f.width / 2) + 1) && f.width >= 4) {
-          // Lantern gate posts flanking the door — visually mark the entrance
-          tiles[ty][tx] = createTile('lantern', false);
+          tiles[ty][tx] = createTile(isCity ? 'street_lamp' : 'lantern', false);
         } else {
           // Dirt path apron — earthy and walkable so players can approach freely
           tiles[ty][tx] = createTile('dirt', true);
@@ -825,13 +846,65 @@ function placeClearing(tiles: Tile[][], f: MapFeature) {
   }
 }
 
-function placeWall(tiles: Tile[][], f: MapFeature) {
+function placeWall(tiles: Tile[][], f: MapFeature, baseTerrain?: string) {
+  const isCity = baseTerrain === 'city';
+
+  if (!isCity) {
+    for (let dy = 0; dy < f.height; dy++) {
+      for (let dx = 0; dx < f.width; dx++) {
+        const tx = f.x + dx;
+        const ty = f.y + dy;
+        if (ty < tiles.length && tx < tiles[0].length && ty >= 0 && tx >= 0) {
+          tiles[ty][tx] = createTile(f.fill || 'stone', false);
+        }
+      }
+    }
+    return;
+  }
+
+  if (f.fill && f.fill !== 'stone') {
+    for (let dy = 0; dy < f.height; dy++) {
+      for (let dx = 0; dx < f.width; dx++) {
+        const tx = f.x + dx;
+        const ty = f.y + dy;
+        if (ty < tiles.length && tx < tiles[0].length && ty >= 0 && tx >= 0) {
+          tiles[ty][tx] = createTile(f.fill as TileType, false);
+        }
+      }
+    }
+    return;
+  }
+
+  const blockW = 8;
+  const blockH = 6;
+  const fills: TileType[] = ['roof_tile', 'brick', 'timber_wall', 'stone', 'cobblestone_dark'];
+
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
-      if (ty < tiles.length && tx < tiles[0].length && ty >= 0 && tx >= 0) {
-        tiles[ty][tx] = createTile(f.fill || 'stone', false);
+      if (ty >= tiles.length || tx >= tiles[0].length || ty < 0 || tx < 0) continue;
+
+      const bx = Math.floor(dx / blockW);
+      const by = Math.floor(dy / blockH);
+      const seed = ((bx * 31 + by * 17 + f.x * 7 + f.y * 13) >>> 0) % 127;
+      const blockFill = fills[seed % fills.length];
+
+      const isHBorder = dx % blockW === 0 && dx > 0;
+      const isVBorder = dy % blockH === 0 && dy > 0;
+
+      if (isHBorder || isVBorder) {
+        tiles[ty][tx] = createTile('timber_wall', false);
+      } else {
+        const innerDx = dx % blockW;
+        const innerDy = dy % blockH;
+        if (blockFill === 'roof_tile' && innerDx === 4 && innerDy === 3 && seed % 3 !== 0) {
+          tiles[ty][tx] = createTile('chimney', false);
+        } else if (innerDx === 1 && innerDy === 1 && seed % 5 === 0) {
+          tiles[ty][tx] = createTile('wall_torch', false);
+        } else {
+          tiles[ty][tx] = createTile(blockFill, false);
+        }
       }
     }
   }
@@ -1478,14 +1551,41 @@ function placeHedgeMaze(tiles: Tile[][], f: MapFeature) {
   }
 }
 
-function placeCobblePlaza(tiles: Tile[][], f: MapFeature) {
+function placeCobblePlaza(tiles: Tile[][], f: MapFeature, baseTerrain?: string) {
+  const isCity = baseTerrain === 'city';
+  const lampType: TileType = isCity ? 'street_lamp' : 'lantern';
+  const cx = Math.floor(f.width / 2);
+  const cy = Math.floor(f.height / 2);
+  const hasFountain = isCity && f.width >= 8 && f.height >= 8;
+  const seed = ((f.x * 31 + f.y * 17) >>> 0) % 127;
+
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-        if ((dx + dy) % 12 === 0) {
-          tiles[ty][tx] = createTile('lantern', false);
+        if (hasFountain && dx === cx && dy === cy) {
+          tiles[ty][tx] = createTile('fountain', false);
+        } else if ((dx + dy) % 12 === 0) {
+          tiles[ty][tx] = createTile(lampType, false);
+        } else if (isCity) {
+          const tileHash = ((dx * 13 + dy * 7 + seed) >>> 0) % 100;
+          const onEdge = dx === 0 || dy === 0 || dx === f.width - 1 || dy === f.height - 1;
+          const nearEdge = dx <= 1 || dy <= 1 || dx >= f.width - 2 || dy >= f.height - 2;
+
+          if (onEdge && tileHash % 6 === 0) {
+            tiles[ty][tx] = createTile('iron_railing', false);
+          } else if (onEdge && tileHash % 8 === 0) {
+            tiles[ty][tx] = createTile('pillar', false);
+          } else if (nearEdge && tileHash % 14 === 0) {
+            tiles[ty][tx] = createTile('bench', false);
+          } else if (!nearEdge && tileHash % 18 === 0) {
+            tiles[ty][tx] = createTile('cobblestone_dark', true);
+          } else if (!onEdge && dx % 6 === 3 && dy % 6 === 3 && f.width >= 14 && f.height >= 14) {
+            tiles[ty][tx] = createTile('street_lamp', false);
+          } else {
+            tiles[ty][tx] = createTile('cobblestone', true);
+          }
         } else {
           tiles[ty][tx] = createTile('cobblestone', true);
         }
@@ -2194,6 +2294,8 @@ const SPACED_DECORATIONS: Set<TileType> = new Set([
   'tree', 'dead_tree', 'rock', 'stump', 'tombstone', 'statue',
   'scarecrow', 'hay_bale', 'well', 'campfire', 'bonfire', 'barrel', 'crate',
   'mushroom', 'bones', 'lantern',
+  'street_lamp', 'iron_railing', 'fountain', 'pillar', 'rubble',
+  'broken_stall', 'crate_stack', 'barrel_stack', 'chimney', 'wall_torch',
 ]);
 
 function cleanupIllogicalPlacements(tiles: Tile[][], def: MapDefinition) {
@@ -2288,7 +2390,8 @@ function cleanupIllogicalPlacements(tiles: Tile[][], def: MapDefinition) {
           if (SPACED_DECORATIONS.has(neighbor.type)) {
             // Remove the neighbor (keep the first one encountered)
             const baseTerrain = def.baseTerrain === 'forest' ? 'grass' : 
-                               def.baseTerrain === 'ruins' ? 'stone' : 'grass';
+                               def.baseTerrain === 'ruins' ? 'stone' :
+                               def.baseTerrain === 'city' ? 'cobblestone' : 'grass';
             tiles[ny][nx] = createTile(baseTerrain as TileType, true);
           }
         }

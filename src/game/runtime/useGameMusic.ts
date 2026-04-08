@@ -14,7 +14,7 @@ const MAP_MUSIC_MAP: Record<string, string> = {
   village: './audio/ortho_loop2.mp3',
   forest: './audio/wood_theme.mp3',
   deep_woods: './audio/wood_theme.mp3',
-  ruins: './audio/wood_theme.mp3',
+  gilrhym: './audio/gilrhym_theme.mp3',
 };
 
 const DEFAULT_MUSIC_TRACK = './audio/ortho_loop2.mp3';

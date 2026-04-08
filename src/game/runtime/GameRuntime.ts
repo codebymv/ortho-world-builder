@@ -102,7 +102,8 @@ export function createGameRuntime({
   const screenShake = new ScreenShake(camera);
 
   const savedData = SaveManager.load();
-  const startMap = savedData?.currentMap || 'village';
+  const rawStartMap = savedData?.currentMap || 'village';
+  const startMap = (rawStartMap in mapDefinitions) ? rawStartMap : 'village';
   assetManager.warmupEnemyTexturesForZones(mapDefinitions[startMap]?.enemyZones);
   const world = new World(scene, assetManager, allMaps[startMap] || allMaps.village);
   setWorldRef(world);

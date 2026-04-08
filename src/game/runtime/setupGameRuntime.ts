@@ -441,7 +441,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     let killCount = killCountRef.current;
 
     const getPlayerTextureName = (dir: Direction8, animState: string, frame: number): string => {
-      const weaponPrefix = state.equippedWeaponId === 'ornamental_broadsword' ? 'broadsword_' : '';
+      const weaponPrefix = state.equippedWeaponId === 'ornamental_broadsword' ? 'broadsword_'
+        : state.equippedWeaponId === 'terminus_scythe' ? 'scythe_'
+        : '';
       return `player_${weaponPrefix}${dir}_${animState}_${frame}`;
     };
 
@@ -571,6 +573,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       syncForestFortGateState,
       syncHollowFogGateState,
       syncHollowArenaVictoryPortalState,
+      syncGilrhymBossState,
       syncVillageReactivityState,
       syncOpenedChestState,
       syncHarvestedTempestGrassState,
@@ -703,6 +706,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncForestFortGateState,
           syncHollowFogGateState,
           syncHollowArenaVictoryPortalState,
+          syncGilrhymBossState,
           handleMapTransition,
           healCooldowns,
           hasDialogue: interactionId => Boolean(dialogues[interactionId]),

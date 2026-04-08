@@ -45,16 +45,15 @@ export const PORTAL_LINKS: PortalLink[] = [
   { fromMap: 'forest', toMap: 'village', portalTileX: 150, portalTileY: 294 },
   { fromMap: 'forest', toMap: 'village', portalTileX: 4, portalTileY: 150 },
   { fromMap: 'forest', toMap: 'deep_woods', portalTileX: 150, portalTileY: 4 },
-  { fromMap: 'forest', toMap: 'ruins', portalTileX: 296, portalTileY: 150 },
+  { fromMap: 'forest', toMap: 'gilrhym', portalTileX: 296, portalTileY: 150 },
   // Deep woods portals
   { fromMap: 'deep_woods', toMap: 'village', portalTileX: 120, portalTileY: 4 },
-  { fromMap: 'deep_woods', toMap: 'ruins', portalTileX: 236, portalTileY: 120 },
+  { fromMap: 'deep_woods', toMap: 'gilrhym', portalTileX: 236, portalTileY: 120 },
   { fromMap: 'deep_woods', toMap: 'shadow_castle', portalTileX: 100, portalTileY: 44 },
   // Shadow castle portals
   { fromMap: 'shadow_castle', toMap: 'deep_woods', portalTileX: 100, portalTileY: 117 },
-  // Ruins portals
-  { fromMap: 'ruins', toMap: 'forest', portalTileX: 4, portalTileY: 100 },
-  { fromMap: 'ruins', toMap: 'deep_woods', portalTileX: 4, portalTileY: 50 },
+  // Gilrhym portals
+  { fromMap: 'gilrhym', toMap: 'forest', portalTileX: 150, portalTileY: 298 },
 ];
 
 export const KNOWN_LOCATIONS: KnownLocation[] = [
@@ -85,9 +84,11 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   { keywords: ['mysterious lights', 'investigate the mysterious', 'strange lights'], tileX: 80, tileY: 90, map: 'deep_woods', label: 'Mysterious Lights', type: 'quest', color: '#00BFFF' },
   { keywords: ['return to the elder', 'findings'], tileX: 102, tileY: 70, map: 'village', label: 'Report to Elder', type: 'quest', color: '#FFD700' },
 
-  // Ruins  
-  { keywords: ['ancient ruins', 'ruins', 'ancient ruin', 'temple', 'vault'], tileX: 100, tileY: 100, map: 'ruins', label: 'Ancient Ruins', type: 'danger', color: '#B8860B' },
-  { keywords: ['rare ore', 'ore'], tileX: 100, tileY: 100, map: 'ruins', label: 'Rare Ore', type: 'quest', color: '#C0C0C0' },
+  // Gilrhym
+  { keywords: ['gilrhym', 'city', 'victorian', 'urban'], tileX: 150, tileY: 150, map: 'gilrhym', label: 'Gilrhym', type: 'danger', color: '#696969' },
+  { keywords: ['oliver', 'injured warrior'], tileX: 148, tileY: 273, map: 'gilrhym', label: 'Oliver', type: 'npc', color: '#CD853F' },
+  { keywords: ['cathedral', 'reaver', 'ashen reaver'], tileX: 150, tileY: 30, map: 'gilrhym', label: 'Cathedral Plaza', type: 'danger', color: '#8B0000' },
+  { keywords: ['terminus scythe', 'scythe'], tileX: 150, tileY: 90, map: 'gilrhym', label: 'Terminus Scythe', type: 'quest', color: '#4B0082' },
 
   // Enemies
   { keywords: ['wolf', 'wolves'], tileX: 85, tileY: 15, map: 'village', label: 'Wolf Territory', type: 'danger', color: '#808080' },

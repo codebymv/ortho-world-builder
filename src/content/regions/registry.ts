@@ -29,10 +29,10 @@ export const regionContentRegistry: RegionContentEntry[] = [
     interiorIds: ['interior_witch_hut', 'interior_witch_cottage'],
   },
   {
-    id: 'ruins',
-    label: 'Ancient Ruins',
-    summary: 'Optional history-heavy branch reinforcing the buried civilization beneath the campaign.',
-    mapIds: ['ruins'],
+    id: 'gilrhym',
+    label: 'Gilrhym',
+    summary: 'A sprawling Victorian city overrun by reanimated dead and corruption, reached after the Hollow boss.',
+    mapIds: ['gilrhym'],
   },
   {
     id: 'shadow_castle',

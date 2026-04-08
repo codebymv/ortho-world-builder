@@ -116,6 +116,30 @@ export class BiomeAmbience {
         type = 'dust';
         vy = 0.1 + Math.random() * 0.2;
         break;
+      case 'city':
+        if (Math.random() < 0.4) {
+          color = 0x78909C;
+          size = 0.2 + Math.random() * 0.3;
+          lifetime = 3 + Math.random() * 3;
+          type = 'fog';
+          vx = (Math.random() - 0.5) * 0.25;
+          baseOpacity = 0.1;
+        } else if (Math.random() < 0.3) {
+          color = Math.random() > 0.5 ? 0xFF6F00 : 0xE65100;
+          size = 0.03 + Math.random() * 0.02;
+          lifetime = 1.5 + Math.random() * 2;
+          type = 'ember';
+          vy = 0.2 + Math.random() * 0.3;
+          baseOpacity = 0.5;
+        } else {
+          color = 0x9E9E9E;
+          size = 0.03 + Math.random() * 0.03;
+          lifetime = 3 + Math.random() * 3;
+          type = 'dust';
+          vx = 0.08 + Math.random() * 0.12;
+          vy = 0.04;
+        }
+        break;
       case 'forest_hollow':
         if (Math.random() > 0.6) {
           color = 0x7E57C2;

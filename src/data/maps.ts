@@ -1,7 +1,7 @@
 import { WorldMap } from '@/lib/game/World';
 import { deepWoodsDef } from '@/content/regions/deepWoods/map';
 import { interiorBlacksmithDef, interiorCottageADef, interiorCottageForestDef, interiorHollowArenaDef, interiorHunterCottageDef, interiorInnDef, interiorMerchantDef, interiorRangerCabinDef, interiorWitchCottageDef, interiorWitchHutDef, interiorWoodcutterCottageDef } from '@/content/regions/interiors';
-import { ruinsDef } from '@/content/regions/ruins/map';
+import { gilrhymDef } from '@/content/regions/ruins/map';
 import { shadowCastleDef } from '@/content/regions/shadowCastle/map';
 import { generateMap, MapDefinition } from './mapGenerator';
 
@@ -873,7 +873,7 @@ const forestDef: MapDefinition = {
     { x: 150, y: 291, targetMap: 'village', targetX: 120, targetY: 8 },
     { x: 3, y: 150, targetMap: 'village', targetX: 235, targetY: 80 },
     { x: 150, y: 8, targetMap: 'deep_woods', targetX: 120, targetY: 190 },
-    { x: 280, y: 20, targetMap: 'ruins', targetX: 100, targetY: 115 },
+    { x: 280, y: 20, targetMap: 'gilrhym', targetX: 150, targetY: 296 },
   ],
   chests: [
     // Shifted east: Hollow river west seal (x≈28–91, y≈64–79) covers old spot.
@@ -1675,8 +1675,13 @@ const forestDef: MapDefinition = {
     { x: 140, y: 88, width: 8, height: 6, enemyType: 'wolf', count: 2 },
     { x: 148, y: 88, width: 8, height: 6, enemyType: 'skeleton', count: 1 },
     { x: 148, y: 88, width: 8, height: 6, enemyType: 'slime', count: 1 },
-    // AUTHORED ENCOUNTER POD 3 — hollow approach support remains, but no shade pack behind the fog gate
+    // AUTHORED ENCOUNTER POD 3 — hollow approach: shades stalk the corridor to the fog gate
     { x: 116, y: 33, width: 10, height: 8, enemyType: 'plant', count: 1 },
+    // Hollow Shades — staged along the bonfire-to-gate corridor (y:72 → y:18)
+    { x: 118, y: 62, width: 10, height: 8, enemyType: 'shadow_lurker', count: 2 },
+    { x: 116, y: 50, width: 12, height: 8, enemyType: 'shadow_lurker', count: 2 },
+    { x: 118, y: 40, width: 10, height: 8, enemyType: 'shadow_lurker', count: 3 },
+    { x: 116, y: 25, width: 12, height: 8, enemyType: 'shadow_lurker', count: 3 },
 
     // East ridge — wolves patrol the rocky shelf
     { x: 274, y: 110, width: 16, height: 30, enemyType: 'wolf', count: 4 },
@@ -1719,7 +1724,7 @@ export const mapDefinitions: Record<string, MapDefinition> = {
   forest: forestDef,
   deep_woods: deepWoodsDef,
   shadow_castle: shadowCastleDef,
-  ruins: ruinsDef,
+  gilrhym: gilrhymDef,
   interior_inn: interiorInnDef,
   interior_blacksmith: interiorBlacksmithDef,
   interior_merchant: interiorMerchantDef,
@@ -1733,10 +1738,10 @@ export const mapDefinitions: Record<string, MapDefinition> = {
   interior_hollow_arena: interiorHollowArenaDef,
 };
 
-function getOrGenerateMap(key: string): WorldMap {
+function getOrGenerateMap(key: string): WorldMap | undefined {
   if (!mapCache[key]) {
     const def = mapDefinitions[key];
-    if (!def) throw new Error(`Unknown map: ${key}`);
+    if (!def) return undefined;
     mapCache[key] = generateMap(def);
   }
   return mapCache[key];

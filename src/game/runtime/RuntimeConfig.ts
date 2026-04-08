@@ -59,6 +59,7 @@ export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
   stone_sentinel: { baseScale: 1.68, footOffset: 0.24, strideAmp: 0.035, bobAmp: 0.02, squashAmp: 0.04, leanAmp: 0.035, hpBarOffset: 0.82 },
   slime: { baseScale: 1.18, footOffset: 0.12, strideAmp: 0.02, bobAmp: 0.035, squashAmp: 0.12, leanAmp: 0.02, hpBarOffset: 0.58 },
   hollow_guardian: { baseScale: 2.6, footOffset: 0.22, strideAmp: 0.012, bobAmp: 0.04, squashAmp: 0.03, leanAmp: 0.02, hpBarOffset: 1.35 },
+  ashen_reaver: { baseScale: 2.8, footOffset: 0.24, strideAmp: 0.015, bobAmp: 0.035, squashAmp: 0.025, leanAmp: 0.02, hpBarOffset: 1.45 },
 };
 
 export function createDefaultNpcData(): NPC[] {
@@ -77,6 +78,7 @@ export function createDefaultNpcData(): NPC[] {
     { id: 'fort_quartermaster', name: 'Listless Merchant', mapId: 'forest', position: { x: 80, y: 13 }, dialogueId: 'fort_quartermaster', sprite: 'npc_merchant' },
     { id: 'grove_warden', name: 'Warden Callum', mapId: 'forest', position: { x: 7, y: -1 }, dialogueId: 'grove_warden', sprite: 'npc_grove_warden', questGiver: true },
     { id: 'petra_ashveil', name: 'Petra the Researcher', mapId: 'forest', position: { x: 12, y: -37 }, dialogueId: 'petra_ashveil', sprite: 'npc_petra' },
+    { id: 'oliver', name: 'Oliver', mapId: 'gilrhym', position: { x: -2, y: 123 }, dialogueId: 'oliver', sprite: 'npc_oliver_injured' },
   ];
 }
 
@@ -105,6 +107,8 @@ export function createNpcWanderState(npcData: NPC[]): Record<string, NpcWanderSt
                   ? 0.6
                 : npc.id === 'petra_ashveil'
                   ? 0.4
+                : npc.id === 'oliver'
+                  ? 0
                 : 1.5,
       speed:
         npc.id === 'child'
@@ -125,6 +129,8 @@ export function createNpcWanderState(npcData: NPC[]): Record<string, NpcWanderSt
                   ? 0.16
                 : npc.id === 'petra_ashveil'
                   ? 0.12
+                : npc.id === 'oliver'
+                  ? 0
                 : 0.5,
       pauseTimer: Math.random() * 3,
       isPaused: true,

@@ -49,7 +49,7 @@ export const deepWoodsDef: MapDefinition = {
   portals: [
     { x: 120, y: 190, targetMap: 'forest', targetX: 150, targetY: 8 },
     { x: 120, y: 8, targetMap: 'village', targetX: 120, targetY: 150 },
-    { x: 120, y: 28, targetMap: 'ruins', targetX: 100, targetY: 115 },
+    { x: 120, y: 28, targetMap: 'gilrhym', targetX: 150, targetY: 296 },
     { x: 100, y: 44, targetMap: 'shadow_castle', targetX: 100, targetY: 108 },
   ],
   chests: [

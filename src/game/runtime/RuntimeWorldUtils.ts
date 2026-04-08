@@ -69,7 +69,7 @@ export function getInteractionPromptLabel(
   if (interactionId === 'tombstone') return 'Read Epitaph';
   if (interactionId === 'campfire') return 'Rest at Campfire';
   if (interactionId === 'ancient_well') return 'Drink from Well';
-  if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'ancient_well') return 'Drink from Fountain';
+  if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'ancient_well' || interactionId === 'gilrhym_fountain' || interactionId === 'gilrhym_market_well' || interactionId === 'gilrhym_cathedral_well') return 'Drink from Fountain';
   if (interactionId === 'healing_mushroom') return 'Gather Mushroom';
   if (interactionId === 'lantern') return 'Inspect Lantern';
   if (interactionId === 'hunter_clue') return "Read Hunter's Manuscript";
@@ -86,6 +86,9 @@ export function getInteractionPromptLabel(
   }
   if (interactionId === 'hollow_fog_gate') {
     return state.getFlag('hollow_guardian_defeated') ? 'The Fog Has Lifted' : 'Enter the Fog';
+  }
+  if (interactionId === 'gilrhym_fog_gate') {
+    return state.getFlag('ashen_reaver_defeated') ? 'The Fog Has Lifted' : 'Approach the Fog';
   }
   if (interactionId === 'old_chapel_altar') return 'Inspect Altar';
   if (interactionId === 'spider_cocoon') return 'Inspect Cocoon';

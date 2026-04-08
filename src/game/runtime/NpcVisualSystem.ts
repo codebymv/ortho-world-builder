@@ -35,8 +35,9 @@ export function applyNpcVisuals({
   meshes,
 }: ApplyNpcVisualsOptions) {
   const visualY = getVisualYAt(npc.position.x, npc.position.y);
-  const breathe = Math.sin(currentTime / 800 + index * 2.1) * 0.03;
-  const walkWave = !isTalking && !isPaused ? Math.sin(currentTime / 120 + index * 1.7) : 0;
+  const isInjured = npc.sprite.includes('injured');
+  const breathe = Math.sin(currentTime / 800 + index * 2.1) * (isInjured ? 0.015 : 0.03);
+  const walkWave = !isTalking && !isPaused && !isInjured ? Math.sin(currentTime / 120 + index * 1.7) : 0;
   const stride = Math.abs(walkWave);
   const bob = isTalking
     ? breathe

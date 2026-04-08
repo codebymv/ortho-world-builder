@@ -115,6 +115,18 @@ export const items: Record<string, Item> = {
     },
   },
 
+  terminus_scythe: {
+    id: 'terminus_scythe',
+    name: 'Terminus Scythe',
+    description: 'A two-handed scythe radiating dark matter energy. Its charge attack sends a devastating arc slash forward, cutting the threads that bind souls to this world.',
+    type: 'equipment',
+    sprite: 'scythe',
+    stats: {
+      damage: 40,
+      range: 2.6,
+    },
+  },
+
   crystal_greatsword: {
     id: 'crystal_greatsword',
     name: 'Crystal Greatsword',

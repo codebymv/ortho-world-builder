@@ -29,7 +29,7 @@ export class AssetManager {
     this.textureDataUrls = new Map();
   }
 
-  createColorTexture(color: number, width: number = 32, height: number = 32, pattern?: 'noise' | 'checker' | 'gradient'): THREE.Texture {
+  createColorTexture(color: number, width: number = 32, height: number = 32, pattern?: 'noise' | 'checker' | 'gradient' | 'cobblestone_grid'): THREE.Texture {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -59,6 +59,33 @@ export class AssetManager {
             ctx.fillStyle = `rgba(0,0,0,0.05)`;
             ctx.fillRect(x, y, 4, 4);
           }
+        }
+      }
+    } else if (pattern === 'cobblestone_grid') {
+      const stoneW = 7;
+      const stoneH = 5;
+      const gap = 1;
+      const mr = Math.min(255, r + 28);
+      const mg = Math.min(255, g + 25);
+      const mb = Math.min(255, b + 20);
+      ctx.fillStyle = `rgb(${mr}, ${mg}, ${mb})`;
+      ctx.fillRect(0, 0, width, height);
+
+      for (let row = 0; row < height + stoneH; row += stoneH + gap) {
+        const rowIdx = Math.floor(row / (stoneH + gap));
+        const offset = (rowIdx % 2 === 0) ? 0 : Math.floor(stoneW / 2);
+        for (let col = -stoneW; col < width + stoneW; col += stoneW + gap) {
+          const sx = col + offset;
+          const v = Math.floor(Math.random() * 20) - 10;
+          const sr = Math.max(0, Math.min(255, r + v));
+          const sg = Math.max(0, Math.min(255, g + v));
+          const sb = Math.max(0, Math.min(255, b + v));
+          ctx.fillStyle = `rgb(${sr}, ${sg}, ${sb})`;
+          ctx.fillRect(sx, row, stoneW, stoneH);
+          ctx.fillStyle = 'rgba(255,255,255,0.12)';
+          ctx.fillRect(sx, row, stoneW, 1);
+          ctx.fillStyle = 'rgba(0,0,0,0.12)';
+          ctx.fillRect(sx, row + stoneH - 1, stoneW, 1);
         }
       }
     } else if (pattern === 'gradient') {
@@ -865,6 +892,155 @@ export class AssetManager {
     return texture;
   }
 
+  createInjuredSittingChibi(
+    palette: {
+      hair: number; hairLight: number; hairDark: number;
+      skin: number; skinLight: number; skinShadow: number;
+      eyeIris: number; eyeIrisDark: number;
+      tunicMain: number; tunicLight: number; tunicDark: number;
+      trimColor: number; trimLight: number;
+      capeMain: number; capeDark: number;
+      pantColor: number; pantDark: number;
+      bootColor: number; bootDark: number;
+    },
+    spriteId?: string,
+  ): THREE.Texture {
+    const G = 4;
+    const W = 16 * G, H = 20 * G;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+    const p = palette;
+
+    const cell = (gx: number, gy: number, color: number) => {
+      ctx.fillStyle = this.hex(color);
+      ctx.fillRect(gx * G, gy * G, G, G);
+    };
+
+    const WOOD = 0x8B6914;
+    const WOOD_D = 0x6B4E10;
+    const WOOD_L = 0xA07828;
+    const BAND = 0x555555;
+    const BLOOD = 0x8B2020;
+    const BLADE = 0xC0D0E0;
+    const GUARD_M = 0xE8C030;
+    const GRIP = 0x5D4037;
+
+    // --- Crate on right side (character leans against it) ---
+    cell(12, 5, WOOD_L); cell(13, 5, WOOD_L); cell(14, 5, WOOD_L);
+    for (let dy = 6; dy <= 13; dy++) {
+      const isBand = dy === 8 || dy === 11;
+      cell(12, dy, isBand ? BAND : WOOD);
+      cell(13, dy, isBand ? BAND : WOOD_D);
+      cell(14, dy, isBand ? BAND : WOOD);
+    }
+    cell(12, 7, WOOD_L); cell(14, 10, WOOD_D);
+
+    // --- Cape pooling on ground (left side) ---
+    cell(2, 13, p.capeDark); cell(1, 14, p.capeDark);
+    cell(2, 14, p.capeMain); cell(1, 15, p.capeDark);
+
+    // --- Dropped sword on the ground (left edge) ---
+    cell(0, 12, BLADE); cell(0, 13, BLADE);
+    cell(0, 14, GUARD_M); cell(0, 15, GRIP);
+
+    // === CHARACTER (rows 3-15, same head proportions as standing chibi) ===
+
+    // Hair spikes (row 3)
+    for (let dx = 5; dx <= 10; dx++) cell(dx, 3, p.hair);
+    cell(6, 3, p.hairLight); cell(8, 3, p.hairLight); cell(9, 3, p.hair);
+
+    // Hair volume (row 4)
+    for (let dx = 4; dx <= 11; dx++) cell(dx, 4, (dx % 3 === 0) ? p.hairLight : p.hair);
+
+    // Face skin fill (rows 5-8)
+    for (let dy = 5; dy <= 8; dy++) {
+      for (let dx = 5; dx <= 10; dx++) cell(dx, dy, p.skin);
+    }
+    cell(7, 5, p.skinLight); cell(8, 5, p.skinLight);
+    // Hair sides framing face
+    cell(4, 5, p.hair); cell(11, 5, p.hair);
+    cell(4, 6, p.hairDark); cell(11, 6, p.hairDark);
+    cell(4, 7, p.hairDark); cell(11, 7, p.hairDark);
+
+    // Furrowed eyebrows (row 5) — heavy, inward-angled (pain)
+    cell(6, 5, p.hairDark); cell(7, 5, p.hairDark);
+    cell(9, 5, p.hairDark); cell(10, 5, p.hairDark);
+
+    // Eyes (row 6) — squinting, heavy-lidded
+    cell(5, 6, p.skinShadow);
+    cell(6, 6, 0xDDDDDD); cell(7, 6, p.eyeIrisDark);
+    cell(8, 6, p.skin);
+    cell(9, 6, p.eyeIrisDark); cell(10, 6, 0xDDDDDD);
+
+    // Nose (row 7)
+    cell(8, 7, p.skinShadow);
+
+    // Mouth — tight grimace (row 8)
+    cell(7, 8, p.skinShadow); cell(8, 8, p.skinShadow);
+
+    // Neck (row 9) — tilted right toward barrel
+    cell(7, 9, p.skinShadow); cell(8, 9, p.skinShadow); cell(9, 9, p.skinShadow);
+
+    // Upper body + shoulders (row 10) — hunched
+    for (let dx = 5; dx <= 10; dx++) cell(dx, 10, p.tunicLight);
+    cell(7, 10, p.trimColor); cell(8, 10, p.trimColor);
+    cell(4, 10, p.tunicDark);
+    cell(11, 10, p.tunicDark);
+
+    // Mid body + blood stain (row 11)
+    for (let dx = 5; dx <= 10; dx++) cell(dx, 11, p.tunicMain);
+    cell(7, 11, p.trimColor); cell(8, 11, p.trimColor);
+    cell(9, 11, BLOOD); cell(10, 11, BLOOD);
+    cell(4, 11, p.tunicDark);
+    cell(11, 11, p.skinShadow);
+
+    // Left arm (holding wound) + right arm (resting on barrel)
+    cell(4, 12, p.skinShadow);
+    cell(11, 12, p.skinShadow);
+
+    // Belt (row 12)
+    for (let dx = 5; dx <= 10; dx++) cell(dx, 12, p.bootDark);
+    cell(7, 12, p.trimColor); cell(8, 12, p.trimColor);
+
+    // Thighs — bent wide, tunic skirt over lap (row 13)
+    cell(4, 13, p.tunicDark); cell(5, 13, p.pantColor); cell(6, 13, p.pantColor);
+    cell(7, 13, p.pantDark); cell(8, 13, p.pantDark);
+    cell(9, 13, p.pantColor); cell(10, 13, p.pantColor); cell(11, 13, p.tunicDark);
+
+    // Lower legs — spread wide (row 14)
+    cell(3, 14, p.pantColor); cell(4, 14, p.pantDark);
+    cell(10, 14, p.pantDark); cell(11, 14, p.pantColor);
+
+    // Boots — kicked out at far edges (row 15)
+    cell(2, 15, p.bootColor); cell(3, 15, p.bootDark);
+    cell(11, 15, p.bootDark); cell(12, 15, p.bootColor);
+
+    // Per-pixel highlight/shadow pass
+    const imgData = ctx.getImageData(0, 0, W, H);
+    for (let y = 0; y < H; y += G) {
+      for (let x = 0; x < W; x += G) {
+        const i = (y * W + x) * 4;
+        if (imgData.data[i + 3] > 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.12)';
+          ctx.fillRect(x, y, 1, 1);
+          ctx.fillStyle = 'rgba(0,0,0,0.1)';
+          ctx.fillRect(x + G - 1, y + G - 1, 1, 1);
+        }
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+
+    if (spriteId) {
+      this.textureDataUrls.set(spriteId, canvas.toDataURL());
+    }
+
+    return texture;
+  }
+
   // Register a lazy texture generator instead of creating immediately
   private registerTexture(name: string, generator: () => THREE.Texture) {
     this.textureGenerators.set(name, generator);
@@ -1132,6 +1308,8 @@ export class AssetManager {
       bootColor: 0x485060, bootDark: 0x37474F,
     };
     this.registerTexture('npc_guard', () => this.createChibiCharacter('down', 'idle', 0, guardPalette, 'npc_guard'));
+
+    this.registerTexture('npc_oliver_injured', () => this.createInjuredSittingChibi(guardPalette, 'npc_oliver_injured'));
 
     // ========== NEW NPCs ==========
     const blacksmithPalette = {
@@ -1821,6 +1999,78 @@ export class AssetManager {
       [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
     ], 4, 'enemy_hollow_guardian_attack'));
 
+    // ========== BOSS: Ashen Reaver (corrupted commander in dark armor, ember-red accents) — 16x16 sprites ==========
+    const AR_ARM  = 0x2C2C2C;  // dark plate armor
+    const AR_ARMH = 0x4A4A4A;  // armor highlight
+    const AR_ARMS = 0x1A1A1A;  // armor deep shadow
+    const AR_EMB  = 0xFF4400;  // ember glow accents
+    const AR_EMBH = 0xFF8844;  // bright ember
+    const AR_EYE  = 0xFF2200;  // burning red eyes
+    const AR_EYEG = 0xFF6600;  // eye glow telegraph
+    const AR_CAPE = 0x1A0E0E;  // tattered dark cape
+    const AR_HELM = 0x3A3A3A;  // helm main
+    const AR_HELS = 0x222222;  // helm shadow
+    const AR_BLD  = 0x555555;  // greatsword blade
+    const AR_BLDH = 0x888888;  // blade highlight
+    const AR_CHG  = 0xFF6600;  // charge outline
+
+    this.registerTexture('enemy_ashen_reaver', () => this.createSpriteTexture([
+      [C,       C,       C,       C,       C,       AR_HELS, AR_HELM, AR_ARMH, AR_HELM, AR_HELS, C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       AR_HELS, AR_HELM, AR_ARMH, AR_ARM,  AR_ARMH, AR_HELM, AR_HELS, C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       AR_ARM,  AR_ARMS, AR_EYE,  AR_ARMS, AR_EYE,  AR_ARMS, AR_ARM,  C,       C,       C,       C,       C      ],
+      [C,       C,       C,       AR_ARMS, AR_ARM,  AR_ARMH, AR_ARM,  AR_EMB,  AR_ARM,  AR_ARMH, AR_ARM,  AR_ARMS, C,       C,       C,       C      ],
+      [C,       C,       AR_BLD,  AR_BLDH, AR_ARM,  AR_ARMH, AR_EMB,  AR_ARM,  AR_EMB,  AR_ARMH, AR_ARM,  AR_BLD,  AR_BLDH, C,       C,       C      ],
+      [C,       AR_BLD,  AR_BLDH, C,       AR_ARMS, AR_ARM,  AR_ARMH, AR_EMB,  AR_ARMH, AR_ARM,  AR_ARMS, C,       AR_BLD,  AR_BLDH, C,       C      ],
+      [AR_BLD,  AR_BLDH, C,       C,       C,       AR_ARMS, AR_ARM,  AR_ARM,  AR_ARM,  AR_ARMS, C,       C,       C,       AR_BLD,  AR_BLDH, C      ],
+      [C,       C,       C,       C,       C,       AR_CAPE, AR_ARM,  AR_EMB,  AR_ARM,  AR_CAPE, C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       AR_CAPE, AR_ARMS, AR_ARM,  AR_ARM,  AR_ARM,  AR_ARMS, AR_CAPE, C,       C,       C,       C,       C      ],
+      [C,       C,       C,       AR_CAPE, AR_ARMS, C,       AR_ARMS, AR_ARM,  AR_ARMS, C,       AR_ARMS, AR_CAPE, C,       C,       C,       C      ],
+      [C,       C,       C,       AR_CAPE, C,       C,       AR_ARM,  AR_ARMS, AR_ARM,  C,       C,       AR_CAPE, C,       C,       C,       C      ],
+      [C,       C,       AR_CAPE, C,       C,       C,       AR_ARMS, C,       AR_ARMS, C,       C,       C,       AR_CAPE, C,       C,       C      ],
+      [C,       C,       AR_CAPE, C,       C,       AR_ARM,  AR_ARMH, C,       AR_ARM,  AR_ARMH, C,       C,       AR_CAPE, C,       C,       C      ],
+      [C,       AR_CAPE, C,       C,       C,       AR_ARMS, AR_ARM,  C,       AR_ARMS, AR_ARM,  C,       C,       C,       AR_CAPE, C,       C      ],
+      [C,       AR_CAPE, C,       C,       C,       C,       AR_ARMS, C,       C,       AR_ARMS, C,       C,       C,       AR_CAPE, C,       C      ],
+      [AR_CAPE, C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       AR_CAPE, C      ],
+    ], 4, 'enemy_ashen_reaver'));
+
+    this.registerTexture('enemy_ashen_reaver_telegraph', () => this.createSpriteTexture([
+      [C,       C,       C,       C,       C,       AR_CHG,  AR_HELM, AR_ARMH, AR_HELM, AR_CHG,  C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       AR_CHG,  AR_HELM, AR_ARMH, AR_ARM,  AR_ARMH, AR_HELM, AR_CHG,  C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       AR_ARM,  AR_CHG,  AR_EYEG, AR_ARMS, AR_EYEG, AR_CHG,  AR_ARM,  C,       C,       C,       C,       C      ],
+      [C,       C,       C,       AR_ARMS, AR_ARM,  AR_ARMH, AR_ARM,  AR_EMBH, AR_ARM,  AR_ARMH, AR_ARM,  AR_ARMS, C,       C,       C,       C      ],
+      [C,       C,       AR_BLD,  AR_BLDH, AR_ARM,  AR_ARMH, AR_EMBH, AR_ARM,  AR_EMBH, AR_ARMH, AR_ARM,  AR_BLD,  AR_BLDH, C,       C,       C      ],
+      [C,       AR_BLD,  AR_BLDH, C,       AR_ARMS, AR_ARM,  AR_ARMH, AR_EMBH, AR_ARMH, AR_ARM,  AR_ARMS, C,       AR_BLD,  AR_BLDH, C,       C      ],
+      [AR_BLD,  AR_BLDH, C,       C,       C,       AR_ARMS, AR_ARM,  AR_ARM,  AR_ARM,  AR_ARMS, C,       C,       C,       AR_BLD,  AR_BLDH, C      ],
+      [C,       C,       C,       C,       C,       AR_CAPE, AR_ARM,  AR_EMBH, AR_ARM,  AR_CAPE, C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       AR_CAPE, AR_ARMS, AR_ARM,  AR_ARM,  AR_ARM,  AR_ARMS, AR_CAPE, C,       C,       C,       C,       C      ],
+      [C,       C,       C,       AR_CAPE, AR_ARMS, C,       AR_ARMS, AR_ARM,  AR_ARMS, C,       AR_ARMS, AR_CAPE, C,       C,       C,       C      ],
+      [C,       C,       C,       AR_CAPE, C,       C,       AR_ARM,  AR_ARMS, AR_ARM,  C,       C,       AR_CAPE, C,       C,       C,       C      ],
+      [C,       C,       AR_CAPE, C,       C,       C,       AR_ARMS, C,       AR_ARMS, C,       C,       C,       AR_CAPE, C,       C,       C      ],
+      [C,       C,       AR_CAPE, C,       C,       AR_ARM,  AR_ARMH, C,       AR_ARM,  AR_ARMH, C,       C,       AR_CAPE, C,       C,       C      ],
+      [C,       AR_CAPE, C,       C,       C,       AR_ARMS, AR_ARM,  C,       AR_ARMS, AR_ARM,  C,       C,       C,       AR_CAPE, C,       C      ],
+      [C,       AR_CAPE, C,       C,       C,       C,       AR_ARMS, C,       C,       AR_ARMS, C,       C,       C,       AR_CAPE, C,       C      ],
+      [AR_CAPE, C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       AR_CAPE, C      ],
+    ], 4, 'enemy_ashen_reaver_telegraph'));
+
+    this.registerTexture('enemy_ashen_reaver_attack', () => this.createSpriteTexture([
+      [C,       C,       C,       C,       C,       C,       AR_HELM, AR_ARMH, AR_HELM, C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       AR_HELM, AR_ARMH, AR_ARM,  AR_ARMH, AR_HELM, C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       AR_ARM,  AR_ARMS, AR_EYEG, AR_ARMS, AR_EYEG, AR_ARMS, AR_ARM,  C,       C,       C,       C,       C      ],
+      [C,       C,       C,       AR_ARMS, AR_ARM,  AR_ARMH, AR_ARM,  AR_EMB,  AR_ARM,  AR_ARMH, AR_ARM,  AR_ARMS, C,       C,       C,       C      ],
+      [C,       AR_BLD,  AR_BLDH, AR_BLD,  AR_ARM,  AR_ARMH, AR_EMB,  AR_ARM,  AR_EMB,  AR_ARMH, AR_ARM,  AR_BLD,  AR_BLDH, AR_BLD,  C,       C      ],
+      [AR_BLD,  AR_BLDH, C,       C,       AR_ARMS, AR_ARM,  AR_ARMH, AR_EMB,  AR_ARMH, AR_ARM,  AR_ARMS, C,       C,       AR_BLD,  AR_BLDH, C      ],
+      [C,       C,       C,       C,       C,       AR_ARMS, AR_ARM,  AR_ARM,  AR_ARM,  AR_ARMS, C,       C,       C,       C,       C,       AR_BLD ],
+      [C,       C,       C,       C,       C,       AR_CAPE, AR_ARM,  AR_EMB,  AR_ARM,  AR_CAPE, C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       AR_CAPE, AR_ARMS, AR_ARM,  AR_ARM,  AR_ARM,  AR_ARMS, AR_CAPE, C,       C,       C,       C,       C      ],
+      [C,       C,       C,       AR_CAPE, AR_ARMS, C,       AR_ARMS, AR_ARM,  AR_ARMS, C,       AR_ARMS, AR_CAPE, C,       C,       C,       C      ],
+      [C,       C,       C,       AR_CAPE, C,       C,       AR_ARM,  AR_ARMS, AR_ARM,  C,       C,       AR_CAPE, C,       C,       C,       C      ],
+      [C,       C,       AR_CAPE, C,       C,       C,       AR_ARMS, C,       AR_ARMS, C,       C,       C,       AR_CAPE, C,       C,       C      ],
+      [C,       C,       AR_CAPE, C,       C,       AR_ARM,  AR_ARMH, C,       AR_ARM,  AR_ARMH, C,       C,       AR_CAPE, C,       C,       C      ],
+      [C,       AR_CAPE, C,       C,       C,       AR_ARMS, AR_ARM,  C,       AR_ARMS, AR_ARM,  C,       C,       C,       AR_CAPE, C,       C      ],
+      [C,       AR_CAPE, C,       C,       C,       C,       AR_ARMS, C,       C,       AR_ARMS, C,       C,       C,       AR_CAPE, C,       C      ],
+      [AR_CAPE, C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       AR_CAPE, C      ],
+    ], 4, 'enemy_ashen_reaver_attack'));
+
     // ========== Interaction indicator sprite ==========
     this.textures.set('interact_indicator', this.createSpriteTexture([
       [C,       C,       0xFFD700,0xFFD700,C,       C],
@@ -2056,7 +2306,11 @@ export class AssetManager {
       [Z,        CL_RAIL,  CL_ROPE2, CL_ROPE3, CL_ROPE3, CL_ROPE2, CL_RAIL,  Z       ],
     ], 4, 'curled_ladder'));
 
-    this.textures.set('cobblestone', this.createColorTexture(0x9B8B72, 32, 32, 'checker'));
+    this.textures.set('cobblestone', this.createColorTexture(0x7A7F88, 32, 32, 'cobblestone_grid'));
+    this.textures.set('cobblestone_dark', this.createColorTexture(0x5C6068, 32, 32, 'cobblestone_grid'));
+    this.textures.set('brick', this.createColorTexture(0x8B4513, 32, 32, 'noise'));
+    this.textures.set('roof_tile', this.createColorTexture(0x4A4A52, 32, 32, 'gradient'));
+    this.textures.set('timber_wall', this.createColorTexture(0x5C4033, 32, 32, 'gradient'));
     this.textures.set('farmland', this.createColorTexture(0x6D4C41, 32, 32, 'noise'));
     this.textures.set('dark_grass', this.createColorTexture(0x2E7D32, 32, 32, 'noise'));
     this.textures.set('mossy_stone', this.createColorTexture(0x6B7B5A, 32, 32, 'checker'));
@@ -3296,6 +3550,106 @@ export class AssetManager {
       }
     }
 
+    // Terminus Scythe inventory icon
+    const SC_B  = 0x2A1B3D;  // dark-matter blade
+    const SC_BH = 0x6A0DAD;  // purple edge highlight
+    const SC_BS = 0x1A0E2E;  // deep shadow
+    const SC_SH = 0x8B8B8B;  // shaft gray
+    const SC_SD = 0x5C5C5C;  // shaft shadow
+    const SC_G  = 0x4E342E;  // grip leather
+    const scytheTex = this.createSpriteTexture([
+      /* 0 */ [C,     SC_BH, SC_B,  SC_B,  SC_BS, C,     C,     C    ],
+      /* 1 */ [SC_BH, SC_B,  SC_B,  SC_BS, C,     C,     C,     C    ],
+      /* 2 */ [C,     SC_BS, SC_B,  SC_SH, C,     C,     C,     C    ],
+      /* 3 */ [C,     C,     SC_SH, SC_SH, C,     C,     C,     C    ],
+      /* 4 */ [C,     C,     C,     SC_SH, SC_SD, C,     C,     C    ],
+      /* 5 */ [C,     C,     C,     C,     SC_SH, SC_SD, C,     C    ],
+      /* 6 */ [C,     C,     C,     C,     C,     SC_G,  SC_SD, C    ],
+      /* 7 */ [C,     C,     C,     C,     C,     C,     SC_G,  SC_SD],
+    ]);
+    this.textures.set('scythe', scytheTex);
+    if (scytheTex.image instanceof HTMLCanvasElement) {
+      this.textureDataUrls.set('scythe', scytheTex.image.toDataURL());
+    }
+
+    // Scythe player sprites — same chibi silhouette with dark-matter purple tones
+    const heroScythePalette = {
+      ...heroPalette,
+      bladeMain:      0x2A1B3D,
+      bladeHighlight: 0x6A0DAD,
+      bladeShadow:    0x1A0E2E,
+      guardColor:     0x8B8B8B,
+      gripColor:      0x4E342E,
+      bladeStyle:     'broad' as const,
+    };
+
+    for (const dir of dirs) {
+      for (const state of states) {
+        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' || state === 'block' ? 1 : 2;
+        for (let f = 0; f < maxFrames; f++) {
+          const d = dir, s = state, fr = f;
+          const spriteId = `player_scythe_${d}_${s}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const tex = this.textures.get('scythe');
+            const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
+            return this.createChibiCharacter(d, s, fr, heroScythePalette, spriteId, false, true, wc, 1.0);
+          });
+        }
+      }
+    }
+
+    // Scythe combo step attack textures
+    for (const dir of dirs) {
+      for (let step = 0; step < 3; step++) {
+        for (let f = 0; f < 3; f++) {
+          const d = dir, cs = step, fr = f;
+          const spriteId = `player_scythe_${d}_attack_${cs}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const tex = this.textures.get('scythe');
+            const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
+            return this.createChibiCharacter(d, 'attack', fr, heroScythePalette, spriteId, false, true, wc, 1.0, cs);
+          });
+        }
+      }
+    }
+
+    // Diagonal scythe sprite aliases
+    for (const dDir of bsDiagDirs) {
+      const base = bsDiagBase[dDir];
+      for (const state of states) {
+        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' || state === 'block' ? 1 : 2;
+        for (let f = 0; f < maxFrames; f++) {
+          const dd = dDir, b = base, s = state, fr = f;
+          const spriteId = `player_scythe_${dd}_${s}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const baseTexture = this.getTexture(`player_scythe_${b}_${s}_${fr}`)!;
+            if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
+              this.textureDataUrls.set(spriteId, baseTexture.image.toDataURL());
+            }
+            return baseTexture;
+          });
+        }
+      }
+    }
+
+    // Diagonal scythe combo step aliases
+    for (const dDir of bsDiagDirs) {
+      const base = bsDiagBase[dDir];
+      for (let step = 0; step < 3; step++) {
+        for (let f = 0; f < 3; f++) {
+          const dd = dDir, b = base, cs = step, fr = f;
+          const spriteId = `player_scythe_${dd}_attack_${cs}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const baseTexture = this.getTexture(`player_scythe_${b}_attack_${cs}_${fr}`)!;
+            if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
+              this.textureDataUrls.set(spriteId, baseTexture.image.toDataURL());
+            }
+            return baseTexture;
+          });
+        }
+      }
+    }
+
     // Health Potion Sprite
     const P_G  = 0xA0B0C0;  // glass color
     const P_R  = 0xCC2222;  // red liquid
@@ -3385,6 +3739,177 @@ export class AssetManager {
       [C,         C,         LANT_METAL,LANT_METAL,C,         C],
       [C,         C,         LANT_METAL,LANT_METAL,C,         C],
       [C,         C,         LANT_METAL,LANT_METAL,C,         C],
+    ]));
+
+    const SL_IRON = 0x37474F;
+    const SL_IRON_H = 0x546E7A;
+    const SL_AMBER = 0xFFD54F;
+    const SL_GLOW = 0xFFF9C4;
+    this.textures.set('street_lamp', this.createSpriteTexture([
+      [C,       C,       SL_IRON_H,SL_IRON, SL_IRON_H,C,       C,       C],
+      [C,       SL_IRON, SL_GLOW,  SL_AMBER,SL_GLOW,  SL_IRON, C,       C],
+      [C,       SL_IRON, SL_AMBER, SL_GLOW, SL_AMBER, SL_IRON, C,       C],
+      [C,       C,       SL_IRON,  SL_IRON, SL_IRON,  C,       C,       C],
+      [C,       C,       C,        SL_IRON, C,        C,       C,       C],
+      [C,       C,       C,        SL_IRON, C,        C,       C,       C],
+      [C,       C,       C,        SL_IRON, C,        C,       C,       C],
+      [C,       C,       C,        SL_IRON_H,C,       C,       C,       C],
+    ]));
+
+    const IR_BAR = 0x37474F;
+    const IR_H = 0x546E7A;
+    const IR_TIP = 0x78909C;
+    this.textures.set('iron_railing', this.createSpriteTexture([
+      [IR_TIP, C,      IR_TIP, C,      IR_TIP, C,      IR_TIP, C],
+      [IR_BAR, C,      IR_BAR, C,      IR_BAR, C,      IR_BAR, C],
+      [IR_BAR, IR_H,   IR_BAR, IR_H,   IR_BAR, IR_H,   IR_BAR, IR_H],
+      [IR_BAR, C,      IR_BAR, C,      IR_BAR, C,      IR_BAR, C],
+      [IR_H,   IR_BAR, IR_H,   IR_BAR, IR_H,   IR_BAR, IR_H,   IR_BAR],
+    ]));
+
+    const FN_STONE = 0x78909C;
+    const FN_STONE_H = 0x90A4AE;
+    const FN_STONE_S = 0x546E7A;
+    const FN_WATER = 0x42A5F5;
+    const FN_WATER_H = 0x90CAF9;
+    this.textures.set('fountain', this.createSpriteTexture([
+      [C,        C,        FN_STONE_H,FN_STONE, FN_STONE_H,FN_STONE, C,        C],
+      [C,        FN_STONE, FN_WATER_H,FN_WATER, FN_WATER_H,FN_WATER, FN_STONE, C],
+      [FN_STONE_S,FN_WATER, FN_WATER_H,FN_STONE_H,FN_STONE_H,FN_WATER_H,FN_WATER, FN_STONE_S],
+      [FN_STONE, FN_WATER_H,FN_WATER, FN_STONE, FN_STONE, FN_WATER, FN_WATER_H,FN_STONE],
+      [FN_STONE_S,FN_WATER, FN_WATER_H,FN_STONE_S,FN_STONE_S,FN_WATER_H,FN_WATER, FN_STONE_S],
+      [C,        FN_STONE, FN_WATER,  FN_WATER_H,FN_WATER, FN_WATER_H,FN_STONE, C],
+      [C,        FN_STONE_S,FN_STONE, FN_STONE_S,FN_STONE, FN_STONE_S,FN_STONE_S,C],
+      [C,        C,        FN_STONE_S,FN_STONE, FN_STONE_S,FN_STONE, C,        C],
+    ]));
+
+    const PL_STONE = 0x78909C;
+    const PL_STONE_H = 0x90A4AE;
+    const PL_STONE_S = 0x546E7A;
+    this.textures.set('pillar', this.createSpriteTexture([
+      [C,        PL_STONE_H,PL_STONE, PL_STONE_H,PL_STONE, PL_STONE_H,C],
+      [C,        PL_STONE,  PL_STONE_H,PL_STONE, PL_STONE_H,PL_STONE, C],
+      [C,        C,         PL_STONE, PL_STONE_S,PL_STONE, C,        C],
+      [C,        C,         PL_STONE_S,PL_STONE, PL_STONE_S,C,        C],
+      [C,        C,         PL_STONE, PL_STONE_S,PL_STONE, C,        C],
+      [C,        C,         PL_STONE_S,PL_STONE, PL_STONE_S,C,        C],
+      [C,        PL_STONE,  PL_STONE_H,PL_STONE, PL_STONE_H,PL_STONE, C],
+      [C,        PL_STONE_H,PL_STONE, PL_STONE_H,PL_STONE, PL_STONE_H,C],
+    ]));
+
+    const SG_METAL = 0x424242;
+    const SG_METAL_H = 0x616161;
+    const SG_DARK = 0x212121;
+    this.textures.set('sewer_grate', this.createSpriteTexture([
+      [SG_METAL_H,SG_METAL, SG_METAL_H,SG_METAL, SG_METAL_H,SG_METAL, SG_METAL_H,SG_METAL],
+      [SG_METAL,  SG_DARK,  SG_DARK,   SG_METAL, SG_DARK,   SG_DARK,  SG_METAL,  SG_METAL_H],
+      [SG_METAL_H,SG_DARK,  SG_DARK,   SG_METAL_H,SG_DARK,  SG_DARK,  SG_METAL_H,SG_METAL],
+      [SG_METAL,  SG_METAL_H,SG_METAL, SG_METAL, SG_METAL_H,SG_METAL, SG_METAL,  SG_METAL_H],
+      [SG_METAL_H,SG_DARK,  SG_DARK,   SG_METAL, SG_DARK,   SG_DARK,  SG_METAL_H,SG_METAL],
+      [SG_METAL,  SG_DARK,  SG_DARK,   SG_METAL_H,SG_DARK,  SG_DARK,  SG_METAL,  SG_METAL_H],
+      [SG_METAL_H,SG_METAL, SG_METAL_H,SG_METAL, SG_METAL_H,SG_METAL, SG_METAL_H,SG_METAL],
+    ]));
+
+    const HS_IRON = 0x37474F;
+    const HS_WOOD = 0x795548;
+    const HS_WOOD_H = 0xA1887F;
+    const HS_TEXT = 0xD7CCC8;
+    this.textures.set('hanging_sign', this.createSpriteTexture([
+      [C,       HS_IRON, HS_IRON, C,       C,       HS_IRON, HS_IRON, C],
+      [C,       C,       HS_IRON, C,       C,       HS_IRON, C,       C],
+      [C,       HS_WOOD, HS_WOOD_H,HS_WOOD, HS_WOOD_H,HS_WOOD, HS_WOOD, C],
+      [C,       HS_WOOD_H,HS_TEXT, HS_TEXT, HS_TEXT, HS_TEXT, HS_WOOD_H,C],
+      [C,       HS_WOOD, HS_TEXT, HS_TEXT, HS_TEXT, HS_TEXT, HS_WOOD, C],
+      [C,       HS_WOOD, HS_WOOD_H,HS_WOOD, HS_WOOD_H,HS_WOOD, HS_WOOD, C],
+    ]));
+
+    const WT_IRON = 0x37474F;
+    const WT_FLAME = 0xFF8F00;
+    const WT_FLAME_H = 0xFFD54F;
+    const WT_FLAME_TIP = 0xFFF9C4;
+    this.textures.set('wall_torch', this.createSpriteTexture([
+      [C,        C,        WT_FLAME_TIP,C,       C,       C],
+      [C,        WT_FLAME_H,WT_FLAME, WT_FLAME_H,C,       C],
+      [C,        WT_FLAME, WT_FLAME_H,WT_FLAME, C,       C],
+      [C,        C,        WT_IRON,  WT_IRON, C,       C],
+      [C,        C,        WT_IRON,  WT_IRON, C,       C],
+      [C,        C,        WT_IRON,  C,       C,       C],
+    ]));
+
+    const AW_FABRIC = 0x8D6E63;
+    const AW_FABRIC_H = 0xA1887F;
+    const AW_FABRIC_S = 0x5D4037;
+    const AW_STRIPE = 0xBCAAA4;
+    this.textures.set('awning', this.createSpriteTexture([
+      [AW_FABRIC_S,AW_FABRIC, AW_STRIPE, AW_FABRIC_H,AW_STRIPE, AW_FABRIC, AW_FABRIC_H,AW_FABRIC_S],
+      [AW_FABRIC,  AW_STRIPE, AW_FABRIC_H,AW_STRIPE, AW_FABRIC, AW_STRIPE, AW_FABRIC_H,AW_FABRIC],
+      [AW_FABRIC_S,AW_FABRIC_H,AW_FABRIC, AW_FABRIC_S,AW_FABRIC_H,AW_FABRIC, AW_FABRIC_S,C],
+      [C,          AW_FABRIC_S,AW_FABRIC, C,          AW_FABRIC_S,AW_FABRIC_S,C,          C],
+      [C,          C,          AW_FABRIC_S,C,         C,          AW_FABRIC_S,C,          C],
+    ]));
+
+    const RB_STONE = 0x78909C;
+    const RB_STONE_S = 0x546E7A;
+    const RB_WOOD = 0x6D4C41;
+    const RB_WOOD_H = 0x8D6E63;
+    this.textures.set('rubble', this.createSpriteTexture([
+      [C,        C,        RB_STONE, C,        RB_WOOD,  C,        C,       C],
+      [C,        RB_STONE_S,RB_STONE, RB_WOOD_H,RB_STONE, RB_STONE_S,C,      C],
+      [RB_WOOD,  RB_STONE, RB_STONE_S,RB_STONE, RB_WOOD,  RB_STONE, RB_WOOD_H,C],
+      [RB_STONE_S,RB_WOOD_H,RB_STONE, RB_STONE_S,RB_STONE, RB_STONE_S,RB_STONE, RB_STONE_S],
+      [C,        RB_STONE, RB_STONE_S,RB_WOOD,  RB_STONE_S,RB_STONE, C,       C],
+    ]));
+
+    const BS_WOOD = 0x795548;
+    const BS_WOOD_H = 0xA1887F;
+    const BS_WOOD_S = 0x5D4037;
+    const BS_PLANK = 0x8D6E63;
+    this.textures.set('broken_stall', this.createSpriteTexture([
+      [C,        BS_WOOD,  BS_WOOD_H, BS_WOOD,  C,        C,        BS_WOOD_S, C],
+      [BS_WOOD_S,BS_PLANK, BS_WOOD,   BS_PLANK, BS_WOOD_S,BS_PLANK, BS_WOOD,   C],
+      [BS_WOOD,  BS_PLANK, BS_WOOD_S, BS_PLANK, BS_WOOD,  BS_PLANK, BS_WOOD_S, BS_WOOD],
+      [BS_WOOD_S,BS_WOOD,  BS_PLANK,  BS_WOOD,  BS_WOOD_S,BS_WOOD,  BS_PLANK,  BS_WOOD_S],
+      [C,        BS_WOOD_S,C,         C,        BS_WOOD_S,C,        C,         BS_WOOD],
+      [C,        C,        C,         BS_WOOD,  C,        C,        BS_WOOD_S, C],
+    ]));
+
+    const CS_WOOD = 0x795548;
+    const CS_WOOD_H = 0x8D6E63;
+    const CS_WOOD_S = 0x5D4037;
+    const CS_BAND = 0x546E7A;
+    this.textures.set('crate_stack', this.createSpriteTexture([
+      [C,        CS_WOOD_S,CS_WOOD,  CS_WOOD_H,CS_WOOD,  CS_WOOD_S,C,        C],
+      [C,        CS_WOOD,  CS_WOOD_S,CS_BAND,  CS_WOOD_S,CS_WOOD,  C,        C],
+      [CS_WOOD_S,CS_WOOD,  CS_WOOD_H,CS_WOOD,  CS_WOOD_H,CS_WOOD,  CS_WOOD_S,C],
+      [CS_WOOD,  CS_WOOD_H,CS_WOOD_S,CS_BAND,  CS_WOOD_S,CS_WOOD_H,CS_WOOD,  C],
+      [CS_WOOD,  CS_BAND,  CS_WOOD,  CS_WOOD_S,CS_WOOD,  CS_BAND,  CS_WOOD,  C],
+      [CS_WOOD_S,CS_WOOD,  CS_WOOD_H,CS_WOOD,  CS_WOOD_H,CS_WOOD,  CS_WOOD_S,C],
+    ]));
+
+    const BK_WOOD = 0x6D4C41;
+    const BK_WOOD_H = 0x8D6E63;
+    const BK_BAND = 0x546E7A;
+    const BK_BAND_H = 0x78909C;
+    this.textures.set('barrel_stack', this.createSpriteTexture([
+      [C,        BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_WOOD_H,BK_WOOD,  C,        C],
+      [C,        BK_BAND,  BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_BAND,  C,        C],
+      [BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_WOOD_H,BK_WOOD,  C],
+      [BK_BAND_H,BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_BAND_H,C],
+      [BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_BAND,  BK_WOOD,  BK_WOOD_H,BK_WOOD,  C],
+      [C,        BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_WOOD_H,BK_WOOD,  C,        C],
+    ]));
+
+    const CH_BRICK = 0x8B4513;
+    const CH_BRICK_H = 0xA0522D;
+    const CH_MORTAR = 0xBCAAA4;
+    const CH_SOOT = 0x424242;
+    this.textures.set('chimney', this.createSpriteTexture([
+      [C,        CH_SOOT,  CH_SOOT,  CH_SOOT,  CH_SOOT,  C],
+      [CH_BRICK, CH_BRICK_H,CH_MORTAR,CH_BRICK, CH_BRICK_H,CH_BRICK],
+      [CH_BRICK_H,CH_MORTAR,CH_BRICK, CH_BRICK_H,CH_MORTAR,CH_BRICK_H],
+      [CH_BRICK, CH_BRICK_H,CH_MORTAR,CH_BRICK, CH_BRICK_H,CH_BRICK],
+      [CH_BRICK_H,CH_BRICK, CH_BRICK_H,CH_MORTAR,CH_BRICK, CH_BRICK_H],
+      [CH_BRICK, CH_MORTAR,CH_BRICK_H,CH_BRICK, CH_MORTAR,CH_BRICK],
     ]));
   }
 }

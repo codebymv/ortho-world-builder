@@ -5,7 +5,7 @@ export const MAP_BIOMES: Record<string, string> = {
   forest: 'forest',
   deep_woods: 'swamp',
   shadow_castle: 'ruins',
-  ruins: 'ruins',
+  gilrhym: 'city',
 };
 
 export function isPortalDestinationUnlocked(state: GameState, targetMap: string): boolean {

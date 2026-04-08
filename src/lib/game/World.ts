@@ -21,7 +21,10 @@ export type TileType =
   | 'door' | 'door_interior' | 'door_iron'
   | 'fog_gate'
   | 'bonfire_unlit'
-  | 'boat_wreck' | 'dock';
+  | 'boat_wreck' | 'dock'
+  | 'cobblestone_dark' | 'brick' | 'roof_tile' | 'timber_wall'
+  | 'street_lamp' | 'iron_railing' | 'fountain' | 'pillar' | 'sewer_grate' | 'hanging_sign' | 'wall_torch' | 'awning'
+  | 'rubble' | 'broken_stall' | 'crate_stack' | 'barrel_stack' | 'chimney';
 
 /** Pass as `getInteractableNear` radius from gameplay so gates / chunky facades stay in scan + reach.
  * Must be >= every `getInteractableReach` value so the min() cap does not shrink large reaches. */

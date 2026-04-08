@@ -38,6 +38,7 @@ interface InteractionSystemContext {
   syncHollowShortcutState: () => void;
   syncHollowApproachLadderState: () => void;
   syncForestFortGateState: () => void;
+  syncGilrhymBossState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
   hasDialogue: (interactionId: string) => boolean;
   onWorldItemPickup?: (itemId: string) => void;
@@ -136,19 +137,21 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
     const goldAmount = interactionId.includes('ancient')
       ? 100
+      : interactionId.includes('gilrhym')
+      ? 85
       : interactionId.includes('ruins')
-        ? 75
-        : interactionId.includes('wolf') || interactionId.includes('shadow')
-          ? 60
-          : interactionId.includes('enchanted')
-            ? 55
-            : interactionId.includes('hidden') || interactionId.includes('fort')
-              ? 50
-              : interactionId.includes('temple') || interactionId.includes('volcano') || interactionId.includes('spider')
-                ? 45
-                : interactionId.includes('forest')
-                  ? 40
-                  : 20;
+      ? 75
+      : interactionId.includes('wolf') || interactionId.includes('shadow')
+      ? 60
+      : interactionId.includes('enchanted')
+      ? 55
+      : interactionId.includes('hidden') || interactionId.includes('fort')
+      ? 50
+      : interactionId.includes('temple') || interactionId.includes('volcano') || interactionId.includes('spider')
+      ? 45
+      : interactionId.includes('forest')
+      ? 40
+      : 20;
 
     context.state.addGold(goldAmount);
     if (context.items.health_potion) {
@@ -166,6 +169,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     } else if (interactionId === 'forest_river_chest' && context.items.ornamental_broadsword) {
       context.state.addItem({ ...context.items.ornamental_broadsword });
       bonusDescription = ' and an Ornamental Broadsword';
+    } else if (interactionId === 'gilrhym_scythe_chest' && context.items.terminus_scythe) {
+      context.state.addItem({ ...context.items.terminus_scythe });
+      bonusDescription = ' and the Terminus Scythe';
     }
 
     context.state.setFlag(`${interactionId}_opened`, true);
@@ -227,6 +233,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       interactionId !== 'fountain' &&
       interactionId !== 'ancient_fountain' &&
       interactionId !== 'ancient_well' &&
+      interactionId !== 'gilrhym_fountain' &&
+      interactionId !== 'gilrhym_market_well' &&
+      interactionId !== 'gilrhym_cathedral_well' &&
       interactionId !== 'healing_mushroom' &&
       interactionId !== 'campfire'
     ) {
@@ -437,6 +446,15 @@ export function createInteractionSystem(context: InteractionSystemContext) {
   };
 
   const tryHandleHollowFogGate = (interactionId: string): boolean => {
+    if (interactionId === 'gilrhym_fog_gate') {
+      if (context.state.getFlag('ashen_reaver_defeated')) {
+        context.notify('The ashen fog has lifted.', { id: 'fog-gate-clear', duration: 1800 });
+        return true;
+      }
+      context.notify('A wall of dark fog blocks the way. Something terrible guards the cathedral plaza.', { id: 'fog-gate-locked', duration: 3000 });
+      return true;
+    }
+
     if (interactionId !== 'hollow_fog_gate') return false;
     if (context.state.currentMap !== 'forest') return true;
 
@@ -446,6 +464,32 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     }
 
     context.handleMapTransition('interior_hollow_arena', 18, 32);
+    return true;
+  };
+
+  const tryHandleGilrhymShortcutLever = (interactionId: string): boolean => {
+    if (interactionId !== 'gilrhym_shortcut_lever_1' && interactionId !== 'gilrhym_shortcut_lever_2') return false;
+    if (context.state.currentMap !== 'gilrhym') return true;
+
+    const flagKey = `${interactionId}_open`;
+    if (context.state.getFlag(flagKey)) {
+      context.notify('The gate is already open.', { id: `${interactionId}-open`, duration: 1800 });
+      return true;
+    }
+
+    context.state.setFlag(flagKey, true);
+    context.syncGilrhymBossState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Shortcut Unlocked');
+    context.notify('Shortcut unlocked', {
+      id: `${interactionId}-unlocked`,
+      type: 'success',
+      description: 'An iron gate groans open, revealing a route back toward the bonfires.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
     return true;
   };
 
@@ -535,6 +579,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleHollowApproachLadder,
     tryHandleForestFortGate,
     tryHandleHollowFogGate,
+    tryHandleGilrhymShortcutLever,
     tryHandleBlightedRoot,
     tryHandleDialogueInteraction,
     tryPickupWorldItems,

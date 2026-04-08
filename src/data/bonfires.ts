@@ -13,7 +13,10 @@ export const BONFIRE_REGISTRY: BonfireEntry[] = [
   { id: 'bonfire_forest_south',      name: 'Southern Trail',      mapId: 'forest',        tileX: 130, tileY: 206 },
   { id: 'bonfire_deep_woods_north',  name: 'Deep Woods Summit',   mapId: 'deep_woods',    tileX: 118, tileY: 38  },
   { id: 'bonfire_deep_woods_west',   name: 'Western Hollow',      mapId: 'deep_woods',    tileX: 52,  tileY: 72  },
-  { id: 'bonfire_ruins',             name: 'Ancient Ruins',       mapId: 'ruins',         tileX: 100, tileY: 56  },
+  { id: 'bonfire_gilrhym_gate',       name: 'City Gate',           mapId: 'gilrhym',       tileX: 150, tileY: 268 },
+  { id: 'bonfire_gilrhym_market',     name: 'Market Square',       mapId: 'gilrhym',       tileX: 150, tileY: 155 },
+  { id: 'bonfire_gilrhym_heights',    name: 'The Heights',         mapId: 'gilrhym',       tileX: 140, tileY: 85  },
+  { id: 'bonfire_gilrhym_cathedral',  name: 'Cathedral Steps',     mapId: 'gilrhym',       tileX: 150, tileY: 50  },
   { id: 'bonfire_shadow_castle',     name: 'Shadow Castle',       mapId: 'shadow_castle', tileX: 100, tileY: 101 },
 ];
 

@@ -608,8 +608,7 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
-  // TODO: replace targetMap/targetX/targetY with the actual next area once it is built.
-  const HOLLOW_VICTORY_PORTAL_TARGET = { targetMap: 'ruins', targetX: 100, targetY: 110 } as const;
+  const HOLLOW_VICTORY_PORTAL_TARGET = { targetMap: 'gilrhym', targetX: 150, targetY: 285 } as const;
 
   const syncHollowFogGateState = () => {
     if (state.currentMap !== 'forest') return;
@@ -716,6 +715,51 @@ export function createRuntimeMapFlow({
     }
   };
 
+  const syncGilrhymBossState = () => {
+    if (state.currentMap !== 'gilrhym') return;
+    const map = world.getCurrentMap();
+    const defeated = state.getFlag('ashen_reaver_defeated');
+
+    const GATE_Y = 55;
+    const GATE_CX = 150;
+    for (let dx = -3; dx <= 3; dx++) {
+      const tx = GATE_CX + dx;
+      const row = map.tiles[GATE_Y];
+      if (!row) continue;
+      const el = row[tx]?.elevation ?? 0;
+      if (defeated) {
+        row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+      } else {
+        row[tx] = {
+          type: 'fog_gate' as TileType,
+          walkable: false,
+          elevation: el,
+          interactable: true,
+          interactionId: 'gilrhym_fog_gate',
+        };
+      }
+    }
+
+    const PORTAL_Y = 15;
+    const PORTAL_X = 150;
+    const portalRow = map.tiles[PORTAL_Y];
+    if (portalRow) {
+      const el = portalRow[PORTAL_X]?.elevation ?? 0;
+      if (defeated) {
+        portalRow[PORTAL_X] = {
+          type: 'portal' as TileType,
+          walkable: true,
+          elevation: el,
+          transition: { targetMap: 'village', targetX: 120, targetY: 115 },
+        };
+      } else {
+        portalRow[PORTAL_X] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+      }
+    }
+
+    world.rebuildChunks();
+  };
+
   const syncPersistentMapState = () => {
     syncShadowCastleGateState();
     syncWhisperingWoodsShortcutState();
@@ -724,6 +768,7 @@ export function createRuntimeMapFlow({
     syncForestFortGateState();
     syncHollowFogGateState();
     syncHollowArenaVictoryPortalState();
+    syncGilrhymBossState();
     syncVillageReactivityState();
     syncVillageInteriorReactivityState();
     syncOpenedChestState();
@@ -833,6 +878,7 @@ export function createRuntimeMapFlow({
     syncForestFortGateState,
     syncHollowFogGateState,
     syncHollowArenaVictoryPortalState,
+    syncGilrhymBossState,
     syncVillageReactivityState,
     syncVillageInteriorReactivityState,
     syncOpenedChestState,

@@ -1,6 +1,7 @@
 import type { SaveData } from '@/lib/game/SaveManager';
 import type { GameState, Item } from '@/lib/game/GameState';
 import type { World } from '@/lib/game/World';
+import { mapDefinitions } from '@/data/maps';
 
 interface CriticalPathItemConfig {
   itemId: string;
@@ -66,8 +67,11 @@ export function bootstrapRuntimeState(context: BootstrapContext) {
         ? savedData.player.stamina / savedData.player.maxStamina
         : 1;
     const normalizedMaxStamina = Math.max(savedData.player.maxStamina, state.player.maxStamina);
-    state.currentMap = savedData.currentMap;
-    state.player.position = { ...savedData.player.position };
+    const mapValid = savedData.currentMap in mapDefinitions;
+    state.currentMap = mapValid ? savedData.currentMap : 'village';
+    state.player.position = mapValid
+      ? { ...savedData.player.position }
+      : { x: 0, y: 0 };
     state.player.direction = savedData.player.direction as GameState['player']['direction'];
     state.player.health = savedData.player.health;
     state.player.maxHealth = savedData.player.maxHealth;
