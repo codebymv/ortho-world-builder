@@ -229,7 +229,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
   hollow_guardian: {
     type: 'hollow_guardian',
     name: 'Hollow Apparition',
-    hp: 400,
+    hp: 800,
     damage: 20,
     sprite: 'enemy_hollow_guardian',
     speed: 0.018,
@@ -237,9 +237,9 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     chaseRange: 14,
     telegraphDuration: 1.2,
     recoverDuration: 0.9,
-    poise: 250,
+    poise: 350,
     staggerDuration: 1.4,
-    essenceReward: 250,
+    essenceReward: 400,
     behaviorOverrides: {
       chainAttack: true,
       chainChance: 0.2,

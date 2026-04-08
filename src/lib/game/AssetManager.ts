@@ -2017,19 +2017,45 @@ export class AssetManager {
       [STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S],
     ], 4, 'stairs'));
     
-    // ladder: wooden rungs on side rails
-    const LADDER_SIDE = 0x5D4037;
-    const LADDER_RUNG = 0x8D6E63;
-    const LADDER_RUNG_H = 0xA1887F;
+    // ladder: side rails + clear rung spacing (reads at a glance vs flat wood)
+    const R = 0x3E2723;
+    const R2 = 0x4E342E;
+    const RG = 0xA1887F;
+    const RG2 = 0x8D6E63;
+    const RG3 = 0xBCAAA4;
+    const Z = 0;
     this.textures.set('ladder', this.createSpriteTexture([
-      [LADDER_SIDE,LADDER_RUNG_H,LADDER_RUNG,LADDER_RUNG,LADDER_RUNG_H,LADDER_SIDE],
-      [LADDER_SIDE,LADDER_RUNG_H,LADDER_RUNG,LADDER_RUNG,LADDER_RUNG_H,LADDER_SIDE],
-      [LADDER_SIDE,LADDER_RUNG_H,LADDER_RUNG,LADDER_RUNG,LADDER_RUNG_H,LADDER_SIDE],
-      [LADDER_SIDE,LADDER_RUNG_H,LADDER_RUNG,LADDER_RUNG,LADDER_RUNG_H,LADDER_SIDE],
-      [LADDER_SIDE,LADDER_RUNG_H,LADDER_RUNG,LADDER_RUNG,LADDER_RUNG_H,LADDER_SIDE],
-      [LADDER_SIDE,LADDER_RUNG_H,LADDER_RUNG,LADDER_RUNG,LADDER_RUNG_H,LADDER_SIDE],
+      // 8×12 @ 4px/cell — open center, double-thick rails, 5 rungs + feet
+      [R, R2, Z, Z, Z, Z, R2, R],
+      [R, R2, Z, Z, Z, Z, R2, R],
+      [R, R2, RG3, RG, RG, RG3, R2, R],
+      [R, R2, Z, Z, Z, Z, R2, R],
+      [R, R2, RG3, RG2, RG2, RG3, R2, R],
+      [R, R2, Z, Z, Z, Z, R2, R],
+      [R, R2, RG3, RG, RG, RG3, R2, R],
+      [R, R2, Z, Z, Z, Z, R2, R],
+      [R, R2, RG3, RG2, RG2, RG3, R2, R],
+      [R, R2, Z, Z, Z, Z, R2, R],
+      [R, R2, RG3, RG, RG, RG3, R2, R],
+      [R, R, RG2, RG2, RG2, RG2, R, R],
     ], 4, 'ladder'));
-    
+
+    // Curled ladder — coiled rope bundle with visible rails, sitting on cliff edge
+    const CL_RAIL = 0x5D4037;
+    const CL_RAIL2 = 0x4E342E;
+    const CL_ROPE = 0xBCAAA4;
+    const CL_ROPE2 = 0xA1887F;
+    const CL_ROPE3 = 0x8D6E63;
+    const CL_KNOT = 0x6D4C41;
+    this.textures.set('curled_ladder', this.createSpriteTexture([
+      [Z,        Z,        CL_RAIL,  CL_RAIL2, CL_RAIL2, CL_RAIL,  Z,        Z       ],
+      [Z,        CL_RAIL,  CL_ROPE2, CL_ROPE,  CL_ROPE,  CL_ROPE2, CL_RAIL,  Z       ],
+      [CL_RAIL,  CL_ROPE3, CL_ROPE,  CL_KNOT,  CL_KNOT,  CL_ROPE,  CL_ROPE3, CL_RAIL ],
+      [CL_RAIL2, CL_ROPE,  CL_KNOT,  CL_ROPE2, CL_ROPE2, CL_KNOT,  CL_ROPE,  CL_RAIL2],
+      [CL_RAIL,  CL_ROPE3, CL_ROPE,  CL_KNOT,  CL_KNOT,  CL_ROPE,  CL_ROPE3, CL_RAIL ],
+      [Z,        CL_RAIL,  CL_ROPE2, CL_ROPE3, CL_ROPE3, CL_ROPE2, CL_RAIL,  Z       ],
+    ], 4, 'curled_ladder'));
+
     this.textures.set('cobblestone', this.createColorTexture(0x9B8B72, 32, 32, 'checker'));
     this.textures.set('farmland', this.createColorTexture(0x6D4C41, 32, 32, 'noise'));
     this.textures.set('dark_grass', this.createColorTexture(0x2E7D32, 32, 32, 'noise'));
@@ -2835,6 +2861,8 @@ export class AssetManager {
       [C,       PAPER_H, PAPER,   PAPER,   PAPER_H, PAPER,   SEAL,    C],
       [C,       C,       PAPER_S, PAPER_H, PAPER,   PAPER_S, C,       C],
     ], 4, 'loose_pages'));
+    this.textures.set('manuscript_fragment', this.textures.get('loose_pages')!);
+    this.textures.set('hunters_manuscript', this.textures.get('loose_pages')!);
 
     // Blighted Root Shard — gnarled dark bark fragment with pulsing green corruption veins
     const BR_BARK  = 0x3E2723;   // dark bark

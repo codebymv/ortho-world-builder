@@ -68,7 +68,7 @@ export function runRuntimeLoopTail({
   dayNightCycle.update(deltaTime, playerPosition.x, playerPosition.y);
   floatingText.update(deltaTime);
   particleSystem.update(deltaTime);
-  worldItemRenderer.update(state.worldItems, state.currentMap, assetManager, currentTime);
+  worldItemRenderer.update(state.worldItems, state.currentMap, assetManager, currentTime, getVisualYAt);
 
   let nextAutoSaveTime = lastAutoSaveTime;
   if (currentTime - nextAutoSaveTime >= autoSaveInterval) {

@@ -418,6 +418,13 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     biomeAmbience.setBiome(MAP_BIOMES[startMap] || 'grassland');
     dayNightCycle.setIndoor(startMap.startsWith('interior_'));
 
+    // Align BGM with the bootstrapped map. useGameMusic's effect runs before this setup (hook order)
+    // and initializes audio with `village` while gameStateRef is still null, so loads that restore
+    // `forest` (etc.) would keep Greenleaf's track until the next exterior transition.
+    if (!startMap.startsWith('interior_')) {
+      switchMusicTrack(startMap);
+    }
+
     const worldItemRenderer = createWorldItemRenderer(scene);
 
     let disposed = false;
@@ -560,9 +567,10 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       syncWhisperingWoodsShortcutState,
       syncGroveShelfShortcutState,
       syncHollowShortcutState,
+      syncHollowApproachLadderState,
       syncForestFortGateState,
       syncHollowFogGateState,
-      syncHollowArenaExitState,
+      syncHollowArenaVictoryPortalState,
       syncVillageReactivityState,
       syncOpenedChestState,
       syncHarvestedTempestGrassState,
@@ -657,6 +665,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       performAttack,
       performChargeAttack,
       triggerComboChain,
+      onEnemyKilled,
       restAtBonfire,
       travelToBonfire,
     } = (() => {
@@ -690,9 +699,10 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncWhisperingWoodsShortcutState,
           syncGroveShelfShortcutState,
           syncHollowShortcutState,
+          syncHollowApproachLadderState,
           syncForestFortGateState,
           syncHollowFogGateState,
-          syncHollowArenaExitState,
+          syncHollowArenaVictoryPortalState,
           handleMapTransition,
           healCooldowns,
           hasDialogue: interactionId => Boolean(dialogues[interactionId]),
@@ -753,6 +763,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           performAttack: () => {},
           performChargeAttack: () => {},
           triggerComboChain: () => null,
+          onEnemyKilled: () => {},
           restAtBonfire: () => {},
           travelToBonfire: () => {},
         };
@@ -906,16 +917,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             particleSystem.emitDamage(new THREE.Vector3(enemy.position.x, enemy.position.y, 0.3));
             particleSystem.emitSparkles(new THREE.Vector3(enemy.position.x, enemy.position.y + 0.3, 0.5));
             if (result.killed) {
-              const nextKillCount = killCountRef.current + 1;
-              killCountRef.current = nextKillCount;
-              killCount = nextKillCount;
-              enemyAudio.playDefeat(enemy);
-              enemyAudio.clearEnemy(enemy.id);
-              notify(`Defeated ${enemy.name}!`, {
-                id: 'enemy-kill',
-                description: enemy.essenceReward > 0 ? `+${enemy.essenceReward} essence` : undefined,
-                duration: 2000,
-              });
+              onEnemyKilled(enemy);
             }
           },
           onLungeEnd: () => {

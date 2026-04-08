@@ -20,7 +20,7 @@ export const interiorHollowArenaDef: MapDefinition = {
     { x: 10, y: 10, width: 16, height: 16, type: 'clearing', fill: 'mossy_stone' },
     { x: 13, y: 13, width: 10, height: 10, type: 'clearing', fill: 'ruins_floor' },
   ],
-  portals: [{ x: 18, y: 34, targetMap: 'forest', targetX: 122, targetY: 20 }],
+  portals: [],
   chests: [],
   interactables: [],
   props: [

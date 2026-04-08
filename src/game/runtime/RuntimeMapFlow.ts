@@ -282,6 +282,29 @@ export function createRuntimeMapFlow({
   // back to the bonfire. No separate shortcut gate needed. Kept as stub for plumbing.
   const syncHollowShortcutState = () => {};
 
+  const syncHollowApproachLadderState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const extended = state.getFlag('hollow_approach_ladder_extended');
+    const tx = 118;
+    const ty = 106;
+    const row = map.tiles[ty];
+    if (!row) return;
+    const el = row[tx]?.elevation ?? 1;
+    if (extended) {
+      row[tx] = { type: 'ladder' as TileType, walkable: true, elevation: el };
+    } else {
+      row[tx] = {
+        type: 'curled_ladder' as TileType,
+        walkable: false,
+        elevation: el,
+        interactable: true,
+        interactionId: 'hollow_approach_ladder',
+      };
+    }
+    world.rebuildChunks();
+  };
+
   const syncOpenedChestState = () => {
     const map = world.getCurrentMap();
     let changed = false;
@@ -585,12 +608,20 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
+  // TODO: replace targetMap/targetX/targetY with the actual next area once it is built.
+  const HOLLOW_VICTORY_PORTAL_TARGET = { targetMap: 'ruins', targetX: 100, targetY: 110 } as const;
+
   const syncHollowFogGateState = () => {
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
     const defeated = state.getFlag('hollow_guardian_defeated');
     const GATE_Y = 18;
     const GATE_CX = 122;
+    // Portal tile lives in the hollow camp, just south of the old chest (world y≈-127).
+    const CAMP_PORTAL_X = 122;
+    const CAMP_PORTAL_Y = 23;
+
+    // Gate tiles — open to dark_grass when defeated, fog_gate when not.
     for (let dx = -2; dx <= 2; dx++) {
       const tx = GATE_CX + dx;
       const row = map.tiles[GATE_Y];
@@ -608,28 +639,43 @@ export function createRuntimeMapFlow({
         };
       }
     }
+
+    // Victory portal — placed in the hollow camp after boss defeat.
+    const campRow = map.tiles[CAMP_PORTAL_Y];
+    if (campRow) {
+      const el = campRow[CAMP_PORTAL_X]?.elevation ?? 0;
+      if (defeated) {
+        campRow[CAMP_PORTAL_X] = {
+          type: 'portal' as TileType,
+          walkable: true,
+          elevation: el,
+          transition: { ...HOLLOW_VICTORY_PORTAL_TARGET },
+        };
+      } else {
+        campRow[CAMP_PORTAL_X] = { type: 'dark_grass' as TileType, walkable: true, elevation: el };
+      }
+    }
+
     world.rebuildChunks();
   };
 
-  const syncHollowArenaExitState = () => {
+  const syncHollowArenaVictoryPortalState = () => {
     if (state.currentMap !== 'interior_hollow_arena') return;
     const map = world.getCurrentMap();
-    const exitY = 34;
-    const exitX = 18;
-    const row = map.tiles[exitY];
+    const portalX = 18;
+    const portalY = 18;
+    const row = map.tiles[portalY];
     if (!row) return;
-    const el = row[exitX]?.elevation ?? 0;
+    const el = row[portalX]?.elevation ?? 0;
     if (state.getFlag('hollow_guardian_defeated')) {
-      row[exitX] = {
-        type: 'door_interior' as TileType,
+      row[portalX] = {
+        type: 'portal' as TileType,
         walkable: true,
         elevation: el,
-        transition: { targetMap: 'forest', targetX: 122, targetY: 20 },
-        interactable: true,
-        interactionId: 'building_exit',
+        transition: { ...HOLLOW_VICTORY_PORTAL_TARGET },
       };
     } else {
-      row[exitX] = { type: 'dead_tree' as TileType, walkable: false, elevation: el };
+      row[portalX] = { type: 'ruins_floor' as TileType, walkable: true, elevation: el };
     }
     world.rebuildChunks();
   };
@@ -652,6 +698,24 @@ export function createRuntimeMapFlow({
     }
   };
 
+  const syncPreplacedWorldItems = () => {
+    const PREPLACED: Array<{ itemId: string; collectedFlag: string; mapId: string; x: number; y: number }> = [
+      { itemId: 'manuscript_fragment', collectedFlag: 'manuscript_fragment_collected', mapId: 'interior_hunter_cottage', x: 0.5, y: -0.5 },
+      { itemId: 'hunters_manuscript', collectedFlag: 'hunters_manuscript_collected', mapId: 'forest', x: -28, y: -128 },
+    ];
+    for (const entry of PREPLACED) {
+      if (state.getFlag(entry.collectedFlag)) continue;
+      if (state.worldItems.some(wi => wi.itemId === entry.itemId && wi.mapId === entry.mapId)) continue;
+      state.worldItems.push({
+        instanceId: `preplaced_${entry.itemId}_${entry.mapId}`,
+        itemId: entry.itemId,
+        mapId: entry.mapId,
+        x: entry.x,
+        y: entry.y,
+      });
+    }
+  };
+
   const syncPersistentMapState = () => {
     syncShadowCastleGateState();
     syncWhisperingWoodsShortcutState();
@@ -659,13 +723,15 @@ export function createRuntimeMapFlow({
     syncHollowShortcutState();
     syncForestFortGateState();
     syncHollowFogGateState();
-    syncHollowArenaExitState();
+    syncHollowArenaVictoryPortalState();
     syncVillageReactivityState();
     syncVillageInteriorReactivityState();
     syncOpenedChestState();
     syncHarvestedTempestGrassState();
     syncHarvestedMoonbloomState();
     syncBonfireKindledState();
+    syncPreplacedWorldItems();
+    syncHollowApproachLadderState();
   };
 
   const respawnEnemiesForCurrentMap = (targetMap: string, map: WorldMap) => {
@@ -696,16 +762,15 @@ export function createRuntimeMapFlow({
         });
       };
 
-      // Fixed faction skirmish on the river road near world ~(64, 0).
-      // Explicit positions avoid random zone placement failing on this narrow corridor.
+      // Fixed faction skirmish on the river road — shifted west to avoid accidental triggering.
       // Undead side — 3 regular skeletons + 1 captain
-      spawnBattleEnemy('skeleton', { x: 58.5, y: -0.6 }, 'undead');
-      spawnBattleEnemy('skeleton', { x: 59.8, y: 0.4 }, 'undead');
-      spawnBattleEnemy('skeleton', { x: 57.5, y: 0.8 }, 'undead');
-      spawnBattleEnemy('skeleton_captain', { x: 59.0, y: 0.0 }, 'undead');
+      spawnBattleEnemy('skeleton', { x: 50.5, y: -0.6 }, 'undead');
+      spawnBattleEnemy('skeleton', { x: 51.8, y: 0.4 }, 'undead');
+      spawnBattleEnemy('skeleton', { x: 49.5, y: 0.8 }, 'undead');
+      spawnBattleEnemy('skeleton_captain', { x: 51.0, y: 0.0 }, 'undead');
       // Beast side — 2 armored wolves
-      spawnBattleEnemy('armored_wolf', { x: 66.2, y: -0.3 }, 'beast');
-      spawnBattleEnemy('armored_wolf', { x: 67.1, y: 0.7 }, 'beast');
+      spawnBattleEnemy('armored_wolf', { x: 57.2, y: -0.3 }, 'beast');
+      spawnBattleEnemy('armored_wolf', { x: 58.1, y: 0.7 }, 'beast');
     }
 
     // Boss arena: spawn the Hollow Guardian at the arena center
@@ -764,9 +829,10 @@ export function createRuntimeMapFlow({
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
     syncHollowShortcutState,
+    syncHollowApproachLadderState,
     syncForestFortGateState,
     syncHollowFogGateState,
-    syncHollowArenaExitState,
+    syncHollowArenaVictoryPortalState,
     syncVillageReactivityState,
     syncVillageInteriorReactivityState,
     syncOpenedChestState,

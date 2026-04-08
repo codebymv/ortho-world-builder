@@ -36,9 +36,11 @@ interface InteractionSystemContext {
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
   syncHollowShortcutState: () => void;
+  syncHollowApproachLadderState: () => void;
   syncForestFortGateState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
   hasDialogue: (interactionId: string) => boolean;
+  onWorldItemPickup?: (itemId: string) => void;
 }
 
 export function createInteractionSystem(context: InteractionSystemContext) {
@@ -176,10 +178,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       duration: 3000,
     });
     context.triggerUIUpdate();
-
-    if (interactionId === 'hollow_boss_chest' && context.hasDialogue('hollow_manuscript')) {
-      context.startDialogue('hollow_manuscript', undefined);
-    }
 
     return true;
   };
@@ -367,6 +365,43 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  const tryHandleHollowApproachLadder = (interactionId: string): boolean => {
+    if (interactionId !== 'hollow_approach_ladder') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('hollow_approach_ladder_extended')) {
+      context.notify('The ladder is already extended.', { id: 'ladder-already-extended', duration: 1800 });
+      return true;
+    }
+
+    // Only allow interaction from the cliff top (el1, north side).
+    // Ladder is at tileY=106 → worldY=-44. Cliff edge at tileY=107 → worldY=-43.
+    // Reject if player is south of the cliff (below it).
+    if (context.state.player.position.y > -43) {
+      context.notify('The ladder is coiled at the top of the cliff.', {
+        id: 'ladder-wrong-side',
+        description: 'You\'ll need to find another way up to reach it.',
+        duration: 2500,
+      });
+      return true;
+    }
+
+    context.state.setFlag('hollow_approach_ladder_extended', true);
+    context.syncHollowApproachLadderState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Ladder Extended');
+    context.notify('Ladder extended', {
+      id: 'hollow-approach-ladder-extended',
+      type: 'success',
+      description: 'You kick the coiled ladder over the edge. It unrolls down the cliff face — a shortcut back.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
   const tryHandleForestFortGate = (interactionId: string): boolean => {
     if (interactionId !== 'forest_fort_gate') return false;
     if (context.state.currentMap !== 'forest') return true;
@@ -471,6 +506,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
         description: itemDef.description,
         duration: 3000,
       });
+      context.onWorldItemPickup?.(wi.itemId);
       toRemove.push(wi.instanceId);
     }
 
@@ -496,6 +532,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleForestShortcutLever,
     tryHandleGroveShelfShortcutLever,
     tryHandleHollowShortcutLever,
+    tryHandleHollowApproachLadder,
     tryHandleForestFortGate,
     tryHandleHollowFogGate,
     tryHandleBlightedRoot,

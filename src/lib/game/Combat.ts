@@ -11,7 +11,7 @@ const ENEMY_MOVE_RADIUS = 0.15;
 const DORMANCY_RANGE_SQ = 40 * 40;
 // Faction enemies only begin fighting each other once the player is within this radius.
 // Keeps pre-staged battles in stasis until the player is close enough to witness the start.
-const FACTION_FIGHT_WAKE_SQ = 10 * 10;
+const FACTION_FIGHT_WAKE_SQ = 16 * 16;
 const _tmpOldPos = { x: 0, y: 0 };
 
 function trySlideEnemyMove(
@@ -68,7 +68,7 @@ export interface Enemy {
   speed: number;
   attackRange: number;
   chaseRange: number;
-  state: 'idle' | 'chasing' | 'telegraphing' | 'attacking' | 'recovering' | 'staggered' | 'dead' | 'retreating' | 'charging';
+  state: 'idle' | 'chasing' | 'telegraphing' | 'attacking' | 'recovering' | 'staggered' | 'dead' | 'retreating' | 'charging' | 'slamming';
   lastAttackTime: number;
   attackCooldown: number;
   damageFlashTimer: number;
@@ -111,6 +111,10 @@ export interface Enemy {
   factionTarget: Enemy | null;
   /** True once the player has attacked this enemy, permanently overriding faction targeting. */
   playerAggroed: boolean;
+  /** Current attack variant being telegraphed. */
+  currentAttackType: 'normal' | 'sweep' | 'nova';
+  /** Timer for the dark nova windup (slamming state). */
+  novaSlamTimer: number;
 }
 
 export interface AttackResult {
@@ -185,6 +189,8 @@ export class CombatSystem {
       faction: options.faction ?? '',
       factionTarget: null,
       playerAggroed: false,
+      currentAttackType: 'normal',
+      novaSlamTimer: 0,
     };
 
     this.enemies.push(enemy);
@@ -328,6 +334,7 @@ export class CombatSystem {
         enemy.telegraphDuration *= 0.75;
         enemy.recoverDuration *= 0.7;
         enemy.damage = Math.round(enemy.damage * 1.3);
+        enemy.behaviorOverrides = { ...enemy.behaviorOverrides, chainChance: 0.4 };
         if (onPhaseChange) onPhaseChange(enemy, 2);
       }
       // Phase 3 transition at 25% HP — second summon wave, final enrage
@@ -335,7 +342,9 @@ export class CombatSystem {
         enemy.phase = 3;
         enemy.speed *= 1.2;
         enemy.telegraphDuration *= 0.85;
+        enemy.recoverDuration *= 0.8;
         enemy.damage = Math.round(enemy.damage * 1.15);
+        enemy.behaviorOverrides = { ...enemy.behaviorOverrides, chainChance: 0.6 };
         if (onPhaseChange) onPhaseChange(enemy, 3);
       }
 
@@ -450,10 +459,14 @@ export class CombatSystem {
           updateMovementVisuals(enemy, 0, 0, false, 0);
 
           if (enemy.telegraphTimer <= 0) {
-            const extAttackRangeSq = attackRangeSq * 1.69;
+            const isSweep = enemy.currentAttackType === 'sweep';
+            const rangeMult = isSweep ? 3.0 : 1.69;
+            const extAttackRangeSq = attackRangeSq * rangeMult;
+
+            const savedDamage = enemy.damage;
+            if (isSweep) enemy.damage = Math.floor(enemy.damage * 0.7);
 
             if (enemy.factionTarget && enemy.factionTarget.state !== 'dead') {
-              // Attack the faction target instead of the player
               const ftDx = enemy.factionTarget.position.x - enemy.position.x;
               const ftDy = enemy.factionTarget.position.y - enemy.position.y;
               const ftDistSq = ftDx * ftDx + ftDy * ftDy;
@@ -472,6 +485,9 @@ export class CombatSystem {
                 }
               }
             }
+
+            enemy.damage = savedDamage;
+            enemy.currentAttackType = 'normal';
             enemy.state = 'recovering';
             enemy.recoverTimer = enemy.recoverDuration;
             enemy.attackAnimationTimer = 0.3;
@@ -491,21 +507,51 @@ export class CombatSystem {
           updateMovementVisuals(enemy, 0, 0, false, 0);
           if (enemy.recoverTimer <= 0) {
             const bo = enemy.behaviorOverrides;
-            if (enemy.type === 'hollow_guardian' && enemy.phase === 2 &&
+
+            if (enemy.type === 'hollow_guardian' && enemy.phase >= 2 &&
                 distSq <= attackRangeSq * 2.25) {
+              const isP3 = enemy.phase === 3;
               const roll = Math.random();
-              if (roll < 0.2) {
-                enemy.state = 'charging';
-                enemy.chargeSlamTimer = 0.6;
-                const dist = Math.sqrt(distSq) || 1;
-                enemy.chargeSlamTarget = { x: playerPosition.x, y: playerPosition.y };
-                break;
-              } else if (roll < 0.5) {
-                enemy.state = 'telegraphing';
-                enemy.telegraphTimer = 0.6;
+
+              // Dark nova if player is point-blank
+              const novaThreshold = isP3 ? 0.35 : 0.25;
+              if (distSq <= 1.5 * 1.5 && roll < novaThreshold) {
+                enemy.state = 'slamming';
+                enemy.novaSlamTimer = 0.5;
+                enemy.currentAttackType = 'nova';
                 break;
               }
+
+              // Charge slam
+              const chargeChance = isP3 ? 0.30 : 0.20;
+              if (roll < chargeChance + novaThreshold) {
+                enemy.state = 'charging';
+                enemy.chargeSlamTimer = 0.6;
+                enemy.chargeSlamTarget = { x: playerPosition.x, y: playerPosition.y };
+                break;
+              }
+
+              // Sweep telegraph
+              const sweepChance = isP3 ? 0.25 : 0.20;
+              if (roll < chargeChance + novaThreshold + sweepChance) {
+                enemy.state = 'telegraphing';
+                enemy.currentAttackType = 'sweep';
+                enemy.telegraphTimer = isP3 ? 0.6 : 0.7;
+                break;
+              }
+
+              // Chain telegraph
+              const chainChance = isP3 ? 0.6 : 0.4;
+              if (Math.random() < chainChance) {
+                enemy.state = 'telegraphing';
+                enemy.telegraphTimer = bo.chainTelegraph ?? enemy.telegraphDuration * 0.5;
+                break;
+              }
+
+              enemy.state = 'chasing';
+              break;
             }
+
             if (bo.retreatAfterHit && enemy.attackAnimationTimer > 0) {
               enemy.state = 'retreating';
               enemy.retreatTimer = bo.retreatDuration ?? 1.0;
@@ -518,6 +564,37 @@ export class CombatSystem {
             } else {
               enemy.state = distSq <= chaseRangeSq ? 'chasing' : 'idle';
             }
+          }
+          break;
+        }
+
+        case 'slamming': {
+          enemy.novaSlamTimer -= deltaTime;
+          updateMovementVisuals(enemy, 0, 0, false, 0);
+          if (enemy.novaSlamTimer <= 0) {
+            const novaRadius = 3.0;
+            const novaDx = playerPosition.x - enemy.position.x;
+            const novaDy = playerPosition.y - enemy.position.y;
+            const novaDistSq = novaDx * novaDx + novaDy * novaDy;
+            if (novaDistSq <= novaRadius * novaRadius && !playerInvulnerable) {
+              const novaDamage = Math.floor(enemy.damage * 1.5);
+              if (playerBlocking && this.gameState.player.guardBrokenTimer <= 0) {
+                this.gameState.player.stamina -= novaDamage * 0.8;
+                if (this.gameState.player.stamina <= 0) {
+                  this.gameState.player.stamina = 0;
+                  this.gameState.player.guardBrokenTimer = 1.2;
+                }
+                const reduced = Math.floor(novaDamage * (1 - BLOCK_DAMAGE_REDUCTION));
+                this.gameState.player.health = Math.max(0, this.gameState.player.health - reduced);
+              } else {
+                this.gameState.player.health = Math.max(0, this.gameState.player.health - novaDamage);
+              }
+              this.gameState.player.damageFlashTimer = 0.4;
+            }
+            enemy.currentAttackType = 'normal';
+            enemy.state = 'recovering';
+            enemy.recoverTimer = enemy.recoverDuration * 1.8;
+            enemy.attackAnimationTimer = 0.4;
           }
           break;
         }
@@ -584,7 +661,8 @@ export class CombatSystem {
             const cdx = enemy.chargeSlamTarget.x - enemy.position.x;
             const cdy = enemy.chargeSlamTarget.y - enemy.position.y;
             const cdist = Math.sqrt(cdx * cdx + cdy * cdy) || 1;
-            const chargeSpeed = enemy.speed * 3 * deltaTime * 60;
+            const chargeMult = enemy.type === 'hollow_guardian' && enemy.phase === 3 ? 4 : 3;
+            const chargeSpeed = enemy.speed * chargeMult * deltaTime * 60;
             const cvx = cdx / cdist;
             const cvy = cdy / cdist;
             enemy.position.x += cvx * chargeSpeed;

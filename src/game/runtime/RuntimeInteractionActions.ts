@@ -22,6 +22,7 @@ interface InteractionSystemLike {
   tryHandleForestShortcutLever: (interactionId: string) => boolean;
   tryHandleGroveShelfShortcutLever: (interactionId: string) => boolean;
   tryHandleHollowShortcutLever: (interactionId: string) => boolean;
+  tryHandleHollowApproachLadder: (interactionId: string) => boolean;
   tryHandleHollowFogGate: (interactionId: string) => boolean;
   tryHandleForestFortGate: (interactionId: string) => boolean;
   tryHandleBlightedRoot: (interactionId: string) => boolean;
@@ -239,6 +240,7 @@ export function runInteractionCheck({
     if (interactionSystem.tryHandleForestShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleGroveShelfShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleHollowShortcutLever(interactionId)) return;
+    if (interactionSystem.tryHandleHollowApproachLadder(interactionId)) return;
     if (interactionSystem.tryHandleForestFortGate(interactionId)) return;
     if (interactionSystem.tryHandleHollowFogGate(interactionId)) return;
     if (interactionSystem.tryHandleBlightedRoot(interactionId)) return;

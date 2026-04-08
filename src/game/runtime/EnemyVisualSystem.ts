@@ -115,6 +115,11 @@ export function applyEnemyVisuals({
     }
   } else if (enemy.state === 'staggered') {
     mat.color.setHex(isGolem ? 0xddaa77 : 0xaaaaee);
+  } else if ((enemy.state as string) === 'slamming') {
+    const novaTimer = (enemy as any).novaSlamTimer as number ?? 0;
+    const novaProgress = 1 - novaTimer / 0.5;
+    const flash = Math.sin(novaProgress * Math.PI * 6) * 0.4 + 0.6;
+    mat.color.setRGB(flash * 0.5, flash * 0.2, flash);
   } else if (isGolem && isPhase2) {
     // Cracked golem phase 2 idle: smoldering ember glow
     const pulse = Math.sin(currentTime / 300) * 0.1 + 0.9;
@@ -192,12 +197,12 @@ export function applyEnemyVisuals({
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
     const isBoss = enemyType === 'hollow_guardian';
-    // Phase 3 gets more dramatic swell/shake
+    const isSweep = (enemy as any).currentAttackType === 'sweep';
     const phaseMultiplier = isPhase3 ? 1.4 : isPhase2 ? 1.15 : 1.0;
-    const scaleSwellX = (isBoss ? 0.28 : 0.15) * phaseMultiplier;
-    const scaleSwellY = (isBoss ? 0.22 : 0.12) * phaseMultiplier;
+    const scaleSwellX = ((isBoss ? 0.28 : 0.15) + (isSweep ? 0.18 : 0)) * phaseMultiplier;
+    const scaleSwellY = ((isBoss ? 0.22 : 0.12) - (isSweep ? 0.06 : 0)) * phaseMultiplier;
     const windUp = isBoss ? 0.3 : 0.15;
-    const shakeBase = (isBoss ? 0.07 : 0.03) * phaseMultiplier;
+    const shakeBase = ((isBoss ? 0.07 : 0.03) + (isSweep ? 0.04 : 0)) * phaseMultiplier;
 
     const pulseBeat = telegraphProgress < 0.5
       ? Math.sin(telegraphProgress * Math.PI * 4) * 0.08
@@ -212,6 +217,9 @@ export function applyEnemyVisuals({
     const shakeIntensity = shakeBase * telegraphProgress * telegraphProgress;
     finalEnemyX += Math.sin(currentTime / 25 + seed) * shakeIntensity;
     finalEnemyY += Math.cos(currentTime / 30 + seed) * shakeIntensity;
+    if (isSweep) {
+      finalEnemyX += Math.sin(currentTime / 12 + seed) * 0.08 * telegraphProgress;
+    }
     rotation = Math.atan2(dy, dx) * (isBoss ? 0.12 : 0.08) * telegraphProgress;
   } else if (enemy.state === 'recovering') {
     if (enemy.attackAnimationTimer > 0) {
@@ -242,6 +250,16 @@ export function applyEnemyVisuals({
     const shakeAmt = 0.05;
     finalEnemyX += Math.sin(currentTime / 15 + seed) * shakeAmt;
     finalEnemyY += Math.cos(currentTime / 20 + seed) * shakeAmt * 0.5;
+  } else if ((enemy.state as string) === 'slamming') {
+    const novaTimer = (enemy as any).novaSlamTimer as number ?? 0;
+    const novaProgress = 1 - novaTimer / 0.5;
+    const expand = Math.sin(novaProgress * Math.PI) * 0.35;
+    scaleX *= 1 + expand;
+    scaleY *= 1 + expand;
+    const shakeAmt = 0.06 * novaProgress * novaProgress;
+    finalEnemyX += Math.sin(currentTime / 10 + seed) * shakeAmt;
+    finalEnemyY += Math.cos(currentTime / 12 + seed) * shakeAmt;
+    finalEnemyY += Math.sin(novaProgress * Math.PI * 3) * 0.04;
   } else {
     const breathe = Math.sin(currentTime / 800 + seed * 3);
     if (enemyType === 'hollow_guardian') {

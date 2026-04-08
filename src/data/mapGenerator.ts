@@ -72,7 +72,7 @@ export interface MapFeature {
   y: number;
   width: number;
   height: number;
-  type: 'building' | 'inn_building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'bridge_corrupted' | 'secret_cave' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano' | 'boss_arena' | 'abandoned_camp' | 'cemetery' | 'cliff_face' | 'farm' | 'iron_fence_border' | 'hedge_maze' | 'cobble_plaza' | 'forest_grove' | 'fort' | 'enchanted_grove' | 'church' | 'ruined_fort' | 'cottage' | 'watchtower' | 'broken_wagon' | 'market_stall_row';
+  type: 'building' | 'inn_building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'bridge_corrupted' | 'bridge_decay_blend' | 'secret_cave' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano' | 'boss_arena' | 'abandoned_camp' | 'cemetery' | 'cliff_face' | 'farm' | 'iron_fence_border' | 'hedge_maze' | 'cobble_plaza' | 'forest_grove' | 'fort' | 'enchanted_grove' | 'church' | 'ruined_fort' | 'cottage' | 'watchtower' | 'broken_wagon' | 'market_stall_row';
   tiles?: Partial<Record<string, Tile>>; // specific tile overrides by "dx,dy"
   fill?: TileType;
   border?: TileType;
@@ -440,6 +440,9 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
         break;
       case 'bridge_corrupted':
         placeBridgeCorrupted(tiles, feature);
+        break;
+      case 'bridge_decay_blend':
+        placeBridgeDecayBlend(tiles, feature);
         break;
       case 'path':
         placePath(tiles, feature);
@@ -993,6 +996,62 @@ function placeBridgeCorrupted(tiles: Tile[][], f: MapFeature) {
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         tiles[ty][tx] = createTile('bridge_corrupted', true);
       }
+    }
+  }
+}
+
+/** Deterministic 0..1 hash for tile coordinates (speckle / dither). */
+function bridgeDecayHash01(tx: number, ty: number, salt: number): number {
+  let n = (tx * 374761393 + ty * 668265263 + salt * 1442695041) >>> 0;
+  n = (n ^ (n >>> 13)) >>> 0;
+  return (n % 10000) / 10000;
+}
+
+/**
+ * Hollow entrance bridge: smooth south→north decay (intact → corrupted) with speckled mixing
+ * instead of a hard rectangle boundary. Keeps water gap at x=123–124 on the northernmost stub rows.
+ * Expects footprint x=118–129, y=81–95 (12×15) over the hollow river crossing.
+ */
+function placeBridgeDecayBlend(tiles: Tile[][], f: MapFeature) {
+  const x0 = f.x;
+  const y0 = f.y;
+  const w = f.width;
+  const h = f.height;
+  const ySouth = y0 + h - 1;
+  const span = Math.max(1, ySouth - y0);
+
+  for (let dy = 0; dy < h; dy++) {
+    const ty = y0 + dy;
+    if (ty < 0 || ty >= tiles.length) continue;
+
+    for (let dx = 0; dx < w; dx++) {
+      const tx = f.x + dx;
+      if (tx < 0 || tx >= tiles[0].length) continue;
+
+      // Northernmost rows: keep river visible between corrupted stubs (legacy gap).
+      if (ty <= y0 + 3 && tx >= 123 && tx <= 124) continue;
+
+      // y=81–83: rail columns stay clean wood; side stubs corrupted (no full-width seam).
+      if (ty <= y0 + 2) {
+        if (tx === x0 || tx === x0 + w - 1) {
+          tiles[ty][tx] = createTile('bridge', true);
+        } else if ((tx >= 119 && tx <= 122) || (tx >= 125 && tx <= 128)) {
+          tiles[ty][tx] = createTile('bridge_corrupted', true);
+        }
+        continue;
+      }
+
+      // Gradient: south (high ty) = intact, north (low ty) = corrupted.
+      const northness = (ySouth - ty) / span;
+      const smooth = northness * northness * (3 - 2 * northness);
+      const h1 = bridgeDecayHash01(tx, ty, 1);
+      const h2 = bridgeDecayHash01(tx + 3, ty - 2, 7);
+      const h3 = bridgeDecayHash01(tx - 1, ty + 5, 13);
+      const speckle = (h1 - 0.5) * 0.38 + (h2 - 0.5) * 0.22 + (h3 - 0.5) * 0.14;
+      const railBias = (tx === x0 || tx === x0 + w - 1) ? -0.2 : 0;
+      const corruptScore = smooth + speckle + railBias;
+      const useCorrupt = corruptScore > 0.47;
+      tiles[ty][tx] = createTile(useCorrupt ? 'bridge_corrupted' : 'bridge', true);
     }
   }
 }

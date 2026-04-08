@@ -71,6 +71,8 @@ export function createWorldItemRenderer(scene: THREE.Scene) {
     currentMap: string,
     assetManager: AssetManager,
     currentTime: number,
+    /** Match player/NPCs and interaction diamond — raw item.y ignores map elevation. */
+    getVisualYAt: (x: number, y: number) => number,
   ) {
     const activeIds = new Set<string>();
 
@@ -80,9 +82,10 @@ export function createWorldItemRenderer(scene: THREE.Scene) {
 
       const v = getOrCreate(item, assetManager);
 
+      const baseY = getVisualYAt(item.x, item.y);
       const bob = Math.sin(currentTime / 1000 * BOB_SPEED + v.seedOffset) * BOB_AMPLITUDE;
-      v.mesh.position.set(item.x, item.y + bob, RENDER_Z);
-      v.shadow.position.set(item.x, item.y - 0.3, RENDER_Z - 0.01);
+      v.mesh.position.set(item.x, baseY + bob, RENDER_Z);
+      v.shadow.position.set(item.x, baseY - 0.3, RENDER_Z - 0.01);
 
       // Gentle pulse scale
       const pulse = 1 + Math.sin(currentTime / 1000 * BOB_SPEED + v.seedOffset) * 0.04;

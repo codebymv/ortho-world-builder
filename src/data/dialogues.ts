@@ -380,43 +380,16 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       { 
         id: 'start', 
-        text: "Torn **manuscript pages** rest on the stand, but many are missing. The hunter's scrawl reads: '**Only a fragment** of the text survived the journey. The corruption runs deeper — I pressed north past the river, following it to its source. If these pages are found, follow the trail north. The rest of the manuscript lies beyond the **Hollow**...'",
-        responses: [{ text: "Take the Manuscript Fragment", nextId: 'complete_quest' }]
-      },
-      { 
-        id: 'complete_quest', 
-        text: "You take the **Manuscript Fragment**. The hunter's trail leads north, past the river, into the corrupted heart of the woods. The rest of the manuscript must be there.", 
-        responses: [{ text: "[Continue]", nextId: 'end' }] 
+        text: "Torn **manuscript pages** rest on the stand, but many are missing. The hunter's scrawl reads: '**Only a fragment** of the text survived the journey. The corruption runs deeper — I pressed north past the river, following it to its source. If these pages are found, follow the trail north. The rest of the manuscript lies beyond the **Hollow**...' Loose pages are scattered across the cottage floor.",
+        responses: [{ text: "[Continue]", nextId: 'end' }]
       },
       { id: 'end', text: "", responses: [] }
-    ],
-  },
-
-  hollow_manuscript: {
-    id: 'hollow_manuscript',
-    nodes: [
-      {
-        id: 'start',
-        text: "Inside the chest, beneath layers of dried moss and corruption, you find the **complete manuscript**. The hunter's final entry reads: 'The Guardian is the source — or the seal. I cannot tell which. The corruption flows from the earth itself. Take this knowledge to the elder. Let my journey mean something.'",
-        responses: [{ text: "Take the Hunter's Manuscript", nextId: 'complete_quest' }],
-      },
-      {
-        id: 'complete_quest',
-        text: "You secure the **complete Hunter's Manuscript**. Combined with the fragment, this is everything the elder needs. The path back to the village is long — but the Hollow's secrets are now yours to carry.",
-        responses: [{ text: "[Continue]", nextId: 'end' }],
-      },
-      { id: 'end', text: '', responses: [] },
     ],
   },
 
   hollow_warning_sign: {
     id: 'hollow_warning_sign',
     nodes: [{ id: 'start', text: "Carved into a weathered post: '**The trees grow sick** beyond this river. Turn back if you value your life. Those who cross do not return unchanged.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
-
-  hollow_final_camp: {
-    id: 'hollow_final_camp',
-    nodes: [{ id: 'start', text: "A dying campfire and a **broken sword** driven into the earth. The hunter's last camp. Whatever he found here, it found him first. The boss arena looms ahead.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
 
   hollow_shortcut_lever: {
@@ -1093,10 +1066,6 @@ export const dialogues: Record<string, Dialogue> = {
   forest_milestone: {
     id: 'forest_milestone',
     nodes: [{ id: 'start', text: "A moss-covered milestone. The words are barely legible: '**Whispering Woods** — Three leagues. Those who enter after dark should carry iron and regret.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
-  hollow_final_warning: {
-    id: 'hollow_final_warning',
-    nodes: [{ id: 'start', text: "Scratched into a flat stone with a blade: '**Bones of the brave litter the threshold.** The Guardian does not sleep. It does not forgive. It does not forget.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   hollow_dead_ranger: {
     id: 'hollow_dead_ranger',

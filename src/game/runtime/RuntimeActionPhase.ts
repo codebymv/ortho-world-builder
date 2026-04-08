@@ -52,9 +52,10 @@ interface RuntimeActionPhaseOptions {
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
   syncHollowShortcutState: () => void;
+  syncHollowApproachLadderState: () => void;
   syncForestFortGateState: () => void;
   syncHollowFogGateState: () => void;
-  syncHollowArenaExitState: () => void;
+  syncHollowArenaVictoryPortalState: () => void;
   handleMapTransition: (targetMap: string, targetX: number, targetY: number) => void;
   healCooldowns: MutableRefObject<Map<string, number>>;
   hasDialogue: (interactionId: string) => boolean;
@@ -115,9 +116,10 @@ export function setupRuntimeActionPhase({
   syncWhisperingWoodsShortcutState,
   syncGroveShelfShortcutState,
   syncHollowShortcutState,
+  syncHollowApproachLadderState,
   syncForestFortGateState,
   syncHollowFogGateState,
-  syncHollowArenaExitState,
+  syncHollowArenaVictoryPortalState,
   handleMapTransition,
   healCooldowns,
   hasDialogue,
@@ -188,7 +190,7 @@ export function setupRuntimeActionPhase({
     dodgeStaminaCost,
   });
 
-  const { performAttack, performChargeAttack, triggerComboChain } = createRuntimeCombatActions({
+  const { onEnemyKilled, performAttack, performChargeAttack, triggerComboChain } = createRuntimeCombatActions({
     state,
     combatSystem,
     floatingText,
@@ -274,7 +276,7 @@ export function setupRuntimeActionPhase({
       runtimeSession.lunge.hitEnemyIds.clear();
     },
     onBossDefeated: () => {
-      syncHollowArenaExitState();
+      syncHollowArenaVictoryPortalState();
       syncHollowFogGateState();
       showHeroOverlay('HOLLOW APPARITION VANQUISHED', 'The fog lifts…');
     },
@@ -314,9 +316,30 @@ export function setupRuntimeActionPhase({
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
     syncHollowShortcutState,
+    syncHollowApproachLadderState,
     syncForestFortGateState,
     showHeroOverlay,
     hasDialogue,
+    onWorldItemPickup: (itemId: string) => {
+      const CHECKMARK = '\u2713';
+      if (itemId === 'manuscript_fragment') {
+        state.setFlag('manuscript_fragment_collected', true);
+        const q = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
+        if (q) {
+          q.objectives[1] = `Find the Disparaged Cottage ${CHECKMARK}`;
+          q.objectives[2] = `Find traces of the manuscript ${CHECKMARK}`;
+          triggerUIUpdate();
+        }
+      } else if (itemId === 'hunters_manuscript') {
+        state.setFlag('hunters_manuscript_collected', true);
+        const q = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
+        if (q) {
+          q.objectives[5] = `Recover the complete manuscript ${CHECKMARK}`;
+          addMarkersFromText('Village Elder', 'village');
+          triggerUIUpdate();
+        }
+      }
+    },
   });
 
   const usePotion = createUsePotionAction({
@@ -373,6 +396,7 @@ export function setupRuntimeActionPhase({
     performAttack,
     performChargeAttack,
     triggerComboChain,
+    onEnemyKilled,
     restAtBonfire: bonfireActions.restAtBonfire,
     travelToBonfire: bonfireActions.travelToBonfire,
   };

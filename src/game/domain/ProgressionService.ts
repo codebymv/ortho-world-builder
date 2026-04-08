@@ -323,54 +323,9 @@ export function createProgressionService(context: ProgressionServiceContext) {
       }
     }
 
-    if (state.currentDialogue === 'hunter_clue' && nextId === 'complete_quest') {
-      const fragmentConfig = context.criticalPathItems.hunter_clue;
-      if (!state.getFlag(fragmentConfig.collectedFlag)) {
-        state.setFlag(fragmentConfig.collectedFlag, true);
-        if (!state.hasItem(fragmentConfig.itemId)) {
-          state.addItem({ ...context.items[fragmentConfig.itemId] });
-        }
-        context.notify('Manuscript Fragment Acquired', {
-          id: 'manuscript-fragment',
-          type: 'success',
-          description: 'Only a fragment — the rest lies beyond the river, deeper in the woods.',
-          duration: 3600,
-        });
-      }
-
-      const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
-      if (hunterQuest) {
-        hunterQuest.objectives[1] = `Find the Disparaged Cottage ${CHECKMARK}`;
-        hunterQuest.objectives[2] = `Find traces of the manuscript ${CHECKMARK}`;
-        context.triggerUIUpdate();
-        context.triggerMinimapUpdate(true);
-        shouldSave = true;
-      }
-    }
-
-    if (state.currentDialogue === 'hollow_manuscript' && nextId === 'complete_quest') {
-      const manuscriptConfig = context.criticalPathItems.hollow_manuscript;
-      if (!state.getFlag(manuscriptConfig.collectedFlag)) {
-        state.setFlag(manuscriptConfig.collectedFlag, true);
-        if (!state.hasItem(manuscriptConfig.itemId)) {
-          state.addItem({ ...context.items[manuscriptConfig.itemId] });
-        }
-        context.notify("Hunter's Manuscript Acquired", {
-          id: 'hunters-manuscript',
-          type: 'success',
-          description: 'The complete manuscript — the elder must see this.',
-          duration: 3600,
-        });
-      }
-
-      const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
-      if (hunterQuest) {
-        hunterQuest.objectives[5] = `Recover the complete manuscript ${CHECKMARK}`;
-        context.addMarkersFromText('Village Elder', 'village');
-        context.triggerUIUpdate();
-        context.triggerMinimapUpdate(true);
-        shouldSave = true;
-      }
+    if (state.currentDialogue === 'hunter_clue' && nextId === 'end') {
+      state.setFlag('hunter_clue_dialogue_seen', true);
+      shouldSave = true;
     }
 
     if (state.currentDialogue === 'elder' && nextId === 'end' && currentDialogue.node.id === 'give_second_quest') {

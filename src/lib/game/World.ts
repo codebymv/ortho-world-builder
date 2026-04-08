@@ -13,7 +13,7 @@ export type TileType =
   | 'dead_tree' | 'destroyed_house' | 'statue'
   | 'cliff' | 'cliff_edge' | 'cobblestone' | 'farmland' | 'wheat'
   | 'iron_fence' | 'hedge' | 'scarecrow' | 'windmill' | 'hay_bale' | 'lantern'
-  | 'dark_grass' | 'mossy_stone' | 'wooden_path' | 'stairs' | 'ladder'
+  | 'dark_grass' | 'mossy_stone' | 'wooden_path' | 'stairs' | 'ladder' | 'curled_ladder'
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
   | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter'
   | 'bed' | 'wardrobe' | 'fireplace' | 'weapon_rack' | 'alchemy_table' | 'cauldron'
@@ -111,7 +111,7 @@ const RENDER_RADIUS = 32;
 const CULL_RADIUS = 42;
 const MAX_TILES_PER_FRAME = 200; // steady-state budget while moving
 const INITIAL_LOAD_TILES_PER_FRAME = 320; // smoother initial/after-rebuild streaming without one-frame spikes
-const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'stairs', 'ladder']);
+const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'stairs', 'ladder', 'curled_ladder']);
 const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'bones',
   'flower',
@@ -275,12 +275,28 @@ export class World {
         ctx.fillRect(x, 0, 1, 16);
       }
     }));
+
+    // Dark lip along map-south edge of a ladder tile when the next tile down is a sheer cliff (path reads as “drop, use ladder”).
+    this.detailTextures.set('ladder_south_cliff_cue', makeCanvas(ctx => {
+      const w = 16;
+      const h = 14;
+      for (let y = 0; y < h; y++) {
+        const t = y / (h - 1);
+        const a = (1 - t) * 0.72;
+        ctx.fillStyle = `rgba(12, 8, 6, ${a})`;
+        ctx.fillRect(0, y, w, 1);
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.38)';
+      ctx.fillRect(0, h - 2, w, 2);
+    }));
   }
 
   // Shared geometry for all tile meshes
   private readonly sharedTileGeometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
   /** Shared 1×1 plane; scaled per edge to plug elevation gaps (see appendTerrainSeamFillers). */
   private readonly elevationFillerGeometry = new THREE.PlaneGeometry(this.tileSize, this.tileSize);
+  /** Thin strip across the south edge of a ladder tile (sheer cliff cue). */
+  private readonly ladderSouthCueGeometry = new THREE.PlaneGeometry(this.tileSize, 0.2);
   /** Cached gradient strips: kind + variant → texture/material (disposed in dispose()). */
   private seamFillTextureByKey = new Map<string, THREE.CanvasTexture>();
   private seamFillMaterialByKey = new Map<string, THREE.MeshBasicMaterial>();
@@ -579,6 +595,14 @@ export class World {
       scale = 2.0;
       yOffset = 0.55;
       sortTrim = 0.05;
+    } else if (tile.type === 'ladder') {
+      scale = 1.72;
+      yOffset = 0.22;
+      sortTrim = 0.07;
+    } else if (tile.type === 'curled_ladder') {
+      scale = 1.2;
+      yOffset = 0.1;
+      sortTrim = 0.1;
     } else {
       scale = 1.42;
       yOffset = 0.16;
@@ -604,6 +628,9 @@ export class World {
     baseMesh.updateMatrix();
     overlayMesh.updateMatrix();
     group.add(baseMesh, overlayMesh);
+    if (tile.type === 'ladder' && tileX !== undefined && tileY !== undefined) {
+      this.appendLadderSouthCliffCue(group, tileX, tileY);
+    }
     return group;
   }
 
@@ -765,6 +792,32 @@ export class World {
 
     addSouth();
     addEast();
+  }
+
+  /** When a ladder sits on a ledge and map-south is an unwalkable cliff, darken the south lip so the sheer face reads clearly. */
+  private appendLadderSouthCliffCue(group: THREE.Group, tileX: number, tileY: number): void {
+    const ty = tileY + 1;
+    if (ty >= this.map.height) return;
+    const south = this.map.tiles[ty]?.[tileX];
+    if (!south) return;
+    const sheer =
+      (south.type === 'cliff' || south.type === 'cliff_edge') &&
+      !south.transition &&
+      !this.isTileWalkable(south);
+    if (!sheer) return;
+
+    const tex = this.detailTextures.get('ladder_south_cliff_cue');
+    if (!tex) return;
+
+    const mat = this.getCachedMaterial(tex, 'ladder_south_cliff_cue');
+    mat.transparent = true;
+    mat.depthWrite = false;
+    const mesh = new THREE.Mesh(this.ladderSouthCueGeometry, mat);
+    this.setRenderRole(mesh, 'overlay');
+    mesh.position.set(0, -this.tileSize * 0.5 + 0.1, 0.125);
+    mesh.renderOrder = 2;
+    mesh.updateMatrix();
+    group.add(mesh);
   }
 
   private createTileObject(tile: Tile, tileX?: number, tileY?: number): THREE.Object3D | null {

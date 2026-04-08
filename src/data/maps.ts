@@ -374,25 +374,16 @@ const forestDef: MapDefinition = {
     { x: 116, y: 81, width: 18, height: 15, type: 'wall', fill: 'water' },
     // Curve 2 — river swings back north-east after the crossing
     { x: 130, y: 80, width: 10, height: 11, type: 'wall', fill: 'water' },
-    // East exit — narrows back to channel, connects to the far hollow river sections
-    { x: 134, y: 78, width: 44, height: 8, type: 'wall', fill: 'water' },
-    // Far hollow river sections (unchanged — east of the meander)
+    // East exit — runs flush into the far hollow river (x=189→190) so there is no land isthmus
+    // or extra bridge on the east; the only crossing is the decayed bridge at x=118–130.
+    { x: 134, y: 78, width: 56, height: 8, type: 'wall', fill: 'water' },
+    // Far hollow river sections (east of the meander)
     { x: 190, y: 79, width: 50, height: 6, type: 'wall', fill: 'water' },
     { x: 250, y: 78, width: 40, height: 6, type: 'wall', fill: 'water' },
-    // Decayed bridge spanning the hollow entrance (x=118–130, y=81–95).
-    // South edge at y=95 connects to cliff gap at y=96; north edge exits onto y=80 hollow ground.
-    // Bridge is intact on the approach (south) side and progressively crumbles toward the Hollow
-    // (north), with the water showing through the collapsed sections on the hollow end.
-    //
-    // South section — fully intact boarding (y=88–95, 12 wide)
-    { x: 118, y: 88, width: 12, height: 8, type: 'bridge' },
-    // Mid section — corrupted (y=84–88, 11 wide): transition zone between intact and decayed
-    { x: 119, y: 84, width: 11, height: 5, type: 'bridge_corrupted' },
-    // North decay — two corrupted stubs with river exposed between them (y=81–84)
-    { x: 119, y: 81, width: 4, height: 4, type: 'bridge_corrupted' },   // west stub
-    { x: 125, y: 81, width: 4, height: 4, type: 'bridge_corrupted' },   // east stub (gap at x=123–124)
-    // Secondary bridge east of the far river (unchanged)
-    { x: 178, y: 78, width: 6, height: 6, type: 'bridge' },
+    // Decayed bridge spanning the hollow entrance (x=118–129, y=81–95). Gradient + speckle blend
+    // (bridge_decay_blend) replaces hard rectangle boundaries — south stays mostly intact wood,
+    // north goes hollow-tainted, with mixed tiles in between. Water gap x=123–124 on north rows.
+    { x: 118, y: 81, width: 12, height: 15, type: 'bridge_decay_blend' },
 
     // === THE HOLLOW — Dark clearings and corrupted terrain (y < 75) ===
     { x: 40, y: 30, width: 30, height: 30, type: 'clearing', fill: 'dark_grass' },
@@ -443,6 +434,10 @@ const forestDef: MapDefinition = {
     { x: 4, y: 96, width: 114, height: 8, type: 'cliff_face' },
     // East segment: x=130 to map edge (just east of bridge).
     { x: 130, y: 96, width: 162, height: 8, type: 'cliff_face' },
+    // East river bank seal — vertical cliff connecting the far hollow river's south edge (y=85)
+    // to the east cliff barrier (y=96). Blocks eastern circumnavigation so the bridge is the
+    // only way into the Hollow.
+    { x: 204, y: 85, width: 4, height: 12, type: 'cliff_face' },
     // === FOREST LAKES ===
     { x: 240, y: 180, width: 20, height: 16, type: 'lake' },
     { x: 40, y: 200, width: 16, height: 12, type: 'lake' },
@@ -865,18 +860,14 @@ const forestDef: MapDefinition = {
     // Tiny sand lip under the west-grove blocker so it reads as beach, not water.
     { x: 100, y: 161, width: 1, height: 1, type: 'clearing', fill: 'sand' },
 
-    // North-bank corridor — split into two isolated landings so the continuous dirt strip
-    // no longer lets players walk from the stairway gap (x=148) east to the faction battle
-    // at world ~(64, 0). A wide cliff wall (x=218-229) seals the gap between the vertical
-    // cliff column and the fort, blocking east-west travel entirely.
-    //
-    // Segment 1: stairway landing — small pad around the ridge connector mouth.
-    { x: 144, y: 148, width: 14, height: 5, type: 'path', fill: 'dirt' },
-    // Segment 2: fort exit landing — short runway from the fort's north gate to the cliff wall.
-    { x: 229, y: 148, width: 6, height: 5, type: 'path', fill: 'dirt' },
-    // Wide cliff wall connecting the vertical column (x=218) to the fort (x=222+), extending
-    // to world x=79 / tile x=229. Placed AFTER both path segments so cliff overwrites dirt.
-    { x: 218, y: 148, width: 12, height: 5, type: 'cliff_face' },
+    // North-bank corridor — split into two segments with a stone wall plug between them.
+    // West segment: stair gap to the wall plug.
+    { x: 100, y: 148, width: 118, height: 5, type: 'path', fill: 'dirt' },
+    // Cliff sealing the corridor to the fort's NW corner tower (x=222-224, y=153+).
+    // Width covers x=218-225 so no walkable grass gap remains east of the cliff.
+    { x: 218, y: 148, width: 8, height: 5, type: 'cliff_face' },
+    // East segment: small dirt apron at the fort's north exit so exiting the fort still works.
+    { x: 228, y: 148, width: 6, height: 5, type: 'path', fill: 'dirt' },
   ],
   portals: [
     { x: 150, y: 291, targetMap: 'village', targetX: 120, targetY: 8 },
@@ -919,12 +910,12 @@ const forestDef: MapDefinition = {
     { x: 218, y: 183, interactionId: 'golem_arena_chest' },
     // Fort garrison chest — inside the gate so entry feels earned
     { x: 228, y: 161, interactionId: 'fort_garrison_chest' },
-    // Hollow boss reward — full manuscript on the approach path, clearly south of the gate terminus.
-    { x: 122, y: 22, interactionId: 'hollow_boss_chest' },
     // Hidden chest behind waterfall
     { x: 180, y: 46, interactionId: 'waterfall_hidden_chest' },
     // West grove rim — world (-52, 12); reach from inside the cordon, not the river sand pinch.
     { x: 98, y: 162, interactionId: 'west_grove_hidden_rim_chest' },
+    // Hollow approach ridge — world (-36, -44); overlooking the river / decayed bridge lane.
+    { x: 114, y: 106, interactionId: 'forest_chest_hollow_approach' },
   ],
   interactables: [
     // Moved just north of the wolf zone (y=148) so the warning precedes the threat.
@@ -977,17 +968,12 @@ const forestDef: MapDefinition = {
     { x: 140, y: 48, type: 'moonbloom', walkable: true, interactionId: 'moonbloom_pickup' },
     { x: 210, y: 107, type: 'moonbloom', walkable: true, interactionId: 'moonbloom_pickup' },
     { x: 85, y: 181, type: 'moonbloom', walkable: true, interactionId: 'moonbloom_pickup' },
-    // === THE HOLLOW — Warning sign at the new bridge entry (south side of cliff barrier) ===
-    { x: 118, y: 105, type: 'sign', walkable: false, interactionId: 'hollow_warning_sign' },
+    // === THE HOLLOW — Warning sign lower on the bridge approach (world y ~= -50) ===
+    { x: 118, y: 100, type: 'sign', walkable: false, interactionId: 'hollow_warning_sign' },
     // Hollow shortcut lever removed — fog gate clears after boss defeat; corridor is open.
-    // === THE HOLLOW — Hunters final camp (just before boss arena) ===
-    { x: 120, y: 26, type: 'campfire', walkable: false, interactionId: 'hollow_final_camp' },
 
     // === SOUTH ENTRY CORRIDOR — environmental storytelling ===
     { x: 148, y: 270, type: 'sign', walkable: false, interactionId: 'forest_milestone' },
-
-    // === HOLLOW APPROACH — bloodstain and final warning ===
-    { x: 122, y: 26, type: 'sign', walkable: false, interactionId: 'hollow_final_warning' },
 
     // === WITCH COTTAGE SURROUNDS ===
     { x: 232, y: 134, type: 'cauldron', walkable: false, interactionId: 'witch_cauldron' },
@@ -1017,7 +1003,12 @@ const forestDef: MapDefinition = {
     { x: 122, y: 110, type: 'lantern', walkable: true },
     { x: 122, y: 106, type: 'lantern', walkable: true },
     { x: 122, y: 100, type: 'lantern', walkable: true },
+    // Tighten the hollow-approach ladder funnel: signs are soft/walkable, so add hard blockers
+    // on the east side to stop side-slipping past the ledge lip.
+    { x: 119, y: 105, type: 'rock', walkable: false },
+    { x: 119, y: 106, type: 'rock', walkable: false },
     // Hollow approach and shortcut hints are atmosphere, not direct interactables.
+    { x: 120, y: 26, type: 'campfire', walkable: false },
     { x: 124, y: 28, type: 'bloodstain', walkable: true },
     { x: 130, y: 203, type: 'bloodstain', walkable: true },
     { x: 144, y: 268, type: 'lantern', walkable: false },
@@ -1035,8 +1026,6 @@ const forestDef: MapDefinition = {
     { x: 152, y: 152, type: 'lantern', walkable: false },
     { x: 152, y: 132, type: 'lantern', walkable: false },
     { x: 152, y: 112, type: 'lantern', walkable: false },
-    { x: 118, y: 85, type: 'lantern', walkable: false },
-    { x: 122, y: 85, type: 'lantern', walkable: false },
     { x: 74, y: 40, type: 'bones_pile', walkable: true },
     { x: 82, y: 38, type: 'dead_tree', walkable: false },
     { x: 84, y: 42, type: 'cage', walkable: false },
@@ -1185,7 +1174,6 @@ const forestDef: MapDefinition = {
     { x: 160, y: 122, type: 'dead_tree', walkable: false },
     { x: 164, y: 124, type: 'dead_tree', walkable: false },
     { x: 96, y: 110, type: 'lantern', walkable: false },
-    { x: 204, y: 88, type: 'lantern', walkable: false },
     { x: 202, y: 258, type: 'crate', walkable: false },
     { x: 206, y: 258, type: 'barrel', walkable: false },
     { x: 246, y: 268, type: 'lantern', walkable: false },
@@ -1595,7 +1583,13 @@ const forestDef: MapDefinition = {
     { x: 223, y: 112, width: 5, height: 6, elevation: 1 },
     // Funnel-drop stair at x=110 removed — it read as stray steps into the river; el1↔el0
     // along the shelf is handled by the cliff seam + south-bank corridor without that block.
+    // Hollow approach: stairway west of the ridge chest so the player can ascend to el1.
+    // South face of north highlands (y=2, h=106) is y=107; stampCliffs puts cliff_edge at y=107
+    // and cliff wall at y=108-110 (depth 2+1=3). Stair spans y=107..110 to overwrite the full
+    // cliff face. Width 6 matches standard stairway sizing.
+    { x: 110, y: 107, width: 6, height: 4, elevation: 1 },
   ],
+  ladders: [],
   enemyZones: [
     // Zones are spread by quadrant / POI so packs are not stacked on one choke (esp. north gate).
 
@@ -1626,9 +1620,6 @@ const forestDef: MapDefinition = {
     // Very tight chaseRange (2.8) — only aggros on direct approach; easily missed.
     // Faces south (cliff wall) by default. A dripfeed of the Hollow section.
     { x: 107, y: 190, width: 6, height: 2, enemyType: 'shadow_lurker', count: 1 },
-
-    // North — Hollow shadows near fog gate
-    { x: 96, y: 4, width: 60, height: 16, enemyType: 'shadow', count: 8 },
 
     // West — hidden grove plants
     { x: 18, y: 124, width: 22, height: 18, enemyType: 'plant', count: 5 },
@@ -1665,7 +1656,10 @@ const forestDef: MapDefinition = {
     { x: 245, y: 266, width: 16, height: 14, enemyType: 'plant', count: 4 },
     { x: 175, y: 178, width: 16, height: 14, enemyType: 'spider', count: 3 },
     { x: 105, y: 178, width: 14, height: 12, enemyType: 'wolf', count: 3 },
-    { x: 142, y: 90, width: 16, height: 14, enemyType: 'shadow', count: 4 },
+    // South of the hollow river — mundane threats (not Hollow shades); same footprint as old shadow pack.
+    { x: 142, y: 90, width: 16, height: 14, enemyType: 'skeleton', count: 2 },
+    { x: 142, y: 90, width: 16, height: 14, enemyType: 'skeleton_captain', count: 1 },
+    { x: 142, y: 90, width: 16, height: 14, enemyType: 'slime', count: 1 },
 
     // SW plateau + far E trail
     { x: 36, y: 192, width: 20, height: 16, enemyType: 'wolf', count: 4 },
@@ -1677,11 +1671,11 @@ const forestDef: MapDefinition = {
 
     // AUTHORED ENCOUNTER POD 1 — mid-spine fork, first multi-enemy test
     { x: 146, y: 181, width: 6, height: 4, enemyType: 'wolf', count: 3 },
-    // AUTHORED ENCOUNTER POD 2 — river crossing approach, mixed threat
+    // AUTHORED ENCOUNTER POD 2 — river crossing approach: wolves west, undead/slime east (pre-Hollow)
     { x: 140, y: 88, width: 8, height: 6, enemyType: 'wolf', count: 2 },
-    { x: 148, y: 88, width: 8, height: 6, enemyType: 'shadow', count: 2 },
-    // AUTHORED ENCOUNTER POD 3 — hollow approach, highest pressure before boss
-    { x: 116, y: 33, width: 10, height: 8, enemyType: 'shadow', count: 4 },
+    { x: 148, y: 88, width: 8, height: 6, enemyType: 'skeleton', count: 1 },
+    { x: 148, y: 88, width: 8, height: 6, enemyType: 'slime', count: 1 },
+    // AUTHORED ENCOUNTER POD 3 — hollow approach support remains, but no shade pack behind the fog gate
     { x: 116, y: 33, width: 10, height: 8, enemyType: 'plant', count: 1 },
 
     // East ridge — wolves patrol the rocky shelf

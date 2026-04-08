@@ -39,9 +39,11 @@ interface CreateRuntimeDialogueFlowOptions {
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
   syncHollowShortcutState: () => void;
+  syncHollowApproachLadderState: () => void;
   syncForestFortGateState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
   hasDialogue: (interactionId: string) => boolean;
+  onWorldItemPickup?: (itemId: string) => void;
 }
 
 export function createRuntimeDialogueFlow({
@@ -72,9 +74,11 @@ export function createRuntimeDialogueFlow({
   syncWhisperingWoodsShortcutState,
   syncGroveShelfShortcutState,
   syncHollowShortcutState,
+  syncHollowApproachLadderState,
   syncForestFortGateState,
   showHeroOverlay,
   hasDialogue,
+  onWorldItemPickup,
 }: CreateRuntimeDialogueFlowOptions) {
   const progressionService = createDialogueProgression();
 
@@ -126,9 +130,11 @@ export function createRuntimeDialogueFlow({
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
     syncHollowShortcutState,
+    syncHollowApproachLadderState,
     syncForestFortGateState,
     showHeroOverlay,
     hasDialogue,
+    onWorldItemPickup,
   });
 
   return {

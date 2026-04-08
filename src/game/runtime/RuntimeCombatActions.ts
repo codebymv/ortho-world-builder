@@ -19,6 +19,7 @@ type PlayerAnimState =
 
 interface CombatSystemLike {
   getEnemiesInRange: (position: { x: number; y: number }, range: number) => Enemy[];
+  getAllEnemies: () => Enemy[];
   playerAttack: (
     enemy: Enemy,
     damage: number,
@@ -198,6 +199,12 @@ export function createRuntimeCombatActions({
           40, 0x7C4DFF, 0.12, 2.0, 1.5,
         );
         if (onBossDefeated) onBossDefeated();
+        for (const e of combatSystem.getAllEnemies()) {
+          if (e.id !== enemy.id && e.state !== 'dead') {
+            e.health = 0;
+            e.state = 'dead';
+          }
+        }
       }
     }
 

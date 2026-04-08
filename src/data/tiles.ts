@@ -65,6 +65,7 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   rug: { isOverlay: true, baseTile: 'wood_floor', scale: 0.95, sortTrim: 0.26 },
   counter: { isOverlay: true, baseTile: 'wood_floor', scale: 0.95, sortTrim: 0.16 },
   ladder: { isOverlay: true, baseTile: 'wood', scale: 1.0, sortTrim: 0.14 },
+  curled_ladder: { isOverlay: true, baseTile: 'grass', scale: 1.0, sortTrim: 0.14 },
   bed: { isOverlay: true, baseTile: 'wood_floor', scale: 1.4, sortTrim: 0.08 },
   wardrobe: { isOverlay: true, baseTile: 'wood_floor', scale: 1.2, sortTrim: 0.1 },
   fireplace: { isOverlay: true, baseTile: 'stone', scale: 1.3, sortTrim: 0.1 },
