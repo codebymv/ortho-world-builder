@@ -35,6 +35,7 @@ interface ProgressionServiceContext {
   triggerUIUpdate: () => void;
   triggerMinimapUpdate: (reset: boolean) => void;
   syncVillageReactivity?: () => void;
+  syncBlightedRootState?: () => void;
 }
 
 interface DialogueResponseResult {
@@ -430,6 +431,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
     if (state.currentDialogue === 'blighted_root' && currentDialogue.node.id === 'destroy' && nextId === 'end') {
       if (!state.getFlag('blighted_root_destroyed')) {
         state.setFlag('blighted_root_destroyed', true);
+        context.syncBlightedRootState?.();
       }
       let blightedRootProgress = false;
       // Grant the quest item whenever it is still missing (decoupled from flag — avoids softlocks).

@@ -172,4 +172,12 @@ export const items: Record<string, Item> = {
     type: 'quest',
     sprite: 'map',
   },
+
+  heretical_essence_apparition: {
+    id: 'heretical_essence_apparition',
+    name: 'Heretical Essence of the Apparition',
+    description: 'A condensed wisp of forbidden power torn from the Hollow Apparition. It pulses with a cold, violet light and hums with the memory of the guardian that once protected this place.',
+    type: 'quest',
+    sprite: 'heretical_essence_apparition',
+  },
 };

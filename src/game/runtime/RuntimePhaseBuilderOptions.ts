@@ -133,6 +133,10 @@ export interface BuildRuntimePhaseContextsOptions {
   enemyVisuals: EnemyVisualRegistry;
   enemyAudio: EnemyLoopContext['enemyAudio'];
   playPlayerHit: () => void;
+  playPropBreak?: () => void;
+  startStormLoop?: () => void;
+  stopStormLoop?: () => void;
+  playThunder?: () => void;
   shadowGeometry: THREE.BufferGeometry;
   shadowMaterial: THREE.MeshBasicMaterial;
   createOutlineMesh: (geometry: THREE.BufferGeometry, texture: THREE.Texture | null) => THREE.Mesh;

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GameState } from './GameState';
 import { SpatialHash } from './SpatialHash';
 import { World } from './World';
+import { breakTilesInRadius } from '@/game/runtime/BreakableProps';
 
 type CardinalDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -219,7 +220,9 @@ export class CombatSystem {
     blockStartTime: number = 0,
     world?: World,
     onPhaseChange?: (enemy: Enemy, phase: number) => void,
-    stealthDetectionMult: number = 1.0
+    stealthDetectionMult: number = 1.0,
+    particleSystem?: { emit(position: THREE.Vector3, count: number, color: number, lifetime: number, speed: number, spread: number): void },
+    playPropBreak?: () => void,
   ): { parried: boolean; parryEnemyId: string | null } {
     const updateMovementVisuals = (enemy: Enemy, vx: number, vy: number, moving: boolean, cadence: number) => {
       if (moving) {
@@ -573,6 +576,9 @@ export class CombatSystem {
           updateMovementVisuals(enemy, 0, 0, false, 0);
           if (enemy.novaSlamTimer <= 0) {
             const novaRadius = 3.0;
+            if (world && particleSystem) {
+              breakTilesInRadius(world, world.getCurrentMap(), enemy.position.x, enemy.position.y, novaRadius, particleSystem, playPropBreak);
+            }
             const novaDx = playerPosition.x - enemy.position.x;
             const novaDy = playerPosition.y - enemy.position.y;
             const novaDistSq = novaDx * novaDx + novaDy * novaDy;
@@ -630,6 +636,9 @@ export class CombatSystem {
           enemy.chargeSlamTimer -= deltaTime;
           if (enemy.chargeSlamTimer <= 0 || !enemy.chargeSlamTarget) {
             const slamRange = 2.5;
+            if (world && particleSystem) {
+              breakTilesInRadius(world, world.getCurrentMap(), enemy.position.x, enemy.position.y, slamRange, particleSystem, playPropBreak);
+            }
             const slamDx = playerPosition.x - enemy.position.x;
             const slamDy = playerPosition.y - enemy.position.y;
             const slamDistSq = slamDx * slamDx + slamDy * slamDy;

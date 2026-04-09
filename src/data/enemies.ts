@@ -183,7 +183,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
   golem: {
     type: 'golem',
     name: 'Stone Golem',
-    hp: 280,
+    hp: 340,
     damage: 28,
     sprite: 'enemy_golem',
     speed: 0.016,

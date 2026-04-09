@@ -45,6 +45,28 @@ function resolveSpriteKey(enemy: Enemy, enemyType: string): string {
           : 0;
     return `enemy_${enemyType}_${enemy.facing}_${animState}_${animFrame}`;
   }
+  if (enemyType === 'golem') {
+    const phase = ((enemy as any).phase as number ?? 1);
+    const prefix = phase >= 2 ? 'enemy_golem_phase2' : 'enemy_golem';
+    if (enemy.state === 'staggered') return `${prefix}_stagger`;
+    if (enemy.state === 'telegraphing') return `${prefix}_telegraph`;
+    if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return `${prefix}_attack`;
+    if (enemy.moveBlend > 0.25) {
+      const frame = Math.floor(enemy.moveCycle * 0.4) % 2;
+      return `${prefix}_walk_${frame}`;
+    }
+    return prefix;
+  }
+  if (enemyType === 'stone_sentinel') {
+    if (enemy.state === 'staggered') return 'enemy_stone_sentinel_stagger';
+    if (enemy.state === 'telegraphing') return 'enemy_stone_sentinel_telegraph';
+    if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return 'enemy_stone_sentinel_attack';
+    if (enemy.moveBlend > 0.25) {
+      const frame = Math.floor(enemy.moveCycle * 0.5) % 2;
+      return `enemy_stone_sentinel_walk_${frame}`;
+    }
+    return 'enemy_stone_sentinel';
+  }
   if (enemy.state === 'telegraphing') return `${enemy.sprite}_telegraph`;
   if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return `${enemy.sprite}_attack`;
   return enemy.sprite;
@@ -91,19 +113,23 @@ export function applyEnemyVisuals({
   const isPhase2 = bossPhase === 2;
   const isPhase3 = bossPhase === 3;
   const isGolem = enemyType === 'golem';
-  if (enemy.damageFlashTimer > 0) {
+  const isStoneSentinel = enemyType === 'stone_sentinel';
+
+  if (isGolem || isStoneSentinel) {
+    // Distinct sprite frames handle all state cues — no color tinting
+    if (enemy.damageFlashTimer > 0) {
+      enemy.damageFlashTimer -= deltaTime;
+      mat.opacity = 0.5 + Math.abs(Math.sin(enemy.damageFlashTimer * 25)) * 0.5;
+    } else {
+      mat.opacity = 1.0;
+    }
+    mat.color.setHex(0xffffff);
+  } else if (enemy.damageFlashTimer > 0) {
     enemy.damageFlashTimer -= deltaTime;
-    mat.color.setHex(isGolem ? 0xff6600 : 0xff0000);
+    mat.color.setHex(0xff0000);
   } else if (enemy.state === 'telegraphing') {
     const flashPhase = enemy.telegraphTimer / enemy.telegraphDuration;
-    if (isGolem && isPhase2) {
-      // Cracked golem phase 2 telegraph: angry orange-red strobe
-      const flash = Math.sin(flashPhase * Math.PI * 9) * 0.4 + 0.6;
-      mat.color.setRGB(flash, flash * 0.5, flash * 0.1);
-    } else if (isGolem) {
-      const flash = Math.sin(flashPhase * Math.PI * 6) * 0.3 + 0.7;
-      mat.color.setRGB(flash, flash * 0.7, flash * 0.35);
-    } else if (isPhase3) {
+    if (isPhase3) {
       const flash = Math.sin(flashPhase * Math.PI * 10) * 0.45 + 0.55;
       mat.color.setRGB(flash * 0.4, flash, flash);
     } else if (isPhase2) {
@@ -114,16 +140,12 @@ export function applyEnemyVisuals({
       mat.color.setRGB(1, flash, flash);
     }
   } else if (enemy.state === 'staggered') {
-    mat.color.setHex(isGolem ? 0xddaa77 : 0xaaaaee);
+    mat.color.setHex(0xaaaaee);
   } else if ((enemy.state as string) === 'slamming') {
     const novaTimer = (enemy as any).novaSlamTimer as number ?? 0;
     const novaProgress = 1 - novaTimer / 0.5;
     const flash = Math.sin(novaProgress * Math.PI * 6) * 0.4 + 0.6;
     mat.color.setRGB(flash * 0.5, flash * 0.2, flash);
-  } else if (isGolem && isPhase2) {
-    // Cracked golem phase 2 idle: smoldering ember glow
-    const pulse = Math.sin(currentTime / 300) * 0.1 + 0.9;
-    mat.color.setRGB(pulse, pulse * 0.55, pulse * 0.2);
   } else if (isPhase3) {
     const pulse = Math.sin(currentTime / 200) * 0.15 + 0.85;
     mat.color.setRGB(pulse * 0.3, pulse, pulse);
@@ -171,12 +193,24 @@ export function applyEnemyVisuals({
         finalEnemyY += Math.sin(enemy.moveCycle * 2) * 0.012;
         rotation = moveWave * 0.03;
         break;
-      case 'golem':
-        finalEnemyY += stride * 0.03;
-        scaleX *= 1 + stride * 0.03;
-        scaleY *= 1 - stride * 0.04;
-        rotation *= 0.35;
+      case 'golem': {
+        const golemStep = Math.abs(Math.sin(enemy.moveCycle * 0.9));
+        finalEnemyY += golemStep * 0.1;
+        scaleX *= 1 + golemStep * 0.08;
+        scaleY *= 1 - golemStep * 0.1;
+        finalEnemyX += Math.sin(enemy.moveCycle * 0.9) * visual.strideAmp * (lateralBias !== 0 ? lateralBias * 0.8 : 0.4);
+        rotation = Math.sin(enemy.moveCycle * 0.9) * 0.08 * (lateralBias !== 0 ? lateralBias : 1);
         break;
+      }
+      case 'stone_sentinel': {
+        const sentinelStep = Math.abs(Math.sin(enemy.moveCycle * 1.2));
+        finalEnemyY += sentinelStep * 0.06;
+        scaleX *= 1 + sentinelStep * 0.05;
+        scaleY *= 1 - sentinelStep * 0.07;
+        finalEnemyX += Math.sin(enemy.moveCycle * 1.2) * visual.strideAmp * (lateralBias !== 0 ? lateralBias * 0.6 : 0.3);
+        rotation = Math.sin(enemy.moveCycle * 1.2) * 0.05 * (lateralBias !== 0 ? lateralBias : 1);
+        break;
+      }
       case 'hollow_guardian':
         // Shade-like ethereal float — glides rather than stomps
         finalEnemyY += Math.sin(currentTime / 200 + seed) * 0.06;
@@ -199,10 +233,10 @@ export function applyEnemyVisuals({
     const isBoss = enemyType === 'hollow_guardian';
     const isSweep = (enemy as any).currentAttackType === 'sweep';
     const phaseMultiplier = isPhase3 ? 1.4 : isPhase2 ? 1.15 : 1.0;
-    const scaleSwellX = ((isBoss ? 0.28 : 0.15) + (isSweep ? 0.18 : 0)) * phaseMultiplier;
-    const scaleSwellY = ((isBoss ? 0.22 : 0.12) - (isSweep ? 0.06 : 0)) * phaseMultiplier;
-    const windUp = isBoss ? 0.3 : 0.15;
-    const shakeBase = ((isBoss ? 0.07 : 0.03) + (isSweep ? 0.04 : 0)) * phaseMultiplier;
+    const scaleSwellX = ((isBoss ? 0.28 : isGolem ? 0.22 : 0.15) + (isSweep ? 0.18 : 0)) * phaseMultiplier;
+    const scaleSwellY = ((isBoss ? 0.22 : isGolem ? 0.18 : 0.12) - (isSweep ? 0.06 : 0)) * phaseMultiplier;
+    const windUp = isBoss ? 0.3 : isGolem ? 0.25 : 0.15;
+    const shakeBase = ((isBoss ? 0.07 : isGolem ? 0.06 : 0.03) + (isSweep ? 0.04 : 0)) * phaseMultiplier;
 
     const pulseBeat = telegraphProgress < 0.5
       ? Math.sin(telegraphProgress * Math.PI * 4) * 0.08
@@ -280,6 +314,18 @@ export function applyEnemyVisuals({
     } else if (enemyType === 'spider') {
       finalEnemyX += breathe * 0.015;
       rotation = breathe * 0.02;
+    } else if (enemyType === 'stone_sentinel') {
+      const sentinelBreath = Math.sin(currentTime / 1000 + seed * 3);
+      finalEnemyY += sentinelBreath * 0.028;
+      scaleX *= 1 + sentinelBreath * 0.02;
+      scaleY *= 1 - sentinelBreath * 0.018;
+      rotation = sentinelBreath * 0.006;
+    } else if (enemyType === 'golem') {
+      const slowBreath = Math.sin(currentTime / 1200 + seed * 3);
+      finalEnemyY += slowBreath * 0.035;
+      scaleX *= 1 + slowBreath * 0.025;
+      scaleY *= 1 - slowBreath * 0.02;
+      rotation = slowBreath * 0.008;
     } else {
       finalEnemyY += breathe * 0.02;
       scaleX *= 1 + breathe * 0.015;

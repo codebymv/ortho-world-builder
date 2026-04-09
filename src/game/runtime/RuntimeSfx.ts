@@ -154,7 +154,7 @@ export function createRuntimeSfx({
 
   const portalWarpSfx = createSequentialAudioPool({
     src: './audio/portal_warp.mp3',
-    volume: 0.38,
+    volume: 0.31,
     poolSize: SMALL_SFX_POOL,
     processAudioElement,
   });
@@ -191,6 +191,26 @@ export function createRuntimeSfx({
     src: './audio/gate_shortcut.mp3',
     volume: 0.52,
     poolSize: SMALL_SFX_POOL,
+    processAudioElement,
+  });
+
+  const propBreakSfx = createRandomAudioPool({
+    entries: [
+      { src: './audio/prop_break_1.mp3', volume: 0.35 },
+      { src: './audio/prop_break_2.mp3', volume: 0.35 },
+    ],
+    copiesPerEntry: SMALL_SFX_POOL,
+    processAudioElement,
+  });
+
+  const stormLoopSfx = createLoopingAudio('./audio/storm_loop.mp3', 0.50);
+
+  const thunderSfx = createRandomAudioPool({
+    entries: [
+      { src: './audio/thunder_1.mp3', volume: 0.44 },
+      { src: './audio/thunder_2.mp3', volume: 0.44 },
+    ],
+    copiesPerEntry: SMALL_SFX_POOL,
     processAudioElement,
   });
 
@@ -274,5 +294,9 @@ export function createRuntimeSfx({
     stopDialogueLoop: dialogueLoopSfx.stop,
     playMenuOpen: menuOpenSfx.play,
     playMenuClose: menuCloseSfx.play,
+    playPropBreak: propBreakSfx.play,
+    startStormLoop: stormLoopSfx.play,
+    stopStormLoop: stormLoopSfx.stop,
+    playThunder: thunderSfx.play,
   };
 }

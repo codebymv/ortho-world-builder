@@ -37,11 +37,14 @@ interface InteractionSystemContext {
   syncGroveShelfShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncHollowApproachLadderState: () => void;
+  syncCliffCorridorLadderState: () => void;
   syncForestFortGateState: () => void;
+  syncNorthFortGateState: () => void;
   syncGilrhymBossState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
   hasDialogue: (interactionId: string) => boolean;
   onWorldItemPickup?: (itemId: string) => void;
+  getAliveEnemyCountNearPlayer?: (radius: number) => number;
 }
 
 export function createInteractionSystem(context: InteractionSystemContext) {
@@ -141,6 +144,8 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       ? 85
       : interactionId.includes('ruins')
       ? 75
+      : interactionId.includes('hollow_arena')
+      ? 65
       : interactionId.includes('wolf') || interactionId.includes('shadow')
       ? 60
       : interactionId.includes('enchanted')
@@ -374,7 +379,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
-  const tryHandleHollowApproachLadder = (interactionId: string): boolean => {
+  const tryHandleHollowApproachLadder = (interactionId: string, ladderX: number, ladderY: number): boolean => {
     if (interactionId !== 'hollow_approach_ladder') return false;
     if (context.state.currentMap !== 'forest') return true;
 
@@ -383,15 +388,10 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
-    // Only allow interaction from the cliff top (el1, north side).
-    // Ladder is at tileY=106 → worldY=-44. Cliff edge at tileY=107 → worldY=-43.
-    // Reject if player is south of the cliff (below it).
-    if (context.state.player.position.y > -43) {
-      context.notify('The ladder is coiled at the top of the cliff.', {
-        id: 'ladder-wrong-side',
-        description: 'You\'ll need to find another way up to reach it.',
-        duration: 2500,
-      });
+    // Only allow from the left/west side (long way around).
+    // Reject if player is to the right/east of the ladder (short-way, unintended approach).
+    if (context.state.player.position.x > ladderX) {
+      context.startDialogue('hollow_approach_ladder_wrong_side');
       return true;
     }
 
@@ -411,6 +411,36 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  const tryHandleCliffCorridorLadder = (interactionId: string, ladderX: number, ladderY: number): boolean => {
+    if (interactionId !== 'cliff_corridor_ladder') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('cliff_corridor_ladder_extended')) {
+      context.notify('The ladder is already extended.', { id: 'cliff-ladder-already-extended', duration: 1800 });
+      return true;
+    }
+
+    if (context.state.player.position.y > ladderY) {
+      context.startDialogue('cliff_corridor_ladder_wrong_side');
+      return true;
+    }
+
+    context.state.setFlag('cliff_corridor_ladder_extended', true);
+    context.syncCliffCorridorLadderState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Ladder Extended');
+    context.notify('Ladder extended', {
+      id: 'cliff-corridor-ladder-extended',
+      type: 'success',
+      description: 'You kick the coiled ladder over the edge. It unrolls down the cliff face — a shortcut to the terrace below.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
   const tryHandleForestFortGate = (interactionId: string): boolean => {
     if (interactionId !== 'forest_fort_gate') return false;
     if (context.state.currentMap !== 'forest') return true;
@@ -421,11 +451,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     }
 
     if (!context.state.hasItem('fort_gate_key')) {
-      context.notify('The path ahead requires a key.', {
-        id: 'fort-gate-locked',
-        description: 'The iron gate is sealed tight. Scratched markings point west — toward the chapel ruins.',
-        duration: 4000,
-      });
+      context.startDialogue('forest_fort_gate_locked');
       return true;
     }
 
@@ -433,11 +459,41 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.syncForestFortGateState();
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
-    context.showHeroOverlay('Fort Gate Opened');
+    context.showHeroOverlay('Fortress Unlocked');
     context.notify('Fort gate unlocked', {
       id: 'fort-gate-unlocked',
       type: 'success',
       description: 'The iron lock gives way. The fort is open.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
+  const tryHandleNorthFortGate = (interactionId: string): boolean => {
+    if (interactionId !== 'north_fort_gate') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('north_fort_gate_open')) {
+      context.notify('The fort gate is already open.', { id: 'north-fort-gate-open', duration: 1800 });
+      return true;
+    }
+
+    if (!context.state.hasItem('fort_gate_key')) {
+      context.startDialogue('north_fort_gate_locked');
+      return true;
+    }
+
+    context.state.setFlag('north_fort_gate_open', true);
+    context.syncNorthFortGateState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Fortress Unlocked');
+    context.notify('Fort gate unlocked', {
+      id: 'north-fort-gate-unlocked',
+      type: 'success',
+      description: 'The iron lock yields. The northern fort stands open.',
       duration: 3200,
     });
     context.triggerSave();
@@ -495,7 +551,17 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
   const tryHandleBlightedRoot = (interactionId: string): boolean => {
     if (interactionId !== 'blighted_root') return false;
-    if (!context.state.getFlag('blighted_root_destroyed')) return false;
+
+    // Gate: grove must be cleared of enemies before the root can be interacted with
+    if (!context.state.getFlag('blighted_root_destroyed')) {
+      const GROVE_CLEAR_RADIUS = 15;
+      const nearbyCount = context.getAliveEnemyCountNearPlayer?.(GROVE_CLEAR_RADIUS) ?? 0;
+      if (nearbyCount > 0) {
+        context.startDialogue('blighted_root_guarded');
+        return true;
+      }
+      return false;
+    }
 
     const quest = context.state.quests.find(q => q.id === 'blighted_heart');
     if (!quest?.completed && context.items.blighted_root_shard && !context.state.hasItem('blighted_root_shard')) {
@@ -577,7 +643,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleGroveShelfShortcutLever,
     tryHandleHollowShortcutLever,
     tryHandleHollowApproachLadder,
+    tryHandleCliffCorridorLadder,
     tryHandleForestFortGate,
+    tryHandleNorthFortGate,
     tryHandleHollowFogGate,
     tryHandleGilrhymShortcutLever,
     tryHandleBlightedRoot,

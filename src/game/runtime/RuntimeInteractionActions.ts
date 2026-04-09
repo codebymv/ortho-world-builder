@@ -23,8 +23,10 @@ interface InteractionSystemLike {
   tryHandleGroveShelfShortcutLever: (interactionId: string) => boolean;
   tryHandleHollowShortcutLever: (interactionId: string) => boolean;
   tryHandleHollowApproachLadder: (interactionId: string) => boolean;
+  tryHandleCliffCorridorLadder: (interactionId: string, ladderX: number, ladderY: number) => boolean;
   tryHandleHollowFogGate: (interactionId: string) => boolean;
   tryHandleForestFortGate: (interactionId: string) => boolean;
+  tryHandleNorthFortGate: (interactionId: string) => boolean;
   tryHandleBlightedRoot: (interactionId: string) => boolean;
   tryHandleDialogueInteraction: (interactionId: string) => boolean;
   tryPickupWorldItems: (x: number, y: number) => void;
@@ -240,8 +242,10 @@ export function runInteractionCheck({
     if (interactionSystem.tryHandleForestShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleGroveShelfShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleHollowShortcutLever(interactionId)) return;
-    if (interactionSystem.tryHandleHollowApproachLadder(interactionId)) return;
+    if (interactionSystem.tryHandleHollowApproachLadder(interactionId, px, py)) return;
+    if (interactionSystem.tryHandleCliffCorridorLadder(interactionId, px, py)) return;
     if (interactionSystem.tryHandleForestFortGate(interactionId)) return;
+    if (interactionSystem.tryHandleNorthFortGate(interactionId)) return;
     if (interactionSystem.tryHandleHollowFogGate(interactionId)) return;
     if (interactionSystem.tryHandleBlightedRoot(interactionId)) return;
     if (interactionSystem.tryHandleDialogueInteraction(interactionId)) return;

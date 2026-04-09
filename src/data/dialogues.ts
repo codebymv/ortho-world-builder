@@ -367,6 +367,14 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'danger_sign',
     nodes: [{ id: 'start', text: "**WARNING:** __Wolf territory__ ahead. The ruin road is faster, but only experienced hunters should proceed.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
+  north_gate_sign: {
+    id: 'north_gate_sign',
+    nodes: [{ id: 'start', text: "A weathered post marks the village boundary: __\"Northern Trail — Whispering Woods Ahead.\"__ Below, in smaller letters: _\"Travel with caution. Report sightings to the Elder.\"_", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
+  forest_farewell_sign: {
+    id: 'forest_farewell_sign',
+    nodes: [{ id: 'start', text: "The last signpost before the treeline. Moss has nearly consumed the words: __\"Beyond lies the Whispering Woods.\"__ Scratched beneath in shaky handwriting: _\"The Elder prays for your return.\"_", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
   destroyed_town_sign: {
     id: 'destroyed_town_sign',
     nodes: [{ id: 'start', text: "A broken road marker lists no village name, only a warning carved later by an unsteady hand: '__Do not rebuild here.__ The dead were walking before the roofs were cold.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
@@ -409,7 +417,7 @@ export const dialogues: Record<string, Dialogue> = {
 
   hollow_hunters_final_camp: {
     id: 'hollow_hunters_final_camp',
-    nodes: [{ id: 'start', text: "The hunter's final resting place before the arena. His pack is here, empty. Only the trail markers remain — and whatever waits ahead.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: 'An abandoned camp. Nothing useful remains.', responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   witch_sign: {
     id: 'witch_sign',
@@ -1216,10 +1224,6 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'cliff_sanctum_warning',
     nodes: [{ id: 'start', text: "Scratched into a broken stone slab: '**DO NOT DESCEND.** The plateau below belongs to the __Stone Sentinels__ now. They do not sleep, they do not tire, and they do not forget a face that has passed through here alive. — Last garrison ranger'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
-  cliff_top_sentinel_chest: {
-    id: 'cliff_top_sentinel_chest',
-    nodes: [{ id: 'start', text: "A commander's lockbox, half-buried in collapsed masonry. The latch is rusted but the contents are intact. Whoever left it here did not come back for it.", responses: [{ text: "[Open]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
   grove_warden: {
     id: 'grove_warden',
     nodes: [
@@ -1323,6 +1327,66 @@ export const dialogues: Record<string, Dialogue> = {
         id: 'after_delivery',
         text: "I'll need three pack mules just to get this back to Ashfen. Worth every step. The Compendium thanks you.",
         responses: [{ text: "Good luck.", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  hollow_approach_ladder_wrong_side: {
+    id: 'hollow_approach_ladder_wrong_side',
+    nodes: [
+      {
+        id: 'start',
+        text: "A coiled rope ladder hangs from the cliff edge above, its rungs bound tight. The anchor is bolted into the rock on the far side — you'd need to reach the top to kick it loose.",
+        responses: [{ text: "[Step back]", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  cliff_corridor_ladder_wrong_side: {
+    id: 'cliff_corridor_ladder_wrong_side',
+    nodes: [
+      {
+        id: 'start',
+        text: "A rope ladder dangles from the ridge above, its rungs coiled tight against the cliff face. The release pin is bolted into the rock at the top — there's no way to reach it from down here.",
+        responses: [{ text: "[Step back]", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  forest_fort_gate_locked: {
+    id: 'forest_fort_gate_locked',
+    nodes: [
+      {
+        id: 'start',
+        text: "The iron gate is sealed tight — heavy chains loop through the bars, held fast by a rusted lock. Scratched markings along the stone frame point west, toward the chapel ruins.",
+        responses: [{ text: "[Step back]", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  north_fort_gate_locked: {
+    id: 'north_fort_gate_locked',
+    nodes: [
+      {
+        id: 'start',
+        text: "The northern fort's gate is bound shut with iron chains. The lock bears the same crest as the southern fort — the same key should work here.",
+        responses: [{ text: "[Step back]", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  blighted_root_guarded: {
+    id: 'blighted_root_guarded',
+    nodes: [
+      {
+        id: 'start',
+        text: "The root pulses violently as you approach — dark tendrils lash outward, fed by the corrupted life surrounding it. The grove must be purged before you can tear out the shard.",
+        responses: [{ text: "[Step back]", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },
     ],

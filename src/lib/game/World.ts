@@ -13,7 +13,7 @@ export type TileType =
   | 'dead_tree' | 'destroyed_house' | 'statue'
   | 'cliff' | 'cliff_edge' | 'cobblestone' | 'farmland' | 'wheat'
   | 'iron_fence' | 'hedge' | 'scarecrow' | 'windmill' | 'hay_bale' | 'lantern'
-  | 'dark_grass' | 'mossy_stone' | 'wooden_path' | 'stairs' | 'ladder' | 'curled_ladder'
+  | 'dark_grass' | 'mossy_stone' | 'wooden_path' | 'stairs' | 'ladder' | 'curled_ladder' | 'gate_ladder' | 'gate_ladder_open'
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
   | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter'
   | 'bed' | 'wardrobe' | 'fireplace' | 'weapon_rack' | 'alchemy_table' | 'cauldron'
@@ -24,7 +24,10 @@ export type TileType =
   | 'boat_wreck' | 'dock'
   | 'cobblestone_dark' | 'brick' | 'roof_tile' | 'timber_wall'
   | 'street_lamp' | 'iron_railing' | 'fountain' | 'pillar' | 'sewer_grate' | 'hanging_sign' | 'wall_torch' | 'awning'
-  | 'rubble' | 'broken_stall' | 'crate_stack' | 'barrel_stack' | 'chimney';
+  | 'rubble' | 'broken_stall' | 'crate_stack' | 'barrel_stack' | 'chimney'
+  | 'cottage_shed'
+  | 'blighted_stump'
+  | 'observatory';
 
 /** Pass as `getInteractableNear` radius from gameplay so gates / chunky facades stay in scan + reach.
  * Must be >= every `getInteractableReach` value so the min() cap does not shrink large reaches. */
@@ -114,7 +117,7 @@ const RENDER_RADIUS = 32;
 const CULL_RADIUS = 42;
 const MAX_TILES_PER_FRAME = 200; // steady-state budget while moving
 const INITIAL_LOAD_TILES_PER_FRAME = 320; // smoother initial/after-rebuild streaming without one-frame spikes
-const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'stairs', 'ladder', 'curled_ladder']);
+const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'stairs', 'ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open']);
 const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'bones',
   'flower',
@@ -606,6 +609,15 @@ export class World {
       scale = 1.2;
       yOffset = 0.1;
       sortTrim = 0.1;
+    } else if (tile.type === 'gate_ladder') {
+      scale = 1.5;
+      yOffset = 0.18;
+      sortTrim = 0.08;
+    } else if (tile.type === 'gate_ladder_open') {
+      // Taller than plain ladder so the bottom hangs ~half a tile further south off the cliff edge.
+      scale = 2.4;
+      yOffset = 0.2;
+      sortTrim = 0.06;
     } else {
       scale = 1.42;
       yOffset = 0.16;
@@ -631,7 +643,7 @@ export class World {
     baseMesh.updateMatrix();
     overlayMesh.updateMatrix();
     group.add(baseMesh, overlayMesh);
-    if (tile.type === 'ladder' && tileX !== undefined && tileY !== undefined) {
+    if ((tile.type === 'ladder' || tile.type === 'gate_ladder_open') && tileX !== undefined && tileY !== undefined) {
       this.appendLadderSouthCliffCue(group, tileX, tileY);
     }
     return group;

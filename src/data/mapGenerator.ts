@@ -242,6 +242,12 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
             tile = createTile('rock', false);
           } else if (n3 > 0.7 && n1 > 0.6) {
             tile = createTile('tall_grass', true);
+          } else if (n1 > 0.82 && n2 < 0.35) {
+            tile = createTile('stump', false);
+          } else if (n1 < 0.08 && n3 > 0.75) {
+            tile = createTile('mushroom', true);
+          } else if (n3 > 0.78 && n1 > 0.4 && n1 < 0.5) {
+            tile = createTile('dark_grass', true);
           } else {
             tile = createTile('grass', true);
           }
@@ -363,7 +369,7 @@ function carvePath(tiles: Tile[][], x1: number, y1: number, x2: number, y2: numb
     'house_blue', 'house_blue_entry',
     'house_green', 'house_green_entry',
     'house_thatch', 'house_thatch_entry',
-    'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
+    'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined', 'cottage_shed',
     'door', 'door_interior', 'door_iron',
     'lantern', 'iron_fence', 'wood',
     'stone', 'mossy_stone', 'gate',
@@ -538,7 +544,7 @@ const HOUSE_TYPES: Set<TileType> = new Set([
   'house_blue', 'house_blue_entry',
   'house_green', 'house_green_entry',
   'house_thatch', 'house_thatch_entry',
-  'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
+  'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined', 'cottage_shed',
 ]);
 // All tile types that indicate a structure is present (for spacing checks)
 const STRUCTURE_TYPES: Set<TileType> = new Set([
@@ -546,7 +552,7 @@ const STRUCTURE_TYPES: Set<TileType> = new Set([
   'house_blue', 'house_blue_entry',
   'house_green', 'house_green_entry',
   'house_thatch', 'house_thatch_entry',
-  'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
+  'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined', 'cottage_shed',
   'destroyed_house', 'statue', 'mossy_stone', 'well',
 ]);
 const MIN_BUILDING_SPACING = 16; // minimum tiles between any two buildings (increased from 12)
@@ -712,16 +718,15 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean, 
   // The "apron" rows are bodyRows..height-1 (walkable stone floor in front of building).
   const bodyRows = Math.max(2, Math.ceil(f.height * 0.5));
 
+  const hasDoor = !!(f.interactionId || interiorPortal);
+
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-        if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
-          // Door / portal — always on the bottom-centre tile
+        if (hasDoor && dx === Math.floor(f.width / 2) && dy === f.height - 1) {
           if (interiorPortal && f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined) {
-            // Standard shop/house facades still need a visible entrance tile.
-            // Cottage-style interiors use a separate path in placeCottage().
             tiles[ty][tx] = createTile('door', true, {
               transition: { targetMap: f.interiorMap, targetX: f.interiorSpawnX, targetY: f.interiorSpawnY },
               interactable: true,
@@ -731,31 +736,28 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean, 
             tiles[ty][tx] = createTile('dirt', true, { interactable: true, interactionId: f.interactionId });
           }
         } else if (dy === facadeRow && dx >= houseStartX && dx < houseStartX + houseWidth) {
-          // Standard exteriors use a small roofline sprite at the top row.
-          // Interior shop entrances use a larger facade variant anchored near the threshold,
-          // so the overworld building reads as one coherent asset around the visible door.
-          tiles[ty][tx] = createTile(variant, false);
+          tiles[ty][tx] = hasDoor ? createTile(variant, false) : createTile('cottage_shed', false);
         } else if (dy < bodyRows) {
-          // Solid wooden wall — warm brown rather than cold grey stone
           tiles[ty][tx] = createTile('wood', false);
-        } else if (dy === f.height - 1 && (dx === Math.floor(f.width / 2) - 1 || dx === Math.floor(f.width / 2) + 1) && f.width >= 4) {
+        } else if (hasDoor && dy === f.height - 1 && (dx === Math.floor(f.width / 2) - 1 || dx === Math.floor(f.width / 2) + 1) && f.width >= 4) {
           tiles[ty][tx] = createTile(isCity ? 'street_lamp' : 'lantern', false);
         } else {
-          // Dirt path apron — earthy and walkable so players can approach freely
           tiles[ty][tx] = createTile('dirt', true);
         }
       }
     }
   }
 
-  // Place a dirt path leading from the door
-  const doorX = f.x + Math.floor(f.width / 2);
-  for (let dy = 1; dy <= 4; dy++) {
-    const ty = f.y + f.height - 1 + dy;
-    if (ty >= 0 && ty < tiles.length && doorX >= 0 && doorX < tiles[0].length) {
-      const existing = tiles[ty][doorX];
-      if (existing.walkable || existing.type === 'grass' || existing.type === 'tall_grass') {
-        tiles[ty][doorX] = createTile('dirt', true);
+  // Only stamp a dirt approach path for buildings that have a door
+  if (hasDoor) {
+    const doorX = f.x + Math.floor(f.width / 2);
+    for (let dy = 1; dy <= 4; dy++) {
+      const ty = f.y + f.height - 1 + dy;
+      if (ty >= 0 && ty < tiles.length && doorX >= 0 && doorX < tiles[0].length) {
+        const existing = tiles[ty][doorX];
+        if (existing.walkable || existing.type === 'grass' || existing.type === 'tall_grass') {
+          tiles[ty][doorX] = createTile('dirt', true);
+        }
       }
     }
   }
@@ -1393,8 +1395,11 @@ function placeAbandonedCamp(tiles: Tile[][], f: MapFeature) {
   // Extinguished campfire center
   const ccx = f.x + Math.floor(f.width / 2);
   const ccy = f.y + Math.floor(f.height / 2);
-  if (ccy < tiles.length && ccx < tiles[0].length) {
-    tiles[ccy][ccx] = createTile('stump', false, { interactable: true, interactionId: f.interactionId || 'abandoned_camp' });
+  if (f.interactionId && ccy < tiles.length && ccx < tiles[0].length) {
+    tiles[ccy][ccx] = createTile('bonfire_unlit', false, {
+      interactable: true,
+      interactionId: f.interactionId,
+    });
   }
 }
 
@@ -1587,7 +1592,25 @@ function placeCobblePlaza(tiles: Tile[][], f: MapFeature, baseTerrain?: string) 
             tiles[ty][tx] = createTile('cobblestone', true);
           }
         } else {
-          tiles[ty][tx] = createTile('cobblestone', true);
+          // Grassland plaza: add benches, lanterns, accent tiles, center well
+          const tileHash = ((dx * 13 + dy * 7 + seed) >>> 0) % 100;
+          const onEdge = dx === 0 || dy === 0 || dx === f.width - 1 || dy === f.height - 1;
+          const nearEdge = dx <= 1 || dy <= 1 || dx >= f.width - 2 || dy >= f.height - 2;
+          const isLarge = f.width >= 10 && f.height >= 10;
+
+          if (isLarge && dx === cx && dy === cy) {
+            tiles[ty][tx] = createTile('well', false);
+          } else if (onEdge && (dx + dy) % 10 === 0) {
+            tiles[ty][tx] = createTile('lantern', false);
+          } else if (nearEdge && !onEdge && tileHash % 14 === 0) {
+            tiles[ty][tx] = createTile('bench', false);
+          } else if (!nearEdge && tileHash % 7 === 0) {
+            tiles[ty][tx] = createTile('cobblestone_dark', true);
+          } else if (onEdge && tileHash % 20 === 0) {
+            tiles[ty][tx] = createTile('pot', false);
+          } else {
+            tiles[ty][tx] = createTile('cobblestone', true);
+          }
         }
       }
     }
@@ -1879,8 +1902,15 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
   const allowNearbyStructureCluster = /hunter_cottage|ranger_cabin|witch_cottage/.test(f.interactionId ?? '');
   if (!allowNearbyStructureCluster && isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
 
-  // Clear a yard around the cottage (4-tile border of grass) to prevent blocked doors
+  // Clear a yard around the cottage to prevent blocked doors.
+  // Sample the center tile to determine whether the yard should be dirt or grass
+  // so the cottage respects the surrounding terrain (e.g. dirt clearings in forests).
   const yardPad = 4;
+  const sampleTx = f.x + Math.floor(f.width / 2);
+  const sampleTy = f.y + Math.floor(f.height / 2);
+  const sampleType = (sampleTy >= 0 && sampleTy < tiles.length && sampleTx >= 0 && sampleTx < tiles[0].length)
+    ? tiles[sampleTy][sampleTx].type : 'grass';
+  const yardFill: TileType = sampleType === 'dirt' ? 'dirt' : 'grass';
   for (let dy = -yardPad; dy < f.height + yardPad; dy++) {
     for (let dx = -yardPad; dx < f.width + yardPad; dx++) {
       const tx = f.x + dx;
@@ -1891,7 +1921,7 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
             existing.type === 'chest' || existing.interactable) continue;
         if (!existing.walkable || existing.type === 'water' || existing.type === 'tree' ||
             existing.type === 'rock' || existing.type === 'swamp') {
-          tiles[ty][tx] = createTile('grass', true);
+          tiles[ty][tx] = createTile(yardFill, true);
         }
       }
     }
@@ -1903,13 +1933,14 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
   // Abandoned exterior prop — ruined facade, vines/tall grass, no door interaction (set dressing).
   const isAbandonedForestShack = f.interactionId === 'forest_hermit' || f.interactionId === 'woodcutter_cottage_ruin';
   const isRuinedForestCottageFacade = /hunter_cottage|forest_hermit|woodcutter_cottage_ruin/.test(f.interactionId ?? '');
+  const isNonEnterable = !f.interactionId && !hasInterior;
   const facadeTile: TileType = isRuinedForestCottageFacade
     ? 'cottage_house_forest_ruined'
     : isWhisperingCottage
       ? 'cottage_house_forest'
-      : hasInterior
-        ? 'cottage_house_entry'
-      : 'cottage_house';
+      : isNonEnterable
+        ? 'cottage_shed'
+        : 'cottage_house';
   const anchors = (() => {
     const entryX = f.x + cx;
     // Canonical exterior cottage interaction anchor.
@@ -1946,15 +1977,15 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
         // Entry triggers are still stamped explicitly below, and the facade sprite tile remains
         // non-walkable via the branch above.
         // For oversized interior-cottage facades, keep only the top strip blocked.
-        // Remaining footprint rows must be walkable so no invisible "non-walkable grass"
+        // Remaining footprint rows must be walkable so no invisible non-walkable
         // bands remain on the visible approach pad.
-        tiles[ty][tx] = createTile('grass', dy >= 1);
+        tiles[ty][tx] = createTile(yardFill, dy >= 1);
       } else if (dy < bodyRows) {
         tiles[ty][tx] = createTile('wood', false);
       } else if (dx === anchors.centerX && dy === f.height - 1) {
-        tiles[ty][tx] = isAbandonedForestShack
+        tiles[ty][tx] = isAbandonedForestShack || !f.interactionId
           ? createTile('dirt', true)
-          : createTile('dirt', true, { interactable: true, interactionId: f.interactionId || 'cottage' });
+          : createTile('dirt', true, { interactable: true, interactionId: f.interactionId });
       } else if (!isAbandonedForestShack && dy === f.height - 1 && (dx === anchors.centerX - 1 || dx === anchors.centerX + 1) && f.width >= 4) {
         tiles[ty][tx] = createTile('lantern', false);
       } else if (isAbandonedForestShack && dy === f.height - 1 && (dx === anchors.centerX - 1 || dx === anchors.centerX + 1) && f.width >= 4) {

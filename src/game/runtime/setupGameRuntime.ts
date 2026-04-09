@@ -80,6 +80,7 @@ export interface RuntimeHostRefs {
   setMapModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   activeNpcWorldPos: MutableRefObject<{ x: number; y: number } | null>;
   syncVillageReactivityRef: MutableRefObject<(() => void) | null>;
+  syncBlightedRootStateRef: MutableRefObject<(() => void) | null>;
   playPotionDrinkRef: MutableRefObject<(() => void) | null>;
   playGrassChewRef: MutableRefObject<(() => void) | null>;
   playHeroEventRef: MutableRefObject<(() => void) | null>;
@@ -163,6 +164,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       setMapModalOpenRef,
       activeNpcWorldPos,
       syncVillageReactivityRef,
+      syncBlightedRootStateRef,
       playPotionDrinkRef,
       playGrassChewRef,
       playHeroEventRef,
@@ -570,12 +572,15 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       syncGroveShelfShortcutState,
       syncHollowShortcutState,
       syncHollowApproachLadderState,
+      syncCliffCorridorLadderState,
       syncForestFortGateState,
+      syncNorthFortGateState,
       syncHollowFogGateState,
       syncHollowArenaVictoryPortalState,
       syncGilrhymBossState,
       syncVillageReactivityState,
       syncOpenedChestState,
+      syncBlightedRootState,
       syncHarvestedTempestGrassState,
       syncHarvestedMoonbloomState,
       syncPersistentMapState,
@@ -627,6 +632,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       setActiveNpcsForCurrentMap();
       syncVillageReactivityState();
     };
+    syncBlightedRootStateRef.current = syncBlightedRootState;
 
     syncPersistentMapState();
     world.updateChunks(state.player.position.x, state.player.position.y);
@@ -652,6 +658,10 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       playGrassChew,
       playBlock,
       playPlayerHit,
+      playPropBreak,
+      startStormLoop,
+      stopStormLoop,
+      playThunder,
       playHeroEvent,
       playGateShortcut,
       startPortalChargeLoop,
@@ -703,9 +713,12 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncGroveShelfShortcutState,
           syncHollowShortcutState,
           syncHollowApproachLadderState,
+          syncCliffCorridorLadderState,
           syncForestFortGateState,
+          syncNorthFortGateState,
           syncHollowFogGateState,
           syncHollowArenaVictoryPortalState,
+          switchMusicTrack,
           syncGilrhymBossState,
           handleMapTransition,
           healCooldowns,
@@ -751,6 +764,10 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           playGrassChew: () => {},
           playBlock: () => {},
           playPlayerHit: () => {},
+          playPropBreak: () => {},
+          startStormLoop: () => {},
+          stopStormLoop: () => {},
+          playThunder: () => {},
           playHeroEvent: () => {},
           playGateShortcut: () => {},
           startPortalChargeLoop: () => {},
@@ -975,9 +992,13 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           handlePortalTransition,
           enemyVisualProfiles: ENEMY_VISUALS,
           enemyVisuals,
-          enemyAudio,
-          playPlayerHit,
-          shadowGeometry,
+      enemyAudio,
+      playPlayerHit,
+      playPropBreak,
+      startStormLoop,
+      stopStormLoop,
+      playThunder,
+      shadowGeometry,
           shadowMaterial,
           createOutlineMesh,
           closeDialogueSession: phaseAdapters.closeDialogueSession,
@@ -1092,6 +1113,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           stopDialogueLoopRef.current?.();
           stopPortalChargeLoopRef.current?.();
           syncVillageReactivityRef.current = null;
+          syncBlightedRootStateRef.current = null;
           playPotionDrinkRef.current = null;
           playGrassChewRef.current = null;
           playHeroEventRef.current = null;

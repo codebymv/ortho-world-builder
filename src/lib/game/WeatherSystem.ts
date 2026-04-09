@@ -65,6 +65,8 @@ export class WeatherSystem {
   private lightningCooldown = 4 + Math.random() * 5;
   /** Brief flash duration remaining; 0 = no flash. */
   private lightningBurstRemaining = 0;
+  /** Called once each time a lightning bolt fires. Wire up thunder SFX here. */
+  onLightningFlash?: () => void;
 
   // Biome-based weather weights
   private biomeWeights: Record<string, Partial<Record<WeatherType, number>>> = {
@@ -134,6 +136,10 @@ export class WeatherSystem {
     return this.currentWeather;
   }
 
+  getActiveWeather(): WeatherType {
+    return this.transitionTimer > 0 ? this.targetWeather : this.currentWeather;
+  }
+
   update(deltaTime: number, playerX: number, playerY: number, biome: string) {
     // Weather change timer
     this.weatherTimer += deltaTime;
@@ -163,6 +169,7 @@ export class WeatherSystem {
       if (this.lightningCooldown <= 0 && this.lightningBurstRemaining <= 0) {
         this.lightningBurstRemaining = 0.07 + Math.random() * 0.05;
         this.lightningCooldown = 2.8 + Math.random() * 7;
+        this.onLightningFlash?.();
       }
     } else {
       this.lightningBurstRemaining = 0;

@@ -43,6 +43,9 @@ export function runRuntimeLoopTail({
   worldItemRenderer,
   state,
   assetManager,
+  startStormLoop,
+  stopStormLoop,
+  playThunder,
 }: RunRuntimeLoopTailOptions) {
   world.updateChunks(playerPosition.x, playerPosition.y);
 
@@ -64,7 +67,17 @@ export function runRuntimeLoopTail({
 
   biomeAmbience.setBiome(currentBiome);
   biomeAmbience.update(deltaTime, playerPosition.x, playerPosition.y);
+
+  if (playThunder) weatherSystem.onLightningFlash = playThunder;
   weatherSystem.update(deltaTime, playerPosition.x, playerPosition.y, currentBiome);
+
+  const isStorm = weatherSystem.getActiveWeather() === 'storm';
+  if (isStorm) {
+    startStormLoop?.();
+  } else {
+    stopStormLoop?.();
+  }
+
   dayNightCycle.update(deltaTime, playerPosition.x, playerPosition.y);
   floatingText.update(deltaTime);
   particleSystem.update(deltaTime);

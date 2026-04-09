@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Enemy } from '@/lib/game/Combat';
 import type { GameState } from '@/lib/game/GameState';
+import { breakTilesInRadius } from '@/game/runtime/BreakableProps';
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
 type Direction4 = 'up' | 'down' | 'left' | 'right';
@@ -49,8 +50,14 @@ interface EnemyAudioLike {
   clearEnemy: (enemyId: string) => void;
 }
 
+interface BreakableWorldLike {
+  getCurrentMap(): { width: number; height: number; tiles: any[][] };
+  refreshMapTileRegion(minTX: number, minTY: number, maxTX: number, maxTY: number): void;
+}
+
 interface RuntimeCombatActionOptions {
   state: GameState;
+  world: BreakableWorldLike;
   combatSystem: CombatSystemLike;
   floatingText: FloatingTextLike;
   screenShake: ScreenShakeLike;
@@ -103,10 +110,12 @@ interface RuntimeCombatActionOptions {
   lungeRecoveryMax: number;
   startLunge: (dirX: number, dirY: number, speed: number, distance: number, recovery: number, damage: number) => void;
   onBossDefeated?: () => void;
+  playPropBreak?: () => void;
 }
 
 export function createRuntimeCombatActions({
   state,
+  world,
   combatSystem,
   floatingText,
   screenShake,
@@ -157,6 +166,7 @@ export function createRuntimeCombatActions({
   lungeRecoveryMax,
   startLunge,
   onBossDefeated,
+  playPropBreak,
 }: RuntimeCombatActionOptions) {
   const onEnemyKilled = (enemy: Enemy) => {
     const nextKillCount = getKillCount() + 1;
@@ -192,6 +202,13 @@ export function createRuntimeCombatActions({
         if (hunterQuest) {
           hunterQuest.objectives[4] = 'Defeat the Hollow Apparition \u2713';
         }
+        state.worldItems.push({
+          instanceId: `heretical_essence_apparition_${state.currentMap}_${Math.round(enemy.position.x)}_${Math.round(enemy.position.y)}`,
+          itemId: 'heretical_essence_apparition',
+          mapId: state.currentMap,
+          x: enemy.position.x,
+          y: enemy.position.y,
+        });
         screenShake.shake(0.6, 0.5);
         screenShake.hitStop(0.3);
         particleSystem.emit(
@@ -272,6 +289,7 @@ export function createRuntimeCombatActions({
       else if (direction === 'left') attackPos.x -= 1;
       else if (direction === 'right') attackPos.x += 1;
       particleSystem.emit(new THREE.Vector3(attackPos.x, attackPos.y, 0.3), 4, 0xffffff, 0.3, 1, 1);
+      breakTilesInRadius(world, world.getCurrentMap() as any, attackPos.x, attackPos.y, state.player.attackRange, particleSystem, playPropBreak);
       return;
     }
 
@@ -499,6 +517,7 @@ export function createRuntimeCombatActions({
         new THREE.Vector3(checkPos.x, checkPos.y, 0.3),
         3, 0x6A0DAD, 0.2, 0.8, 0.6,
       );
+      breakTilesInRadius(world, world.getCurrentMap() as any, checkPos.x, checkPos.y, arcWidth, particleSystem, playPropBreak);
     }
 
     if (hitEnemyIds.size === 0) {
@@ -548,6 +567,7 @@ export function createRuntimeCombatActions({
     const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
     const chargeDamage = Math.floor(state.player.attackDamage * damageMultiplier);
     const chargeRange = state.player.attackRange * (1 + level * 0.5);
+    breakTilesInRadius(world, world.getCurrentMap() as any, state.player.position.x, state.player.position.y, chargeRange, particleSystem, playPropBreak);
     const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, chargeRange);
 
     if (enemiesInRange.length === 0) {

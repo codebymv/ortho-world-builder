@@ -87,7 +87,15 @@ export function updateInteractionIndicator({
     if (
       !(criticalItemInteractionIds.has(intId) && isCollectedCriticalItem(intId)) &&
       !(intId.includes('chest') && isChestOpened(intId)) &&
-      !(intId === 'tempest_grass_pickup' && isConsumablePickupCollected(intId, x, y))
+      !(intId === 'tempest_grass_pickup' && isConsumablePickupCollected(intId, x, y)) &&
+      !(
+        intId === 'hollow_approach_ladder' &&
+        state.player.position.x > x
+      ) &&
+      !(
+        intId === 'cliff_corridor_ladder' &&
+        state.player.position.y > y
+      )
     ) {
       if (intId === 'building_entrance' || intId === 'building_exit') {
         if (world.getTransitionAt(x, y)) {

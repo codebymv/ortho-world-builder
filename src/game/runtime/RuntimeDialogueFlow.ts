@@ -40,10 +40,13 @@ interface CreateRuntimeDialogueFlowOptions {
   syncGroveShelfShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncHollowApproachLadderState: () => void;
+  syncCliffCorridorLadderState: () => void;
   syncForestFortGateState: () => void;
+  syncNorthFortGateState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
   hasDialogue: (interactionId: string) => boolean;
   onWorldItemPickup?: (itemId: string) => void;
+  getAliveEnemyCountNearPlayer?: (radius: number) => number;
 }
 
 export function createRuntimeDialogueFlow({
@@ -75,10 +78,13 @@ export function createRuntimeDialogueFlow({
   syncGroveShelfShortcutState,
   syncHollowShortcutState,
   syncHollowApproachLadderState,
+  syncCliffCorridorLadderState,
   syncForestFortGateState,
+  syncNorthFortGateState,
   showHeroOverlay,
   hasDialogue,
   onWorldItemPickup,
+  getAliveEnemyCountNearPlayer,
 }: CreateRuntimeDialogueFlowOptions) {
   const progressionService = createDialogueProgression();
 
@@ -131,10 +137,13 @@ export function createRuntimeDialogueFlow({
     syncGroveShelfShortcutState,
     syncHollowShortcutState,
     syncHollowApproachLadderState,
+    syncCliffCorridorLadderState,
     syncForestFortGateState,
+    syncNorthFortGateState,
     showHeroOverlay,
     hasDialogue,
     onWorldItemPickup,
+    getAliveEnemyCountNearPlayer,
   });
 
   return {

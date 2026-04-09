@@ -709,27 +709,10 @@ export const gilrhymDef: MapDefinition = {
     { x: 140, y: 152, type: 'well', walkable: false, interactionId: 'gilrhym_market_well' },
     { x: 145, y: 45, type: 'well', walkable: false, interactionId: 'gilrhym_cathedral_well' },
 
-    // Signs — Zone A (3)
+    // Key narrative signs only
     { x: 148, y: 278, type: 'sign', walkable: false, interactionId: 'gilrhym_gate_sign' },
-    { x: 108, y: 262, type: 'sign', walkable: false, interactionId: 'gilrhym_notice_board' },
-    { x: 202, y: 270, type: 'sign', walkable: false, interactionId: 'gilrhym_hunter_trace' },
-
-    // Signs — Zone B (3)
-    { x: 232, y: 188, type: 'sign', walkable: false, interactionId: 'gilrhym_cemetery_marker' },
-    { x: 62, y: 210, type: 'sign', walkable: false, interactionId: 'gilrhym_residential_notice' },
     { x: 130, y: 220, type: 'sign', walkable: false, interactionId: 'gilrhym_fallen_guard' },
-
-    // Signs — Zone C (3)
-    { x: 135, y: 172, type: 'sign', walkable: false, interactionId: 'gilrhym_church_altar' },
-    { x: 155, y: 142, type: 'sign', walkable: false, interactionId: 'gilrhym_market_ledger' },
-    { x: 80, y: 145, type: 'sign', walkable: false, interactionId: 'gilrhym_inn_notice' },
-
-    // Signs — Zone D (3)
     { x: 148, y: 90, type: 'sign', walkable: false, interactionId: 'gilrhym_scythe_inscription' },
-    { x: 90, y: 80, type: 'sign', walkable: false, interactionId: 'gilrhym_rooftop_journal' },
-    { x: 220, y: 85, type: 'sign', walkable: false, interactionId: 'gilrhym_guard_orders' },
-
-    // Signs — Zone E (2)
     { x: 120, y: 30, type: 'sign', walkable: false, interactionId: 'gilrhym_cathedral_inscription' },
     { x: 180, y: 30, type: 'sign', walkable: false, interactionId: 'gilrhym_reaver_plaque' },
 

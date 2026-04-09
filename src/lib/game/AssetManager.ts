@@ -1591,6 +1591,48 @@ export class AssetManager {
       [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
     ], 4, 'enemy_stone_sentinel_attack'));
 
+    // Walk frame 0 — left paw steps out 1 col
+    this.registerTexture('enemy_stone_sentinel_walk_0', () => this.createSpriteTexture([
+      [C,        C,        C,        SS_FUR,   SS_FUR_H, C,        C,        SS_FUR_H, SS_FUR,   C,        C,        C       ],
+      [C,        C,        SS_FUR,   SS_STONE_H,SS_FUR_H,SS_PLATE_H,SS_PLATE_H,SS_FUR_H,SS_STONE_H,SS_FUR,  C,        C       ],
+      [C,        SS_PLATE, SS_FUR_H, SS_EYE_RIM,SS_EYE, SS_STONE, SS_STONE, SS_EYE,  SS_EYE_RIM,SS_FUR_H,SS_PLATE, C       ],
+      [C,        C,        SS_FUR,   SS_SNOUT, SS_SNOUT, SS_SNOUT, SS_SNOUT, SS_SNOUT,SS_FUR,   C,        C,        C       ],
+      [C,        C,        C,        SS_FANG,  SS_SNOUT, SS_SNOUT, SS_SNOUT, SS_FANG, C,        C,        C,        C       ],
+      [C,        SS_PLATE_S,SS_PLATE,SS_PLATE_H,SS_PLATE,SS_RUNE,  SS_PLATE, SS_PLATE_H,SS_PLATE,SS_PLATE_S,C,       C       ],
+      [SS_FUR_S, SS_PLATE, SS_PLATE_H,SS_PLATE_S,SS_STONE,SS_STONE_S,SS_STONE,SS_PLATE_S,SS_PLATE_H,SS_PLATE,SS_FUR_S,C      ],
+      [C,        SS_FUR_S, SS_STONE, SS_STONE_S,SS_FUR_S,SS_STONE_S,SS_FUR_S,SS_STONE_S,SS_STONE, SS_FUR_S, C,       C       ],
+      [C,        SS_FUR_S, SS_CLAW,  C,        C,        SS_FUR_S, C,        SS_CLAW, SS_FUR_S, C,        C,        C       ],
+      [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
+    ], 4, 'enemy_stone_sentinel_walk_0'));
+
+    // Walk frame 1 — right paw steps out 1 col
+    this.registerTexture('enemy_stone_sentinel_walk_1', () => this.createSpriteTexture([
+      [C,        C,        C,        SS_FUR,   SS_FUR_H, C,        C,        SS_FUR_H, SS_FUR,   C,        C,        C       ],
+      [C,        C,        SS_FUR,   SS_STONE_H,SS_FUR_H,SS_PLATE_H,SS_PLATE_H,SS_FUR_H,SS_STONE_H,SS_FUR,  C,        C       ],
+      [C,        SS_PLATE, SS_FUR_H, SS_EYE_RIM,SS_EYE, SS_STONE, SS_STONE, SS_EYE,  SS_EYE_RIM,SS_FUR_H,SS_PLATE, C       ],
+      [C,        C,        SS_FUR,   SS_SNOUT, SS_SNOUT, SS_SNOUT, SS_SNOUT, SS_SNOUT,SS_FUR,   C,        C,        C       ],
+      [C,        C,        C,        SS_FANG,  SS_SNOUT, SS_SNOUT, SS_SNOUT, SS_FANG, C,        C,        C,        C       ],
+      [C,        SS_PLATE_S,SS_PLATE,SS_PLATE_H,SS_PLATE,SS_RUNE,  SS_PLATE, SS_PLATE_H,SS_PLATE,SS_PLATE_S,C,       C       ],
+      [SS_FUR_S, SS_PLATE, SS_PLATE_H,SS_PLATE_S,SS_STONE,SS_STONE_S,SS_STONE,SS_PLATE_S,SS_PLATE_H,SS_PLATE,SS_FUR_S,C      ],
+      [C,        SS_FUR_S, SS_STONE, SS_STONE_S,SS_FUR_S,SS_STONE_S,SS_FUR_S,SS_STONE_S,SS_STONE, SS_FUR_S, C,       C       ],
+      [C,        C,        SS_FUR_S, SS_CLAW,  C,        SS_FUR_S, C,        C,        SS_CLAW, SS_FUR_S, C,        C       ],
+      [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
+    ], 4, 'enemy_stone_sentinel_walk_1'));
+
+    // Stagger — paws splayed wide, off-balance
+    this.registerTexture('enemy_stone_sentinel_stagger', () => this.createSpriteTexture([
+      [C,        C,        C,        SS_FUR,   SS_FUR_H, C,        C,        SS_FUR_H, SS_FUR,   C,        C,        C       ],
+      [C,        C,        SS_FUR,   SS_STONE_H,SS_FUR_H,SS_PLATE_H,SS_PLATE_H,SS_FUR_H,SS_STONE_H,SS_FUR,  C,        C       ],
+      [C,        SS_PLATE, SS_FUR_H, SS_EYE_RIM,SS_EYE, SS_STONE, SS_STONE, SS_EYE,  SS_EYE_RIM,SS_FUR_H,SS_PLATE, C       ],
+      [C,        C,        SS_FUR,   SS_SNOUT, SS_SNOUT, SS_SNOUT, SS_SNOUT, SS_SNOUT,SS_FUR,   C,        C,        C       ],
+      [C,        C,        C,        SS_FANG,  SS_SNOUT, SS_SNOUT, SS_SNOUT, SS_FANG, C,        C,        C,        C       ],
+      [C,        SS_PLATE_S,SS_PLATE,SS_PLATE_H,SS_PLATE,SS_RUNE,  SS_PLATE, SS_PLATE_H,SS_PLATE,SS_PLATE_S,C,       C       ],
+      [SS_FUR_S, SS_PLATE, SS_PLATE_H,SS_PLATE_S,SS_STONE,SS_STONE_S,SS_STONE,SS_PLATE_S,SS_PLATE_H,SS_PLATE,SS_FUR_S,C      ],
+      [C,        SS_FUR_S, SS_STONE, SS_STONE_S,C,       SS_STONE_S,SS_FUR_S,SS_STONE_S,SS_STONE, SS_FUR_S, C,       C       ],
+      [SS_FUR_S, SS_CLAW,  C,        C,        C,        SS_FUR_S, C,        C,        C,        SS_CLAW, SS_FUR_S, C       ],
+      [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
+    ], 4, 'enemy_stone_sentinel_stagger'));
+
     // ========== VOID WISP — old shadow design preserved for later use ==========
     const VW_BODY  = 0x311B92;
     const VW_BODY_H = 0x4527A0;
@@ -1868,22 +1910,160 @@ export class AssetManager {
     const GOL_D = 0x303830;
     const GOL_EYE = 0xFF4400;
     const GOL_RUNE = 0x44FFAA;
+    const GOL_RUNE_B = 0x66FFCC;
 
+    // Shared body rows (rows 0-7) reused across all golem frames
+    const golemBody: (readonly number[])[] = [
+      [C,    C,    C,    GOL_S,GOL,  GOL_H,GOL,  GOL_S,C,    C,    C,    C],
+      [C,    C,    GOL_S,GOL,  GOL_H,GOL,  GOL,  GOL_H,GOL,  GOL_S,C,    C],
+      [C,    GOL_S,GOL,  GOL_EYE,GOL_D,GOL,GOL,  GOL_D,GOL_EYE,GOL,GOL_S,C],
+      [C,    GOL,  GOL_D,GOL,  GOL_RUNE,GOL_D,GOL_D,GOL_RUNE,GOL,GOL_D,GOL,  C],
+      [GOL_S,GOL,  GOL_H,GOL_D,GOL,  GOL,  GOL,  GOL,  GOL_D,GOL_H,GOL,  GOL_S],
+      [GOL,  GOL_H,GOL,  GOL,  GOL_RUNE,GOL_D,GOL_D,GOL_RUNE,GOL,  GOL,  GOL_H,GOL],
+      [GOL_S,GOL,  GOL_D,GOL,  GOL,  GOL,  GOL,  GOL,  GOL,  GOL_D,GOL,  GOL_S],
+      [C,    GOL_D,GOL,  GOL_D,GOL,  GOL_D,GOL_D,GOL,  GOL_D,GOL,  GOL_D,C],
+    ];
+    const E = [C,C,C,C,C,C,C,C,C,C,C,C]; // empty row
+
+    // Idle — neutral stance (12 rows for consistent sizing)
     this.registerTexture('enemy_golem', () => this.createSpriteTexture([
-      [C,    C,    C,    GOL_S,GOL, GOL_H,GOL, GOL_S,C,    C,    C,    C],
-      [C,    C,    GOL_S,GOL,  GOL_H,GOL, GOL, GOL_H,GOL, GOL_S,C,    C],
-      [C,    GOL_S,GOL,  GOL_EYE,GOL_D,GOL,GOL,GOL_D,GOL_EYE,GOL,GOL_S,C],
-      [C,    GOL,  GOL_D,GOL,  GOL_RUNE,GOL_D,GOL_D,GOL_RUNE,GOL,GOL_D,GOL,C],
-      [GOL_S,GOL,  GOL_H,GOL_D,GOL, GOL, GOL, GOL, GOL_D,GOL_H,GOL,GOL_S],
-      [GOL,  GOL_H,GOL,  GOL,  GOL_RUNE,GOL_D,GOL_D,GOL_RUNE,GOL,GOL,GOL_H,GOL],
-      [GOL_S,GOL,  GOL_D,GOL,  GOL, GOL, GOL, GOL, GOL, GOL_D,GOL,GOL_S],
-      [C,    GOL_D,GOL,  GOL_D,GOL, GOL_D,GOL_D,GOL, GOL_D,GOL,GOL_D,C],
-      [C,    C,    GOL_S,GOL,  GOL_D,C,   C,   GOL_D,GOL, GOL_S,C,    C],
-      [C,    C,    GOL_D,GOL_S,GOL,  C,   C,   GOL, GOL_S,GOL_D,C,    C],
+      ...golemBody,
+      [C,    C,    GOL_S,GOL,  GOL_D,C,    C,    GOL_D,GOL,  GOL_S,C,    C],
+      [C,    C,    GOL_D,GOL_S,GOL,  C,    C,    GOL,  GOL_S,GOL_D,C,    C],
+      E, E,
     ], 4, 'enemy_golem'));
 
-    this.registerTexture('enemy_golem_telegraph', () => this.getTexture('enemy_golem')!);
-    this.registerTexture('enemy_golem_attack', () => this.getTexture('enemy_golem')!);
+    // Walk frame 0 — left leg steps out 1 col, right stays at idle
+    this.registerTexture('enemy_golem_walk_0', () => this.createSpriteTexture([
+      ...golemBody,
+      [C,    GOL_S,GOL,  GOL_D,C,    C,    C,    GOL_D,GOL,  GOL_S,C,    C],
+      [C,    GOL_D,GOL_S,GOL,  C,    C,    C,    GOL,  GOL_S,GOL_D,C,    C],
+      E, E,
+    ], 4, 'enemy_golem_walk_0'));
+
+    // Walk frame 1 — right leg steps out 1 col, left stays at idle
+    this.registerTexture('enemy_golem_walk_1', () => this.createSpriteTexture([
+      ...golemBody,
+      [C,    C,    GOL_S,GOL,  GOL_D,C,    C,    C,    GOL_D,GOL,  GOL_S,C],
+      [C,    C,    GOL_D,GOL_S,GOL,  C,    C,    C,    GOL,  GOL_S,GOL_D,C],
+      E, E,
+    ], 4, 'enemy_golem_walk_1'));
+
+    // Telegraph — rearing back to strike: body shifted down 1, arms wider, runes bright
+    this.registerTexture('enemy_golem_telegraph', () => this.createSpriteTexture([
+      E,
+      [C,    C,    C,    GOL_S,GOL,  GOL_H,GOL,  GOL_S,C,    C,    C,    C],
+      [C,    C,    GOL_S,GOL,  GOL_H,GOL,  GOL,  GOL_H,GOL,  GOL_S,C,    C],
+      [C,    GOL_S,GOL,  GOL_EYE,GOL_D,GOL,GOL,  GOL_D,GOL_EYE,GOL,GOL_S,C],
+      [GOL_S,GOL,  GOL_D,GOL,  GOL_RUNE_B,GOL_D,GOL_D,GOL_RUNE_B,GOL,GOL_D,GOL,GOL_S],
+      [GOL,  GOL_H,GOL_H,GOL_D,GOL,  GOL,  GOL,  GOL,  GOL_D,GOL_H,GOL_H,GOL],
+      [GOL_S,GOL_H,GOL,  GOL,  GOL_RUNE_B,GOL_D,GOL_D,GOL_RUNE_B,GOL,GOL,GOL_H,GOL_S],
+      [GOL_S,GOL,  GOL_D,GOL,  GOL,  GOL,  GOL,  GOL,  GOL,  GOL_D,GOL,  GOL_S],
+      [C,    GOL_D,GOL,  GOL_D,GOL,  GOL_D,GOL_D,GOL,  GOL_D,GOL,  GOL_D,C],
+      [C,    C,    GOL_S,GOL,  GOL_D,C,    C,    GOL_D,GOL,  GOL_S,C,    C],
+      [C,    C,    GOL_D,GOL_S,GOL,  C,    C,    GOL,  GOL_S,GOL_D,C,    C],
+      E,
+    ], 4, 'enemy_golem_telegraph'));
+
+    // Attack — lunging forward: body shifted up 1, arms extended
+    this.registerTexture('enemy_golem_attack', () => this.createSpriteTexture([
+      [C,    C,    GOL_S,GOL,  GOL_H,GOL,  GOL,  GOL_H,GOL,  GOL_S,C,    C],
+      [C,    GOL_S,GOL,  GOL_EYE,GOL_D,GOL,GOL,  GOL_D,GOL_EYE,GOL,GOL_S,C],
+      [GOL_S,GOL,  GOL_D,GOL,  GOL_RUNE,GOL_D,GOL_D,GOL_RUNE,GOL,GOL_D,GOL,GOL_S],
+      [GOL,  GOL_H,GOL_H,GOL_D,GOL,  GOL,  GOL,  GOL,  GOL_D,GOL_H,GOL_H,GOL],
+      [GOL_S,GOL_H,GOL,  GOL,  GOL_RUNE,GOL_D,GOL_D,GOL_RUNE,GOL,GOL,GOL_H,GOL_S],
+      [GOL_S,GOL,  GOL_D,GOL,  GOL,  GOL,  GOL,  GOL,  GOL,  GOL_D,GOL,  GOL_S],
+      [C,    GOL_D,GOL,  GOL_D,GOL,  GOL_D,GOL_D,GOL,  GOL_D,GOL,  GOL_D,C],
+      [C,    C,    GOL_S,GOL,  GOL_D,C,    C,    GOL_D,GOL,  GOL_S,C,    C],
+      [C,    C,    GOL_D,GOL_S,GOL,  C,    C,    GOL,  GOL_S,GOL_D,C,    C],
+      E, E, E,
+    ], 4, 'enemy_golem_attack'));
+
+    // Stagger — off-balance: legs splayed wide, right foot buckles lower
+    this.registerTexture('enemy_golem_stagger', () => this.createSpriteTexture([
+      ...golemBody,
+      [C,    GOL_S,GOL,  GOL_D,C,    C,    C,    C,    GOL_D,GOL,  GOL_S,C],
+      [C,    GOL_D,GOL_S,GOL,  C,    C,    C,    C,    C,    GOL,  GOL_S,C],
+      [C,    C,    C,    C,    C,    C,    C,    C,    C,    GOL_S,GOL_D,C],
+      E,
+    ], 4, 'enemy_golem_stagger'));
+
+    // ========== FIELD BOSS: Golem — Phase 2 (cracked stone, brighter runes) ==========
+    const GOL_CRK = 0x1A2018;  // deep crack lines
+    const GOL_P2 = 0x585858;   // weathered stone (slightly lighter, desaturated)
+    const GOL_P2H = 0x707070;
+    const GOL_P2S = 0x404040;
+    const GOL_P2D = 0x282828;
+    const GOL_P2EYE = 0xFF6600; // fiercer orange eyes
+    const GOL_P2R = 0x88FFDD;   // blazing runes
+
+    const golemP2Body: (readonly number[])[] = [
+      [C,      C,      C,      GOL_P2S,GOL_P2, GOL_P2H,GOL_P2, GOL_P2S,C,      C,      C,      C],
+      [C,      C,      GOL_P2S,GOL_P2, GOL_P2H,GOL_CRK,GOL_P2, GOL_P2H,GOL_P2, GOL_P2S,C,      C],
+      [C,      GOL_P2S,GOL_CRK,GOL_P2EYE,GOL_P2D,GOL_P2,GOL_P2,GOL_P2D,GOL_P2EYE,GOL_CRK,GOL_P2S,C],
+      [C,      GOL_P2, GOL_P2D,GOL_CRK,GOL_P2R,GOL_P2D,GOL_P2D,GOL_P2R,GOL_CRK,GOL_P2D,GOL_P2, C],
+      [GOL_P2S,GOL_P2, GOL_P2H,GOL_P2D,GOL_CRK,GOL_P2, GOL_P2, GOL_CRK,GOL_P2D,GOL_P2H,GOL_P2, GOL_P2S],
+      [GOL_P2, GOL_P2H,GOL_CRK,GOL_P2, GOL_P2R,GOL_P2D,GOL_P2D,GOL_P2R,GOL_P2, GOL_CRK,GOL_P2H,GOL_P2],
+      [GOL_P2S,GOL_P2, GOL_P2D,GOL_CRK,GOL_P2, GOL_P2, GOL_P2, GOL_P2, GOL_CRK,GOL_P2D,GOL_P2, GOL_P2S],
+      [C,      GOL_P2D,GOL_CRK,GOL_P2D,GOL_P2, GOL_P2D,GOL_P2D,GOL_P2, GOL_P2D,GOL_CRK,GOL_P2D,C],
+    ];
+
+    this.registerTexture('enemy_golem_phase2', () => this.createSpriteTexture([
+      ...golemP2Body,
+      [C,    C,    GOL_P2S,GOL_P2, GOL_P2D,C,    C,    GOL_P2D,GOL_P2, GOL_P2S,C,    C],
+      [C,    C,    GOL_P2D,GOL_P2S,GOL_P2, C,    C,    GOL_P2, GOL_P2S,GOL_P2D,C,    C],
+      E, E,
+    ], 4, 'enemy_golem_phase2'));
+
+    this.registerTexture('enemy_golem_phase2_walk_0', () => this.createSpriteTexture([
+      ...golemP2Body,
+      [C,    GOL_P2S,GOL_P2, GOL_P2D,C,    C,    C,    GOL_P2D,GOL_P2, GOL_P2S,C,    C],
+      [C,    GOL_P2D,GOL_P2S,GOL_P2, C,    C,    C,    GOL_P2, GOL_P2S,GOL_P2D,C,    C],
+      E, E,
+    ], 4, 'enemy_golem_phase2_walk_0'));
+
+    this.registerTexture('enemy_golem_phase2_walk_1', () => this.createSpriteTexture([
+      ...golemP2Body,
+      [C,    C,    GOL_P2S,GOL_P2, GOL_P2D,C,    C,    C,    GOL_P2D,GOL_P2, GOL_P2S,C],
+      [C,    C,    GOL_P2D,GOL_P2S,GOL_P2, C,    C,    C,    GOL_P2, GOL_P2S,GOL_P2D,C],
+      E, E,
+    ], 4, 'enemy_golem_phase2_walk_1'));
+
+    this.registerTexture('enemy_golem_phase2_telegraph', () => this.createSpriteTexture([
+      E,
+      [C,      C,      C,      GOL_P2S,GOL_P2, GOL_P2H,GOL_P2, GOL_P2S,C,      C,      C,      C],
+      [C,      C,      GOL_P2S,GOL_P2, GOL_P2H,GOL_CRK,GOL_P2, GOL_P2H,GOL_P2, GOL_P2S,C,      C],
+      [C,      GOL_P2S,GOL_CRK,GOL_P2EYE,GOL_P2D,GOL_P2,GOL_P2,GOL_P2D,GOL_P2EYE,GOL_CRK,GOL_P2S,C],
+      [GOL_P2S,GOL_P2, GOL_P2D,GOL_CRK,GOL_P2R,GOL_P2D,GOL_P2D,GOL_P2R,GOL_CRK,GOL_P2D,GOL_P2, GOL_P2S],
+      [GOL_P2, GOL_P2H,GOL_P2H,GOL_P2D,GOL_CRK,GOL_P2, GOL_P2, GOL_CRK,GOL_P2D,GOL_P2H,GOL_P2H,GOL_P2],
+      [GOL_P2S,GOL_P2H,GOL_CRK,GOL_P2, GOL_P2R,GOL_P2D,GOL_P2D,GOL_P2R,GOL_P2, GOL_CRK,GOL_P2H,GOL_P2S],
+      [GOL_P2S,GOL_P2, GOL_P2D,GOL_CRK,GOL_P2, GOL_P2, GOL_P2, GOL_P2, GOL_CRK,GOL_P2D,GOL_P2, GOL_P2S],
+      [C,      GOL_P2D,GOL_CRK,GOL_P2D,GOL_P2, GOL_P2D,GOL_P2D,GOL_P2, GOL_P2D,GOL_CRK,GOL_P2D,C],
+      [C,    C,    GOL_P2S,GOL_P2, GOL_P2D,C,    C,    GOL_P2D,GOL_P2, GOL_P2S,C,    C],
+      [C,    C,    GOL_P2D,GOL_P2S,GOL_P2, C,    C,    GOL_P2, GOL_P2S,GOL_P2D,C,    C],
+      E,
+    ], 4, 'enemy_golem_phase2_telegraph'));
+
+    this.registerTexture('enemy_golem_phase2_attack', () => this.createSpriteTexture([
+      [C,      C,      GOL_P2S,GOL_P2, GOL_P2H,GOL_CRK,GOL_P2, GOL_P2H,GOL_P2, GOL_P2S,C,      C],
+      [C,      GOL_P2S,GOL_CRK,GOL_P2EYE,GOL_P2D,GOL_P2,GOL_P2,GOL_P2D,GOL_P2EYE,GOL_CRK,GOL_P2S,C],
+      [GOL_P2S,GOL_P2, GOL_P2D,GOL_CRK,GOL_P2R,GOL_P2D,GOL_P2D,GOL_P2R,GOL_CRK,GOL_P2D,GOL_P2, GOL_P2S],
+      [GOL_P2, GOL_P2H,GOL_P2H,GOL_P2D,GOL_CRK,GOL_P2, GOL_P2, GOL_CRK,GOL_P2D,GOL_P2H,GOL_P2H,GOL_P2],
+      [GOL_P2S,GOL_P2H,GOL_CRK,GOL_P2, GOL_P2R,GOL_P2D,GOL_P2D,GOL_P2R,GOL_P2, GOL_CRK,GOL_P2H,GOL_P2S],
+      [GOL_P2S,GOL_P2, GOL_P2D,GOL_CRK,GOL_P2, GOL_P2, GOL_P2, GOL_P2, GOL_CRK,GOL_P2D,GOL_P2, GOL_P2S],
+      [C,      GOL_P2D,GOL_CRK,GOL_P2D,GOL_P2, GOL_P2D,GOL_P2D,GOL_P2, GOL_P2D,GOL_CRK,GOL_P2D,C],
+      [C,    C,    GOL_P2S,GOL_P2, GOL_P2D,C,    C,    GOL_P2D,GOL_P2, GOL_P2S,C,    C],
+      [C,    C,    GOL_P2D,GOL_P2S,GOL_P2, C,    C,    GOL_P2, GOL_P2S,GOL_P2D,C,    C],
+      E, E, E,
+    ], 4, 'enemy_golem_phase2_attack'));
+
+    this.registerTexture('enemy_golem_phase2_stagger', () => this.createSpriteTexture([
+      ...golemP2Body,
+      [C,    GOL_P2S,GOL_P2, GOL_P2D,C,    C,    C,    C,    GOL_P2D,GOL_P2, GOL_P2S,C],
+      [C,    GOL_P2D,GOL_P2S,GOL_P2, C,    C,    C,    C,    C,      GOL_P2, GOL_P2S,C],
+      [C,    C,      C,      C,      C,    C,    C,    C,    C,      GOL_P2S,GOL_P2D,C],
+      E,
+    ], 4, 'enemy_golem_phase2_stagger'));
 
     // ========== BOSS: Hollow Apparition (giant shade, tall hooded figure) — 16x16 sprites ==========
     // Reuses the RK_* shade palette. Boss-specific extras:
@@ -2198,9 +2378,10 @@ export class AssetManager {
     const CM  = 0x7E706A; // mid strata
     const CD  = 0x3E3430; // dark strata seam
     const CS  = 0x18130F; // base shadow
-    const STAIRS_STONE   = 0xB0BEC5;
-    const STAIRS_STONE_H = 0xECEFF1;
-    const STAIRS_STONE_S = 0x546E7A;
+    // Keep stair treads in a warmer stone range so cliff stair endpoints do not read as "sky" patches.
+    const STAIRS_STONE   = 0xB8ADA2;
+    const STAIRS_STONE_H = 0xE9E0D7;
+    const STAIRS_STONE_S = 0x6A5B53;
     const STAIRS_EDGE    = 0xFFFFFF; // bright tread edge
 
     // cliff_edge: grass cap → soil → bright cream lip → clearly banded rock face → shadow base.
@@ -2305,6 +2486,41 @@ export class AssetManager {
       [CL_RAIL,  CL_ROPE3, CL_ROPE,  CL_KNOT,  CL_KNOT,  CL_ROPE,  CL_ROPE3, CL_RAIL ],
       [Z,        CL_RAIL,  CL_ROPE2, CL_ROPE3, CL_ROPE3, CL_ROPE2, CL_RAIL,  Z       ],
     ], 4, 'curled_ladder'));
+
+    // Gate with extended ladder — gate bars at top, full ladder rungs hanging below
+    const GL_IRON = 0x455A64;
+    const GL_IRON_H = 0x607D8B;
+    const GL_RVT = 0x37474F;
+    this.textures.set('gate_ladder_open', this.createSpriteTexture([
+      // Gate bars (top anchor)
+      [GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON  ],
+      [GL_RVT,   GL_IRON,   GL_RVT,   GL_IRON,   GL_RVT,   GL_IRON,   GL_RVT,   GL_IRON  ],
+      [GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON  ],
+      // Ladder rungs hanging down
+      [R,  R2, Z,   Z,   Z,   Z,   R2, R ],
+      [R,  R2, RG3, RG,  RG,  RG3, R2, R ],
+      [R,  R2, Z,   Z,   Z,   Z,   R2, R ],
+      [R,  R2, RG3, RG2, RG2, RG3, R2, R ],
+      [R,  R2, Z,   Z,   Z,   Z,   R2, R ],
+      [R,  R2, RG3, RG,  RG,  RG3, R2, R ],
+      [R,  R2, Z,   Z,   Z,   Z,   R2, R ],
+      [R,  R2, RG3, RG2, RG2, RG3, R2, R ],
+      [R,  R2, Z,   Z,   Z,   Z,   R2, R ],
+      [R,  R2, RG3, RG,  RG,  RG3, R2, R ],
+      [R,  R,  RG2, RG2, RG2, RG2, R,  R ],
+    ], 4, 'gate_ladder_open'));
+
+    // Gate with curled ladder on top — simplified gate bars (upper rows) + coiled rope (lower rows)
+    this.textures.set('gate_ladder', this.createSpriteTexture([
+      [Z,        Z,         CL_RAIL,  CL_RAIL2,  CL_RAIL2, CL_RAIL,   Z,        Z        ],
+      [Z,        CL_RAIL,   CL_ROPE2, CL_ROPE,   CL_ROPE,  CL_ROPE2,  CL_RAIL,  Z        ],
+      [CL_RAIL,  CL_ROPE3,  CL_ROPE,  CL_KNOT,   CL_KNOT,  CL_ROPE,   CL_ROPE3, CL_RAIL  ],
+      [CL_RAIL2, CL_ROPE,   CL_KNOT,  CL_ROPE2,  CL_ROPE2, CL_KNOT,   CL_ROPE,  CL_RAIL2 ],
+      [Z,        CL_RAIL,   CL_ROPE2, CL_ROPE3,  CL_ROPE3, CL_ROPE2,  CL_RAIL,  Z        ],
+      [GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON  ],
+      [GL_RVT,   GL_IRON,   GL_RVT,   GL_IRON,   GL_RVT,   GL_IRON,   GL_RVT,   GL_IRON  ],
+      [GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON  ],
+    ], 4, 'gate_ladder'));
 
     this.textures.set('cobblestone', this.createColorTexture(0x7A7F88, 32, 32, 'cobblestone_grid'));
     this.textures.set('cobblestone_dark', this.createColorTexture(0x5C6068, 32, 32, 'cobblestone_grid'));
@@ -2527,6 +2743,36 @@ export class AssetManager {
       [C, C, C, C, C, C, CWALL_S, CWALL_S, CWALL_S, CWALL_S, C, C, C, C, C, C],
     ] as const;
     this.textures.set('cottage_house', this.createSpriteTexture(cottageHouseSprite));
+
+    // Grey-roofed small house sprite for non-enterable decorative buildings
+    const SH_ROOF   = 0x6B7B8D; // cool slate blue-grey roof
+    const SH_ROOF_H = 0x8899A6; // roof highlight
+    const SH_ROOF_S = 0x4E5D6B; // roof shadow
+    const SH_WALL   = 0xD2C8B8; // warm cream wall
+    const SH_WALL_H = 0xE0D8CA; // wall highlight
+    const SH_WALL_S = 0xB0A898; // wall shadow
+    const SH_WIN    = 0x3A5068; // dark blue window
+    const SH_WIN_H  = 0x5A7A98; // window reflection
+    const SH_SHUT   = 0x6D5840; // brown shutter
+    const SH_CHIM   = 0x5A4A3A; // chimney
+    const SH_CHIM_T = 0x6E5E4E; // chimney top
+    const SH_TRIM   = 0x7A6A52; // wood trim
+    const cottageShedSprite = [
+      [C,        C,        C,        C,        SH_CHIM,  SH_CHIM_T, C,        C,        SH_ROOF_S, SH_ROOF_S, SH_ROOF, SH_ROOF,  C,        C,        C,        C],
+      [C,        C,        C,        SH_CHIM,  SH_CHIM,  SH_ROOF_S, SH_ROOF,  SH_ROOF,  SH_ROOF_H, SH_ROOF,  SH_ROOF, SH_ROOF_S, C,        C,        C,        C],
+      [C,        C,        SH_ROOF_S, SH_ROOF,  SH_ROOF,  SH_ROOF_H, SH_ROOF,  SH_ROOF,  SH_ROOF,  SH_ROOF_H, SH_ROOF, SH_ROOF,  SH_ROOF_S, C,        C,        C],
+      [C,        SH_ROOF_S, SH_ROOF,  SH_ROOF,  SH_ROOF_H, SH_ROOF,  SH_ROOF,  SH_ROOF,  SH_ROOF,  SH_ROOF,  SH_ROOF_H, SH_ROOF,  SH_ROOF,  SH_ROOF_S, C,        C],
+      [SH_ROOF_S, SH_ROOF,  SH_ROOF,  SH_ROOF,  SH_ROOF,  SH_ROOF_H, SH_ROOF,  SH_ROOF_H, SH_ROOF,  SH_ROOF,  SH_ROOF,  SH_ROOF,  SH_ROOF,  SH_ROOF,  SH_ROOF_S, C],
+      [SH_TRIM,  SH_TRIM,  SH_TRIM,  SH_TRIM,  SH_TRIM,  SH_TRIM,  SH_TRIM,  SH_TRIM,  SH_TRIM,  SH_TRIM,  SH_TRIM,  SH_TRIM,  SH_TRIM,  SH_TRIM,  SH_TRIM,  C],
+      [SH_WALL_S, SH_WALL,  SH_WALL_H, SH_WALL,  SH_WALL,  SH_WALL_H, SH_WALL,  SH_WALL,  SH_WALL_H, SH_WALL,  SH_WALL,  SH_WALL_H, SH_WALL,  SH_WALL,  SH_WALL_S, C],
+      [SH_WALL_S, SH_WALL,  SH_SHUT,  SH_WIN,   SH_WIN_H, SH_WALL,  SH_WALL_H, SH_WALL,  SH_WALL,  SH_WALL_H, SH_SHUT,  SH_WIN,   SH_WIN_H, SH_WALL,  SH_WALL_S, C],
+      [SH_WALL_S, SH_WALL,  SH_SHUT,  SH_WIN,   SH_WIN,   SH_WALL_H, SH_WALL,  SH_WALL,  SH_WALL_H, SH_WALL,  SH_SHUT,  SH_WIN,   SH_WIN,   SH_WALL_H, SH_WALL_S, C],
+      [SH_WALL_S, SH_WALL,  SH_WALL_H, SH_WALL,  SH_WALL,  SH_WALL,  SH_WALL_H, SH_WALL,  SH_WALL,  SH_WALL,  SH_WALL,  SH_WALL_H, SH_WALL,  SH_WALL,  SH_WALL_S, C],
+      [SH_TRIM,  SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_TRIM,  C],
+      [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C],
+    ];
+    this.textures.set('cottage_shed', this.createSpriteTexture(cottageShedSprite));
+
     const cottageHouseForestSprite = cottageHouseSprite.map(row => row.map(px => {
       if (px === THATCH) return GROOF;
       if (px === THATCH_H) return GROOF_H;
@@ -3157,6 +3403,23 @@ export class AssetManager {
       [C,         C,         GH_STONE_D,GH_STONE,  GH_STONE,  GH_STONE_D,C,         C        ],
     ], 4, 'golem_heart'));
 
+    const HE_DP = 0x4A148C;
+    const HE_P  = 0x7C4DFF;
+    const HE_LP = 0xB388FF;
+    const HE_BC = 0xEA80FC;
+    const HE_WC = 0xF3E5F5;
+    const HE_SH = 0x311B92;
+    this.textures.set('heretical_essence_apparition', this.createSpriteTexture([
+      [C,      C,      HE_SH,  HE_DP,  HE_DP,  HE_SH,  C,      C     ],
+      [C,      HE_SH,  HE_DP,  HE_P,   HE_P,   HE_DP,  HE_SH,  C     ],
+      [HE_SH,  HE_DP,  HE_P,   HE_LP,  HE_LP,  HE_P,   HE_DP,  HE_SH ],
+      [HE_DP,  HE_P,   HE_LP,  HE_BC,  HE_WC,  HE_LP,  HE_P,   HE_DP ],
+      [HE_DP,  HE_P,   HE_LP,  HE_WC,  HE_BC,  HE_LP,  HE_P,   HE_DP ],
+      [HE_SH,  HE_DP,  HE_P,   HE_LP,  HE_LP,  HE_P,   HE_DP,  HE_SH ],
+      [C,      HE_SH,  HE_DP,  HE_P,   HE_P,   HE_DP,  HE_SH,  C     ],
+      [C,      C,      HE_SH,  HE_DP,  HE_DP,  HE_SH,  C,      C     ],
+    ], 4, 'heretical_essence_apparition'));
+
     this.textures.set('mushroom', this.createSpriteTexture([
       [C,        C,        0xE53935,0xEF5350,0xE53935,0xEF5350,C,       C],
       [C,        0xE53935, 0xFFFFFF,0xE53935,0xE53935,0xFFFFFF, 0xE53935,C],
@@ -3247,6 +3510,25 @@ export class AssetManager {
       [0x795548, 0xBCAAA4,0x5D4037,0xBCAAA4,0x5D4037,0xBCAAA4,0x795548],
       [0x5D4037,0x795548,0x5D4037,0x795548,0x5D4037,0x795548,0x5D4037],
       [C,       0x5D4037,0x5D4037,0x5D4037,0x5D4037,0x5D4037,C],
+    ]));
+
+    // Blighted stump — corrupted wood with dark thorny tendrils and green/purple glow
+    const BV = 0x1B5E20; // dark blight vine
+    const BG = 0x69F0AE; // bright green glow
+    const BP = 0xB388FF; // purple glow highlight
+    const BD = 0x4A148C; // deep purple corruption
+    const BW = 0x5D4037; // base wood (brown)
+    const BH = 0x795548; // wood highlight
+    const BL = 0x3E2723; // dark wood
+    this.textures.set('blighted_stump', this.createSpriteTexture([
+      [C,  C,    BG,   C,    C,    BP,   C,    C,    C  ],
+      [C,  BG,   BV,   BP,   BG,   BV,   BP,   BG,   C  ],
+      [C,  BV,   BH,   BW,   BD,   BW,   BH,   BV,   C  ],
+      [BP, BH,   BD,   BH,   BV,   BD,   BH,   BW,   BG ],
+      [BV, BW,   BH,   BV,   BD,   BV,   BW,   BH,   BV ],
+      [BG, BL,   BW,   BL,   BW,   BL,   BW,   BL,   BP ],
+      [C,  BV,   BL,   BL,   BL,   BL,   BL,   BV,   C  ],
+      [C,  C,    BV,   BD,   BV,   BD,   BV,   C,    C  ],
     ]));
 
     this.textures.set('fence', this.createSpriteTexture([
@@ -3416,6 +3698,68 @@ export class AssetManager {
       [C,       WM_TWL,  WM_TWL,  WM_TWM,  WM_WIN,  WM_TWM,  WM_TWD,  WM_TWD,  C,       C      ],
       // ── stone base (row 17) ───────────────────────────────────────────────
       [WM_BSL,  WM_BSL,  WM_BSL,  WM_BSL,  WM_BSL,  WM_BSL,  WM_BSD,  WM_BSD,  C,       C      ],
+    ]));
+
+    // Observatory — abandoned stone watchtower, 14×26 sprite grid
+    // Pointed shingle roof → crenellations → straight-walled tower sections → trim bands → heavy base
+    const RF_PK = 0xB8860B;  // roof peak finial (dark goldenrod)
+    const RF_LT = 0x8B4513;  // roof shingle light (saddle brown)
+    const RF_MD = 0x6B3410;  // roof shingle mid
+    const RF_DK = 0x4A2208;  // roof shingle dark
+    const RF_EV = 0x2A1A0A;  // eaves trim (near-black brown)
+    const TW_LT = 0x9A9690;  // tower wall light (warm grey)
+    const TW_MD = 0x7A7670;  // tower wall mid
+    const TW_DK = 0x5A5650;  // tower wall dark/shadow
+    const TW_BD = 0x3A3834;  // band/trim line (dark)
+    const OB_WIN = 0x0A1018; // window (very dark)
+    const OB_WF  = 0x4A5060; // window frame/sill
+    const BS_LT = 0x706860;  // base stone light
+    const BS_MD = 0x585248;  // base stone mid
+    const BS_DK = 0x403C38;  // base stone dark
+    const BS_TM = 0x2A2824;  // base trim/foundation (darkest)
+    this.textures.set('observatory', this.createSpriteTexture([
+      // row 0: roof finial
+      [C,      C,      C,      C,      C,      C,      RF_PK,  RF_PK,  C,      C,      C,      C,      C,      C     ],
+      // row 1-2: upper roof cone
+      [C,      C,      C,      C,      C,      RF_LT,  RF_MD,  RF_MD,  RF_DK,  C,      C,      C,      C,      C     ],
+      [C,      C,      C,      C,      RF_LT,  RF_LT,  RF_MD,  RF_MD,  RF_DK,  RF_DK,  C,      C,      C,      C     ],
+      // row 3-4: expanding roof
+      [C,      C,      C,      RF_LT,  RF_LT,  RF_MD,  RF_MD,  RF_MD,  RF_DK,  RF_DK,  RF_DK,  C,      C,      C     ],
+      [C,      C,      RF_LT,  RF_LT,  RF_MD,  RF_MD,  RF_MD,  RF_MD,  RF_MD,  RF_DK,  RF_DK,  RF_DK,  C,      C     ],
+      // row 5: eaves overhang (wider than tower, dark edge trim)
+      [C,      RF_EV,  RF_LT,  RF_LT,  RF_MD,  RF_MD,  RF_MD,  RF_MD,  RF_MD,  RF_DK,  RF_DK,  RF_DK,  RF_EV,  C     ],
+      // row 6: crenellated parapet (gaps between merlons)
+      [C,      C,      C,      TW_BD,  C,      TW_BD,  TW_MD,  TW_MD,  TW_BD,  C,      TW_BD,  C,      C,      C     ],
+      // row 7-8: upper tower (straight edges cols 3-10)
+      [C,      C,      C,      TW_LT,  TW_LT,  TW_MD,  TW_MD,  TW_MD,  TW_MD,  TW_DK,  TW_DK,  C,      C,      C     ],
+      [C,      C,      C,      TW_LT,  OB_WF,  OB_WIN, TW_MD,  TW_MD,  OB_WIN, OB_WF,  TW_DK,  C,      C,      C     ],
+      // row 9: trim band
+      [C,      C,      C,      TW_LT,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_DK,  C,      C,      C     ],
+      // row 10-11: upper tower continued
+      [C,      C,      C,      TW_LT,  TW_LT,  TW_MD,  TW_MD,  TW_MD,  TW_MD,  TW_DK,  TW_DK,  C,      C,      C     ],
+      [C,      C,      C,      TW_LT,  TW_MD,  OB_WF,  OB_WIN, OB_WIN, OB_WF,  TW_MD,  TW_DK,  C,      C,      C     ],
+      // row 12: transition trim (widens to 10px, cols 2-11)
+      [C,      C,      TW_BD,  TW_LT,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_DK,  TW_BD,  C,      C     ],
+      // row 13-14: mid tower (straight edges cols 2-11)
+      [C,      C,      TW_LT,  TW_LT,  TW_MD,  TW_MD,  TW_MD,  TW_MD,  TW_MD,  TW_MD,  TW_DK,  TW_DK,  C,      C     ],
+      [C,      C,      TW_LT,  OB_WF,  OB_WIN, TW_MD,  TW_MD,  TW_MD,  TW_MD,  OB_WIN, OB_WF,  TW_DK,  C,      C     ],
+      // row 15-16: mid tower continued
+      [C,      C,      TW_LT,  TW_LT,  TW_MD,  TW_MD,  TW_MD,  TW_MD,  TW_MD,  TW_MD,  TW_DK,  TW_DK,  C,      C     ],
+      [C,      C,      TW_LT,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_DK,  C,      C     ],
+      // row 17: mid tower windows
+      [C,      C,      TW_LT,  TW_MD,  OB_WF,  OB_WIN, TW_MD,  TW_MD,  OB_WIN, OB_WF,  TW_MD,  TW_DK,  C,      C     ],
+      // row 18: transition band into base (widens to 12px, cols 1-12)
+      [C,      TW_BD,  BS_LT,  BS_LT,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  TW_BD,  BS_DK,  TW_BD,  C     ],
+      // row 19: base wall
+      [C,      BS_LT,  BS_LT,  BS_LT,  BS_MD,  BS_MD,  BS_MD,  BS_MD,  BS_MD,  BS_MD,  BS_DK,  BS_DK,  BS_DK,  C     ],
+      // row 20-22: base with arched entrance (full 14px)
+      [BS_LT,  BS_LT,  BS_LT,  BS_LT,  BS_MD,  OB_WF,  OB_WIN, OB_WIN, OB_WF,  BS_MD,  BS_DK,  BS_DK,  BS_DK,  BS_DK ],
+      [BS_LT,  BS_LT,  BS_LT,  BS_LT,  BS_MD,  OB_WIN, OB_WIN, OB_WIN, OB_WIN, BS_MD,  BS_DK,  BS_DK,  BS_DK,  BS_DK ],
+      [BS_LT,  BS_LT,  BS_LT,  BS_LT,  BS_LT,  BS_MD,  BS_MD,  BS_MD,  BS_MD,  BS_DK,  BS_DK,  BS_DK,  BS_DK,  BS_DK ],
+      // row 23-25: heavy foundation (full width, no tapering)
+      [BS_TM,  BS_LT,  BS_LT,  BS_LT,  BS_LT,  BS_MD,  BS_MD,  BS_MD,  BS_MD,  BS_DK,  BS_DK,  BS_DK,  BS_DK,  BS_TM ],
+      [BS_TM,  BS_TM,  BS_LT,  BS_LT,  BS_LT,  BS_MD,  BS_MD,  BS_MD,  BS_DK,  BS_DK,  BS_DK,  BS_DK,  BS_TM,  BS_TM ],
+      [BS_TM,  BS_TM,  BS_TM,  BS_LT,  BS_LT,  BS_LT,  BS_MD,  BS_DK,  BS_DK,  BS_DK,  BS_DK,  BS_TM,  BS_TM,  BS_TM ],
     ]));
 
     // Sword (Matches Player Buster Blade — fully diagonal, tip top-right to pommel bottom-left)

@@ -32,6 +32,7 @@ export function runEnemyLoop({
   registry,
   enemyAudio,
   playPlayerHit,
+  playPropBreak,
   shadowGeometry,
   shadowMaterial,
   createOutlineMesh,
@@ -109,6 +110,8 @@ export function runEnemyLoop({
       }
     },
     state.player.stealthDetectionMult,
+    particleSystem,
+    playPropBreak,
   );
 
   if (state.player.health < playerHealthBeforeUpdate) {

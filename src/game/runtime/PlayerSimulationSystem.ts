@@ -1,6 +1,7 @@
 import type { GameState } from '@/lib/game/GameState';
 import type { World } from '@/lib/game/World';
 import { makeVisitedTileKey } from '@/lib/game/visitedTiles';
+import { breakTileAt, breakTilesInRadius } from '@/game/runtime/BreakableProps';
 
 export type PlayerAnimState =
   | 'idle'
@@ -84,6 +85,10 @@ interface UpdatePlayerSimulationOptions {
   };
   onLungeHit: (enemy: any, damage: number) => void;
   onLungeEnd: () => void;
+  particleSystem: {
+    emit(position: { x: number; y: number; z: number }, count: number, color: number, lifetime: number, speed: number, spread: number): void;
+  };
+  playPropBreak?: () => void;
   dodgeIFrameDuration: number;
   // Combo chain state
   comboStep: number;
@@ -157,6 +162,8 @@ export function updatePlayerSimulation({
   combatSystem,
   onLungeHit,
   onLungeEnd,
+  particleSystem,
+  playPropBreak,
   dodgeIFrameDuration,
   comboStep,
   comboWindowTimer,
@@ -272,6 +279,24 @@ export function updatePlayerSimulation({
       y: state.player.position.y + state.player.dodgeDirection.y * dodgeFrameSpeed,
     };
 
+    // Mirror the exact four corner probes that canMoveTo(r=0.2) uses so we
+    // break whichever tile blocks the roll — radius checks against tile
+    // centers are unreliable when the player straddles a tile boundary.
+    const dodgeMap = world.getCurrentMap();
+    const DR = 0.2;
+    const dodgeCorners: [number, number][] = [
+      [newPos.x - DR, newPos.y - DR],
+      [newPos.x + DR, newPos.y - DR],
+      [newPos.x - DR, newPos.y + DR],
+      [newPos.x + DR, newPos.y + DR],
+    ];
+    let dodgeBroke = false;
+    for (const [cx, cy] of dodgeCorners) {
+      const tx = Math.floor(cx + dodgeMap.width / 2);
+      const ty = Math.floor(cy + dodgeMap.height / 2);
+      if (breakTileAt(world as any, dodgeMap, tx, ty, particleSystem as any)) dodgeBroke = true;
+    }
+    if (dodgeBroke) playPropBreak?.();
     if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, newPos.y, 0.2)) {
       state.player.position = newPos;
     }
@@ -416,6 +441,8 @@ export function updatePlayerSimulation({
     } else {
       lungeState.distanceRemaining = 0;
     }
+
+    breakTilesInRadius(world as any, world.getCurrentMap(), state.player.position.x, state.player.position.y, 1.0, particleSystem as any, playPropBreak);
 
     lungeState.distanceRemaining -= step;
 

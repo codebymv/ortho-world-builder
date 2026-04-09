@@ -286,7 +286,7 @@ export function createRuntimeMapFlow({
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
     const extended = state.getFlag('hollow_approach_ladder_extended');
-    const tx = 118;
+    const tx = 117;
     const ty = 106;
     const row = map.tiles[ty];
     if (!row) return;
@@ -295,11 +295,34 @@ export function createRuntimeMapFlow({
       row[tx] = { type: 'ladder' as TileType, walkable: true, elevation: el };
     } else {
       row[tx] = {
-        type: 'curled_ladder' as TileType,
+        type: 'gate_ladder' as TileType,
         walkable: false,
         elevation: el,
         interactable: true,
         interactionId: 'hollow_approach_ladder',
+      };
+    }
+    world.rebuildChunks();
+  };
+
+  const syncCliffCorridorLadderState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const extended = state.getFlag('cliff_corridor_ladder_extended');
+    const tx = 269;
+    const ty = 123;
+    const row = map.tiles[ty];
+    if (!row) return;
+    const el = row[tx]?.elevation ?? 1;
+    if (extended) {
+      row[tx] = { type: 'ladder' as TileType, walkable: true, elevation: el };
+    } else {
+      row[tx] = {
+        type: 'gate_ladder' as TileType,
+        walkable: false,
+        elevation: el,
+        interactable: true,
+        interactionId: 'cliff_corridor_ladder',
       };
     }
     world.rebuildChunks();
@@ -336,6 +359,23 @@ export function createRuntimeMapFlow({
     }
     if (changed && Number.isFinite(minX)) {
       world.refreshMapTileRegion(minX, minY, maxX, maxY);
+    }
+  };
+
+  const syncBlightedRootState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const destroyed = state.getFlag('blighted_root_destroyed');
+    for (let y = 0; y < map.height; y++) {
+      for (let x = 0; x < map.width; x++) {
+        const tile = map.tiles[y][x];
+        if (tile.interactionId !== 'blighted_root') continue;
+        const wantType = destroyed ? 'stump' : 'blighted_stump';
+        if (tile.type !== wantType) {
+          map.tiles[y][x] = { ...tile, type: wantType as any };
+          world.refreshMapTileRegion(x - 1, y - 1, x + 1, y + 1);
+        }
+      }
     }
   };
 
@@ -608,6 +648,121 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
+  const syncNorthFortGateState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const gateOpen = state.getFlag('north_fort_gate_open');
+    const FORT_X = 200, FORT_Y = 60, FORT_W = 18, FORT_H = 16;
+    const GATE_CX = FORT_X + Math.floor(FORT_W / 2); // 209
+    const SOUTH_Y = FORT_Y + FORT_H - 1; // 75
+    const TOWER_R = 3;
+
+    const inCornerTower = (dx: number, dy: number) =>
+      (dx < TOWER_R && dy < TOWER_R) ||
+      (dx >= FORT_W - TOWER_R && dy < TOWER_R) ||
+      (dx < TOWER_R && dy >= FORT_H - TOWER_R) ||
+      (dx >= FORT_W - TOWER_R && dy >= FORT_H - TOWER_R);
+
+    const towerCenter = (dx: number, dy: number) => {
+      const cxL = dx < FORT_W / 2 ? Math.floor(TOWER_R / 2) : FORT_W - 1 - Math.floor(TOWER_R / 2);
+      const cyL = dy < FORT_H / 2 ? Math.floor(TOWER_R / 2) : FORT_H - 1 - Math.floor(TOWER_R / 2);
+      return dx === cxL && dy === cyL;
+    };
+
+    for (let dy = 0; dy < FORT_H; dy++) {
+      for (let dx = 0; dx < FORT_W; dx++) {
+        const isOuter = dx === 0 || dx === FORT_W - 1 || dy === 0 || dy === FORT_H - 1;
+        const isSecond = dx === 1 || dx === FORT_W - 2 || dy === 1 || dy === FORT_H - 2;
+        const isThird = dx === 2 || dx === FORT_W - 3 || dy === 2 || dy === FORT_H - 3;
+        if (!isOuter && !isSecond && !isThird && !inCornerTower(dx, dy)) continue;
+        const tx = FORT_X + dx;
+        const ty = FORT_Y + dy;
+        const row = map.tiles[ty];
+        if (!row) continue;
+        const el = row[tx]?.elevation ?? 0;
+
+        if (ty === SOUTH_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
+          row[tx] = gateOpen
+            ? { type: 'stone' as TileType, walkable: true, elevation: el }
+            : { type: 'gate' as TileType, walkable: false, elevation: el, interactable: true, interactionId: 'north_fort_gate' };
+          continue;
+        }
+
+        if (ty === FORT_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
+          row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          continue;
+        }
+
+        if (dy === 1 && dx >= GATE_CX - FORT_X - 2 && dx <= GATE_CX - FORT_X + 2) {
+          if (dx === GATE_CX - FORT_X - 2 || dx === GATE_CX - FORT_X + 2) {
+            row[tx] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+          } else {
+            row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          }
+          continue;
+        }
+
+        if (dy === FORT_H - 2 && dx >= GATE_CX - FORT_X - 2 && dx <= GATE_CX - FORT_X + 2) {
+          if (dx === GATE_CX - FORT_X - 2 || dx === GATE_CX - FORT_X + 2) {
+            row[tx] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+          } else {
+            row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          }
+          continue;
+        }
+
+        if (inCornerTower(dx, dy)) {
+          row[tx] = towerCenter(dx, dy)
+            ? { type: 'lantern' as TileType, walkable: false, elevation: el }
+            : { type: 'stone' as TileType, walkable: false, elevation: el };
+          continue;
+        }
+
+        if (isThird && !isOuter && !isSecond) {
+          row[tx] = (dx + dy) % 3 === 0
+            ? { type: 'iron_fence' as TileType, walkable: false, elevation: el }
+            : { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          continue;
+        }
+
+        row[tx] = { type: 'stone' as TileType, walkable: false, elevation: el };
+      }
+    }
+
+    const frameY = FORT_Y + FORT_H;
+    if (frameY < map.tiles.length) {
+      const frameRow = map.tiles[frameY];
+      if (frameRow) {
+        const el = frameRow[GATE_CX]?.elevation ?? 0;
+        const pillarL = GATE_CX - 2, pillarR = GATE_CX + 2;
+        const torchL = GATE_CX - 1, torchR = GATE_CX + 1;
+        if (pillarL >= 0) frameRow[pillarL] = { type: 'stone' as TileType, walkable: false, elevation: el };
+        if (pillarR < frameRow.length) frameRow[pillarR] = { type: 'stone' as TileType, walkable: false, elevation: el };
+        if (torchL >= 0) frameRow[torchL] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+        if (torchR < frameRow.length) frameRow[torchR] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+      }
+    }
+
+    const northFrameY = FORT_Y - 1;
+    if (northFrameY >= 0 && northFrameY < map.tiles.length) {
+      const nRow = map.tiles[northFrameY];
+      if (nRow) {
+        const el = nRow[GATE_CX]?.elevation ?? 0;
+        for (let nx = GATE_CX - 2; nx <= GATE_CX + 2; nx++) {
+          if (nx >= 0 && nx < nRow.length) {
+            if (nx === GATE_CX - 2 || nx === GATE_CX + 2) {
+              nRow[nx] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+            } else {
+              nRow[nx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+            }
+          }
+        }
+      }
+    }
+
+    world.rebuildChunks();
+  };
+
   const HOLLOW_VICTORY_PORTAL_TARGET = { targetMap: 'gilrhym', targetX: 150, targetY: 285 } as const;
 
   const syncHollowFogGateState = () => {
@@ -673,6 +828,18 @@ export function createRuntimeMapFlow({
         elevation: el,
         transition: { ...HOLLOW_VICTORY_PORTAL_TARGET },
       };
+      const bonfireY = 28;
+      const bonfireRow = map.tiles[bonfireY];
+      if (bonfireRow) {
+        const bel = bonfireRow[portalX]?.elevation ?? 0;
+        bonfireRow[portalX] = {
+          type: 'bonfire_unlit' as TileType,
+          walkable: true,
+          elevation: bel,
+          interactable: true,
+          interactionId: 'hollow_arena_bonfire',
+        };
+      }
     } else {
       row[portalX] = { type: 'ruins_floor' as TileType, walkable: true, elevation: el };
     }
@@ -766,17 +933,20 @@ export function createRuntimeMapFlow({
     syncGroveShelfShortcutState();
     syncHollowShortcutState();
     syncForestFortGateState();
+    syncNorthFortGateState();
     syncHollowFogGateState();
     syncHollowArenaVictoryPortalState();
     syncGilrhymBossState();
     syncVillageReactivityState();
     syncVillageInteriorReactivityState();
     syncOpenedChestState();
+    syncBlightedRootState();
     syncHarvestedTempestGrassState();
     syncHarvestedMoonbloomState();
     syncBonfireKindledState();
     syncPreplacedWorldItems();
     syncHollowApproachLadderState();
+    syncCliffCorridorLadderState();
   };
 
   const respawnEnemiesForCurrentMap = (targetMap: string, map: WorldMap) => {
@@ -816,6 +986,15 @@ export function createRuntimeMapFlow({
       // Beast side — 2 armored wolves
       spawnBattleEnemy('armored_wolf', { x: 57.2, y: -0.3 }, 'beast');
       spawnBattleEnemy('armored_wolf', { x: 58.1, y: 0.7 }, 'beast');
+
+      // Observatory compound faction skirmish — SE of North Fort, offset from sentinels/golem.
+      // Undead side — 2 skeletons + 1 captain
+      spawnBattleEnemy('skeleton', { x: 76.5, y: -57.4 }, 'undead');
+      spawnBattleEnemy('skeleton', { x: 77.8, y: -56.6 }, 'undead');
+      spawnBattleEnemy('skeleton_captain', { x: 77.0, y: -57.0 }, 'undead');
+      // Beast side — 2 armored wolves
+      spawnBattleEnemy('armored_wolf', { x: 80.2, y: -57.3 }, 'beast');
+      spawnBattleEnemy('armored_wolf', { x: 81.0, y: -56.5 }, 'beast');
     }
 
     // Boss arena: spawn the Hollow Guardian at the arena center
@@ -875,13 +1054,16 @@ export function createRuntimeMapFlow({
     syncGroveShelfShortcutState,
     syncHollowShortcutState,
     syncHollowApproachLadderState,
+    syncCliffCorridorLadderState,
     syncForestFortGateState,
+    syncNorthFortGateState,
     syncHollowFogGateState,
     syncHollowArenaVictoryPortalState,
     syncGilrhymBossState,
     syncVillageReactivityState,
     syncVillageInteriorReactivityState,
     syncOpenedChestState,
+    syncBlightedRootState,
     syncHarvestedTempestGrassState,
     syncHarvestedMoonbloomState,
     syncPersistentMapState,

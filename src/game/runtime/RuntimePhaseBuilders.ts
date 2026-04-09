@@ -49,6 +49,8 @@ export function buildGameplayPreludeContext(options: BuildRuntimePhaseContextsOp
     combatSystem: options.combatSystem,
     onLungeHit: options.onLungeHit,
     onLungeEnd: options.onLungeEnd,
+    particleSystem: options.particleSystem,
+    playPropBreak: options.playPropBreak,
     dodgeIFrameDuration: options.dodgeIFrameDuration,
     triggerComboChain: options.triggerComboChain,
     comboWindowDuration: options.comboWindowDuration,
@@ -128,6 +130,7 @@ export function buildEnemyLoopContext(options: BuildRuntimePhaseContextsOptions)
     registry: options.enemyVisuals,
     enemyAudio: options.enemyAudio,
     playPlayerHit: options.playPlayerHit,
+    playPropBreak: options.playPropBreak,
     shadowGeometry: options.shadowGeometry,
     shadowMaterial: options.shadowMaterial,
     createOutlineMesh: options.createOutlineMesh,
@@ -157,5 +160,8 @@ export function buildRuntimeLoopTailContext(options: BuildRuntimePhaseContextsOp
     worldItemRenderer: options.worldItemRenderer,
     state: options.state,
     assetManager: options.assetManager,
+    startStormLoop: options.startStormLoop,
+    stopStormLoop: options.stopStormLoop,
+    playThunder: options.playThunder,
   };
 }

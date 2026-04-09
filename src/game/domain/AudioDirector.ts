@@ -83,6 +83,8 @@ interface MusicDirectorContext {
   resolveTrack: (mapId: string) => string;
 }
 
+const MAP_MUSIC_VOLUME = 0.10;
+
 export function createMusicDirector(context: MusicDirectorContext) {
   const switchTrack = (mapId: string) => {
     const track = context.resolveTrack(mapId);
@@ -96,7 +98,7 @@ export function createMusicDirector(context: MusicDirectorContext) {
     audio.pause();
     audio.src = track;
     audio.loop = true;
-    audio.volume = 0.15;
+    audio.volume = MAP_MUSIC_VOLUME;
     audio.muted = wasMuted;
     context.processAudioElement(audio);
 
@@ -109,7 +111,7 @@ export function createMusicDirector(context: MusicDirectorContext) {
     const startTrack = context.resolveTrack(initialMapId);
     const audio = new Audio(startTrack);
     audio.loop = true;
-    audio.volume = 0.15;
+    audio.volume = MAP_MUSIC_VOLUME;
     context.processAudioElement(audio);
     context.musicRef.current = audio;
     context.currentTrackRef.current = startTrack;
@@ -253,7 +255,7 @@ export function createEnemyAudioDirector(config: EnemyAudioDirectorConfig) {
     }),
     shadow: createSequentialAudioPool({
       src: './audio/reaper_defeat.mp3',
-      volume: 0.50,
+      volume: 0.44,
       poolSize: 2,
       processAudioElement: config.processAudioElement,
     }),
@@ -285,7 +287,7 @@ export function createEnemyAudioDirector(config: EnemyAudioDirectorConfig) {
     }),
     shadow: createSequentialAudioPool({
       src: './audio/reaper_walk.mp3',
-      volume: 0.30,
+      volume: 0.36,
       poolSize: 2,
       processAudioElement: config.processAudioElement,
     }),

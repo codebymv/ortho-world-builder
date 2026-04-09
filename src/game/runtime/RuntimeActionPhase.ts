@@ -53,9 +53,12 @@ interface RuntimeActionPhaseOptions {
   syncGroveShelfShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncHollowApproachLadderState: () => void;
+  syncCliffCorridorLadderState: () => void;
   syncForestFortGateState: () => void;
+  syncNorthFortGateState: () => void;
   syncHollowFogGateState: () => void;
   syncHollowArenaVictoryPortalState: () => void;
+  switchMusicTrack: (mapId: string) => void;
   handleMapTransition: (targetMap: string, targetX: number, targetY: number) => void;
   healCooldowns: MutableRefObject<Map<string, number>>;
   hasDialogue: (interactionId: string) => boolean;
@@ -117,9 +120,12 @@ export function setupRuntimeActionPhase({
   syncGroveShelfShortcutState,
   syncHollowShortcutState,
   syncHollowApproachLadderState,
+  syncCliffCorridorLadderState,
   syncForestFortGateState,
+  syncNorthFortGateState,
   syncHollowFogGateState,
   syncHollowArenaVictoryPortalState,
+  switchMusicTrack,
   handleMapTransition,
   healCooldowns,
   hasDialogue,
@@ -192,10 +198,12 @@ export function setupRuntimeActionPhase({
 
   const { onEnemyKilled, performAttack, performChargeAttack, triggerComboChain } = createRuntimeCombatActions({
     state,
+    world: world as any,
     combatSystem,
     floatingText,
     screenShake,
     particleSystem: particleSystem as any,
+    playPropBreak: sfx.playPropBreak,
     enemyAudio: sfx.enemyAudio,
     notify,
     triggerUIUpdate,
@@ -278,6 +286,7 @@ export function setupRuntimeActionPhase({
     onBossDefeated: () => {
       syncHollowArenaVictoryPortalState();
       syncHollowFogGateState();
+      switchMusicTrack('victory');
       showHeroOverlay('HOLLOW APPARITION VANQUISHED', 'The fog lifts…');
     },
   });
@@ -317,7 +326,9 @@ export function setupRuntimeActionPhase({
     syncGroveShelfShortcutState,
     syncHollowShortcutState,
     syncHollowApproachLadderState,
+    syncCliffCorridorLadderState,
     syncForestFortGateState,
+    syncNorthFortGateState,
     showHeroOverlay,
     hasDialogue,
     onWorldItemPickup: (itemId: string) => {
@@ -339,6 +350,11 @@ export function setupRuntimeActionPhase({
           triggerUIUpdate();
         }
       }
+    },
+    getAliveEnemyCountNearPlayer: (radius: number) => {
+      const pos = state.player.position;
+      return combatSystem.getEnemiesInRange(pos, radius)
+        .filter((e: any) => e.health > 0).length;
     },
   });
 
@@ -390,6 +406,10 @@ export function setupRuntimeActionPhase({
     stopDialogueLoop: sfx.stopDialogueLoop,
     playMenuOpen: sfx.playMenuOpen,
     playMenuClose: sfx.playMenuClose,
+    playPropBreak: sfx.playPropBreak,
+    startStormLoop: sfx.startStormLoop,
+    stopStormLoop: sfx.stopStormLoop,
+    playThunder: sfx.playThunder,
     usePotion,
     checkInteraction,
     performDodge,

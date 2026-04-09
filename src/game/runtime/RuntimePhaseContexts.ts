@@ -93,6 +93,10 @@ export interface GameplayPreludeContext {
   };
   onLungeHit: (enemy: any, damage: number) => void;
   onLungeEnd: () => void;
+  particleSystem: {
+    emit(position: any, count: number, color: number, lifetime: number, speed: number, spread: number): void;
+  };
+  playPropBreak?: () => void;
   dodgeIFrameDuration: number;
   triggerComboChain: () => { frameDuration: number } | null;
   comboWindowDuration: number;
@@ -196,6 +200,7 @@ export interface EnemyLoopContext {
   getVisualYAt: (x: number, y: number) => number;
   getActorRenderOrder: (x: number, y: number, footOffset: number) => number;
   playPlayerHit: () => void;
+  playPropBreak?: () => void;
 }
 
 export interface RuntimeLoopTailContext {
@@ -218,6 +223,9 @@ export interface RuntimeLoopTailContext {
   worldItemRenderer: WorldItemRendererInstance;
   state: GameState;
   assetManager: AssetManager;
+  startStormLoop?: () => void;
+  stopStormLoop?: () => void;
+  playThunder?: () => void;
 }
 
 interface CreateRuntimePhaseContextsOptions {

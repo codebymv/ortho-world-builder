@@ -16,11 +16,39 @@ const villageDef: MapDefinition = {
   baseTerrain: 'grassland',
   borderTile: 'tree',
   features: [
-    // ====== CENTRAL COBBLESTONE PLAZA ======
-    { x: 95, y: 68, width: 50, height: 34, type: 'cobble_plaza' },
+    // ====== CENTRAL VILLAGE SQUARE (dirt clearing with grass border) ======
+    { x: 95, y: 68, width: 50, height: 34, type: 'clearing', fill: 'dirt' },
 
     // ====== TOWN HALL (center of plaza) ======
     { x: 110, y: 58, width: 16, height: 10, type: 'building', interactionId: 'town_hall' },
+
+    // ====== NON-ENTERABLE BUILDINGS INSIDE SQUARE (small houses for density) ======
+    { x: 96, y: 72, width: 5, height: 4, type: 'cottage' },
+    { x: 131, y: 72, width: 5, height: 4, type: 'building' },
+    { x: 109, y: 79, width: 5, height: 4, type: 'cottage' },
+    { x: 128, y: 82, width: 5, height: 4, type: 'building' },
+    { x: 98, y: 88, width: 5, height: 4, type: 'cottage' },
+    { x: 135, y: 90, width: 5, height: 4, type: 'building' },
+
+    // ====== WINDMILL LANDMARK (visible from square) ======
+    { x: 142, y: 58, width: 6, height: 6, type: 'clearing', fill: 'dirt' },
+
+    // ====== MARKET STALLS & WAGONS INSIDE SQUARE ======
+    { x: 106, y: 74, width: 5, height: 1, type: 'market_stall_row' },
+    { x: 122, y: 74, width: 5, height: 1, type: 'market_stall_row' },
+    { x: 106, y: 86, width: 5, height: 1, type: 'market_stall_row' },
+    { x: 122, y: 86, width: 4, height: 1, type: 'market_stall_row' },
+    { x: 114, y: 92, width: 5, height: 1, type: 'market_stall_row' },
+    { x: 96, y: 96, width: 5, height: 4, type: 'broken_wagon' },
+    { x: 136, y: 96, width: 5, height: 4, type: 'broken_wagon' },
+
+    // ====== GARDEN NEAR ELDER'S AREA ======
+    { x: 96, y: 68, width: 4, height: 3, type: 'garden' },
+
+    // ====== APPROACH BUILDINGS (spawn to square, small non-enterable) ======
+    { x: 108, y: 106, width: 5, height: 4, type: 'cottage' },
+    { x: 128, y: 108, width: 5, height: 4, type: 'cottage' },
+    { x: 100, y: 112, width: 5, height: 4, type: 'building' },
 
     // ====== RESIDENTIAL DISTRICT (west) - organic village layout with yards ======
     { x: 25, y: 48, width: 8, height: 6, type: 'building', interactionId: 'house_1' },
@@ -33,10 +61,27 @@ const villageDef: MapDefinition = {
     { x: 22, y: 88, width: 8, height: 6, type: 'building', interactionId: 'house_8' },
     { x: 48, y: 88, width: 8, height: 6, type: 'building', interactionId: 'house_9' },
     { x: 72, y: 65, width: 8, height: 6, type: 'building', interactionId: 'house_10' },
+    // Residential yard gardens next to houses
+    { x: 34, y: 48, width: 4, height: 3, type: 'garden' },
+    { x: 49, y: 52, width: 4, height: 3, type: 'garden' },
+    { x: 37, y: 65, width: 4, height: 3, type: 'garden' },
+    { x: 59, y: 60, width: 4, height: 3, type: 'garden' },
+    { x: 64, y: 72, width: 4, height: 3, type: 'garden' },
+    { x: 31, y: 88, width: 4, height: 3, type: 'garden' },
+    // Residential dirt side lanes connecting houses to main roads
+    { x: 25, y: 55, width: 3, height: 3, type: 'path', fill: 'dirt' },
+    { x: 40, y: 58, width: 3, height: 2, type: 'path', fill: 'dirt' },
+    { x: 50, y: 66, width: 3, height: 6, type: 'path', fill: 'dirt' },
+    { x: 35, y: 84, width: 3, height: 4, type: 'path', fill: 'dirt' },
+    { x: 55, y: 78, width: 3, height: 2, type: 'path', fill: 'dirt' },
+    { x: 68, y: 56, width: 3, height: 16, type: 'path', fill: 'dirt' },
+    // Fence borders defining residential clusters
+    { x: 23, y: 46, width: 22, height: 18, type: 'iron_fence_border', fill: 'grass' },
+    { x: 47, y: 58, width: 16, height: 14, type: 'iron_fence_border', fill: 'grass' },
 
-    // ====== MARKET DISTRICT (east) - shops with cobblestone ======
-    { x: 155, y: 65, width: 30, height: 18, type: 'cobble_plaza' },
-    { x: 184, y: 74, width: 24, height: 18, type: 'cobble_plaza' },
+    // ====== MARKET DISTRICT (east) - shops with dirt clearing ======
+    { x: 155, y: 65, width: 30, height: 18, type: 'clearing', fill: 'dirt' },
+    { x: 184, y: 74, width: 24, height: 18, type: 'clearing', fill: 'dirt' },
     { x: 155, y: 58, width: 8, height: 6, type: 'inn_building', interactionId: 'shop_weapons', interiorMap: 'interior_blacksmith', interiorSpawnX: 8, interiorSpawnY: 10 },
     { x: 175, y: 56, width: 8, height: 6, type: 'inn_building', interactionId: 'shop_potions', interiorMap: 'interior_merchant', interiorSpawnX: 7, interiorSpawnY: 10 },
     { x: 175, y: 88, width: 8, height: 6, type: 'inn_building', interactionId: 'inn', interiorMap: 'interior_inn', interiorSpawnX: 10, interiorSpawnY: 12 },
@@ -47,10 +92,13 @@ const villageDef: MapDefinition = {
     { x: 20, y: 105, width: 30, height: 18, type: 'farm' },
     { x: 55, y: 110, width: 26, height: 16, type: 'farm' },
     { x: 130, y: 115, width: 28, height: 16, type: 'farm' },
+    // Threshing clearings between farms
+    { x: 52, y: 105, width: 6, height: 5, type: 'clearing', fill: 'dirt' },
+    { x: 83, y: 112, width: 5, height: 5, type: 'clearing', fill: 'dirt' },
+    { x: 110, y: 118, width: 6, height: 5, type: 'clearing', fill: 'dirt' },
 
     // ====== CEMETERY with IRON FENCING (north-west) ======
     { x: 10, y: 15, width: 28, height: 22, type: 'iron_fence_border', fill: 'dirt' },
-    // Tombstones inside cemetery (placed after iron fence)
     { x: 12, y: 17, width: 24, height: 18, type: 'graveyard' },
 
     // ====== HEDGE GARDEN/MAZE (east of plaza) ======
@@ -60,14 +108,18 @@ const villageDef: MapDefinition = {
     { x: 5, y: 90, width: 18, height: 16, type: 'forest_grove' },
     { x: 210, y: 110, width: 22, height: 20, type: 'forest_grove' },
     { x: 85, y: 12, width: 20, height: 14, type: 'forest_grove' },
-    // Ravine spring on the north ridge (landmark; el zones applied after features)
     { x: 68, y: 5, width: 14, height: 16, type: 'waterfall' },
 
     // ====== VILLAGE LAKE with surrounding trees ======
     { x: 170, y: 110, width: 30, height: 20, type: 'lake' },
+    // Wooden boardwalk and dock at lake
+    { x: 168, y: 108, width: 10, height: 2, type: 'path', fill: 'wooden_path' },
+    { x: 185, y: 125, width: 3, height: 6, type: 'path', fill: 'wooden_path' },
 
     // ====== TRAINING GROUNDS (north-east) ======
     { x: 170, y: 20, width: 24, height: 16, type: 'clearing', fill: 'dirt' },
+    // Fence border around training grounds
+    { x: 169, y: 19, width: 26, height: 18, type: 'iron_fence_border', fill: 'dirt' },
 
     // ====== ELDER'S GARDEN (fenced, north of plaza) ======
     { x: 105, y: 42, width: 14, height: 12, type: 'garden' },
@@ -75,6 +127,9 @@ const villageDef: MapDefinition = {
     // ====== PARKS & GREEN SPACES filling gaps ======
     { x: 82, y: 95, width: 12, height: 10, type: 'garden' },
     { x: 200, y: 95, width: 14, height: 12, type: 'garden' },
+    // Additional flower gardens in town center gaps
+    { x: 95, y: 60, width: 6, height: 4, type: 'garden' },
+    { x: 135, y: 60, width: 6, height: 4, type: 'garden' },
 
     // ====== ENEMY OUTPOSTS (edges) ======
     { x: 215, y: 12, width: 16, height: 12, type: 'camp', interactionId: 'bandit_camp' },
@@ -87,6 +142,9 @@ const villageDef: MapDefinition = {
     // ====== VILLAGE CHURCH (east of cemetery) ======
     { x: 42, y: 28, width: 20, height: 20, type: 'clearing', fill: 'dirt' },
     { x: 45, y: 30, width: 12, height: 14, type: 'church', interactionId: 'village_church' },
+    // Churchyard flower beds flanking entry
+    { x: 43, y: 44, width: 4, height: 3, type: 'garden' },
+    { x: 55, y: 44, width: 4, height: 3, type: 'garden' },
 
     // ====== SCATTERED COTTAGES (countryside feel) ======
     { x: 88, y: 117, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_south', interiorMap: 'interior_cottage_a', interiorSpawnX: 6, interiorSpawnY: 8 },
@@ -112,32 +170,42 @@ const villageDef: MapDefinition = {
     { x: 184, y: 88, width: 5, height: 1, type: 'market_stall_row' },
     { x: 58, y: 108, width: 5, height: 4, type: 'broken_wagon' },
 
-    // ====== COBBLESTONE ROADS connecting everything ======
-    // Main N-S road through center
-    { x: 116, y: 10, width: 6, height: 130, type: 'path', fill: 'cobblestone' },
-    // Main E-W road through town
-    { x: 20, y: 72, width: 200, height: 4, type: 'path', fill: 'cobblestone' },
-    // Market road
-    { x: 145, y: 72, width: 60, height: 4, type: 'path', fill: 'cobblestone' },
-    // Tavern frontage
-    { x: 184, y: 88, width: 24, height: 4, type: 'path', fill: 'cobblestone' },
-    // South farm connector
+    // ====== NORTH CORRIDOR: ZONE A — VILLAGE GATE CROSSROADS (y:53-58) ======
+    { x: 108, y: 53, width: 22, height: 6, type: 'clearing', fill: 'dirt' },
+
+    // ====== NORTH CORRIDOR: ZONE B — THE THRESHOLD (y:22-42) ======
+    { x: 124, y: 30, width: 5, height: 4, type: 'cottage' },
+    { x: 106, y: 28, width: 7, height: 5, type: 'clearing', fill: 'dark_grass' },
+    { x: 127, y: 36, width: 7, height: 5, type: 'clearing', fill: 'dark_grass' },
+    { x: 108, y: 36, width: 6, height: 4, type: 'clearing', fill: 'tall_grass' },
+    { x: 125, y: 24, width: 6, height: 4, type: 'clearing', fill: 'tall_grass' },
+
+    // ====== NORTH CORRIDOR: ZONE C — FOREST EDGE (y:3-22) ======
+    { x: 100, y: 8, width: 14, height: 16, type: 'forest_grove' },
+    { x: 126, y: 8, width: 14, height: 16, type: 'forest_grove' },
+    { x: 110, y: 3, width: 20, height: 12, type: 'clearing', fill: 'dirt' },
+
+    // ====== DIRT ROADS connecting everything ======
+    { x: 116, y: 10, width: 6, height: 130, type: 'path', fill: 'dirt' },
+    { x: 20, y: 72, width: 200, height: 4, type: 'path', fill: 'dirt' },
+    { x: 145, y: 72, width: 60, height: 4, type: 'path', fill: 'dirt' },
+    { x: 184, y: 88, width: 24, height: 4, type: 'path', fill: 'dirt' },
     { x: 40, y: 100, width: 100, height: 3, type: 'path', fill: 'dirt' },
-    // Residential side streets
     { x: 28, y: 58, width: 50, height: 2, type: 'path', fill: 'dirt' },
     { x: 28, y: 76, width: 50, height: 2, type: 'path', fill: 'dirt' },
-    // Cemetery approach
     { x: 38, y: 25, width: 78, height: 3, type: 'path', fill: 'dirt' },
-    // North path to forest
-    { x: 116, y: 8, width: 6, height: 6, type: 'path', fill: 'cobblestone' },
-    // East path
+    { x: 116, y: 8, width: 6, height: 6, type: 'path', fill: 'dirt' },
     { x: 196, y: 72, width: 42, height: 4, type: 'path', fill: 'dirt' },
-    // Lake path
     { x: 160, y: 100, width: 20, height: 3, type: 'path', fill: 'dirt' },
-    // Training grounds path
     { x: 170, y: 36, width: 24, height: 3, type: 'path', fill: 'dirt' },
-    // Garden path connecting north
-    { x: 112, y: 38, width: 4, height: 20, type: 'path', fill: 'cobblestone' },
+    { x: 112, y: 38, width: 4, height: 20, type: 'path', fill: 'dirt' },
+    // Dirt widening at key intersections
+    { x: 113, y: 70, width: 10, height: 8, type: 'clearing', fill: 'dirt' },
+    { x: 113, y: 98, width: 10, height: 8, type: 'clearing', fill: 'dirt' },
+    // Lake approach road
+    { x: 160, y: 103, width: 12, height: 3, type: 'path', fill: 'dirt' },
+    // South-central connecting path
+    { x: 88, y: 100, width: 28, height: 3, type: 'path', fill: 'dirt' },
   ],
   portals: [
     { x: 120, y: 8, targetMap: 'forest', targetX: 150, targetY: 289 },
@@ -160,21 +228,46 @@ const villageDef: MapDefinition = {
     { x: 35, y: 28, interactionId: 'cemetery_chest' },
   ],
   interactables: [
+    // ====== CORE INTERACTABLES ======
     { x: 120, y: 104, type: 'bonfire', walkable: false, interactionId: 'bonfire_village' },
     { x: 119, y: 82, type: 'well', walkable: false, interactionId: 'fountain' },
-    { x: 108, y: 100, type: 'sign', walkable: false, interactionId: 'village_sign' },
-    { x: 155, y: 72, type: 'sign', walkable: false, interactionId: 'market_sign' },
+    { x: 119, y: 125, type: 'campfire', walkable: false, interactionId: 'campfire' },
+    { x: 20, y: 30, type: 'tombstone', walkable: false, interactionId: 'tombstone' },
+
+    // ====== WELLS (residential, farm, lakeside) ======
     { x: 38, y: 60, type: 'well', walkable: false, interactionId: 'well' },
     { x: 180, y: 100, type: 'well', walkable: false, interactionId: 'well' },
-    { x: 170, y: 30, type: 'sign', walkable: false, interactionId: 'training_sign' },
-    { x: 20, y: 30, type: 'tombstone', walkable: false, interactionId: 'tombstone' },
-    { x: 119, y: 125, type: 'campfire', walkable: false, interactionId: 'campfire' },
-    // Lanterns along main road
-    { x: 115, y: 50, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 45, y: 82, type: 'well', walkable: false, interactionId: 'well_residential' },
+    { x: 42, y: 108, type: 'well', walkable: false, interactionId: 'well_farm' },
+    { x: 178, y: 28, type: 'well', walkable: false, interactionId: 'well_training' },
+
+    // ====== VILLAGE SIGN ======
+    { x: 108, y: 100, type: 'sign', walkable: false, interactionId: 'village_sign' },
+
+    // ====== LANTERNS along main N-S road (every ~12 tiles) ======
+    { x: 115, y: 18, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 122, y: 30, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 115, y: 42, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 122, y: 50, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 115, y: 62, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 122, y: 80, type: 'lantern', walkable: false, interactionId: 'lantern' },
     { x: 115, y: 90, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 50, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 122, y: 108, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 115, y: 120, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 122, y: 132, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    // ====== LANTERNS along E-W road ======
+    { x: 35, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 50, y: 76, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 70, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 90, y: 76, type: 'lantern', walkable: false, interactionId: 'lantern' },
     { x: 145, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    // Tempest Grass patches scattered across town squares, paths, and clearings
+    { x: 165, y: 76, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 195, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    // ====== LANTERNS at district entries ======
+    { x: 152, y: 64, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 200, y: 64, type: 'lantern', walkable: false, interactionId: 'lantern' },
+
+    // ====== TEMPEST GRASS ======
     { x: 105, y: 78, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 130, y: 75, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 160, y: 70, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
@@ -185,74 +278,566 @@ const villageDef: MapDefinition = {
     { x: 175, y: 68, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 200, y: 98, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 60, y: 85, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    // Additional tempest_grass in underserved areas
+    { x: 25, y: 110, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 140, y: 120, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 190, y: 115, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 75, y: 18, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 210, y: 45, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 8, y: 95, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 155, y: 38, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+
+    // ====== NORTH CORRIDOR: SUPPLIES ======
+    { x: 117, y: 38, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 120, y: 24, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
   ],
   props: [
-    // North ridge overlook
+    // ====== NORTH RIDGE OVERLOOK ======
     { x: 84, y: 14, type: 'bench', walkable: false },
     { x: 78, y: 12, type: 'lantern', walkable: false },
-    // Plaza social core
-    { x: 104, y: 86, type: 'bench', walkable: false },
-    { x: 132, y: 86, type: 'bench', walkable: false },
-    { x: 106, y: 90, type: 'pot', walkable: true },
-    { x: 132, y: 90, type: 'pot', walkable: true },
-    { x: 126, y: 96, type: 'lantern', walkable: false },
-    { x: 102, y: 75, type: 'bench', walkable: false },
-    { x: 132, y: 75, type: 'bench', walkable: false },
-    { x: 100, y: 78, type: 'pot', walkable: true },
-    { x: 134, y: 78, type: 'pot', walkable: true },
-    { x: 116, y: 72, type: 'pot', walkable: true },
-    // Smithy + market quarter
-    { x: 152, y: 60, type: 'lantern', walkable: false },
+    { x: 90, y: 16, type: 'rock', walkable: false },
+    { x: 76, y: 10, type: 'rock', walkable: false },
+    { x: 82, y: 18, type: 'stump', walkable: false },
+    { x: 92, y: 20, type: 'flower', walkable: true },
+
+    // ====== CENTRAL PLAZA ======
+    // Windmill landmark
+    { x: 144, y: 60, type: 'windmill', walkable: false },
+    // Fountain centerpiece
+    { x: 118, y: 84, type: 'fountain', walkable: false },
+    // Statue near town hall
+    { x: 118, y: 70, type: 'statue', walkable: false },
+
+    // Benches around plaza perimeter and between buildings
+    { x: 104, y: 100, type: 'bench', walkable: false },
+    { x: 130, y: 100, type: 'bench', walkable: false },
+    { x: 110, y: 69, type: 'bench', walkable: false },
+    { x: 126, y: 69, type: 'bench', walkable: false },
+    { x: 114, y: 77, type: 'bench', walkable: false },
+    { x: 124, y: 77, type: 'bench', walkable: false },
+    { x: 105, y: 85, type: 'bench', walkable: false },
+    { x: 126, y: 88, type: 'bench', walkable: false },
+    { x: 116, y: 97, type: 'bench', walkable: false },
+    { x: 112, y: 93, type: 'bench', walkable: false },
+
+    // Lanterns at building corners and along lanes
+    { x: 96, y: 68, type: 'lantern', walkable: false },
+    { x: 144, y: 68, type: 'lantern', walkable: false },
+    { x: 96, y: 100, type: 'lantern', walkable: false },
+    { x: 144, y: 100, type: 'lantern', walkable: false },
+    { x: 102, y: 72, type: 'lantern', walkable: false },
+    { x: 136, y: 72, type: 'lantern', walkable: false },
+    { x: 113, y: 79, type: 'lantern', walkable: false },
+    { x: 134, y: 82, type: 'lantern', walkable: false },
+    { x: 104, y: 88, type: 'lantern', walkable: false },
+    { x: 140, y: 90, type: 'lantern', walkable: false },
+    { x: 118, y: 92, type: 'lantern', walkable: false },
+    { x: 110, y: 100, type: 'lantern', walkable: false },
+    { x: 136, y: 100, type: 'lantern', walkable: false },
+
+    // Barrel/crate clusters flanking building walls
+    { x: 96, y: 77, type: 'barrel', walkable: false },
+    { x: 98, y: 77, type: 'crate', walkable: false },
+    { x: 130, y: 77, type: 'barrel', walkable: false },
+    { x: 132, y: 77, type: 'crate', walkable: false },
+    { x: 108, y: 83, type: 'barrel', walkable: false },
+    { x: 110, y: 83, type: 'crate', walkable: false },
+    { x: 128, y: 87, type: 'barrel', walkable: false },
+    { x: 130, y: 87, type: 'crate', walkable: false },
+    { x: 98, y: 93, type: 'barrel_stack', walkable: false },
+    { x: 100, y: 93, type: 'crate_stack', walkable: false },
+    { x: 134, y: 95, type: 'barrel_stack', walkable: false },
+    { x: 136, y: 95, type: 'crate_stack', walkable: false },
+    { x: 116, y: 69, type: 'barrel', walkable: false },
+    { x: 120, y: 69, type: 'crate', walkable: false },
+
+    // Hay bales near grain store
+    { x: 96, y: 86, type: 'hay_bale', walkable: false },
+    { x: 104, y: 92, type: 'hay_bale', walkable: false },
+    { x: 100, y: 96, type: 'hay_bale', walkable: false },
+    { x: 140, y: 96, type: 'hay_bale', walkable: false },
+
+    // Carts along main lane through square
+    { x: 114, y: 75, type: 'cart', walkable: false },
+    { x: 122, y: 82, type: 'cart', walkable: false },
+    { x: 108, y: 96, type: 'cart', walkable: false },
+    { x: 130, y: 96, type: 'cart', walkable: false },
+    { x: 118, y: 99, type: 'cart', walkable: false },
+
+    // Flower pots flanking building entrances
+    { x: 109, y: 68, type: 'pot', walkable: true },
+    { x: 127, y: 68, type: 'pot', walkable: true },
+    { x: 103, y: 74, type: 'pot', walkable: true },
+    { x: 137, y: 74, type: 'pot', walkable: true },
+    { x: 114, y: 80, type: 'pot', walkable: true },
+    { x: 127, y: 84, type: 'pot', walkable: true },
+    { x: 105, y: 90, type: 'pot', walkable: true },
+    { x: 141, y: 92, type: 'pot', walkable: true },
+    { x: 116, y: 95, type: 'pot', walkable: true },
+    { x: 120, y: 95, type: 'pot', walkable: true },
+
+    // Hedges marking west edge of square
+    { x: 94, y: 70, type: 'hedge', walkable: false },
+    { x: 94, y: 75, type: 'hedge', walkable: false },
+    { x: 94, y: 80, type: 'hedge', walkable: false },
+    { x: 94, y: 85, type: 'hedge', walkable: false },
+    { x: 94, y: 90, type: 'hedge', walkable: false },
+    { x: 94, y: 95, type: 'hedge', walkable: false },
+    // Hedges marking east edge of square
+    { x: 145, y: 70, type: 'hedge', walkable: false },
+    { x: 145, y: 75, type: 'hedge', walkable: false },
+    { x: 145, y: 80, type: 'hedge', walkable: false },
+    { x: 145, y: 85, type: 'hedge', walkable: false },
+    { x: 145, y: 90, type: 'hedge', walkable: false },
+    { x: 145, y: 95, type: 'hedge', walkable: false },
+
+    // Rocks at path edges inside square
+    { x: 96, y: 98, type: 'rock', walkable: false },
+    { x: 142, y: 98, type: 'rock', walkable: false },
+    { x: 95, y: 68, type: 'rock', walkable: false },
+    { x: 143, y: 68, type: 'rock', walkable: false },
+
+    // Stumps (felled trees) for rustic feel
+    { x: 136, y: 70, type: 'stump', walkable: false },
+    { x: 96, y: 82, type: 'stump', walkable: false },
+    { x: 140, y: 86, type: 'stump', walkable: false },
+
+    // Flowers inside square gardens
+    { x: 100, y: 70, type: 'flower', walkable: true },
+    { x: 104, y: 76, type: 'flower', walkable: true },
+    { x: 138, y: 76, type: 'flower', walkable: true },
+    { x: 112, y: 88, type: 'flower', walkable: true },
+    { x: 126, y: 92, type: 'flower', walkable: true },
+
+    // ====== SPAWN APPROACH (bonfire to square) ======
+    // Lanterns flanking the approach road
+    { x: 115, y: 104, type: 'lantern', walkable: false },
+    { x: 123, y: 104, type: 'lantern', walkable: false },
+    { x: 115, y: 110, type: 'lantern', walkable: false },
+    { x: 123, y: 110, type: 'lantern', walkable: false },
+    // Barrels and crates near approach cottages
+    { x: 107, y: 112, type: 'barrel', walkable: false },
+    { x: 109, y: 112, type: 'crate', walkable: false },
+    { x: 134, y: 110, type: 'barrel', walkable: false },
+    { x: 136, y: 110, type: 'crate', walkable: false },
+    { x: 100, y: 117, type: 'barrel', walkable: false },
+    { x: 102, y: 117, type: 'crate', walkable: false },
+    // Benches outside approach cottages
+    { x: 108, y: 104, type: 'bench', walkable: false },
+    { x: 128, y: 106, type: 'bench', walkable: false },
+    { x: 100, y: 110, type: 'bench', walkable: false },
+    // Cart on the approach road
+    { x: 124, y: 114, type: 'cart', walkable: false },
+    // Flower/hedge borders along approach
+    { x: 114, y: 108, type: 'hedge', walkable: false },
+    { x: 124, y: 108, type: 'hedge', walkable: false },
+    { x: 106, y: 106, type: 'pot', walkable: true },
+    { x: 135, y: 108, type: 'pot', walkable: true },
+    { x: 110, y: 114, type: 'flower', walkable: true },
+    { x: 128, y: 114, type: 'flower', walkable: true },
+    // Rocks along approach
+    { x: 112, y: 106, type: 'rock', walkable: false },
+    { x: 126, y: 112, type: 'rock', walkable: false },
+
+    // ====== MARKET DISTRICT ======
+    // Hanging signs above shop entrances
+    { x: 156, y: 57, type: 'hanging_sign', walkable: false },
+    { x: 176, y: 55, type: 'hanging_sign', walkable: false },
+    { x: 193, y: 63, type: 'hanging_sign', walkable: false },
+    { x: 193, y: 79, type: 'hanging_sign', walkable: false },
+    { x: 176, y: 87, type: 'hanging_sign', walkable: false },
+    // Awnings at stall positions
+    { x: 157, y: 67, type: 'awning', walkable: true },
+    { x: 167, y: 67, type: 'awning', walkable: true },
+    { x: 159, y: 77, type: 'awning', walkable: true },
+    { x: 167, y: 77, type: 'awning', walkable: true },
+    { x: 183, y: 77, type: 'awning', walkable: true },
+    // Barrel/crate clusters near stalls
+    { x: 155, y: 63, type: 'barrel', walkable: false },
+    { x: 157, y: 63, type: 'crate', walkable: false },
+    { x: 173, y: 60, type: 'barrel', walkable: false },
+    { x: 175, y: 62, type: 'crate', walkable: false },
     { x: 165, y: 60, type: 'barrel', walkable: false },
     { x: 167, y: 60, type: 'crate', walkable: false },
-    { x: 173, y: 60, type: 'barrel', walkable: false },
-    { x: 185, y: 66, type: 'cart', walkable: false },
-    { x: 150, y: 66, type: 'cart', walkable: false },
     { x: 164, y: 66, type: 'barrel', walkable: false },
     { x: 166, y: 66, type: 'crate', walkable: false },
-    { x: 171, y: 66, type: 'pot', walkable: true },
     { x: 178, y: 66, type: 'barrel', walkable: false },
     { x: 180, y: 66, type: 'crate', walkable: false },
-    { x: 184, y: 70, type: 'bench', walkable: false },
-    { x: 172, y: 84, type: 'bench', walkable: false },
-    { x: 162, y: 86, type: 'pot', walkable: true },
-    { x: 178, y: 86, type: 'pot', walkable: true },
-    { x: 188, y: 74, type: 'lantern', walkable: false },
-    { x: 186, y: 86, type: 'bench', walkable: false },
-    { x: 204, y: 86, type: 'bench', walkable: false },
+    { x: 155, y: 82, type: 'barrel_stack', walkable: false },
+    { x: 157, y: 82, type: 'crate_stack', walkable: false },
     { x: 188, y: 90, type: 'barrel', walkable: false },
     { x: 190, y: 90, type: 'crate', walkable: false },
-    { x: 202, y: 90, type: 'barrel', walkable: false },
-    { x: 204, y: 90, type: 'crate', walkable: false },
+    { x: 202, y: 90, type: 'barrel_stack', walkable: false },
+    { x: 204, y: 90, type: 'crate_stack', walkable: false },
+    { x: 192, y: 70, type: 'barrel', walkable: false },
+    { x: 194, y: 70, type: 'crate', walkable: false },
+    { x: 192, y: 86, type: 'barrel', walkable: false },
+    { x: 194, y: 86, type: 'crate', walkable: false },
+    // Carts at market road intersections
+    { x: 185, y: 66, type: 'cart', walkable: false },
+    { x: 150, y: 66, type: 'cart', walkable: false },
+    { x: 170, y: 72, type: 'cart', walkable: false },
+    { x: 206, y: 74, type: 'cart', walkable: false },
+    // Market benches for shoppers
+    { x: 184, y: 70, type: 'bench', walkable: false },
+    { x: 172, y: 84, type: 'bench', walkable: false },
+    { x: 186, y: 86, type: 'bench', walkable: false },
+    { x: 204, y: 86, type: 'bench', walkable: false },
+    { x: 160, y: 74, type: 'bench', walkable: false },
+    // Market planters
+    { x: 162, y: 86, type: 'pot', walkable: true },
+    { x: 178, y: 86, type: 'pot', walkable: true },
+    { x: 171, y: 66, type: 'pot', walkable: true },
+    { x: 186, y: 74, type: 'pot', walkable: true },
+    { x: 198, y: 80, type: 'pot', walkable: true },
+    // Market lanterns
+    { x: 188, y: 74, type: 'lantern', walkable: false },
     { x: 186, y: 80, type: 'lantern', walkable: false },
     { x: 204, y: 80, type: 'lantern', walkable: false },
-    // Churchyard + west residential
+    { x: 160, y: 65, type: 'lantern', walkable: false },
+    { x: 175, y: 65, type: 'lantern', walkable: false },
+    { x: 198, y: 90, type: 'lantern', walkable: false },
+
+    // ====== RESIDENTIAL DISTRICT ======
+    // Per-house domestic clutter: benches, pots, barrels, hedges
+    // House 1 area (x:25 y:48)
+    { x: 24, y: 54, type: 'bench', walkable: false },
+    { x: 33, y: 50, type: 'pot', walkable: true },
+    { x: 26, y: 46, type: 'barrel', walkable: false },
+    { x: 35, y: 46, type: 'hedge', walkable: false },
+    // House 2 area (x:40 y:52)
+    { x: 39, y: 58, type: 'bench', walkable: false },
+    { x: 48, y: 54, type: 'pot', walkable: true },
+    { x: 42, y: 50, type: 'barrel', walkable: false },
+    { x: 44, y: 50, type: 'crate', walkable: false },
+    // House 3 area (x:28 y:65)
+    { x: 27, y: 71, type: 'bench', walkable: false },
+    { x: 36, y: 67, type: 'pot', walkable: true },
+    { x: 30, y: 63, type: 'hedge', walkable: false },
+    { x: 37, y: 63, type: 'barrel', walkable: false },
+    // House 4 area (x:50 y:60)
+    { x: 49, y: 66, type: 'bench', walkable: false },
+    { x: 58, y: 62, type: 'pot', walkable: true },
+    { x: 52, y: 58, type: 'barrel', walkable: false },
+    { x: 54, y: 58, type: 'crate', walkable: false },
+    // House 5 area (x:35 y:78)
+    { x: 34, y: 84, type: 'bench', walkable: false },
+    { x: 43, y: 80, type: 'pot', walkable: true },
+    { x: 37, y: 76, type: 'barrel', walkable: false },
+    { x: 44, y: 78, type: 'hedge', walkable: false },
+    // House 6 area (x:55 y:72)
+    { x: 54, y: 78, type: 'bench', walkable: false },
+    { x: 63, y: 74, type: 'pot', walkable: true },
+    { x: 57, y: 70, type: 'crate', walkable: false },
+    { x: 64, y: 72, type: 'hedge', walkable: false },
+    // House 7 area (x:68 y:50)
+    { x: 67, y: 56, type: 'bench', walkable: false },
+    { x: 76, y: 52, type: 'pot', walkable: true },
+    { x: 70, y: 48, type: 'barrel', walkable: false },
+    { x: 77, y: 50, type: 'hedge', walkable: false },
+    // House 8 area (x:22 y:88)
+    { x: 21, y: 94, type: 'bench', walkable: false },
+    { x: 30, y: 90, type: 'pot', walkable: true },
+    { x: 24, y: 86, type: 'barrel', walkable: false },
+    { x: 26, y: 86, type: 'crate', walkable: false },
+    // House 9 area (x:48 y:88)
+    { x: 47, y: 94, type: 'bench', walkable: false },
+    { x: 56, y: 90, type: 'pot', walkable: true },
+    { x: 50, y: 86, type: 'barrel', walkable: false },
+    { x: 57, y: 88, type: 'hedge', walkable: false },
+    // House 10 area (x:72 y:65)
+    { x: 71, y: 71, type: 'bench', walkable: false },
+    { x: 80, y: 67, type: 'pot', walkable: true },
+    { x: 74, y: 63, type: 'barrel', walkable: false },
+    { x: 81, y: 65, type: 'hedge', walkable: false },
+    // Residential flower patches
+    { x: 30, y: 62, type: 'flower', walkable: true },
+    { x: 46, y: 56, type: 'flower', walkable: true },
+    { x: 62, y: 66, type: 'flower', walkable: true },
+    { x: 38, y: 82, type: 'flower', walkable: true },
+    { x: 55, y: 86, type: 'flower', walkable: true },
+
+    // ====== CEMETERY ======
+    { x: 12, y: 18, type: 'dead_tree', walkable: false },
+    { x: 34, y: 20, type: 'dead_tree', walkable: false },
+    { x: 18, y: 35, type: 'dead_tree', walkable: false },
+    { x: 16, y: 25, type: 'statue', walkable: false },
+    { x: 30, y: 30, type: 'tombstone', walkable: false },
+    { x: 20, y: 32, type: 'tombstone', walkable: false },
+    { x: 26, y: 22, type: 'tombstone', walkable: false },
+    { x: 22, y: 28, type: 'tombstone', walkable: false },
+    { x: 14, y: 30, type: 'bones', walkable: true },
+    { x: 32, y: 34, type: 'bones', walkable: true },
+    { x: 11, y: 36, type: 'lantern', walkable: false },
+    { x: 36, y: 16, type: 'lantern', walkable: false },
+    { x: 12, y: 38, type: 'bench', walkable: false },
+
+    // ====== CHURCH ======
+    // Outdoor benches (pew rows) in church clearing
     { x: 44, y: 42, type: 'bench', walkable: false },
-    { x: 58, y: 42, type: 'bench', walkable: false },
+    { x: 50, y: 42, type: 'bench', walkable: false },
+    { x: 56, y: 42, type: 'bench', walkable: false },
+    { x: 44, y: 44, type: 'bench', walkable: false },
+    { x: 50, y: 44, type: 'bench', walkable: false },
+    { x: 56, y: 44, type: 'bench', walkable: false },
+    // Church decoration
+    { x: 51, y: 30, type: 'statue', walkable: false },
+    { x: 44, y: 30, type: 'lantern', walkable: false },
+    { x: 56, y: 30, type: 'lantern', walkable: false },
     { x: 46, y: 46, type: 'tombstone', walkable: false },
     { x: 54, y: 46, type: 'tombstone', walkable: false },
+    { x: 48, y: 46, type: 'tombstone', walkable: false },
     { x: 60, y: 46, type: 'lantern', walkable: false },
-    { x: 62, y: 52, type: 'barrel', walkable: false },
-    { x: 64, y: 52, type: 'crate', walkable: false },
-    { x: 44, y: 58, type: 'bench', walkable: false },
-    { x: 30, y: 66, type: 'pot', walkable: true },
-    { x: 54, y: 80, type: 'pot', walkable: true },
-    { x: 75, y: 82, type: 'bench', walkable: false },
-    { x: 88, y: 118, type: 'barrel', walkable: false },
-    { x: 92, y: 118, type: 'crate', walkable: false },
+    { x: 42, y: 46, type: 'lantern', walkable: false },
+    { x: 45, y: 48, type: 'pot', walkable: true },
+    { x: 57, y: 48, type: 'pot', walkable: true },
+
+    // ====== TRAINING GROUNDS ======
+    { x: 172, y: 22, type: 'weapon_rack', walkable: false },
+    { x: 178, y: 22, type: 'weapon_rack', walkable: false },
+    { x: 190, y: 22, type: 'weapon_rack', walkable: false },
+    { x: 174, y: 26, type: 'stump', walkable: false },
+    { x: 180, y: 28, type: 'stump', walkable: false },
+    { x: 186, y: 26, type: 'stump', walkable: false },
+    { x: 175, y: 32, type: 'stump', walkable: false },
+    { x: 188, y: 32, type: 'scarecrow', walkable: false },
+    { x: 172, y: 34, type: 'barrel', walkable: false },
+    { x: 174, y: 34, type: 'crate', walkable: false },
+    { x: 190, y: 34, type: 'barrel', walkable: false },
+    { x: 192, y: 34, type: 'crate', walkable: false },
+    { x: 182, y: 34, type: 'bench', walkable: false },
+    { x: 170, y: 28, type: 'lantern', walkable: false },
+    { x: 192, y: 28, type: 'lantern', walkable: false },
+    { x: 181, y: 20, type: 'lantern', walkable: false },
+
+    // ====== FARM DISTRICT ======
+    // West farm cluster
     { x: 18, y: 108, type: 'cart', walkable: false },
+    { x: 48, y: 105, type: 'barrel', walkable: false },
+    { x: 50, y: 105, type: 'crate', walkable: false },
+    { x: 22, y: 123, type: 'hay_bale', walkable: false },
+    { x: 28, y: 120, type: 'hay_bale', walkable: false },
+    { x: 44, y: 122, type: 'hay_bale', walkable: false },
+    { x: 25, y: 103, type: 'scarecrow', walkable: false },
+    { x: 46, y: 108, type: 'stump', walkable: false },
+    // Central farm
     { x: 58, y: 112, type: 'barrel', walkable: false },
     { x: 60, y: 112, type: 'crate', walkable: false },
     { x: 66, y: 116, type: 'hay_bale', walkable: false },
+    { x: 70, y: 118, type: 'hay_bale', walkable: false },
+    { x: 75, y: 114, type: 'hay_bale', walkable: false },
+    { x: 55, y: 126, type: 'scarecrow', walkable: false },
+    { x: 79, y: 116, type: 'stump', walkable: false },
+    { x: 62, y: 108, type: 'cart', walkable: false },
+    // East farm
     { x: 135, y: 118, type: 'scarecrow', walkable: false },
     { x: 142, y: 123, type: 'hay_bale', walkable: false },
     { x: 147, y: 121, type: 'hay_bale', walkable: false },
     { x: 128, y: 118, type: 'barrel', walkable: false },
     { x: 130, y: 118, type: 'crate', walkable: false },
     { x: 152, y: 118, type: 'cart', walkable: false },
+    { x: 155, y: 120, type: 'hay_bale', walkable: false },
+    { x: 132, y: 130, type: 'hay_bale', walkable: false },
+    { x: 138, y: 113, type: 'stump', walkable: false },
+    { x: 156, y: 128, type: 'hay_bale', walkable: false },
+    // Farm threshing area props
+    { x: 84, y: 113, type: 'barrel', walkable: false },
+    { x: 86, y: 113, type: 'crate', walkable: false },
+    { x: 84, y: 115, type: 'hay_bale', walkable: false },
+    { x: 111, y: 119, type: 'barrel', walkable: false },
+    { x: 113, y: 119, type: 'crate', walkable: false },
+    // South cottage area
+    { x: 88, y: 118, type: 'barrel', walkable: false },
+    { x: 92, y: 118, type: 'crate', walkable: false },
+    { x: 95, y: 117, type: 'pot', walkable: true },
+    { x: 90, y: 122, type: 'bench', walkable: false },
+    // Farm path roadside
+    { x: 50, y: 100, type: 'rock', walkable: false },
+    { x: 100, y: 100, type: 'rock', walkable: false },
+    { x: 75, y: 99, type: 'lantern', walkable: false },
+    { x: 120, y: 99, type: 'lantern', walkable: false },
+
+    // ====== LAKE AREA ======
     { x: 165, y: 111, type: 'bench', walkable: false },
-    { x: 188, y: 108, type: 'barrel', walkable: false },
-    { x: 192, y: 108, type: 'crate', walkable: false },
+    { x: 168, y: 115, type: 'bench', walkable: false },
+    { x: 198, y: 112, type: 'bench', walkable: false },
+    { x: 195, y: 118, type: 'bench', walkable: false },
+    { x: 166, y: 118, type: 'rock', walkable: false },
+    { x: 170, y: 128, type: 'rock', walkable: false },
+    { x: 198, y: 126, type: 'rock', walkable: false },
+    { x: 200, y: 120, type: 'rock', walkable: false },
+    { x: 164, y: 112, type: 'lantern', walkable: false },
+    { x: 200, y: 110, type: 'lantern', walkable: false },
+    { x: 188, y: 108, type: 'lantern', walkable: false },
+    { x: 168, y: 122, type: 'stump', walkable: false },
+    { x: 202, y: 125, type: 'stump', walkable: false },
+    { x: 186, y: 130, type: 'rock', walkable: false },
+
+    // ====== HEDGE MAZE APPROACH ======
+    { x: 198, y: 30, type: 'bench', walkable: false },
+    { x: 198, y: 40, type: 'bench', walkable: false },
+    { x: 199, y: 28, type: 'lantern', walkable: false },
+    { x: 199, y: 50, type: 'lantern', walkable: false },
+    { x: 196, y: 34, type: 'hedge', walkable: false },
+    { x: 196, y: 38, type: 'hedge', walkable: false },
+    { x: 196, y: 42, type: 'hedge', walkable: false },
+    { x: 196, y: 46, type: 'hedge', walkable: false },
+
+    // ====== FOREST GROVES edge blending ======
+    // SW grove edges
+    { x: 4, y: 106, type: 'stump', walkable: false },
+    { x: 18, y: 96, type: 'stump', walkable: false },
+    { x: 8, y: 100, type: 'rock', walkable: false },
+    { x: 14, y: 104, type: 'mushroom', walkable: true },
+    { x: 20, y: 92, type: 'flower', walkable: true },
+    // SE grove edges
+    { x: 208, y: 130, type: 'stump', walkable: false },
+    { x: 230, y: 118, type: 'stump', walkable: false },
+    { x: 212, y: 128, type: 'rock', walkable: false },
+    { x: 225, y: 114, type: 'mushroom', walkable: true },
+    { x: 220, y: 108, type: 'flower', walkable: true },
+    // N grove edges
+    { x: 84, y: 26, type: 'stump', walkable: false },
+    { x: 104, y: 14, type: 'stump', walkable: false },
+    { x: 86, y: 24, type: 'rock', walkable: false },
+    { x: 100, y: 18, type: 'mushroom', walkable: true },
+    { x: 95, y: 22, type: 'flower', walkable: true },
+
+    // ====== WATERFALL AREA ======
+    { x: 66, y: 18, type: 'rock', walkable: false },
+    { x: 80, y: 8, type: 'rock', walkable: false },
+    { x: 72, y: 20, type: 'bench', walkable: false },
+    { x: 74, y: 6, type: 'flower', walkable: true },
+
+    // ====== ROAD INTERSECTIONS ======
+    // Main crossroads (N-S meets E-W)
+    { x: 112, y: 71, type: 'lantern', walkable: false },
+    { x: 123, y: 71, type: 'lantern', walkable: false },
+    { x: 112, y: 76, type: 'pot', walkable: true },
+    { x: 123, y: 76, type: 'pot', walkable: true },
+    // Spawn area bonfire vicinity
+    { x: 112, y: 100, type: 'bench', walkable: false },
+    { x: 126, y: 100, type: 'bench', walkable: false },
+    { x: 112, y: 106, type: 'pot', walkable: true },
+    { x: 126, y: 106, type: 'pot', walkable: true },
+
+    // ====== ELDER'S GARDEN area ======
+    { x: 103, y: 42, type: 'lantern', walkable: false },
+    { x: 119, y: 42, type: 'lantern', walkable: false },
+    { x: 105, y: 53, type: 'bench', walkable: false },
+    { x: 117, y: 53, type: 'bench', walkable: false },
+    { x: 111, y: 40, type: 'statue', walkable: false },
+    { x: 107, y: 46, type: 'pot', walkable: true },
+    { x: 115, y: 46, type: 'pot', walkable: true },
+
+    // ====== SOUTH PARK garden area ======
+    { x: 81, y: 97, type: 'bench', walkable: false },
+    { x: 93, y: 97, type: 'bench', walkable: false },
+    { x: 85, y: 94, type: 'pot', walkable: true },
+    { x: 90, y: 94, type: 'pot', walkable: true },
+    { x: 84, y: 103, type: 'lantern', walkable: false },
+    // East park
+    { x: 199, y: 97, type: 'bench', walkable: false },
+    { x: 212, y: 97, type: 'bench', walkable: false },
+    { x: 204, y: 94, type: 'pot', walkable: true },
+    { x: 208, y: 94, type: 'pot', walkable: true },
+    { x: 200, y: 105, type: 'lantern', walkable: false },
+
+    // ====== SCATTERED ENVIRONMENTAL DETAIL ======
+    // Broken wagon decorations
+    { x: 50, y: 28, type: 'rock', walkable: false },
+    { x: 52, y: 26, type: 'bones', walkable: true },
+    { x: 120, y: 120, type: 'rock', walkable: false },
+    // Rocks along elevation cliff edges
+    { x: 6, y: 48, type: 'rock', walkable: false },
+    { x: 30, y: 46, type: 'rock', walkable: false },
+    { x: 60, y: 48, type: 'rock', walkable: false },
+    { x: 150, y: 48, type: 'rock', walkable: false },
+    { x: 180, y: 48, type: 'rock', walkable: false },
+    { x: 220, y: 48, type: 'rock', walkable: false },
+    // Flower patches in sunny meadow spaces
+    { x: 85, y: 65, type: 'flower', walkable: true },
+    { x: 88, y: 75, type: 'flower', walkable: true },
+    { x: 140, y: 55, type: 'flower', walkable: true },
+    { x: 150, y: 95, type: 'flower', walkable: true },
+    { x: 100, y: 110, type: 'flower', walkable: true },
+    { x: 160, y: 140, type: 'flower', walkable: true },
+    // Cottage lake area
+    { x: 193, y: 105, type: 'pot', walkable: true },
+    { x: 197, y: 98, type: 'bench', walkable: false },
+    { x: 200, y: 102, type: 'barrel', walkable: false },
+    // Cottage west area
+    { x: 20, y: 100, type: 'pot', walkable: true },
+    { x: 28, y: 97, type: 'bench', walkable: false },
+    // Cottage south area
+    { x: 94, y: 120, type: 'pot', walkable: true },
+    { x: 86, y: 122, type: 'flower', walkable: true },
+
+    // ====== NORTH CORRIDOR: ZONE A — VILLAGE GATE ======
+    // Iron fence line west of road gap
+    { x: 108, y: 55, type: 'iron_fence', walkable: false },
+    { x: 109, y: 55, type: 'iron_fence', walkable: false },
+    { x: 110, y: 55, type: 'iron_fence', walkable: false },
+    { x: 111, y: 55, type: 'iron_fence', walkable: false },
+    { x: 112, y: 55, type: 'iron_fence', walkable: false },
+    { x: 113, y: 55, type: 'iron_fence', walkable: false },
+    // Pillars flanking the road gap
+    { x: 114, y: 55, type: 'pillar', walkable: false },
+    { x: 123, y: 55, type: 'pillar', walkable: false },
+    // Iron fence line east of road gap
+    { x: 124, y: 55, type: 'iron_fence', walkable: false },
+    { x: 125, y: 55, type: 'iron_fence', walkable: false },
+    { x: 126, y: 55, type: 'iron_fence', walkable: false },
+    { x: 127, y: 55, type: 'iron_fence', walkable: false },
+    { x: 128, y: 55, type: 'iron_fence', walkable: false },
+    { x: 129, y: 55, type: 'iron_fence', walkable: false },
+    // Gate area village props
+    { x: 110, y: 53, type: 'bench', walkable: false },
+    { x: 126, y: 53, type: 'bench', walkable: false },
+    { x: 108, y: 57, type: 'barrel', walkable: false },
+    { x: 129, y: 57, type: 'barrel', walkable: false },
+    { x: 110, y: 57, type: 'cart', walkable: false },
+    { x: 127, y: 57, type: 'pot', walkable: true },
+    { x: 108, y: 53, type: 'lantern', walkable: false },
+    { x: 129, y: 53, type: 'lantern', walkable: false },
+
+    // ====== NORTH CORRIDOR: ZONE B — THE THRESHOLD ======
+    // Abandoned guard post debris
+    { x: 123, y: 34, type: 'barrel', walkable: false },
+    { x: 130, y: 30, type: 'barrel', walkable: false },
+    { x: 130, y: 32, type: 'crate', walkable: false },
+    { x: 124, y: 35, type: 'bones', walkable: true },
+    { x: 128, y: 34, type: 'bloodstain', walkable: true },
+    // Wild encroachment — stumps, dead trees, mushrooms, hedges
+    { x: 110, y: 30, type: 'stump', walkable: false },
+    { x: 108, y: 34, type: 'dead_tree', walkable: false },
+    { x: 130, y: 40, type: 'stump', walkable: false },
+    { x: 128, y: 26, type: 'dead_tree', walkable: false },
+    { x: 107, y: 32, type: 'mushroom', walkable: true },
+    { x: 132, y: 38, type: 'mushroom', walkable: true },
+    { x: 112, y: 40, type: 'rock', walkable: false },
+    { x: 126, y: 42, type: 'rock', walkable: false },
+    { x: 110, y: 38, type: 'hedge', walkable: false },
+    { x: 126, y: 36, type: 'hedge', walkable: false },
+    { x: 108, y: 42, type: 'hedge', walkable: false },
+
+    // ====== NORTH CORRIDOR: ZONE C — FOREST EDGE ======
+    // Portal clearing stone arch markers
+    { x: 112, y: 5, type: 'pillar', walkable: false },
+    { x: 127, y: 5, type: 'pillar', walkable: false },
+    { x: 114, y: 3, type: 'mossy_stone', walkable: false },
+    { x: 125, y: 3, type: 'mossy_stone', walkable: false },
+    // Forest encroachment narrowing the path
+    { x: 113, y: 18, type: 'dead_tree', walkable: false },
+    { x: 125, y: 16, type: 'dead_tree', walkable: false },
+    { x: 112, y: 14, type: 'stump', walkable: false },
+    { x: 127, y: 20, type: 'stump', walkable: false },
+    { x: 114, y: 20, type: 'mushroom', walkable: true },
+    { x: 124, y: 18, type: 'mushroom', walkable: true },
+    { x: 113, y: 10, type: 'rock', walkable: false },
+    { x: 126, y: 12, type: 'rock', walkable: false },
+    // Last lantern before the woods
+    { x: 118, y: 10, type: 'lantern', walkable: false },
   ],
   secretAreas: [
     { x: 5, y: 20, width: 6, height: 4, fill: 'stone' },
@@ -325,7 +910,6 @@ const forestDef: MapDefinition = {
     // === FOREST CLEARINGS ===
     { x: 60, y: 60, width: 30, height: 24, type: 'clearing', fill: 'grass' },
     { x: 200, y: 100, width: 24, height: 20, type: 'clearing', fill: 'grass' },
-    { x: 130, y: 160, width: 40, height: 30, type: 'clearing', fill: 'grass' },
     { x: 80, y: 220, width: 20, height: 16, type: 'clearing', fill: 'grass' },
     { x: 220, y: 220, width: 24, height: 20, type: 'clearing', fill: 'grass' },
     { x: 40, y: 140, width: 20, height: 16, type: 'clearing', fill: 'grass' },
@@ -379,7 +963,7 @@ const forestDef: MapDefinition = {
     { x: 134, y: 78, width: 56, height: 8, type: 'wall', fill: 'water' },
     // Far hollow river sections (east of the meander)
     { x: 190, y: 79, width: 50, height: 6, type: 'wall', fill: 'water' },
-    { x: 250, y: 78, width: 40, height: 6, type: 'wall', fill: 'water' },
+    { x: 250, y: 78, width: 50, height: 6, type: 'wall', fill: 'water' },
     // Decayed bridge spanning the hollow entrance (x=118–129, y=81–95). Gradient + speckle blend
     // (bridge_decay_blend) replaces hard rectangle boundaries — south stays mostly intact wood,
     // north goes hollow-tainted, with mixed tiles in between. Water gap x=123–124 on north rows.
@@ -423,9 +1007,8 @@ const forestDef: MapDefinition = {
     { x: 130, y: 28, width: 18, height: 44, type: 'wall', fill: 'dead_tree' },
 
     // === THE HOLLOW — Hunter trail camps ===
-    { x: 115, y: 65, width: 10, height: 8, type: 'abandoned_camp', interactionId: 'hollow_hunter_camp_1' },
     { x: 130, y: 45, width: 8, height: 6, type: 'abandoned_camp', interactionId: 'hollow_hunter_camp_2' },
-    { x: 118, y: 28, width: 10, height: 8, type: 'abandoned_camp', interactionId: 'hollow_hunters_final_camp' },
+    { x: 118, y: 28, width: 10, height: 8, type: 'abandoned_camp' },
 
     // === HOLLOW APPROACH BARRIER — cliff_face forms the south river bank ===
     // Flanking prevention: players can only enter the Hollow via the decayed bridge at x=118–130.
@@ -472,8 +1055,8 @@ const forestDef: MapDefinition = {
     { x: 126, y: 36, width: 48, height: 16, type: 'clearing', fill: 'grass' },
     { x: 140, y: 4, width: 30, height: 36, type: 'waterfall' },
 
-    // === TEMPLE (east) ===
-    { x: 250, y: 140, width: 20, height: 16, type: 'temple' },
+    // === TEMPLE (east) — removed; the cliff_face at (238,118,30,56) buries the structure.
+    // Ruins props and relocated interactables fill the accessible corridor (x=268-274).
 
     // === VOLCANO (far north-east) ===
     { x: 260, y: 20, width: 28, height: 24, type: 'volcano' },
@@ -530,7 +1113,7 @@ const forestDef: MapDefinition = {
     { x: 230, y: 90, width: 6, height: 6, type: 'watchtower' },
 
     // === ABANDONED CAMPS scattered ===
-    { x: 100, y: 200, width: 16, height: 12, type: 'abandoned_camp', interactionId: 'lost_expedition' },
+    { x: 100, y: 200, width: 16, height: 12, type: 'abandoned_camp' },
     { x: 50, y: 80, width: 12, height: 10, type: 'abandoned_camp', interactionId: 'hunters_camp' },
     { x: 270, y: 200, width: 14, height: 10, type: 'abandoned_camp', interactionId: 'hermit_camp' },
 
@@ -547,6 +1130,12 @@ const forestDef: MapDefinition = {
     { x: 250, y: 270, width: 10, height: 14, type: 'church', interactionId: 'overgrown_shrine' },
     { x: 176, y: 176, width: 18, height: 14, type: 'clearing', fill: 'grass' },
     { x: 104, y: 180, width: 14, height: 12, type: 'clearing', fill: 'dirt' },
+
+    // === RUINED WAYSTATION — collapsed ranger rest stop on the golem approach ===
+    { x: 190, y: 167, width: 18, height: 8, type: 'clearing', fill: 'dirt' },
+    { x: 191, y: 168, width: 5, height: 4, type: 'cottage' },
+    { x: 201, y: 167, width: 5, height: 4, type: 'cottage' },
+    { x: 196, y: 174, width: 5, height: 4, type: 'broken_wagon' },
 
     // === MAIN TRAILS: basin to ridge, then branching into shelves ===
     { x: 146, y: 258, width: 8, height: 38, type: 'path', fill: 'dirt' },
@@ -621,6 +1210,9 @@ const forestDef: MapDefinition = {
     // from the highland east to the lantern-lit ridge connector path; forces cliff corridor entry.
     // Extended north to y=107 to also seal the upper approach at UI (8, -43).
     { x: 154, y: 104, width: 4, height: 18, type: 'cliff_face' },
+    // Hollow approach ladder cliff extension — continuous cliff face from the stairway (x=115)
+    // to the dirt path corridor (x=146). Stops before the main N-S trail so it stays walkable.
+    { x: 116, y: 107, width: 30, height: 4, type: 'cliff_face' },
 
     // === CLIFF-TOP WALKWAY — walkable grass layer on top of the central cliff ===
     // Same pattern as the sentinel plateau: clearing placed AFTER cliff_face features
@@ -730,8 +1322,12 @@ const forestDef: MapDefinition = {
     // === CLIFF FACES & ROCKY RIDGES — natural barriers ===
     // ============================================================
 
-    // --- East ridge: rocky shelf from (270,100) to (280,150) ---
-    { x: 272, y: 100, width: 16, height: 50, type: 'cliff_face' },
+    // --- East ridge: rocky shelf sealing the far-east bypass ---
+    // Match the full el1 shelf width so Cliff Cemetery cannot route north around the shortcut.
+    { x: 272, y: 100, width: 24, height: 50, type: 'cliff_face' },
+    // Seal the left sand lane beside the cliff-corridor shortcut so the ladder column is the
+    // only north-south break through this seam.
+    { x: 268, y: 118, width: 1, height: 14, type: 'cliff_face' },
 
     // --- South-east rocky shelf ---
     { x: 205, y: 240, width: 24, height: 8, type: 'cliff_face' },
@@ -893,7 +1489,6 @@ const forestDef: MapDefinition = {
     { x: 190, y: 260, interactionId: 'forest_deep_chest' },
     { x: 30, y: 210, interactionId: 'destroyed_town_chest' },
     { x: 178, y: 48, interactionId: 'waterfall_chest' },
-    { x: 258, y: 148, interactionId: 'temple_chest' },
     { x: 268, y: 28, interactionId: 'volcano_chest' },
     // New chests in enchanted groves and forts
     { x: 80, y: 150, interactionId: 'enchanted_chest_1' },
@@ -916,16 +1511,17 @@ const forestDef: MapDefinition = {
     { x: 98, y: 162, interactionId: 'west_grove_hidden_rim_chest' },
     // Hollow approach ridge — world (-36, -44); overlooking the river / decayed bridge lane.
     { x: 114, y: 106, interactionId: 'forest_chest_hollow_approach' },
+    // Observatory compound — hidden reward corner at world (59, -60).
+    { x: 209, y: 90, interactionId: 'observatory_chest' },
   ],
   interactables: [
-    // Moved just north of the wolf zone (y=148) so the warning precedes the threat.
-    { x: 60, y: 146, type: 'sign', walkable: false, interactionId: 'danger_sign' },
     // Blighted Root — corrupted growth at the center of the enchanted grove. Quest target for grove_warden.
-    { x: 85, y: 153, type: 'stump', walkable: false, interactionId: 'blighted_root' },
-    { x: 124, y: 72, type: 'bonfire', walkable: false, interactionId: 'bonfire_hollow' },
+    { x: 85, y: 153, type: 'blighted_stump', walkable: false, interactionId: 'blighted_root' },
+    { x: 124, y: 77, type: 'bonfire', walkable: false, interactionId: 'bonfire_hollow' },
     // Bonfire on the north-bank corridor near Warden Callum — world (6, 4).
     { x: 156, y: 154, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_fort' },
     { x: 130, y: 206, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_south' },
+    { x: 281, y: 145, type: 'bonfire', walkable: false, interactionId: 'bonfire_cliff_cemetery' },
     // Lever is on the NORTH side of the ranger gate (y=199-202) so the player must first
     // navigate the long way around through the forest to reach the cottage, then on the way
     // back south they pull the lever to open the shortcut home to the Ranger Outpost.
@@ -933,7 +1529,6 @@ const forestDef: MapDefinition = {
     { x: 146, y: 240, type: 'stump', walkable: false, interactionId: 'stump_lore' },
     { x: 100, y: 100, type: 'stump', walkable: false, interactionId: 'stump_lore' },
     { x: 200, y: 90, type: 'stump', walkable: false, interactionId: 'stump_lore' },
-    { x: 132, y: 188, type: 'sign', walkable: false, interactionId: 'hunter_cottage_sign' },
     { x: 87, y: 228, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 250, y: 190, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 45, y: 145, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
@@ -941,14 +1536,11 @@ const forestDef: MapDefinition = {
     { x: 160, y: 185, type: 'campfire', walkable: false, interactionId: 'campfire' },
     { x: 35, y: 250, type: 'campfire', walkable: false, interactionId: 'campfire' },
     { x: 275, y: 270, type: 'well', walkable: false, interactionId: 'well' },
-    { x: 25, y: 205, type: 'sign', walkable: false, interactionId: 'destroyed_town_sign' },
-    { x: 258, y: 155, type: 'well', walkable: false, interactionId: 'ancient_fountain' },
     { x: 140, y: 95, type: 'well', walkable: false, interactionId: 'ancient_well' },
     { x: 30, y: 35, type: 'bones_pile', walkable: true, interactionId: 'wolf_den_bones' },
     { x: 45, y: 165, type: 'ranger_remains', walkable: true, interactionId: 'chapel_dead_ranger' },
     { x: 45, y: 157, type: 'altar', walkable: false, interactionId: 'old_chapel_altar' },
     { x: 262, y: 25, type: 'sign', walkable: false, interactionId: 'volcano_warning' },
-    { x: 252, y: 142, type: 'sign', walkable: false, interactionId: 'temple_inscription' },
     { x: 22, y: 248, type: 'cage', walkable: false, interactionId: 'spider_cocoon' },
     // Potion pickups in forest clearings and paths
     // West of Hollow river seal strip (was 68,65 — flooded by north-west water seal).
@@ -981,22 +1573,12 @@ const forestDef: MapDefinition = {
     // === SHORTCUT LEVER HINTS ===
     // Bloodstain on the SOUTH face of the gate — environmental hint that someone fell here.
     // Sign on the bonfire plateau — visible after the player hits the gate and looks around.
-    // Points them to the western bypass trail that circles cliff-1 to reach the cottage.
-    { x: 128, y: 208, type: 'sign', walkable: false, interactionId: 'cliff_trail_sign' },
     // === FORT INTERIOR ===
     { x: 228, y: 159, type: 'sign', walkable: false, interactionId: 'fort_garrison_orders' },
-    // === CLIFF-TOP PLATEAU ===
-    // Passage marker at the cliff-inlet entrance — south-facing so it's readable approaching from north.
-    { x: 111, y: 184, type: 'sign', walkable: false, interactionId: 'cliff_inlet_marker' },
-    // === GOLEM APPROACH — waypost before the fort ===
-    // On the south-bank artery east of the golem arena, pointing toward the fort gate.
-    { x: 216, y: 168, type: 'sign', walkable: false, interactionId: 'river_east_waypost' },
 
     // Grove shelf shortcut lever — north of the iron gate, west of the gap (x=56–60).
     { x: 55, y: 162, type: 'shortcut_lever', walkable: false, interactionId: 'grove_shelf_shortcut_lever' },
 
-    // === FORT NORTH EXIT — waypost directing player west toward the Hollow ===
-    { x: 228, y: 150, type: 'sign', walkable: false, interactionId: 'fort_north_waypost' },
   ],
   props: [
     // Lantern trail guiding player toward the Hollow bridge.
@@ -1007,6 +1589,10 @@ const forestDef: MapDefinition = {
     // on the east side to stop side-slipping past the ledge lip.
     { x: 119, y: 105, type: 'rock', walkable: false },
     { x: 119, y: 106, type: 'rock', walkable: false },
+    // Permanent gate anchor at the cliff edge — always visible, y-sorts behind the ladder below it.
+    { x: 117, y: 105, type: 'gate', walkable: false },
+    // Lantern at the stairway base to draw the player's eye toward the correct route up.
+    { x: 112, y: 111, type: 'lantern', walkable: false },
     // Hollow approach and shortcut hints are atmosphere, not direct interactables.
     { x: 120, y: 26, type: 'campfire', walkable: false },
     { x: 124, y: 28, type: 'bloodstain', walkable: true },
@@ -1241,6 +1827,36 @@ const forestDef: MapDefinition = {
     // === WITCH COTTAGE — altar prop ===
     { x: 230, y: 140, type: 'altar', walkable: false },
 
+    // === RUINED WAYSTATION — environmental storytelling props ===
+    // Iron fence remnants along the perimeter — half-collapsed enclosure
+    { x: 190, y: 167, type: 'iron_fence', walkable: false },
+    { x: 190, y: 169, type: 'iron_fence', walkable: false },
+    { x: 207, y: 167, type: 'iron_fence', walkable: false },
+    { x: 207, y: 169, type: 'iron_fence', walkable: false },
+    // Lanterns flanking the compound entrance
+    { x: 193, y: 167, type: 'lantern', walkable: false },
+    { x: 204, y: 167, type: 'lantern', walkable: false },
+    // Cold campfire between the two cottages — last stand
+    { x: 197, y: 170, type: 'campfire', walkable: false },
+    // Remains of the occupants
+    { x: 196, y: 171, type: 'bones', walkable: true },
+    { x: 199, y: 169, type: 'bones_pile', walkable: true },
+    { x: 195, y: 173, type: 'bloodstain', walkable: true },
+    { x: 201, y: 174, type: 'bloodstain', walkable: true },
+    // Mossy waystone marker on the path edge
+    { x: 194, y: 173, type: 'mossy_stone', walkable: false },
+    // Nature reclaiming the ruins
+    { x: 190, y: 172, type: 'dead_tree', walkable: false },
+    { x: 207, y: 170, type: 'dead_tree', walkable: false },
+    { x: 193, y: 171, type: 'mushroom', walkable: true },
+    { x: 205, y: 168, type: 'mushroom', walkable: true },
+    { x: 206, y: 173, type: 'stump', walkable: false },
+    { x: 192, y: 174, type: 'stump', walkable: false },
+    // Spilled cargo from the overturned wagon
+    { x: 197, y: 175, type: 'barrel', walkable: false },
+    { x: 199, y: 175, type: 'crate', walkable: false },
+    { x: 195, y: 176, type: 'barrel', walkable: false },
+
     // === GOLEM APPROACH — scattered bones on the south-bank approach to the fort ===
     { x: 214, y: 178, type: 'bones_pile', walkable: true },
     { x: 220, y: 180, type: 'bloodstain', walkable: true },
@@ -1292,6 +1908,71 @@ const forestDef: MapDefinition = {
     { x: 286, y: 140, type: 'rock', walkable: false },
     { x: 274, y: 142, type: 'stump', walkable: false },
 
+    // === ABANDONED OBSERVATORY COMPOUND — off-the-beaten-path encounter SE of North Fort ===
+    // Observatory tower — the area's visual anchor (world ~72, -59)
+    { x: 222, y: 91, type: 'observatory', walkable: false },
+    // Rocks around the observatory base
+    { x: 219, y: 97, type: 'rock', walkable: false },
+    { x: 225, y: 97, type: 'rock', walkable: false },
+    { x: 221, y: 100, type: 'rock', walkable: false },
+    { x: 226, y: 101, type: 'rock', walkable: false },
+    // Lanterns flanking the approach
+    { x: 220, y: 99, type: 'lantern', walkable: false },
+    { x: 224, y: 99, type: 'lantern', walkable: false },
+    // Crates and barrels near the entrance
+    { x: 218, y: 95, type: 'barrel', walkable: false },
+    { x: 219, y: 95, type: 'crate', walkable: false },
+    { x: 226, y: 95, type: 'barrel', walkable: false },
+    // Dead trees marking the area as distinct
+    { x: 216, y: 91, type: 'dead_tree', walkable: false },
+    { x: 228, y: 91, type: 'dead_tree', walkable: false },
+    { x: 230, y: 99, type: 'dead_tree', walkable: false },
+    // Cold campfire near the faction fight — failed camp
+    { x: 229, y: 97, type: 'campfire', walkable: false },
+    // Broken wagon near the chest corner
+    { x: 210, y: 93, type: 'wagon', walkable: false },
+    // Stumps around the perimeter
+    { x: 214, y: 97, type: 'stump', walkable: false },
+    { x: 228, y: 103, type: 'stump', walkable: false },
+    // Bloodstain breadcrumbs leading from the main trail toward the observatory
+    { x: 218, y: 89, type: 'bloodstain', walkable: true },
+    { x: 220, y: 93, type: 'bloodstain', walkable: true },
+    { x: 224, y: 101, type: 'bloodstain', walkable: true },
+    { x: 228, y: 98, type: 'bloodstain', walkable: true },
+    { x: 226, y: 93, type: 'bloodstain', walkable: true },
+    { x: 215, y: 95, type: 'bloodstain', walkable: true },
+    // Final collision footprint for the tower facade/base.
+    // Stamp this after local decor so later walkable props do not reopen the footprint.
+    { x: 220, y: 90, type: 'stone', walkable: false },
+    { x: 221, y: 90, type: 'stone', walkable: false },
+    { x: 222, y: 90, type: 'stone', walkable: false },
+    { x: 223, y: 90, type: 'stone', walkable: false },
+    { x: 224, y: 90, type: 'stone', walkable: false },
+    { x: 220, y: 91, type: 'stone', walkable: false },
+    { x: 221, y: 91, type: 'stone', walkable: false },
+    { x: 223, y: 91, type: 'stone', walkable: false },
+    { x: 224, y: 91, type: 'stone', walkable: false },
+    { x: 220, y: 92, type: 'stone', walkable: false },
+    { x: 221, y: 92, type: 'stone', walkable: false },
+    { x: 222, y: 92, type: 'stone', walkable: false },
+    { x: 223, y: 92, type: 'stone', walkable: false },
+    { x: 224, y: 92, type: 'stone', walkable: false },
+    { x: 220, y: 93, type: 'stone', walkable: false },
+    { x: 221, y: 93, type: 'stone', walkable: false },
+    { x: 222, y: 93, type: 'stone', walkable: false },
+    { x: 223, y: 93, type: 'stone', walkable: false },
+    { x: 224, y: 93, type: 'stone', walkable: false },
+    { x: 220, y: 94, type: 'stone', walkable: false },
+    { x: 221, y: 94, type: 'stone', walkable: false },
+    { x: 222, y: 94, type: 'stone', walkable: false },
+    { x: 223, y: 94, type: 'stone', walkable: false },
+    { x: 224, y: 94, type: 'stone', walkable: false },
+    { x: 220, y: 95, type: 'stone', walkable: false },
+    { x: 221, y: 95, type: 'stone', walkable: false },
+    { x: 222, y: 95, type: 'stone', walkable: false },
+    { x: 223, y: 95, type: 'stone', walkable: false },
+    { x: 224, y: 95, type: 'stone', walkable: false },
+
     // --- South-east rocky shelf scatter ---
     { x: 214, y: 218, type: 'rock', walkable: false },
     { x: 218, y: 220, type: 'rock', walkable: false },
@@ -1299,9 +1980,55 @@ const forestDef: MapDefinition = {
     { x: 220, y: 222, type: 'stump', walkable: false },
     { x: 216, y: 214, type: 'rock', walkable: false },
 
-    // --- Ancient stone circle props (far east) ---
+    // --- Cliff corridor ladder — gate prop removed; stairway now carves through the cliff ---
+    // Lantern at the base of the cliff to draw the player's eye upward
+    { x: 270, y: 123, type: 'lantern', walkable: false },
+
+    // --- Temple Ruins corridor (x=268-274) between cliff_face and east ridge ---
+    // Broken columns half-swallowed by the cliff wall
+    { x: 268, y: 141, type: 'statue', walkable: false },
+    { x: 268, y: 148, type: 'statue', walkable: false },
+    { x: 268, y: 154, type: 'statue', walkable: false },
+    // Rubble and loose stones along the passage
+    { x: 271, y: 140, type: 'rock', walkable: false },
+    { x: 271, y: 145, type: 'rock', walkable: false },
+    { x: 270, y: 151, type: 'rock', walkable: false },
+    { x: 269, y: 157, type: 'rock', walkable: false },
+    // Lanterns and atmosphere
+    { x: 271, y: 142, type: 'lantern', walkable: false },
+    { x: 271, y: 150, type: 'lantern', walkable: false },
+    { x: 268, y: 156, type: 'lantern', walkable: false },
+    // Scattered bones and bloodstains from skeleton patrols
+    { x: 269, y: 144, type: 'bones', walkable: true },
+    { x: 270, y: 149, type: 'bloodstain', walkable: true },
+    { x: 269, y: 153, type: 'bones', walkable: true },
+    { x: 270, y: 146, type: 'bloodstain', walkable: true },
+    // Southern opening where the east ridge cliff ends — ruins spill out
+    { x: 272, y: 152, type: 'tombstone', walkable: false },
+    { x: 274, y: 154, type: 'tombstone', walkable: false },
+    { x: 273, y: 157, type: 'stump', walkable: false },
+    { x: 275, y: 150, type: 'rock', walkable: false },
+    { x: 270, y: 159, type: 'bones_pile', walkable: false },
+
+    // --- Cliff Cemetery — scattered remains around the stone circle ---
     { x: 279, y: 144, type: 'statue', walkable: false },
     { x: 281, y: 148, type: 'statue', walkable: false },
+    // Tombstones scattered through the clearing
+    { x: 276, y: 141, type: 'tombstone', walkable: false },
+    { x: 278, y: 146, type: 'tombstone', walkable: false },
+    { x: 283, y: 143, type: 'tombstone', walkable: false },
+    { x: 285, y: 147, type: 'tombstone', walkable: false },
+    { x: 277, y: 149, type: 'tombstone', walkable: false },
+    // Bones and remains among the graves
+    { x: 280, y: 142, type: 'bones', walkable: true },
+    { x: 284, y: 145, type: 'bones', walkable: true },
+    { x: 276, y: 147, type: 'bones', walkable: true },
+    { x: 282, y: 149, type: 'bones_pile', walkable: false },
+    // Bloodstains near the graves
+    { x: 280, y: 146, type: 'bloodstain', walkable: true },
+    { x: 284, y: 148, type: 'bloodstain', walkable: true },
+    // Weathered lantern at the clearing edge
+    { x: 275, y: 143, type: 'lantern', walkable: false },
 
     // --- Stone quarry debris ---
     { x: 230, y: 206, type: 'rock', walkable: false },
@@ -1398,6 +2125,8 @@ const forestDef: MapDefinition = {
     { x: 186, y: 122, type: 'tall_grass', walkable: true },
 
     // --- South-central empty zone scatter (x:100-140, y:230-250) ---
+    // Override: remove noise-generated stump at (128,227) — no interaction exists there
+    { x: 128, y: 227, type: 'grass', walkable: true },
     { x: 100, y: 236, type: 'stump', walkable: false },
     { x: 104, y: 240, type: 'rock', walkable: false },
     { x: 108, y: 244, type: 'stump', walkable: false },
@@ -1450,9 +2179,9 @@ const forestDef: MapDefinition = {
     // === WHISPERING RIVER — environmental storytelling ===
     // South bank (broken bridge approach): collapsed supply wagon suggests the crossing
     // was once used by ranger patrols. The player can see the north stub and bonfire beyond.
-    { x: 148, y: 163, type: 'wagon', walkable: false },
-    { x: 145, y: 162, type: 'barrel', walkable: false },
-    { x: 143, y: 163, type: 'crate', walkable: false },
+    { x: 148, y: 165, type: 'wagon', walkable: false },
+    { x: 145, y: 164, type: 'barrel', walkable: false },
+    { x: 143, y: 165, type: 'crate', walkable: false },
     // South bank (working bridge approach, x=188–193): old supply cache beside the crossing
     { x: 191, y: 163, type: 'barrel', walkable: false },
     { x: 186, y: 166, type: 'crate', walkable: false },
@@ -1489,14 +2218,7 @@ const forestDef: MapDefinition = {
     { x: 155, y: 152, type: 'rock', walkable: false },
     { x: 172, y: 152, type: 'stump', walkable: false },
   ],
-  secretAreas: [
-    { x: 256, y: 184, width: 8, height: 6, fill: 'grass' },
-    { x: 24, y: 24, width: 6, height: 6, fill: 'stone' },
-    { x: 280, y: 270, width: 5, height: 5, fill: 'grass' },
-    { x: 90, y: 145, width: 6, height: 5, fill: 'grass' },
-    { x: 195, y: 175, width: 5, height: 5, fill: 'stone' },
-    { x: 270, y: 130, width: 4, height: 5, fill: 'grass' },
-  ],
+  secretAreas: [],
   elevationZones: [
     // y=2 start + width to x=245 removes el0 strip at north portals (y=3) and NE approach (x>195).
     // === TIER 1: Broad north highlands (main elevated mass) — extended south to close el0 gap vs. west ridge ===
@@ -1520,7 +2242,7 @@ const forestDef: MapDefinition = {
     // === TIER 1: East temple terrace ===
     { x: 240, y: 132, width: 52, height: 62, elevation: 1 },
     // === TIER 2: Center summit ledge (boss arena area) ===
-    { x: 204, y: 38, width: 42, height: 42, elevation: 2 },
+    { x: 204, y: 38, width: 47, height: 42, elevation: 2 },
     // === TIER 1: SE enchanted hills ===
     { x: 230, y: 222, width: 62, height: 62, elevation: 1 },
     // === TIER 1: East ridge (rocky cliff shelf) ===
@@ -1541,8 +2263,7 @@ const forestDef: MapDefinition = {
     // (post-stampCliffs) overwrites cliff_edge + all 3 cliff tiles below it.
 
     // Main trail → north highlands (el1): zone {x:112,y:148,h:52}, south_face=199
-    // Center summit el2→el0: zone {x:204,y:38,h:42}, south_face=79; elevDrop=2 → 5 tiles
-    { x: 218, y: 79, width: 6, height: 5, elevation: 2 },
+    // (Stairway removed — cliff runs unbroken along full south face of el2 summit)
     // NW corner el1 south descent: zone {x:4,y:4,h:68}, south_face=71
     { x: 38, y: 71, width: 6, height: 4, elevation: 1 },
     // NE fortress ridge (east temple terrace el1): zone {x:240,y:132,h:62}, south_face=193
@@ -1588,6 +2309,15 @@ const forestDef: MapDefinition = {
     // and cliff wall at y=108-110 (depth 2+1=3). Stair spans y=107..110 to overwrite the full
     // cliff face. Width 6 matches standard stairway sizing.
     { x: 110, y: 107, width: 6, height: 4, elevation: 1 },
+    // Cliff corridor: 1-tile-wide stairway carved through the cliff face (y=119-123).
+    // placeStairways runs post-stampCliffs so this overwrites the cliff_edge + cliff wall,
+    // then extends one tile farther south to hide the render seam under the shortcut stairs.
+    // The sync function places the gate_ladder at y=123 (the bottom) to gate access.
+    { x: 269, y: 119, width: 1, height: 5, elevation: 1 },
+    // Cliff corridor south entry: el0 gap (y=123-131) → el1 east temple terrace (y=132).
+    // Width 3 (x=268-270) covers the cliff_face seal column at x=268 to close the sky gap
+    // left by the seal's south buffer.
+    { x: 268, y: 132, width: 3, height: 2, elevation: 1 },
   ],
   ladders: [],
   enemyZones: [
@@ -1697,6 +2427,12 @@ const forestDef: MapDefinition = {
     { x: 76, y: 276, width: 14, height: 12, enemyType: 'shadow', count: 2 },
     // Rocky ford — wolves at the mossy crossing
     { x: 256, y: 226, width: 14, height: 10, enemyType: 'wolf', count: 2 },
+
+    // === OBSERVATORY COMPOUND — hidden encounter SE of North Fort ===
+    // Stone Sentinels guarding the observatory entrance
+    { x: 220, y: 90, width: 10, height: 8, enemyType: 'stone_sentinel', count: 2 },
+    // Stone Golem patrolling the compound perimeter (drops golem_heart)
+    { x: 226, y: 94, width: 8, height: 6, enemyType: 'golem', count: 1 },
   ],
 };
 

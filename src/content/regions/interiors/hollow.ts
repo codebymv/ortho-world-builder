@@ -21,7 +21,11 @@ export const interiorHollowArenaDef: MapDefinition = {
     { x: 13, y: 13, width: 10, height: 10, type: 'clearing', fill: 'ruins_floor' },
   ],
   portals: [],
-  chests: [],
+  chests: [
+    { x: 5, y: 5, interactionId: 'hollow_arena_chest_nw' },
+    { x: 30, y: 5, interactionId: 'hollow_arena_chest_ne' },
+    { x: 5, y: 30, interactionId: 'hollow_arena_chest_sw' },
+  ],
   interactables: [],
   props: [
     { x: 10, y: 10, type: 'statue', walkable: false },
@@ -32,5 +36,9 @@ export const interiorHollowArenaDef: MapDefinition = {
     { x: 22, y: 7, type: 'bones', walkable: true },
     { x: 8, y: 16, type: 'bones', walkable: true },
     { x: 27, y: 20, type: 'bones', walkable: true },
+    { x: 6, y: 15, type: 'bones', walkable: true },
+    { x: 28, y: 12, type: 'bones', walkable: true },
+    { x: 16, y: 28, type: 'bones', walkable: true },
+    { x: 20, y: 6, type: 'bones', walkable: true },
   ],
 };

@@ -22,6 +22,7 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   cottage_house_entry: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
   cottage_house_forest: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
   cottage_house_forest_ruined: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
+  cottage_shed: { isOverlay: true, baseTile: 'dirt', scale: 4.0, sortTrim: 0.25, yOffset: 1.2 },
   rock: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.18 },
   chest: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.32 },
   chest_opened: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.32 },
@@ -38,6 +39,7 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   tombstone: { isOverlay: true, baseTile: 'grass', scale: 0.88, sortTrim: 0.16 },
   mushroom: { isOverlay: true, baseTile: 'grass', scale: 0.7, sortTrim: 0.2 },
   stump: { isOverlay: true, baseTile: 'grass', scale: 0.6, sortTrim: 0.16 },
+  blighted_stump: { isOverlay: true, baseTile: 'grass', scale: 0.75, sortTrim: 0.16 },
   fence: { isOverlay: true, baseTile: 'grass', scale: 1.0, sortTrim: 0.22 },
   gate: { isOverlay: true, baseTile: 'stone', scale: 1.15, sortTrim: 0.22 },
   barrel: { isOverlay: true, baseTile: 'wood', scale: 0.7, sortTrim: 0.16 },
@@ -66,6 +68,7 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   counter: { isOverlay: true, baseTile: 'wood_floor', scale: 0.95, sortTrim: 0.16 },
   ladder: { isOverlay: true, baseTile: 'wood', scale: 1.0, sortTrim: 0.14 },
   curled_ladder: { isOverlay: true, baseTile: 'grass', scale: 1.0, sortTrim: 0.14 },
+  gate_ladder: { isOverlay: true, baseTile: 'grass', scale: 1.15, sortTrim: 0.14 },
   bed: { isOverlay: true, baseTile: 'wood_floor', scale: 1.4, sortTrim: 0.08 },
   wardrobe: { isOverlay: true, baseTile: 'wood_floor', scale: 1.2, sortTrim: 0.1 },
   fireplace: { isOverlay: true, baseTile: 'stone', scale: 1.3, sortTrim: 0.1 },
@@ -99,10 +102,11 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   crate_stack: { isOverlay: true, baseTile: 'cobblestone', scale: 1.2, sortTrim: 0.1 },
   barrel_stack: { isOverlay: true, baseTile: 'cobblestone', scale: 1.2, sortTrim: 0.1 },
   chimney: { isOverlay: true, baseTile: 'roof_tile', scale: 1.0, sortTrim: 0.14 },
+  observatory: { isOverlay: true, baseTile: 'stone', scale: 9.6, sortTrim: 0.04, yOffset: 3.3 },
 };
 
 export const DETAIL_CONFIG: Partial<Record<TileType, { chance: number; types: string[]; scale: number; opacity: number }>> = {
-  grass: { chance: 0.18, types: ['detail_grass_tuft', 'detail_leaf', 'detail_pebble'], scale: 0.25, opacity: 0.5 },
+  grass: { chance: 0.25, types: ['detail_grass_tuft', 'detail_leaf', 'detail_pebble', 'detail_mushroom_small'], scale: 0.25, opacity: 0.5 },
   dirt: { chance: 0.12, types: ['detail_pebble', 'detail_crack', 'detail_twig'], scale: 0.22, opacity: 0.45 },
   dark_grass: { chance: 0.30, types: ['detail_leaf', 'detail_grass_tuft', 'detail_mushroom_small', 'detail_bone_fragment'], scale: 0.28, opacity: 0.55 },
   cobblestone: { chance: 0.08, types: ['detail_crack', 'detail_pebble'], scale: 0.2, opacity: 0.35 },

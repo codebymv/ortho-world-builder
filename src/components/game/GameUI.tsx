@@ -17,6 +17,7 @@ interface GameUIProps {
   playMenuOpen?: () => void;
   playMenuClose?: () => void;
   musicRef: React.RefObject<HTMLAudioElement | null>;
+  masterGainRef?: React.RefObject<GainNode | null>;
   showControls?: boolean;
   interactionPrompt?: string | null;
 }
@@ -233,6 +234,7 @@ export const GameUI = ({
   playMenuOpen,
   playMenuClose,
   musicRef,
+  masterGainRef,
   showControls = true,
   interactionPrompt = null,
 }: GameUIProps) => {
@@ -273,9 +275,18 @@ export const GameUI = ({
   const activeWeaponId = gameState.equippedWeaponId ?? groupedWeapons[0]?.item.id;
 
   const toggleMute = () => {
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    // Mute via the Web Audio master gain node so ALL audio (music, SFX, loops,
+    // enemy sounds) is silenced in one shot.
+    const gain = masterGainRef?.current;
+    if (gain) {
+      gain.gain.value = nextMuted ? 0 : 0.85;
+    }
+    // Also set the music element muted flag so it doesn't auto-resume audio
+    // on track switches while the player has muted.
     if (musicRef.current) {
-      musicRef.current.muted = !musicRef.current.muted;
-      setIsMuted(musicRef.current.muted);
+      musicRef.current.muted = nextMuted;
     }
   };
 

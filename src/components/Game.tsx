@@ -56,6 +56,7 @@ const Game = () => {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const killCountRef = useRef(0);
   const syncVillageReactivityRef = useRef<(() => void) | null>(null);
+  const syncBlightedRootStateRef = useRef<(() => void) | null>(null);
   const playPotionDrinkRef = useRef<(() => void) | null>(null);
   const playGrassChewRef = useRef<(() => void) | null>(null);
   const playHeroEventRef = useRef<(() => void) | null>(null);
@@ -318,6 +319,9 @@ const Game = () => {
       syncVillageReactivity: () => {
         syncVillageReactivityRef.current?.();
       },
+      syncBlightedRootState: () => {
+        syncBlightedRootStateRef.current?.();
+      },
     });
   const closeDialogueSession = (stateToClose?: GameState | null) => {
     if (stateToClose) {
@@ -449,6 +453,7 @@ const Game = () => {
     setMapModalOpenRef,
     activeNpcWorldPos,
     syncVillageReactivityRef,
+    syncBlightedRootStateRef,
     playPotionDrinkRef,
     playGrassChewRef,
     playHeroEventRef,
@@ -538,6 +543,7 @@ const Game = () => {
             playMenuOpen={handlePlayMenuOpen}
             playMenuClose={handlePlayMenuClose}
             musicRef={musicRef}
+            masterGainRef={masterGainRef}
             showControls={showControls}
             interactionPrompt={interactionPrompt}
           />
