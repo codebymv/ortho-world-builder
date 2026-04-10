@@ -22,22 +22,9 @@ export const regionContentRegistry: RegionContentEntry[] = [
     interiorIds: ['interior_cottage_forest', 'interior_ranger_cabin', 'interior_woodcutter_cottage', 'interior_hunter_cottage', 'interior_hollow_arena'],
   },
   {
-    id: 'deep_woods',
-    label: 'Deep Woods',
-    summary: 'Occult escalation biome connecting the witch, shrine road, and castle approach.',
-    mapIds: ['deep_woods'],
-    interiorIds: ['interior_witch_hut', 'interior_witch_cottage'],
-  },
-  {
     id: 'gilrhym',
     label: 'Gilrhym',
     summary: 'A sprawling Victorian city overrun by reanimated dead and corruption, reached after the Hollow boss.',
     mapIds: ['gilrhym'],
-  },
-  {
-    id: 'shadow_castle',
-    label: 'Shadow Castle',
-    summary: 'Late-game fortress arc and current end-point of the main progression spine.',
-    mapIds: ['shadow_castle'],
   },
 ];

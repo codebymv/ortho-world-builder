@@ -281,29 +281,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
-  const tryHandleShadowCastleGateSwitch = (interactionId: string): boolean => {
-    if (interactionId !== 'shadow_castle_gate_switch') return false;
-    if (context.state.currentMap !== 'shadow_castle') return true;
-
-    if (context.state.getFlag('shadow_castle_gate_open')) {
-      context.notify('The inner gate is already open.', { id: 'shadow-gate-open', duration: 1800 });
-      return true;
-    }
-
-    context.state.setFlag('shadow_castle_gate_open', true);
-    context.activateSwitch('shadow_castle_inner_gate');
-    context.updateWorldChunksAtPlayer();
-    context.notify('Inner gate unlocked', {
-      id: 'shadow-gate-unlocked',
-      type: 'success',
-      description: 'A heavy mechanism rumbles deeper in the castle.',
-      duration: 3200,
-    });
-    context.triggerSave();
-    context.triggerUIUpdate();
-    return true;
-  };
-
   const tryHandleForestShortcutLever = (interactionId: string): boolean => {
     if (interactionId !== 'forest_shortcut_lever') return false;
     if (context.state.currentMap !== 'forest') return true;
@@ -638,7 +615,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleConsumablePickup,
     tryHandleBuildingTransition,
     tryHandleHealingSource,
-    tryHandleShadowCastleGateSwitch,
     tryHandleForestShortcutLever,
     tryHandleGroveShelfShortcutLever,
     tryHandleHollowShortcutLever,

@@ -13,7 +13,6 @@ interface UseGameMusicOptions {
 const MAP_MUSIC_MAP: Record<string, string> = {
   village: './audio/ortho_loop2.mp3',
   forest: './audio/wood_theme.mp3',
-  deep_woods: './audio/wood_theme.mp3',
   gilrhym: './audio/gilrhym_theme.mp3',
   victory: './audio/victory_theme.mp3',
 };

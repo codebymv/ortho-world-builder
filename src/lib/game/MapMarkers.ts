@@ -44,16 +44,6 @@ export const PORTAL_LINKS: PortalLink[] = [
   // Forest portals
   { fromMap: 'forest', toMap: 'village', portalTileX: 150, portalTileY: 294 },
   { fromMap: 'forest', toMap: 'village', portalTileX: 4, portalTileY: 150 },
-  { fromMap: 'forest', toMap: 'deep_woods', portalTileX: 150, portalTileY: 4 },
-  { fromMap: 'forest', toMap: 'gilrhym', portalTileX: 296, portalTileY: 150 },
-  // Deep woods portals
-  { fromMap: 'deep_woods', toMap: 'village', portalTileX: 120, portalTileY: 4 },
-  { fromMap: 'deep_woods', toMap: 'gilrhym', portalTileX: 236, portalTileY: 120 },
-  { fromMap: 'deep_woods', toMap: 'shadow_castle', portalTileX: 100, portalTileY: 44 },
-  // Shadow castle portals
-  { fromMap: 'shadow_castle', toMap: 'deep_woods', portalTileX: 100, portalTileY: 117 },
-  // Gilrhym portals
-  { fromMap: 'gilrhym', toMap: 'forest', portalTileX: 150, portalTileY: 298 },
 ];
 
 export const KNOWN_LOCATIONS: KnownLocation[] = [
@@ -77,11 +67,8 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   { keywords: ['chapel ruins'], tileX: 55, tileY: 114, map: 'forest', label: 'Chapel Ruins (ranger remains)', type: 'poi', color: '#A1887F' },
   { keywords: ['disparaged cottage', 'hunter cottage', 'old shack', 'shack', 'run down old shack'], tileX: 137, tileY: 184, map: 'forest', label: 'Disparaged Cottage', type: 'quest', color: '#FFD700' },
   
-  // Deep woods
-  { keywords: ['deep woods', 'shadow', 'shadow creature', 'shadow beast'], tileX: 120, tileY: 120, map: 'deep_woods', label: 'Deep Woods', type: 'danger', color: '#4B0082' },
-  { keywords: ['shadow castle', 'castle', 'shadow keep', 'dark fortress'], tileX: 100, tileY: 56, map: 'shadow_castle', label: 'Shadow Castle', type: 'danger', color: '#8B0000' },
+  // Whispering Woods quests
   { keywords: ['hunter', 'missing hunter', 'hunter manuscript', 'manuscript', 'find signs'], tileX: 137, tileY: 184, map: 'forest', label: 'Disparaged Cottage', type: 'quest', color: '#FFD700' },
-  { keywords: ['mysterious lights', 'investigate the mysterious', 'strange lights'], tileX: 80, tileY: 90, map: 'deep_woods', label: 'Mysterious Lights', type: 'quest', color: '#00BFFF' },
   { keywords: ['return to the elder', 'findings'], tileX: 102, tileY: 70, map: 'village', label: 'Report to Elder', type: 'quest', color: '#FFD700' },
 
   // Gilrhym
@@ -160,8 +147,6 @@ export function isPrimaryObjectiveMarker(marker: Pick<MapMarker, 'label' | 'type
   if (label.includes('elder') && objectiveText.includes('elder')) return true;
   if (label.includes('whispering woods') && objectiveText.includes('whispering woods')) return true;
   if (label.includes('disparaged cottage') && (objectiveText.includes('disparaged cottage') || objectiveText.includes('old shack'))) return true;
-  if (label.includes('deep woods') && objectiveText.includes('deep woods')) return true;
-  if (label.includes('witch') && objectiveText.includes('witch')) return true;
   if (label.includes('ranger') && objectiveText.includes('ranger')) return true;
 
   return false;

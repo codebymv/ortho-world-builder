@@ -230,6 +230,11 @@ export class GameState {
     this.onCurrencyGained?.({ kind: 'essence', amount });
   }
 
+  spendEssence(amount: number) {
+    if (amount <= 0) return;
+    this.player.essence = Math.max(0, this.player.essence - amount);
+  }
+
   removeItem(itemId: string) {
     const index = this.inventory.findIndex(item => item.id === itemId);
     if (index !== -1) {

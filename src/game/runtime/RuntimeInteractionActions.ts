@@ -18,7 +18,6 @@ interface InteractionSystemLike {
     isEntranceTile: boolean,
     getTransitionAt: (x: number, y: number) => unknown,
   ) => boolean;
-  tryHandleShadowCastleGateSwitch: (interactionId: string) => boolean;
   tryHandleForestShortcutLever: (interactionId: string) => boolean;
   tryHandleGroveShelfShortcutLever: (interactionId: string) => boolean;
   tryHandleHollowShortcutLever: (interactionId: string) => boolean;
@@ -238,7 +237,6 @@ export function runInteractionCheck({
       true,
       (x, y) => world.getTransitionAt(x, y),
     )) return;
-    if (interactionSystem.tryHandleShadowCastleGateSwitch(interactionId)) return;
     if (interactionSystem.tryHandleForestShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleGroveShelfShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleHollowShortcutLever(interactionId)) return;

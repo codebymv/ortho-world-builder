@@ -43,7 +43,6 @@ export function getInteractionPromptLabel(
   }
   if (interactionId === 'moonbloom_pickup') return 'Pick Moonbloom';
   if (interactionId === 'tempest_grass_pickup') return 'Harvest Tempest Grass';
-  if (interactionId === 'shadow_castle_gate_switch') return 'Open Inner Gate';
   if (interactionId === 'forest_shortcut_lever') {
     return state.getFlag('whispering_woods_shortcut_open') ? 'Shortcut Unlocked' : 'Unbar Ranger Gate';
   }

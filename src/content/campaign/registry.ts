@@ -1,12 +1,8 @@
-import { deepWoodsArc } from './arcs/deepWoods';
 import { findHunterArc } from './arcs/findHunter';
-import { shadowCastleArc } from './arcs/shadowCastle';
 import type { CampaignArc } from './types';
 
 export const campaignArcs: CampaignArc[] = [
   findHunterArc,
-  deepWoodsArc,
-  shadowCastleArc,
 ];
 
 export const campaignArcById = Object.fromEntries(

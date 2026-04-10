@@ -1,8 +1,6 @@
 import { WorldMap } from '@/lib/game/World';
-import { deepWoodsDef } from '@/content/regions/deepWoods/map';
-import { interiorBlacksmithDef, interiorCottageADef, interiorCottageForestDef, interiorHollowArenaDef, interiorHunterCottageDef, interiorInnDef, interiorMerchantDef, interiorRangerCabinDef, interiorWitchCottageDef, interiorWitchHutDef, interiorWoodcutterCottageDef } from '@/content/regions/interiors';
+import { interiorBlacksmithDef, interiorCottageADef, interiorCottageForestDef, interiorHollowArenaDef, interiorHunterCottageDef, interiorInnDef, interiorMerchantDef, interiorRangerCabinDef, interiorWoodcutterCottageDef } from '@/content/regions/interiors';
 import { gilrhymDef } from '@/content/regions/ruins/map';
-import { shadowCastleDef } from '@/content/regions/shadowCastle/map';
 import { generateMap, MapDefinition } from './mapGenerator';
 
 // ============= VILLAGE: 240x160 Dense Interconnected Starting Town =============
@@ -210,7 +208,6 @@ const villageDef: MapDefinition = {
   portals: [
     { x: 120, y: 8, targetMap: 'forest', targetX: 150, targetY: 289 },
     { x: 237, y: 80, targetMap: 'forest', targetX: 4, targetY: 150 },
-    { x: 120, y: 150, targetMap: 'deep_woods', targetX: 120, targetY: 8 },
   ],
   chests: [
     { x: 116, y: 112, interactionId: 'start_potion_chest_1' },
@@ -1092,7 +1089,7 @@ const forestDef: MapDefinition = {
     // Moved north of the cliff_face (y=186+) so frontY=176 is reachable from the y=178 artery.
     // Ruined shell (matches forest_hermit treatment) — was an enterable woodcutter hut; chest moved outside.
     { x: 90, y: 170, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage_ruin' },
-    { x: 230, y: 130, width: 6, height: 6, type: 'cottage', interactionId: 'witch_cottage', interiorMap: 'interior_witch_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
+    { x: 230, y: 130, width: 6, height: 6, type: 'cottage', interactionId: 'witch_cottage_ruin' },
     // Flat grass shelf west of cliff-1 — cleared before the cliff stamps so trees don't seal the bypass trail.
     // Cliff-1 (x=60+) overwrites the overlap zone; only x=44-59 survives as walkable grass.
     { x: 44, y: 180, width: 35, height: 33, type: 'clearing', fill: 'grass' },
@@ -1468,8 +1465,6 @@ const forestDef: MapDefinition = {
   portals: [
     { x: 150, y: 291, targetMap: 'village', targetX: 120, targetY: 8 },
     { x: 3, y: 150, targetMap: 'village', targetX: 235, targetY: 80 },
-    { x: 150, y: 8, targetMap: 'deep_woods', targetX: 120, targetY: 190 },
-    { x: 280, y: 20, targetMap: 'gilrhym', targetX: 150, targetY: 296 },
   ],
   chests: [
     // Shifted east: Hollow river west seal (x≈28–91, y≈64–79) covers old spot.
@@ -2458,8 +2453,6 @@ export function subscribeMapHotReload(handler: () => void): () => void {
 export const mapDefinitions: Record<string, MapDefinition> = {
   village: villageDef,
   forest: forestDef,
-  deep_woods: deepWoodsDef,
-  shadow_castle: shadowCastleDef,
   gilrhym: gilrhymDef,
   interior_inn: interiorInnDef,
   interior_blacksmith: interiorBlacksmithDef,
@@ -2468,8 +2461,6 @@ export const mapDefinitions: Record<string, MapDefinition> = {
   interior_cottage_forest: interiorCottageForestDef,
   interior_ranger_cabin: interiorRangerCabinDef,
   interior_woodcutter_cottage: interiorWoodcutterCottageDef,
-  interior_witch_cottage: interiorWitchCottageDef,
-  interior_witch_hut: interiorWitchHutDef,
   interior_hunter_cottage: interiorHunterCottageDef,
   interior_hollow_arena: interiorHollowArenaDef,
 };

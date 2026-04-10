@@ -219,30 +219,6 @@ export function createRuntimeMapFlow({
   enemyVisuals,
   applyMapEntryProgression,
 }: RuntimeMapFlowOptions) {
-  const syncShadowCastleGateState = () => {
-    if (state.currentMap !== 'shadow_castle') return;
-    const map = world.getCurrentMap();
-    const gateOpen = state.getFlag('shadow_castle_gate_open');
-    const gateId = 'shadow_castle_inner_gate';
-    for (let y = 46; y <= 47; y++) {
-      for (let x = 92; x <= 107; x++) {
-        const tile = map.tiles[y]?.[x];
-        if (!tile) continue;
-        if (gateOpen) {
-          map.tiles[y][x] = { type: 'stone', walkable: true, elevation: tile.elevation ?? 0 };
-        } else {
-          map.tiles[y][x] = {
-            type: 'switch_door',
-            walkable: false,
-            elevation: tile.elevation ?? 0,
-            interactionId: gateId,
-          };
-        }
-      }
-    }
-    world.rebuildChunks();
-  };
-
   const syncWhisperingWoodsShortcutState = () => {
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
@@ -928,7 +904,6 @@ export function createRuntimeMapFlow({
   };
 
   const syncPersistentMapState = () => {
-    syncShadowCastleGateState();
     syncWhisperingWoodsShortcutState();
     syncGroveShelfShortcutState();
     syncHollowShortcutState();
@@ -1049,7 +1024,6 @@ export function createRuntimeMapFlow({
   };
 
   return {
-    syncShadowCastleGateState,
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
     syncHollowShortcutState,
