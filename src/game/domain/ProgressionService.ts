@@ -21,6 +21,7 @@ interface DialogueResponseContext {
   currentDialogue: DialogueContext;
   nextId: string;
   givesQuest?: string;
+  opensVendor?: string;
 }
 
 interface ProgressionServiceContext {
@@ -42,6 +43,7 @@ interface DialogueResponseResult {
   shouldCloseDialogue: boolean;
   nextNode: DialogueNode | null;
   shouldSave: boolean;
+  openVendorId?: string;
 }
 
 const CHECKMARK = '\u2713';
@@ -208,105 +210,29 @@ export function createProgressionService(context: ProgressionServiceContext) {
     return true;
   };
 
-  const applyMerchantPurchase = (state: GameState, nodeId: string) => {
-    if (nodeId === 'buy_potion') {
-      if (state.player.gold >= 10) {
-        state.spendGold(10);
-        state.addItem(context.items.health_potion);
-        context.notify('Purchased Ephemeral Extract!', {
-          type: 'success',
-          description: 'Spent 10 gold.',
-          duration: 2500,
-        });
-      } else {
-        context.notify('Not enough gold!', { id: 'no-gold', type: 'error', duration: 2000 });
-      }
-      context.triggerUIUpdate();
-    }
-
-    if (nodeId === 'buy_artifact') {
-      if (state.player.gold >= 50) {
-        state.spendGold(50);
-        state.addItem(context.items.ancient_map);
-        context.notify('Purchased Ancient Artifact!', {
-          type: 'success',
-          description: 'Spent 50 gold.',
-          duration: 2500,
-        });
-      } else {
-        context.notify('Not enough gold!', { id: 'no-gold', type: 'error', duration: 2000 });
-      }
-      context.triggerUIUpdate();
-    }
-  };
-
-  const applyFortQuartermasterPurchase = (state: GameState, nodeId: string) => {
-    if (nodeId === 'buy_tempest_grass') {
-      if (state.player.gold >= 8) {
-        state.spendGold(8);
-        state.addItem(context.items.tempest_grass);
-        context.notify('Purchased Tempest Grass!', {
-          type: 'success',
-          description: 'Spent 8 gold.',
-          duration: 2500,
-        });
-      } else {
-        context.notify('Not enough gold!', { id: 'no-gold', type: 'error', duration: 2000 });
-      }
-      context.triggerUIUpdate();
-    }
-
-    if (nodeId === 'buy_ephemeral_extract') {
-      if (state.player.gold >= 15) {
-        state.spendGold(15);
-        state.addItem(context.items.health_potion);
-        context.notify('Purchased Ephemeral Extract!', {
-          type: 'success',
-          description: 'Spent 15 gold.',
-          duration: 2500,
-        });
-      } else {
-        context.notify('Not enough gold!', { id: 'no-gold', type: 'error', duration: 2000 });
-      }
-      context.triggerUIUpdate();
-    }
-
-    if (nodeId === 'buy_broadsword') {
-      if (state.hasItem('ornamental_broadsword')) {
-        context.notify('Already owned.', { id: 'already-owned', duration: 2000 });
-      } else if (state.player.gold >= 280) {
-        state.spendGold(280);
-        state.addItem({ ...context.items.ornamental_broadsword });
-        context.notify('Purchased Ornamental Broadsword!', {
-          type: 'success',
-          description: 'Spent 280 gold. A heavy blade with ceremonial runes.',
-          duration: 3000,
-        });
-      } else {
-        context.notify('Not enough gold!', { id: 'no-gold', type: 'error', duration: 2000 });
-      }
-      context.triggerUIUpdate();
-    }
-  };
 
   const handleDialogueResponse = ({
     state,
     currentDialogue,
     nextId,
     givesQuest,
+    opensVendor,
   }: DialogueResponseContext): DialogueResponseResult => {
     let shouldSave = false;
+    let openVendorId: string | undefined;
+
+    // If the response opens a vendor, close dialogue and signal the vendor to open
+    if (opensVendor) {
+      return {
+        shouldCloseDialogue: true,
+        nextNode: null,
+        shouldSave: false,
+        openVendorId: opensVendor,
+      };
+    }
 
     if (givesQuest) {
       shouldSave = acceptQuest(state, givesQuest) || shouldSave;
-    }
-
-    if (state.currentDialogue === 'merchant' && nextId === 'end') {
-      applyMerchantPurchase(state, currentDialogue.node.id);
-    }
-
-    if (state.currentDialogue === 'fort_quartermaster' && (nextId === 'shop' || nextId === 'end')) {
-      applyFortQuartermasterPurchase(state, currentDialogue.node.id);
     }
 
     if (state.currentDialogue === 'chapel_dead_ranger' && currentDialogue.node.id === 'take_key' && nextId === 'end') {

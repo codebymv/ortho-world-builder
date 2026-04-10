@@ -1,25 +1,23 @@
 import { GameState, type CurrencyGain } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { Button } from '@/components/ui/button';
-import { Heart, Coins, Package, ScrollText, Zap, Volume2, VolumeX, Shield, Sword, Map as MapIcon, Key, Sparkles, ChevronRight, ChevronDown } from 'lucide-react';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { notify } from '@/lib/game/notificationBus';
+import { Heart, Coins, Package, Target, Zap, Volume2, VolumeX, Shield, Sword, Map as MapIcon, Key, Sparkles, ChevronRight, ChevronDown } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
 
 interface GameUIProps {
   gameState: GameState;
   assetManager?: AssetManager | null;
   refreshToken: number;
-  triggerUIUpdate: () => void;
   justPickedUpItem?: any | null;
   justGainedCurrency?: CurrencyGain | null;
-  playPotionDrink?: () => void;
-  playGrassChew?: () => void;
-  playMenuOpen?: () => void;
-  playMenuClose?: () => void;
+  onOpenInventory?: () => void;
+  onOpenMap?: () => void;
+  onOpenObjectives?: () => void;
   musicRef: React.RefObject<HTMLAudioElement | null>;
   masterGainRef?: React.RefObject<GainNode | null>;
   showControls?: boolean;
   interactionPrompt?: string | null;
+  activeQuestCount?: number;
 }
 
 // --- Helpers ---
@@ -226,25 +224,21 @@ export const GameUI = ({
   gameState,
   assetManager,
   refreshToken,
-  triggerUIUpdate,
   justPickedUpItem = null,
   justGainedCurrency = null,
-  playPotionDrink,
-  playGrassChew,
-  playMenuOpen,
-  playMenuClose,
+  onOpenInventory,
+  onOpenMap,
+  onOpenObjectives,
   musicRef,
   masterGainRef,
   showControls = true,
   interactionPrompt = null,
+  activeQuestCount = 0,
 }: GameUIProps) => {
-  const [showInventory, setShowInventory] = useState(false);
-  const [showQuests, setShowQuests] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   /** Compact controls help: closed by default so HUD stays minimal; click to expand rectangular panel. */
   const [controlsHelpOpen, setControlsHelpOpen] = useState(false);
 
-  const activeQuests = gameState.quests.filter(q => q.active && !q.completed);
   void refreshToken;
 
   const groupedInventory = useMemo(() => {
@@ -318,9 +312,10 @@ export const GameUI = ({
                 <span className="text-[9px] font-bold text-emerald-200">{Math.ceil(gameState.player.stealthTimer)}s</span>
               </div>
             )}
-            {activeQuests.length > 0 && (
-              <CurrentObjective title={activeQuests[0].title} />
-            )}
+            {(() => {
+              const firstActiveQuest = gameState.quests.find(q => q.active && !q.completed);
+              return firstActiveQuest ? <CurrentObjective title={firstActiveQuest.title} /> : null;
+            })()}
           </div>
 
           {/* Right Side: Toggles - pushed left more to avoid fullscreen button */}
@@ -336,52 +331,36 @@ export const GameUI = ({
           </Button>
 
           <Button
-            onClick={() => {
-              const nextShowInventory = !showInventory;
-              if (nextShowInventory) {
-                playMenuOpen?.();
-              } else {
-                playMenuClose?.();
-              }
-              setShowInventory(nextShowInventory);
-              if (nextShowInventory) setShowQuests(false);
-            }}
+            onClick={() => onOpenInventory?.()}
             variant="ghost"
             size="sm"
-            className={`h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors ${
-              showInventory
-                ? 'bg-[#3D2B21] text-[#DAA520] border border-[#DAA520]'
-                : 'text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent'
-            }`}
+            className="h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent"
           >
             <Package className="w-4 h-4 mr-1" />
             INVENTORY
           </Button>
 
           <Button
-            onClick={() => {
-              const nextShowQuests = !showQuests;
-              if (nextShowQuests) {
-                playMenuOpen?.();
-              } else {
-                playMenuClose?.();
-              }
-              setShowQuests(nextShowQuests);
-              if (nextShowQuests) setShowInventory(false);
-            }}
+            onClick={() => onOpenMap?.()}
             variant="ghost"
             size="sm"
-            className={`h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors relative ${
-              showQuests
-                ? 'bg-[#3D2B21] text-[#DAA520] border border-[#DAA520]'
-                : 'text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent'
-            }`}
+            className="h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent"
           >
-            <ScrollText className="w-4 h-4 mr-1" />
-            QUESTS
-            {activeQuests.length > 0 && (
+            <MapIcon className="w-4 h-4 mr-1" />
+            MAP
+          </Button>
+
+          <Button
+            onClick={() => onOpenObjectives?.()}
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent relative"
+          >
+            <Target className="w-4 h-4 mr-1" />
+            OBJECTIVES
+            {activeQuestCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border border-[#1A0F0A]">
-                {activeQuests.length}
+                {activeQuestCount}
               </span>
             )}
           </Button>
@@ -389,175 +368,7 @@ export const GameUI = ({
         </div>
       </div>
 
-      {/* Inventory Dropdown Menu */}
-      {showInventory && (
-        <div className="fixed top-12 right-8 w-[420px] bg-[#1A0F0A]/95 backdrop-blur-md border border-[#5C3A21] border-t-0 rounded-b-md shadow-xl z-40 flex flex-col pointer-events-auto">
-          <div className="p-3 overflow-y-auto max-h-[480px]">
-            {(() => {
-              const eqId = gameState.equippedWeaponId;
-              const weapon =
-                (eqId ? gameState.inventory.find(i => i.id === eqId) : undefined) ??
-                gameState.inventory.find(i => i.type === 'equipment');
-              if (!weapon?.stats) return null;
-              return (
-                <div className="text-[10px] text-[#DAA520] border-b border-[#5C3A21] pb-2 mb-2 leading-relaxed">
-                  <span className="uppercase tracking-wider font-bold">Equipped weapon</span>
-                  <div className="text-[#F5DEB3] font-semibold mt-0.5">{weapon.name}</div>
-                  <div className="text-[#B0B0B0] mt-0.5">
-                    Attack {weapon.stats.damage}
-                    {weapon.stats.range != null ? ` · Range ${weapon.stats.range.toFixed(2)}` : ''}
-                  </div>
-                </div>
-              );
-            })()}
-            {gameState.inventory.length === 0 ? (
-              <p className="text-[#A0522D] text-center py-6 text-sm font-semibold">Your pack is empty</p>
-            ) : (
-              <div className="space-y-2">
-                {groupedInventory.map(({ item, count }, idx) => (
-                  <div
-                    key={`${item.id}_${idx}`}
-                    className={`p-2 bg-[#2D1B11]/80 border border-[#5C3A21] rounded-sm transition-colors ${
-                      item.type === 'consumable' ? 'hover:border-[#DAA520] cursor-pointer' : 'hover:border-[#5C3A21]/70'
-                    }`}
-                    onClick={() => {
-                      if (item.type !== 'consumable') return;
-
-                      // Stealth buff (verdant tonic) — no heal required.
-                      if (item.buffType === 'stealth') {
-                        const duration = item.buffDuration ?? 14;
-                        gameState.player.stealthTimer = duration;
-                        gameState.player.stealthDetectionMult = 0.25;
-                        playPotionDrink?.();
-                        gameState.removeItem(item.id);
-                        notify('Verdant Tonic Active', {
-                          id: 'stealth-active',
-                          type: 'success',
-                          description: `Enemies will not detect you for ${duration} seconds.`,
-                          duration: 3000,
-                        });
-                        triggerUIUpdate();
-                        setShowInventory(true);
-                        return;
-                      }
-
-                      if (typeof item.healAmount === 'number' && item.healAmount > 0) {
-                        const atFullHealth = gameState.player.health >= gameState.player.maxHealth;
-                        const atFullStamina = gameState.player.stamina >= gameState.player.maxStamina;
-                        if (atFullHealth && (item.id !== 'tempest_grass' || atFullStamina)) {
-                          notify('Already at full health!', { id: 'full-health', duration: 1500 });
-                          return;
-                        }
-                        if (item.id === 'health_potion') {
-                          playPotionDrink?.();
-                        } else if (item.id === 'tempest_grass') {
-                          playGrassChew?.();
-                        }
-                        gameState.player.health = Math.min(gameState.player.maxHealth, gameState.player.health + item.healAmount);
-                        if (item.id === 'tempest_grass') {
-                          gameState.player.stamina = gameState.player.maxStamina;
-                        }
-                        gameState.removeItem(item.id);
-                        const staminaNote = item.id === 'tempest_grass' ? ' Stamina fully restored.' : '';
-                        notify(`Used ${item.name}`, {
-                          id: `used-${item.id}`,
-                          type: 'success',
-                          description: `Restored ${item.healAmount} health.${staminaNote}`,
-                          duration: 2000,
-                        });
-                        triggerUIUpdate();
-                        setShowInventory(true);
-                      }
-                    }}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-3">
-                        <div className="w-16 h-16 flex-shrink-0 bg-[#1A0F0A]/60 rounded border border-[#5C3A21]/50 flex items-center justify-center shadow-inner relative overflow-hidden">
-                          {getItemIcon(item, "w-12 h-12 [image-rendering:pixelated] object-contain", assetManager)}
-                          {count > 1 && (
-                            <div className="absolute -top-1 -right-1 bg-[#1A0F0A] border border-[#DAA520]/50 rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center shadow-sm z-10">
-                              <span className="text-[8px] font-bold text-[#DAA520]">x{count}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-[#F5DEB3] text-sm leading-tight">{item.name}</h4>
-                          <p className="text-xs text-[#D3D3D3] mt-0.5 leading-tight opacity-80">{item.description}</p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[9px] text-[#DAA520] uppercase bg-[#1A0F0A]/80 px-1.5 py-0.5 rounded-sm border border-[#5C3A21]">{item.type}</span>
-                        {item.type === 'consumable' && (
-                          <span className="text-[8px] text-[#DAA520] uppercase tracking-wider bg-[#2D1B11] px-1 rounded-sm border border-[#DAA520]/30 animate-pulse">Use</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Quest Dropdown Menu */}
-      {showQuests && (
-        <div className="fixed top-12 right-4 w-80 bg-[#1A0F0A]/95 backdrop-blur-md border border-[#5C3A21] border-t-0 rounded-b-md shadow-xl z-40 flex flex-col pointer-events-auto">
-          <div className="p-3 overflow-y-auto max-h-[400px]">
-            {gameState.quests.length === 0 ? (
-              <p className="text-[#A0522D] text-center py-6 text-sm font-semibold">Your journal is empty</p>
-            ) : (
-              <div className="space-y-3">
-                {gameState.quests.map((quest) => (
-                  <div
-                    key={quest.id}
-                    className={`p-3 rounded-sm border shadow-inner ${
-                      quest.completed
-                        ? 'bg-[#1e2e1e]/60 border-[#2e5e2e]'
-                        : quest.active
-                        ? 'bg-[#2D1B11]/80 border-[#DAA520]/50'
-                        : 'bg-[#1A0F0A] border-[#5C3A21]'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-1.5">
-                      <h4 className={`font-bold text-sm ${quest.completed ? 'text-[#8FBC8F]' : 'text-[#F5DEB3]'}`}>{quest.title}</h4>
-                      {quest.completed && (
-                        <span className="text-[9px] uppercase font-bold text-[#8FBC8F] border border-[#2e5e2e] px-1.5 py-0.5 rounded-sm">
-                          Completed
-                        </span>
-                      )}
-                      {quest.active && !quest.completed && (
-                        <span className="text-[9px] uppercase font-bold text-[#DAA520] border border-[#DAA520]/50 px-1.5 py-0.5 rounded-sm">
-                          Active
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-[#D3D3D3] mb-3 leading-relaxed opacity-80">{quest.description}</p>
-                    <div className="space-y-1.5 bg-[#1A0F0A]/50 p-2 rounded-sm border border-[#5C3A21]/30">
-                      <p className="text-[10px] font-bold text-[#DAA520] uppercase tracking-wider">Objectives:</p>
-                      {quest.objectives.map((obj, i) => (
-                        <p key={i} className="text-xs text-[#F5DEB3] ml-1 flex gap-1.5 opacity-90">
-                          <span className="text-[#DAA520]">{quest.completed ? '✓' : '▶'}</span> {obj}
-                        </p>
-                      ))}
-                    </div>
-                    {quest.reward && (
-                      <div className="mt-2 pt-2 border-t border-[#5C3A21]/50 flex items-center gap-2">
-                        <p className="text-[10px] font-bold text-[#DAA520] uppercase">Reward:</p>
-                        {quest.reward.gold && (
-                          <p className="text-xs text-[#F5DEB3] font-bold flex items-center gap-1">
-                            <Coins className="w-3 h-3 text-yellow-400" /> {quest.reward.gold}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Inventory and Objectives are now rendered as modals in Game.tsx */}
 
       {/* Controls help: collapsible rectangular panel (same kbd / text colors as before) */}
       {showControls && (
@@ -619,6 +430,12 @@ export const GameUI = ({
                 </p>
                 <p className="text-[10px] text-[#D3D3D3]">
                   <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">M</kbd> Map
+                </p>
+                <p className="text-[10px] text-[#D3D3D3]">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">I</kbd> Inventory
+                </p>
+                <p className="text-[10px] text-[#D3D3D3]">
+                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">O</kbd> Objectives
                 </p>
                 <p className="text-[10px] text-[#D3D3D3] col-span-2">
                   <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">ESC</kbd> Pause

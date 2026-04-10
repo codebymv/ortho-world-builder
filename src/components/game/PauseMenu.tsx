@@ -44,6 +44,8 @@ export const PauseMenu = ({ onResume, questSummary }: PauseMenuProps) => {
               ['Q / E', 'Cycle Items'],
               ['← / →', 'Cycle Weapons'],
               ['M', 'Map'],
+              ['I', 'Inventory'],
+              ['O', 'Objectives'],
               ['ESC', 'Pause'],
             ].map(([key, action]) => (
               <div key={key} className="flex justify-between items-center bg-[#2D1B11]/50 px-2 py-1.5 rounded-sm border border-[#5C3A21]/30">

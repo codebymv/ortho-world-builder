@@ -12,6 +12,10 @@ interface SetupRuntimeInputPhaseOptions {
   playerDeadRef: MutableRefObject<boolean>;
   mapModalOpenRef: MutableRefObject<boolean>;
   setMapModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
+  inventoryModalOpenRef: MutableRefObject<boolean>;
+  setInventoryModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
+  objectivesModalOpenRef: MutableRefObject<boolean>;
+  setObjectivesModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   setIsPaused: Dispatch<SetStateAction<boolean>>;
   closeDialogueSession: () => void;
   notify: (title: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
@@ -42,6 +46,10 @@ export function setupRuntimeInputPhase({
   playerDeadRef,
   mapModalOpenRef,
   setMapModalOpenRef,
+  inventoryModalOpenRef,
+  setInventoryModalOpenRef,
+  objectivesModalOpenRef,
+  setObjectivesModalOpenRef,
   setIsPaused,
   closeDialogueSession,
   notify,
@@ -73,6 +81,10 @@ export function setupRuntimeInputPhase({
     playerDeadRef,
     mapModalOpenRef,
     setMapModalOpenRef,
+    inventoryModalOpenRef,
+    setInventoryModalOpenRef,
+    objectivesModalOpenRef,
+    setObjectivesModalOpenRef,
     setIsPaused,
     closeDialogueSession,
     notify,

@@ -8,6 +8,12 @@ interface RuntimeKeyboardInputOptions {
   playerDeadRef: MutableRefObject<boolean>;
   mapModalOpenRef: MutableRefObject<boolean>;
   setMapModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
+  inventoryModalOpenRef: MutableRefObject<boolean>;
+  setInventoryModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
+  objectivesModalOpenRef: MutableRefObject<boolean>;
+  setObjectivesModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
+  vendorModalOpenRef: MutableRefObject<boolean>;
+  setVendorModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   setIsPaused: Dispatch<SetStateAction<boolean>>;
   closeDialogueSession: () => void;
   notify: (title: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
@@ -35,6 +41,12 @@ export function createKeyboardInputController({
   playerDeadRef,
   mapModalOpenRef,
   setMapModalOpenRef,
+  inventoryModalOpenRef,
+  setInventoryModalOpenRef,
+  objectivesModalOpenRef,
+  setObjectivesModalOpenRef,
+  vendorModalOpenRef,
+  setVendorModalOpenRef,
   setIsPaused,
   closeDialogueSession,
   notify,
@@ -113,6 +125,18 @@ export function createKeyboardInputController({
         closeBonfireMenu();
         return;
       }
+      if (inventoryModalOpenRef.current) {
+        setInventoryModalOpenRef.current(false);
+        return;
+      }
+      if (objectivesModalOpenRef.current) {
+        setObjectivesModalOpenRef.current(false);
+        return;
+      }
+      if (vendorModalOpenRef.current) {
+        setVendorModalOpenRef.current(false);
+        return;
+      }
       if (mapModalOpenRef.current) {
         setMapModalOpenRef.current(false);
         return;
@@ -129,7 +153,33 @@ export function createKeyboardInputController({
     if (e.key.toLowerCase() === 'm' && !e.repeat) {
       if (pausedRef.current || state.dialogueActive || playerDeadRef.current) return;
       e.preventDefault();
+      // Close other modals, toggle map
+      setInventoryModalOpenRef.current(false);
+      setObjectivesModalOpenRef.current(false);
+      setVendorModalOpenRef.current(false);
       setMapModalOpenRef.current(v => !v);
+      return;
+    }
+
+    if (e.key.toLowerCase() === 'i' && !e.repeat) {
+      if (pausedRef.current || state.dialogueActive || playerDeadRef.current) return;
+      e.preventDefault();
+      // Close other modals, toggle inventory
+      setMapModalOpenRef.current(false);
+      setObjectivesModalOpenRef.current(false);
+      setVendorModalOpenRef.current(false);
+      setInventoryModalOpenRef.current(v => !v);
+      return;
+    }
+
+    if (e.key.toLowerCase() === 'o' && !e.repeat) {
+      if (pausedRef.current || state.dialogueActive || playerDeadRef.current) return;
+      e.preventDefault();
+      // Close other modals, toggle objectives
+      setMapModalOpenRef.current(false);
+      setInventoryModalOpenRef.current(false);
+      setVendorModalOpenRef.current(false);
+      setObjectivesModalOpenRef.current(v => !v);
       return;
     }
 

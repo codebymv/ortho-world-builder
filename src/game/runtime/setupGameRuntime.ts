@@ -78,6 +78,12 @@ export interface RuntimeHostRefs {
   healCooldowns: MutableRefObject<Map<string, number>>;
   mapModalOpenRef: MutableRefObject<boolean>;
   setMapModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
+  inventoryModalOpenRef: MutableRefObject<boolean>;
+  setInventoryModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
+  objectivesModalOpenRef: MutableRefObject<boolean>;
+  setObjectivesModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
+  vendorModalOpenRef: MutableRefObject<boolean>;
+  setVendorModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   activeNpcWorldPos: MutableRefObject<{ x: number; y: number } | null>;
   syncVillageReactivityRef: MutableRefObject<(() => void) | null>;
   syncBlightedRootStateRef: MutableRefObject<(() => void) | null>;
@@ -162,6 +168,12 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       healCooldowns,
       mapModalOpenRef,
       setMapModalOpenRef,
+      inventoryModalOpenRef,
+      setInventoryModalOpenRef,
+      objectivesModalOpenRef,
+      setObjectivesModalOpenRef,
+      vendorModalOpenRef,
+      setVendorModalOpenRef,
       activeNpcWorldPos,
       syncVillageReactivityRef,
       syncBlightedRootStateRef,
@@ -812,6 +824,12 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           playerDeadRef,
           mapModalOpenRef,
           setMapModalOpenRef,
+          inventoryModalOpenRef,
+          setInventoryModalOpenRef,
+          objectivesModalOpenRef,
+          setObjectivesModalOpenRef,
+          vendorModalOpenRef,
+          setVendorModalOpenRef,
           setIsPaused,
           closeDialogueSession: () => closeDialogueSession(state),
           notify,

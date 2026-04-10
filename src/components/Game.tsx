@@ -9,6 +9,7 @@ import { allMaps } from '@/data/maps';
 import { dialogues, DialogueNode } from '@/data/dialogues';
 import { quests } from '@/data/quests';
 import { items } from '@/data/items';
+import { vendors, type VendorItem } from '@/data/vendors';
 import { criticalPathItems } from '@/data/criticalPathItems';
 import type { CurrencyGain, Item } from '@/lib/game/GameState';
 import { DialogueBox } from './game/DialogueBox';
@@ -16,6 +17,9 @@ import { GameUI } from './game/GameUI';
 import { Minimap } from './game/Minimap';
 import { NotificationFeed } from './game/NotificationFeed';
 import { MapModal } from './game/MapModal';
+import { InventoryModal } from './game/InventoryModal';
+import { ObjectivesModal } from './game/ObjectivesModal';
+import { VendorModal } from './game/VendorModal';
 import { PauseMenu } from './game/PauseMenu';
 import { TransitionOverlay } from './game/TransitionOverlay';
 import { DeathOverlay } from './game/DeathOverlay';
@@ -106,6 +110,10 @@ const Game = () => {
   const [deathEssenceLost, setDeathEssenceLost] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [inventoryModalOpen, setInventoryModalOpen] = useState(false);
+  const [objectivesModalOpen, setObjectivesModalOpen] = useState(false);
+  const [vendorModalOpen, setVendorModalOpen] = useState(false);
+  const [activeVendorId, setActiveVendorId] = useState<string | null>(null);
   const [transitionDebugEnabled, setTransitionDebugEnabled] = useState(false);
   const [transitionDebugLines, setTransitionDebugLines] = useState<string[]>([]);
   const [collisionDebugEnabled, setCollisionDebugEnabled] = useState(false);
@@ -127,7 +135,7 @@ const Game = () => {
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastInteractionPromptRef = useRef<InteractionPrompt>(null);
   const previousPausedStateRef = useRef(isPaused);
-  const previousMapModalOpenRef = useRef(mapModalOpen);
+  const previousMenuModalOpenRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -218,8 +226,25 @@ const Game = () => {
 
   const setMapModalOpenRef = useRef(setMapModalOpen);
   setMapModalOpenRef.current = setMapModalOpen;
+  const setInventoryModalOpenRef = useRef(setInventoryModalOpen);
+  setInventoryModalOpenRef.current = setInventoryModalOpen;
+  const setObjectivesModalOpenRef = useRef(setObjectivesModalOpen);
+  setObjectivesModalOpenRef.current = setObjectivesModalOpen;
+  const setVendorModalOpenRef = useRef(setVendorModalOpen);
+  setVendorModalOpenRef.current = setVendorModalOpen;
+
+  // mapModalOpenRef is checked throughout the runtime to pause player input.
+  // We sync it to true when ANY menu modal is open so all runtime guards work.
   const mapModalOpenRef = useRef(false);
-  mapModalOpenRef.current = mapModalOpen;
+  mapModalOpenRef.current = mapModalOpen || inventoryModalOpen || objectivesModalOpen || vendorModalOpen;
+
+  // Individual refs so the keyboard handler can check which specific modal is open for Escape
+  const inventoryModalOpenRef = useRef(false);
+  inventoryModalOpenRef.current = inventoryModalOpen;
+  const objectivesModalOpenRef = useRef(false);
+  objectivesModalOpenRef.current = objectivesModalOpen;
+  const vendorModalOpenRef = useRef(false);
+  vendorModalOpenRef.current = vendorModalOpen;
 
   const triggerUIUpdate = () => setUiVersion(prev => prev + 1);
   const lastUIUpdateRef = useRef(0);
@@ -350,12 +375,14 @@ const Game = () => {
     }
   }, [isPaused]);
 
+  // Unified menu modal sound effect — plays open/close for map, inventory, or objectives.
+  const anyMenuModalOpen = mapModalOpen || inventoryModalOpen || objectivesModalOpen;
   useEffect(() => {
-    if (previousMapModalOpenRef.current !== mapModalOpen) {
-      (mapModalOpen ? playMenuOpenRef.current : playMenuCloseRef.current)?.();
-      previousMapModalOpenRef.current = mapModalOpen;
+    if (previousMenuModalOpenRef.current !== anyMenuModalOpen) {
+      (anyMenuModalOpen ? playMenuOpenRef.current : playMenuCloseRef.current)?.();
+      previousMenuModalOpenRef.current = anyMenuModalOpen;
     }
-  }, [mapModalOpen]);
+  }, [anyMenuModalOpen]);
 
   useEffect(() => {
     const handleCollisionDebugToggle = (e: KeyboardEvent) => {
@@ -388,7 +415,7 @@ const Game = () => {
     return () => window.clearInterval(interval);
   }, [collisionDebugEnabled, refreshCollisionDebug]);
 
-  const handleDialogueResponse = (nextId: string, givesQuest?: string) => {
+  const handleDialogueResponse = (nextId: string, givesQuest?: string, opensVendor?: string) => {
     if (!gameState || !currentDialogue) return;
 
     const progressionService = createDialogueProgression();
@@ -398,7 +425,16 @@ const Game = () => {
       currentDialogue,
       nextId,
       givesQuest,
+      opensVendor,
     });
+
+    if (result.openVendorId) {
+      closeDialogueSession(gameState);
+      setActiveVendorId(result.openVendorId);
+      setVendorModalOpen(true);
+      SaveManager.save(gameState, mapMarkersRef.current, visitedTilesRef.current);
+      return;
+    }
 
     if (result.shouldCloseDialogue) {
       closeDialogueSession(gameState);
@@ -414,6 +450,39 @@ const Game = () => {
       SaveManager.save(gameState, mapMarkersRef.current, visitedTilesRef.current);
     }
   };
+
+  const handleVendorPurchase = useCallback((vendorItem: VendorItem, item: Item) => {
+    if (!gameState) return;
+    
+    if (vendorItem.currency === 'gold') {
+      if (gameState.player.gold >= vendorItem.price) {
+        gameState.spendGold(vendorItem.price);
+        gameState.addItem({ ...item });
+        notify(`Purchased ${item.name}!`, {
+          type: 'success',
+          description: `Spent ${vendorItem.price} gold.`,
+          duration: 3000,
+        });
+        triggerUIUpdate();
+      } else {
+        notify('Not enough gold!', { id: 'no-gold', type: 'error', duration: 2000 });
+      }
+    } else {
+      if (gameState.player.essence >= vendorItem.price) {
+        gameState.spendEssence(vendorItem.price);
+        gameState.addItem({ ...item });
+        notify(`Purchased ${item.name}!`, {
+          type: 'success',
+          description: `Spent ${vendorItem.price} essence.`,
+          duration: 3000,
+        });
+        triggerUIUpdate();
+      } else {
+        notify('Not enough essence!', { id: 'no-essence', type: 'error', duration: 2000 });
+      }
+    }
+    // We explicitly leave the modal open so the user can continue shopping
+  }, [gameState]);
 
   const handleCloseDialogue = () => {
     closeDialogueSession(gameState);
@@ -451,6 +520,12 @@ const Game = () => {
     healCooldowns,
     mapModalOpenRef,
     setMapModalOpenRef,
+    inventoryModalOpenRef,
+    setInventoryModalOpenRef,
+    objectivesModalOpenRef,
+    setObjectivesModalOpenRef,
+    vendorModalOpenRef,
+    setVendorModalOpenRef,
     activeNpcWorldPos,
     syncVillageReactivityRef,
     syncBlightedRootStateRef,
@@ -523,7 +598,25 @@ const Game = () => {
 
   useGameRuntime(setupRuntime);
 
-  const activeQuestTitle = gameState?.quests.find(q => q.active && !q.completed)?.title;
+  const activeQuests = gameState?.quests.filter(q => q.active && !q.completed) ?? [];
+  const activeQuestTitle = activeQuests[0]?.title;
+
+  // Modal open helpers with mutual exclusivity
+  const openInventoryModal = useCallback(() => {
+    setMapModalOpen(false);
+    setObjectivesModalOpen(false);
+    setInventoryModalOpen(true);
+  }, []);
+  const openObjectivesModal = useCallback(() => {
+    setMapModalOpen(false);
+    setInventoryModalOpen(false);
+    setObjectivesModalOpen(true);
+  }, []);
+  const openMapModal = useCallback(() => {
+    setInventoryModalOpen(false);
+    setObjectivesModalOpen(false);
+    setMapModalOpen(true);
+  }, []);
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -535,17 +628,16 @@ const Game = () => {
             gameState={gameState}
             assetManager={assetManagerRef.current}
             refreshToken={uiVersion}
-            triggerUIUpdate={triggerUIUpdate}
             justPickedUpItem={justPickedUpItem}
             justGainedCurrency={justGainedCurrency}
-            playPotionDrink={handlePlayPotionDrink}
-            playGrassChew={handlePlayGrassChew}
-            playMenuOpen={handlePlayMenuOpen}
-            playMenuClose={handlePlayMenuClose}
+            onOpenInventory={openInventoryModal}
+            onOpenMap={openMapModal}
+            onOpenObjectives={openObjectivesModal}
             musicRef={musicRef}
             masterGainRef={masterGainRef}
             showControls={showControls}
             interactionPrompt={interactionPrompt}
+            activeQuestCount={activeQuests.length}
           />
           {transitionDebugEnabled && (
             <div className="fixed left-4 top-16 z-[80] max-w-md border border-[#5C3A21] bg-[#1A0F0A]/92 p-2 text-[11px] text-[#F5DEB3] shadow-lg pointer-events-none">
@@ -636,6 +728,30 @@ const Game = () => {
             mapMarkersRef={mapMarkersRef}
             markers={mapMarkers}
             refreshToken={minimapVersion}
+          />
+          <InventoryModal
+            open={inventoryModalOpen}
+            onOpenChange={setInventoryModalOpen}
+            gameState={gameState}
+            assetManager={assetManagerRef.current}
+            triggerUIUpdate={triggerUIUpdate}
+            playPotionDrink={handlePlayPotionDrink}
+            playGrassChew={handlePlayGrassChew}
+          />
+          <ObjectivesModal
+            open={objectivesModalOpen}
+            onOpenChange={setObjectivesModalOpen}
+            gameState={gameState}
+            assetManager={assetManagerRef.current}
+          />
+          <VendorModal
+            open={vendorModalOpen}
+            onOpenChange={setVendorModalOpen}
+            vendor={activeVendorId ? vendors[activeVendorId] : null}
+            gameState={gameState}
+            assetManager={assetManagerRef.current}
+            itemsRegistry={items}
+            onPurchase={handleVendorPurchase}
           />
         </>
       )}

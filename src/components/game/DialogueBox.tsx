@@ -5,7 +5,7 @@ interface DialogueBoxProps {
   node: DialogueNode | null;
   npcName?: string;
   npcScreenPos?: { x: number; y: number } | null;
-  onResponse: (nextId: string, givesQuest?: string) => void;
+  onResponse: (nextId: string, givesQuest?: string, opensVendor?: string) => void;
   onClose: () => void;
   playAdvanceSound?: () => void;
   startTypewriterLoop?: () => void;
@@ -135,9 +135,9 @@ export const DialogueBox = ({
 
   const hasResponses = !!(node?.responses && node.responses.length > 0);
 
-  const advanceDialogue = useCallback((nextId: string, givesQuest?: string) => {
+  const advanceDialogue = useCallback((nextId: string, givesQuest?: string, opensVendor?: string) => {
     playAdvanceSoundRef.current?.();
-    onResponse(nextId, givesQuest);
+    onResponse(nextId, givesQuest, opensVendor);
   }, [onResponse]);
 
   useEffect(() => {
@@ -164,6 +164,7 @@ export const DialogueBox = ({
       // Space / Enter: skip typing or close terminal node
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
+
         if (isTyping) {
           skipTyping();
         } else if (!hasResponses) {
@@ -171,7 +172,7 @@ export const DialogueBox = ({
         } else if (node.responses!.length === 1) {
           // Single response — advance immediately
           const r = node.responses![0];
-          advanceDialogue(r.nextId, r.givesQuest);
+          advanceDialogue(r.nextId, r.givesQuest, r.opensVendor);
         }
         return;
       }
@@ -182,7 +183,7 @@ export const DialogueBox = ({
         if (!isNaN(num) && num >= 1 && num <= node.responses!.length) {
           e.preventDefault();
           const r = node.responses![num - 1];
-          advanceDialogue(r.nextId, r.givesQuest);
+          advanceDialogue(r.nextId, r.givesQuest, r.opensVendor);
         }
       }
     };
@@ -248,7 +249,7 @@ export const DialogueBox = ({
                       key={index}
                       onMouseEnter={() => setHoveredIdx(index)}
                       onMouseLeave={() => setHoveredIdx(null)}
-                      onClick={() => advanceDialogue(response.nextId, response.givesQuest)}
+                      onClick={() => advanceDialogue(response.nextId, response.givesQuest, response.opensVendor)}
                       className={`
                         flex items-center gap-2 text-left rounded-md py-2.5 px-3 text-sm transition-all border
                         ${isHovered

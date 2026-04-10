@@ -170,19 +170,11 @@ export const MapModal = memo(function MapModal({
         <div className="flex flex-shrink-0 flex-wrap items-end justify-between gap-2 border-b border-[#5C3A21]/60 pb-2">
           <div>
             <h2 className="font-bold uppercase tracking-[0.2em] text-[#DAA520]">{currentMap.name}</h2>
-            <p className="mt-0.5 text-xs text-[#A1887F]">
-              The world is paused while this chart is open. Only tiles you have explored are drawn; bonfires and secrets stay hidden until you walk them.
-            </p>
           </div>
           <div className="flex items-center gap-3">
             <span className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-2 py-1 font-mono text-sm text-[#DAA520]">
               X: {Math.round(gameStateRef.current?.player.position.x ?? 0)} Y: {Math.round(gameStateRef.current?.player.position.y ?? 0)}
             </span>
-            <p className="text-[11px] text-[#8D6E63]">
-              <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">M</kbd>{' '}
-              or <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">Esc</kbd>{' '}
-              to close
-            </p>
           </div>
         </div>
 

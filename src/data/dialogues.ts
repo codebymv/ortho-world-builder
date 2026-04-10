@@ -1,7 +1,7 @@
 export interface DialogueNode {
   id: string;
   text: string;
-  responses?: { text: string; nextId: string; requiresQuest?: string; givesQuest?: string }[];
+  responses?: { text: string; nextId: string; requiresQuest?: string; givesQuest?: string; opensVendor?: string }[];
 }
 
 export interface Dialogue {
@@ -115,7 +115,7 @@ export const dialogues: Record<string, Dialogue> = {
         id: 'start',
         text: "Ah, a customer! Welcome to my humble shop. I have traveled __far and wide__ to bring you the finest goods. What can I interest you in today?",
         responses: [
-          { text: "What do you have for sale?", nextId: 'shop' },
+          { text: "What do you have for sale?", nextId: 'end', opensVendor: 'merchant' },
           { text: "Tell me about your travels.", nextId: 'travels' },
           { text: "I heard you're looking for rare herbs.", nextId: 'merchant_herb_pitch' },
           { text: "Nothing today, thanks.", nextId: 'end' },
@@ -125,7 +125,7 @@ export const dialogues: Record<string, Dialogue> = {
         id: 'manuscript_return',
         text: "Since your return from the cottage, half the village has been buying lantern oil, bandages, and lucky charms. Bad times for nerves, good times for trade. What can I get you?",
         responses: [
-          { text: "What do you have for sale?", nextId: 'shop' },
+          { text: "What do you have for sale?", nextId: 'end', opensVendor: 'merchant' },
           { text: "Tell me about your travels.", nextId: 'travels' },
           { text: "I heard you're looking for rare herbs.", nextId: 'merchant_herb_pitch' },
           { text: "Nothing today, thanks.", nextId: 'end' },
@@ -135,27 +135,19 @@ export const dialogues: Record<string, Dialogue> = {
         id: 'shadow_watch',
         text: "These days I'm selling more lamp oil and salves than trinkets. Still, if you're marching on **Shadow Castle**, better to leave prepared than brave and empty-handed.",
         responses: [
-          { text: "Show me your goods.", nextId: 'shop' },
+          { text: "Show me your goods.", nextId: 'end', opensVendor: 'merchant' },
           { text: "Tell me about your travels.", nextId: 'travels' },
           { text: "Still looking for rare herbs?", nextId: 'merchant_herb_pitch' },
           { text: "I'll be on my way.", nextId: 'end' },
         ],
       },
-      {
-        id: 'shop',
-        text: "I have **Ephemeral Extracts**, __ancient maps__, and **mysterious artifacts**. Each item has been carefully selected from my journeys. Prices are fair, I assure you!",
-        responses: [
-          { text: "I'll take an Ephemeral Extract.", nextId: 'buy_potion' },
-          { text: "Tell me about these artifacts.", nextId: 'artifacts' },
-          { text: "Maybe later.", nextId: 'end' },
-        ],
-      },
+
       {
         id: 'travels',
         text: "I've been from the __coastal cities__ to the __mountain peaks__! Each place has its own stories and treasures. The world is vast and full of wonders, my friend.",
         responses: [
           { text: "What's the most interesting place you've been?", nextId: 'interesting' },
-          { text: "Show me your goods.", nextId: 'shop' },
+          { text: "Show me your goods.", nextId: 'end', opensVendor: 'merchant' },
           { text: "Fascinating. I should go.", nextId: 'end' },
         ],
       },
@@ -164,31 +156,10 @@ export const dialogues: Record<string, Dialogue> = {
         text: "Ah! There are **Ancient Ruins** beyond the **Whispering Woods** - older than the village itself. Locals say they hold __great power__, but also __great danger__. Few dare venture that far.",
         responses: [
           { text: "I might check it out.", nextId: 'end' },
-          { text: "Show me what you're selling.", nextId: 'shop' },
+          { text: "Show me what you're selling.", nextId: 'end', opensVendor: 'merchant' },
         ],
       },
-      {
-        id: 'artifacts',
-        text: "These are __relics from ages past__. Some say they hold **magical properties**, others that they're just old junk. But to a collector, they're __priceless__!",
-        responses: [
-          { text: "I'll take one.", nextId: 'buy_artifact' },
-          { text: "Too rich for my blood.", nextId: 'end' },
-        ],
-      },
-      {
-        id: 'buy_potion',
-        text: "Excellent choice! This **Ephemeral Extract** will restore your vitality in times of need. That'll be __10 gold__ pieces.",
-        responses: [
-          { text: "Here you go.", nextId: 'end' },
-        ],
-      },
-      {
-        id: 'buy_artifact',
-        text: "A wise investment! This **artifact** may prove useful on your journey. That'll be __50 gold__ pieces.",
-        responses: [
-          { text: "It's a deal.", nextId: 'end' },
-        ],
-      },
+
       {
         id: 'merchant_herb_pitch',
         text: "Moonbloom only blooms where old stone remembers moonlight. Bring me **three bunches** from the **Whispering Woods** and the ruin-side paths beyond it, and I'll pay well for the risk.",
@@ -1118,51 +1089,19 @@ export const dialogues: Record<string, Dialogue> = {
         id: 'start',
         text: "…Hm? Oh. A customer. I have things. You have gold, presumably. Let's not make this longer than it needs to be.",
         responses: [
-          { text: "What do you sell?", nextId: 'shop' },
+          { text: "What do you sell?", nextId: 'end', opensVendor: 'fort_quartermaster' },
           { text: "Why are you out here?", nextId: 'rumors' },
           { text: "Never mind.", nextId: 'end' },
         ],
       },
-      {
-        id: 'shop',
-        text: "**Tempest Grass** — __8 gold__. **Ephemeral Extract** — __15 gold__. **Ornamental Broadsword** — __280 gold__. That's the whole catalogue. Try not to look disappointed.",
-        responses: [
-          { text: "Tempest Grass. (8 gold)", nextId: 'buy_tempest_grass' },
-          { text: "Ephemeral Extract. (15 gold)", nextId: 'buy_ephemeral_extract' },
-          { text: "Ornamental Broadsword. (280 gold)", nextId: 'buy_broadsword' },
-          { text: "I'm good.", nextId: 'end' },
-        ],
-      },
-      {
-        id: 'buy_tempest_grass',
-        text: "Here. __8 gold__. Chew it, steep it, press it on things that bleed. I don't care which.",
-        responses: [
-          { text: "Anything else?", nextId: 'shop' },
-          { text: "That's all.", nextId: 'end' },
-        ],
-      },
-      {
-        id: 'buy_ephemeral_extract',
-        text: "One vial. __15 gold__. Drink it before you're dead, not after. Common mistake.",
-        responses: [
-          { text: "Anything else?", nextId: 'shop' },
-          { text: "That's all.", nextId: 'end' },
-        ],
-      },
-      {
-        id: 'buy_broadsword',
-        text: "Ceremonial piece. Previous owner didn't make it out. __280 gold__. Heavy, but it hits like it means it.",
-        responses: [
-          { text: "Anything else?", nextId: 'shop' },
-          { text: "That's all.", nextId: 'end' },
-        ],
-      },
+
+
       {
         id: 'rumors',
         text: "The rangers posted me here. Then they stopped coming back. The wolves got plating from somewhere and the river up north started smelling wrong. I stay because the walls are thick and leaving sounds exhausting.",
         responses: [
           { text: "What's beyond this fort?", nextId: 'hollow_hint' },
-          { text: "Show me what you've got.", nextId: 'shop' },
+          { text: "Show me what you've got.", nextId: 'end', opensVendor: 'fort_quartermaster' },
           { text: "Hang in there.", nextId: 'end' },
         ],
       },
@@ -1170,7 +1109,7 @@ export const dialogues: Record<string, Dialogue> = {
         id: 'hollow_hint',
         text: "North exit drops you into a corridor between the cliffs. **Follow the lanterns west** along the ridge path until you hit the stairway gap. Past that... the Hollow. That's where the hunters went. None of them came back. You look like you might, though. Barely.",
         responses: [
-          { text: "Show me what you've got.", nextId: 'shop' },
+          { text: "Show me what you've got.", nextId: 'end', opensVendor: 'fort_quartermaster' },
           { text: "I'll manage.", nextId: 'end' },
         ],
       },
