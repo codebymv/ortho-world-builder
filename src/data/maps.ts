@@ -964,7 +964,8 @@ const forestDef: MapDefinition = {
     // (bridge_decay_blend) replaces hard rectangle boundaries — south stays mostly intact wood,
     // north goes hollow-tainted, with mixed tiles in between. Water gap x=123–124 on north rows.
     { x: 118, y: 81, width: 12, height: 15, type: 'bridge_decay_blend' },
-    // Hollow approach pool uses `water_corrupted` via applyWhisperingWoodsHollowApproachCorruptedWater (mapGenerator).
+    // Corrupted-water pass now targets the deeper hollow lake near world position (4, -112) via
+    // applyWhisperingWoodsHollowApproachCorruptedWater (mapGenerator), leaving this bridge run normal.
 
     // === THE HOLLOW — Dark clearings and corrupted terrain (y < 75) ===
     { x: 40, y: 30, width: 30, height: 30, type: 'clearing', fill: 'dark_grass' },

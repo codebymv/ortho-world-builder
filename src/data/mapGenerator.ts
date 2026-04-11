@@ -2714,19 +2714,19 @@ function applyDeepHollowBleachedGround(tiles: Tile[][], def: MapDefinition) {
 }
 
 /**
- * Hollow approach meander (bridge corridor): repaint every authored `water` cell in this band as
- * `water_corrupted` after all other passes — guarantees the pool stays tainted even if feature order
- * or later steps leave some strips as plain `water`.
- * Bounds match the authored river west of the east exit (x=134+); does not touch far-east channels.
+ * Whispering Woods hollow lake: repaint authored `water` near world position (4, -112) as
+ * `water_corrupted` after all other passes. This intentionally leaves the corrupted-bridge river
+ * normal and only taints the deeper hollow pool the player called out.
  */
 function applyWhisperingWoodsHollowApproachCorruptedWater(tiles: Tile[][], def: MapDefinition) {
   if (def.name !== 'Whispering Woods') return;
   const h = tiles.length;
   const w = tiles[0]?.length ?? 0;
-  const x0 = 100;
-  const x1 = 134;
-  const y0 = 80;
-  const y1 = 96;
+  // World coordinate (4, -112) maps to tile space roughly (154, 38) on the 300x300 forest map.
+  const x0 = 140;
+  const x1 = 170;
+  const y0 = 26;
+  const y1 = 52;
   for (let ty = y0; ty < y1 && ty < h; ty++) {
     for (let tx = x0; tx < x1 && tx < w; tx++) {
       const t = tiles[ty][tx];
