@@ -157,6 +157,24 @@ export class BiomeAmbience {
           baseOpacity = 0.6;
         }
         break;
+      case 'forest_hollow_deep':
+        // Thicker purple fog, fewer embers — reads as corruption pressing in past world y ≈ -91.
+        if (Math.random() > 0.25) {
+          color = Math.random() > 0.35 ? 0x6A1B9A : 0x7E57C2;
+          size = 0.35 + Math.random() * 0.45;
+          lifetime = 4 + Math.random() * 4;
+          type = 'fog';
+          vx = (Math.random() - 0.5) * 0.15;
+          baseOpacity = 0.2;
+        } else {
+          color = Math.random() > 0.5 ? 0x8E24AA : 0xAB47BC;
+          size = 0.05 + Math.random() * 0.04;
+          lifetime = 2 + Math.random() * 2;
+          type = 'ember';
+          vy = 0.12 + Math.random() * 0.15;
+          baseOpacity = 0.45;
+        }
+        break;
       case 'grassland':
         color = 0xFFF9C4;
         size = 0.03 + Math.random() * 0.03;
@@ -189,7 +207,12 @@ export class BiomeAmbience {
 
   update(deltaTime: number, playerX: number, playerY: number) {
     this.spawnTimer += deltaTime;
-    const spawnInterval = this.currentBiome === 'swamp' ? 0.6 : 0.3;
+    const spawnInterval =
+      this.currentBiome === 'swamp'
+        ? 0.6
+        : this.currentBiome === 'forest_hollow_deep'
+          ? 0.12
+          : 0.3;
 
     if (this.spawnTimer >= spawnInterval) {
       this.spawnParticle(playerX, playerY);

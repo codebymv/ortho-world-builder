@@ -56,8 +56,8 @@ export function createProgressionService(context: ProgressionServiceContext) {
   ) => {
     const villageStage = getVillageReactivityStage(state);
 
-    if (villageStage === 'after_deep_woods') {
-      return dialogue.nodes.find(node => node.id === 'shadow_watch') ?? fallback;
+    if (villageStage === 'after_reaver') {
+      return dialogue.nodes.find(node => node.id === 'after_reaver') ?? fallback;
     }
 
     if (villageStage === 'after_manuscript') {
@@ -75,15 +75,13 @@ export function createProgressionService(context: ProgressionServiceContext) {
 
     if (dialogueId === 'elder') {
       const hunterQuest = state.quests.find(q => q.id === 'find_hunter');
-      const deepQuest = state.quests.find(q => q.id === 'clear_deep_woods');
+      const pursuitQuest = state.quests.find(q => q.id === 'heretical_pursuit');
       const villageStage = getVillageReactivityStage(state);
 
-      if (deepQuest?.active && !deepQuest.completed && deepQuest.objectives[2]?.includes(CHECKMARK)) {
-        startNode = dialogue.nodes.find(node => node.id === 'deep_woods_report') ?? startNode;
-      } else if (deepQuest?.active && !deepQuest.completed) {
-        startNode = dialogue.nodes.find(node => node.id === 'deep_woods_active') ?? startNode;
-      } else if (villageStage === 'after_deep_woods') {
-        startNode = dialogue.nodes.find(node => node.id === 'shadow_watch') ?? startNode;
+      if (villageStage === 'after_reaver') {
+        startNode = dialogue.nodes.find(node => node.id === 'after_reaver') ?? startNode;
+      } else if (pursuitQuest?.active && !pursuitQuest.completed) {
+        startNode = dialogue.nodes.find(node => node.id === 'heretical_pursuit_active') ?? startNode;
       } else if (hunterQuest?.active && state.getFlag('hunters_manuscript_collected')) {
         startNode = dialogue.nodes.find(node => node.id === 'quest_complete') ?? startNode;
       } else if (hunterQuest?.active && state.getFlag('manuscript_fragment_collected')) {
@@ -151,6 +149,15 @@ export function createProgressionService(context: ProgressionServiceContext) {
         } else {
           startNode = dialogue.nodes.find(node => node.id === 'quest_active') ?? startNode;
         }
+      }
+    }
+
+    if (dialogueId === 'oliver') {
+      const pursuitQuest = state.quests.find(q => q.id === 'heretical_pursuit');
+      if (state.getFlag('ashen_reaver_defeated')) {
+        startNode = dialogue.nodes.find(node => node.id === 'after_reaver') ?? startNode;
+      } else if (pursuitQuest?.active && !pursuitQuest.completed) {
+        startNode = dialogue.nodes.find(node => node.id === 'quest_active') ?? startNode;
       }
     }
 
@@ -255,21 +262,28 @@ export function createProgressionService(context: ProgressionServiceContext) {
       shouldSave = true;
     }
 
-    if (state.currentDialogue === 'elder' && nextId === 'end' && currentDialogue.node.id === 'give_second_quest') {
-      const hunterQuestPending = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
-      if (hunterQuestPending) {
-        hunterQuestPending.objectives[6] = `Return to the elder with your findings ${CHECKMARK}`;
-        state.completeQuest('find_hunter');
-        context.notify('Quest Completed: The Missing Hunter!', {
-          id: 'quest-done-hunter',
+    if (state.currentDialogue === 'elder' && nextId === 'end' && currentDialogue.node.id === 'quest_complete') {
+      state.setFlag(VILLAGE_REACTIVITY_FLAGS.afterManuscript, true);
+      context.syncVillageReactivity?.();
+      shouldSave = true;
+    }
+
+    if (state.currentDialogue === 'elder' && nextId === 'end' && currentDialogue.node.id === 'after_reaver') {
+      const pursuitQuest = state.quests.find(q => q.id === 'heretical_pursuit' && q.active && !q.completed);
+      if (pursuitQuest) {
+        pursuitQuest.objectives[4] = `Return to the Elder ${CHECKMARK}`;
+        state.completeQuest('heretical_pursuit');
+        state.setFlag(VILLAGE_REACTIVITY_FLAGS.afterReaver, true);
+        context.notify('Quest Completed: The Heretical Pursuit!', {
+          id: 'quest-done-pursuit',
           type: 'success',
-          description: 'The Elder now knows the truth of the forest.',
+          description: 'The Ashen Court is broken, but the heretical magic runs deeper still.',
           duration: 6000,
         });
         context.triggerUIUpdate();
+        context.triggerMinimapUpdate(true);
+        context.syncVillageReactivity?.();
       }
-      state.setFlag(VILLAGE_REACTIVITY_FLAGS.afterManuscript, true);
-      context.syncVillageReactivity?.();
       shouldSave = true;
     }
 
@@ -278,43 +292,12 @@ export function createProgressionService(context: ProgressionServiceContext) {
       context.triggerUIUpdate();
     }
 
-    if (state.currentDialogue === 'witch_hut_lore' && nextId === 'lore') {
-      const deepQuest = state.quests.find(q => q.id === 'clear_deep_woods' && q.active && !q.completed);
-      if (deepQuest) {
-        deepQuest.objectives[2] = `Learn about the dark magic ${CHECKMARK}`;
-      }
-      context.triggerUIUpdate();
-    }
-
-    if (
-      state.currentDialogue === 'witch_sign' &&
-      nextId === 'end' &&
-      currentDialogue.node.id === 'start' &&
-      state.currentMap === 'deep_woods'
-    ) {
-      const deepQuest = state.quests.find(q => q.id === 'clear_deep_woods' && q.active && !q.completed);
-      if (deepQuest) {
-        deepQuest.objectives[1] = `Find the witch's hut ${CHECKMARK}`;
-      }
-      context.triggerUIUpdate();
-    }
-
-    if (state.currentDialogue === 'elder' && nextId === 'end' && currentDialogue.node.id === 'elder_deep_done') {
-      const deepQuest = state.quests.find(q => q.id === 'clear_deep_woods' && q.active && !q.completed);
-      if (deepQuest) {
-        state.setFlag(VILLAGE_REACTIVITY_FLAGS.afterDeepWoods, true);
-        deepQuest.objectives[3] = `Return to the elder ${CHECKMARK}`;
-        state.completeQuest('clear_deep_woods');
-        context.notify('Quest Completed: Into the Depths!', {
-          id: 'quest-done-depths',
-          type: 'success',
-          description: 'The village is safer for your courage.',
-          duration: 6000,
-        });
+    if (state.currentDialogue === 'oliver' && nextId === 'end' && currentDialogue.node.id === 'warning') {
+      const pursuitQuest = state.quests.find(q => q.id === 'heretical_pursuit' && q.active && !q.completed);
+      if (pursuitQuest) {
+        pursuitQuest.objectives[0] = `Find a survivor in Gilrhym ${CHECKMARK}`;
+        pursuitQuest.objectives[1] = `Learn about the Ashen Court ${CHECKMARK}`;
         context.triggerUIUpdate();
-        context.triggerMinimapUpdate(true);
-        context.syncVillageReactivity?.();
-        shouldSave = true;
       }
     }
 

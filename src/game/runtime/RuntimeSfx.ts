@@ -203,12 +203,12 @@ export function createRuntimeSfx({
     processAudioElement,
   });
 
-  const stormLoopSfx = createLoopingAudio('./audio/storm_loop.mp3', 0.50);
+  const stormLoopSfx = createLoopingAudio('./audio/storm_loop.mp3', 0.56);
 
   const thunderSfx = createRandomAudioPool({
     entries: [
-      { src: './audio/thunder_1.mp3', volume: 0.44 },
-      { src: './audio/thunder_2.mp3', volume: 0.44 },
+      { src: './audio/thunder_1.mp3', volume: 0.40 },
+      { src: './audio/thunder_2.mp3', volume: 0.40 },
     ],
     copiesPerEntry: SMALL_SFX_POOL,
     processAudioElement,

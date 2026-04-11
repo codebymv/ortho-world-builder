@@ -5,6 +5,7 @@ import type { MapMarker } from '@/lib/game/MapMarkers';
 import type { GameState } from '@/lib/game/GameState';
 import {
   MARKER_TYPE_NAMES,
+  MINIMAP_TERRAIN_LEGEND,
   computeMinimapScaleToFit,
   drawMinimapContent,
 } from '@/components/game/minimapDrawing';
@@ -192,6 +193,22 @@ export const MapModal = memo(function MapModal({
 
         <div className="flex-shrink-0 border-t border-[#5C3A21]/50 pt-3">
           <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#DAA520]/90">Map key</p>
+          <p className="mb-2 text-[9px] uppercase tracking-wider text-[#8B7355]">Terrain (matches overworld materials)</p>
+          <div className="mb-3 grid grid-cols-1 gap-1.5 text-[10px] sm:grid-cols-2 lg:grid-cols-3">
+            {MINIMAP_TERRAIN_LEGEND.map(row => (
+              <div
+                key={row.label}
+                className="flex items-center gap-2 rounded border border-[#5C3A21]/30 bg-[#0f0906]/80 px-2 py-1"
+              >
+                <span
+                  className="h-3 w-3 flex-shrink-0 rounded-sm border border-black/40"
+                  style={{ backgroundColor: row.color }}
+                />
+                <span className="text-[#C9B8A8] leading-tight">{row.label}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mb-2 text-[9px] uppercase tracking-wider text-[#8B7355]">Markers &amp; player</p>
           <div className="grid grid-cols-1 gap-2 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
             <div className="flex items-center gap-2 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60 px-2 py-1.5">
               <span className="h-3 w-3 flex-shrink-0 rounded-full bg-[#4488ff] ring-2 ring-white/40" />

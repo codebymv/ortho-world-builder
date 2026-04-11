@@ -51,6 +51,7 @@ export function createCriticalItemVisualManager({
     const map = world.getCurrentMap();
 
     for (const config of Object.values(criticalPathItems)) {
+      if (config.renderVisual === false) continue;
       if (state.getFlag(config.collectedFlag)) continue;
       const item = items[config.itemId];
       const texture = item ? assetManager.getTexture(item.sprite) : undefined;

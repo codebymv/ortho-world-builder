@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { GameState } from '@/lib/game/GameState';
 import type { World, WorldMap } from '@/lib/game/World';
-import type { BonfireEntry } from '@/data/bonfires';
+import { bonfireTileWorldPosition, type BonfireEntry } from '@/data/bonfires';
 
 interface RuntimeParticleSystemLike {
   emitBonfireKindled: (position: THREE.Vector3) => void;
@@ -39,8 +39,7 @@ export function createBonfireRestAction({
 }: CreateBonfireRestActionOptions) {
   const kindleBonfire = (tileX: number, tileY: number) => {
     const map = world.getCurrentMap();
-    const bonfireWorldX = tileX - map.width / 2 + 0.5;
-    const bonfireWorldY = tileY - map.height / 2 + 0.5;
+    const { x: bonfireWorldX, y: bonfireWorldY } = bonfireTileWorldPosition(state.currentMap, tileX, tileY);
     const bonfireVec = new THREE.Vector3(bonfireWorldX, bonfireWorldY, 0.45);
     const firstKey = `bonfire_first_${state.currentMap}_${tileX}_${tileY}`;
 
@@ -67,10 +66,11 @@ export function createBonfireRestAction({
       particleSystem.emitBonfireKindled(bonfireVec);
     }
 
+    // Respawn / fast-travel “here” must match bonfire tile center (not walk-up player offset).
     state.lastBonfire = {
       mapId: state.currentMap,
-      x: state.player.position.x,
-      y: state.player.position.y,
+      x: bonfireWorldX,
+      y: bonfireWorldY,
     };
 
     triggerSave();
@@ -109,8 +109,7 @@ export function createBonfireRestAction({
 
   const travelToBonfire = (entry: BonfireEntry) => {
     const map = world.getCurrentMap();
-    const worldX = entry.tileX - map.width / 2 + 0.5;
-    const worldY = entry.tileY - map.height / 2 + 0.5;
+    const { x: worldX, y: worldY } = bonfireTileWorldPosition(entry.mapId, entry.tileX, entry.tileY);
 
     state.player.position = { x: worldX, y: worldY };
     state.player.health = state.player.maxHealth;

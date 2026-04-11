@@ -160,7 +160,7 @@ const VILLAGE_NPC_LAYOUTS: Record<VillageReactivityStage, Record<string, Village
     farmer: { position: { x: -42, y: 24 }, radius: 1.0, speed: 0.36 },
     child: { position: { x: -1, y: 6 }, radius: 1.1, speed: 0.72 },
   },
-  after_deep_woods: {
+  after_reaver: {
     elder: { position: { x: -8, y: -5 }, radius: 0.8, speed: 0.3 },
     merchant: { position: { x: 58, y: 2 }, radius: 0.75, speed: 0.32 },
     guard: { position: { x: 12, y: -6 }, radius: 1.4, speed: 0.95 },

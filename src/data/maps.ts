@@ -965,6 +965,7 @@ const forestDef: MapDefinition = {
     // (bridge_decay_blend) replaces hard rectangle boundaries — south stays mostly intact wood,
     // north goes hollow-tainted, with mixed tiles in between. Water gap x=123–124 on north rows.
     { x: 118, y: 81, width: 12, height: 15, type: 'bridge_decay_blend' },
+    // Hollow approach pool uses `water_corrupted` via applyWhisperingWoodsHollowApproachCorruptedWater (mapGenerator).
 
     // === THE HOLLOW — Dark clearings and corrupted terrain (y < 75) ===
     { x: 40, y: 30, width: 30, height: 30, type: 'clearing', fill: 'dark_grass' },
@@ -991,7 +992,7 @@ const forestDef: MapDefinition = {
     // not a random tree line in the forest.
     { x: 100, y: 2, width: 48, height: 34, type: 'clearing', fill: 'dirt' },
     // Everything north of y=18 is sealed. The fog gate (5 tiles, x=120-124) is placed at
-    // runtime by syncHollowFogGateState and clears to dark_grass after the boss is defeated.
+    // runtime by syncHollowFogGateState and clears to hollow_blight after the boss is defeated.
     // Cliff block directly behind the gate so there is no visible grass/tree space beyond it.
     { x: 100, y: 2, width: 48, height: 16, type: 'cliff_face' },
     // Gate shoulders only around the terminus so the gate is visible and cannot be flanked.
@@ -1089,7 +1090,7 @@ const forestDef: MapDefinition = {
     // Moved north of the cliff_face (y=186+) so frontY=176 is reachable from the y=178 artery.
     // Ruined shell (matches forest_hermit treatment) — was an enterable woodcutter hut; chest moved outside.
     { x: 90, y: 170, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage_ruin' },
-    { x: 230, y: 130, width: 6, height: 6, type: 'cottage', interactionId: 'witch_cottage_ruin' },
+    { x: 230, y: 130, width: 6, height: 6, type: 'cottage' },
     // Flat grass shelf west of cliff-1 — cleared before the cliff stamps so trees don't seal the bypass trail.
     // Cliff-1 (x=60+) overwrites the overlap zone; only x=44-59 survives as walkable grass.
     { x: 44, y: 180, width: 35, height: 33, type: 'clearing', fill: 'grass' },
@@ -1099,6 +1100,10 @@ const forestDef: MapDefinition = {
     { x: 134, y: 182, width: 6, height: 6, type: 'cottage', interactionId: 'hunter_cottage', interiorMap: 'interior_hunter_cottage', interiorSpawnX: 6, interiorSpawnY: 8 },
     { x: 108, y: 196, width: 28, height: 14, type: 'ruined_fort', interactionId: 'hunter_gate_ruin' },
     { x: 136, y: 192, width: 72, height: 18, type: 'cliff_face' },
+    // Collapsed cottage north of the iron fence — facade is cottage_house_forest_ruined, yard is
+    // overgrown (isAbandonedForestShack path). Yard-clear may touch iron_fence tiles but the wall
+    // feature re-stamps them later in the array. World (2, 43).
+    { x: 149, y: 188, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage_ruin' },
     { x: 118, y: 220, width: 18, height: 12, type: 'abandoned_camp', interactionId: 'hunters_last_camp' },
     { x: 152, y: 220, width: 18, height: 12, type: 'destroyed_town', interactionId: 'hunter_wreck' },
     { x: 170, y: 90, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage', interiorMap: 'interior_cottage_forest', interiorSpawnX: 6, interiorSpawnY: 8 },
@@ -1149,6 +1154,10 @@ const forestDef: MapDefinition = {
     { x: 260, y: 48, width: 6, height: 20, type: 'path', fill: 'dirt' },
     { x: 118, y: 204, width: 38, height: 6, type: 'path', fill: 'dirt' },
     { x: 150, y: 192, width: 6, height: 14, type: 'path', fill: 'dirt' },
+    // Iron fence sealing the early-game cliff corridor. Placed AFTER the dirt path so it
+    // overwrites the path tiles. fence/iron_fence is immune to placePath, stampCliffs, and
+    // cleanupIllogicalPlacements, so it survives the full generator pipeline.
+    { x: 145, y: 195, width: 16, height: 3, type: 'wall', fill: 'iron_fence' },
     { x: 138, y: 188, width: 18, height: 4, type: 'path', fill: 'dirt' },
     // Shortcut connector between the Disparaged Cottage approach and the ranger plateau.
     { x: 124, y: 202, width: 6, height: 12, type: 'path', fill: 'dirt' },
@@ -1402,9 +1411,24 @@ const forestDef: MapDefinition = {
     // --- Small pond (far east, x:275, y:220) ---
     { x: 275, y: 220, width: 10, height: 8, type: 'lake' },
 
-    // --- Ruined shrine (south, x:80, y:280) ---
-    { x: 78, y: 278, width: 10, height: 8, type: 'clearing', fill: 'mossy_stone' },
-    { x: 80, y: 280, width: 6, height: 4, type: 'clearing', fill: 'ruins_floor' },
+    // --- SW rocky hill plateau — walkable grass on top, accessed via south-face stairs ---
+    // Extends to y=290 so grass covers the full elevation zone including the stairway row;
+    // stampCliffs buffer eats ~2 rows above the cliff edge, so overshooting ensures enough
+    // walkable ground remains between the shrine and the stairs.
+    { x: 73, y: 275, width: 16, height: 16, type: 'clearing', fill: 'grass' },
+    // Ruined shrine stones at the center-north of the plateau; south edge stays grassy so the
+    // stair-top reads like the sentinel plateau rather than a separate stone landing.
+    { x: 78, y: 277, width: 10, height: 8, type: 'clearing', fill: 'mossy_stone' },
+    { x: 80, y: 279, width: 6, height: 4, type: 'clearing', fill: 'ruins_floor' },
+    // Small cliff-top grass shelf carved into the coastal rim so the south-face stairway lands
+    // on a visible walkable plateau like the southern Stone Sentinel setup.
+    { x: 78, y: 293, width: 6, height: 3, type: 'clearing', fill: 'grass' },
+
+    // --- Golem den (south-west corner, world ~-54,142 / tile 96,292) ---
+    // Stone patches signal "something territorial lives here" before the golem aggros.
+    // Stops at y=293 to avoid overwriting the 6-row coastal cliff/ocean border (y>=294).
+    { x: 90, y: 282, width: 16, height: 12, type: 'clearing', fill: 'mossy_stone' },
+    { x: 93, y: 285, width: 8, height: 6, type: 'clearing', fill: 'stone' },
 
     // --- Rocky ford (east, x:260, y:230) ---
     { x: 258, y: 228, width: 10, height: 8, type: 'clearing', fill: 'mossy_stone' },
@@ -1475,7 +1499,7 @@ const forestDef: MapDefinition = {
     { x: 93, y: 177, interactionId: 'forest_woodcutter_chest' },
     { x: 265, y: 85, interactionId: 'ruins_chest_1' },
     { x: 42, y: 38, interactionId: 'wolf_den_chest' },
-    { x: 230, y: 230, interactionId: 'forest_lake_chest' },
+    { x: 228, y: 244, interactionId: 'forest_lake_chest' },
     { x: 160, y: 60, interactionId: 'forest_north_chest' },
     { x: 90, y: 230, interactionId: 'spider_chest' },
     { x: 275, y: 265, interactionId: 'forest_hermit_chest' },
@@ -1508,14 +1532,21 @@ const forestDef: MapDefinition = {
     { x: 114, y: 106, interactionId: 'forest_chest_hollow_approach' },
     // Observatory compound — hidden reward corner at world (59, -60).
     { x: 209, y: 90, interactionId: 'observatory_chest' },
+    // Hunter gate — tucked in the east cliff notch just past the iron fence. World (6, 48).
+    { x: 156, y: 198, interactionId: 'forest_southern_chest' },
+    // SW rocky hill plateau — reward sits on the cliff-top shelf directly above the stairs.
+    { x: 80, y: 294, interactionId: 'rocky_hill_chest' },
   ],
   interactables: [
     // Blighted Root — corrupted growth at the center of the enchanted grove. Quest target for grove_warden.
     { x: 85, y: 153, type: 'blighted_stump', walkable: false, interactionId: 'blighted_root' },
-    { x: 124, y: 77, type: 'bonfire', walkable: false, interactionId: 'bonfire_hollow' },
-    // Bonfire on the north-bank corridor near Warden Callum — world (6, 4).
-    { x: 156, y: 154, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_fort' },
-    { x: 130, y: 206, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_south' },
+    // Corrupted bridge (north stub) — primary “hollow” checkpoint for fast travel / narrative.
+    { x: 156, y: 154, type: 'bonfire', walkable: false, interactionId: 'bonfire_hollow' },
+    // South approach trail toward the fog-gate corridor — world near (-26, -46).
+    { x: 124, y: 77, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_fort' },
+    // Iron Gate — world ~(-15.5, 58.5), slightly NE of old (130, 206)
+    { x: 134, y: 208, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_south' },
+    { x: 148, y: 286, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_clearing' },
     { x: 281, y: 145, type: 'bonfire', walkable: false, interactionId: 'bonfire_cliff_cemetery' },
     // Lever is on the NORTH side of the ranger gate (y=199-202) so the player must first
     // navigate the long way around through the forest to reach the cottage, then on the way
@@ -1562,8 +1593,14 @@ const forestDef: MapDefinition = {
     // === SOUTH ENTRY CORRIDOR — environmental storytelling ===
     { x: 148, y: 270, type: 'sign', walkable: false, interactionId: 'forest_milestone' },
 
-    // === WITCH COTTAGE SURROUNDS ===
-    { x: 232, y: 134, type: 'cauldron', walkable: false, interactionId: 'witch_cauldron' },
+    // === ABANDONED HOMESTEAD SURROUNDS ===
+    { x: 224, y: 127, type: 'windmill', walkable: false },
+    { x: 234, y: 131, type: 'barrel', walkable: false },
+    { x: 235, y: 132, type: 'crate', walkable: false },
+    { x: 234, y: 134, type: 'stump', walkable: false },
+    { x: 223, y: 128, type: 'hay_bale', walkable: false },
+    { x: 225, y: 128, type: 'hay_bale', walkable: false },
+    { x: 227, y: 134, type: 'barrel', walkable: false },
 
     // === SHORTCUT LEVER HINTS ===
     // Bloodstain on the SOUTH face of the gate — environmental hint that someone fell here.
@@ -1591,7 +1628,36 @@ const forestDef: MapDefinition = {
     // Hollow approach and shortcut hints are atmosphere, not direct interactables.
     { x: 120, y: 26, type: 'campfire', walkable: false },
     { x: 124, y: 28, type: 'bloodstain', walkable: true },
+    // === DEEP HOLLOW (tile y <= 59, world y <= -91) — broken graves, corruption, silhouettes; flanks only (spine ~117-129 open).
+    { x: 90, y: 42, type: 'windmill', walkable: false },
+    { x: 154, y: 45, type: 'windmill', walkable: false },
+    { x: 94, y: 52, type: 'tombstone_broken', walkable: false },
+    { x: 98, y: 48, type: 'tombstone_cracked_v', walkable: false },
+    { x: 92, y: 46, type: 'tombstone_broken', walkable: false },
+    { x: 96, y: 54, type: 'bones_pile', walkable: true },
+    { x: 88, y: 50, type: 'bloodstain', walkable: true },
+    { x: 99, y: 56, type: 'rubble', walkable: true },
+    { x: 97, y: 50, type: 'dead_tree', walkable: false },
+    { x: 98, y: 44, type: 'statue', walkable: false },
+    { x: 152, y: 52, type: 'tombstone_cracked_v', walkable: false },
+    { x: 158, y: 46, type: 'tombstone_broken', walkable: false },
+    { x: 154, y: 56, type: 'bones', walkable: true },
+    { x: 160, y: 50, type: 'bloodstain', walkable: true },
+    { x: 150, y: 48, type: 'rubble', walkable: true },
+    { x: 162, y: 42, type: 'statue', walkable: false },
+    { x: 148, y: 54, type: 'dead_tree', walkable: false },
+    { x: 95, y: 38, type: 'bones_pile', walkable: true },
+    { x: 157, y: 34, type: 'mossy_stone', walkable: false },
+    { x: 91, y: 58, type: 'mossy_stone', walkable: false },
     { x: 130, y: 203, type: 'bloodstain', walkable: true },
+    // Gate-side cluster — environmental storytelling on the bonfire side of the hunter cliff seal.
+    // None are PATH_BLOCKERS so they survive path-proximity cleanup; each pair is spaced > 2 tiles
+    // apart in at least one axis to survive SPACED_DECORATIONS thinning.
+    { x: 151, y: 199, type: 'lantern', walkable: false },
+    { x: 154, y: 199, type: 'rubble', walkable: true },
+    { x: 150, y: 202, type: 'statue', walkable: false },
+    { x: 154, y: 202, type: 'statue', walkable: false },
+    { x: 152, y: 207, type: 'campfire', walkable: false },
     { x: 144, y: 268, type: 'lantern', walkable: false },
     { x: 156, y: 268, type: 'lantern', walkable: false },
     { x: 142, y: 262, type: 'barrel', walkable: false },
@@ -2098,6 +2164,15 @@ const forestDef: MapDefinition = {
     { x: 84, y: 282, type: 'bones_pile', walkable: true },
     { x: 82, y: 284, type: 'tombstone', walkable: false },
 
+    // --- Golem den props — scattered stone outcrops around the clearing ---
+    { x: 91, y: 283, type: 'rubble', walkable: true },
+    { x: 95, y: 284, type: 'statue', walkable: false },
+    { x: 100, y: 283, type: 'rubble', walkable: true },
+    { x: 93, y: 289, type: 'rubble', walkable: true },
+    { x: 99, y: 291, type: 'rubble', walkable: true },
+    { x: 104, y: 286, type: 'rubble', walkable: true },
+    { x: 90, y: 292, type: 'bones_pile', walkable: true },
+
     // --- South-east ruins scatter ---
     { x: 214, y: 254, type: 'rock', walkable: false },
     { x: 218, y: 256, type: 'rock', walkable: false },
@@ -2267,8 +2342,7 @@ const forestDef: MapDefinition = {
     { x: 228, y: 193, width: 6, height: 4, elevation: 1 },
     // West hidden grove (y=163): no stair — cliff runs the full shelf/Grove–plateau seam so this
     // cannot shortcut the Disparaged Cottage / ranger-gate arc.
-    // SE enchanted hills south: zone {x:230,y:222,h:62}, south_face=283
-    { x: 248, y: 283, width: 6, height: 4, elevation: 1 },
+    // SE enchanted hills south: stairway removed — cliff runs unbroken across the full south face.
     // East ridge south face: zone {x:272,y:100,h:50}, south_face=149
     { x: 280, y: 149, width: 6, height: 4, elevation: 1 },
     // South-east bluff south face: zone {x:200,y:236,h:16}, south_face=251
@@ -2408,8 +2482,7 @@ const forestDef: MapDefinition = {
     { x: 118, y: 40, width: 10, height: 8, enemyType: 'shadow_lurker', count: 3 },
     { x: 116, y: 25, width: 12, height: 8, enemyType: 'shadow_lurker', count: 3 },
 
-    // East ridge — wolves patrol the rocky shelf
-    { x: 274, y: 110, width: 16, height: 30, enemyType: 'wolf', count: 4 },
+    // East ridge wolf zone removed — zone was 97% unwalkable cliff tiles.
     // Stone quarry — skeletons among the rubble
     { x: 228, y: 205, width: 16, height: 12, enemyType: 'skeleton', count: 4 },
     // Logging camp — wolves prowl the cleared area
@@ -2420,6 +2493,8 @@ const forestDef: MapDefinition = {
     { x: 110, y: 270, width: 30, height: 6, enemyType: 'slime', count: 3 },
     // Ruined shrine — shadows guard the ancient stones
     { x: 76, y: 276, width: 14, height: 12, enemyType: 'shadow', count: 2 },
+    // SW corner golem den — punishes players straying off the designated path. World ~(-54, 138).
+    { x: 92, y: 284, width: 12, height: 8, enemyType: 'golem', count: 1 },
     // Rocky ford — wolves at the mossy crossing
     { x: 256, y: 226, width: 14, height: 10, enemyType: 'wolf', count: 2 },
 

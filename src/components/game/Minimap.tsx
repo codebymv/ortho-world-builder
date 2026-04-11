@@ -123,9 +123,9 @@ export const Minimap = memo(
         <div className="text-[#DAA520] text-xs mb-1 text-center font-bold uppercase tracking-wider">
           {currentMap.name}
         </div>
-        <p className="text-[9px] text-[#8D6E63] text-center mb-1.5 leading-tight px-0.5">
+        {/* <p className="text-[9px] text-[#8D6E63] text-center mb-1.5 leading-tight px-0.5">
           Explored areas only. <kbd className="text-[#DAA520]">M</kbd> opens the full map.
-        </p>
+        </p> */}
         <canvas
           ref={canvasRef}
           className="pixelated border-2 border-[#3a2812] block rounded-sm mx-auto"

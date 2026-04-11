@@ -291,7 +291,9 @@ export function setupRuntimeActionPhase({
     },
   });
 
-  const { interactionSystem } = createRuntimeDialogueFlow({
+  const dialoguePickupRef: { startDialogue?: (dialogueId: string, npcName?: string) => void } = {};
+
+  const { interactionSystem, startDialogue } = createRuntimeDialogueFlow({
     state,
     items,
     createDialogueProgression,
@@ -341,6 +343,9 @@ export function setupRuntimeActionPhase({
           q.objectives[2] = `Find traces of the manuscript ${CHECKMARK}`;
           triggerUIUpdate();
         }
+        if (!state.getFlag('hunter_clue_dialogue_seen') && hasDialogue('hunter_clue')) {
+          dialoguePickupRef.startDialogue?.('hunter_clue');
+        }
       } else if (itemId === 'hunters_manuscript') {
         state.setFlag('hunters_manuscript_collected', true);
         const q = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
@@ -357,6 +362,8 @@ export function setupRuntimeActionPhase({
         .filter((e: any) => e.health > 0).length;
     },
   });
+
+  dialoguePickupRef.startDialogue = startDialogue;
 
   const usePotion = createUsePotionAction({
     state,

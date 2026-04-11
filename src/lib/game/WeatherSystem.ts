@@ -72,6 +72,8 @@ export class WeatherSystem {
   private biomeWeights: Record<string, Partial<Record<WeatherType, number>>> = {
     grassland: { clear: 50, rain: 25, fog: 10, heavy_rain: 10, storm: 5 },
     forest: { clear: 30, rain: 30, fog: 20, heavy_rain: 10, storm: 10 },
+    forest_hollow: { clear: 25, rain: 28, fog: 25, heavy_rain: 12, storm: 10 },
+    forest_hollow_deep: { clear: 15, rain: 25, fog: 40, heavy_rain: 12, storm: 8 },
     swamp: { clear: 15, rain: 25, fog: 35, heavy_rain: 15, storm: 10 },
     ruins: { clear: 20, rain: 20, fog: 25, snow: 15, storm: 20 },
     city: { clear: 15, rain: 25, fog: 30, storm: 20, snow: 10 },

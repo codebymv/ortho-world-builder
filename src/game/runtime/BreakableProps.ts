@@ -18,7 +18,7 @@ export const BREAKABLE_TILES: ReadonlySet<TileType> = new Set<TileType>([
 
 const WALKABLE_BASE_TILES: ReadonlySet<TileType> = new Set<TileType>([
   'grass', 'dirt', 'stone', 'wood', 'sand', 'swamp', 'ice',
-  'cobblestone', 'farmland', 'ash', 'ruins_floor', 'dark_grass',
+  'cobblestone', 'farmland', 'ash', 'ruins_floor', 'dark_grass', 'hollow_blight',
   'mossy_stone', 'wooden_path', 'wood_floor',
 ]);
 

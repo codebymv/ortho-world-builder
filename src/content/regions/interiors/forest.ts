@@ -117,7 +117,7 @@ export const interiorHunterCottageDef: MapDefinition = {
   ],
   portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 137, targetY: 188 }],
   chests: [{ x: 8, y: 5, interactionId: 'forest_hunter_chest' }],
-  interactables: [{ x: 6, y: 4, type: 'table', walkable: false, interactionId: 'hunter_clue' }],
+  interactables: [],
   props: [
     { x: 3, y: 3, type: 'bed', walkable: false },
     { x: 8, y: 3, type: 'crate', walkable: false },

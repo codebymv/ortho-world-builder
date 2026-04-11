@@ -2265,6 +2265,8 @@ export class AssetManager {
     this.textures.set('grass', this.createColorTexture(0x4CAF50, 32, 32, 'noise'));
     this.textures.set('dirt', this.createColorTexture(0x8D6E63, 32, 32, 'noise'));
     this.textures.set('water', this.createColorTexture(0x1E88E5, 32, 32, 'noise'));
+    // Hollow-tainted pool: near-black with violet noise (Whispering Woods meander west of corrupted bridge)
+    this.textures.set('water_corrupted', this.createColorTexture(0x1A0A22, 32, 32, 'noise'));
     this.textures.set('stone', this.createColorTexture(0x6E7B85, 32, 32, 'gradient'));
     this.textures.set('wood', this.createColorTexture(0x795548, 32, 32, 'gradient'));
     this.textures.set('tall_grass', this.createColorTexture(0x388E3C, 32, 32, 'noise'));
@@ -2529,6 +2531,8 @@ export class AssetManager {
     this.textures.set('timber_wall', this.createColorTexture(0x5C4033, 32, 32, 'gradient'));
     this.textures.set('farmland', this.createColorTexture(0x6D4C41, 32, 32, 'noise'));
     this.textures.set('dark_grass', this.createColorTexture(0x2E7D32, 32, 32, 'noise'));
+    // Bleached / ash-sick forest floor (Deep Hollow, tile y < 59 ≈ world y ≤ -91)
+    this.textures.set('hollow_blight', this.createColorTexture(0xC9B896, 32, 32, 'noise'));
     this.textures.set('mossy_stone', this.createColorTexture(0x6B7B5A, 32, 32, 'checker'));
     this.textures.set('wooden_path', this.createColorTexture(0x8D6E63, 32, 32, 'gradient'));
     this.textures.set('wood_floor', this.createColorTexture(0xA1887F, 32, 32, 'gradient'));
@@ -2781,25 +2785,60 @@ export class AssetManager {
       return px;
     }));
     this.textures.set('cottage_house_forest', this.createSpriteTexture(cottageHouseForestSprite));
-    const cottageHouseForestRuinedSprite = cottageHouseForestSprite.map((row, y) => row.map((px, x) => {
-      if ((y === 1 && (x === 3 || x === 4)) || (y === 3 && x === 10) || (y === 5 && x === 2) || (y === 6 && x === 11)) return 0x607B5D;
-      if (px === GROOF) return 0x6E8D69;
-      if (px === GROOF_H) return 0x86A87F;
-      if (px === GROOF_S) return 0x53714F;
-      if (px === GROOF_TRIM) return 0x6A5B3A;
-      if (px === CWALL) return 0xB0ACA8;
-      if (px === CWALL_H) return 0xC4BFBB;
-      if (px === CWALL_S) return 0x8F857E;
-      if (px === WINDOW) return 0x5A6876;
-      return px;
-    }));
-    cottageHouseForestRuinedSprite[8][3] = 0x6B625C;
-    cottageHouseForestRuinedSprite[8][4] = 0x85776D;
-    cottageHouseForestRuinedSprite[9][12] = 0x6B625C;
-    cottageHouseForestRuinedSprite[9][13] = 0x85776D;
-    cottageHouseForestRuinedSprite[10][6] = 0x6B5C50;
-    cottageHouseForestRuinedSprite[10][9] = 0x6B5C50;
+    // Ruined forest cottage — roof caved in with visible holes, exposed timber beams,
+    // crumbled walls. Derived from the forest sprite then punched with transparent gaps
+    // and replaced roof sections with dark interior / beam colors.
+    const RB = 0x5D4037; // exposed roof beam (dark wood)
+    const RB_H = 0x795548; // beam highlight
+    const RI = 0x3E2723; // dark interior visible through holes
+    const RW_D = 0x8F857E; // damaged wall (darker)
+    const RW_C = 0x6B5C50; // cracked wall
+    const RV = 0x4CAF50;   // vine green
+    const RV_D = 0x2E7D32; // dark vine
+    const RM = 0x66BB6A;   // moss
+    const cottageHouseForestRuinedSprite = cottageHouseForestSprite.map(row => [...row]);
+    cottageHouseForestRuinedSprite[0] = [C, C, C, C, CHIM, C, C, C, C, C, C, C, C, C, C, C];
+    cottageHouseForestRuinedSprite[1] = [C, C, C, CHIM, RB, C, C, C, C, C, C, C, C, C, C, C];
+    cottageHouseForestRuinedSprite[2] = [C, C, C, C, C, RI, RI, GROOF_H, GROOF_H, GROOF, GROOF_S, C, C, C, C, C];
+    cottageHouseForestRuinedSprite[3] = [C, C, C, GROOF_S, RI, RI, RB, RB_H, GROOF, GROOF_H, GROOF, GROOF_S, C, C, C, C];
+    cottageHouseForestRuinedSprite[4] = [C, C, GROOF_S, GROOF, GROOF_H, RB, GROOF, GROOF, RI, RI, RI, GROOF, GROOF_S, C, C, C];
+    cottageHouseForestRuinedSprite[5] = [C, GROOF_S, GROOF, RB, GROOF, GROOF, RI, RI, RI, GROOF, GROOF, RB_H, GROOF, GROOF_S, C, C];
+    cottageHouseForestRuinedSprite[6] = [C, GROOF_S, RB, GROOF, GROOF, RI, RI, GROOF, GROOF, RI, GROOF, GROOF, RB, GROOF_S, C, C];
+    cottageHouseForestRuinedSprite[7] = [C, RW_D, CWALL_H, RW_C, CWALL, RW_C, CWALL, CWALL_H, CWALL_H, RW_C, CWALL, RW_C, CWALL_H, RW_D, C, C];
+    cottageHouseForestRuinedSprite[8] = [RW_D, CWALL_H, RI, RI, RW_C, CWALL, CWALL_H, RV, RV_D, CWALL_H, CWALL, SHUTTER, WINDOW, WINDOW, CWALL_H, C];
+    cottageHouseForestRuinedSprite[9] = [RW_D, CWALL, RI, RI, RW_C, CWALL, RV_D, RM, RV, RW_C, CWALL, SHUTTER, RI, WINDOW, RW_D, C];
+    // Row 10: door arch area — completely blocked by rubble and overgrown with moss/vines
+    cottageHouseForestRuinedSprite[10] = [RW_D, RW_C, CWALL, RW_C, CWALL, RV_D, RV, RW_C, RW_D, RV, RV_D, CWALL, RW_C, CWALL, RW_C, C];
+    // Row 11: door sealed — rubble pile and thick vine growth where door once was
+    cottageHouseForestRuinedSprite[11] = [RW_C, CWALL, CWALL_H, CWALL, RV_D, RV, RW_C, RW_D, RW_C, RW_D, RV, RV_D, CWALL, CWALL_H, RW_C, C];
+    // Row 12: foundation with rubble and moss spilling out at the base
+    cottageHouseForestRuinedSprite[12] = [C, RW_C, RW_C, RW_C, RM, RV_D, RW_D, RW_C, RW_C, RW_D, RV_D, RM, RW_C, RW_C, C, C];
     this.textures.set('cottage_house_forest_ruined', this.createSpriteTexture(cottageHouseForestRuinedSprite));
+
+    const RR = 0x8B5E3C;    // warm brown roof
+    const RR_H = 0xA67C52;  // roof highlight
+    const RR_S = 0x6B4226;  // roof shadow
+    const RR_B = 0x5C3A1E;  // roof band/ridge
+    const RW = 0xC8B898;    // ranger wall (warm timber)
+    const RW_H2 = 0xD8C8A8; // wall highlight
+    const RW_S2 = 0xA89878; // wall shadow
+    const cottageHouseRangerSprite = [
+      [C, C, C, C, CHIM, CHIM, CHIM_TOP, CHIM_TOP, C, C, C, C, C, C, C, C],
+      [C, C, C, CHIM, CHIM, CHIM, RR_S, RR_S, RR, RR, C, C, C, C, C, C],
+      [C, C, C, C, RR_S, RR, RR, RR_H, RR_H, RR, RR_S, C, C, C, C, C],
+      [C, C, C, RR_S, RR, RR, RR_B, RR_B, RR, RR_H, RR, RR_S, C, C, C, C],
+      [C, C, RR_S, RR, RR_H, RR, RR, RR, RR, RR, RR_H, RR, RR_S, C, C, C],
+      [C, RR_S, RR, RR_H, RR, RR, RR, RR, RR, RR, RR, RR_H, RR, RR_S, C, C],
+      [C, RR_S, RR, RR, RR, RR, RR, RR, RR, RR, RR, RR, RR, RR_S, C, C],
+      [C, RW, RW_H2, RW, RW, RW, RW, RW_H2, RW_H2, RW, RW, RW, RW_H2, RW, C, C],
+      [RW, RW_H2, WINDOW, WINDOW, SHUTTER, RW, RW_H2, RW, RW, RW_H2, RW, SHUTTER, WINDOW, WINDOW, RW_H2, C],
+      [RW, RW, WINDOW, WINDOW, SHUTTER, RW, RW, RW_H2, RW_H2, RW, RW, SHUTTER, WINDOW, WINDOW, RW, C],
+      [RW, RW_S2, RW, RW, RW, RW_S2, RW, DOOR_ARCH, DOOR_ARCH, RW, RW_S2, RW, RW, RW, RW_S2, C],
+      [RW, RW, RW_H2, RW, RW_H2, RW, DOOR_ARCH, DOOR, DOOR, DOOR_ARCH, RW, RW_H2, RW, RW_H2, RW, C],
+      [C, RW_S2, RW_S2, RW_S2, RW_S2, RW_S2, DOOR_ARCH, DOOR, DOOR, DOOR_ARCH, RW_S2, RW_S2, RW_S2, RW_S2, C, C],
+      [C, C, C, C, C, C, RW_S2, RW_S2, RW_S2, RW_S2, C, C, C, C, C, C],
+    ] as const;
+    this.textures.set('cottage_house_ranger', this.createSpriteTexture(cottageHouseRangerSprite));
     const cottageHouseEntrySprite = [
       [C, C, C, C, CHIM, CHIM, CHIM_TOP, CHIM_TOP, C, C, C, C, C, C, C, C],
       [C, C, C, CHIM, CHIM, CHIM, THATCH_S, THATCH_S, THATCH, THATCH, C, C, C, C, C, C],
@@ -2818,9 +2857,17 @@ export class AssetManager {
     ] as const;
     this.textures.set('cottage_house_entry', this.createSpriteTexture(cottageHouseEntrySprite));
 
-    // Destroyed house
+    // Destroyed house variants
     const RUBBLE = 0x795548;
     const RUBBLE_S = 0x5D4037;
+    const CHAR = 0x2E2E2E;
+    const CHAR_S = 0x1A1A1A;
+    const SOOT = 0x4A4A4A;
+    const OG_VINE = 0x4CAF50;
+    const OG_VINE_D = 0x2E7D32;
+    const OG_MOSS = 0x66BB6A;
+
+    // Original: partial walls, collapsed roof, rubble interior
     this.textures.set('destroyed_house', this.createSpriteTexture([
       [C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
       [C,     C,     C,     ROOF_S,ROOF,  C,     C,     C,     C,     C],
@@ -2831,6 +2878,34 @@ export class AssetManager {
       [C,     WALL,  RUBBLE,RUBBLE_S,RUBBLE,RUBBLE,RUBBLE,WALL, C,     C],
       [C,     WALL_S,RUBBLE_S,RUBBLE,RUBBLE_S,RUBBLE,RUBBLE_S,WALL_S,C,C],
       [C,     RUBBLE_S,RUBBLE,RUBBLE_S,RUBBLE,RUBBLE_S,RUBBLE,RUBBLE_S,C,C],
+      [C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
+    ]));
+
+    // Rubble: collapsed foundation, scattered stone and timber debris
+    this.textures.set('destroyed_house_rubble', this.createSpriteTexture([
+      [C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
+      [C,     C,     C,     C,     RUBBLE,C,     C,     C,     C,     C],
+      [C,     C,     RUBBLE_S,RUBBLE,WALL_S,RUBBLE,C,   C,     C,     C],
+      [C,     C,     RUBBLE,WALL_S,RUBBLE_S,RUBBLE,RUBBLE_S,C, C,     C],
+      [C,     RUBBLE_S,WALL, RUBBLE,RUBBLE_S,WALL_H,RUBBLE,RUBBLE_S,C,C],
+      [C,     RUBBLE,RUBBLE_S,WALL_S,RUBBLE,RUBBLE_S,WALL,RUBBLE,C,  C],
+      [C,     WALL_S,RUBBLE,RUBBLE_S,WALL, RUBBLE,RUBBLE_S,WALL_S,C, C],
+      [C,     RUBBLE_S,WALL, RUBBLE,RUBBLE_S,RUBBLE,WALL_S,RUBBLE,C, C],
+      [C,     RUBBLE,RUBBLE_S,RUBBLE,WALL_S,RUBBLE_S,RUBBLE,RUBBLE_S,C,C],
+      [C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
+    ]));
+
+    // Overgrown: vines creeping over crumbled walls, moss patches
+    this.textures.set('destroyed_house_overgrown', this.createSpriteTexture([
+      [C,     C,     C,     OG_VINE,C,     C,     C,     C,     C,     C],
+      [C,     C,     OG_VINE_D,OG_VINE,OG_VINE,C, C,     OG_VINE,C,   C],
+      [C,     C,     OG_VINE,WALL_H,OG_VINE_D,C,OG_VINE,OG_MOSS,C,   C],
+      [C,     WALL,  OG_MOSS,C,     C,     C,     OG_VINE_D,WALL, C,   C],
+      [C,     WALL_S,C,     C,     OG_VINE,RUBBLE,C,     OG_VINE,C,   C],
+      [C,     OG_VINE_D,C,  RUBBLE_S,OG_MOSS,RUBBLE_S,C,WALL_S, C,   C],
+      [C,     WALL,  OG_VINE,RUBBLE_S,OG_VINE_D,RUBBLE,OG_MOSS,WALL,C,C],
+      [C,     OG_MOSS,RUBBLE_S,OG_VINE,RUBBLE_S,OG_VINE_D,RUBBLE_S,OG_VINE,C,C],
+      [C,     RUBBLE_S,OG_MOSS,RUBBLE_S,OG_VINE,RUBBLE_S,OG_VINE,RUBBLE_S,C,C],
       [C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
     ]));
 
@@ -3444,6 +3519,17 @@ export class AssetManager {
       [C,         C,         C,         C,         SIGN_POST,SIGN_POST,C,         C,          C,          C],
     ]));
 
+    // Broken sign: snapped post, hanging board at an angle
+    this.textures.set('broken_sign', this.createSpriteTexture([
+      [C,         C,         C,         C,         C,         C,         C,         C,         C,         C],
+      [C,         C,         C,         SIGN_BORDER,SIGN_BORDER,SIGN_BORDER,C,        C,         C,         C],
+      [C,         C,         SIGN_BORDER,SIGN_FACE,SIGN_WOOD_S,SIGN_BORDER,C,        C,         C,         C],
+      [C,         C,         SIGN_BORDER,SIGN_WOOD_S,SIGN_FACE,SIGN_BORDER,C,        C,         C,         C],
+      [C,         C,         C,         C,         SIGN_POST,C,         C,         C,          C,         C],
+      [C,         C,         C,         C,         SIGN_POST,C,         C,         C,          C,         C],
+      [C,         C,         C,         SIGN_POST,C,         C,         C,         C,          C,         C],
+    ]));
+
     this.textures.set('well', this.createSpriteTexture([
       [C,          C,          0x795548,0x795548, 0x795548,0x795548, 0x795548,0x795548,C,          C],
       [C,          0x795548,  C,        C,         0x795548,C,        C,         0x795548,C,          C],
@@ -3502,6 +3588,28 @@ export class AssetManager {
       [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // cross — vertical arm (top)
       [C,     TS_D,  TS_C,  TS_C,  TS_C,  TS_C,  TS_D,  C    ],  // cross — horizontal arm
       [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // cross — vertical arm (bottom)
+      [C,     C,     TS_D,  TS_D,  TS_D,  TS_D,  C,     C    ],  // base
+    ]));
+
+    // Cracked horizontal — snapped at row 3, top half gone, only base remains.
+    // Same palette as the intact tombstone; the upper rows are cleared to transparent.
+    const TK = 0x4E4E4E; // dark crack / break edge
+    this.textures.set('tombstone_broken', this.createSpriteTexture([
+      [C,     C,     C,     C,     C,     C,     C,     C    ],  // top gone
+      [C,     C,     C,     C,     C,     C,     C,     C    ],  // top gone
+      [C,     C,     TK,    TS_H,  TK,    TS_M,  C,     C    ],  // jagged break line
+      [C,     TS_D,  TS_C,  TS_C,  TS_C,  TS_C,  TS_D,  C    ],  // cross horizontal (surviving)
+      [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // cross vertical arm (bottom)
+      [C,     C,     TS_D,  TS_D,  TS_D,  TS_D,  C,     C    ],  // base
+    ]));
+
+    // Cracked vertical — crack runs ~60/40 down the center, fading out at row 4.
+    this.textures.set('tombstone_cracked_v', this.createSpriteTexture([
+      [C,     C,     TS_H,  TS_H,  TK,    TS_H,  C,     C    ],  // crack starts at col 4
+      [C,     TS_M,  TS_M,  TS_M,  TK,    TS_M,  TS_M,  C    ],  // crack continues
+      [C,     TS_D,  TS_D,  TS_C,  TK,    TS_D,  TS_D,  C    ],  // crack through cross
+      [C,     TS_D,  TS_C,  TS_C,  TS_C,  TS_C,  TS_D,  C    ],  // crack fades out here
+      [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // intact lower
       [C,     C,     TS_D,  TS_D,  TS_D,  TS_D,  C,     C    ],  // base
     ]));
 

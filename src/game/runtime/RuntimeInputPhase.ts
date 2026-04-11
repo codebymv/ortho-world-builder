@@ -16,6 +16,8 @@ interface SetupRuntimeInputPhaseOptions {
   setInventoryModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   objectivesModalOpenRef: MutableRefObject<boolean>;
   setObjectivesModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
+  vendorModalOpenRef: MutableRefObject<boolean>;
+  setVendorModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   setIsPaused: Dispatch<SetStateAction<boolean>>;
   closeDialogueSession: () => void;
   notify: (title: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
@@ -50,6 +52,8 @@ export function setupRuntimeInputPhase({
   setInventoryModalOpenRef,
   objectivesModalOpenRef,
   setObjectivesModalOpenRef,
+  vendorModalOpenRef,
+  setVendorModalOpenRef,
   setIsPaused,
   closeDialogueSession,
   notify,
@@ -85,6 +89,8 @@ export function setupRuntimeInputPhase({
     setInventoryModalOpenRef,
     objectivesModalOpenRef,
     setObjectivesModalOpenRef,
+    vendorModalOpenRef,
+    setVendorModalOpenRef,
     setIsPaused,
     closeDialogueSession,
     notify,

@@ -1,7 +1,6 @@
 import { Quest } from '@/lib/game/GameState';
 
 export const quests: Record<string, Quest> = {
-  // FIRST QUEST - Takes place in Whispering Woods
   find_hunter: {
     id: 'find_hunter',
     title: 'The Missing Hunter',
@@ -11,11 +10,8 @@ export const quests: Record<string, Quest> = {
       'Find the Disparaged Cottage',
       'Find traces of the manuscript',
       'Cross the river into the Hollow',
-      'Defeat the Hollow Apparition',
+      'Defeat the Hollow Guardian',
       'Recover the complete manuscript',
-      "Follow the hunter's trail to Gilrhym",
-      'Investigate the inner city',
-      'Return to the elder with your findings',
     ],
     completed: false,
     active: false,
@@ -25,21 +21,22 @@ export const quests: Record<string, Quest> = {
     },
   },
 
-  // SECOND QUEST - Unlocks Deep Woods
-  clear_deep_woods: {
-    id: 'clear_deep_woods',
-    title: 'Into the Depths',
-    description: "With the Hunter's Manuscript in hand, the elder reveals the path to the Deep Woods is now open. Find the witch, uncover the shadow threat, and trace it toward Shadow Castle.",
+  heretical_pursuit: {
+    id: 'heretical_pursuit',
+    title: 'The Heretical Pursuit',
+    description: 'The corruption that consumed the Whispering Woods radiates from Gilrhym. Find out who unleashed this forbidden magic and put an end to it.',
     objectives: [
-      'Travel to the Deep Woods',
-      'Find the witch\'s hut',
-      'Learn about the dark magic',
-      'Return to the elder',
+      'Find a survivor in Gilrhym',
+      'Learn about the Ashen Court',
+      'Reach the Cathedral Plaza',
+      'Defeat the Ashen Reaver',
+      'Return to the Elder',
     ],
     completed: false,
     active: false,
     reward: {
-      gold: 150,
+      gold: 200,
+      items: ['heretical_essence_apparition'],
     },
   },
 

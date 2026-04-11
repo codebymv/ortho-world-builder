@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import type { GameState } from '@/lib/game/GameState';
-import { type BonfireEntry, getKindledBonfiresForMap } from '@/data/bonfires';
+import { type BonfireEntry, getKindledBonfiresForMap, isPlayerAtBonfireEntry } from '@/data/bonfires';
 
 // Inline essence icon — matches the HUD's violet-300 sparkle (`size` bumps cost readouts)
 const EssenceIcon = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
@@ -166,11 +166,10 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
   /* ─── Fast travel view ──────────────────────────────────────────── */
   if (view === 'fast-travel') {
     const kindled = getKindledBonfiresForMap(gameState.currentMap, gameState.gameFlags as Record<string, boolean | number>);
-    const lb = gameState.lastBonfire;
+    const px = gameState.player.position.x;
+    const py = gameState.player.position.y;
     const isCurrentBonfire = (entry: BonfireEntry) =>
-      lb !== null &&
-      Math.round(lb.x * 2) === Math.round((entry.tileX - 0.5) * 2) &&
-      Math.round(lb.y * 2) === Math.round((entry.tileY - 0.5) * 2);
+      isPlayerAtBonfireEntry(gameState.currentMap, px, py, entry);
     const others = kindled.filter(e => !isCurrentBonfire(e));
 
     return (

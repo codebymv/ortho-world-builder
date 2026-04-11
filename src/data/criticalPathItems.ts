@@ -2,6 +2,7 @@ export interface CriticalPathItemVisual {
   interactionId: string;
   itemId: string;
   collectedFlag: string;
+  renderVisual?: boolean;
   glowColor: number;
   haloColor?: number;
   spriteScale?: number;
@@ -15,6 +16,7 @@ export const criticalPathItems: Record<string, CriticalPathItemVisual> = {
     interactionId: 'hunter_clue',
     itemId: 'manuscript_fragment',
     collectedFlag: 'manuscript_fragment_collected',
+    renderVisual: false,
     glowColor: 0xffd54f,
     haloColor: 0xfff0a8,
     spriteScale: 0.62,

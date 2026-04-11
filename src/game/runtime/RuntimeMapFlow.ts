@@ -51,6 +51,7 @@ const WALKABLE_BASE_TILES: ReadonlySet<TileType> = new Set([
   'ash',
   'ruins_floor',
   'dark_grass',
+  'hollow_blight',
   'mossy_stone',
   'wooden_path',
   'wood_floor',
@@ -82,7 +83,7 @@ const VILLAGE_MANUSCRIPT_REACTIVITY_TILES: ReadonlyArray<ReactiveTileSpec> = [
   { x: 188, y: 76, type: 'crate', walkable: false },
 ];
 
-const VILLAGE_DEEP_WOODS_REACTIVITY_TILES: ReadonlyArray<ReactiveTileSpec> = [
+const VILLAGE_REAVER_REACTIVITY_TILES: ReadonlyArray<ReactiveTileSpec> = [
   { x: 113, y: 11, type: 'lantern', walkable: false },
   { x: 123, y: 11, type: 'lantern', walkable: false },
   { x: 104, y: 18, type: 'cart', walkable: false },
@@ -112,7 +113,7 @@ const INTERIOR_BLACKSMITH_MANUSCRIPT_TILES: ReadonlyArray<ReactiveTileSpec> = [
   { x: 10, y: 4, type: 'crate', walkable: false },
 ];
 
-const INTERIOR_BLACKSMITH_DEEP_TILES: ReadonlyArray<ReactiveTileSpec> = [
+const INTERIOR_BLACKSMITH_REAVER_TILES: ReadonlyArray<ReactiveTileSpec> = [
   { x: 5, y: 3, type: 'weapon_rack', walkable: false },
   { x: 10, y: 3, type: 'weapon_rack', walkable: false },
   { x: 12, y: 4, type: 'barrel', walkable: false },
@@ -125,7 +126,7 @@ const INTERIOR_MERCHANT_MANUSCRIPT_TILES: ReadonlyArray<ReactiveTileSpec> = [
   { x: 9, y: 8, type: 'pot', walkable: true },
 ];
 
-const INTERIOR_MERCHANT_DEEP_TILES: ReadonlyArray<ReactiveTileSpec> = [
+const INTERIOR_MERCHANT_REAVER_TILES: ReadonlyArray<ReactiveTileSpec> = [
   { x: 4, y: 4, type: 'bookshelf', walkable: false },
   { x: 10, y: 4, type: 'bookshelf', walkable: false },
   { x: 7, y: 8, type: 'pot', walkable: true },
@@ -139,7 +140,7 @@ const INTERIOR_INN_MANUSCRIPT_TILES: ReadonlyArray<ReactiveTileSpec> = [
   { x: 9, y: 5, type: 'barrel', walkable: false },
 ];
 
-const INTERIOR_INN_DEEP_TILES: ReadonlyArray<ReactiveTileSpec> = [
+const INTERIOR_INN_REAVER_TILES: ReadonlyArray<ReactiveTileSpec> = [
   { x: 6, y: 9, type: 'bed', walkable: false },
   { x: 14, y: 9, type: 'bed', walkable: false },
   { x: 8, y: 8, type: 'barrel', walkable: false },
@@ -450,12 +451,12 @@ export function createRuntimeMapFlow({
     const villageStage = getVillageReactivityStage(state);
     let changed = false;
 
-    if (villageStage === 'after_manuscript' || villageStage === 'after_deep_woods') {
+    if (villageStage === 'after_manuscript' || villageStage === 'after_reaver') {
       changed = applyReactiveTiles(map, VILLAGE_MANUSCRIPT_REACTIVITY_TILES) || changed;
     }
 
-    if (villageStage === 'after_deep_woods') {
-      changed = applyReactiveTiles(map, VILLAGE_DEEP_WOODS_REACTIVITY_TILES) || changed;
+    if (villageStage === 'after_reaver') {
+      changed = applyReactiveTiles(map, VILLAGE_REAVER_REACTIVITY_TILES) || changed;
     }
 
     if (changed) {
@@ -469,29 +470,29 @@ export function createRuntimeMapFlow({
     let changed = false;
 
     if (state.currentMap === 'interior_blacksmith') {
-      if (villageStage === 'after_manuscript' || villageStage === 'after_deep_woods') {
+      if (villageStage === 'after_manuscript' || villageStage === 'after_reaver') {
         changed = applyReactiveTiles(map, INTERIOR_BLACKSMITH_MANUSCRIPT_TILES) || changed;
       }
-      if (villageStage === 'after_deep_woods') {
-        changed = applyReactiveTiles(map, INTERIOR_BLACKSMITH_DEEP_TILES) || changed;
+      if (villageStage === 'after_reaver') {
+        changed = applyReactiveTiles(map, INTERIOR_BLACKSMITH_REAVER_TILES) || changed;
       }
     }
 
     if (state.currentMap === 'interior_merchant') {
-      if (villageStage === 'after_manuscript' || villageStage === 'after_deep_woods') {
+      if (villageStage === 'after_manuscript' || villageStage === 'after_reaver') {
         changed = applyReactiveTiles(map, INTERIOR_MERCHANT_MANUSCRIPT_TILES) || changed;
       }
-      if (villageStage === 'after_deep_woods') {
-        changed = applyReactiveTiles(map, INTERIOR_MERCHANT_DEEP_TILES) || changed;
+      if (villageStage === 'after_reaver') {
+        changed = applyReactiveTiles(map, INTERIOR_MERCHANT_REAVER_TILES) || changed;
       }
     }
 
     if (state.currentMap === 'interior_inn') {
-      if (villageStage === 'after_manuscript' || villageStage === 'after_deep_woods') {
+      if (villageStage === 'after_manuscript' || villageStage === 'after_reaver') {
         changed = applyReactiveTiles(map, INTERIOR_INN_MANUSCRIPT_TILES) || changed;
       }
-      if (villageStage === 'after_deep_woods') {
-        changed = applyReactiveTiles(map, INTERIOR_INN_DEEP_TILES) || changed;
+      if (villageStage === 'after_reaver') {
+        changed = applyReactiveTiles(map, INTERIOR_INN_REAVER_TILES) || changed;
       }
     }
 
@@ -751,14 +752,14 @@ export function createRuntimeMapFlow({
     const CAMP_PORTAL_X = 122;
     const CAMP_PORTAL_Y = 23;
 
-    // Gate tiles — open to dark_grass when defeated, fog_gate when not.
+    // Gate tiles — open to bleached hollow ground when defeated, fog_gate when not.
     for (let dx = -2; dx <= 2; dx++) {
       const tx = GATE_CX + dx;
       const row = map.tiles[GATE_Y];
       if (!row) continue;
       const el = row[tx]?.elevation ?? 0;
       if (defeated) {
-        row[tx] = { type: 'dark_grass' as TileType, walkable: true, elevation: el };
+        row[tx] = { type: 'hollow_blight' as TileType, walkable: true, elevation: el };
       } else {
         row[tx] = {
           type: 'fog_gate' as TileType,
@@ -782,7 +783,7 @@ export function createRuntimeMapFlow({
           transition: { ...HOLLOW_VICTORY_PORTAL_TARGET },
         };
       } else {
-        campRow[CAMP_PORTAL_X] = { type: 'dark_grass' as TileType, walkable: true, elevation: el };
+        campRow[CAMP_PORTAL_X] = { type: 'hollow_blight' as TileType, walkable: true, elevation: el };
       }
     }
 

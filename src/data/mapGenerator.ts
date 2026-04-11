@@ -176,6 +176,9 @@ const STRUCTURE_FEATURE_TYPES: Set<MapFeature['type']> = new Set([
 ]);
 const STRUCTURE_FEATURE_SPACING = 8;
 
+/** Tile Y in [0, 58] ⇒ world y ≤ -91 (Deep Hollow: bleached ground + heavy fog). */
+const DEEP_HOLLOW_TILE_Y_MAX = 59;
+
 function areStructureFeaturesTooClose(a: MapFeature, b: MapFeature): boolean {
   const pad = STRUCTURE_FEATURE_SPACING;
   return !(
@@ -255,6 +258,7 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
 
         case 'forest': {
           const inHollow = y < 75;
+          const inDeepHollow = def.name === 'Whispering Woods' && y < DEEP_HOLLOW_TILE_Y_MAX;
           if (n1 > 0.45) {
             tile = createTile(inHollow && n2 > 0.25 ? 'dead_tree' : 'tree', false);
           } else if (n1 > 0.35 && n2 > 0.5) {
@@ -272,7 +276,10 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
           } else if (n1 < 0.15) {
             tile = createTile('tall_grass', true);
           } else {
-            tile = createTile(inHollow ? 'dark_grass' : 'grass', true);
+            tile = createTile(
+              inHollow ? (inDeepHollow ? 'hollow_blight' : 'dark_grass') : 'grass',
+              true,
+            );
           }
           break;
         }
@@ -369,7 +376,7 @@ function carvePath(tiles: Tile[][], x1: number, y1: number, x2: number, y2: numb
     'house_blue', 'house_blue_entry',
     'house_green', 'house_green_entry',
     'house_thatch', 'house_thatch_entry',
-    'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined', 'cottage_shed',
+    'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined', 'cottage_house_ranger', 'cottage_shed',
     'door', 'door_interior', 'door_iron',
     'lantern', 'iron_fence', 'wood',
     'stone', 'mossy_stone', 'gate',
@@ -544,7 +551,7 @@ const HOUSE_TYPES: Set<TileType> = new Set([
   'house_blue', 'house_blue_entry',
   'house_green', 'house_green_entry',
   'house_thatch', 'house_thatch_entry',
-  'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined', 'cottage_shed',
+  'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined', 'cottage_house_ranger', 'cottage_shed',
 ]);
 // All tile types that indicate a structure is present (for spacing checks)
 const STRUCTURE_TYPES: Set<TileType> = new Set([
@@ -552,7 +559,7 @@ const STRUCTURE_TYPES: Set<TileType> = new Set([
   'house_blue', 'house_blue_entry',
   'house_green', 'house_green_entry',
   'house_thatch', 'house_thatch_entry',
-  'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined', 'cottage_shed',
+  'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined', 'cottage_house_ranger', 'cottage_shed',
   'destroyed_house', 'statue', 'mossy_stone', 'well',
 ]);
 const MIN_BUILDING_SPACING = 16; // minimum tiles between any two buildings (increased from 12)
@@ -578,7 +585,7 @@ function isBuildingNearby(tiles: Tile[][], fx: number, fy: number, fw: number, f
 function isOnInvalidTerrain(tiles: Tile[][], fx: number, fy: number, fw: number, fh: number): boolean {
   const h = tiles.length;
   const w = tiles[0].length;
-  const BAD_TERRAIN: Set<TileType> = new Set(['water', 'lava', 'swamp', 'ice', 'waterfall']);
+  const BAD_TERRAIN: Set<TileType> = new Set(['water', 'water_corrupted', 'lava', 'swamp', 'ice', 'waterfall']);
   let badCount = 0;
   let total = 0;
   for (let dy = -1; dy < fh + 1; dy++) {
@@ -632,7 +639,7 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean, 
         const existing = tiles[ty][tx];
         if (HOUSE_TYPES.has(existing.type) || existing.type === 'portal' || 
             existing.type === 'chest' || existing.interactable) continue;
-        if (!existing.walkable || existing.type === 'water' || existing.type === 'tree' || 
+        if (!existing.walkable || existing.type === 'water' || existing.type === 'water_corrupted' || existing.type === 'tree' || 
             existing.type === 'rock' || existing.type === 'swamp') {
           tiles[ty][tx] = createTile(yardFill, true);
         }
@@ -1195,22 +1202,70 @@ function placePath(tiles: Tile[][], f: MapFeature) {
 }
 
 function placeDestroyedTown(tiles: Tile[][], f: MapFeature) {
+  const hash = (dx: number, dy: number, salt: number) =>
+    ((dx * 374761 + dy * 668265 + f.x * 127 + f.y * 311 + salt) >>> 0) % 100;
+
+  const houseVariants: TileType[] = ['destroyed_house', 'destroyed_house_rubble', 'destroyed_house_overgrown'];
+
+  // Phase 1: fill everything with dirt/ruins_floor base
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
-      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-        if ((dx + dy * 3) % 7 === 0) {
-          tiles[ty][tx] = createTile('destroyed_house', false);
-        } else if ((dx * 2 + dy) % 11 === 0) {
-          tiles[ty][tx] = createTile('bones', true);
-        } else if ((dx + dy) % 9 === 0) {
-          tiles[ty][tx] = createTile('barrel', false);
-        } else if ((dx * 3 + dy * 2) % 13 === 0) {
-          tiles[ty][tx] = createTile('crate', false);
-        } else {
-          tiles[ty][tx] = createTile('dirt', true);
-        }
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const existing = tiles[ty][tx];
+      if (existing.transition || existing.interactable) continue;
+      const h = hash(dx, dy, 0);
+      tiles[ty][tx] = createTile(h < 30 ? 'ruins_floor' : 'dirt', true);
+    }
+  }
+
+  // Phase 2: place house ruins on a sparse grid (every 5-6 tiles) with variant rotation
+  let houseIdx = 0;
+  for (let dy = 2; dy < f.height - 2; dy += 5) {
+    for (let dx = 2; dx < f.width - 2; dx += 5) {
+      const jitterX = (hash(dx, dy, 77) % 3) - 1;
+      const jitterY = (hash(dx, dy, 133) % 3) - 1;
+      const px = dx + jitterX;
+      const py = dy + jitterY;
+      const tx = f.x + px;
+      const ty = f.y + py;
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      if (hash(px, py, 200) < 25) continue;
+      const variant = houseVariants[houseIdx % houseVariants.length];
+      houseIdx++;
+      tiles[ty][tx] = createTile(variant, false);
+    }
+  }
+
+  // Phase 3: scatter environmental detail — signs, rubble, bones, dead trees, barrels
+  for (let dy = 0; dy < f.height; dy++) {
+    for (let dx = 0; dx < f.width; dx++) {
+      const tx = f.x + dx;
+      const ty = f.y + dy;
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const cur = tiles[ty][tx];
+      if (cur.type !== 'dirt' && cur.type !== 'ruins_floor') continue;
+
+      const h = hash(dx, dy, 500);
+      if (h < 1) {
+        tiles[ty][tx] = createTile('broken_sign', false);
+      } else if (h < 5) {
+        tiles[ty][tx] = createTile('rubble', true);
+      } else if (h < 10) {
+        tiles[ty][tx] = createTile('bones_pile', true);
+      } else if (h < 13) {
+        tiles[ty][tx] = createTile('dead_tree', false);
+      } else if (h < 15) {
+        tiles[ty][tx] = createTile('barrel', false);
+      } else if (h < 17) {
+        tiles[ty][tx] = createTile('crate', false);
+      } else if (h < 19) {
+        tiles[ty][tx] = createTile('bones', true);
+      } else if (h < 21) {
+        tiles[ty][tx] = createTile('bloodstain', true);
+      } else if (h < 23) {
+        tiles[ty][tx] = createTile('stump', false);
       }
     }
   }
@@ -1392,21 +1447,20 @@ function placeAbandonedCamp(tiles: Tile[][], f: MapFeature) {
       }
     }
   }
-  // Extinguished campfire center
+  // Non-interactive campfire at center — purely decorative, no prompt.
   const ccx = f.x + Math.floor(f.width / 2);
   const ccy = f.y + Math.floor(f.height / 2);
-  if (f.interactionId && ccy < tiles.length && ccx < tiles[0].length) {
-    tiles[ccy][ccx] = createTile('bonfire_unlit', false, {
-      interactable: true,
-      interactionId: f.interactionId,
-    });
+  if (ccy < tiles.length && ccx < tiles[0].length) {
+    tiles[ccy][ccx] = createTile('campfire', false);
   }
 }
 
 function placeCemetery(tiles: Tile[][], f: MapFeature) {
-  // Fenced cemetery with orderly tombstones, fallen graves, dead trees and bones.
   const gateX = Math.floor(f.width / 2);
-  const gateY = f.height - 1; // high-Y edge = visual top = player approach side
+  const southRow = f.height - 1;
+  const halfOpen = 2; // ±2 = 5-tile-wide openings
+  const westOpenDY = Math.floor(f.height / 2);
+  const northOpenDX = gateX; // north opening aligned with south gate
 
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
@@ -1414,11 +1468,15 @@ function placeCemetery(tiles: Tile[][], f: MapFeature) {
       const ty = f.y + dy;
       if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
 
-      // ── Fence / gate border ──────────────────────────────────────────────────
-      if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === gateY) {
-        // 3-tile-wide gate opening (centre ± 1) so the entrance is never visually blocked.
-        const isGateOpening = dy === gateY && Math.abs(dx - gateX) <= 1;
-        tiles[ty][tx] = isGateOpening ? createTile('gate', true) : createTile('fence', false);
+      // ── Fence / openings on border ─────────────────────────────────────────
+      if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === southRow) {
+        const isWestOpen  = dx === 0 && Math.abs(dy - westOpenDY) <= halfOpen;
+        const isNorthOpen = dy === 0 && Math.abs(dx - northOpenDX) <= halfOpen;
+        if (isWestOpen || isNorthOpen) {
+          tiles[ty][tx] = createTile('dirt', true);
+        } else {
+          tiles[ty][tx] = createTile('fence', false);
+        }
         continue;
       }
 
@@ -1431,29 +1489,36 @@ function placeCemetery(tiles: Tile[][], f: MapFeature) {
         continue;
       }
 
-      // ── Entrance corridor — 2 rows deep, 3 tiles wide: always clear ──────────
-      if (dy >= gateY - 2 && Math.abs(dx - gateX) <= 1) continue;
+      // ── Keep corridors near openings clear of tombstones ─────────────────────
+      if (dx <= 2 && Math.abs(dy - westOpenDY) <= halfOpen) continue;
+      if (dy <= 2 && Math.abs(dx - northOpenDX) <= halfOpen) continue;
 
-      // ── Tombstones — sparser %4 grid so the plot breathes more ──────────────
-      // Deterministic per-cemetery hash gives organic variation without RNG.
+      // ── Tombstones — mix intact, cracked-h, cracked-v, and bones ──
       const hash = (dx * 7 + dy * 13 + f.x + f.y * 3) % 100;
+      const crackedVariant: TileType = hash % 2 === 0 ? 'tombstone_broken' : 'tombstone_cracked_v';
 
       if (dx % 4 === 1 && dy % 4 === 1) {
-        // ~30 % of graves are fallen (bones_pile, walkable) — rest are upright.
-        if (hash < 30) {
+        if (hash < 15) {
           tiles[ty][tx] = createTile('bones_pile', true);
+        } else if (hash < 40) {
+          tiles[ty][tx] = createTile(crackedVariant, false);
         } else {
           tiles[ty][tx] = createTile('tombstone', false, { interactable: true, interactionId: 'tombstone' });
         }
       } else if (dx % 4 === 3 && dy % 4 === 3 && hash < 35) {
-        // Sparse secondary tombstones at offset positions for an irregular look.
-        tiles[ty][tx] = createTile('tombstone', false, { interactable: true, interactionId: 'tombstone' });
+        tiles[ty][tx] = hash < 18
+          ? createTile(crackedVariant, false)
+          : createTile('tombstone', false, { interactable: true, interactionId: 'tombstone' });
       } else if ((dx + dy * 3) % 17 === 0) {
         tiles[ty][tx] = createTile('bones', true);
+      } else if ((dx * 11 + dy * 5 + f.x) % 23 === 0) {
+        tiles[ty][tx] = createTile(crackedVariant, false);
       }
     }
   }
 }
+
+const WATER_BRIDGE_TILES: Set<TileType> = new Set(['water', 'water_corrupted', 'bridge', 'bridge_corrupted', 'bridge_decay_blend']);
 
 function placeCliffFace(tiles: Tile[][], f: MapFeature) {
   for (let dy = 0; dy < f.height; dy++) {
@@ -1461,10 +1526,9 @@ function placeCliffFace(tiles: Tile[][], f: MapFeature) {
       const tx = f.x + dx;
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-        // Never overwrite authored entrance tiles, portals, or interactables (e.g. cottage doors
-        // whose frontY row happens to fall at the top of a cliff_face feature).
         const existing = tiles[ty][tx];
         if (existing.transition || existing.interactable) continue;
+        if (WATER_BRIDGE_TILES.has(existing.type)) continue;
         if (dy < 2) {
           tiles[ty][tx] = createTile('cliff_edge', false);
         } else {
@@ -1819,8 +1883,11 @@ function placeChurch(tiles: Tile[][], f: MapFeature) {
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         // Stone walls
         if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
-          if (dx === Math.floor(f.width / 2) && dy === f.height - 1) {
-            tiles[ty][tx] = createTile('gate', true); // entrance
+          const cx = Math.floor(f.width / 2);
+          const isSouthGate = dx === cx && dy === f.height - 1;
+          const isNorthExit = dx === cx && dy === 0;
+          if (isSouthGate || isNorthExit) {
+            tiles[ty][tx] = createTile('dirt', true);
           } else {
             tiles[ty][tx] = createTile('mossy_stone', false);
           }
@@ -1830,10 +1897,6 @@ function placeChurch(tiles: Tile[][], f: MapFeature) {
           tiles[ty][tx] = createTile('statue', false);
         } else if (dx === f.width - 3 && dy % 3 === 1) {
           tiles[ty][tx] = createTile('statue', false);
-        }
-        // Altar at front
-        else if (dx === Math.floor(f.width / 2) && dy === 1) {
-          tiles[ty][tx] = createTile('well', false, { interactable: true, interactionId: f.interactionId || 'church_altar' });
         }
         // Pews (cobblestone rows)
         else if (dy >= 3 && dy <= f.height - 3 && (dx >= 3 && dx <= f.width - 4)) {
@@ -1853,44 +1916,65 @@ function placeChurch(tiles: Tile[][], f: MapFeature) {
 function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
   if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
   const isHunterGateRuin = f.interactionId === 'hunter_gate_ruin';
+
+  const midX = Math.floor(f.width / 2);
+  const midY = Math.floor(f.height / 2);
+  const breachHalf = 2;
+
+  const isSouthBreach = (dx: number, dy: number) =>
+    !isHunterGateRuin && dy === f.height - 1 && dx >= midX - breachHalf && dx <= midX + breachHalf;
+  const isWestBreach = (dx: number, dy: number) =>
+    !isHunterGateRuin && dx === 0 && dy >= midY - breachHalf && dy <= midY + breachHalf;
+
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
-      if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-        // Crumbling outer walls with gaps
-        if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
-          if (!isHunterGateRuin && (dx + dy) % 3 === 0) {
-            tiles[ty][tx] = createTile('stone', true); // collapsed section
-          } else {
-            tiles[ty][tx] = createTile('mossy_stone', false);
-          }
-        }
-        // Broken corner towers
-        else if ((dx <= 2 && dy <= 2) || (dx >= f.width - 3 && dy <= 2) ||
-                 (dx <= 2 && dy >= f.height - 3) || (dx >= f.width - 3 && dy >= f.height - 3)) {
-          if (isHunterGateRuin || (dx + dy) % 2 === 0) {
-            tiles[ty][tx] = createTile('stone', false);
-          } else {
-            tiles[ty][tx] = createTile('ruins_floor', true);
-          }
-        }
-        // Interior - overgrown with debris
-        else if (!isHunterGateRuin && (dx * 3 + dy * 7) % 11 === 0) {
-          tiles[ty][tx] = createTile('bones', true);
-        } else if (!isHunterGateRuin && (dx + dy * 5) % 13 === 0) {
-          tiles[ty][tx] = createTile('destroyed_house', false);
-        } else if (!isHunterGateRuin && (dx * 2 + dy) % 9 === 0) {
-          tiles[ty][tx] = createTile('tall_grass', true);
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+
+      const isBorder = dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1;
+
+      if (isBorder) {
+        if (isSouthBreach(dx, dy) || isWestBreach(dx, dy)) {
+          tiles[ty][tx] = createTile('rubble', true);
         } else {
-          tiles[ty][tx] = createTile('ruins_floor', true);
+          tiles[ty][tx] = createTile('mossy_stone', false);
         }
+      } else if ((dx <= 1 && dy <= 1) || (dx >= f.width - 2 && dy <= 1) ||
+                 (dx <= 1 && dy >= f.height - 2) || (dx >= f.width - 2 && dy >= f.height - 2)) {
+        tiles[ty][tx] = createTile('stone', false);
+      } else if (!isHunterGateRuin && (dx * 3 + dy * 7) % 11 === 0) {
+        tiles[ty][tx] = createTile('bones', true);
+      } else if (!isHunterGateRuin && (dx + dy * 5) % 13 === 0) {
+        tiles[ty][tx] = createTile('destroyed_house', false);
+      } else if (!isHunterGateRuin && (dx * 2 + dy) % 9 === 0) {
+        tiles[ty][tx] = createTile('tall_grass', true);
+      } else {
+        tiles[ty][tx] = createTile('ruins_floor', true);
       }
     }
   }
-  // Center marker
-  const cx = f.x + Math.floor(f.width / 2);
-  const cy = f.y + Math.floor(f.height / 2);
+
+  // Rubble scatter just outside the breaches to make them read as collapsed wall
+  const scatterBreach = (bx: number, by: number, outDx: number, outDy: number) => {
+    for (let i = -breachHalf; i <= breachHalf; i++) {
+      const sx = f.x + bx + (outDy !== 0 ? i : 0) + outDx;
+      const sy = f.y + by + (outDx !== 0 ? i : 0) + outDy;
+      if (sy >= 0 && sy < tiles.length && sx >= 0 && sx < tiles[0].length) {
+        const existing = tiles[sy][sx];
+        if (!existing.transition && !existing.interactable && existing.type !== 'mossy_stone') {
+          tiles[sy][sx] = createTile('rubble', true);
+        }
+      }
+    }
+  };
+  if (!isHunterGateRuin) {
+    scatterBreach(midX, f.height - 1, 0, 1);
+    scatterBreach(0, midY, -1, 0);
+  }
+
+  const cx = f.x + midX;
+  const cy = f.y + midY;
   if (cy < tiles.length && cx < tiles[0].length) {
     tiles[cy][cx] = createTile('campfire', true, { interactable: true, interactionId: f.interactionId || 'ruined_fort' });
   }
@@ -1899,7 +1983,7 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
 function placeCottage(tiles: Tile[][], f: MapFeature) {
   // witch_cottage is intentionally adjacent to the golem boss arena; hunter_cottage and ranger_cabin
   // share a compound. All three may coexist with nearby structure tiles.
-  const allowNearbyStructureCluster = /hunter_cottage|ranger_cabin|witch_cottage/.test(f.interactionId ?? '');
+  const allowNearbyStructureCluster = /hunter_cottage|ranger_cabin|woodcutter_cottage_ruin/.test(f.interactionId ?? '');
   if (!allowNearbyStructureCluster && isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
 
   // Clear a yard around the cottage to prevent blocked doors.
@@ -1919,7 +2003,7 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
         const existing = tiles[ty][tx];
         if (HOUSE_TYPES.has(existing.type) || existing.type === 'portal' ||
             existing.type === 'chest' || existing.interactable) continue;
-        if (!existing.walkable || existing.type === 'water' || existing.type === 'tree' ||
+        if (!existing.walkable || existing.type === 'water' || existing.type === 'water_corrupted' || existing.type === 'tree' ||
             existing.type === 'rock' || existing.type === 'swamp') {
           tiles[ty][tx] = createTile(yardFill, true);
         }
@@ -1929,18 +2013,21 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
 
   const cx = Math.floor(f.width / 2);
   const hasInterior = !!(f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined);
-  const isWhisperingCottage = /witch_cottage|hunter_cottage|forest_cottage|ruin_cottage|hidden_cottage|ranger_cabin/.test(f.interactionId ?? '');
+  const isWhisperingCottage = /hunter_cottage|forest_cottage|ruin_cottage|hidden_cottage|ranger_cabin/.test(f.interactionId ?? '');
   // Abandoned exterior prop — ruined facade, vines/tall grass, no door interaction (set dressing).
   const isAbandonedForestShack = f.interactionId === 'forest_hermit' || f.interactionId === 'woodcutter_cottage_ruin';
-  const isRuinedForestCottageFacade = /hunter_cottage|forest_hermit|woodcutter_cottage_ruin/.test(f.interactionId ?? '');
+  const isRuinedForestCottageFacade = /forest_hermit|woodcutter_cottage_ruin/.test(f.interactionId ?? '');
   const isNonEnterable = !f.interactionId && !hasInterior;
+  const isRangerCabin = f.interactionId === 'ranger_cabin';
   const facadeTile: TileType = isRuinedForestCottageFacade
     ? 'cottage_house_forest_ruined'
-    : isWhisperingCottage
-      ? 'cottage_house_forest'
-      : isNonEnterable
-        ? 'cottage_shed'
-        : 'cottage_house';
+    : isRangerCabin
+      ? 'cottage_house_ranger'
+      : isWhisperingCottage
+        ? 'cottage_house_forest'
+        : isNonEnterable
+          ? 'cottage_shed'
+          : 'cottage_house';
   const anchors = (() => {
     const entryX = f.x + cx;
     // Canonical exterior cottage interaction anchor.
@@ -1979,9 +2066,13 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
         // For oversized interior-cottage facades, keep only the top strip blocked.
         // Remaining footprint rows must be walkable so no invisible non-walkable
         // bands remain on the visible approach pad.
-        tiles[ty][tx] = createTile(yardFill, dy >= 1);
+        tiles[ty][tx] = createTile(yardFill, true);
       } else if (dy < bodyRows) {
-        tiles[ty][tx] = createTile('wood', false);
+        if (isAbandonedForestShack || isNonEnterable) {
+          tiles[ty][tx] = createTile(yardFill, true);
+        } else {
+          tiles[ty][tx] = createTile('wood', false);
+        }
       } else if (dx === anchors.centerX && dy === f.height - 1) {
         tiles[ty][tx] = isAbandonedForestShack || !f.interactionId
           ? createTile('dirt', true)
@@ -2270,7 +2361,7 @@ function placeSecretAreas(tiles: Tile[][], def: MapDefinition) {
 
 // Tiles that should not have decoration overlays on or adjacent to them
 const INCOMPATIBLE_BASE: Set<TileType> = new Set([
-  'water', 'lava', 'ice', 'swamp', 'waterfall', 'bridge', 'bridge_corrupted',
+  'water', 'water_corrupted', 'lava', 'ice', 'swamp', 'waterfall', 'bridge', 'bridge_corrupted',
   // Cliff faces: trees growing out of vertical rock walls look wrong
   'cliff', 'cliff_edge',
 ]);
@@ -2479,6 +2570,8 @@ function stampCliffs(tiles: Tile[][], def: MapDefinition) {
       // Never overwrite roads/paths with cliff tiles — elevation changes on roads are
       // handled by the walkability system's "visible height indicator" heuristic.
       if (PATH_TILES.has(upperTile.type) || PATH_TILES.has(lowerTile.type)) continue;
+      // Water and bridges render at their own depth; cliffs must go behind, not overwrite them.
+      if (WATER_BRIDGE_TILES.has(upperTile.type) || WATER_BRIDGE_TILES.has(lowerTile.type)) continue;
 
       if (protectRing) {
         if (cellInCoastalRing(x, y - 1) || cellInCoastalRing(x, y)) continue;
@@ -2500,6 +2593,7 @@ function stampCliffs(tiles: Tile[][], def: MapDefinition) {
         }
         const targetTile = tiles[cy][x];
         if (targetTile.transition || targetTile.interactable || targetTile.type === 'stairs') continue;
+        if (WATER_BRIDGE_TILES.has(targetTile.type)) continue;
         tiles[cy][x] = createTile('cliff', false, { elevation: lowerElevation });
       }
 
@@ -2571,7 +2665,7 @@ function enforceInteriorCottageAprons(tiles: Tile[][], def: MapDefinition) {
         const existing = tiles[ty][tx];
         if (existing.type === 'portal' || existing.type === 'chest') continue;
         if (HOUSE_TYPES.has(existing.type)) continue;
-        if (!existing.walkable && (existing.type === 'grass' || existing.type === 'dirt' || existing.type === 'dark_grass')) {
+        if (!existing.walkable && (existing.type === 'grass' || existing.type === 'dirt' || existing.type === 'dark_grass' || existing.type === 'hollow_blight')) {
           tiles[ty][tx] = {
             ...existing,
             walkable: true,
@@ -2600,6 +2694,61 @@ function enforceInteriorCottageAprons(tiles: Tile[][], def: MapDefinition) {
           hidden: existing.hidden,
         });
       }
+    }
+  }
+}
+
+/** Whispering Woods: north of the Deep Hollow line, replace green hollow turf with bleached ground. */
+function applyDeepHollowBleachedGround(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const w = tiles[0]?.length ?? 0;
+  const maxY = Math.min(DEEP_HOLLOW_TILE_Y_MAX, tiles.length);
+  for (let ty = 0; ty < maxY; ty++) {
+    for (let tx = 0; tx < w; tx++) {
+      const t = tiles[ty][tx];
+      if (t.transition || t.interactable) continue;
+      if (t.type !== 'dark_grass' && t.type !== 'grass') continue;
+      tiles[ty][tx] = { ...t, type: 'hollow_blight' };
+    }
+  }
+}
+
+/**
+ * Hollow approach meander (bridge corridor): repaint every authored `water` cell in this band as
+ * `water_corrupted` after all other passes — guarantees the pool stays tainted even if feature order
+ * or later steps leave some strips as plain `water`.
+ * Bounds match the authored river west of the east exit (x=134+); does not touch far-east channels.
+ */
+function applyWhisperingWoodsHollowApproachCorruptedWater(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const h = tiles.length;
+  const w = tiles[0]?.length ?? 0;
+  const x0 = 100;
+  const x1 = 134;
+  const y0 = 80;
+  const y1 = 96;
+  for (let ty = y0; ty < y1 && ty < h; ty++) {
+    for (let tx = x0; tx < x1 && tx < w; tx++) {
+      const t = tiles[ty][tx];
+      if (t.type !== 'water') continue;
+      tiles[ty][tx] = { ...t, type: 'water_corrupted', walkable: false };
+    }
+  }
+}
+
+function enforceForestRockyHillShelf(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  // SW coastal-rim reward shelf above the rocky-hill stairway. Cliff sprite buffering marks the
+  // first visible grass rows non-walkable, but this authored shelf should be traversable.
+  for (let ty = 293; ty <= 294; ty++) {
+    for (let tx = 78; tx <= 83; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const existing = tiles[ty][tx];
+      if (existing.type !== 'grass' && existing.type !== 'chest') continue;
+      tiles[ty][tx] = {
+        ...existing,
+        walkable: true,
+      };
     }
   }
 }
@@ -2650,6 +2799,9 @@ export function generateMap(def: MapDefinition): WorldMap {
   placeLadders(tiles, def);
   // Final pass: keep interior cottage approaches traversable even after elevation/cliff stamping.
   enforceInteriorCottageAprons(tiles, def);
+  enforceForestRockyHillShelf(tiles, def);
+  applyDeepHollowBleachedGround(tiles, def);
+  applyWhisperingWoodsHollowApproachCorruptedWater(tiles, def);
   validateMapTransitions(tiles, def);
   validateAuthoredPlacements(tiles, def);
 

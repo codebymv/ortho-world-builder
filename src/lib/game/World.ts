@@ -3,17 +3,17 @@ import { AssetManager } from './AssetManager';
 import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
 
 export type TileType = 
-  | 'grass' | 'dirt' | 'water' | 'stone' | 'wood' 
-  | 'tree' | 'house' | 'house_entry' | 'house_blue' | 'house_blue_entry' | 'house_green' | 'house_green_entry' | 'house_thatch' | 'house_thatch_entry' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'rock' | 'chest' | 'chest_opened' | 'portal' | 'flower' | 'moonbloom' | 'tempest_grass'
+  | 'grass' | 'dirt' | 'water' | 'water_corrupted' | 'stone' | 'wood' 
+  | 'tree' | 'house' | 'house_entry' | 'house_blue' | 'house_blue_entry' | 'house_green' | 'house_green_entry' | 'house_thatch' | 'house_thatch_entry' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'cottage_house_ranger' | 'rock' | 'chest' | 'chest_opened' | 'portal' | 'flower' | 'moonbloom' | 'tempest_grass'
   | 'tall_grass' | 'bridge' | 'bridge_corrupted' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
-  | 'campfire' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'mushroom' | 'stump'
+  | 'campfire' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'tombstone_broken' | 'tombstone_cracked_v' | 'mushroom' | 'stump'
   | 'fence' | 'gate' | 'barrel' | 'crate' | 'spike_trap' | 'bones'
   | 'volcanic_rock' | 'ash' | 'ruins_floor' | 'waterfall' | 'snow'
-  | 'dead_tree' | 'destroyed_house' | 'statue'
+  | 'dead_tree' | 'destroyed_house' | 'destroyed_house_rubble' | 'destroyed_house_overgrown' | 'broken_sign' | 'statue'
   | 'cliff' | 'cliff_edge' | 'cobblestone' | 'farmland' | 'wheat'
   | 'iron_fence' | 'hedge' | 'scarecrow' | 'windmill' | 'hay_bale' | 'lantern'
-  | 'dark_grass' | 'mossy_stone' | 'wooden_path' | 'stairs' | 'ladder' | 'curled_ladder' | 'gate_ladder' | 'gate_ladder_open'
+  | 'dark_grass' | 'hollow_blight' | 'mossy_stone' | 'wooden_path' | 'stairs' | 'ladder' | 'curled_ladder' | 'gate_ladder' | 'gate_ladder_open'
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
   | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter'
   | 'bed' | 'wardrobe' | 'fireplace' | 'weapon_rack' | 'alchemy_table' | 'cauldron'
@@ -130,6 +130,13 @@ const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'tall_grass',
   'wheat',
 ]);
+const WATER_BRIDGE_TILES: ReadonlySet<TileType> = new Set([
+  'water',
+  'water_corrupted',
+  'bridge',
+  'bridge_corrupted',
+  'bridge_decay_blend',
+]);
 const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'house',
   'house_entry',
@@ -143,7 +150,10 @@ const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'cottage_house_entry',
   'cottage_house_forest',
   'cottage_house_forest_ruined',
+  'cottage_house_ranger',
   'destroyed_house',
+  'destroyed_house_rubble',
+  'destroyed_house_overgrown',
 ]);
 const OVERWORLD_STRUCTURE_SCALE_MULTIPLIER = 1.18;
 
@@ -295,6 +305,31 @@ export class World {
       ctx.fillStyle = 'rgba(0,0,0,0.38)';
       ctx.fillRect(0, h - 2, w, 2);
     }));
+
+    // Whispering Woods — hollow approach band (world y > ~-91, tileY 59–74): faint violet rot on grass,
+    // same family as corrupted bridge / deep hollow, weaker than full hollow_blight floor.
+    this.detailTextures.set('detail_corruption_mote', makeCanvas(ctx => {
+      const g = ctx.createRadialGradient(8, 8, 0, 8, 8, 7.5);
+      g.addColorStop(0, 'rgba(175, 110, 205, 0.85)');
+      g.addColorStop(0.35, 'rgba(95, 55, 125, 0.45)');
+      g.addColorStop(0.7, 'rgba(45, 30, 62, 0.12)');
+      g.addColorStop(1, 'rgba(20, 14, 28, 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 16, 16);
+      ctx.fillStyle = 'rgba(220, 190, 245, 0.4)';
+      ctx.fillRect(5, 6, 1, 1);
+      ctx.fillRect(10, 10, 1, 1);
+      ctx.fillRect(7, 11, 1, 1);
+    }));
+
+    this.detailTextures.set('detail_corruption_veil', makeCanvas(ctx => {
+      const g = ctx.createRadialGradient(8, 10, 0, 8, 10, 9);
+      g.addColorStop(0, 'rgba(130, 85, 165, 0.35)');
+      g.addColorStop(0.55, 'rgba(70, 48, 92, 0.18)');
+      g.addColorStop(1, 'rgba(25, 18, 35, 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 16, 16);
+    }));
   }
 
   // Shared geometry for all tile meshes
@@ -350,7 +385,8 @@ export class World {
   }
 
   private attachTileObject(tileX: number, tileY: number, object: THREE.Object3D): void {
-    const isOverlay = this.isOverlayTileType(this.map.tiles[tileY]?.[tileX]?.type ?? 'grass');
+    const tileType = this.map.tiles[tileY]?.[tileX]?.type ?? 'grass';
+    const isOverlay = this.isOverlayTileType(tileType);
     const baseZ = isOverlay ? 0.01 : 0.0;
     const visualYOffset = (this.map.tiles[tileY]?.[tileX]?.elevation ?? 0) * World.ELEVATION_Y_OFFSET;
     const worldOffsetX = -this.map.width / 2;
@@ -366,6 +402,14 @@ export class World {
       const worldY = worldOffsetY + tileY * this.tileSize + visualYOffset + sortAnchorY;
       const ySort = Math.round(100000 - worldY * 10 + (object.userData?.renderOrderBias ?? 0));
       this.applyOverlayRenderOrder(object, ySort);
+    } else if (WATER_BRIDGE_TILES.has(tileType)) {
+      if (object instanceof THREE.Group) {
+        for (const child of object.children) {
+          child.renderOrder = 55000;
+        }
+      } else {
+        object.renderOrder = 55000;
+      }
     }
     object.updateMatrix();
     if (object instanceof THREE.Group) object.updateMatrixWorld(false);
@@ -460,6 +504,62 @@ export class World {
     mesh.scale.set(s, s, 1);
 
     return mesh;
+  }
+
+  /**
+   * Between the river / bridge approach and the full deep-hollow floor (tileY < 59, world y about -91 and north):
+   * sparse purple corruption motes on grass — gradual ramp toward `hollow_blight`.
+   */
+  private createHollowTransitionCorruptionDecals(tileX: number, tileY: number, tileType: TileType): THREE.Group | null {
+    if (this.map.name !== 'Whispering Woods') return null;
+    if (tileType !== 'dark_grass' && tileType !== 'grass' && tileType !== 'tall_grass') return null;
+    if (tileY < 59 || tileY > 74) return null;
+
+    const depthT = (74 - tileY) / 15;
+    const passChance = 0.1 + depthT * 0.38;
+    if (tileHash(tileX, tileY, 501) > passChance) return null;
+
+    const count = tileHash(tileX, tileY, 502) < 0.42 + depthT * 0.38 ? 2 : 1;
+    const opacityBase = 0.14 + depthT * 0.24;
+    const group = new THREE.Group();
+    group.matrixAutoUpdate = false;
+
+    const addMesh = (variant: 'mote' | 'veil', idx: number) => {
+      const tex = this.detailTextures.get(variant === 'mote' ? 'detail_corruption_mote' : 'detail_corruption_veil');
+      if (!tex) return;
+      const op = Math.min(0.45, opacityBase + idx * 0.07);
+      const matKey = `hollow_corrupt_${variant}_${Math.round(op * 40)}`;
+      let mat = this.materialCache.get(matKey);
+      if (!mat) {
+        mat = new THREE.MeshBasicMaterial({
+          map: tex,
+          transparent: true,
+          opacity: op,
+          depthWrite: false,
+          depthTest: false,
+          alphaTest: 0.03,
+        });
+        this.materialCache.set(matKey, mat);
+      }
+      const mesh = new THREE.Mesh(this.detailGeometry, mat);
+      mesh.frustumCulled = true;
+      mesh.matrixAutoUpdate = false;
+      const hx = (tileHash(tileX, tileY, 510 + idx) - 0.5) * 0.48;
+      const hy = (tileHash(tileX, tileY, 520 + idx) - 0.5) * 0.48;
+      const baseSc = variant === 'mote' ? 1.1 + tileHash(tileX, tileY, 530 + idx) * 0.55 : 1.55 + tileHash(tileX, tileY, 531 + idx) * 0.45;
+      mesh.position.set(hx, hy, -0.28);
+      mesh.scale.set(baseSc, baseSc, 1);
+      mesh.rotation.z = tileHash(tileX, tileY, 540 + idx) * Math.PI * 2;
+      this.setRenderRole(mesh, 'overlay');
+      mesh.updateMatrix();
+      group.add(mesh);
+    };
+
+    addMesh('mote', 0);
+    if (count > 1) addMesh('veil', 1);
+
+    if (group.children.length === 0) return null;
+    return group;
   }
 
   private createShadowMesh(textureKey: string, opacity: number, rotation: number = 0, flipX: boolean = false): THREE.Mesh | null {
@@ -625,9 +725,11 @@ export class World {
     }
 
     const sortAnchorY = yOffset - scale * 0.5 + sortTrim;
+    const isCliffArt = tile.type === 'cliff' || tile.type === 'cliff_edge';
     group.userData = {
       tileType: tile.type,
       sortAnchorY,
+      ...(isCliffArt ? { renderOrderBias: -50000 } : {}),
     };
 
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
@@ -659,12 +761,13 @@ export class World {
     const base: TileType = TILE_METADATA[tile.type]?.isOverlay
       ? this.resolveBaseTileType(tileX, tileY, TILE_METADATA[tile.type]?.baseTile ?? 'grass')
       : tile.type;
-    if (base === 'water' || base === 'waterfall') return 'swamp';
+    if (base === 'water' || base === 'water_corrupted' || base === 'waterfall') return 'swamp';
     if (base === 'swamp') return 'swamp';
     if (base === 'snow' || base === 'ice') return 'snow';
     if (base === 'ruins_floor') return 'ruins';
     if (base === 'mossy_stone' || base === 'cobblestone' || base === 'stone' || base === 'wooden_path') return 'stone';
     if (base === 'dirt' || base === 'sand' || base === 'wood' || base === 'wood_floor' || base === 'farmland' || base === 'ash') return 'dirt';
+    if (base === 'hollow_blight') return 'hollow_blight';
     if (base === 'dark_grass' || base === 'tall_grass') return 'forest_floor';
     return 'grass';
   }
@@ -684,6 +787,10 @@ export class World {
       forest_floor: [
         [54, 104, 62],
         [24, 44, 30],
+      ],
+      hollow_blight: [
+        [196, 188, 158],
+        [92, 84, 70],
       ],
       dirt: [
         [124, 96, 70],
@@ -764,14 +871,17 @@ export class World {
 
   private appendTerrainSeamFillers(parent: THREE.Group, tile: Tile, tileX: number, tileY: number): void {
     if (HEIGHT_TILE_TYPES.has(tile.type)) return;
+    if (WATER_BRIDGE_TILES.has(tile.type)) return;
     const me = tile.elevation ?? 0;
     const kind = this.seamTerrainKind(tile, tileX, tileY);
 
     const addSouth = () => {
       if (tileY >= this.map.height - 1) return;
       const nb = this.map.tiles[tileY + 1]?.[tileX];
-      if (!nb || HEIGHT_TILE_TYPES.has(nb.type)) return;
+      if (!nb) return;
+      if (WATER_BRIDGE_TILES.has(nb.type)) return;
       const ne = nb.elevation ?? 0;
+      if (HEIGHT_TILE_TYPES.has(nb.type) && ne <= me) return;
       if (ne <= me) return;
       const gap = (ne - me) * World.ELEVATION_Y_OFFSET;
       if (gap < 0.02) return;
@@ -789,8 +899,10 @@ export class World {
     const addEast = () => {
       if (tileX >= this.map.width - 1) return;
       const nb = this.map.tiles[tileY]?.[tileX + 1];
-      if (!nb || HEIGHT_TILE_TYPES.has(nb.type)) return;
+      if (!nb) return;
+      if (WATER_BRIDGE_TILES.has(nb.type)) return;
       const ne = nb.elevation ?? 0;
+      if (HEIGHT_TILE_TYPES.has(nb.type) && ne <= me) return;
       if (ne <= me) return;
       const gap = (ne - me) * World.ELEVATION_Y_OFFSET;
       if (gap < 0.02) return;
@@ -849,7 +961,8 @@ export class World {
       if (tileX !== undefined && tileY !== undefined && tile.walkable) {
         const shadow = this.createElevationShadow(tileX, tileY, tile);
         const decal = this.createDetailDecal(tileX, tileY, tile.type);
-        if (shadow || decal) {
+        const hollowRot = this.createHollowTransitionCorruptionDecals(tileX, tileY, tile.type);
+        if (shadow || decal || hollowRot) {
           const group = this.overlayPool.pop() ?? new THREE.Group();
           group.clear();
           group.matrixAutoUpdate = false;
@@ -875,11 +988,17 @@ export class World {
             decal.updateMatrix();
             group.add(decal);
           }
+          if (hollowRot) {
+            hollowRot.updateMatrix();
+            group.add(hollowRot);
+          }
           return group;
         }
       }
 
       if (tileX !== undefined && tileY !== undefined) {
+        const hollowRot =
+          tile.walkable ? this.createHollowTransitionCorruptionDecals(tileX, tileY, tile.type) : null;
         const group = this.overlayPool.pop() ?? new THREE.Group();
         group.clear();
         group.matrixAutoUpdate = false;
@@ -888,6 +1007,10 @@ export class World {
         baseMesh.updateMatrix();
         group.add(baseMesh);
         this.appendTerrainSeamFillers(group, tile, tileX, tileY);
+        if (hollowRot) {
+          hollowRot.updateMatrix();
+          group.add(hollowRot);
+        }
         return group;
       }
 
@@ -925,7 +1048,8 @@ export class World {
       tile.type === 'cottage_house' ||
       tile.type === 'cottage_house_entry' ||
       tile.type === 'cottage_house_forest' ||
-      tile.type === 'cottage_house_forest_ruined'
+      tile.type === 'cottage_house_forest_ruined' ||
+      tile.type === 'cottage_house_ranger'
         ? 1500
         : tile.type === 'door' || tile.type === 'door_interior' || tile.type === 'door_iron'
           ? 1300
@@ -1351,7 +1475,7 @@ export class World {
     // Define walkability for base tile types
     const walkableBaseTiles = new Set([
       'grass', 'dirt', 'stone', 'wood', 'sand', 'swamp', 'ice', 
-      'cobblestone', 'farmland', 'ash', 'ruins_floor', 'dark_grass', 
+      'cobblestone', 'farmland', 'ash', 'ruins_floor', 'dark_grass', 'hollow_blight',
       'mossy_stone', 'wooden_path', 'wood_floor'
     ]);
     return walkableBaseTiles.has(tileType);
@@ -1513,7 +1637,7 @@ export class World {
     if (tile.type === 'sign' || tile.type === 'chain' || tile.type === 'shortcut_lever' || tile.type === 'lantern') {
       return 1.45;
     }
-    if (tile.type === 'well' || tile.type === 'tombstone' || tile.type === 'table' || tile.type === 'stump') {
+    if (tile.type === 'well' || tile.type === 'tombstone' || tile.type === 'tombstone_broken' || tile.type === 'tombstone_cracked_v' || tile.type === 'table' || tile.type === 'stump') {
       return 1.4;
     }
     if (tile.type === 'gate') {

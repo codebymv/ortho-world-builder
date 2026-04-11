@@ -77,7 +77,6 @@ export function getInteractionPromptLabel(
   if (interactionId === 'chapel_dead_ranger') return 'Inspect Fallen Ranger';
   if (interactionId === 'hollow_dead_ranger') return 'Inspect Fallen Ranger';
   if (interactionId === 'dead_ranger_shortcut_note') return 'Inspect Fallen Ranger';
-  if (interactionId === 'witch_cauldron') return 'Inspect Cauldron';
   if (interactionId === 'witch_altar') return 'Inspect Altar';
   if (interactionId === 'forest_fort_gate') {
     if (state.getFlag('forest_fort_gate_open')) return 'Fort Gate (Open)';
@@ -94,7 +93,7 @@ export function getInteractionPromptLabel(
   if (interactionId === 'temple_inscription') return 'Read Inscription';
   if (interactionId === 'forest_fort_banner') return 'Inspect Banner';
   if (interactionId === 'volcano_warning') return 'Read Warning';
-  if (interactionId === 'witch_cottage') return 'Inspect Cottage';
+  
   if (interactionId === 'logging_camp') return 'Inspect Camp';
   if (interactionId === 'collapsed_cottage') return 'Inspect Ruins';
 

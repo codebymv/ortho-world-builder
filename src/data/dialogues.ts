@@ -60,44 +60,23 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'quest_complete',
-        text: "You've returned! And with such dire news about the forest. The **Deep Woods**... I sense the magical barrier has weakened. I need you to travel there and find the **witch**. She knows the source of this darkness. The path is now open to you.",
+        text: "The manuscript speaks of horrors beyond the **Hollow** — __heretical magic__, practitioners who tore open something that should have stayed sealed. The corruption that poisons our woods flows from the east. Press on. Don't turn back now.",
         responses: [
-          { text: "I'll go to the Deep Woods.", nextId: 'give_second_quest' },
+          { text: "I'll follow the trail.", nextId: 'end' },
         ],
       },
       {
-        id: 'give_second_quest',
-        text: "Gather your strength and travel to the Deep Woods. Find the witch at her hut, learn what has awakened, and return with that knowledge. The fate of our village depends on it.",
+        id: 'heretical_pursuit_active',
+        text: "You carry the fight into **Gilrhym** itself. The __Ashen Court__ must answer for what they have unleashed. Find the source, tear it out, and return when the deed is done.",
         responses: [
-          { text: "I won't let you down.", nextId: 'end', givesQuest: 'clear_deep_woods' },
+          { text: "I won't stop until it's over.", nextId: 'end' },
         ],
       },
       {
-        id: 'deep_woods_active',
-        text: "The **Deep Woods** are treacherous. Find the **witch's hut**, learn what __shadow magic__ stirs below, and follow its trail toward **Shadow Castle** before you return.",
+        id: 'after_reaver',
+        text: "You've done what no one thought possible. The **Ashen Reaver** is fallen, and the corruption already loosens its grip on the woods. But the __heretical magic__ that started this... it didn't begin and end in one city. There are other cores, other places where the seals were broken. Rest now. When the time comes, Greenleaf will need you again.",
         responses: [
-          { text: "I'm still investigating.", nextId: 'end' },
-        ],
-      },
-      {
-        id: 'deep_woods_report',
-        text: "You're back—and your face says you've seen something grave. What did the witch reveal?",
-        responses: [
-          { text: "Ancient shadow magic is waking beneath the woods.", nextId: 'elder_deep_done' },
-        ],
-      },
-      {
-        id: 'elder_deep_done',
-        text: "Then we must act quickly. You've done the village a great service. Take this reward, and stay sharp.",
-        responses: [
-          { text: "I'll be ready.", nextId: 'end' },
-        ],
-      },
-      {
-        id: 'shadow_watch',
-        text: "Greenleaf speaks your name with gratitude now. The village will hold the lantern line as best it can, but the road ahead leads to **Shadow Castle**. Rest while you can. When you are ready, finish what woke in the woods.",
-        responses: [
-          { text: "I'll carry the fight north.", nextId: 'end' },
+          { text: "I'll be ready when that day comes.", nextId: 'end' },
         ],
       },
       {
@@ -132,8 +111,8 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
-        id: 'shadow_watch',
-        text: "These days I'm selling more lamp oil and salves than trinkets. Still, if you're marching on **Shadow Castle**, better to leave prepared than brave and empty-handed.",
+        id: 'after_reaver',
+        text: "Word travels fast — you broke the **Ashen Court's** hold on **Gilrhym**. Trade caravans are already talking about reopening the eastern road. In the meantime, anything you need is yours at a fair price.",
         responses: [
           { text: "Show me your goods.", nextId: 'end', opensVendor: 'merchant' },
           { text: "Tell me about your travels.", nextId: 'travels' },
@@ -206,11 +185,11 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
-        id: 'shadow_watch',
-        text: "The Elder's warning changed everything. Every spear in **Greenleaf** faces north now, and every torch stays lit past midnight. If the castle stirs, we hold long enough for you to end it.",
+        id: 'after_reaver',
+        text: "The **Reaver** is down. I heard it from three different scouts before breakfast. The night watch has been quieter already — fewer shadows on the tree line. You've earned every torch we kept lit for you.",
         responses: [
           { text: "How bad is it beyond the walls?", nextId: 'dangers' },
-          { text: "Hold the line.", nextId: 'end' },
+          { text: "Stay sharp.", nextId: 'end' },
         ],
       },
       {
@@ -390,37 +369,6 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'hollow_hunters_final_camp',
     nodes: [{ id: 'start', text: 'An abandoned camp. Nothing useful remains.', responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
-  witch_sign: {
-    id: 'witch_sign',
-    nodes: [{ id: 'start', text: "Scrawled on a rotting plank: '**The Witch** sees all. Leave __offerings__ and follow the __lanterns west__ if you seek counsel. Climb __north__ only if you seek the shadow gate.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
-  },
-
-  witch_hut_lore: {
-    id: 'witch_hut_lore',
-    nodes: [
-      {
-        id: 'start',
-        text: "Charred notes and rune-carved bark cover the table. One line is underlined three times: '__Shadow roots__ drink old magic below the temple hill. The seal is __fraying__.'",
-        responses: [
-          { text: "Study the writings closely.", nextId: 'lore' },
-        ],
-      },
-      {
-        id: 'lore',
-        text: "You understand the danger: a **well of shadow magic** is waking, twisting creature and forest alike. The witch has been holding the line for years. Its pull now climbs the __temple road__ toward the **Shadow Castle** gate.",
-        responses: [{ text: "[Continue]", nextId: 'end' }],
-      },
-      { id: 'end', text: '', responses: [] },
-    ],
-  },
-  temple_sign: {
-    id: 'temple_sign',
-    nodes: [{ id: 'start', text: "Ancient runes glow faintly: '**Beyond lies the Temple of the Forgotten**. The __seal road__ climbs north toward the **Shadow Castle** gate. Cross the ruined court, raise the inner mechanism, and only then may the keep be faced.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
-  },
-  deep_woods_sign: {
-    id: 'deep_woods_sign',
-    nodes: [{ id: 'start', text: "A battered sign: '**The Deep Woods** — Turn back. Follow the __west lantern road__ to the witch. The __north road__ rises toward old temple stones and the shadow gate beyond.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
-  },
   tombstone: {
     id: 'tombstone',
     nodes: [{ id: 'start', text: "The weathered inscription is barely legible: '__Here lies one who sought the truth__ and found only **darkness**.'", responses: [{ text: "[Pay respects]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
@@ -508,7 +456,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'context',
-        text: "\"Aye. Every possessed wolf, every skeleton, every hollow shade you fought getting here — that's __their__ doing. The corruption radiates outward from the city. The Whispering Woods, the Deep Woods... it all connects back to what the Ashen Court unleashed under that **cathedral**.\"",
+        text: "\"Aye. Every possessed wolf, every skeleton, every hollow shade you fought getting here — that's __their__ doing. The corruption radiates outward from the city. The **Whispering Woods**, the creatures at the **Hollow**... it all connects back to what the Ashen Court unleashed under that **cathedral**.\"",
         responses: [
           { text: "Who leads the Ashen Court?", nextId: 'faction' },
           { text: "What's deeper in the city?", nextId: 'warning' },
@@ -542,7 +490,21 @@ export const dialogues: Record<string, Dialogue> = {
         id: 'warning',
         text: "\"The outskirts are manageable — slimes and a few skeletons. Past the **cemetery** things get worse. The **market district** is crawling with shadows and skeletal captains. And the upper city...\" He winces. \"The **rooftops** can be safer than the streets up there. Stone sentinels patrol below. If you make it to the cathedral plaza... that's where __the Reaver__ waits. Be ready for a fight you won't forget.\"",
         responses: [
-          { text: "[Continue]", nextId: 'end' },
+          { text: "I'll end this.", nextId: 'end', givesQuest: 'heretical_pursuit' },
+        ],
+      },
+      {
+        id: 'quest_active',
+        text: "\"Still alive? Good. The **Reaver** patrols the cathedral plaza. Push through the market district and climb. If you can reach the upper city, there's no turning back.\"",
+        responses: [
+          { text: "I'll find a way.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'after_reaver',
+        text: "\"You actually did it. The Reaver... I watched Aldric train recruits in that same plaza for ten years. Whatever they turned him into, you set him free.\" He straightens painfully. \"Gilrhym won't forget this. Neither will I. Go home, hero. Your village deserves to see you standing.\"",
+        responses: [
+          { text: "Take care of yourself, Oliver.", nextId: 'end' },
         ],
       },
       { id: 'end', text: '', responses: [] },
@@ -636,8 +598,8 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
-        id: 'shadow_watch',
-        text: "I've handed the guard every spare blade I trust not to snap. If you're really going north, make sure your steel is cleaner than your conscience.",
+        id: 'after_reaver',
+        text: "The guard brought back a piece of the **Reaver's** armour. I've never seen metal like it — warped by something worse than fire. Whatever you fought in **Gilrhym**, it left a mark on the steel itself.",
         responses: [
           { text: "Can you improve my weapons?", nextId: 'weapons' },
           { text: "Heard any rumors lately?", nextId: 'rumors' },
@@ -653,7 +615,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'rumors',
-        text: "Word is the creatures in the **forest** are getting bolder. __Wolves__ prowling closer to the village walls. And there's talk of something stirring in the **Deep Woods**... something __ancient__.",
+        text: "Word is the creatures in the **forest** are getting bolder. __Wolves__ prowling closer to the village walls. And there's talk of something stirring deeper in the woods... something __ancient__ and angry.",
         responses: [
           { text: "That's concerning.", nextId: 'end' },
           { text: "Nothing I can't handle.", nextId: 'end' },
@@ -685,8 +647,8 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
-        id: 'shadow_watch',
-        text: "The beds are full and the lanterns burn through the night, but fear is worse than any wound if you let it settle. Tell me what you need.",
+        id: 'after_reaver',
+        text: "The beds are emptying and the lanterns last through the night without trimming. Whatever darkness you lifted from **Gilrhym**, the village feels lighter for it. Tell me what you need.",
         responses: [
           { text: "Can you heal me?", nextId: 'heal' },
           { text: "Do you know anything about the forest?", nextId: 'forest' },
@@ -735,8 +697,8 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
-        id: 'shadow_watch',
-        text: "I've moved the strongest tinctures off the front shelves. Between the chapel beds and the north watch, the whole village seems to breathe in short, careful sips now. What can I make for you?",
+        id: 'after_reaver',
+        text: "The air changed the night you brought that thing down. Cleaner, somehow. I've moved the strongest tinctures back behind the counter — people aren't buying them in bulk anymore. That's as close to good news as an apothecary gets.",
         responses: [
           { text: "Could you mix a restorative?", nextId: 'heal' },
           { text: "What are people buying lately?", nextId: 'stock' },
@@ -760,7 +722,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'woods',
-        text: "The worst part isn't the blood on the hunters' clothes. It's the resin. Black, sticky, and cold even when I put it near the fire. Whatever's gone wrong beyond the **Deep Woods**, it's seeping south in more ways than one.",
+        text: "The worst part isn't the blood on the hunters' clothes. It's the resin. Black, sticky, and cold even when I put it near the fire. Whatever corruption spread from the east, it's seeping through the forest in more ways than one.",
         responses: [
           { text: "I'll remember that.", nextId: 'end' },
         ],
@@ -791,8 +753,8 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
-        id: 'shadow_watch',
-        text: "We're down to the last dry linens and the chapel floor is lined with cots, but the door still opens and the lantern still burns. That's enough to keep fear from thinking it owns the room.",
+        id: 'after_reaver',
+        text: "The cots are emptying and the candle wax lasts longer now. Whatever you did out east, the village feels it — people sleep with their doors open again. That's no small thing.",
         responses: [
           { text: "How's the chapel holding up?", nextId: 'chapel' },
           { text: "How is the village taking all this?", nextId: 'watch' },
@@ -839,8 +801,8 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
-        id: 'shadow_watch',
-        text: "We've hauled what grain we can inside the fences and left the rest to weather. If the castle road keeps souring the night air, next season's going to be hard.",
+        id: 'after_reaver',
+        text: "The slimes have thinned out since whatever you did in the east. I even got a full day's harvest in without anything trying to eat my turnips. Don't get used to the gratitude — I'm still watching you near my crops.",
         responses: [
           { text: "Sorry about that. Need any help?", nextId: 'help' },
           { text: "Seen anything strange around here?", nextId: 'strange' },
@@ -887,8 +849,8 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
-        id: 'shadow_watch',
-        text: "They won't let me near the north gate anymore. Everybody keeps carrying boxes and whispering about the castle. Are you really going to stop it?",
+        id: 'after_reaver',
+        text: "Everyone says you beat a GIANT knight in a big dark city! Was it really as tall as a house?! Did it have a HUGE sword?! You have to tell me EVERYTHING!",
         responses: [
           { text: "I sure do! Want to hear a story?", nextId: 'story' },
           { text: "It's dangerous work, kid.", nextId: 'dangerous' },
@@ -934,8 +896,8 @@ export const dialogues: Record<string, Dialogue> = {
         ],
       },
       {
-        id: 'shadow_watch',
-        text: "I've turned spare rooms into cots and the common tables into bandage stations. If the castle road sends worse down on us, this place becomes a shelter before sunrise.",
+        id: 'after_reaver',
+        text: "The common room's full again — not with wounded, but with folk buying rounds and telling stories about the stranger who walked into **Gilrhym** and walked back out. That's you, in case the modesty hasn't worn off yet.",
         responses: [
           { text: "How's the inn holding up?", nextId: 'inn_talk' },
           { text: "Heard anything lately?", nextId: 'rumors' },
@@ -952,7 +914,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'rumors',
-        text: "Rangers say the woods went wrong in layers. First the beasts, then the shadows, and now the road north feels watched. Whatever waits beyond the **Deep Woods**, it wants the village afraid before it ever arrives.",
+        text: "Rangers say the woods went wrong in layers. First the beasts, then the shadows, and now the road north feels watched. Whatever corruption crept out of the forest, it wanted the village afraid before it ever arrived.",
         responses: [
           { text: "I'll keep that in mind.", nextId: 'end' },
         ],
@@ -1005,33 +967,6 @@ export const dialogues: Record<string, Dialogue> = {
         responses: [{ text: "Move on.", nextId: 'end' }],
       },
       { id: 'end', text: "The wind picks up as you step away from the outpost.", responses: [] },
-    ],
-  },
-  overgrown_shrine: {
-    id: 'overgrown_shrine',
-    nodes: [
-      {
-        id: 'start',
-        text: "An ancient shrine reclaimed by the forest. Ivy drapes the altar and wildflowers push through cracked stone. Whatever was once worshipped here is long forgotten.",
-        responses: [{ text: "Offer a moment of silence.", nextId: 'pray' }, { text: "Leave.", nextId: 'end' }],
-      },
-      {
-        id: 'pray',
-        text: "A faint warmth passes through you. Perhaps the old spirits still listen.",
-        responses: [{ text: "Move on.", nextId: 'end' }],
-      },
-      { id: 'end', text: "The shrine fades into the undergrowth behind you.", responses: [] },
-    ],
-  },
-  witch_cottage: {
-    id: 'witch_cottage',
-    nodes: [
-      {
-        id: 'start',
-        text: "Shelves of stoppered jars crowd the walls, and a low cauldron ticks as it cools. This place feels less abandoned than merely unattended, as if its owner stepped out only moments ago.",
-        responses: [{ text: "Look around quietly.", nextId: 'end' }],
-      },
-      { id: 'end', text: "Herbs, ash, and rainwater leave a bitter scent in the air.", responses: [] },
     ],
   },
   forest_ranger: {

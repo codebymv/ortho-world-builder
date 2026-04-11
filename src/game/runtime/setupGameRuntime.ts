@@ -1066,8 +1066,13 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             if (baseBiome === 'forest') {
               const map = world.getCurrentMap();
               const tileY = Math.floor(state.player.position.y + map.height / 2);
+              const tileX = Math.floor(state.player.position.x + map.width / 2);
+              // Deep Hollow (world y <= -91, tile y <= 59): thickest gloom + ambience.
+              if (tileY < 59) return 'forest_hollow_deep';
+              // Hollow proper (tile y < 70, world y < -80)
               if (tileY < 70) return 'forest_hollow';
-              if (tileY < 80) return Math.random() < 0.5 ? 'forest_hollow' : 'forest';
+              // Transition band: deterministic blend (no per-frame random flicker).
+              if (tileY < 80) return ((tileX + tileY) & 1) === 0 ? 'forest_hollow' : 'forest';
             }
             return baseBiome;
           })(),

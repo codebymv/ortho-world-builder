@@ -83,7 +83,7 @@ interface MusicDirectorContext {
   resolveTrack: (mapId: string) => string;
 }
 
-const MAP_MUSIC_VOLUME = 0.10;
+const MAP_MUSIC_VOLUME = 0.08;
 
 export function createMusicDirector(context: MusicDirectorContext) {
   const switchTrack = (mapId: string) => {
