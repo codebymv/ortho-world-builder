@@ -287,14 +287,26 @@ export function drawMinimapTerrainCell(
   const py = (mapHeight - 1 - tileY) * scale;
   if (tile.type === 'hollow_blight') {
     drawHollowBlightMinimapCell(ctx, tileX, tileY, px, py, scale);
+    if (mapName === 'Whispering Woods' && scale <= 1) {
+      ctx.fillStyle = 'rgba(255,255,255,0.14)';
+      ctx.fillRect(px, py, scale, scale);
+    }
     return;
   }
   if (isWhisperingWoodsHollowTransitionCell(mapName, tileY, tile.type)) {
     drawHollowTransitionMinimapCell(ctx, tileX, tileY, px, py, scale);
+    if (scale <= 1) {
+      ctx.fillStyle = 'rgba(255,255,255,0.14)';
+      ctx.fillRect(px, py, scale, scale);
+    }
     return;
   }
   ctx.fillStyle = tileColorForMinimap(tile);
   ctx.fillRect(px, py, scale, scale);
+  if (mapName === 'Whispering Woods' && scale <= 1) {
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillRect(px, py, scale, scale);
+  }
 }
 
 export function tileColorForMinimap(tile: Tile): string {
@@ -343,6 +355,7 @@ export interface DrawMinimapParams {
   markers: MapMarker[];
   scale: number;
   nowMs: number;
+  revealAll?: boolean;
 }
 
 export interface DrawMinimapTerrainParams {
@@ -352,6 +365,7 @@ export interface DrawMinimapTerrainParams {
   state: GameState;
   visited: Set<string>;
   scale: number;
+  revealAll?: boolean;
 }
 
 export interface DrawMinimapDynamicParams {
@@ -371,8 +385,6 @@ let _cachedVisitedSize = -1;
 let _cachedVisitedMapId = '';
 let _cachedVisitedMapW = 0;
 let _cachedVisitedMapH = 0;
-const MAX_TERRAIN_LAYER_CACHE_ENTRIES = 8;
-const _terrainLayerCache = new Map<string, HTMLCanvasElement>();
 
 function getVisitedTilesForMap(
   visited: Set<string>,
@@ -406,70 +418,33 @@ function getVisitedTilesForMap(
   return result;
 }
 
-function cacheTerrainLayer(key: string, canvas: HTMLCanvasElement): HTMLCanvasElement {
-  if (_terrainLayerCache.has(key)) {
-    _terrainLayerCache.delete(key);
-  }
-  _terrainLayerCache.set(key, canvas);
-
-  while (_terrainLayerCache.size > MAX_TERRAIN_LAYER_CACHE_ENTRIES) {
-    const oldestKey = _terrainLayerCache.keys().next().value;
-    if (!oldestKey) break;
-    _terrainLayerCache.delete(oldestKey);
-  }
-
-  return canvas;
-}
-
-function getTerrainLayerCacheKey(
-  currentMapId: string,
-  w: number,
-  h: number,
-  scale: number,
-  visitedSize: number,
-  playerTileX: number,
-  playerTileY: number,
-  visibleVisitedTilesCount: number,
-): string {
-  const revealSeed = visibleVisitedTilesCount === 0 ? `${playerTileX},${playerTileY}` : 'visited';
-  return `${currentMapId}:${w}x${h}:${scale}:${visitedSize}:${visibleVisitedTilesCount}:${revealSeed}`;
-}
-
-function getMinimapTerrainLayer(
-  ownerDocument: Document,
-  currentMap: WorldMap,
-  currentMapId: string,
-  visibleVisitedTiles: { x: number; y: number }[],
-  visitedSize: number,
-  playerTileX: number,
-  playerTileY: number,
-  scale: number,
-): HTMLCanvasElement {
+/**
+ * Single source of truth for minimap + full map canvas rendering.
+ */
+export function drawMinimapTerrain(p: DrawMinimapTerrainParams): void {
+  const { ctx, currentMap, currentMapId, state, visited, scale, revealAll = false } = p;
   const w = currentMap.width;
   const h = currentMap.height;
-  const cacheKey = getTerrainLayerCacheKey(
-    currentMapId,
-    w,
-    h,
-    scale,
-    visitedSize,
-    playerTileX,
-    playerTileY,
-    visibleVisitedTiles.length,
-  );
-  const cachedLayer = _terrainLayerCache.get(cacheKey);
-  if (cachedLayer) return cachedLayer;
-
-  const terrainCanvas = ownerDocument.createElement('canvas');
-  terrainCanvas.width = w * scale;
-  terrainCanvas.height = h * scale;
-
-  const terrainCtx = terrainCanvas.getContext('2d', { alpha: false });
-  if (!terrainCtx) return terrainCanvas;
-
+  const playerPosition = state.player.position;
   const tiles = currentMap.tiles;
-  terrainCtx.fillStyle = '#0a0806';
-  terrainCtx.fillRect(0, 0, w * scale, h * scale);
+
+  ctx.fillStyle = '#0a0806';
+  ctx.fillRect(0, 0, w * scale, h * scale);
+
+  const playerTileX = Math.floor(playerPosition.x + w / 2);
+  const playerTileY = Math.floor(playerPosition.y + h / 2);
+
+  const visibleVisitedTiles = getVisitedTilesForMap(visited, currentMapId, w, h);
+  if (revealAll) {
+    for (let ty = 0; ty < h; ty++) {
+      for (let tx = 0; tx < w; tx++) {
+        const tile = tiles[ty]?.[tx];
+        if (!tile) continue;
+        drawMinimapTerrainCell(ctx, tile, tx, ty, scale, h, currentMap.name);
+      }
+    }
+    return;
+  }
 
   if (visibleVisitedTiles.length === 0) {
     const revealRadius = 5;
@@ -480,7 +455,7 @@ function getMinimapTerrainLayer(
         if (tx >= 0 && ty >= 0 && tx < w && ty < h) {
           const tile = tiles[ty]?.[tx];
           if (tile) {
-            drawMinimapTerrainCell(terrainCtx, tile, tx, ty, scale, h, currentMap.name);
+            drawMinimapTerrainCell(ctx, tile, tx, ty, scale, h, currentMap.name);
           }
         }
       }
@@ -491,39 +466,8 @@ function getMinimapTerrainLayer(
     const { x, y } = tileInfo;
     const tile = tiles[y]?.[x];
     if (!tile) continue;
-    drawMinimapTerrainCell(terrainCtx, tile, x, y, scale, h, currentMap.name);
+    drawMinimapTerrainCell(ctx, tile, x, y, scale, h, currentMap.name);
   }
-
-  return cacheTerrainLayer(cacheKey, terrainCanvas);
-}
-
-/**
- * Single source of truth for minimap + full map canvas rendering.
- */
-export function drawMinimapTerrain(p: DrawMinimapTerrainParams): void {
-  const { ctx, currentMap, currentMapId, state, visited, scale } = p;
-  const w = currentMap.width;
-  const h = currentMap.height;
-  const playerPosition = state.player.position;
-
-  ctx.fillStyle = '#0a0806';
-  ctx.fillRect(0, 0, w * scale, h * scale);
-
-  const playerTileX = Math.floor(playerPosition.x + w / 2);
-  const playerTileY = Math.floor(playerPosition.y + h / 2);
-
-  const visibleVisitedTiles = getVisitedTilesForMap(visited, currentMapId, w, h);
-  const terrainLayer = getMinimapTerrainLayer(
-    ctx.canvas.ownerDocument,
-    currentMap,
-    currentMapId,
-    visibleVisitedTiles,
-    visited.size,
-    playerTileX,
-    playerTileY,
-    scale,
-  );
-  ctx.drawImage(terrainLayer, 0, 0);
 }
 
 export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
@@ -680,7 +624,7 @@ export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
 }
 
 export function drawMinimapContent(p: DrawMinimapParams): void {
-  const { ctx, currentMap, currentMapId, state, visited, markers, scale, nowMs } = p;
+  const { ctx, currentMap, currentMapId, state, visited, markers, scale, nowMs, revealAll = false } = p;
   drawMinimapTerrain({
     ctx,
     currentMap,
@@ -688,6 +632,7 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
     state,
     visited,
     scale,
+    revealAll,
   });
   drawMinimapDynamicOverlay({
     ctx,

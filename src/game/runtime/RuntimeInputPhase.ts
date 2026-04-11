@@ -79,6 +79,36 @@ export function setupRuntimeInputPhase({
 }: SetupRuntimeInputPhaseOptions) {
   const keys: Record<string, boolean> = {};
 
+  const resetInputState = () => {
+    for (const key of Object.keys(keys)) {
+      keys[key] = false;
+    }
+
+    runtimeSession.input.interactBuffered = false;
+    runtimeSession.input.dodgeBuffered = false;
+    runtimeSession.input.potionBuffered = false;
+    runtimeSession.input.comboInputBuffered = false;
+    runtimeSession.input.isLmbHeld = false;
+    runtimeSession.input.lmbHoldStartTime = 0;
+
+    runtimeSession.combat.isRmbHeld = false;
+    runtimeSession.combat.blockStartTime = 0;
+    runtimeSession.combat.blockAngle = 0;
+    if (runtimeSession.combat.isBlocking) {
+      runtimeSession.combat.isBlocking = false;
+    }
+
+    runtimeSession.animation.isChargingAttack = false;
+    runtimeSession.animation.chargeTimer = 0;
+    runtimeSession.animation.chargeLevel = 0;
+    if (
+      runtimeSession.animation.playerAnimState === 'block' ||
+      runtimeSession.animation.playerAnimState === 'charge'
+    ) {
+      runtimeSession.animation.playerAnimState = 'idle';
+    }
+  };
+
   const { handleKeyDown, handleKeyUp } = createKeyboardInputController({
     state,
     pausedRef,
@@ -173,6 +203,7 @@ export function setupRuntimeInputPhase({
     rendererDomElement: renderer.domElement,
     handleKeyDown,
     handleKeyUp,
+    resetInputState,
     handleResize,
     handleMouseDown,
     handleMouseUp,

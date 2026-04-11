@@ -437,7 +437,7 @@ const Game = () => {
       void loadInventoryModal();
       void loadObjectivesModal();
       void loadVendorModal();
-      const startMap = SaveManager.loadProgress()?.player?.currentMap ?? 'village';
+      const startMap = SaveManager.load()?.currentMap ?? 'village';
       void preloadMap(startMap).catch(() => {
         // Best-effort idle prefetch only.
       });
