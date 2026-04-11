@@ -1,6 +1,5 @@
 import { WorldMap } from '@/lib/game/World';
 import { interiorBlacksmithDef, interiorCottageADef, interiorCottageForestDef, interiorHollowArenaDef, interiorHunterCottageDef, interiorInnDef, interiorMerchantDef, interiorRangerCabinDef, interiorWoodcutterCottageDef } from '@/content/regions/interiors';
-import { gilrhymDef } from '@/content/regions/ruins/map';
 import { generateMap, MapDefinition } from './mapGenerator';
 
 // ============= VILLAGE: 240x160 Dense Interconnected Starting Town =============
@@ -2525,10 +2524,25 @@ export function subscribeMapHotReload(handler: () => void): () => void {
   };
 }
 
-export const mapDefinitions: Record<string, MapDefinition> = {
+type MapDefinitionSummary = Pick<MapDefinition, 'name' | 'subtitle' | 'width' | 'height'>;
+
+type DeferredMapDefinitionLoader = {
+  summary: MapDefinitionSummary;
+  load: () => Promise<MapDefinition>;
+};
+
+function summarizeMapDefinition(def: MapDefinition): MapDefinitionSummary {
+  return {
+    name: def.name,
+    subtitle: def.subtitle,
+    width: def.width,
+    height: def.height,
+  };
+}
+
+const staticMapDefinitions: Record<string, MapDefinition> = {
   village: villageDef,
   forest: forestDef,
-  gilrhym: gilrhymDef,
   interior_inn: interiorInnDef,
   interior_blacksmith: interiorBlacksmithDef,
   interior_merchant: interiorMerchantDef,
@@ -2540,9 +2554,104 @@ export const mapDefinitions: Record<string, MapDefinition> = {
   interior_hollow_arena: interiorHollowArenaDef,
 };
 
+const deferredMapLoaders: Record<string, DeferredMapDefinitionLoader> = {
+  gilrhym: {
+    summary: {
+      name: 'Gilrhym',
+      subtitle: 'A city consumed by what it buried',
+      width: 300,
+      height: 300,
+    },
+    load: async () => (await import('@/content/regions/ruins/map')).gilrhymDef,
+  },
+};
+
+const deferredMapDefinitions: Record<string, MapDefinition> = {};
+const deferredMapDefinitionLoads: Record<string, Promise<MapDefinition>> = {};
+
+const mapDefinitionSummaries: Record<string, MapDefinitionSummary> = {
+  village: summarizeMapDefinition(villageDef),
+  forest: summarizeMapDefinition(forestDef),
+  gilrhym: deferredMapLoaders.gilrhym.summary,
+  interior_inn: summarizeMapDefinition(interiorInnDef),
+  interior_blacksmith: summarizeMapDefinition(interiorBlacksmithDef),
+  interior_merchant: summarizeMapDefinition(interiorMerchantDef),
+  interior_cottage_a: summarizeMapDefinition(interiorCottageADef),
+  interior_cottage_forest: summarizeMapDefinition(interiorCottageForestDef),
+  interior_ranger_cabin: summarizeMapDefinition(interiorRangerCabinDef),
+  interior_woodcutter_cottage: summarizeMapDefinition(interiorWoodcutterCottageDef),
+  interior_hunter_cottage: summarizeMapDefinition(interiorHunterCottageDef),
+  interior_hollow_arena: summarizeMapDefinition(interiorHollowArenaDef),
+};
+
+function clearDeferredMapDefinitions() {
+  for (const key of Object.keys(deferredMapDefinitions)) {
+    delete deferredMapDefinitions[key];
+  }
+  for (const key of Object.keys(deferredMapDefinitionLoads)) {
+    delete deferredMapDefinitionLoads[key];
+  }
+}
+
+function getLoadedMapDefinition(key: string): MapDefinition | undefined {
+  return staticMapDefinitions[key] ?? deferredMapDefinitions[key];
+}
+
+async function ensureMapDefinition(key: string): Promise<MapDefinition | undefined> {
+  const loaded = getLoadedMapDefinition(key);
+  if (loaded) return loaded;
+
+  const loader = deferredMapLoaders[key];
+  if (!loader) return undefined;
+
+  deferredMapDefinitionLoads[key] ??= loader.load().then(def => {
+    deferredMapDefinitions[key] = def;
+    return def;
+  });
+
+  return deferredMapDefinitionLoads[key];
+}
+
+export async function preloadMap(key: string): Promise<WorldMap | undefined> {
+  if (mapCache[key]) {
+    return mapCache[key];
+  }
+
+  const def = await ensureMapDefinition(key);
+  if (!def) return undefined;
+
+  mapCache[key] = generateMap(def);
+  return mapCache[key];
+}
+
+export const mapDefinitions: Record<string, MapDefinition> = new Proxy({} as Record<string, MapDefinition>, {
+  get(_target, prop: string | symbol) {
+    if (typeof prop !== 'string') return undefined;
+    return getLoadedMapDefinition(prop) ?? (mapDefinitionSummaries[prop] as MapDefinition | undefined);
+  },
+  has(_target, prop: string | symbol) {
+    return typeof prop === 'string' && prop in mapDefinitionSummaries;
+  },
+  ownKeys() {
+    return Reflect.ownKeys(mapDefinitionSummaries);
+  },
+  getOwnPropertyDescriptor(_target, prop: string | symbol) {
+    if (typeof prop !== 'string' || !(prop in mapDefinitionSummaries)) {
+      return undefined;
+    }
+
+    return {
+      configurable: true,
+      enumerable: true,
+      value: getLoadedMapDefinition(prop) ?? mapDefinitionSummaries[prop],
+      writable: false,
+    };
+  },
+});
+
 function getOrGenerateMap(key: string): WorldMap | undefined {
   if (!mapCache[key]) {
-    const def = mapDefinitions[key];
+    const def = getLoadedMapDefinition(key);
     if (!def) return undefined;
     mapCache[key] = generateMap(def);
   }
@@ -2562,9 +2671,11 @@ export const allMaps: Record<string, WorldMap> = new Proxy({} as Record<string, 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     clearMapCache();
+    clearDeferredMapDefinitions();
   });
   import.meta.hot.accept(() => {
     clearMapCache();
+    clearDeferredMapDefinitions();
     for (const fn of mapHotReloadSubscribers) {
       try {
         fn();

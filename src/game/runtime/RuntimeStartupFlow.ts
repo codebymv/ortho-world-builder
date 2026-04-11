@@ -2,12 +2,12 @@ import * as THREE from 'three';
 import type { MutableRefObject } from 'react';
 import type { GameState, Item } from '@/lib/game/GameState';
 import type { World, WorldMap } from '@/lib/game/World';
-import { allMaps } from '@/data/maps';
 
 interface CreateRespawnHandlerOptions {
   gameStateRef: MutableRefObject<GameState | null>;
   worldRef: MutableRefObject<World | null>;
   cameraRef: MutableRefObject<THREE.OrthographicCamera | null>;
+  loadMap: (targetMap: string) => Promise<WorldMap | undefined>;
   items: Record<string, Item>;
   biomeAmbience: { setBiome: (biome: string) => void };
   mapBiomes: Record<string, string>;
@@ -29,6 +29,7 @@ export function createDeathRespawnHandler({
   gameStateRef,
   worldRef,
   cameraRef,
+  loadMap,
   items,
   biomeAmbience,
   mapBiomes,
@@ -46,65 +47,69 @@ export function createDeathRespawnHandler({
   triggerMinimapUpdate,
 }: CreateRespawnHandlerOptions) {
   return () => {
-    const state = gameStateRef.current;
-    const world = worldRef.current;
-    if (!state || !world) return;
+    void (async () => {
+      const state = gameStateRef.current;
+      const world = worldRef.current;
+      if (!state || !world) return;
 
-    const camera = cameraRef.current;
-    state.player.health = state.player.maxHealth;
-    state.player.stamina = state.player.maxStamina;
-    state.player.isDodging = false;
-    state.player.iFrameTimer = 0;
+      const camera = cameraRef.current;
+      state.player.health = state.player.maxHealth;
+      state.player.stamina = state.player.maxStamina;
+      state.player.isDodging = false;
+      state.player.iFrameTimer = 0;
 
-    const potionCount = state.inventory.filter(i => i.id === 'health_potion').length;
-    if (potionCount < 2) {
-      while (state.inventory.filter(i => i.id === 'health_potion').length < 2) {
-        state.addItem({ ...items.health_potion });
+      const potionCount = state.inventory.filter(i => i.id === 'health_potion').length;
+      if (potionCount < 2) {
+        while (state.inventory.filter(i => i.id === 'health_potion').length < 2) {
+          state.addItem({ ...items.health_potion });
+        }
       }
-    }
 
-    let bonfire = state.lastBonfire;
-    if (!bonfire) {
-      const spawnPoint = world.getSpawnPoint();
-      bonfire = { mapId: state.currentMap, x: spawnPoint.x, y: spawnPoint.y };
-      state.lastBonfire = bonfire;
-    }
-
-    const targetMap = bonfire.mapId;
-    const newMap = allMaps[targetMap];
-    if (!newMap) return;
-
-    if (state.currentMap !== targetMap) {
-      state.currentMap = targetMap;
-      world.loadMap(newMap);
-      setActiveNpcsForCurrentMap();
-      if (!targetMap.startsWith('interior_')) {
-        biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
-        switchMusicTrack(targetMap);
+      let bonfire = state.lastBonfire;
+      if (!bonfire) {
+        const spawnPoint = world.getSpawnPoint();
+        bonfire = { mapId: state.currentMap, x: spawnPoint.x, y: spawnPoint.y };
+        state.lastBonfire = bonfire;
       }
-    }
 
-    syncPersistentMapState();
+      const targetMap = bonfire.mapId;
+      const newMap = await loadMap(targetMap);
+      if (!newMap) return;
 
-    state.player.position = { x: bonfire.x, y: bonfire.y };
-    setPlayerSmoothedElevation(world.getElevationAt(bonfire.x, bonfire.y));
-    const playerVisualY = getPlayerVisualY(bonfire.x, bonfire.y);
-    playerMesh.position.set(bonfire.x, playerVisualY, 0.8);
-    cameraTarget.x = bonfire.x;
-    cameraTarget.y = playerVisualY;
-    if (camera) {
-      camera.position.x = bonfire.x;
-      camera.position.y = playerVisualY;
-    }
+      if (state.currentMap !== targetMap) {
+        state.currentMap = targetMap;
+        world.loadMap(newMap);
+        setActiveNpcsForCurrentMap();
+        if (!targetMap.startsWith('interior_')) {
+          biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
+          switchMusicTrack(targetMap);
+        }
+      }
 
-    respawnEnemiesForMap(targetMap, newMap);
+      syncPersistentMapState();
 
-    world.rebuildChunks();
-    world.updateChunks(bonfire.x, bonfire.y);
-    closeDialogueSession();
-    triggerSave();
-    triggerUIUpdate();
-    triggerMinimapUpdate(true);
+      state.player.position = { x: bonfire.x, y: bonfire.y };
+      setPlayerSmoothedElevation(world.getElevationAt(bonfire.x, bonfire.y));
+      const playerVisualY = getPlayerVisualY(bonfire.x, bonfire.y);
+      playerMesh.position.set(bonfire.x, playerVisualY, 0.8);
+      cameraTarget.x = bonfire.x;
+      cameraTarget.y = playerVisualY;
+      if (camera) {
+        camera.position.x = bonfire.x;
+        camera.position.y = playerVisualY;
+      }
+
+      respawnEnemiesForMap(targetMap, newMap);
+
+      world.rebuildChunks();
+      world.updateChunks(bonfire.x, bonfire.y);
+      closeDialogueSession();
+      triggerSave();
+      triggerUIUpdate();
+      triggerMinimapUpdate(true);
+    })().catch(error => {
+      console.error('[Respawn] Failed to restore bonfire state', error);
+    });
   };
 }
 

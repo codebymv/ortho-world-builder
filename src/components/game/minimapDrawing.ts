@@ -345,11 +345,34 @@ export interface DrawMinimapParams {
   nowMs: number;
 }
 
+export interface DrawMinimapTerrainParams {
+  ctx: CanvasRenderingContext2D;
+  currentMap: WorldMap;
+  currentMapId: string;
+  state: GameState;
+  visited: Set<string>;
+  scale: number;
+}
+
+export interface DrawMinimapDynamicParams {
+  ctx: CanvasRenderingContext2D;
+  currentMap: WorldMap;
+  currentMapId: string;
+  state: GameState;
+  markers: MapMarker[];
+  scale: number;
+  nowMs: number;
+  clear?: boolean;
+  includeFrame?: boolean;
+}
+
 let _cachedVisitedTiles: { x: number; y: number }[] = [];
 let _cachedVisitedSize = -1;
 let _cachedVisitedMapId = '';
 let _cachedVisitedMapW = 0;
 let _cachedVisitedMapH = 0;
+const MAX_TERRAIN_LAYER_CACHE_ENTRIES = 8;
+const _terrainLayerCache = new Map<string, HTMLCanvasElement>();
 
 function getVisitedTilesForMap(
   visited: Set<string>,
@@ -383,15 +406,130 @@ function getVisitedTilesForMap(
   return result;
 }
 
+function cacheTerrainLayer(key: string, canvas: HTMLCanvasElement): HTMLCanvasElement {
+  if (_terrainLayerCache.has(key)) {
+    _terrainLayerCache.delete(key);
+  }
+  _terrainLayerCache.set(key, canvas);
+
+  while (_terrainLayerCache.size > MAX_TERRAIN_LAYER_CACHE_ENTRIES) {
+    const oldestKey = _terrainLayerCache.keys().next().value;
+    if (!oldestKey) break;
+    _terrainLayerCache.delete(oldestKey);
+  }
+
+  return canvas;
+}
+
+function getTerrainLayerCacheKey(
+  currentMapId: string,
+  w: number,
+  h: number,
+  scale: number,
+  visitedSize: number,
+  playerTileX: number,
+  playerTileY: number,
+  visibleVisitedTilesCount: number,
+): string {
+  const revealSeed = visibleVisitedTilesCount === 0 ? `${playerTileX},${playerTileY}` : 'visited';
+  return `${currentMapId}:${w}x${h}:${scale}:${visitedSize}:${visibleVisitedTilesCount}:${revealSeed}`;
+}
+
+function getMinimapTerrainLayer(
+  ownerDocument: Document,
+  currentMap: WorldMap,
+  currentMapId: string,
+  visibleVisitedTiles: { x: number; y: number }[],
+  visitedSize: number,
+  playerTileX: number,
+  playerTileY: number,
+  scale: number,
+): HTMLCanvasElement {
+  const w = currentMap.width;
+  const h = currentMap.height;
+  const cacheKey = getTerrainLayerCacheKey(
+    currentMapId,
+    w,
+    h,
+    scale,
+    visitedSize,
+    playerTileX,
+    playerTileY,
+    visibleVisitedTiles.length,
+  );
+  const cachedLayer = _terrainLayerCache.get(cacheKey);
+  if (cachedLayer) return cachedLayer;
+
+  const terrainCanvas = ownerDocument.createElement('canvas');
+  terrainCanvas.width = w * scale;
+  terrainCanvas.height = h * scale;
+
+  const terrainCtx = terrainCanvas.getContext('2d', { alpha: false });
+  if (!terrainCtx) return terrainCanvas;
+
+  const tiles = currentMap.tiles;
+  terrainCtx.fillStyle = '#0a0806';
+  terrainCtx.fillRect(0, 0, w * scale, h * scale);
+
+  if (visibleVisitedTiles.length === 0) {
+    const revealRadius = 5;
+    for (let dy = -revealRadius; dy <= revealRadius; dy++) {
+      for (let dx = -revealRadius; dx <= revealRadius; dx++) {
+        const tx = playerTileX + dx;
+        const ty = playerTileY + dy;
+        if (tx >= 0 && ty >= 0 && tx < w && ty < h) {
+          const tile = tiles[ty]?.[tx];
+          if (tile) {
+            drawMinimapTerrainCell(terrainCtx, tile, tx, ty, scale, h, currentMap.name);
+          }
+        }
+      }
+    }
+  }
+
+  for (const tileInfo of visibleVisitedTiles) {
+    const { x, y } = tileInfo;
+    const tile = tiles[y]?.[x];
+    if (!tile) continue;
+    drawMinimapTerrainCell(terrainCtx, tile, x, y, scale, h, currentMap.name);
+  }
+
+  return cacheTerrainLayer(cacheKey, terrainCanvas);
+}
+
 /**
  * Single source of truth for minimap + full map canvas rendering.
  */
-export function drawMinimapContent(p: DrawMinimapParams): void {
-  const { ctx, currentMap, currentMapId, state, visited, markers, scale, nowMs } = p;
+export function drawMinimapTerrain(p: DrawMinimapTerrainParams): void {
+  const { ctx, currentMap, currentMapId, state, visited, scale } = p;
   const w = currentMap.width;
   const h = currentMap.height;
-  const tiles = currentMap.tiles;
+  const playerPosition = state.player.position;
 
+  ctx.fillStyle = '#0a0806';
+  ctx.fillRect(0, 0, w * scale, h * scale);
+
+  const playerTileX = Math.floor(playerPosition.x + w / 2);
+  const playerTileY = Math.floor(playerPosition.y + h / 2);
+
+  const visibleVisitedTiles = getVisitedTilesForMap(visited, currentMapId, w, h);
+  const terrainLayer = getMinimapTerrainLayer(
+    ctx.canvas.ownerDocument,
+    currentMap,
+    currentMapId,
+    visibleVisitedTiles,
+    visited.size,
+    playerTileX,
+    playerTileY,
+    scale,
+  );
+  ctx.drawImage(terrainLayer, 0, 0);
+}
+
+export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
+  const { ctx, currentMap, currentMapId, state, markers, scale, nowMs, clear = false, includeFrame = true } = p;
+  const w = currentMap.width;
+  const h = currentMap.height;
   const playerPosition = state.player.position;
   const npcs = state.npcs;
   const primaryObjectiveMarkers = markers.filter(marker => isPrimaryObjectiveMarker(marker, state));
@@ -406,35 +544,8 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
       .map(marker => marker.id)
   );
 
-  ctx.fillStyle = '#0a0806';
-  ctx.fillRect(0, 0, w * scale, h * scale);
-
-  const playerTileX = Math.floor(playerPosition.x + w / 2);
-  const playerTileY = Math.floor(playerPosition.y + h / 2);
-
-  const visibleVisitedTiles = getVisitedTilesForMap(visited, currentMapId, w, h);
-
-  if (visibleVisitedTiles.length === 0) {
-    const revealRadius = 5;
-    for (let dy = -revealRadius; dy <= revealRadius; dy++) {
-      for (let dx = -revealRadius; dx <= revealRadius; dx++) {
-        const tx = playerTileX + dx;
-        const ty = playerTileY + dy;
-        if (tx >= 0 && ty >= 0 && tx < w && ty < h) {
-          const tile = tiles[ty]?.[tx];
-          if (tile) {
-            drawMinimapTerrainCell(ctx, tile, tx, ty, scale, h, currentMap.name);
-          }
-        }
-      }
-    }
-  }
-
-  for (const tileInfo of visibleVisitedTiles) {
-    const { x, y } = tileInfo;
-    const tile = tiles[y]?.[x];
-    if (!tile) continue;
-    drawMinimapTerrainCell(ctx, tile, x, y, scale, h, currentMap.name);
+  if (clear) {
+    ctx.clearRect(0, 0, w * scale, h * scale);
   }
 
   for (const marker of markers) {
@@ -561,7 +672,30 @@ export function drawMinimapContent(p: DrawMinimapParams): void {
   ctx.arc(px, py, playerSize * 0.5, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = '#3a2812';
-  ctx.lineWidth = scale >= 6 ? 3 : 2;
-  ctx.strokeRect(0, 0, w * scale, h * scale);
+  if (includeFrame) {
+    ctx.strokeStyle = '#3a2812';
+    ctx.lineWidth = scale >= 6 ? 3 : 2;
+    ctx.strokeRect(0, 0, w * scale, h * scale);
+  }
+}
+
+export function drawMinimapContent(p: DrawMinimapParams): void {
+  const { ctx, currentMap, currentMapId, state, visited, markers, scale, nowMs } = p;
+  drawMinimapTerrain({
+    ctx,
+    currentMap,
+    currentMapId,
+    state,
+    visited,
+    scale,
+  });
+  drawMinimapDynamicOverlay({
+    ctx,
+    currentMap,
+    currentMapId,
+    state,
+    markers,
+    scale,
+    nowMs,
+  });
 }

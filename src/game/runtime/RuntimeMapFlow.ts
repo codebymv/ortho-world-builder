@@ -19,7 +19,7 @@ interface EnemyVisualRegistryLike {
 interface RuntimeMapFlowOptions {
   state: GameState;
   world: World;
-  allMaps: Record<string, WorldMap>;
+  loadMap: (targetMap: string) => Promise<WorldMap | undefined>;
   notify: (message: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
   showTransitionOverlay: (mapName: string, mapSubtitle?: string) => void;
   setBiomeForMap: (mapId: string) => void;
@@ -202,7 +202,7 @@ function resolveHarvestedBaseTile(map: WorldMap, tileX: number, tileY: number, f
 export function createRuntimeMapFlow({
   state,
   world,
-  allMaps,
+  loadMap,
   notify,
   showTransitionOverlay,
   setBiomeForMap,
@@ -998,7 +998,7 @@ export function createRuntimeMapFlow({
   const mapTransitionService: RuntimeMapTransitionServiceLike = createMapTransitionService({
     state,
     world,
-    allMaps,
+    loadMap,
     isPortalDestinationUnlocked,
     notify,
     showTransitionOverlay,

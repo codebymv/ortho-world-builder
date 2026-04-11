@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState, memo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import type { MutableRefObject } from 'react';
 import { WorldMap } from '@/lib/game/World';
 import type { MapMarker } from '@/lib/game/MapMarkers';
@@ -7,7 +7,8 @@ import {
   MARKER_TYPE_NAMES,
   MINIMAP_TERRAIN_LEGEND,
   computeMinimapScaleToFit,
-  drawMinimapContent,
+  drawMinimapDynamicOverlay,
+  drawMinimapTerrain,
 } from '@/components/game/minimapDrawing';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -35,10 +36,17 @@ export const MapModal = memo(function MapModal({
   markers,
   refreshToken,
 }: MapModalProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ w: 640, h: 480 });
   const animRef = useRef<number>(0);
+  const scale = useMemo(
+    () => computeMinimapScaleToFit(currentMap.width, currentMap.height, viewport.w, viewport.h, 2, 14),
+    [currentMap.height, currentMap.width, viewport.h, viewport.w],
+  );
+  const canvasWidth = currentMap.width * scale;
+  const canvasHeight = currentMap.height * scale;
 
   const measure = useCallback(() => {
     const el = wrapRef.current;
@@ -78,9 +86,41 @@ export const MapModal = memo(function MapModal({
 
   useEffect(() => {
     if (!open) return;
-    const canvas = canvasRef.current;
+    const terrainCanvas = terrainCanvasRef.current;
+    const overlayCanvas = overlayCanvasRef.current;
+    if (!terrainCanvas || !overlayCanvas) return;
+
+    terrainCanvas.width = canvasWidth;
+    terrainCanvas.height = canvasHeight;
+    overlayCanvas.width = canvasWidth;
+    overlayCanvas.height = canvasHeight;
+  }, [canvasHeight, canvasWidth, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const canvas = terrainCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return;
+
+    const state = gameStateRef.current;
+    if (!state) return;
+
+    drawMinimapTerrain({
+      ctx,
+      currentMap,
+      currentMapId,
+      state,
+      visited: visitedTilesRef.current,
+      scale,
+    });
+  }, [canvasHeight, canvasWidth, currentMap, currentMapId, gameStateRef, open, refreshToken, scale, visitedTilesRef]);
+
+  useEffect(() => {
+    if (!open) return;
+    const canvas = overlayCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
     let running = true;
@@ -105,31 +145,16 @@ export const MapModal = memo(function MapModal({
       }
       lastDrawPerf = nowPerf;
 
-      const scale = computeMinimapScaleToFit(
-        currentMap.width,
-        currentMap.height,
-        viewport.w,
-        viewport.h,
-        2,
-        14
-      );
-
-      const cw = currentMap.width * scale;
-      const ch = currentMap.height * scale;
-      if (canvas.width !== cw || canvas.height !== ch) {
-        canvas.width = cw;
-        canvas.height = ch;
-      }
-
-      drawMinimapContent({
+      drawMinimapDynamicOverlay({
         ctx,
         currentMap,
         currentMapId,
         state,
-        visited: visitedTilesRef.current,
         markers: currentMarkers,
         scale,
         nowMs,
+        clear: true,
+        includeFrame: true,
       });
 
       animRef.current = requestAnimationFrame(draw);
@@ -144,13 +169,10 @@ export const MapModal = memo(function MapModal({
     open,
     currentMap,
     currentMapId,
-    viewport.w,
-    viewport.h,
     refreshToken,
-    markers,
     gameStateRef,
-    visitedTilesRef,
     mapMarkersRef,
+    scale,
   ]);
 
   const currentMarkers = markers.filter(m => m.map === currentMapId);
@@ -183,12 +205,20 @@ export const MapModal = memo(function MapModal({
           ref={wrapRef}
           className="relative flex min-h-[min(55vh,520px)] flex-1 items-center justify-center overflow-hidden rounded-sm border-2 border-[#3a2812] bg-[#050302] p-2"
         >
-          <canvas
-            ref={canvasRef}
-            className="max-h-full max-w-full pixelated shadow-inner"
-            style={{ imageRendering: 'pixelated' }}
-            aria-hidden
-          />
+          <div className="relative inline-block max-h-full max-w-full">
+            <canvas
+              ref={terrainCanvasRef}
+              className="block max-h-full max-w-full pixelated shadow-inner"
+              style={{ imageRendering: 'pixelated' }}
+              aria-hidden
+            />
+            <canvas
+              ref={overlayCanvasRef}
+              className="pointer-events-none absolute inset-0 block h-full w-full max-h-full max-w-full pixelated"
+              style={{ imageRendering: 'pixelated' }}
+              aria-hidden
+            />
+          </div>
         </div>
 
         <div className="flex-shrink-0 border-t border-[#5C3A21]/50 pt-3">

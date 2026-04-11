@@ -1,18 +1,24 @@
 import * as THREE from 'three';
 
 export interface Particle {
-  mesh: THREE.Mesh;
+  position: THREE.Vector3;
   velocity: THREE.Vector3;
+  color: THREE.Color;
   lifetime: number;
   maxLifetime: number;
   active: boolean;
 }
+
+const PARTICLE_ALPHA_BUCKETS = [0.18, 0.42, 0.68, 0.92] as const;
 
 export class ParticleSystem {
   private particles: Particle[] = [];
   private scene: THREE.Scene;
   private poolSize: number = 50;
   private readonly sharedGeometry = new THREE.PlaneGeometry(0.1, 0.1);
+  private readonly particleMaterials: THREE.MeshBasicMaterial[] = [];
+  private readonly particleMeshes: THREE.InstancedMesh[] = [];
+  private readonly tempParticleObject = new THREE.Object3D();
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -20,26 +26,69 @@ export class ParticleSystem {
   }
 
   private initializePool() {
-    for (let i = 0; i < this.poolSize; i++) {
+    for (let i = 0; i < PARTICLE_ALPHA_BUCKETS.length; i++) {
       const material = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         transparent: true,
-        opacity: 1,
+        opacity: PARTICLE_ALPHA_BUCKETS[i],
         depthWrite: false,
+        vertexColors: true,
       });
-      const mesh = new THREE.Mesh(this.sharedGeometry, material);
-      mesh.visible = false;
+      const mesh = new THREE.InstancedMesh(this.sharedGeometry, material, this.poolSize);
+      mesh.count = 0;
       mesh.frustumCulled = false;
-      mesh.matrixAutoUpdate = false;
+      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       this.scene.add(mesh);
+      this.particleMaterials.push(material);
+      this.particleMeshes.push(mesh);
+    }
 
+    for (let i = 0; i < this.poolSize; i++) {
       this.particles.push({
-        mesh,
+        position: new THREE.Vector3(),
         velocity: new THREE.Vector3(),
+        color: new THREE.Color(0xffffff),
         lifetime: 0,
         maxLifetime: 1,
         active: false,
       });
+    }
+  }
+
+  private getOpacityBucket(opacity: number): number {
+    if (opacity <= 0.3) return 0;
+    if (opacity <= 0.55) return 1;
+    if (opacity <= 0.8) return 2;
+    return 3;
+  }
+
+  private syncParticleInstances() {
+    const bucketCounts = new Array(this.particleMeshes.length).fill(0);
+
+    for (const particle of this.particles) {
+      if (!particle.active) continue;
+
+      const opacity = 1 - (particle.lifetime / particle.maxLifetime);
+      const bucketIndex = this.getOpacityBucket(opacity);
+      const instanceIndex = bucketCounts[bucketIndex]++;
+      const mesh = this.particleMeshes[bucketIndex];
+
+      this.tempParticleObject.position.copy(particle.position);
+      this.tempParticleObject.rotation.set(0, 0, 0);
+      this.tempParticleObject.scale.setScalar(1);
+      this.tempParticleObject.updateMatrix();
+      mesh.setMatrixAt(instanceIndex, this.tempParticleObject.matrix);
+      mesh.setColorAt(instanceIndex, particle.color);
+    }
+
+    for (let i = 0; i < this.particleMeshes.length; i++) {
+      const mesh = this.particleMeshes[i];
+      mesh.count = bucketCounts[i];
+      mesh.visible = bucketCounts[i] > 0;
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) {
+        mesh.instanceColor.needsUpdate = true;
+      }
     }
   }
 
@@ -57,8 +106,7 @@ export class ParticleSystem {
         particle.active = true;
         particle.lifetime = 0;
         particle.maxLifetime = lifetime;
-        particle.mesh.position.copy(position);
-        particle.mesh.visible = true;
+        particle.position.copy(position);
 
         particle.velocity.set(
           (Math.random() - 0.5) * spread,
@@ -66,9 +114,7 @@ export class ParticleSystem {
           Math.random() * 0.5
         ).multiplyScalar(speed);
 
-        const material = particle.mesh.material as THREE.MeshBasicMaterial;
-        material.color.setHex(color);
-        material.opacity = 1;
+        particle.color.setHex(color);
 
         emitted++;
       }
@@ -118,31 +164,29 @@ export class ParticleSystem {
   update(deltaTime: number) {
     for (const particle of this.particles) {
       if (particle.active) {
-        particle.mesh.position.x += particle.velocity.x * deltaTime;
-        particle.mesh.position.y += particle.velocity.y * deltaTime;
-        particle.mesh.position.z += particle.velocity.z * deltaTime;
+        particle.position.x += particle.velocity.x * deltaTime;
+        particle.position.y += particle.velocity.y * deltaTime;
+        particle.position.z += particle.velocity.z * deltaTime;
 
         particle.velocity.y -= 3 * deltaTime;
-
-        const material = particle.mesh.material as THREE.MeshBasicMaterial;
-        material.opacity = 1 - (particle.lifetime / particle.maxLifetime);
 
         particle.lifetime += deltaTime;
 
         if (particle.lifetime >= particle.maxLifetime) {
           particle.active = false;
-          particle.mesh.visible = false;
-        } else {
-          particle.mesh.updateMatrix();
         }
       }
     }
+
+    this.syncParticleInstances();
   }
 
   cleanup() {
-    for (const particle of this.particles) {
-      this.scene.remove(particle.mesh);
-      (particle.mesh.material as THREE.Material).dispose();
+    for (const mesh of this.particleMeshes) {
+      this.scene.remove(mesh);
+    }
+    for (const material of this.particleMaterials) {
+      material.dispose();
     }
     this.sharedGeometry.dispose();
     this.particles = [];

@@ -6,8 +6,9 @@ import { World } from '@/lib/game/World';
 import { ENEMY_BLUEPRINTS, DEFAULT_ENEMY } from '@/data/enemies';
 import { getPrimaryObjectiveText, MapMarker, isNpcObjectiveTarget } from '@/lib/game/MapMarkers';
 import { SaveManager } from '@/lib/game/SaveManager';
-import { allMaps, subscribeMapHotReload } from '@/data/maps';
-import { dialogues, DialogueNode } from '@/data/dialogues';
+import { preloadMap, subscribeMapHotReload } from '@/data/maps';
+import type { DialogueNode } from '@/data/dialogues';
+import { hasDialogueId } from '@/data/dialogueIds';
 import { notify } from '@/lib/game/notificationBus';
 import type { WorldMap } from '@/lib/game/World';
 import type { Item } from '@/lib/game/GameState';
@@ -131,7 +132,7 @@ export interface RuntimeCallbacks {
   triggerUIUpdate: () => void;
   triggerUIUpdateThrottled: (now?: number) => void;
   triggerMinimapUpdate: (force?: boolean, now?: number) => void;
-  createDialogueProgression: () => DialogueProgression;
+  createDialogueProgression: () => DialogueProgression | null;
   closeDialogueSession: (stateToClose?: GameState | null) => void;
   switchMusicTrack: (mapId: string) => void;
   processAudioElement: (audio: HTMLAudioElement) => void;
@@ -602,7 +603,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     } = createRuntimeMapFlow({
       state,
       world,
-      allMaps,
+      loadMap: preloadMap,
       notify,
       showTransitionOverlay: showTransitionOverlay,
       setBiomeForMap: (mapId: string) => {
@@ -654,11 +655,18 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     if (import.meta.hot) {
       subscribeMapHotReload(() => {
         const mapId = state.currentMap;
-        world.loadMap(allMaps[mapId]);
-        syncPersistentMapState();
-        world.updateChunks(state.player.position.x, state.player.position.y);
-        respawnEnemiesForCurrentMap(mapId, world.getCurrentMap());
-        setActiveNpcsForCurrentMap();
+        void preloadMap(mapId)
+          .then(map => {
+            if (!map || disposed) return;
+            world.loadMap(map);
+            syncPersistentMapState();
+            world.updateChunks(state.player.position.x, state.player.position.y);
+            respawnEnemiesForCurrentMap(mapId, world.getCurrentMap());
+            setActiveNpcsForCurrentMap();
+          })
+          .catch(error => {
+            console.warn('[maps hot reload] failed to reload current map', error);
+          });
       });
     }
 
@@ -734,7 +742,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncGilrhymBossState,
           handleMapTransition,
           healCooldowns,
-          hasDialogue: interactionId => Boolean(dialogues[interactionId]),
+          hasDialogue: hasDialogueId,
           dir8to4: direction8ToCardinal,
           getKillCount: () => killCount,
           setKillCount: value => {
@@ -1093,6 +1101,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       gameStateRef,
       worldRef,
       cameraRef,
+      loadMap: preloadMap,
       items,
       biomeAmbience,
       mapBiomes: MAP_BIOMES,

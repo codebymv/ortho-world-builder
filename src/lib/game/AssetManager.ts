@@ -1062,6 +1062,10 @@ export class AssetManager {
   }
 
   getTextureURL(id: string): string | null {
+    const existingUrl = this.textureDataUrls.get(id);
+    if (existingUrl) return existingUrl;
+
+    this.getTexture(id);
     return this.textureDataUrls.get(id) || null;
   }
 
@@ -1153,6 +1157,24 @@ export class AssetManager {
       return sprite.map(row => [...row].reverse());
     };
 
+    const registerColorTexture = (
+      name: string,
+      color: number,
+      width: number = 32,
+      height: number = 32,
+      pattern?: 'noise' | 'checker' | 'gradient' | 'cobblestone_grid'
+    ) => {
+      this.registerTexture(name, () => this.createColorTexture(color, width, height, pattern));
+    };
+
+    const registerSpriteTexture = (
+      name: string,
+      colors: readonly (readonly number[])[],
+      cellSize: number = 4,
+    ) => {
+      this.registerTexture(name, () => this.createSpriteTexture(colors, cellSize, name));
+    };
+
     // ===== HERO PALETTE for canvas-drawn chibi =====
     const heroPalette = {
       hair: 0x8B6040, hairLight: 0xC09060, hairDark: 0x503018,
@@ -1177,7 +1199,7 @@ export class AssetManager {
           const spriteId = `player_${d}_${s}_${fr}`;
           const bladeId = `player_${d}_${s}_${fr}_blade`;
           this.registerTexture(spriteId, () => {
-            const tex = this.textures.get('sword');
+            const tex = this.getTexture('sword');
             const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
             return this.createChibiCharacter(d, s, fr, heroPalette, spriteId, false, true, wc, 0.78);
           });
@@ -1194,7 +1216,7 @@ export class AssetManager {
           const spriteId = `player_${d}_attack_${cs}_${fr}`;
           const bladeId = `player_${d}_attack_${cs}_${fr}_blade`;
           this.registerTexture(spriteId, () => {
-            const tex = this.textures.get('sword');
+            const tex = this.getTexture('sword');
             const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
             return this.createChibiCharacter(d, 'attack', fr, heroPalette, spriteId, false, true, wc, 0.78, cs);
           });
@@ -2252,26 +2274,26 @@ export class AssetManager {
     ], 4, 'enemy_ashen_reaver_attack'));
 
     // ========== Interaction indicator sprite ==========
-    this.textures.set('interact_indicator', this.createSpriteTexture([
+    registerSpriteTexture('interact_indicator', [
       [C,       C,       0xFFD700,0xFFD700,C,       C],
       [C,       0xFFD700,0xFFF9C4,0xFFF9C4,0xFFD700,C],
       [0xFFD700,0xFFF9C4,0xFFFFFF,0xFFFFFF,0xFFF9C4,0xFFD700],
       [0xFFD700,0xFFF9C4,0xFFFFFF,0xFFFFFF,0xFFF9C4,0xFFD700],
       [C,       0xFFD700,0xFFF9C4,0xFFF9C4,0xFFD700,C],
       [C,       C,       0xFFD700,0xFFD700,C,       C],
-    ], 4, 'interact_indicator'));
+    ]);
 
     // ========== TERRAIN ==========
-    this.textures.set('grass', this.createColorTexture(0x4CAF50, 32, 32, 'noise'));
-    this.textures.set('dirt', this.createColorTexture(0x8D6E63, 32, 32, 'noise'));
-    this.textures.set('water', this.createColorTexture(0x1E88E5, 32, 32, 'noise'));
+    registerColorTexture('grass', 0x4CAF50, 32, 32, 'noise');
+    registerColorTexture('dirt', 0x8D6E63, 32, 32, 'noise');
+    registerColorTexture('water', 0x1E88E5, 32, 32, 'noise');
     // Hollow-tainted pool: near-black with violet noise (Whispering Woods meander west of corrupted bridge)
-    this.textures.set('water_corrupted', this.createColorTexture(0x1A0A22, 32, 32, 'noise'));
-    this.textures.set('stone', this.createColorTexture(0x6E7B85, 32, 32, 'gradient'));
-    this.textures.set('wood', this.createColorTexture(0x795548, 32, 32, 'gradient'));
-    this.textures.set('tall_grass', this.createColorTexture(0x388E3C, 32, 32, 'noise'));
-    this.textures.set('sand', this.createColorTexture(0xF5DEB3, 32, 32, 'noise'));
-    this.textures.set('swamp', this.createColorTexture(0x556B2F, 32, 32, 'noise'));
+    registerColorTexture('water_corrupted', 0x1A0A22, 32, 32, 'noise');
+    registerColorTexture('stone', 0x6E7B85, 32, 32, 'gradient');
+    registerColorTexture('wood', 0x795548, 32, 32, 'gradient');
+    registerColorTexture('tall_grass', 0x388E3C, 32, 32, 'noise');
+    registerColorTexture('sand', 0xF5DEB3, 32, 32, 'noise');
+    registerColorTexture('swamp', 0x556B2F, 32, 32, 'noise');
     // ── bridge: rickety wooden planks running E–W, bridge travels N–S ──────────
     // Rail edges (L/R columns), plank rows with dark cracks between them.
     const BR_RAIL  = 0x7A4F1E; // rail cap — dark aged timber
@@ -2281,7 +2303,7 @@ export class AssetManager {
     const BR_PD    = 0x6B4220; // plank shadow
     const BR_GP    = 0x22110A; // crack / gap between planks
     const BR_KN    = 0x5A3418; // wood knot accent
-    this.textures.set('bridge', this.createSpriteTexture([
+    registerSpriteTexture('bridge', [
       // north rail
       [BR_SIDE, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_SIDE],
       // crack
@@ -2313,7 +2335,7 @@ export class AssetManager {
       // south rail
       [BR_SIDE, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_SIDE],
       [BR_SIDE, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_SIDE],
-    ], 2, 'bridge'));
+    ], 2);
 
     // ── bridge_corrupted: same plank structure, rotted + hollow-tainted ─────────
     // Planks are darker, redder, warped; corruption seeps through cracks as voids.
@@ -2325,7 +2347,7 @@ export class AssetManager {
     const BC_GP    = 0x0C1820; // gap — shows void/dark water (bluish-black)
     const BC_VD    = 0x102030; // void/corruption seep in crack
     const BC_CR    = 0x1A2810; // corruption growths on planks (dark green-black)
-    this.textures.set('bridge_corrupted', this.createSpriteTexture([
+    registerSpriteTexture('bridge_corrupted', [
       // north rail — crumbling
       [BC_SIDE, BC_RAIL, BC_CR,   BC_RAIL, BC_RAIL, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_RAIL, BC_CR,   BC_SIDE],
       // wide void crack (more exposed than normal bridge)
@@ -2357,18 +2379,18 @@ export class AssetManager {
       // north face — corruption rail remnant
       [BC_SIDE, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_SIDE],
       [BC_SIDE, BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_SIDE],
-    ], 2, 'bridge_corrupted'));
-    this.textures.set('lava', this.createColorTexture(0xE65100, 32, 32, 'noise'));
-    this.textures.set('ice', this.createColorTexture(0xB3E5FC, 32, 32, 'checker'));
-    this.textures.set('pressure_plate', this.createColorTexture(0x607D8B, 32, 32, 'checker'));
-    this.textures.set('hidden_wall', this.createColorTexture(0x78909C, 32, 32, 'checker'));
-    this.textures.set('push_block', this.createColorTexture(0x5D4037, 32, 32, 'gradient'));
-    this.textures.set('switch_door', this.createColorTexture(0x4E342E, 32, 32, 'gradient'));
-    this.textures.set('volcanic_rock', this.createColorTexture(0x3E2723, 32, 32, 'noise'));
-    this.textures.set('ash', this.createColorTexture(0x616161, 32, 32, 'noise'));
-    this.textures.set('ruins_floor', this.createColorTexture(0x6D4C41, 32, 32, 'checker'));
-    this.textures.set('waterfall', this.createColorTexture(0x42A5F5, 32, 32, 'noise'));
-    this.textures.set('snow', this.createColorTexture(0xECEFF1, 32, 32, 'noise'));
+    ], 2);
+    registerColorTexture('lava', 0xE65100, 32, 32, 'noise');
+    registerColorTexture('ice', 0xB3E5FC, 32, 32, 'checker');
+    registerColorTexture('pressure_plate', 0x607D8B, 32, 32, 'checker');
+    registerColorTexture('hidden_wall', 0x78909C, 32, 32, 'checker');
+    registerColorTexture('push_block', 0x5D4037, 32, 32, 'gradient');
+    registerColorTexture('switch_door', 0x4E342E, 32, 32, 'gradient');
+    registerColorTexture('volcanic_rock', 0x3E2723, 32, 32, 'noise');
+    registerColorTexture('ash', 0x616161, 32, 32, 'noise');
+    registerColorTexture('ruins_floor', 0x6D4C41, 32, 32, 'checker');
+    registerColorTexture('waterfall', 0x42A5F5, 32, 32, 'noise');
+    registerColorTexture('snow', 0xECEFF1, 32, 32, 'noise');
     
     const CLIFF_GRASS    = 0x81C784; // vivid grass cap
     const CLIFF_GRASS_D  = 0x558B2F; // dark grass edge below cap
@@ -2388,7 +2410,7 @@ export class AssetManager {
 
     // cliff_edge: grass cap → soil → bright cream lip → clearly banded rock face → shadow base.
     // Each row renders 4px tall (NearestFilter, 4× scale) — solid rows = clearly readable stripes.
-    this.textures.set('cliff_edge', this.createSpriteTexture([
+    registerSpriteTexture('cliff_edge', [
       // rows 0-2: grass cap
       [CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS],
       [CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D],
@@ -2410,10 +2432,10 @@ export class AssetManager {
       // rows 14-15: base shadow
       [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
       [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
-    ], 4, 'cliff_edge'));
+    ]);
 
     // cliff: pure rock body — 4 full L/M/D strata cycles then shadow base.
-    this.textures.set('cliff', this.createSpriteTexture([
+    registerSpriteTexture('cliff', [
       [CL,CL,CL,CL,CL,CL,CL,CL,CL,CL,CL,CL],
       [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
       [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
@@ -2430,10 +2452,10 @@ export class AssetManager {
       [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
       [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
       [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
-    ], 4, 'cliff'));
+    ]);
 
     // stairs: carved stone steps — opaque grass cap at top, then treads
-    this.textures.set('stairs', this.createSpriteTexture([
+    registerSpriteTexture('stairs', [
       [CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS],
       [CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL],
       [STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE,STAIRS_EDGE],
@@ -2448,7 +2470,7 @@ export class AssetManager {
       [STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H,STAIRS_STONE_H],
       [STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE,STAIRS_STONE],
       [STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S,STAIRS_STONE_S],
-    ], 4, 'stairs'));
+    ]);
     
     // ladder: side rails + clear rung spacing (reads at a glance vs flat wood)
     const R = 0x3E2723;
@@ -2457,7 +2479,7 @@ export class AssetManager {
     const RG2 = 0x8D6E63;
     const RG3 = 0xBCAAA4;
     const Z = 0;
-    this.textures.set('ladder', this.createSpriteTexture([
+    registerSpriteTexture('ladder', [
       // 8×12 @ 4px/cell — open center, double-thick rails, 5 rungs + feet
       [R, R2, Z, Z, Z, Z, R2, R],
       [R, R2, Z, Z, Z, Z, R2, R],
@@ -2471,7 +2493,7 @@ export class AssetManager {
       [R, R2, Z, Z, Z, Z, R2, R],
       [R, R2, RG3, RG, RG, RG3, R2, R],
       [R, R, RG2, RG2, RG2, RG2, R, R],
-    ], 4, 'ladder'));
+    ]);
 
     // Curled ladder — coiled rope bundle with visible rails, sitting on cliff edge
     const CL_RAIL = 0x5D4037;
@@ -2480,20 +2502,20 @@ export class AssetManager {
     const CL_ROPE2 = 0xA1887F;
     const CL_ROPE3 = 0x8D6E63;
     const CL_KNOT = 0x6D4C41;
-    this.textures.set('curled_ladder', this.createSpriteTexture([
+    registerSpriteTexture('curled_ladder', [
       [Z,        Z,        CL_RAIL,  CL_RAIL2, CL_RAIL2, CL_RAIL,  Z,        Z       ],
       [Z,        CL_RAIL,  CL_ROPE2, CL_ROPE,  CL_ROPE,  CL_ROPE2, CL_RAIL,  Z       ],
       [CL_RAIL,  CL_ROPE3, CL_ROPE,  CL_KNOT,  CL_KNOT,  CL_ROPE,  CL_ROPE3, CL_RAIL ],
       [CL_RAIL2, CL_ROPE,  CL_KNOT,  CL_ROPE2, CL_ROPE2, CL_KNOT,  CL_ROPE,  CL_RAIL2],
       [CL_RAIL,  CL_ROPE3, CL_ROPE,  CL_KNOT,  CL_KNOT,  CL_ROPE,  CL_ROPE3, CL_RAIL ],
       [Z,        CL_RAIL,  CL_ROPE2, CL_ROPE3, CL_ROPE3, CL_ROPE2, CL_RAIL,  Z       ],
-    ], 4, 'curled_ladder'));
+    ]);
 
     // Gate with extended ladder — gate bars at top, full ladder rungs hanging below
     const GL_IRON = 0x455A64;
     const GL_IRON_H = 0x607D8B;
     const GL_RVT = 0x37474F;
-    this.textures.set('gate_ladder_open', this.createSpriteTexture([
+    registerSpriteTexture('gate_ladder_open', [
       // Gate bars (top anchor)
       [GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON  ],
       [GL_RVT,   GL_IRON,   GL_RVT,   GL_IRON,   GL_RVT,   GL_IRON,   GL_RVT,   GL_IRON  ],
@@ -2510,10 +2532,10 @@ export class AssetManager {
       [R,  R2, Z,   Z,   Z,   Z,   R2, R ],
       [R,  R2, RG3, RG,  RG,  RG3, R2, R ],
       [R,  R,  RG2, RG2, RG2, RG2, R,  R ],
-    ], 4, 'gate_ladder_open'));
+    ]);
 
     // Gate with curled ladder on top — simplified gate bars (upper rows) + coiled rope (lower rows)
-    this.textures.set('gate_ladder', this.createSpriteTexture([
+    registerSpriteTexture('gate_ladder', [
       [Z,        Z,         CL_RAIL,  CL_RAIL2,  CL_RAIL2, CL_RAIL,   Z,        Z        ],
       [Z,        CL_RAIL,   CL_ROPE2, CL_ROPE,   CL_ROPE,  CL_ROPE2,  CL_RAIL,  Z        ],
       [CL_RAIL,  CL_ROPE3,  CL_ROPE,  CL_KNOT,   CL_KNOT,  CL_ROPE,   CL_ROPE3, CL_RAIL  ],
@@ -2522,20 +2544,20 @@ export class AssetManager {
       [GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON  ],
       [GL_RVT,   GL_IRON,   GL_RVT,   GL_IRON,   GL_RVT,   GL_IRON,   GL_RVT,   GL_IRON  ],
       [GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON_H, GL_IRON,  GL_IRON  ],
-    ], 4, 'gate_ladder'));
+    ]);
 
-    this.textures.set('cobblestone', this.createColorTexture(0x7A7F88, 32, 32, 'cobblestone_grid'));
-    this.textures.set('cobblestone_dark', this.createColorTexture(0x5C6068, 32, 32, 'cobblestone_grid'));
-    this.textures.set('brick', this.createColorTexture(0x8B4513, 32, 32, 'noise'));
-    this.textures.set('roof_tile', this.createColorTexture(0x4A4A52, 32, 32, 'gradient'));
-    this.textures.set('timber_wall', this.createColorTexture(0x5C4033, 32, 32, 'gradient'));
-    this.textures.set('farmland', this.createColorTexture(0x6D4C41, 32, 32, 'noise'));
-    this.textures.set('dark_grass', this.createColorTexture(0x2E7D32, 32, 32, 'noise'));
+    registerColorTexture('cobblestone', 0x7A7F88, 32, 32, 'cobblestone_grid');
+    registerColorTexture('cobblestone_dark', 0x5C6068, 32, 32, 'cobblestone_grid');
+    registerColorTexture('brick', 0x8B4513, 32, 32, 'noise');
+    registerColorTexture('roof_tile', 0x4A4A52, 32, 32, 'gradient');
+    registerColorTexture('timber_wall', 0x5C4033, 32, 32, 'gradient');
+    registerColorTexture('farmland', 0x6D4C41, 32, 32, 'noise');
+    registerColorTexture('dark_grass', 0x2E7D32, 32, 32, 'noise');
     // Bleached / ash-sick forest floor (Deep Hollow, tile y < 59 ≈ world y ≤ -91)
-    this.textures.set('hollow_blight', this.createColorTexture(0xC9B896, 32, 32, 'noise'));
-    this.textures.set('mossy_stone', this.createColorTexture(0x6B7B5A, 32, 32, 'checker'));
-    this.textures.set('wooden_path', this.createColorTexture(0x8D6E63, 32, 32, 'gradient'));
-    this.textures.set('wood_floor', this.createColorTexture(0xA1887F, 32, 32, 'gradient'));
+    registerColorTexture('hollow_blight', 0xC9B896, 32, 32, 'noise');
+    registerColorTexture('mossy_stone', 0x6B7B5A, 32, 32, 'checker');
+    registerColorTexture('wooden_path', 0x8D6E63, 32, 32, 'gradient');
+    registerColorTexture('wood_floor', 0xA1887F, 32, 32, 'gradient');
 
     // ========== OBJECTS ==========
     const TRUNK = 0x5D4037;
@@ -2545,7 +2567,7 @@ export class AssetManager {
     const LEAF_S = 0x1B5E20;
 
     // Tree - bigger, more detailed (12x14)
-    this.textures.set('tree', this.createSpriteTexture([
+    registerSpriteTexture('tree', [
       [C,     C,     C,     C,     LEAF_H,LEAF,  LEAF_H,LEAF,  C,     C,     C,     C],
       [C,     C,     C,     LEAF,  LEAF_H,LEAF,  LEAF,  LEAF_H,LEAF,  C,     C,     C],
       [C,     C,     LEAF,  LEAF_H,LEAF,  LEAF_H,LEAF,  LEAF,  LEAF_H,LEAF,  C,     C],
@@ -2560,10 +2582,10 @@ export class AssetManager {
       [C,     C,     C,     C,     C,     TRUNK, TRUNK_S,C,    C,     C,     C,     C],
       [C,     C,     C,     C,     TRUNK_S,TRUNK,TRUNK_S,TRUNK,C,     C,     C,     C],
       [C,     C,     C,     TRUNK_S,TRUNK, TRUNK,TRUNK, TRUNK_S,C,    C,     C,     C],
-    ]));
+    ]);
 
     // Dead tree
-    this.textures.set('dead_tree', this.createSpriteTexture([
+    registerSpriteTexture('dead_tree', [
       [C,     C,     C,     TRUNK, C,     C,     TRUNK, C,     C,     C],
       [C,     C,     TRUNK, TRUNK_S,C,    C,     TRUNK_S,TRUNK, C,    C],
       [C,     TRUNK, C,     TRUNK, C,     TRUNK, C,     C,     TRUNK, C],
@@ -2572,13 +2594,13 @@ export class AssetManager {
       [C,     C,     C,     C,     TRUNK, TRUNK_S,C,     C,     C,     C],
       [C,     C,     C,     C,     TRUNK_S,TRUNK, C,     C,     C,     C],
       [C,     C,     C,     TRUNK_S,TRUNK, TRUNK_S,TRUNK, C,     C,     C],
-    ]));
+    ]);
 
     // Statue
     const STATUE = 0x9E9E9E;
     const STATUE_H = 0xBDBDBD;
     const STATUE_S = 0x757575;
-    this.textures.set('statue', this.createSpriteTexture([
+    registerSpriteTexture('statue', [
       [C,     C,     C,     STATUE_H,STATUE_H,C,     C,     C],
       [C,     C,     STATUE_H,STATUE, STATUE, STATUE_H,C,     C],
       [C,     C,     STATUE, STATUE_S,STATUE_S,STATUE, C,     C],
@@ -2586,7 +2608,7 @@ export class AssetManager {
       [C,     C,     STATUE_S,STATUE,STATUE,STATUE_S, C,     C],
       [C,     STATUE_S,STATUE_S,STATUE_S,STATUE_S,STATUE_S,STATUE_S,C],
       [C,     C,     STATUE_S,STATUE_S,STATUE_S,STATUE_S, C,     C],
-    ]));
+    ]);
 
     // House — chimney + roof ridge trim + door arch read
     const WALL = 0x8D6E63;
@@ -2603,7 +2625,7 @@ export class AssetManager {
     const CHIM = 0x3E2723;
     const CHIM_TOP = 0x5D4037;
 
-    this.textures.set('house', this.createSpriteTexture([
+    registerSpriteTexture('house', [
       [C,     C,     C,     CHIM,  CHIM,  CHIM_TOP,CHIM_TOP,C,     C,     C,     C,     C,     C,     C],
       [C,     C,     C,     CHIM,  CHIM,  ROOF_S,ROOF, ROOF_H,ROOF, C,     C,     C,     C,     C],
       [C,     C,     C,     C,     ROOF_S,ROOF,  ROOF_H,ROOF, ROOF, ROOF_S,C,     C,     C,     C],
@@ -2615,7 +2637,7 @@ export class AssetManager {
       [C,     C,     WALL,  WALL,  WALL,  DOOR_ARCH,DOOR,DOOR,DOOR_ARCH,WALL,  WALL,  WALL,  C,     C],
       [C,     C,     WALL_S,WALL,  WALL,  DOOR_ARCH,DOOR,DOOR,DOOR_ARCH,WALL,  WALL,  WALL_S,C,     C],
       [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,C,   C],
-    ]));
+    ]);
     const houseEntrySprite = [
       [C,     C,     C,     CHIM,  CHIM,  CHIM_TOP,CHIM_TOP,C,     C,     C,     C,     C,     C,     C],
       [C,     C,     C,     CHIM,  CHIM,  ROOF_S,ROOF, ROOF_H,ROOF, C,     C,     C,     C,     C],
@@ -2629,13 +2651,13 @@ export class AssetManager {
       [C,     C,     WALL_S,WALL,  WALL,  DOOR_ARCH,0x5D4037,0x5D4037,DOOR_ARCH,WALL,  WALL,  WALL_S,C,     C],
       [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,0x3E2723,0xFFD54F,0x3E2723,WALL_S,WALL_S,WALL_S,C,   C],
     ] as const;
-    this.textures.set('house_entry', this.createSpriteTexture(houseEntrySprite));
+    registerSpriteTexture('house_entry', houseEntrySprite);
 
     const BROOF = 0x1565C0;
     const BROOF_H = 0x1E88E5;
     const BROOF_S = 0x0D47A1;
     const BROOF_TRIM = 0xE3F2FD;
-    this.textures.set('house_blue', this.createSpriteTexture([
+    registerSpriteTexture('house_blue', [
       [C,     C,     C,     CHIM,  CHIM,  CHIM_TOP,CHIM_TOP,C,     C,     C,     C,     C,     C,     C],
       [C,     C,     C,     CHIM,  CHIM,  BROOF_S,BROOF,BROOF_H,BROOF,C,     C,     C,     C,     C],
       [C,     C,     C,     C,     BROOF_S,BROOF, BROOF_H,BROOF,BROOF,BROOF_S,C,     C,     C,     C],
@@ -2647,7 +2669,7 @@ export class AssetManager {
       [C,     C,     WALL,  WALL,  WALL,  DOOR_ARCH,DOOR,DOOR,DOOR_ARCH,WALL,  WALL,  WALL,  C,     C],
       [C,     C,     WALL_S,WALL,  WALL,  DOOR_ARCH,DOOR,DOOR,DOOR_ARCH,WALL,  WALL,  WALL_S,C,     C],
       [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,C,   C],
-    ]));
+    ]);
     const houseBlueEntrySprite = [
       [C,     C,     C,     CHIM,  CHIM,  CHIM_TOP,CHIM_TOP,C,     C,     C,     C,     C,     C,     C],
       [C,     C,     C,     CHIM,  CHIM,  BROOF_S,BROOF,BROOF_H,BROOF,C,     C,     C,     C,     C],
@@ -2661,13 +2683,13 @@ export class AssetManager {
       [C,     C,     WALL_S,WALL,  WALL,  DOOR_ARCH,0x5D4037,0x5D4037,DOOR_ARCH,WALL,  WALL,  WALL_S,C,     C],
       [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,0x3E2723,0xFFD54F,0x3E2723,WALL_S,WALL_S,WALL_S,C,   C],
     ] as const;
-    this.textures.set('house_blue_entry', this.createSpriteTexture(houseBlueEntrySprite));
+    registerSpriteTexture('house_blue_entry', houseBlueEntrySprite);
 
     const GROOF = 0x2E7D32;
     const GROOF_H = 0x43A047;
     const GROOF_S = 0x1B5E20;
     const GROOF_TRIM = 0xC8E6C9;
-    this.textures.set('house_green', this.createSpriteTexture([
+    registerSpriteTexture('house_green', [
       [C,     C,     C,     CHIM,  CHIM,  CHIM_TOP,CHIM_TOP,C,     C,     C,     C,     C,     C,     C],
       [C,     C,     C,     CHIM,  CHIM,  GROOF_S,GROOF,GROOF_H,GROOF,C,     C,     C,     C,     C],
       [C,     C,     C,     C,     GROOF_S,GROOF, GROOF_H,GROOF,GROOF,GROOF_S,C,     C,     C,     C],
@@ -2679,7 +2701,7 @@ export class AssetManager {
       [C,     C,     WALL,  WALL,  WALL,  DOOR_ARCH,DOOR,DOOR,DOOR_ARCH,WALL,  WALL,  WALL,  C,     C],
       [C,     C,     WALL_S,WALL,  WALL,  DOOR_ARCH,DOOR,DOOR,DOOR_ARCH,WALL,  WALL,  WALL_S,C,     C],
       [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,WALL_S,C,   C],
-    ]));
+    ]);
     const houseGreenEntrySprite = [
       [C,     C,     C,     CHIM,  CHIM,  CHIM_TOP,CHIM_TOP,C,     C,     C,     C,     C,     C,     C],
       [C,     C,     C,     CHIM,  CHIM,  GROOF_S,GROOF,GROOF_H,GROOF,C,     C,     C,     C,     C],
@@ -2693,7 +2715,7 @@ export class AssetManager {
       [C,     C,     WALL_S,WALL,  WALL,  DOOR_ARCH,0x5D4037,0x5D4037,DOOR_ARCH,WALL,  WALL,  WALL_S,C,     C],
       [C,     C,     WALL_S,WALL_S,WALL_S,WALL_S,0x3E2723,0xFFD54F,0x3E2723,WALL_S,WALL_S,WALL_S,C,   C],
     ] as const;
-    this.textures.set('house_green_entry', this.createSpriteTexture(houseGreenEntrySprite));
+    registerSpriteTexture('house_green_entry', houseGreenEntrySprite);
 
     const THATCH = 0xBCA065;
     const THATCH_H = 0xD4B878;
@@ -2715,7 +2737,7 @@ export class AssetManager {
       [C,      CWALL_S,CWALL,  CWALL,  CWALL,  DOOR_ARCH,DOOR, DOOR, DOOR_ARCH,CWALL,  CWALL,  CWALL_S,C],
       [C,      CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,C],
     ] as const;
-    this.textures.set('house_thatch', this.createSpriteTexture(houseThatchSprite));
+    registerSpriteTexture('house_thatch', houseThatchSprite);
     const houseThatchEntrySprite = [
       [C,      C,      CHIM,   CHIM,   CHIM_TOP,CHIM_TOP,C,      C,      C,      C,      C,      C],
       [C,      C,      CHIM,   CHIM,   THATCH_S,THATCH, THATCH_H,THATCH, C,      C,      C,      C],
@@ -2729,7 +2751,7 @@ export class AssetManager {
       [C,      CWALL_S,CWALL,  CWALL,  CWALL,  DOOR_ARCH,0x5D4037,0x5D4037,DOOR_ARCH,CWALL,  CWALL,  CWALL_S,C],
       [C,      CWALL_S,CWALL_S,CWALL_S,CWALL_S,CWALL_S,0x3E2723,0xFFD54F,0x3E2723,CWALL_S,CWALL_S,C],
     ] as const;
-    this.textures.set('house_thatch_entry', this.createSpriteTexture(houseThatchEntrySprite));
+    registerSpriteTexture('house_thatch_entry', houseThatchEntrySprite);
     const cottageHouseSprite = [
       [C, C, C, C, CHIM, CHIM, CHIM_TOP, CHIM_TOP, C, C, C, C, C, C, C, C],
       [C, C, C, CHIM, CHIM, CHIM, THATCH_S, THATCH_S, THATCH, THATCH, C, C, C, C, C, C],
@@ -2746,7 +2768,7 @@ export class AssetManager {
       [C, CWALL_S, CWALL_S, CWALL_S, CWALL_S, CWALL_S, DOOR_ARCH, DOOR, DOOR, DOOR_ARCH, CWALL_S, CWALL_S, CWALL_S, CWALL_S, C, C],
       [C, C, C, C, C, C, CWALL_S, CWALL_S, CWALL_S, CWALL_S, C, C, C, C, C, C],
     ] as const;
-    this.textures.set('cottage_house', this.createSpriteTexture(cottageHouseSprite));
+    registerSpriteTexture('cottage_house', cottageHouseSprite);
 
     // Grey-roofed small house sprite for non-enterable decorative buildings
     const SH_ROOF   = 0x6B7B8D; // cool slate blue-grey roof
@@ -2775,7 +2797,7 @@ export class AssetManager {
       [SH_TRIM,  SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_WALL_S, SH_TRIM,  C],
       [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C],
     ];
-    this.textures.set('cottage_shed', this.createSpriteTexture(cottageShedSprite));
+    registerSpriteTexture('cottage_shed', cottageShedSprite);
 
     const cottageHouseForestSprite = cottageHouseSprite.map(row => row.map(px => {
       if (px === THATCH) return GROOF;
@@ -2784,7 +2806,7 @@ export class AssetManager {
       if (px === THATCH_BAND) return GROOF_TRIM;
       return px;
     }));
-    this.textures.set('cottage_house_forest', this.createSpriteTexture(cottageHouseForestSprite));
+    registerSpriteTexture('cottage_house_forest', cottageHouseForestSprite);
     // Ruined forest cottage — roof caved in with visible holes, exposed timber beams,
     // crumbled walls. Derived from the forest sprite then punched with transparent gaps
     // and replaced roof sections with dark interior / beam colors.
@@ -2813,7 +2835,7 @@ export class AssetManager {
     cottageHouseForestRuinedSprite[11] = [RW_C, CWALL, CWALL_H, CWALL, RV_D, RV, RW_C, RW_D, RW_C, RW_D, RV, RV_D, CWALL, CWALL_H, RW_C, C];
     // Row 12: foundation with rubble and moss spilling out at the base
     cottageHouseForestRuinedSprite[12] = [C, RW_C, RW_C, RW_C, RM, RV_D, RW_D, RW_C, RW_C, RW_D, RV_D, RM, RW_C, RW_C, C, C];
-    this.textures.set('cottage_house_forest_ruined', this.createSpriteTexture(cottageHouseForestRuinedSprite));
+    registerSpriteTexture('cottage_house_forest_ruined', cottageHouseForestRuinedSprite);
 
     const RR = 0x8B5E3C;    // warm brown roof
     const RR_H = 0xA67C52;  // roof highlight
@@ -2838,7 +2860,7 @@ export class AssetManager {
       [C, RW_S2, RW_S2, RW_S2, RW_S2, RW_S2, DOOR_ARCH, DOOR, DOOR, DOOR_ARCH, RW_S2, RW_S2, RW_S2, RW_S2, C, C],
       [C, C, C, C, C, C, RW_S2, RW_S2, RW_S2, RW_S2, C, C, C, C, C, C],
     ] as const;
-    this.textures.set('cottage_house_ranger', this.createSpriteTexture(cottageHouseRangerSprite));
+    registerSpriteTexture('cottage_house_ranger', cottageHouseRangerSprite);
     const cottageHouseEntrySprite = [
       [C, C, C, C, CHIM, CHIM, CHIM_TOP, CHIM_TOP, C, C, C, C, C, C, C, C],
       [C, C, C, CHIM, CHIM, CHIM, THATCH_S, THATCH_S, THATCH, THATCH, C, C, C, C, C, C],
@@ -2855,7 +2877,7 @@ export class AssetManager {
       [C, CWALL_S, CWALL_S, CWALL_S, CWALL_S, CWALL_S, 0x3E2723, 0x6D4C41, 0x4E342E, 0x3E2723, CWALL_S, CWALL_S, CWALL_S, CWALL_S, C, C],
       [C, C, C, C, C, C, 0x3E2723, 0xFFD54F, 0xFF8F00, 0x3E2723, C, C, C, C, C, C],
     ] as const;
-    this.textures.set('cottage_house_entry', this.createSpriteTexture(cottageHouseEntrySprite));
+    registerSpriteTexture('cottage_house_entry', cottageHouseEntrySprite);
 
     // Destroyed house variants
     const RUBBLE = 0x795548;
@@ -2868,7 +2890,7 @@ export class AssetManager {
     const OG_MOSS = 0x66BB6A;
 
     // Original: partial walls, collapsed roof, rubble interior
-    this.textures.set('destroyed_house', this.createSpriteTexture([
+    registerSpriteTexture('destroyed_house', [
       [C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
       [C,     C,     C,     ROOF_S,ROOF,  C,     C,     C,     C,     C],
       [C,     C,     ROOF_S,ROOF,  ROOF,  C,     C,     ROOF_S,C,     C],
@@ -2879,10 +2901,10 @@ export class AssetManager {
       [C,     WALL_S,RUBBLE_S,RUBBLE,RUBBLE_S,RUBBLE,RUBBLE_S,WALL_S,C,C],
       [C,     RUBBLE_S,RUBBLE,RUBBLE_S,RUBBLE,RUBBLE_S,RUBBLE,RUBBLE_S,C,C],
       [C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
-    ]));
+    ]);
 
     // Rubble: collapsed foundation, scattered stone and timber debris
-    this.textures.set('destroyed_house_rubble', this.createSpriteTexture([
+    registerSpriteTexture('destroyed_house_rubble', [
       [C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
       [C,     C,     C,     C,     RUBBLE,C,     C,     C,     C,     C],
       [C,     C,     RUBBLE_S,RUBBLE,WALL_S,RUBBLE,C,   C,     C,     C],
@@ -2893,10 +2915,10 @@ export class AssetManager {
       [C,     RUBBLE_S,WALL, RUBBLE,RUBBLE_S,RUBBLE,WALL_S,RUBBLE,C, C],
       [C,     RUBBLE,RUBBLE_S,RUBBLE,WALL_S,RUBBLE_S,RUBBLE,RUBBLE_S,C,C],
       [C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
-    ]));
+    ]);
 
     // Overgrown: vines creeping over crumbled walls, moss patches
-    this.textures.set('destroyed_house_overgrown', this.createSpriteTexture([
+    registerSpriteTexture('destroyed_house_overgrown', [
       [C,     C,     C,     OG_VINE,C,     C,     C,     C,     C,     C],
       [C,     C,     OG_VINE_D,OG_VINE,OG_VINE,C, C,     OG_VINE,C,   C],
       [C,     C,     OG_VINE,WALL_H,OG_VINE_D,C,OG_VINE,OG_MOSS,C,   C],
@@ -2907,14 +2929,14 @@ export class AssetManager {
       [C,     OG_MOSS,RUBBLE_S,OG_VINE,RUBBLE_S,OG_VINE_D,RUBBLE_S,OG_VINE,C,C],
       [C,     RUBBLE_S,OG_MOSS,RUBBLE_S,OG_VINE,RUBBLE_S,OG_VINE,RUBBLE_S,C,C],
       [C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
-    ]));
+    ]);
 
     const ROCK_L = 0x9E9E9E;
     const ROCK_M = 0x757575;
     const ROCK_D = 0x616161;
     const ROCK_H = 0xBDBDBD;
 
-    this.textures.set('rock', this.createSpriteTexture([
+    registerSpriteTexture('rock', [
       [C,     C,     C,     ROCK_H,ROCK_L,ROCK_H,C,     C,     C,     C],
       [C,     C,     ROCK_L,ROCK_M,ROCK_L,ROCK_M,ROCK_L,C,     C,     C],
       [C,     ROCK_L,ROCK_M,ROCK_D,ROCK_M,ROCK_D,ROCK_M,ROCK_L,C,     C],
@@ -2923,7 +2945,7 @@ export class AssetManager {
       [C,     ROCK_D,ROCK_M,ROCK_D,ROCK_D,ROCK_D,ROCK_D,ROCK_D,C,     C],
       [C,     C,     ROCK_D,ROCK_D,ROCK_D,ROCK_D,ROCK_D,C,     C,     C],
       [C,     C,     C,     ROCK_D,ROCK_D,ROCK_D,C,     C,     C,     C],
-    ]));
+    ]);
 
     const CHEST_WOOD = 0x6D4C41;
     const CHEST_WOOD_H = 0x8D6E63;
@@ -2932,25 +2954,25 @@ export class AssetManager {
     const CHEST_METAL_H = 0xFFD54F;
     const CHEST_LOCK = 0xFFC107;
 
-    this.textures.set('chest', this.createSpriteTexture([
+    registerSpriteTexture('chest', [
       [C,     C,     CHEST_WOOD,CHEST_WOOD_H,CHEST_WOOD,CHEST_WOOD_H,CHEST_WOOD,CHEST_WOOD,C,     C],
       [C,     CHEST_WOOD,CHEST_METAL,CHEST_METAL_H,CHEST_METAL,CHEST_METAL_H,CHEST_METAL,CHEST_METAL,CHEST_WOOD,C],
       [C,     CHEST_WOOD_S,CHEST_WOOD,CHEST_WOOD,CHEST_LOCK,CHEST_LOCK,CHEST_WOOD,CHEST_WOOD,CHEST_WOOD_S,C],
       [C,     CHEST_WOOD,CHEST_WOOD_S,CHEST_WOOD,CHEST_WOOD_S,CHEST_WOOD,CHEST_WOOD_S,CHEST_WOOD,CHEST_WOOD,C],
       [C,     CHEST_WOOD_S,CHEST_WOOD_S,CHEST_WOOD_S,CHEST_WOOD_S,CHEST_WOOD_S,CHEST_WOOD_S,CHEST_WOOD_S,CHEST_WOOD_S,C],
-    ]));
+    ]);
 
     const CHEST_OPEN_METAL = 0x8D8D8D;
     const CHEST_OPEN_METAL_H = 0xB0B0B0;
     const CHEST_OPEN_GLOW = 0xE6C45A;
-    this.textures.set('chest_opened', this.createSpriteTexture([
+    registerSpriteTexture('chest_opened', [
       [C,     C,     CHEST_WOOD_S, CHEST_WOOD_H,      CHEST_WOOD_H,      CHEST_WOOD_H,   CHEST_WOOD_S, C,     C,     C],
       [C,     CHEST_WOOD_S, CHEST_OPEN_METAL, CHEST_OPEN_METAL_H, CHEST_OPEN_GLOW, CHEST_OPEN_METAL_H, CHEST_OPEN_METAL, CHEST_WOOD_S, C, C],
       [C,     CHEST_WOOD, CHEST_WOOD, CHEST_OPEN_GLOW, C,               CHEST_OPEN_GLOW, CHEST_WOOD,   CHEST_WOOD_H, C, C],
       [C,     CHEST_WOOD_S, CHEST_WOOD, CHEST_WOOD,   CHEST_WOOD,      CHEST_WOOD,      CHEST_WOOD,   CHEST_WOOD_S, C, C],
       [C,     CHEST_WOOD, CHEST_WOOD_S, CHEST_WOOD,   CHEST_LOCK,      CHEST_LOCK,      CHEST_WOOD_S, CHEST_WOOD,   C, C],
       [C,     CHEST_WOOD_S, CHEST_WOOD_S, CHEST_WOOD_S,CHEST_WOOD_S,   CHEST_WOOD_S,    CHEST_WOOD_S, CHEST_WOOD_S, C, C],
-    ]));
+    ]);
 
     const PORTAL_OUTER = 0x7B1FA2;
     const PORTAL_MID = 0xAB47BC;
@@ -2958,7 +2980,7 @@ export class AssetManager {
     const PORTAL_CORE = 0xE1BEE7;
     const PORTAL_GLOW = 0xEA80FC;
 
-    this.textures.set('portal', this.createSpriteTexture([
+    registerSpriteTexture('portal', [
       [C,           C,           PORTAL_OUTER,PORTAL_OUTER,PORTAL_MID,  PORTAL_OUTER,PORTAL_OUTER,C,           C,           C],
       [C,           PORTAL_OUTER,PORTAL_MID,  PORTAL_MID,  PORTAL_INNER,PORTAL_MID,  PORTAL_MID,  PORTAL_OUTER,C,           C],
       [PORTAL_OUTER,PORTAL_MID,  PORTAL_INNER,PORTAL_GLOW, PORTAL_CORE, PORTAL_GLOW, PORTAL_INNER,PORTAL_MID,  PORTAL_OUTER,C],
@@ -2966,7 +2988,7 @@ export class AssetManager {
       [PORTAL_OUTER,PORTAL_MID,  PORTAL_INNER,PORTAL_GLOW, PORTAL_CORE, PORTAL_GLOW, PORTAL_INNER,PORTAL_MID,  PORTAL_OUTER,C],
       [C,           PORTAL_OUTER,PORTAL_MID,  PORTAL_MID,  PORTAL_INNER,PORTAL_MID,  PORTAL_MID,  PORTAL_OUTER,C,           C],
       [C,           C,           PORTAL_OUTER,PORTAL_OUTER,PORTAL_MID,  PORTAL_OUTER,PORTAL_OUTER,C,           C,           C],
-    ]));
+    ]);
 
     // Door textures - wooden and iron doors for building entrances
     const DOOR_FRAME = 0x3E2723;
@@ -2976,7 +2998,7 @@ export class AssetManager {
     const DOOR_HANDLE = 0xFFD54F;
     const DOOR_HANDLE_S = 0xFF8F00;
     
-    this.textures.set('door', this.createSpriteTexture([
+    registerSpriteTexture('door', [
       [DOOR_FRAME,DOOR_FRAME,DOOR_FRAME,DOOR_FRAME,DOOR_FRAME,DOOR_FRAME],
       [DOOR_FRAME,DOOR_WOOD, DOOR_WOOD, DOOR_WOOD, DOOR_WOOD, DOOR_FRAME],
       [DOOR_FRAME_L,DOOR_WOOD, DOOR_WOOD_D,DOOR_WOOD, DOOR_WOOD, DOOR_FRAME_L],
@@ -2985,8 +3007,8 @@ export class AssetManager {
       [DOOR_FRAME_L,DOOR_WOOD, DOOR_WOOD, DOOR_WOOD, DOOR_WOOD, DOOR_FRAME_L],
       [DOOR_FRAME,DOOR_FRAME_L,DOOR_HANDLE,DOOR_HANDLE_S,DOOR_FRAME_L,DOOR_FRAME],
       [DOOR_FRAME,DOOR_FRAME,DOOR_FRAME,DOOR_FRAME,DOOR_FRAME,DOOR_FRAME],
-    ]));
-    this.textures.set('door_interior', this.textures.get('door')!.clone());
+    ]);
+    this.registerTexture('door_interior', () => this.getTexture('door')!.clone());
 
     const IRON_D = 0x37474F;
     const IRON_M = 0x546E7A;
@@ -2994,7 +3016,7 @@ export class AssetManager {
     const IRON_HL = 0x90A4AE;
     const RIVET = 0x212121;
     
-    this.textures.set('door_iron', this.createSpriteTexture([
+    registerSpriteTexture('door_iron', [
       [IRON_D,IRON_D,IRON_D,IRON_D,IRON_D,IRON_D],
       [IRON_D,IRON_M,IRON_L,IRON_L,IRON_M,IRON_D],
       [IRON_D,RIVET,IRON_L,IRON_L,RIVET,IRON_D],
@@ -3003,7 +3025,7 @@ export class AssetManager {
       [IRON_D,RIVET,IRON_L,IRON_L,RIVET,IRON_D],
       [IRON_D,IRON_M,IRON_HL,IRON_HL,IRON_M,IRON_D],
       [IRON_D,IRON_D,IRON_D,IRON_D,IRON_D,IRON_D],
-    ]));
+    ]);
 
     const WHEEL = 0x212121;
     const WHEEL_H = 0x424242;
@@ -3020,7 +3042,7 @@ export class AssetManager {
     const CLAY = 0xBF360C;
     const CLAY_H = 0xE64A19;
 
-    this.textures.set('wagon', this.createSpriteTexture([
+    registerSpriteTexture('wagon', [
       [C,     C,     C,     WHEEL_H,WHEEL, WHEEL_H,C,     C,     WHEEL_H,WHEEL, WHEEL_H,C,     C],
       [C,     C,     WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,C,     C],
       [C,     WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,C],
@@ -3028,15 +3050,15 @@ export class AssetManager {
       [C,     WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,C],
       [C,     WHEEL_H,WHEEL, WHEEL_H,WHEEL, WHEEL_H,WHEEL, WHEEL_H,WHEEL, WHEEL_H,WHEEL, WHEEL_H,C],
       [C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C],
-    ]));
+    ]);
 
-    this.textures.set('cart', this.createSpriteTexture([
+    registerSpriteTexture('cart', [
       [C,     C,     WHEEL_H,WHEEL, WHEEL_H,C,     C,     C,     C],
       [C,     WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,C,     C],
       [C,     WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,C],
       [C,     WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,C],
       [C,     WHEEL_H,WHEEL, WHEEL_H,WHEEL, WHEEL_H,C,     C],
-    ]));
+    ]);
 
     // ===== Riverbank props =====
     const HULL     = 0x5D4037;   // dark weathered wood — hull planks
@@ -3049,7 +3071,7 @@ export class AssetManager {
     const CLOTH_D  = 0x7F0000;
 
     // boat_wreck — half-sunken rowboat viewed from top-down: broken bow at top, stern angled down
-    this.textures.set('boat_wreck', this.createSpriteTexture([
+    registerSpriteTexture('boat_wreck', [
       //      0       1       2       3       4       5       6       7       8       9
       [C,      C,      HULL_H, HULL_H, HULL_H, HULL_H, C,      C,      C,      C    ],
       [C,      HULL_H, HULL,   WATER_V,WATER_V,HULL,   HULL_H, C,      C,      C    ],
@@ -3059,7 +3081,7 @@ export class AssetManager {
       [C,      HULL_S, HULL,   HULL_S, HULL_S, HULL,   HULL_S, C,      C,      C    ],
       [C,      C,      HULL_S, HULL,   HULL,   HULL_S, C,      C,      C,      C    ],
       [C,      C,      C,      HULL_S, HULL_S, C,      C,      C,      C,      C    ],
-    ], 4, 'boat_wreck'));
+    ], 4);
 
     const PLANK   = 0x78909C;   // grey-weathered dock board
     const PLANK_H = 0x90A4AE;   // lighter board face
@@ -3068,7 +3090,7 @@ export class AssetManager {
     const PPOST   = 0x4E342E;   // mooring post — dark wood
 
     // dock — top-down weathered wooden planking: posts at corners, plank gaps showing water
-    this.textures.set('dock', this.createSpriteTexture([
+    registerSpriteTexture('dock', [
       //      0        1        2        3        4        5        6        7
       [PPOST,  PLANK_D, PLANK_H, PLANK,   PLANK,   PLANK_H, PLANK_D, PPOST  ],
       [PLANK_D,PLANK_H, PLANK,   PLANK_S, PLANK_S, PLANK,   PLANK_H, PLANK_D],
@@ -3078,25 +3100,25 @@ export class AssetManager {
       [PLANK_H,PLANK,   PLANK_S, PLANK_H, PLANK_H, PLANK_S, PLANK,   PLANK_H],
       [PLANK_D,PLANK_H, PLANK,   PLANK_S, PLANK_S, PLANK,   PLANK_H, PLANK_D],
       [PPOST,  PLANK_D, PLANK_H, PLANK,   PLANK,   PLANK_H, PLANK_D, PPOST  ],
-    ], 4, 'dock'));
+    ], 4);
 
-    this.textures.set('market_stall', this.createSpriteTexture([
+    registerSpriteTexture('market_stall', [
       [C,     CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,C,     C],
       [C,     CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,CANOPY_R,CANOPY_R_H,C,     C],
       [C,     STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,C],
       [C,     STALL_W,0xFFF8E1,0xFFECB3,STALL_W,0xFFF8E1,0xFFECB3,STALL_W,STALL_W,STALL_W,C],
       [C,     STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,C],
       [C,     C,     STALL_W,C,     STALL_W,C,     STALL_W,C,     C,     C,     C],
-    ]));
+    ]);
 
-    this.textures.set('bench', this.createSpriteTexture([
+    registerSpriteTexture('bench', [
       [C,     WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,C],
       [C,     WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,C],
       [WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H],
       [C,     WAGON_W_H,C,     C,     C,     C,     WAGON_W_H,C],
-    ]));
+    ]);
 
-    this.textures.set('bookshelf', this.createSpriteTexture([
+    registerSpriteTexture('bookshelf', [
       [STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W],
       [BOOK_H, BOOK,  BOOK_H, BOOK,  BOOK_H, BOOK,  BOOK_H, BOOK],
       [BOOK,   BOOK_H,BOOK,   BOOK_H,BOOK,   BOOK_H,BOOK,   BOOK_H],
@@ -3105,35 +3127,35 @@ export class AssetManager {
       [BOOK,   BOOK_H,BOOK,   BOOK_H,BOOK,   BOOK_H,BOOK,   BOOK_H],
       [STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W,STALL_W],
       [BOOK_H, BOOK,  BOOK_H, BOOK,  BOOK_H, BOOK,  BOOK_H, BOOK],
-    ]));
+    ]);
 
-    this.textures.set('table', this.createSpriteTexture([
+    registerSpriteTexture('table', [
       [C,     WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,C],
       [C,     WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,C],
       [WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H],
       [C,     WAGON_W_H,C,     C,     C,     C,     WAGON_W_H,C],
-    ]));
+    ]);
 
-    this.textures.set('counter', this.createSpriteTexture([
+    registerSpriteTexture('counter', [
       [WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W],
       [WAGON_W,0xFFF8E1,0xFFECB3,0xFFF8E1,0xFFECB3,0xFFF8E1,0xFFECB3,0xFFF8E1,0xFFECB3,WAGON_W],
       [WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W,WAGON_W_H,WAGON_W],
-    ]));
+    ]);
 
-    this.textures.set('pot', this.createSpriteTexture([
+    registerSpriteTexture('pot', [
       [C,     CLAY_H,CLAY,  CLAY_H,C],
       [CLAY_H,CLAY,  CLAY_H,CLAY,  CLAY_H],
       [CLAY,  CLAY_H,CLAY,  CLAY_H,CLAY],
       [C,     CLAY_H,CLAY,  CLAY_H,C],
-    ]));
+    ]);
 
-    this.textures.set('rug', this.createSpriteTexture([
+    registerSpriteTexture('rug', [
       [RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD],
       [RUG_R,  RUG_G,  RUG_R,  RUG_G,  RUG_R,  RUG_G,  RUG_R,  RUG_G,  RUG_R],
       [RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD],
       [RUG_R,  RUG_G,  RUG_R,  RUG_G,  RUG_R,  RUG_G,  RUG_R,  RUG_G,  RUG_R],
       [RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD,RUG_R,  RUG_GOLD],
-    ]));
+    ]);
 
     // === FURNITURE ===
     const BED_FRAME = 0x5D4037;
@@ -3142,27 +3164,27 @@ export class AssetManager {
     const BED_SHEET_S = 0xC5CAE9;
     const BED_PILLOW = 0xFFF8E1;
     
-    this.textures.set('bed', this.createSpriteTexture([
+    registerSpriteTexture('bed', [
       [C,C,BED_FRAME_H,BED_FRAME_H,BED_FRAME_H,BED_FRAME_H,BED_FRAME_H,C,C],
       [C,BED_FRAME,BED_PILLOW,BED_PILLOW,BED_PILLOW,BED_PILLOW,BED_PILLOW,BED_FRAME,C],
       [BED_FRAME_H,BED_FRAME_H,BED_SHEET,BED_SHEET,BED_SHEET,BED_SHEET,BED_SHEET,BED_FRAME_H,BED_FRAME_H],
       [BED_FRAME,BED_FRAME,BED_SHEET_S,BED_SHEET_S,BED_SHEET_S,BED_SHEET_S,BED_SHEET_S,BED_FRAME,BED_FRAME],
       [BED_FRAME,BED_FRAME,BED_SHEET,BED_SHEET,BED_SHEET,BED_SHEET,BED_SHEET,BED_FRAME,BED_FRAME],
       [BED_FRAME_H,BED_FRAME_H,BED_SHEET_S,BED_SHEET_S,BED_SHEET_S,BED_SHEET_S,BED_SHEET_S,BED_FRAME_H,BED_FRAME_H],
-    ]));
+    ]);
 
     const WOOD_D = 0x5D4037;
     const WOOD = 0x6D4C41;
     const WOOD_H = 0x8D6E63;
     
-    this.textures.set('wardrobe', this.createSpriteTexture([
+    registerSpriteTexture('wardrobe', [
       [WOOD_D,WOOD_H,WOOD,WOOD_H,WOOD_D,WOOD_H,WOOD,WOOD_H],
       [WOOD,WOOD_H,WOOD_D,WOOD_H,WOOD,WOOD_H,WOOD_D,WOOD_H],
       [WOOD_H,WOOD_D,WOOD,WOOD_H,WOOD_D,WOOD,WOOD_H,WOOD],
       [WOOD,WOOD_H,WOOD_D,WOOD_H,WOOD,WOOD_H,WOOD_D,WOOD_H],
       [WOOD_H,WOOD,WOOD_H,WOOD_D,WOOD_H,WOOD,WOOD_H,WOOD_D],
       [WOOD_D,WOOD_H,WOOD,WOOD_H,WOOD_D,WOOD_H,WOOD,WOOD_H],
-    ]));
+    ]);
 
     const FIRE_B = 0x1A1A1A;
     const FIRE_R = 0xD32F2F;
@@ -3170,27 +3192,27 @@ export class AssetManager {
     const FIRE_Y = 0xFFEB3B;
     const FIRE_W = 0xFFF59D;
     
-    this.textures.set('fireplace', this.createSpriteTexture([
+    registerSpriteTexture('fireplace', [
       [FIRE_B,FIRE_B,FIRE_B,FIRE_B,FIRE_B,FIRE_B,FIRE_B,FIRE_B,FIRE_B],
       [FIRE_B,FIRE_R,FIRE_O,FIRE_Y,FIRE_W,FIRE_Y,FIRE_O,FIRE_R,FIRE_B],
       [FIRE_B,FIRE_O,FIRE_Y,FIRE_W,FIRE_W,FIRE_W,FIRE_Y,FIRE_O,FIRE_B],
       [FIRE_B,FIRE_R,FIRE_O,FIRE_Y,FIRE_Y,FIRE_Y,FIRE_O,FIRE_R,FIRE_B],
       [FIRE_B,FIRE_B,FIRE_R,FIRE_O,FIRE_R,FIRE_O,FIRE_R,FIRE_B,FIRE_B],
       [FIRE_B,FIRE_B,FIRE_B,FIRE_R,FIRE_R,FIRE_R,FIRE_B,FIRE_B,FIRE_B],
-    ]));
+    ]);
 
     const SWORD_L = 0x78909C;
     const SWORD_H = 0xB0BEC5;
     const AXE_W = 0x5D4037;
     const RACK_W = 0x3E2723;
     
-    this.textures.set('weapon_rack', this.createSpriteTexture([
+    registerSpriteTexture('weapon_rack', [
       [RACK_W,RACK_W,RACK_W,RACK_W,RACK_W,RACK_W,RACK_W,RACK_W],
       [RACK_W,SWORD_H,SWORD_L,SWORD_L,SWORD_L,SWORD_L,SWORD_H,RACK_W],
       [RACK_W,SWORD_L,SWORD_H,SWORD_L,SWORD_L,SWORD_H,SWORD_L,RACK_W],
       [RACK_W,AXE_W,AXE_W,RACK_W,RACK_W,AXE_W,AXE_W,RACK_W],
       [RACK_W,RACK_W,RACK_W,RACK_W,RACK_W,RACK_W,RACK_W,RACK_W],
-    ]));
+    ]);
 
     const ALCHEMY_B = 0x8D6E63;
     const ALCHEMY_W = 0x4527A0;
@@ -3198,14 +3220,14 @@ export class AssetManager {
     const BOTTLE_G = 0x81C784;
     const BOTTLE_R = 0xE57373;
     
-    this.textures.set('alchemy_table', this.createSpriteTexture([
+    registerSpriteTexture('alchemy_table', [
       [ALCHEMY_B,ALCHEMY_B,ALCHEMY_B,ALCHEMY_B,ALCHEMY_B,ALCHEMY_B],
       [ALCHEMY_B,BOTTLE_G,BOTTLE_R,BOTTLE_G,C,ALCHEMY_B],
       [ALCHEMY_B,BOTTLE_R,C,BOTTLE_G,BOTTLE_R,ALCHEMY_B],
       [ALCHEMY_W,ALCHEMY_W,ALCHEMY_W,ALCHEMY_W,ALCHEMY_W,ALCHEMY_B],
       [ALCHEMY_W,ALCHEMY_W,ALCHEMY_W,ALCHEMY_W,ALCHEMY_W,ALCHEMY_W],
       [ALCHEMY_B,ALCHEMY_B,ALCHEMY_B,ALCHEMY_B,ALCHEMY_B,ALCHEMY_B],
-    ]));
+    ]);
 
     const CAULDRON = 0x37474F;
     const CAULDRON_H = 0x546E7A;
@@ -3213,13 +3235,13 @@ export class AssetManager {
     const LIQUID_G = 0x4CAF50;
     const LIQUID_B = 0x2E7D32;
     
-    this.textures.set('cauldron', this.createSpriteTexture([
+    registerSpriteTexture('cauldron', [
       [C,CAULDRON_H,CAULDRON,CAULDRON,CAULDRON,CAULDRON_H,C],
       [CAULDRON_H,LIQUID_G,LIQUID_B,LIQUID_G,LIQUID_B,LIQUID_G,CAULDRON_H],
       [CAULDRON,CAULDRON,CAULDRON_H,CAULDRON_H,CAULDRON,CAULDRON,CAULDRON],
       [CAULDRON_L,CAULDRON,CAULDRON_H,CAULDRON_H,CAULDRON,CAULDRON,CAULDRON_L],
       [C,CAULDRON_L,CAULDRON_L,CAULDRON_L,CAULDRON_L,CAULDRON_L,C],
-    ]));
+    ]);
 
     // === ATMOSPHERIC / SOULS-LIKE ===
     const THRONE_G = 0x8D6E63;
@@ -3227,33 +3249,33 @@ export class AssetManager {
     const THRONE_R = 0xB71C1C;
     const THRONE_GOLD = 0xFFD700;
     
-    this.textures.set('throne', this.createSpriteTexture([
+    registerSpriteTexture('throne', [
       [THRONE_D,THRONE_GOLD,THRONE_D,THRONE_D,THRONE_D,THRONE_GOLD,THRONE_D],
       [THRONE_D,THRONE_G,THRONE_GOLD,THRONE_GOLD,THRONE_GOLD,THRONE_G,THRONE_D],
       [THRONE_D,THRONE_G,THRONE_R,THRONE_GOLD,THRONE_R,THRONE_G,THRONE_D],
       [THRONE_D,THRONE_G,THRONE_R,THRONE_R,THRONE_R,THRONE_G,THRONE_D],
       [THRONE_D,THRONE_D,THRONE_G,THRONE_G,THRONE_G,THRONE_D,THRONE_D],
       [THRONE_D,THRONE_D,THRONE_G,THRONE_G,THRONE_G,THRONE_D,THRONE_D],
-    ]));
+    ]);
 
     const ALTAR_S = 0x9E9E9E;
     const ALTAR_G = 0x757575;
     const ALTAR_D = 0x424242;
     const ALTAR_B = 0xB71C1C;
     
-    this.textures.set('altar', this.createSpriteTexture([
+    registerSpriteTexture('altar', [
       [ALTAR_D,ALTAR_S,ALTAR_S,ALTAR_S,ALTAR_S,ALTAR_D],
       [ALTAR_S,ALTAR_B,ALTAR_S,ALTAR_S,ALTAR_B,ALTAR_S],
       [ALTAR_G,ALTAR_S,ALTAR_S,ALTAR_S,ALTAR_S,ALTAR_G],
       [ALTAR_D,ALTAR_G,ALTAR_G,ALTAR_G,ALTAR_G,ALTAR_D],
       [ALTAR_D,ALTAR_D,ALTAR_D,ALTAR_D,ALTAR_D,ALTAR_D],
-    ]));
+    ]);
 
     const BLOOD_R = 0x8B0000;
     const BLOOD_D = 0x4A0000;
     const BLOOD_S = 0x2A0000;
     
-    this.textures.set('bloodstain', this.createSpriteTexture([
+    registerSpriteTexture('bloodstain', [
       [C,C,C,BLOOD_S,BLOOD_D,C,C,C,C],
       [C,C,BLOOD_S,BLOOD_R,BLOOD_R,BLOOD_D,C,C,C],
       [C,BLOOD_S,BLOOD_R,BLOOD_R,BLOOD_D,BLOOD_R,BLOOD_D,C,C],
@@ -3261,20 +3283,20 @@ export class AssetManager {
       [C,BLOOD_D,BLOOD_R,BLOOD_R,BLOOD_R,BLOOD_D,C,BLOOD_D,C],
       [C,C,BLOOD_S,BLOOD_R,BLOOD_D,C,C,BLOOD_R,BLOOD_D],
       [C,C,C,BLOOD_D,C,C,C,BLOOD_D,C],
-    ]));
+    ]);
 
     const CHAIN = 0x616161;
     const CHAIN_H = 0x757575;
     const CHAIN_S = 0x424242;
     
-    this.textures.set('chain', this.createSpriteTexture([
+    registerSpriteTexture('chain', [
       [C,CHAIN_H,CHAIN_S,C,C],
       [CHAIN,CHAIN,CHAIN_H,CHAIN_S,C],
       [CHAIN_S,CHAIN_H,CHAIN,CHAIN_H,C],
       [C,CHAIN,CHAIN_S,CHAIN,C],
       [CHAIN_H,CHAIN_S,CHAIN_H,C,C],
       [C,CHAIN,C,C,C],
-    ]));
+    ]);
 
     const LEVER_WOOD = 0xA67C52;
     const LEVER_WOOD_H = 0xD7B388;
@@ -3284,7 +3306,7 @@ export class AssetManager {
     const LEVER_METAL_S = 0x616161;
     const LEVER_BRASS = 0xE0B11A;
     const LEVER_BRASS_H = 0xFFE082;
-    this.textures.set('shortcut_lever', this.createSpriteTexture([
+    registerSpriteTexture('shortcut_lever', [
       [C,            C,            LEVER_WOOD_S, LEVER_WOOD_S, LEVER_WOOD_S, LEVER_WOOD_S, C,            C],
       [C,            LEVER_WOOD_S, LEVER_WOOD_H, LEVER_WOOD_H, LEVER_WOOD_H, LEVER_WOOD_S, C,            C],
       [C,            LEVER_WOOD_S, LEVER_WOOD,   LEVER_METAL_H,LEVER_WOOD_H, LEVER_WOOD_S, C,            C],
@@ -3293,33 +3315,33 @@ export class AssetManager {
       [C,            C,            C,            LEVER_WOOD_S, LEVER_WOOD_S, C,            C,            C],
       [C,            C,            C,            LEVER_WOOD_S, LEVER_WOOD_S, C,            C,            C],
       [C,            C,            C,            LEVER_WOOD_S, LEVER_WOOD_S, C,            C,            C],
-    ], 4, 'shortcut_lever'));
+    ], 4);
 
     const CAGE = 0x424242;
     const CAGE_H = 0x616161;
     const CAGE_B = 0x212121;
     
-    this.textures.set('cage', this.createSpriteTexture([
+    registerSpriteTexture('cage', [
       [CAGE_B,CAGE_H,CAGE,CAGE,CAGE_H,CAGE_B],
       [CAGE_H,CAGE,CAGE_H,CAGE_H,CAGE,CAGE_H],
       [CAGE,CAGE_H,CAGE,CAGE,CAGE_H,CAGE],
       [CAGE_H,CAGE,CAGE_H,CAGE_H,CAGE,CAGE_H],
       [CAGE,CAGE_H,CAGE,CAGE,CAGE_H,CAGE],
       [CAGE_H,CAGE,CAGE_H,CAGE_H,CAGE,CAGE_H],
-    ]));
+    ]);
 
     const BONE_W = 0xFFF8E1;
     const BONE_S = 0xE0E0E0;
     const SKULL = 0xFFFDE7;
     
-    this.textures.set('bones_pile', this.createSpriteTexture([
+    registerSpriteTexture('bones_pile', [
       [C,C,BONE_W,BONE_S,BONE_W,C,C,C,C],
       [C,BONE_S,SKULL,SKULL,SKULL,BONE_S,C,C,C],
       [BONE_W,SKULL,0xBDBDBD,BONE_W,BONE_S,SKULL,BONE_W,C,C],
       [BONE_S,BONE_W,BONE_S,SKULL,BONE_W,BONE_S,BONE_S,BONE_W,C],
       [BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,BONE_S,C],
       [C,BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,C],
-    ]));
+    ]);
 
     // Fallen ranger: top-down lying figure — helmet at top, chest armour, cape body, blood pooling at edges.
     // Row order: helmet dome → visor (eye-slits) → wide shoulders → chest → waist/cape → legs → feet/blood.
@@ -3335,7 +3357,7 @@ export class AssetManager {
     const RM_VV = 0x1C2529;  // visor slot (near-black)
     const RM_AM = 0x9E9E9E;  // chest armour plate mid (steel gray)
     const RM_AH = 0xC8C8C8;  // chest armour plate highlight
-    this.textures.set('ranger_remains', this.createSpriteTexture([
+    registerSpriteTexture('ranger_remains', [
       [C,     C,     RM_HS, RM_HM, RM_HH, RM_HM, RM_HS, C,     C    ],  // helmet dome top
       [C,     RM_BH, RM_HS, RM_HH, RM_HH, RM_HH, RM_HS, RM_BH, C    ],  // helmet sides + blood
       [RM_BR, RM_BH, RM_HS, RM_VV, RM_HH, RM_VV, RM_HS, RM_BH, RM_BR],  // visor — two dark eye-slits
@@ -3344,7 +3366,7 @@ export class AssetManager {
       [C,     RM_CD, RM_CM, RM_CH, RM_AM, RM_CH, RM_CM, RM_CD, C    ],  // waist — cape wrapping torso
       [C,     RM_BL, RM_CD, RM_CM, RM_CM, RM_CM, RM_CD, RM_BL, C    ],  // legs / lower cape
       [C,     C,     RM_BL, RM_BR, RM_BH, RM_BR, RM_BL, C,     C    ],  // feet / blood pool
-    ]));
+    ]);
 
     // Fort gate key — gold ring bow + iron shaft with two teeth
     const FK_GH = 0xFFD54F;  // gold highlight
@@ -3353,7 +3375,7 @@ export class AssetManager {
     const FK_SH = 0x90A4AE;  // iron highlight
     const FK_S  = 0x607D8B;  // iron mid
     const FK_SD = 0x37474F;  // iron dark
-    this.textures.set('fort_gate_key', this.createSpriteTexture([
+    registerSpriteTexture('fort_gate_key', [
       // Ring / bow (rows 0-4) — hollow oval
       [C,     FK_GH, FK_G,  FK_GD, FK_GD, FK_G,  FK_GH, C   ],
       [FK_GH, FK_G,  C,     C,     C,     C,     FK_G,  C   ],
@@ -3368,7 +3390,7 @@ export class AssetManager {
       [C,     C,     C,     FK_SH, FK_SD, FK_SH, C,     C   ],  // tooth 2
       [C,     C,     C,     FK_SH, FK_SD, C,     C,     C   ],
       [C,     C,     C,     C,     FK_SD, C,     C,     C   ],  // tip
-    ], 4, 'fort_gate_key'));
+    ], 4);
 
     // Small environmental sprites
     const PETAL = 0xF48FB1;
@@ -3377,14 +3399,14 @@ export class AssetManager {
     const STEM_S = 0x2E7D32;
     const POLLEN = 0xFFF176;
 
-    this.textures.set('flower', this.createSpriteTexture([
+    registerSpriteTexture('flower', [
       [C,     C,     PETAL_H,PETAL, C,     C],
       [C,     PETAL, POLLEN, POLLEN,PETAL_H,C],
       [PETAL_H,POLLEN,POLLEN,POLLEN,POLLEN,PETAL],
       [C,     PETAL, POLLEN, POLLEN,PETAL, C],
       [C,     C,     STEM,   STEM_S,C,     C],
       [C,     STEM,  STEM_S, STEM,  STEM,  C],
-    ], 4, 'flower'));
+    ], 4);
 
     // Moonbloom — layered indigo / violet / crimson bloom (quest key item)
     const MB_B = 0x303F9F;
@@ -3398,7 +3420,7 @@ export class AssetManager {
     const MB_GL = 0xE8EAF6;
     const MB_ST = 0x00897B;
     const MB_SD = 0x004D40;
-    this.textures.set('moonbloom', this.createSpriteTexture([
+    registerSpriteTexture('moonbloom', [
       [C,      MB_BH,  MB_PH,  MB_RH,  MB_RH,  MB_PH,  MB_BH,  C],
       [MB_BH,  MB_P,   MB_R,   MB_RC,  MB_RC,  MB_R,   MB_P,   MB_BH],
       [MB_PH,  MB_R,   MB_GL,  MB_RC,  MB_RC,  MB_GL,  MB_R,   MB_PH],
@@ -3407,37 +3429,47 @@ export class AssetManager {
       [MB_B,   MB_PH,  MB_RH,  MB_R,   MB_R,   MB_RH,  MB_PH,  MB_B],
       [C,      MB_ST,  MB_ST,  MB_ST,  MB_ST,  MB_ST,  MB_ST,  C],
       [C,      C,      MB_SD,  MB_ST,  MB_ST,  MB_SD,  C,      C],
-    ], 4, 'moonbloom'));
+    ], 4);
 
     const HERB = 0x3FAE63;
     const HERB_H = 0x83E48C;
     const HERB_S = 0x1F7A3E;
     const HERB_CORE = 0xB7FF8A;
 
-    this.textures.set('tempest_grass', this.createSpriteTexture([
+    registerSpriteTexture('tempest_grass', [
       [C,      C,      HERB_H, C,      HERB_H, C,      C,      C],
       [C,      HERB_H, HERB,   HERB_H, HERB,   HERB_H, C,      C],
       [HERB_H, HERB,   HERB_H, HERB_CORE,HERB_H,HERB,  HERB_H, C],
       [C,      HERB_S, HERB,   HERB_S, HERB,   HERB_S, C,      C],
       [C,      C,      HERB_S, HERB,   HERB_S, C,      C,      C],
       [C,      C,      HERB_S, HERB_S, HERB_S, C,      C,      C],
-    ], 4, 'tempest_grass'));
+    ], 4);
 
     const PAPER = 0xF2E8C9;
     const PAPER_H = 0xFFF7DD;
     const PAPER_S = 0xCDBE96;
     const INK = 0x5D4037;
     const SEAL = 0xDAA520;
-    this.textures.set('loose_pages', this.createSpriteTexture([
+    registerSpriteTexture('loose_pages', [
       [C,       C,       PAPER_H, PAPER_H, PAPER_H, PAPER_H, C,       C],
       [C,       PAPER_H, PAPER,   PAPER,   PAPER_H, PAPER_H, PAPER_H, C],
       [PAPER_H, PAPER,   INK,     PAPER,   PAPER,   INK,     PAPER_H, C],
       [PAPER_H, PAPER,   PAPER,   INK,     PAPER,   PAPER,   PAPER_H, C],
       [C,       PAPER_H, PAPER,   PAPER,   PAPER_H, PAPER,   SEAL,    C],
       [C,       C,       PAPER_S, PAPER_H, PAPER,   PAPER_S, C,       C],
-    ], 4, 'loose_pages'));
-    this.textures.set('manuscript_fragment', this.textures.get('loose_pages')!);
-    this.textures.set('hunters_manuscript', this.textures.get('loose_pages')!);
+    ], 4);
+    this.registerTexture('manuscript_fragment', () => {
+      const baseTexture = this.getTexture('loose_pages')!;
+      const baseUrl = this.textureDataUrls.get('loose_pages');
+      if (baseUrl) this.textureDataUrls.set('manuscript_fragment', baseUrl);
+      return baseTexture;
+    });
+    this.registerTexture('hunters_manuscript', () => {
+      const baseTexture = this.getTexture('loose_pages')!;
+      const baseUrl = this.textureDataUrls.get('loose_pages');
+      if (baseUrl) this.textureDataUrls.set('hunters_manuscript', baseUrl);
+      return baseTexture;
+    });
 
     // Blighted Root Shard — gnarled dark bark fragment with pulsing green corruption veins
     const BR_BARK  = 0x3E2723;   // dark bark
@@ -3447,7 +3479,7 @@ export class AssetManager {
     const BR_VEIN_D = 0x4CAF50;  // corruption vein dark
     const BR_PULSE = 0xCCFF90;   // bright pulse center
     const BR_THORN = 0x2E1A0E;   // sharp thorn tips
-    this.textures.set('blighted_root_shard', this.createSpriteTexture([
+    registerSpriteTexture('blighted_root_shard', [
       [C,        C,        BR_THORN, BR_BARK_H,C,        C,        BR_THORN, C       ],
       [C,        BR_THORN, BR_BARK,  BR_VEIN,  BR_BARK_H,BR_BARK,  BR_BARK_H,C       ],
       [C,        BR_BARK_H,BR_VEIN_D,BR_BARK,  BR_PULSE, BR_BARK,  BR_VEIN,  BR_THORN],
@@ -3456,7 +3488,7 @@ export class AssetManager {
       [C,        BR_BARK,  BR_BARK_D,BR_PULSE, BR_BARK,  BR_VEIN,  BR_BARK,  C       ],
       [C,        C,        BR_BARK,  BR_VEIN_D,BR_BARK_H,BR_BARK_D,C,        C       ],
       [C,        C,        C,        BR_BARK_D,BR_THORN, C,        C,        C       ],
-    ], 4, 'blighted_root_shard'));
+    ], 4);
 
     // Golem Heart — dense stone core with warm amber inner glow, cracked exterior
     const GH_STONE  = 0x757575;  // stone surface
@@ -3467,7 +3499,7 @@ export class AssetManager {
     const GH_GLOW_H = 0xFFB300;  // bright glow center
     const GH_PULSE  = 0xFFD54F;  // hottest core
     const GH_EMBER  = 0xE65100;  // deep ember edge
-    this.textures.set('golem_heart', this.createSpriteTexture([
+    registerSpriteTexture('golem_heart', [
       [C,         C,         GH_STONE_H,GH_STONE,  GH_STONE,  GH_STONE_H,C,         C        ],
       [C,         GH_STONE_H,GH_STONE,  GH_CRACK,  GH_STONE,  GH_STONE,  GH_STONE_H,C        ],
       [GH_STONE_H,GH_STONE,  GH_GLOW,   GH_GLOW_H, GH_GLOW,   GH_CRACK,  GH_STONE,  GH_STONE_H],
@@ -3476,7 +3508,7 @@ export class AssetManager {
       [GH_STONE_H,GH_CRACK,  GH_EMBER,  GH_GLOW_H, GH_GLOW,   GH_STONE,  GH_STONE,  GH_STONE_D],
       [C,         GH_STONE,  GH_STONE_D,GH_CRACK,  GH_STONE,  GH_STONE_D,GH_STONE,  C        ],
       [C,         C,         GH_STONE_D,GH_STONE,  GH_STONE,  GH_STONE_D,C,         C        ],
-    ], 4, 'golem_heart'));
+    ], 4);
 
     const HE_DP = 0x4A148C;
     const HE_P  = 0x7C4DFF;
@@ -3484,7 +3516,7 @@ export class AssetManager {
     const HE_BC = 0xEA80FC;
     const HE_WC = 0xF3E5F5;
     const HE_SH = 0x311B92;
-    this.textures.set('heretical_essence_apparition', this.createSpriteTexture([
+    registerSpriteTexture('heretical_essence_apparition', [
       [C,      C,      HE_SH,  HE_DP,  HE_DP,  HE_SH,  C,      C     ],
       [C,      HE_SH,  HE_DP,  HE_P,   HE_P,   HE_DP,  HE_SH,  C     ],
       [HE_SH,  HE_DP,  HE_P,   HE_LP,  HE_LP,  HE_P,   HE_DP,  HE_SH ],
@@ -3493,15 +3525,15 @@ export class AssetManager {
       [HE_SH,  HE_DP,  HE_P,   HE_LP,  HE_LP,  HE_P,   HE_DP,  HE_SH ],
       [C,      HE_SH,  HE_DP,  HE_P,   HE_P,   HE_DP,  HE_SH,  C     ],
       [C,      C,      HE_SH,  HE_DP,  HE_DP,  HE_SH,  C,      C     ],
-    ], 4, 'heretical_essence_apparition'));
+    ], 4);
 
-    this.textures.set('mushroom', this.createSpriteTexture([
+    registerSpriteTexture('mushroom', [
       [C,        C,        0xE53935,0xEF5350,0xE53935,0xEF5350,C,       C],
       [C,        0xE53935, 0xFFFFFF,0xE53935,0xE53935,0xFFFFFF, 0xE53935,C],
       [0xE53935, 0xE53935, 0xE53935,0xEF5350,0xE53935,0xE53935, 0xE53935,0xE53935],
       [C,        C,        C,       0xFFE0B2, 0xFFCC80,C,      C,       C],
       [C,        C,        C,       0xFFCC80,0xFFE0B2,C,       C,       C],
-    ]));
+    ]);
 
     const SIGN_WOOD = 0xC29A6B;
     const SIGN_WOOD_H = 0xE6C79C;
@@ -3509,7 +3541,7 @@ export class AssetManager {
     const SIGN_POST = 0x4E342E;
     const SIGN_BORDER = 0x6D4C41;
     const SIGN_FACE = 0xF3E0B8;
-    this.textures.set('sign', this.createSpriteTexture([
+    registerSpriteTexture('sign', [
       [C,         C,         SIGN_BORDER,SIGN_BORDER,SIGN_BORDER,SIGN_BORDER,SIGN_BORDER,SIGN_BORDER,C,          C],
       [C,         C,         SIGN_BORDER,SIGN_FACE,SIGN_FACE,SIGN_FACE,SIGN_FACE,SIGN_BORDER,C,          C],
       [C,         C,         SIGN_BORDER,SIGN_WOOD,SIGN_WOOD_H,SIGN_WOOD,SIGN_WOOD,SIGN_BORDER,C,       C],
@@ -3517,10 +3549,10 @@ export class AssetManager {
       [C,         C,         C,         C,         SIGN_POST,SIGN_POST,C,         C,          C,          C],
       [C,         C,         C,         C,         SIGN_POST,SIGN_POST,C,         C,          C,          C],
       [C,         C,         C,         C,         SIGN_POST,SIGN_POST,C,         C,          C,          C],
-    ]));
+    ]);
 
     // Broken sign: snapped post, hanging board at an angle
-    this.textures.set('broken_sign', this.createSpriteTexture([
+    registerSpriteTexture('broken_sign', [
       [C,         C,         C,         C,         C,         C,         C,         C,         C,         C],
       [C,         C,         C,         SIGN_BORDER,SIGN_BORDER,SIGN_BORDER,C,        C,         C,         C],
       [C,         C,         SIGN_BORDER,SIGN_FACE,SIGN_WOOD_S,SIGN_BORDER,C,        C,         C,         C],
@@ -3528,53 +3560,53 @@ export class AssetManager {
       [C,         C,         C,         C,         SIGN_POST,C,         C,         C,          C,         C],
       [C,         C,         C,         C,         SIGN_POST,C,         C,         C,          C,         C],
       [C,         C,         C,         SIGN_POST,C,         C,         C,         C,          C,         C],
-    ]));
+    ]);
 
-    this.textures.set('well', this.createSpriteTexture([
+    registerSpriteTexture('well', [
       [C,          C,          0x795548,0x795548, 0x795548,0x795548, 0x795548,0x795548,C,          C],
       [C,          0x795548,  C,        C,         0x795548,C,        C,         0x795548,C,          C],
       [C,          0x78909C, 0x78909C,0x546E7A,0x1E88E5,0x546E7A,0x78909C,0x78909C,C, C],
       [C,          0x546E7A,0x78909C,0x1E88E5,0x1E88E5,0x1E88E5,0x78909C,0x546E7A,C,  C],
       [C,          C,          0x546E7A,0x78909C,0x78909C,0x78909C,0x546E7A,C,C,          C],
-    ]));
+    ]);
 
-    this.textures.set('campfire', this.createSpriteTexture([
+    registerSpriteTexture('campfire', [
       [C,     C,     C,     0xFFEB3B,0xFFEB3B,C,     C,     C],
       [C,     C,     0xFF9800,0xFFEB3B,0xFF9800,0xFF9800,C,     C],
       [C,     0xFF5722,0xFF9800,0xFFEB3B,0xFFEB3B,0xFF9800,0xFF5722,C],
       [C,     0xFF5722,0xFF5722,0xFF9800,0xFF9800,0xFF5722,0xFF5722,C],
       [0x5D4037,0x5D4037,0xFF5722,0xFF5722,0xFF5722,0xFF5722,0x5D4037,0x5D4037],
       [C,     0x5D4037,0x5D4037,0x5D4037,0x5D4037,0x5D4037,0x5D4037,C],
-    ]));
+    ]);
 
     // Bonfire (unlit) — cold wood pile with faint embers, no flame
-    this.textures.set('bonfire_unlit', this.createSpriteTexture([
+    registerSpriteTexture('bonfire_unlit', [
       [C,     C,     C,     0x4E342E,C,     C,     C,     C],
       [C,     0x5D4037,0x4E342E,0x3E2723,0x4E342E,0x5D4037,C,     C],
       [C,     0x3E2723,0x5D4037,0x4E342E,0x3E2723,0x5D4037,0x3E2723,C],
       [0x4E342E,0x5D4037,0x795548,0x5D4037,0x5D4037,0x795548,0x5D4037,0x4E342E],
       [0x3E2723,0x4E342E,0x5D4037,0x795548,0x795548,0x5D4037,0x4E342E,0x3E2723],
       [C,     0x3E2723,0x4E342E,0x4E342E,0x4E342E,0x4E342E,0x3E2723,C],
-    ]));
+    ]);
 
     // Bonfire — taller violet/white flame (rest checkpoint)
-    this.textures.set('bonfire', this.createSpriteTexture([
+    registerSpriteTexture('bonfire', [
       [C,     C,     0xE1BEE7,0xFFFFFF,0xE1BEE7,C,     C,     C],
       [C,     0xBA68C8,0xFFFFFF,0xFFD54F,0xFFFFFF,0xBA68C8,C,     C],
       [C,     0x7B1FA2,0xE1BEE7,0xFFD54F,0xFFD54F,0xE1BEE7,0x7B1FA2,C],
       [0x4E342E,0x5D4037,0xFF6F00,0xFF9800,0xFF9800,0xFF6F00,0x5D4037,0x4E342E],
       [0x3E2723,0x4E342E,0x5D4037,0xFF5722,0xFF5722,0x5D4037,0x4E342E,0x3E2723],
       [C,     0x3E2723,0x4E342E,0x4E342E,0x4E342E,0x4E342E,0x3E2723,C],
-    ]));
+    ]);
 
     // Dropped essence bloodstain orb (world pickup)
-    this.textures.set('essence_drop', this.createSpriteTexture([
+    registerSpriteTexture('essence_drop', [
       [C,     C,     0x4A148C,0xCE93D8,0x4A148C,C,     C],
       [C,     0x7B1FA2,0xE1BEE7,0xFFFFFF,0xE1BEE7,0x7B1FA2,C],
       [0x6A1B9A,0xCE93D8,0xFFFFFF,0xFFD54F,0xFFFFFF,0xCE93D8,0x6A1B9A],
       [C,     0x7B1FA2,0xE1BEE7,0xFFFFFF,0xE1BEE7,0x7B1FA2,C],
       [C,     C,     0x4A148C,0xCE93D8,0x4A148C,C,     C],
-    ]));
+    ]);
 
     // Tombstone — rounded top, etched cross in center body, narrow base.
     // Cross: vertical = rows 2-4 at cols 3-4; horizontal = row 3 at cols 2-5.
@@ -3582,43 +3614,43 @@ export class AssetManager {
     const TS_M = 0x757575;   // stone mid
     const TS_D = 0x616161;   // stone dark
     const TS_C = 0xBBBBBB;   // etched cross (lighter, worn-pale carving)
-    this.textures.set('tombstone', this.createSpriteTexture([
+    registerSpriteTexture('tombstone', [
       [C,     C,     TS_H,  TS_H,  TS_H,  TS_H,  C,     C    ],  // rounded top
       [C,     TS_M,  TS_M,  TS_M,  TS_M,  TS_M,  TS_M,  C    ],  // upper body
       [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // cross — vertical arm (top)
       [C,     TS_D,  TS_C,  TS_C,  TS_C,  TS_C,  TS_D,  C    ],  // cross — horizontal arm
       [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // cross — vertical arm (bottom)
       [C,     C,     TS_D,  TS_D,  TS_D,  TS_D,  C,     C    ],  // base
-    ]));
+    ]);
 
     // Cracked horizontal — snapped at row 3, top half gone, only base remains.
     // Same palette as the intact tombstone; the upper rows are cleared to transparent.
     const TK = 0x4E4E4E; // dark crack / break edge
-    this.textures.set('tombstone_broken', this.createSpriteTexture([
+    registerSpriteTexture('tombstone_broken', [
       [C,     C,     C,     C,     C,     C,     C,     C    ],  // top gone
       [C,     C,     C,     C,     C,     C,     C,     C    ],  // top gone
       [C,     C,     TK,    TS_H,  TK,    TS_M,  C,     C    ],  // jagged break line
       [C,     TS_D,  TS_C,  TS_C,  TS_C,  TS_C,  TS_D,  C    ],  // cross horizontal (surviving)
       [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // cross vertical arm (bottom)
       [C,     C,     TS_D,  TS_D,  TS_D,  TS_D,  C,     C    ],  // base
-    ]));
+    ]);
 
     // Cracked vertical — crack runs ~60/40 down the center, fading out at row 4.
-    this.textures.set('tombstone_cracked_v', this.createSpriteTexture([
+    registerSpriteTexture('tombstone_cracked_v', [
       [C,     C,     TS_H,  TS_H,  TK,    TS_H,  C,     C    ],  // crack starts at col 4
       [C,     TS_M,  TS_M,  TS_M,  TK,    TS_M,  TS_M,  C    ],  // crack continues
       [C,     TS_D,  TS_D,  TS_C,  TK,    TS_D,  TS_D,  C    ],  // crack through cross
       [C,     TS_D,  TS_C,  TS_C,  TS_C,  TS_C,  TS_D,  C    ],  // crack fades out here
       [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // intact lower
       [C,     C,     TS_D,  TS_D,  TS_D,  TS_D,  C,     C    ],  // base
-    ]));
+    ]);
 
-    this.textures.set('stump', this.createSpriteTexture([
+    registerSpriteTexture('stump', [
       [C,       0xBCAAA4,0x795548,0xBCAAA4,0x795548,0xBCAAA4,C],
       [0x795548, 0xBCAAA4,0x5D4037,0xBCAAA4,0x5D4037,0xBCAAA4,0x795548],
       [0x5D4037,0x795548,0x5D4037,0x795548,0x5D4037,0x795548,0x5D4037],
       [C,       0x5D4037,0x5D4037,0x5D4037,0x5D4037,0x5D4037,C],
-    ]));
+    ]);
 
     // Blighted stump — corrupted wood with dark thorny tendrils and green/purple glow
     const BV = 0x1B5E20; // dark blight vine
@@ -3628,7 +3660,7 @@ export class AssetManager {
     const BW = 0x5D4037; // base wood (brown)
     const BH = 0x795548; // wood highlight
     const BL = 0x3E2723; // dark wood
-    this.textures.set('blighted_stump', this.createSpriteTexture([
+    registerSpriteTexture('blighted_stump', [
       [C,  C,    BG,   C,    C,    BP,   C,    C,    C  ],
       [C,  BG,   BV,   BP,   BG,   BV,   BP,   BG,   C  ],
       [C,  BV,   BH,   BW,   BD,   BW,   BH,   BV,   C  ],
@@ -3637,43 +3669,43 @@ export class AssetManager {
       [BG, BL,   BW,   BL,   BW,   BL,   BW,   BL,   BP ],
       [C,  BV,   BL,   BL,   BL,   BL,   BL,   BV,   C  ],
       [C,  C,    BV,   BD,   BV,   BD,   BV,   C,    C  ],
-    ]));
+    ]);
 
-    this.textures.set('fence', this.createSpriteTexture([
+    registerSpriteTexture('fence', [
       [0xA1887F, C,      0xA1887F, C,      0xA1887F, C,      0xA1887F, C],
       [0xA1887F, 0x6D4C41,0xA1887F, 0x6D4C41,0xA1887F, 0x6D4C41,0xA1887F, 0x6D4C41],
       [0x6D4C41, C,      0x6D4C41, C,      0x6D4C41, C,      0x6D4C41, C],
       [0x6D4C41, 0xA1887F,0x6D4C41, 0xA1887F,0x6D4C41, 0xA1887F,0x6D4C41, 0xA1887F],
-    ]));
+    ]);
 
-    this.textures.set('barrel', this.createSpriteTexture([
+    registerSpriteTexture('barrel', [
       [C,        0x6D4C41,0x8D6E63,0x6D4C41,0x8D6E63,0x6D4C41,C],
       [0x546E7A, 0x6D4C41,0x8D6E63,0x6D4C41,0x8D6E63,0x6D4C41,0x546E7A],
       [0x6D4C41, 0x8D6E63,0x6D4C41,0x8D6E63,0x6D4C41,0x8D6E63,0x6D4C41],
       [0x546E7A, 0x6D4C41,0x8D6E63,0x6D4C41,0x8D6E63,0x6D4C41,0x546E7A],
       [C,        0x6D4C41,0x8D6E63,0x6D4C41,0x8D6E63,0x6D4C41,C],
-    ]));
+    ]);
 
-    this.textures.set('crate', this.createSpriteTexture([
+    registerSpriteTexture('crate', [
       [0x5D4037, 0x795548,0x795548,0x795548,0x795548,0x795548,0x5D4037],
       [0x795548, 0x8D6E63,0x5D4037,0x8D6E63,0x5D4037,0x8D6E63,0x795548],
       [0x795548, 0x5D4037,0x8D6E63,0x5D4037,0x8D6E63,0x5D4037,0x795548],
       [0x795548, 0x8D6E63,0x5D4037,0x8D6E63,0x5D4037,0x8D6E63,0x795548],
       [0x5D4037, 0x795548,0x795548,0x795548,0x795548,0x795548,0x5D4037],
-    ]));
+    ]);
 
     const GATE_IRON = 0x455A64;
     const GATE_IRON_H = 0x607D8B;
     const GATE_RIVET = 0x37474F;
     const GATE_LOCK = 0xFFD54F;
-    this.textures.set('gate', this.createSpriteTexture([
+    registerSpriteTexture('gate', [
       [GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_IRON],
       [GATE_RIVET,GATE_IRON,   GATE_RIVET,GATE_IRON,   GATE_RIVET,GATE_IRON,   GATE_RIVET,GATE_IRON],
       [GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_LOCK,   GATE_LOCK, GATE_IRON,   GATE_IRON_H,GATE_IRON],
       [GATE_RIVET,GATE_IRON,   GATE_RIVET,GATE_IRON,   GATE_RIVET,GATE_IRON,   GATE_RIVET,GATE_IRON],
       [GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_IRON_H, GATE_IRON, GATE_IRON],
       [GATE_IRON, GATE_RIVET,  GATE_IRON, GATE_RIVET,  GATE_IRON, GATE_RIVET,  GATE_IRON, GATE_RIVET],
-    ]));
+    ]);
 
     // Fog gate — swirling white/grey mist wall
     const FOG_W = 0xE0E0E0;
@@ -3681,7 +3713,7 @@ export class AssetManager {
     const FOG_M = 0x9E9E9E;
     const FOG_D = 0x757575;
     const FOG_P = 0xCE93D8; // faint purple tinge
-    this.textures.set('fog_gate', this.createSpriteTexture([
+    registerSpriteTexture('fog_gate', [
       [C,     FOG_D, FOG_M, FOG_L, FOG_W, FOG_L, FOG_M, FOG_D, C,     C    ],
       [FOG_D, FOG_M, FOG_W, FOG_L, FOG_P, FOG_L, FOG_W, FOG_M, FOG_D, C    ],
       [FOG_M, FOG_W, FOG_P, FOG_W, FOG_L, FOG_W, FOG_P, FOG_W, FOG_M, C    ],
@@ -3690,66 +3722,66 @@ export class AssetManager {
       [FOG_M, FOG_W, FOG_P, FOG_M, FOG_L, FOG_M, FOG_P, FOG_W, FOG_M, C    ],
       [FOG_D, FOG_M, FOG_L, FOG_W, FOG_P, FOG_W, FOG_L, FOG_M, FOG_D, C    ],
       [C,     FOG_D, FOG_M, FOG_L, FOG_W, FOG_L, FOG_M, FOG_D, C,     C    ],
-    ]));
+    ]);
 
     // Spike trap
     const SPIKE = 0x90A4AE;
     const SPIKE_S = 0x546E7A;
-    this.textures.set('spike_trap', this.createSpriteTexture([
+    registerSpriteTexture('spike_trap', [
       [C,      SPIKE, C,      SPIKE,  C,      SPIKE,  C,     C],
       [SPIKE_S,SPIKE, SPIKE_S,SPIKE,  SPIKE_S,SPIKE,  SPIKE_S,C],
       [C,      SPIKE_S,C,     SPIKE_S,C,      SPIKE_S,C,     C],
       [0x616161,0x616161,0x616161,0x616161,0x616161,0x616161,0x616161,0x616161],
-    ]));
+    ]);
 
-    this.textures.set('bones', this.createSpriteTexture([
+    registerSpriteTexture('bones', [
       [C,     0xEEEEEE,C,     C,     0xEEEEEE,C],
       [0xEEEEEE,0xBDBDBD,0xEEEEEE,0xEEEEEE,0xBDBDBD,0xEEEEEE],
       [C,     C,     0xBDBDBD,0xEEEEEE,C,     C],
       [C,     0xEEEEEE,0xEEEEEE,0xBDBDBD,0xEEEEEE,C],
       [0xEEEEEE,0xBDBDBD,C,     C,     0xBDBDBD,0xEEEEEE],
-    ]));
+    ]);
 
     // Iron fence - dark metal bars
     const IRON = 0x37474F;
     const IRON_H = 0x546E7A;
-    this.textures.set('iron_fence', this.createSpriteTexture([
+    registerSpriteTexture('iron_fence', [
       [IRON_H, C,      IRON_H, C,      IRON_H, C,      IRON_H, C],
       [IRON,   IRON_H, IRON,   IRON_H, IRON,   IRON_H, IRON,   IRON_H],
       [IRON,   C,      IRON,   C,      IRON,   C,      IRON,   C],
       [IRON,   IRON_H, IRON,   IRON_H, IRON,   IRON_H, IRON,   IRON_H],
       [IRON,   C,      IRON,   C,      IRON,   C,      IRON,   C],
-    ]));
+    ]);
 
     // Hedge - dense green bush
     const HEDGE = 0x2E7D32;
     const HEDGE_H = 0x43A047;
     const HEDGE_S = 0x1B5E20;
-    this.textures.set('hedge', this.createSpriteTexture([
+    registerSpriteTexture('hedge', [
       [C,      HEDGE_H,HEDGE,  HEDGE_H,HEDGE,  HEDGE_H,C,     C],
       [HEDGE_S,HEDGE,  HEDGE_H,HEDGE,  HEDGE_H,HEDGE,  HEDGE_S,C],
       [HEDGE,  HEDGE_S,HEDGE,  HEDGE_S,HEDGE,  HEDGE_S,HEDGE, C],
       [HEDGE_S,HEDGE,  HEDGE_S,HEDGE,  HEDGE_S,HEDGE,  HEDGE_S,C],
-    ]));
+    ]);
 
     // Wheat - golden crop
     const WHEAT = 0xFFC107;
     const WHEAT_H = 0xFFD54F;
     const WHEAT_S = 0xFFA000;
     const WHEAT_STEM = 0x8BC34A;
-    this.textures.set('wheat', this.createSpriteTexture([
+    registerSpriteTexture('wheat', [
       [C,        WHEAT_H, C,       WHEAT,   C,       WHEAT_H, C,       C],
       [WHEAT,    WHEAT_H, WHEAT,   WHEAT_H, WHEAT,   WHEAT,   WHEAT_S, C],
       [WHEAT_S,  WHEAT,   WHEAT_S, WHEAT,   WHEAT_S, WHEAT,   WHEAT_S, C],
       [C,        WHEAT_STEM,C,     WHEAT_STEM,C,     WHEAT_STEM,C,      C],
       [C,        WHEAT_STEM,C,     WHEAT_STEM,C,     WHEAT_STEM,C,      C],
-    ]));
+    ]);
 
     // Scarecrow
     const SC_HAT = 0x5D4037;
     const SC_SHIRT = 0xBCAAA4;
     const SC_FACE = 0xFFE0BD;
-    this.textures.set('scarecrow', this.createSpriteTexture([
+    registerSpriteTexture('scarecrow', [
       [C,      C,      SC_HAT, SC_HAT, SC_HAT, SC_HAT, C,      C],
       [C,      SC_HAT, SC_HAT, SC_HAT, SC_HAT, SC_HAT, SC_HAT, C],
       [C,      C,      SC_FACE,0x000000,SC_FACE,0x000000,C,      C],
@@ -3758,7 +3790,7 @@ export class AssetManager {
       [C,      C,      C,      SC_SHIRT,SC_SHIRT,C,      C,      C],
       [C,      C,      C,      0x5D4037,0x5D4037,C,      C,      C],
       [C,      C,      C,      0x5D4037,0x5D4037,C,      C,      C],
-    ]));
+    ]);
 
     // Windmill — 10×18 sprite: 4 distinct blade arms in "+" orientation,
     // conical cap, limestone tower with window + door, stone base.
@@ -3781,7 +3813,7 @@ export class AssetManager {
     const WM_WIN = 0x2C3840;   // window / door opening
     const WM_BSL = 0xAAAAAA;   // stone base bright
     const WM_BSD = 0x787878;   // stone base dark
-    this.textures.set('windmill', this.createSpriteTexture([
+    registerSpriteTexture('windmill', [
       // ── top blade (N arm, rows 0-3) ─ cols 3-6 only, rest transparent ────
       [C,       C,       C,       WM_SD,   WM_SL,   WM_SL,   WM_SD,   C,       C,       C      ],
       [C,       C,       C,       WM_SM,   WM_SL,   WM_SL,   WM_SM,   C,       C,       C      ],
@@ -3806,7 +3838,7 @@ export class AssetManager {
       [C,       WM_TWL,  WM_TWL,  WM_TWM,  WM_WIN,  WM_TWM,  WM_TWD,  WM_TWD,  C,       C      ],
       // ── stone base (row 17) ───────────────────────────────────────────────
       [WM_BSL,  WM_BSL,  WM_BSL,  WM_BSL,  WM_BSL,  WM_BSL,  WM_BSD,  WM_BSD,  C,       C      ],
-    ]));
+    ]);
 
     // Observatory — abandoned stone watchtower, 14×26 sprite grid
     // Pointed shingle roof → crenellations → straight-walled tower sections → trim bands → heavy base
@@ -3825,7 +3857,7 @@ export class AssetManager {
     const BS_MD = 0x585248;  // base stone mid
     const BS_DK = 0x403C38;  // base stone dark
     const BS_TM = 0x2A2824;  // base trim/foundation (darkest)
-    this.textures.set('observatory', this.createSpriteTexture([
+    registerSpriteTexture('observatory', [
       // row 0: roof finial
       [C,      C,      C,      C,      C,      C,      RF_PK,  RF_PK,  C,      C,      C,      C,      C,      C     ],
       // row 1-2: upper roof cone
@@ -3868,7 +3900,7 @@ export class AssetManager {
       [BS_TM,  BS_LT,  BS_LT,  BS_LT,  BS_LT,  BS_MD,  BS_MD,  BS_MD,  BS_MD,  BS_DK,  BS_DK,  BS_DK,  BS_DK,  BS_TM ],
       [BS_TM,  BS_TM,  BS_LT,  BS_LT,  BS_LT,  BS_MD,  BS_MD,  BS_MD,  BS_DK,  BS_DK,  BS_DK,  BS_DK,  BS_TM,  BS_TM ],
       [BS_TM,  BS_TM,  BS_TM,  BS_LT,  BS_LT,  BS_LT,  BS_MD,  BS_DK,  BS_DK,  BS_DK,  BS_DK,  BS_TM,  BS_TM,  BS_TM ],
-    ]));
+    ]);
 
     // Sword (Matches Player Buster Blade — fully diagonal, tip top-right to pommel bottom-left)
     // Every element (blade, guard, grip, pommel) follows the same 45° angle.
@@ -3879,7 +3911,7 @@ export class AssetManager {
     const SW_GR = 0x5D4037;  // brown grip
     const SW_GW = 0x8B7355;  // grip wrap highlight (lighter leather)
 
-    const swordTex = this.createSpriteTexture([
+    registerSpriteTexture('sword', [
       //       0      1      2      3      4      5      6      7
       /* 0 */ [C,     C,     C,     C,     C,     SW_H,  SW_H,  C    ],  // tip
       /* 1 */ [C,     C,     C,     C,     SW_H,  SW_B,  SW_H,  C    ],  // blade
@@ -3890,10 +3922,6 @@ export class AssetManager {
       /* 6 */ [C,     SW_GR, SW_GW, C,     C,     C,     C,     C    ],  // grip wrap
       /* 7 */ [SW_GR, SW_G,  C,     C,     C,     C,     C,     C    ],  // pommel
     ]);
-    this.textures.set('sword', swordTex);
-    if (swordTex.image instanceof HTMLCanvasElement) {
-      this.textureDataUrls.set('sword', swordTex.image.toDataURL());
-    }
 
     // Ornamental Broadsword inventory icon — straight blade that widens toward a wide
     // ornate guard.  Blue-steel tones, gold guard with highlights, ruby gem pommel.
@@ -3906,7 +3934,7 @@ export class AssetManager {
     const BS_GW = 0x7A5D42;  // grip wrap highlight (lighter leather)
     const BS_GM = 0xB22222;  // ruby gem pommel
 
-    const broadswordTex = this.createSpriteTexture([
+    registerSpriteTexture('broadsword', [
       //       0      1      2      3      4      5      6      7
       /* 0 */ [C,     C,     C,     C,     C,     C,     BS_H,  C    ],  // tip
       /* 1 */ [C,     C,     C,     C,     C,     BS_H,  BS_B,  C    ],  // blade
@@ -3917,10 +3945,6 @@ export class AssetManager {
       /* 6 */ [C,     C,     BS_GW, BS_GR, C,     C,     C,     C    ],  // grip wrap
       /* 7 */ [C,     BS_GR, BS_GM, BS_GR, C,     C,     C,     C    ],  // pommel with ruby
     ]);
-    this.textures.set('broadsword', broadswordTex);
-    if (broadswordTex.image instanceof HTMLCanvasElement) {
-      this.textureDataUrls.set('broadsword', broadswordTex.image.toDataURL());
-    }
 
     // Broadsword player sprites — identical chibi silhouette with blue-steel blade tones
     const heroBroadswordPalette = {
@@ -3940,7 +3964,7 @@ export class AssetManager {
           const d = dir, s = state, fr = f;
           const spriteId = `player_broadsword_${d}_${s}_${fr}`;
           this.registerTexture(spriteId, () => {
-            const tex = this.textures.get('broadsword');
+            const tex = this.getTexture('broadsword');
             const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
             return this.createChibiCharacter(d, s, fr, heroBroadswordPalette, spriteId, false, true, wc, 1.0);
           });
@@ -3955,7 +3979,7 @@ export class AssetManager {
           const d = dir, cs = step, fr = f;
           const spriteId = `player_broadsword_${d}_attack_${cs}_${fr}`;
           this.registerTexture(spriteId, () => {
-            const tex = this.textures.get('broadsword');
+            const tex = this.getTexture('broadsword');
             const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
             return this.createChibiCharacter(d, 'attack', fr, heroBroadswordPalette, spriteId, false, true, wc, 1.0, cs);
           });
@@ -4009,7 +4033,7 @@ export class AssetManager {
     const SC_SH = 0x8B8B8B;  // shaft gray
     const SC_SD = 0x5C5C5C;  // shaft shadow
     const SC_G  = 0x4E342E;  // grip leather
-    const scytheTex = this.createSpriteTexture([
+    registerSpriteTexture('scythe', [
       /* 0 */ [C,     SC_BH, SC_B,  SC_B,  SC_BS, C,     C,     C    ],
       /* 1 */ [SC_BH, SC_B,  SC_B,  SC_BS, C,     C,     C,     C    ],
       /* 2 */ [C,     SC_BS, SC_B,  SC_SH, C,     C,     C,     C    ],
@@ -4019,10 +4043,6 @@ export class AssetManager {
       /* 6 */ [C,     C,     C,     C,     C,     SC_G,  SC_SD, C    ],
       /* 7 */ [C,     C,     C,     C,     C,     C,     SC_G,  SC_SD],
     ]);
-    this.textures.set('scythe', scytheTex);
-    if (scytheTex.image instanceof HTMLCanvasElement) {
-      this.textureDataUrls.set('scythe', scytheTex.image.toDataURL());
-    }
 
     // Scythe player sprites — same chibi silhouette with dark-matter purple tones
     const heroScythePalette = {
@@ -4042,7 +4062,7 @@ export class AssetManager {
           const d = dir, s = state, fr = f;
           const spriteId = `player_scythe_${d}_${s}_${fr}`;
           this.registerTexture(spriteId, () => {
-            const tex = this.textures.get('scythe');
+            const tex = this.getTexture('scythe');
             const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
             return this.createChibiCharacter(d, s, fr, heroScythePalette, spriteId, false, true, wc, 1.0);
           });
@@ -4057,7 +4077,7 @@ export class AssetManager {
           const d = dir, cs = step, fr = f;
           const spriteId = `player_scythe_${d}_attack_${cs}_${fr}`;
           this.registerTexture(spriteId, () => {
-            const tex = this.textures.get('scythe');
+            const tex = this.getTexture('scythe');
             const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
             return this.createChibiCharacter(d, 'attack', fr, heroScythePalette, spriteId, false, true, wc, 1.0, cs);
           });
@@ -4110,7 +4130,7 @@ export class AssetManager {
     const P_K  = 0x6B4423;  // cork brown
     const P_W  = 0x8D6E63;  // cork highlight
 
-    const potionTex = this.createSpriteTexture([
+    registerSpriteTexture('potion', [
       //       0      1      2      3      4      5      6      7
       /* 0 */ [C,     C,     C,     P_W,   P_W,   C,     C,     C    ],
       /* 1 */ [C,     C,     P_K,   P_K,   P_K,   P_K,   C,     C    ],
@@ -4121,10 +4141,6 @@ export class AssetManager {
       /* 6 */ [P_G,   P_R,   P_R,   P_R,   P_R,   P_R,   P_R,   P_G  ],
       /* 7 */ [C,     P_G,   P_G,   P_G,   P_G,   P_G,   P_G,   C    ],
     ]);
-    this.textures.set('potion', potionTex);
-    if (potionTex.image instanceof HTMLCanvasElement) {
-      this.textureDataUrls.set('potion', potionTex.image.toDataURL());
-    }
 
     // Verdant Tonic — tall narrow flask, teal-blue liquid, leaf cork stopper
     const VT_G  = 0x90A4AE;  // pale glass
@@ -4136,7 +4152,7 @@ export class AssetManager {
     const VT_CK = 0x558B2F;  // leaf-green cork
     const VT_CH = 0x7CB342;  // cork highlight
 
-    const tonicTex = this.createSpriteTexture([
+    registerSpriteTexture('verdant_tonic', [
       //       0      1      2      3      4      5
       /* 0 */ [C,     C,     VT_CH, VT_CK, C,     C    ],
       /* 1 */ [C,     C,     VT_CK, VT_CK, C,     C    ],
@@ -4148,15 +4164,11 @@ export class AssetManager {
       /* 7 */ [VT_G,  VT_LH, VT_L,  VT_L,  VT_LS, VT_GD],
       /* 8 */ [C,     VT_G,  VT_L,  VT_LS, VT_GD, C    ],
       /* 9 */ [C,     C,     VT_GD, VT_GD, C,     C    ],
-    ], 4, 'verdant_tonic');
-    this.textures.set('verdant_tonic', tonicTex);
-    if (tonicTex.image instanceof HTMLCanvasElement) {
-      this.textureDataUrls.set('verdant_tonic', tonicTex.image.toDataURL());
-    }
+    ]);
 
     const TG_WRAP = 0x8D6E63;
     const TG_WRAP_H = 0xBCAAA4;
-    const herbItemTex = this.createSpriteTexture([
+    registerSpriteTexture('tempest_grass_item', [
       [C,        C,        HERB_H,   HERB_H,   HERB,     C,        C,        C],
       [C,        HERB_H,   HERB,     HERB_CORE,HERB_H,   HERB,     C,        C],
       [HERB_H,   HERB,     HERB_CORE,HERB_H,   HERB,     HERB_CORE,HERB_H,   C],
@@ -4165,39 +4177,38 @@ export class AssetManager {
       [C,        C,        TG_WRAP,  TG_WRAP_H,TG_WRAP,  C,        C,        C],
       [C,        C,        HERB_S,   HERB_S,   HERB_S,   C,        C,        C],
       [C,        C,        C,        HERB_S,   C,        C,        C,        C],
-    ], 4, 'tempest_grass_item');
-    this.textures.set('tempest_grass_item', herbItemTex);
+    ]);
 
 
     // Hay bale
     const HAY = 0xD4A017;
     const HAY_H = 0xE8B830;
     const HAY_S = 0xB8860B;
-    this.textures.set('hay_bale', this.createSpriteTexture([
+    registerSpriteTexture('hay_bale', [
       [HAY_S, HAY,   HAY_H, HAY,   HAY_H, HAY,   HAY_S],
       [HAY,   HAY_H, HAY,   HAY_S, HAY,   HAY_H, HAY],
       [HAY_S, HAY,   HAY_S, HAY,   HAY_S, HAY,   HAY_S],
       [HAY,   HAY_S, HAY,   HAY_H, HAY,   HAY_S, HAY],
-    ]));
+    ]);
 
     // Lantern
     const LANT_METAL = 0x37474F;
     const LANT_GLASS = 0xFFEB3B;
     const LANT_GLOW = 0xFFF9C4;
-    this.textures.set('lantern', this.createSpriteTexture([
+    registerSpriteTexture('lantern', [
       [C,         C,         LANT_METAL,LANT_METAL,C,         C],
       [C,         LANT_METAL,LANT_GLOW, LANT_GLASS,LANT_METAL,C],
       [C,         LANT_METAL,LANT_GLASS,LANT_GLOW, LANT_METAL,C],
       [C,         C,         LANT_METAL,LANT_METAL,C,         C],
       [C,         C,         LANT_METAL,LANT_METAL,C,         C],
       [C,         C,         LANT_METAL,LANT_METAL,C,         C],
-    ]));
+    ]);
 
     const SL_IRON = 0x37474F;
     const SL_IRON_H = 0x546E7A;
     const SL_AMBER = 0xFFD54F;
     const SL_GLOW = 0xFFF9C4;
-    this.textures.set('street_lamp', this.createSpriteTexture([
+    registerSpriteTexture('street_lamp', [
       [C,       C,       SL_IRON_H,SL_IRON, SL_IRON_H,C,       C,       C],
       [C,       SL_IRON, SL_GLOW,  SL_AMBER,SL_GLOW,  SL_IRON, C,       C],
       [C,       SL_IRON, SL_AMBER, SL_GLOW, SL_AMBER, SL_IRON, C,       C],
@@ -4206,25 +4217,25 @@ export class AssetManager {
       [C,       C,       C,        SL_IRON, C,        C,       C,       C],
       [C,       C,       C,        SL_IRON, C,        C,       C,       C],
       [C,       C,       C,        SL_IRON_H,C,       C,       C,       C],
-    ]));
+    ]);
 
     const IR_BAR = 0x37474F;
     const IR_H = 0x546E7A;
     const IR_TIP = 0x78909C;
-    this.textures.set('iron_railing', this.createSpriteTexture([
+    registerSpriteTexture('iron_railing', [
       [IR_TIP, C,      IR_TIP, C,      IR_TIP, C,      IR_TIP, C],
       [IR_BAR, C,      IR_BAR, C,      IR_BAR, C,      IR_BAR, C],
       [IR_BAR, IR_H,   IR_BAR, IR_H,   IR_BAR, IR_H,   IR_BAR, IR_H],
       [IR_BAR, C,      IR_BAR, C,      IR_BAR, C,      IR_BAR, C],
       [IR_H,   IR_BAR, IR_H,   IR_BAR, IR_H,   IR_BAR, IR_H,   IR_BAR],
-    ]));
+    ]);
 
     const FN_STONE = 0x78909C;
     const FN_STONE_H = 0x90A4AE;
     const FN_STONE_S = 0x546E7A;
     const FN_WATER = 0x42A5F5;
     const FN_WATER_H = 0x90CAF9;
-    this.textures.set('fountain', this.createSpriteTexture([
+    registerSpriteTexture('fountain', [
       [C,        C,        FN_STONE_H,FN_STONE, FN_STONE_H,FN_STONE, C,        C],
       [C,        FN_STONE, FN_WATER_H,FN_WATER, FN_WATER_H,FN_WATER, FN_STONE, C],
       [FN_STONE_S,FN_WATER, FN_WATER_H,FN_STONE_H,FN_STONE_H,FN_WATER_H,FN_WATER, FN_STONE_S],
@@ -4233,12 +4244,12 @@ export class AssetManager {
       [C,        FN_STONE, FN_WATER,  FN_WATER_H,FN_WATER, FN_WATER_H,FN_STONE, C],
       [C,        FN_STONE_S,FN_STONE, FN_STONE_S,FN_STONE, FN_STONE_S,FN_STONE_S,C],
       [C,        C,        FN_STONE_S,FN_STONE, FN_STONE_S,FN_STONE, C,        C],
-    ]));
+    ]);
 
     const PL_STONE = 0x78909C;
     const PL_STONE_H = 0x90A4AE;
     const PL_STONE_S = 0x546E7A;
-    this.textures.set('pillar', this.createSpriteTexture([
+    registerSpriteTexture('pillar', [
       [C,        PL_STONE_H,PL_STONE, PL_STONE_H,PL_STONE, PL_STONE_H,C],
       [C,        PL_STONE,  PL_STONE_H,PL_STONE, PL_STONE_H,PL_STONE, C],
       [C,        C,         PL_STONE, PL_STONE_S,PL_STONE, C,        C],
@@ -4247,12 +4258,12 @@ export class AssetManager {
       [C,        C,         PL_STONE_S,PL_STONE, PL_STONE_S,C,        C],
       [C,        PL_STONE,  PL_STONE_H,PL_STONE, PL_STONE_H,PL_STONE, C],
       [C,        PL_STONE_H,PL_STONE, PL_STONE_H,PL_STONE, PL_STONE_H,C],
-    ]));
+    ]);
 
     const SG_METAL = 0x424242;
     const SG_METAL_H = 0x616161;
     const SG_DARK = 0x212121;
-    this.textures.set('sewer_grate', this.createSpriteTexture([
+    registerSpriteTexture('sewer_grate', [
       [SG_METAL_H,SG_METAL, SG_METAL_H,SG_METAL, SG_METAL_H,SG_METAL, SG_METAL_H,SG_METAL],
       [SG_METAL,  SG_DARK,  SG_DARK,   SG_METAL, SG_DARK,   SG_DARK,  SG_METAL,  SG_METAL_H],
       [SG_METAL_H,SG_DARK,  SG_DARK,   SG_METAL_H,SG_DARK,  SG_DARK,  SG_METAL_H,SG_METAL],
@@ -4260,108 +4271,108 @@ export class AssetManager {
       [SG_METAL_H,SG_DARK,  SG_DARK,   SG_METAL, SG_DARK,   SG_DARK,  SG_METAL_H,SG_METAL],
       [SG_METAL,  SG_DARK,  SG_DARK,   SG_METAL_H,SG_DARK,  SG_DARK,  SG_METAL,  SG_METAL_H],
       [SG_METAL_H,SG_METAL, SG_METAL_H,SG_METAL, SG_METAL_H,SG_METAL, SG_METAL_H,SG_METAL],
-    ]));
+    ]);
 
     const HS_IRON = 0x37474F;
     const HS_WOOD = 0x795548;
     const HS_WOOD_H = 0xA1887F;
     const HS_TEXT = 0xD7CCC8;
-    this.textures.set('hanging_sign', this.createSpriteTexture([
+    registerSpriteTexture('hanging_sign', [
       [C,       HS_IRON, HS_IRON, C,       C,       HS_IRON, HS_IRON, C],
       [C,       C,       HS_IRON, C,       C,       HS_IRON, C,       C],
       [C,       HS_WOOD, HS_WOOD_H,HS_WOOD, HS_WOOD_H,HS_WOOD, HS_WOOD, C],
       [C,       HS_WOOD_H,HS_TEXT, HS_TEXT, HS_TEXT, HS_TEXT, HS_WOOD_H,C],
       [C,       HS_WOOD, HS_TEXT, HS_TEXT, HS_TEXT, HS_TEXT, HS_WOOD, C],
       [C,       HS_WOOD, HS_WOOD_H,HS_WOOD, HS_WOOD_H,HS_WOOD, HS_WOOD, C],
-    ]));
+    ]);
 
     const WT_IRON = 0x37474F;
     const WT_FLAME = 0xFF8F00;
     const WT_FLAME_H = 0xFFD54F;
     const WT_FLAME_TIP = 0xFFF9C4;
-    this.textures.set('wall_torch', this.createSpriteTexture([
+    registerSpriteTexture('wall_torch', [
       [C,        C,        WT_FLAME_TIP,C,       C,       C],
       [C,        WT_FLAME_H,WT_FLAME, WT_FLAME_H,C,       C],
       [C,        WT_FLAME, WT_FLAME_H,WT_FLAME, C,       C],
       [C,        C,        WT_IRON,  WT_IRON, C,       C],
       [C,        C,        WT_IRON,  WT_IRON, C,       C],
       [C,        C,        WT_IRON,  C,       C,       C],
-    ]));
+    ]);
 
     const AW_FABRIC = 0x8D6E63;
     const AW_FABRIC_H = 0xA1887F;
     const AW_FABRIC_S = 0x5D4037;
     const AW_STRIPE = 0xBCAAA4;
-    this.textures.set('awning', this.createSpriteTexture([
+    registerSpriteTexture('awning', [
       [AW_FABRIC_S,AW_FABRIC, AW_STRIPE, AW_FABRIC_H,AW_STRIPE, AW_FABRIC, AW_FABRIC_H,AW_FABRIC_S],
       [AW_FABRIC,  AW_STRIPE, AW_FABRIC_H,AW_STRIPE, AW_FABRIC, AW_STRIPE, AW_FABRIC_H,AW_FABRIC],
       [AW_FABRIC_S,AW_FABRIC_H,AW_FABRIC, AW_FABRIC_S,AW_FABRIC_H,AW_FABRIC, AW_FABRIC_S,C],
       [C,          AW_FABRIC_S,AW_FABRIC, C,          AW_FABRIC_S,AW_FABRIC_S,C,          C],
       [C,          C,          AW_FABRIC_S,C,         C,          AW_FABRIC_S,C,          C],
-    ]));
+    ]);
 
     const RB_STONE = 0x78909C;
     const RB_STONE_S = 0x546E7A;
     const RB_WOOD = 0x6D4C41;
     const RB_WOOD_H = 0x8D6E63;
-    this.textures.set('rubble', this.createSpriteTexture([
+    registerSpriteTexture('rubble', [
       [C,        C,        RB_STONE, C,        RB_WOOD,  C,        C,       C],
       [C,        RB_STONE_S,RB_STONE, RB_WOOD_H,RB_STONE, RB_STONE_S,C,      C],
       [RB_WOOD,  RB_STONE, RB_STONE_S,RB_STONE, RB_WOOD,  RB_STONE, RB_WOOD_H,C],
       [RB_STONE_S,RB_WOOD_H,RB_STONE, RB_STONE_S,RB_STONE, RB_STONE_S,RB_STONE, RB_STONE_S],
       [C,        RB_STONE, RB_STONE_S,RB_WOOD,  RB_STONE_S,RB_STONE, C,       C],
-    ]));
+    ]);
 
     const BS_WOOD = 0x795548;
     const BS_WOOD_H = 0xA1887F;
     const BS_WOOD_S = 0x5D4037;
     const BS_PLANK = 0x8D6E63;
-    this.textures.set('broken_stall', this.createSpriteTexture([
+    registerSpriteTexture('broken_stall', [
       [C,        BS_WOOD,  BS_WOOD_H, BS_WOOD,  C,        C,        BS_WOOD_S, C],
       [BS_WOOD_S,BS_PLANK, BS_WOOD,   BS_PLANK, BS_WOOD_S,BS_PLANK, BS_WOOD,   C],
       [BS_WOOD,  BS_PLANK, BS_WOOD_S, BS_PLANK, BS_WOOD,  BS_PLANK, BS_WOOD_S, BS_WOOD],
       [BS_WOOD_S,BS_WOOD,  BS_PLANK,  BS_WOOD,  BS_WOOD_S,BS_WOOD,  BS_PLANK,  BS_WOOD_S],
       [C,        BS_WOOD_S,C,         C,        BS_WOOD_S,C,        C,         BS_WOOD],
       [C,        C,        C,         BS_WOOD,  C,        C,        BS_WOOD_S, C],
-    ]));
+    ]);
 
     const CS_WOOD = 0x795548;
     const CS_WOOD_H = 0x8D6E63;
     const CS_WOOD_S = 0x5D4037;
     const CS_BAND = 0x546E7A;
-    this.textures.set('crate_stack', this.createSpriteTexture([
+    registerSpriteTexture('crate_stack', [
       [C,        CS_WOOD_S,CS_WOOD,  CS_WOOD_H,CS_WOOD,  CS_WOOD_S,C,        C],
       [C,        CS_WOOD,  CS_WOOD_S,CS_BAND,  CS_WOOD_S,CS_WOOD,  C,        C],
       [CS_WOOD_S,CS_WOOD,  CS_WOOD_H,CS_WOOD,  CS_WOOD_H,CS_WOOD,  CS_WOOD_S,C],
       [CS_WOOD,  CS_WOOD_H,CS_WOOD_S,CS_BAND,  CS_WOOD_S,CS_WOOD_H,CS_WOOD,  C],
       [CS_WOOD,  CS_BAND,  CS_WOOD,  CS_WOOD_S,CS_WOOD,  CS_BAND,  CS_WOOD,  C],
       [CS_WOOD_S,CS_WOOD,  CS_WOOD_H,CS_WOOD,  CS_WOOD_H,CS_WOOD,  CS_WOOD_S,C],
-    ]));
+    ]);
 
     const BK_WOOD = 0x6D4C41;
     const BK_WOOD_H = 0x8D6E63;
     const BK_BAND = 0x546E7A;
     const BK_BAND_H = 0x78909C;
-    this.textures.set('barrel_stack', this.createSpriteTexture([
+    registerSpriteTexture('barrel_stack', [
       [C,        BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_WOOD_H,BK_WOOD,  C,        C],
       [C,        BK_BAND,  BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_BAND,  C,        C],
       [BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_WOOD_H,BK_WOOD,  C],
       [BK_BAND_H,BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_BAND_H,C],
       [BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_BAND,  BK_WOOD,  BK_WOOD_H,BK_WOOD,  C],
       [C,        BK_WOOD,  BK_WOOD_H,BK_WOOD,  BK_WOOD_H,BK_WOOD,  C,        C],
-    ]));
+    ]);
 
     const CH_BRICK = 0x8B4513;
     const CH_BRICK_H = 0xA0522D;
     const CH_MORTAR = 0xBCAAA4;
     const CH_SOOT = 0x424242;
-    this.textures.set('chimney', this.createSpriteTexture([
+    registerSpriteTexture('chimney', [
       [C,        CH_SOOT,  CH_SOOT,  CH_SOOT,  CH_SOOT,  C],
       [CH_BRICK, CH_BRICK_H,CH_MORTAR,CH_BRICK, CH_BRICK_H,CH_BRICK],
       [CH_BRICK_H,CH_MORTAR,CH_BRICK, CH_BRICK_H,CH_MORTAR,CH_BRICK_H],
       [CH_BRICK, CH_BRICK_H,CH_MORTAR,CH_BRICK, CH_BRICK_H,CH_BRICK],
       [CH_BRICK_H,CH_BRICK, CH_BRICK_H,CH_MORTAR,CH_BRICK, CH_BRICK_H],
       [CH_BRICK, CH_MORTAR,CH_BRICK_H,CH_BRICK, CH_MORTAR,CH_BRICK],
-    ]));
+    ]);
   }
 }

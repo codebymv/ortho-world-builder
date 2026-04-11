@@ -1,25 +1,18 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { GameState } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { World, type CollisionDebugSnapshot } from '@/lib/game/World';
 import { MapMarker, extractMarkersFromText } from '@/lib/game/MapMarkers';
 import { SaveManager } from '@/lib/game/SaveManager';
-import { allMaps } from '@/data/maps';
-import { dialogues, DialogueNode } from '@/data/dialogues';
-import { quests } from '@/data/quests';
-import { items } from '@/data/items';
-import { vendors, type VendorItem } from '@/data/vendors';
-import { criticalPathItems } from '@/data/criticalPathItems';
+import { preloadMap } from '@/data/maps';
+import type { DialogueNode } from '@/data/dialogues';
+import type { VendorItem } from '@/data/vendors';
 import type { CurrencyGain, Item } from '@/lib/game/GameState';
 import { DialogueBox } from './game/DialogueBox';
 import { GameUI } from './game/GameUI';
 import { Minimap } from './game/Minimap';
 import { NotificationFeed } from './game/NotificationFeed';
-import { MapModal } from './game/MapModal';
-import { InventoryModal } from './game/InventoryModal';
-import { ObjectivesModal } from './game/ObjectivesModal';
-import { VendorModal } from './game/VendorModal';
 import { PauseMenu } from './game/PauseMenu';
 import { TransitionOverlay } from './game/TransitionOverlay';
 import { DeathOverlay } from './game/DeathOverlay';
@@ -29,18 +22,65 @@ import { WeaponAcquiredOverlay } from './game/WeaponAcquiredOverlay';
 import { notify } from '@/lib/game/notificationBus';
 import { createProgressionService } from '@/game/domain/ProgressionService';
 import { createAudioProcessor } from '@/game/domain/AudioDirector';
-import {
-  setupGameRuntimeEffect,
-  type RuntimeCallbacks,
-  type RuntimeContent,
-  type RuntimeHostRefs,
-  type RuntimeUiBindings,
-} from '@/game/runtime/setupGameRuntime';
 import type { BonfireEntry } from '@/data/bonfires';
+import type {
+  RuntimeCallbacks,
+  RuntimeContent,
+  RuntimeHostRefs,
+  RuntimeUiBindings,
+} from '@/game/runtime/setupGameRuntime';
 import { useGameMusic } from '@/game/runtime/useGameMusic';
 import { useGameRuntime } from '@/game/runtime/useGameRuntime';
 
 type InteractionPrompt = string | null;
+type LoadedRuntimeContent = {
+  items: typeof import('@/data/items').items;
+  criticalPathItems: typeof import('@/data/criticalPathItems').criticalPathItems;
+};
+
+type LoadedInteractionContent = {
+  dialogues: typeof import('@/data/dialogues').dialogues;
+  quests: typeof import('@/data/quests').quests;
+  vendors: typeof import('@/data/vendors').vendors;
+};
+
+const loadMapModal = () => import('./game/MapModal');
+const loadInventoryModal = () => import('./game/InventoryModal');
+const loadObjectivesModal = () => import('./game/ObjectivesModal');
+const loadVendorModal = () => import('./game/VendorModal');
+const runtimeSetupPromise = import('@/game/runtime/setupGameRuntime');
+let runtimeContentPromise: Promise<LoadedRuntimeContent> | null = null;
+const loadRuntimeContent = () => {
+  runtimeContentPromise ??= Promise.all([
+    import('@/data/items'),
+    import('@/data/criticalPathItems'),
+  ]).then(([itemsModule, criticalPathItemsModule]) => ({
+    items: itemsModule.items,
+    criticalPathItems: criticalPathItemsModule.criticalPathItems,
+  }));
+
+  return runtimeContentPromise;
+};
+
+let interactionContentPromise: Promise<LoadedInteractionContent> | null = null;
+const loadInteractionContent = () => {
+  interactionContentPromise ??= Promise.all([
+    import('@/data/dialogues'),
+    import('@/data/quests'),
+    import('@/data/vendors'),
+  ]).then(([dialoguesModule, questsModule, vendorsModule]) => ({
+    dialogues: dialoguesModule.dialogues,
+    quests: questsModule.quests,
+    vendors: vendorsModule.vendors,
+  }));
+
+  return interactionContentPromise;
+};
+
+const LazyMapModal = lazy(async () => ({ default: (await loadMapModal()).MapModal }));
+const LazyInventoryModal = lazy(async () => ({ default: (await loadInventoryModal()).InventoryModal }));
+const LazyObjectivesModal = lazy(async () => ({ default: (await loadObjectivesModal()).ObjectivesModal }));
+const LazyVendorModal = lazy(async () => ({ default: (await loadVendorModal()).VendorModal }));
 
 const Game = () => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -59,6 +99,8 @@ const Game = () => {
   const textureCacheRef = useRef<Map<string, THREE.Texture>>(new Map());
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const killCountRef = useRef(0);
+  const runtimeContentRef = useRef<LoadedRuntimeContent | null>(null);
+  const interactionContentRef = useRef<LoadedInteractionContent | null>(null);
   const syncVillageReactivityRef = useRef<(() => void) | null>(null);
   const syncBlightedRootStateRef = useRef<(() => void) | null>(null);
   const playPotionDrinkRef = useRef<(() => void) | null>(null);
@@ -329,12 +371,25 @@ const Game = () => {
   const handlePlayMenuClose = useCallback(() => {
     playMenuCloseRef.current?.();
   }, []);
-  const createDialogueProgression = () =>
-    createProgressionService({
-      dialogues,
-      quests,
-      items,
-      criticalPathItems,
+  const createDialogueProgression = () => {
+    const runtimeContent = runtimeContentRef.current;
+    const interactionContent = interactionContentRef.current;
+    if (!runtimeContent || !interactionContent) {
+      void loadInteractionContent()
+        .then(loadedInteractionContent => {
+          interactionContentRef.current ??= loadedInteractionContent;
+        })
+        .catch(error => {
+          console.error('[Game] Failed to load interaction content', error);
+        });
+      return null;
+    }
+
+    return createProgressionService({
+      dialogues: interactionContent.dialogues,
+      quests: interactionContent.quests,
+      items: runtimeContent.items,
+      criticalPathItems: runtimeContent.criticalPathItems,
       notify,
       addMarkersFromText,
       clearNpcMarkerPulse,
@@ -348,6 +403,7 @@ const Game = () => {
         syncBlightedRootStateRef.current?.();
       },
     });
+  };
   const closeDialogueSession = (stateToClose?: GameState | null) => {
     if (stateToClose) {
       stateToClose.dialogueActive = false;
@@ -374,6 +430,27 @@ const Game = () => {
       previousPausedStateRef.current = isPaused;
     }
   }, [isPaused]);
+
+  useEffect(() => {
+    const preloadMenuChunks = () => {
+      void loadMapModal();
+      void loadInventoryModal();
+      void loadObjectivesModal();
+      void loadVendorModal();
+      const startMap = SaveManager.loadProgress()?.player?.currentMap ?? 'village';
+      void preloadMap(startMap).catch(() => {
+        // Best-effort idle prefetch only.
+      });
+    };
+
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(preloadMenuChunks, { timeout: 2000 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = window.setTimeout(preloadMenuChunks, 1200);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   // Unified menu modal sound effect — plays open/close for map, inventory, or objectives.
   const anyMenuModalOpen = mapModalOpen || inventoryModalOpen || objectivesModalOpen;
@@ -419,6 +496,7 @@ const Game = () => {
     if (!gameState || !currentDialogue) return;
 
     const progressionService = createDialogueProgression();
+    if (!progressionService) return;
 
     const result = progressionService.handleDialogueResponse({
       state: gameState,
@@ -563,11 +641,6 @@ const Game = () => {
     setDeathActive,
   } satisfies RuntimeUiBindings;
 
-  const runtimeContent = {
-    items,
-    criticalPathItems,
-  } satisfies RuntimeContent;
-
   const runtimeCallbacks = {
     addMarkersFromText,
     triggerUIUpdate,
@@ -588,18 +661,50 @@ const Game = () => {
     const mountElement = mountRef.current;
     if (!mountElement) return;
 
-    return setupGameRuntimeEffect({
-      refs: { ...runtimeRefs, mountElement },
-      ui: runtimeUi,
-      content: runtimeContent,
-      callbacks: runtimeCallbacks,
-    });
+    let disposed = false;
+    let cleanup: void | (() => void);
+
+    void loadInteractionContent()
+      .then(loadedInteractionContent => {
+        if (disposed) return;
+        interactionContentRef.current = loadedInteractionContent;
+      })
+      .catch(error => {
+        console.error('[Game] Failed to load interaction content', error);
+      });
+
+    void Promise.all([runtimeSetupPromise, loadRuntimeContent()])
+      .then(([{ setupGameRuntimeEffect }, loadedRuntimeContent]) => {
+        if (disposed) return;
+
+        runtimeContentRef.current = loadedRuntimeContent;
+        cleanup = setupGameRuntimeEffect({
+          refs: { ...runtimeRefs, mountElement },
+          ui: runtimeUi,
+          content: {
+            items: loadedRuntimeContent.items,
+            criticalPathItems: loadedRuntimeContent.criticalPathItems,
+          } satisfies RuntimeContent,
+          callbacks: runtimeCallbacks,
+        });
+      })
+      .catch(error => {
+        console.error('[Game] Failed to load runtime setup', error);
+      });
+
+    return () => {
+      disposed = true;
+      cleanup?.();
+    };
   };
 
   useGameRuntime(setupRuntime);
 
   const activeQuests = gameState?.quests.filter(q => q.active && !q.completed) ?? [];
   const activeQuestTitle = activeQuests[0]?.title;
+  const currentWorldMap = worldRef.current?.getCurrentMap() ?? null;
+  const runtimeContent = runtimeContentRef.current;
+  const interactionContent = interactionContentRef.current;
 
   // Modal open helpers with mutual exclusivity
   const openInventoryModal = useCallback(() => {
@@ -705,54 +810,72 @@ const Game = () => {
             </div>
           )}
           <div className="fixed top-16 right-4 z-30 flex flex-col gap-2 pointer-events-none">
-            <Minimap
-              currentMap={allMaps[gameState.currentMap]}
-              currentMapId={gameState.currentMap}
-              gameStateRef={gameStateRef}
-              visitedTilesRef={visitedTilesRef}
-              mapMarkersRef={mapMarkersRef}
-              markers={mapMarkers}
-              refreshToken={minimapVersion}
-              playerX={gameState.player.position.x}
-              playerY={gameState.player.position.y}
-            />
+            {currentWorldMap && (
+              <Minimap
+                currentMap={currentWorldMap}
+                currentMapId={gameState.currentMap}
+                gameStateRef={gameStateRef}
+                visitedTilesRef={visitedTilesRef}
+                mapMarkersRef={mapMarkersRef}
+                markers={mapMarkers}
+                refreshToken={minimapVersion}
+                playerX={gameState.player.position.x}
+                playerY={gameState.player.position.y}
+              />
+            )}
             <NotificationFeed />
           </div>
-          <MapModal
-            open={mapModalOpen}
-            onOpenChange={setMapModalOpen}
-            currentMap={allMaps[gameState.currentMap]}
-            currentMapId={gameState.currentMap}
-            gameStateRef={gameStateRef}
-            visitedTilesRef={visitedTilesRef}
-            mapMarkersRef={mapMarkersRef}
-            markers={mapMarkers}
-            refreshToken={minimapVersion}
-          />
-          <InventoryModal
-            open={inventoryModalOpen}
-            onOpenChange={setInventoryModalOpen}
-            gameState={gameState}
-            assetManager={assetManagerRef.current}
-            triggerUIUpdate={triggerUIUpdate}
-            playPotionDrink={handlePlayPotionDrink}
-            playGrassChew={handlePlayGrassChew}
-          />
-          <ObjectivesModal
-            open={objectivesModalOpen}
-            onOpenChange={setObjectivesModalOpen}
-            gameState={gameState}
-            assetManager={assetManagerRef.current}
-          />
-          <VendorModal
-            open={vendorModalOpen}
-            onOpenChange={setVendorModalOpen}
-            vendor={activeVendorId ? vendors[activeVendorId] : null}
-            gameState={gameState}
-            assetManager={assetManagerRef.current}
-            itemsRegistry={items}
-            onPurchase={handleVendorPurchase}
-          />
+          {mapModalOpen && currentWorldMap && (
+            <Suspense fallback={null}>
+              <LazyMapModal
+                open={mapModalOpen}
+                onOpenChange={setMapModalOpen}
+                currentMap={currentWorldMap}
+                currentMapId={gameState.currentMap}
+                gameStateRef={gameStateRef}
+                visitedTilesRef={visitedTilesRef}
+                mapMarkersRef={mapMarkersRef}
+                markers={mapMarkers}
+                refreshToken={minimapVersion}
+              />
+            </Suspense>
+          )}
+          {inventoryModalOpen && (
+            <Suspense fallback={null}>
+              <LazyInventoryModal
+                open={inventoryModalOpen}
+                onOpenChange={setInventoryModalOpen}
+                gameState={gameState}
+                assetManager={assetManagerRef.current}
+                triggerUIUpdate={triggerUIUpdate}
+                playPotionDrink={handlePlayPotionDrink}
+                playGrassChew={handlePlayGrassChew}
+              />
+            </Suspense>
+          )}
+          {objectivesModalOpen && (
+            <Suspense fallback={null}>
+              <LazyObjectivesModal
+                open={objectivesModalOpen}
+                onOpenChange={setObjectivesModalOpen}
+                gameState={gameState}
+                assetManager={assetManagerRef.current}
+              />
+            </Suspense>
+          )}
+          {vendorModalOpen && runtimeContent && interactionContent && (
+            <Suspense fallback={null}>
+              <LazyVendorModal
+                open={vendorModalOpen}
+                onOpenChange={setVendorModalOpen}
+                vendor={activeVendorId ? interactionContent.vendors[activeVendorId] : null}
+                gameState={gameState}
+                assetManager={assetManagerRef.current}
+                itemsRegistry={runtimeContent.items}
+                onPurchase={handleVendorPurchase}
+              />
+            </Suspense>
+          )}
         </>
       )}
       

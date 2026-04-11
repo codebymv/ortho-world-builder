@@ -14,7 +14,7 @@ interface NotificationOptions {
 interface TransitionContext {
   state: GameState;
   world: World;
-  allMaps: Record<string, WorldMap>;
+  loadMap: (targetMap: string) => Promise<WorldMap | undefined>;
   isPortalDestinationUnlocked: (targetMap: string) => boolean;
   notify: (message: string, options?: NotificationOptions) => void;
   showTransitionOverlay: (mapName: string, mapSubtitle?: string) => void;
@@ -93,53 +93,57 @@ export function createMapTransitionService(context: TransitionContext) {
     return entranceTile;
   };
 
-  const transitionTo = (targetMap: string, targetX: number, targetY: number): MapTransitionResult => {
-    console.log(`[MapTransition] Starting transition to ${targetMap} at (${targetX}, ${targetY})`);
-    const sourceMap = context.state.currentMap;
+  const transitionTo = (targetMap: string, targetX: number, targetY: number): void => {
+    void (async (): Promise<MapTransitionResult> => {
+      console.log(`[MapTransition] Starting transition to ${targetMap} at (${targetX}, ${targetY})`);
+      const sourceMap = context.state.currentMap;
 
-    if (!context.isPortalDestinationUnlocked(targetMap)) {
-      context.notify('Magical barrier blocks the path', {
-        id: 'portal-barrier',
-        description: 'Complete the right quest to unlock this route.',
-        duration: 3500,
-      });
-      return { ok: false, reason: 'locked' };
-    }
+      if (!context.isPortalDestinationUnlocked(targetMap)) {
+        context.notify('Magical barrier blocks the path', {
+          id: 'portal-barrier',
+          description: 'Complete the right quest to unlock this route.',
+          duration: 3500,
+        });
+        return { ok: false, reason: 'locked' };
+      }
 
-    const newMap = context.allMaps[targetMap];
-    if (!newMap) {
-      console.log(`[MapTransition] ERROR: Map ${targetMap} not found!`);
-      return { ok: false, reason: 'missing_map' };
-    }
+      const newMap = await context.loadMap(targetMap);
+      if (!newMap) {
+        console.log(`[MapTransition] ERROR: Map ${targetMap} not found!`);
+        return { ok: false, reason: 'missing_map' };
+      }
 
-    console.log(`[MapTransition] Map loaded: ${newMap.name}, size: ${newMap.width}x${newMap.height}`);
+      console.log(`[MapTransition] Map loaded: ${newMap.name}, size: ${newMap.width}x${newMap.height}`);
 
-    context.showTransitionOverlay(newMap.name, newMap.subtitle);
+      context.showTransitionOverlay(newMap.name, newMap.subtitle);
 
-    context.state.currentMap = targetMap;
-    context.world.loadMap(newMap);
-    context.syncPersistentMapState();
-    context.setActiveNpcsForCurrentMap();
+      context.state.currentMap = targetMap;
+      context.world.loadMap(newMap);
+      context.syncPersistentMapState();
+      context.setActiveNpcsForCurrentMap();
 
-    if (!targetMap.startsWith('interior_')) {
-      context.setBiomeForMap(targetMap);
-      context.switchMusicTrack(targetMap);
-    }
+      if (!targetMap.startsWith('interior_')) {
+        context.setBiomeForMap(targetMap);
+        context.switchMusicTrack(targetMap);
+      }
 
-    context.triggerSave();
+      context.triggerSave();
 
-    const preferredTarget = resolveExteriorExitTarget(sourceMap, targetMap, newMap, targetX, targetY);
-    const safeTarget = context.resolveSafeTransitionPosition(context.world, newMap, preferredTarget.x, preferredTarget.y);
-    context.state.player.position = { x: safeTarget.x, y: safeTarget.y };
-    context.syncPlayerSpatialState(targetMap, safeTarget.x, safeTarget.y);
+      const preferredTarget = resolveExteriorExitTarget(sourceMap, targetMap, newMap, targetX, targetY);
+      const safeTarget = context.resolveSafeTransitionPosition(context.world, newMap, preferredTarget.x, preferredTarget.y);
+      context.state.player.position = { x: safeTarget.x, y: safeTarget.y };
+      context.syncPlayerSpatialState(targetMap, safeTarget.x, safeTarget.y);
 
-    context.resetEnemiesForMap(targetMap, newMap);
-    context.applyMapEntryProgression(targetMap);
-    context.notify(`Entered ${newMap.name}`, { id: 'map-enter', duration: 2500 });
-    context.resetExplorationState();
-    context.setPortalCooldown(0.5);
+      context.resetEnemiesForMap(targetMap, newMap);
+      context.applyMapEntryProgression(targetMap);
+      context.notify(`Entered ${newMap.name}`, { id: 'map-enter', duration: 2500 });
+      context.resetExplorationState();
+      context.setPortalCooldown(0.5);
 
-    return { ok: true, map: newMap };
+      return { ok: true, map: newMap };
+    })().catch(error => {
+      console.error('[MapTransition] Failed to complete transition', error);
+    });
   };
 
   return {

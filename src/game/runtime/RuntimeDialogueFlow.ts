@@ -11,7 +11,7 @@ interface DialogueProgressionLike {
 interface CreateRuntimeDialogueFlowOptions {
   state: GameState;
   items: Record<string, Item>;
-  createDialogueProgression: () => DialogueProgressionLike;
+  createDialogueProgression: () => DialogueProgressionLike | null;
   activeNpcWorldPos: MutableRefObject<{ x: number; y: number } | null>;
   setCurrentDialogue: Dispatch<SetStateAction<{ node: DialogueNode; npcName: string } | null>>;
   addMarkersFromText: (text: string, currentMap: string) => void;
@@ -86,10 +86,20 @@ export function createRuntimeDialogueFlow({
   onWorldItemPickup,
   getAliveEnemyCountNearPlayer,
 }: CreateRuntimeDialogueFlowOptions) {
-  const progressionService = createDialogueProgression();
+  let progressionService: DialogueProgressionLike | null = null;
+
+  const getProgressionService = () => {
+    if (!progressionService) {
+      progressionService = createDialogueProgression();
+    }
+    return progressionService;
+  };
 
   const startDialogue = (dialogueId: string, npcName?: string) => {
-    const startNode = progressionService.selectDialogueStartNode(state, dialogueId);
+    const service = getProgressionService();
+    if (!service) return;
+
+    const startNode = service.selectDialogueStartNode(state, dialogueId);
     if (!startNode) return;
 
     state.dialogueActive = true;

@@ -7,7 +7,8 @@ import { isPrimaryObjectiveMarker } from '@/lib/game/MapMarkers';
 import {
   MARKER_TYPE_SHORT,
   computeMinimapScale,
-  drawMinimapContent,
+  drawMinimapDynamicOverlay,
+  drawMinimapTerrain,
 } from '@/components/game/minimapDrawing';
 
 interface MinimapProps {
@@ -35,25 +36,52 @@ export const Minimap = memo(
     playerX,
     playerY,
   }: MinimapProps) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
+    const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
     const animFrameRef = useRef<number>(0);
+    const maxHudPixels = 200;
+    const scale = useMemo(
+      () => computeMinimapScale(currentMap.width, currentMap.height, maxHudPixels, 1, 4),
+      [currentMap.width, currentMap.height],
+    );
+    const canvasWidth = currentMap.width * scale;
+    const canvasHeight = currentMap.height * scale;
 
     useEffect(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d', { alpha: false });
+      const terrainCanvas = terrainCanvasRef.current;
+      const overlayCanvas = overlayCanvasRef.current;
+      if (!terrainCanvas || !overlayCanvas) return;
+
+      terrainCanvas.width = canvasWidth;
+      terrainCanvas.height = canvasHeight;
+      overlayCanvas.width = canvasWidth;
+      overlayCanvas.height = canvasHeight;
+    }, [canvasHeight, canvasWidth]);
+
+    useEffect(() => {
+      const terrainCanvas = terrainCanvasRef.current;
+      if (!terrainCanvas) return;
+      const ctx = terrainCanvas.getContext('2d', { alpha: false });
       if (!ctx) return;
 
-      const maxHudPixels = 200;
-      const scale = computeMinimapScale(
-        currentMap.width,
-        currentMap.height,
-        maxHudPixels,
-        1,
-        4
-      );
-      canvas.width = currentMap.width * scale;
-      canvas.height = currentMap.height * scale;
+      const state = gameStateRef.current;
+      if (!state) return;
+
+      drawMinimapTerrain({
+        ctx,
+        currentMap,
+        currentMapId,
+        state,
+        visited: visitedTilesRef.current,
+        scale,
+      });
+    }, [canvasHeight, canvasWidth, currentMap, currentMapId, gameStateRef, refreshToken, scale, visitedTilesRef]);
+
+    useEffect(() => {
+      const canvas = overlayCanvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d', { alpha: true });
+      if (!ctx) return;
 
       let running = true;
       let lastDrawPerf = 0;
@@ -74,21 +102,21 @@ export const Minimap = memo(
         lastDrawPerf = nowPerf;
 
         const state = gameStateRef.current;
-        const visited = visitedTilesRef.current;
         if (!state) {
           animFrameRef.current = requestAnimationFrame(draw);
           return;
         }
 
-        drawMinimapContent({
+        drawMinimapDynamicOverlay({
           ctx,
           currentMap,
           currentMapId,
           state,
-          visited,
           markers: currentMarkers,
           scale,
           nowMs,
+          clear: true,
+          includeFrame: false,
         });
 
         animFrameRef.current = requestAnimationFrame(draw);
@@ -100,7 +128,7 @@ export const Minimap = memo(
         running = false;
         if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       };
-    }, [currentMap, currentMapId, refreshToken, gameStateRef, visitedTilesRef, mapMarkersRef]);
+    }, [currentMap, currentMapId, gameStateRef, mapMarkersRef, refreshToken, scale, visitedTilesRef]);
 
     const visibleMarkers = useMemo(() => {
       const currentMarkers = markers.filter(m => m.map === currentMapId);
@@ -126,11 +154,21 @@ export const Minimap = memo(
         {/* <p className="text-[9px] text-[#8D6E63] text-center mb-1.5 leading-tight px-0.5">
           Explored areas only. <kbd className="text-[#DAA520]">M</kbd> opens the full map.
         </p> */}
-        <canvas
-          ref={canvasRef}
-          className="pixelated border-2 border-[#3a2812] block rounded-sm mx-auto"
-          style={{ imageRendering: 'pixelated', maxWidth: '200px', maxHeight: '180px', width: '100%', height: 'auto' }}
-        />
+        <div
+          className="relative mx-auto overflow-hidden rounded-sm border-2 border-[#3a2812]"
+          style={{ width: '100%', maxWidth: '200px', maxHeight: '180px', aspectRatio: `${currentMap.width} / ${currentMap.height}` }}
+        >
+          <canvas
+            ref={terrainCanvasRef}
+            className="pixelated block h-full w-full"
+            style={{ imageRendering: 'pixelated' }}
+          />
+          <canvas
+            ref={overlayCanvasRef}
+            className="pointer-events-none absolute inset-0 block h-full w-full pixelated"
+            style={{ imageRendering: 'pixelated' }}
+          />
+        </div>
         {visibleMarkers.length > 0 && (
           <div className="mt-2 space-y-1 border-t border-[#5C3A21]/50 pt-2">
             <div className="mb-1 flex items-center justify-between gap-2">

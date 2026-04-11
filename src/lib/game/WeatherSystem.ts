@@ -3,10 +3,14 @@ import * as THREE from 'three';
 type WeatherType = 'clear' | 'rain' | 'heavy_rain' | 'snow' | 'storm' | 'fog';
 
 interface WeatherParticle {
-  mesh: THREE.Mesh;
+  position: THREE.Vector3;
+  scale: THREE.Vector3;
   velocity: THREE.Vector3;
+  opacityBucket: number;
   active: boolean;
 }
+
+const WEATHER_OPACITY_BUCKETS = [0.76, 0.86, 0.96] as const;
 
 const WEATHER_CONFIGS: Record<WeatherType, {
   color: number;
@@ -60,7 +64,14 @@ export class WeatherSystem {
   private nextWeatherChange = 60; // seconds until next weather change
   private readonly sharedGeometry = new THREE.PlaneGeometry(1, 1);
   private readonly MAX_PARTICLES = 320;
+  private readonly particleMaterials: THREE.MeshBasicMaterial[] = [];
+  private readonly particleMeshes: THREE.InstancedMesh[] = [];
+  private readonly particleBucketCounts = new Uint16Array(WEATHER_OPACITY_BUCKETS.length);
+  private readonly lastParticleBucketCounts = new Uint16Array(WEATHER_OPACITY_BUCKETS.length);
+  private readonly tempParticleObject = new THREE.Object3D();
   private overlay: THREE.Mesh | null = null;
+  private lastParticleMaterialWeather: WeatherType | null = null;
+  private renderedParticleCount = 0;
   /** Seconds until next lightning attempt (storm only). */
   private lightningCooldown = 4 + Math.random() * 5;
   /** Brief flash duration remaining; 0 = no flash. */
@@ -86,19 +97,122 @@ export class WeatherSystem {
   }
 
   private initPool() {
-    for (let i = 0; i < this.MAX_PARTICLES; i++) {
-      const mat = new THREE.MeshBasicMaterial({
-        color: 0xffffff, transparent: true, opacity: 0, depthWrite: false,
+    for (let i = 0; i < WEATHER_OPACITY_BUCKETS.length; i++) {
+      const material = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
       });
-      const mesh = new THREE.Mesh(this.sharedGeometry, mat);
-      mesh.visible = false;
+      const mesh = new THREE.InstancedMesh(this.sharedGeometry, material, this.MAX_PARTICLES);
+      mesh.count = 0;
       mesh.frustumCulled = false;
-      mesh.matrixAutoUpdate = true; // weather particles move every frame
+      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       this.scene.add(mesh);
+      this.particleMaterials.push(material);
+      this.particleMeshes.push(mesh);
+    }
+
+    for (let i = 0; i < this.MAX_PARTICLES; i++) {
       this.particles.push({
-        mesh, velocity: new THREE.Vector3(), active: false,
+        position: new THREE.Vector3(),
+        scale: new THREE.Vector3(1, 1, 1),
+        velocity: new THREE.Vector3(),
+        opacityBucket: i % WEATHER_OPACITY_BUCKETS.length,
+        active: false,
       });
     }
+  }
+
+  private isRainType(weather: WeatherType): boolean {
+    return weather === 'rain' || weather === 'heavy_rain' || weather === 'storm';
+  }
+
+  private refreshParticleMaterials(weather: WeatherType, cfg: (typeof WEATHER_CONFIGS)[WeatherType]) {
+    if (this.lastParticleMaterialWeather === weather) return;
+    for (let i = 0; i < this.particleMaterials.length; i++) {
+      const material = this.particleMaterials[i];
+      material.color.setHex(cfg.color);
+      material.opacity = cfg.opacity * WEATHER_OPACITY_BUCKETS[i];
+    }
+    this.lastParticleMaterialWeather = weather;
+  }
+
+  private resetParticle(
+    particle: WeatherParticle,
+    cfg: (typeof WEATHER_CONFIGS)[WeatherType],
+    playerX: number,
+    playerY: number,
+    spawnAboveView: boolean
+  ) {
+    particle.position.x = playerX + (Math.random() - 0.5) * cfg.spread * 2;
+    particle.position.y = spawnAboveView
+      ? playerY + cfg.spread + Math.random() * 4
+      : playerY + (Math.random() - 0.5) * cfg.spread * 2;
+    particle.position.z = 2;
+    particle.velocity.set(
+      cfg.speedX + (Math.random() - 0.5) * 1,
+      cfg.speedY + (Math.random() - 0.5) * 2,
+      0
+    );
+  }
+
+  private activateParticle(
+    particle: WeatherParticle,
+    weather: WeatherType,
+    cfg: (typeof WEATHER_CONFIGS)[WeatherType],
+    playerX: number,
+    playerY: number
+  ) {
+    particle.active = true;
+    particle.opacityBucket = Math.floor(Math.random() * WEATHER_OPACITY_BUCKETS.length);
+
+    const size = cfg.sizeMin + Math.random() * (cfg.sizeMax - cfg.sizeMin);
+    const isRainType = this.isRainType(weather);
+    particle.scale.set(
+      isRainType ? size * 0.28 : size,
+      isRainType ? size * 5.5 : size,
+      1
+    );
+
+    this.resetParticle(particle, cfg, playerX, playerY, false);
+  }
+
+  private syncParticleInstances(weather: WeatherType) {
+    this.particleBucketCounts.fill(0);
+    let renderedCount = 0;
+
+    for (const particle of this.particles) {
+      if (!particle.active) continue;
+
+      const bucketIndex = particle.opacityBucket;
+      const instanceIndex = this.particleBucketCounts[bucketIndex]++;
+      renderedCount++;
+      this.tempParticleObject.position.copy(particle.position);
+      this.tempParticleObject.scale.copy(particle.scale);
+      this.tempParticleObject.rotation.set(0, 0, weather === 'snow' ? Math.sin(particle.position.y * 1.5) * 0.12 : 0);
+      this.tempParticleObject.updateMatrix();
+      this.particleMeshes[bucketIndex].setMatrixAt(instanceIndex, this.tempParticleObject.matrix);
+    }
+
+    for (let i = 0; i < this.particleMeshes.length; i++) {
+      const mesh = this.particleMeshes[i];
+      const nextCount = this.particleBucketCounts[i];
+      const prevCount = this.lastParticleBucketCounts[i];
+      if (mesh.count !== nextCount) {
+        mesh.count = nextCount;
+      }
+      const shouldBeVisible = nextCount > 0;
+      if (mesh.visible !== shouldBeVisible) {
+        mesh.visible = shouldBeVisible;
+      }
+      if (nextCount > 0) {
+        mesh.instanceMatrix.needsUpdate = true;
+      }
+      this.lastParticleBucketCounts[i] = nextCount;
+    }
+
+    this.renderedParticleCount = renderedCount;
   }
 
   private createOverlay() {
@@ -165,6 +279,8 @@ export class WeatherSystem {
       ? 1 - (this.transitionTimer / this.TRANSITION_DURATION)
       : 1;
 
+    this.refreshParticleMaterials(activeWeather, cfg);
+
     // Storm lightning: random bursts, short duration (no full-screen pure white hold)
     if (activeWeather === 'storm') {
       this.lightningCooldown -= deltaTime;
@@ -210,23 +326,19 @@ export class WeatherSystem {
     for (const p of this.particles) {
       if (p.active) {
         // Update position
-        p.mesh.position.x += p.velocity.x * deltaTime;
-        p.mesh.position.y += p.velocity.y * deltaTime;
+        p.position.x += p.velocity.x * deltaTime;
+        p.position.y += p.velocity.y * deltaTime;
 
         // Snow wobble
         if (activeWeather === 'snow') {
-          p.mesh.position.x += Math.sin(p.mesh.position.y * 2) * 0.01;
+          p.position.x += Math.sin(p.position.y * 2) * 0.01;
         }
 
         // Recycle if out of view
-        const dx = p.mesh.position.x - playerX;
-        const dy = p.mesh.position.y - playerY;
+        const dx = p.position.x - playerX;
+        const dy = p.position.y - playerY;
         if (Math.abs(dx) > cfg.spread || Math.abs(dy) > cfg.spread) {
-          // Reset position
-          p.mesh.position.x = playerX + (Math.random() - 0.5) * cfg.spread * 2;
-          p.mesh.position.y = playerY + cfg.spread + Math.random() * 4;
-          p.velocity.y = cfg.speedY + (Math.random() - 0.5) * 2;
-          p.velocity.x = cfg.speedX + (Math.random() - 0.5) * 1;
+          this.resetParticle(p, cfg, playerX, playerY, true);
         }
 
         activeCount++;
@@ -237,29 +349,7 @@ export class WeatherSystem {
     if (activeCount < targetCount) {
       for (const p of this.particles) {
         if (!p.active && activeCount < targetCount) {
-          p.active = true;
-          p.mesh.visible = true;
-          const size = cfg.sizeMin + Math.random() * (cfg.sizeMax - cfg.sizeMin);
-          const isRainType = activeWeather === 'rain' || activeWeather === 'heavy_rain' || activeWeather === 'storm';
-          p.mesh.scale.set(
-            isRainType ? size * 0.28 : size,
-            isRainType ? size * 5.5 : size,
-            1
-          );
-          p.mesh.position.set(
-            playerX + (Math.random() - 0.5) * cfg.spread * 2,
-            playerY + (Math.random() - 0.5) * cfg.spread * 2,
-            2 // above tiles, below overlay
-          );
-          p.velocity.set(
-            cfg.speedX + (Math.random() - 0.5) * 1,
-            cfg.speedY + (Math.random() - 0.5) * 2,
-            0
-          );
-          const mat = p.mesh.material as THREE.MeshBasicMaterial;
-          mat.color.setHex(cfg.color);
-          // Minimum floor raised from 50% → 70% so no drop fades nearly invisible.
-          mat.opacity = cfg.opacity * (0.7 + Math.random() * 0.3);
+          this.activateParticle(p, activeWeather, cfg, playerX, playerY);
           activeCount++;
         }
       }
@@ -271,17 +361,24 @@ export class WeatherSystem {
       for (const p of this.particles) {
         if (p.active && toRemove > 0) {
           p.active = false;
-          p.mesh.visible = false;
           toRemove--;
         }
       }
     }
+
+    if (activeCount === 0 && targetCount === 0 && this.renderedParticleCount === 0) {
+      return;
+    }
+
+    this.syncParticleInstances(activeWeather);
   }
 
   cleanup() {
-    for (const p of this.particles) {
-      this.scene.remove(p.mesh);
-      (p.mesh.material as THREE.Material).dispose();
+    for (const mesh of this.particleMeshes) {
+      this.scene.remove(mesh);
+    }
+    for (const material of this.particleMaterials) {
+      material.dispose();
     }
     this.particles = [];
     if (this.overlay) {
