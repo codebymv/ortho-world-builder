@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { advanceGameFrame, runGameplayPrelude } from '@/game/runtime/GameLoop';
-import { runPlayerFramePhase } from '@/game/runtime/RuntimePlayerFrame';
-import { runEnemyLoop } from '@/game/runtime/RuntimeEnemyLoop';
-import { runRuntimeLoopTail } from '@/game/runtime/RuntimeLoopTail';
+import { advanceGameFrame, runGameplayPrelude, type RunGameplayPreludeOptions } from '@/game/runtime/GameLoop';
+import { runPlayerFramePhase, type RunPlayerFramePhaseOptions } from '@/game/runtime/RuntimePlayerFrame';
+import { runEnemyLoop, type RunEnemyLoopOptions } from '@/game/runtime/RuntimeEnemyLoop';
+import { runRuntimeLoopTail, type RunRuntimeLoopTailOptions } from '@/game/runtime/RuntimeLoopTail';
 import type { RuntimePhaseContexts } from '@/game/runtime/RuntimePhaseContexts';
 import type { RuntimeSessionState } from '@/game/runtime/RuntimeSessionState';
 import type { GameState } from '@/lib/game/GameState';
@@ -76,7 +76,7 @@ export function runRuntimeFrame({
 
   const { deltaTime } = frameState;
 
-  const preludeOpts = phaseContexts.gameplayPreludeContext as any;
+  const preludeOpts = phaseContexts.gameplayPreludeContext as RunGameplayPreludeOptions;
   preludeOpts.currentTime = currentTime;
   preludeOpts.deltaTime = deltaTime;
   preludeOpts.isBlocking = runtimeSession.combat.isBlocking;
@@ -129,7 +129,7 @@ export function runRuntimeFrame({
   runtimeSession.input.comboInputBuffered = preludeState.comboInputBuffered;
 
   if (!state.dialogueActive) {
-    const pfOpts = phaseContexts.playerFrameContext as any;
+    const pfOpts = phaseContexts.playerFrameContext as RunPlayerFramePhaseOptions;
     pfOpts.currentTime = currentTime;
     pfOpts.deltaTime = deltaTime;
     pfOpts.playerAnimState = runtimeSession.animation.playerAnimState;
@@ -165,7 +165,7 @@ export function runRuntimeFrame({
       lastTransitionDebugRefreshAt: runtimeSession.visual.lastTransitionDebugRefreshAt,
     } = runPlayerFramePhase(pfOpts));
 
-    const elOpts = phaseContexts.enemyLoopContext as any;
+    const elOpts = phaseContexts.enemyLoopContext as RunEnemyLoopOptions;
     elOpts.currentTime = currentTime;
     elOpts.deltaTime = deltaTime;
     elOpts.isBlocking = runtimeSession.combat.isBlocking;
@@ -179,7 +179,7 @@ export function runRuntimeFrame({
     }
   }
 
-  const tailOpts = phaseContexts.runtimeLoopTailContext as any;
+  const tailOpts = phaseContexts.runtimeLoopTailContext as RunRuntimeLoopTailOptions;
   tailOpts.playerPosition = state.player.position;
   tailOpts.activeNpcWorldPos = activeNpcWorldPos;
   tailOpts.isDialogueActive = state.dialogueActive;

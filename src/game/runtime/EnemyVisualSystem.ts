@@ -46,7 +46,7 @@ function resolveSpriteKey(enemy: Enemy, enemyType: string): string {
     return `enemy_${enemyType}_${enemy.facing}_${animState}_${animFrame}`;
   }
   if (enemyType === 'golem') {
-    const phase = ((enemy as any).phase as number ?? 1);
+    const phase = enemy.phase ?? 1;
     const prefix = phase >= 2 ? 'enemy_golem_phase2' : 'enemy_golem';
     if (enemy.state === 'staggered') return `${prefix}_stagger`;
     if (enemy.state === 'telegraphing') return `${prefix}_telegraph`;
@@ -108,7 +108,7 @@ export function applyEnemyVisuals({
   }
 
   const bossPhase = (enemyType === 'hollow_guardian' || enemyType === 'golem')
-    ? ((enemy as any).phase as number ?? 1)
+    ? (enemy.phase ?? 1)
     : 1;
   const isPhase2 = bossPhase === 2;
   const isPhase3 = bossPhase === 3;
@@ -141,8 +141,8 @@ export function applyEnemyVisuals({
     }
   } else if (enemy.state === 'staggered') {
     mat.color.setHex(0xaaaaee);
-  } else if ((enemy.state as string) === 'slamming') {
-    const novaTimer = (enemy as any).novaSlamTimer as number ?? 0;
+  } else if (enemy.state === 'slamming') {
+    const novaTimer = enemy.novaSlamTimer ?? 0;
     const novaProgress = 1 - novaTimer / 0.5;
     const flash = Math.sin(novaProgress * Math.PI * 6) * 0.4 + 0.6;
     mat.color.setRGB(flash * 0.5, flash * 0.2, flash);
@@ -231,7 +231,7 @@ export function applyEnemyVisuals({
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
     const isBoss = enemyType === 'hollow_guardian';
-    const isSweep = (enemy as any).currentAttackType === 'sweep';
+    const isSweep = enemy.currentAttackType === 'sweep';
     const phaseMultiplier = isPhase3 ? 1.4 : isPhase2 ? 1.15 : 1.0;
     const scaleSwellX = ((isBoss ? 0.28 : isGolem ? 0.22 : 0.15) + (isSweep ? 0.18 : 0)) * phaseMultiplier;
     const scaleSwellY = ((isBoss ? 0.22 : isGolem ? 0.18 : 0.12) - (isSweep ? 0.06 : 0)) * phaseMultiplier;
@@ -284,8 +284,8 @@ export function applyEnemyVisuals({
     const shakeAmt = 0.05;
     finalEnemyX += Math.sin(currentTime / 15 + seed) * shakeAmt;
     finalEnemyY += Math.cos(currentTime / 20 + seed) * shakeAmt * 0.5;
-  } else if ((enemy.state as string) === 'slamming') {
-    const novaTimer = (enemy as any).novaSlamTimer as number ?? 0;
+  } else if (enemy.state === 'slamming') {
+    const novaTimer = enemy.novaSlamTimer ?? 0;
     const novaProgress = 1 - novaTimer / 0.5;
     const expand = Math.sin(novaProgress * Math.PI) * 0.35;
     scaleX *= 1 + expand;

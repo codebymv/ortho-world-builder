@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { AssetManager } from '@/lib/game/AssetManager';
-import type { CombatSystem } from '@/lib/game/Combat';
+import type { CombatSystem, Enemy } from '@/lib/game/Combat';
 import type { FloatingTextSystem } from '@/lib/game/FloatingText';
 import type { GameState, NPC } from '@/lib/game/GameState';
 import type { ParticleSystem } from '@/lib/game/ParticleSystem';
@@ -58,11 +58,11 @@ export interface GameplayPreludeContext {
   npcObjectiveHalos: THREE.Mesh[];
   npcObjectiveRings: THREE.Mesh[];
   checkInteraction: () => void;
-  usePotion: () => void;
+  consumePotion: () => void;
   keys: Record<string, boolean>;
   visitedTiles: Set<string>;
   getDirection8: (x: number, y: number) => Direction8;
-  dir8to4: (direction: Direction8) => 'up' | 'down' | 'left' | 'right';
+  dir8to4: (direction: string) => string;
   performDodge: (moveX: number, moveY: number) => void;
   playFootstep: (isSprinting: boolean) => void;
   emitDust: (x: number, y: number) => void;
@@ -88,14 +88,12 @@ export interface GameplayPreludeContext {
     hitEnemyIds: Set<string>;
   };
   combatSystem: {
-    getEnemiesInRange: (position: { x: number; y: number }, range: number) => any[];
-    playerAttack: (enemy: any, damage: number, playerPosition: { x: number; y: number }, playerDirection: string) => { killed: boolean; staggered: boolean; backstab: boolean };
+    getEnemiesInRange: (position: { x: number; y: number }, range: number) => Enemy[];
+    playerAttack: (enemy: Enemy, damage: number, playerPosition: { x: number; y: number }, playerDirection: string) => { killed: boolean; staggered: boolean; backstab: boolean };
   };
-  onLungeHit: (enemy: any, damage: number) => void;
+  onLungeHit: (enemy: Enemy, damage: number) => void;
   onLungeEnd: () => void;
-  particleSystem: {
-    emit(position: any, count: number, color: number, lifetime: number, speed: number, spread: number): void;
-  };
+  particleSystem: ParticleSystem;
   playPropBreak?: () => void;
   dodgeIFrameDuration: number;
   triggerComboChain: () => { frameDuration: number } | null;
@@ -174,7 +172,7 @@ export interface PlayerFrameContext {
 
 export interface EnemyAudioContext {
   maybePlayWalk: (
-    enemy: { id: string; position: { x: number; y: number }; velocity: { x: number; y: number }; moveBlend: number; state: string; sprite: string },
+    enemy: Enemy,
     nowSeconds: number,
     playerPosition: { x: number; y: number },
   ) => void;

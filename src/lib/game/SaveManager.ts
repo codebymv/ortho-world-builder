@@ -86,7 +86,7 @@ export class SaveManager {
           const migrated: SaveData = {
             ...oldData,
             version: SAVE_VERSION,
-            worldItems: (oldData as any).worldItems ?? [],
+            worldItems: (oldData as SaveData & { worldItems?: SaveData["worldItems"] }).worldItems ?? [],
             player: {
               position: oldData.player.position,
               direction: oldData.player.direction,

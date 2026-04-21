@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Bell, CheckCircle2, Info, AlertCircle } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { CheckCircle2, Info, AlertCircle } from 'lucide-react';
 import { getEntries, subscribe, type NotifEntry } from '@/lib/game/notificationBus';
 
-const TYPE_ICON: Record<string, any> = { 
+const TYPE_ICON: Record<string, ReactNode> = {
   success: <CheckCircle2 className="w-2.5 h-2.5" />, 
   info: <Info className="w-2.5 h-2.5" />, 
   error: <AlertCircle className="w-2.5 h-2.5" /> 

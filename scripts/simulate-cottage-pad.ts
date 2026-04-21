@@ -10,13 +10,15 @@ function getTile(x: number, y: number) {
   return map.tiles[tileY][tileX];
 }
 
-function isTileWalkable(tile: any) {
+type MapTile = ReturnType<typeof generateMap>['tiles'][number][number] | null;
+
+function isTileWalkable(tile: MapTile) {
   if (!tile) return false;
   if (tile.transition) return true;
   return !!tile.walkable;
 }
 
-function canStepBetween(fromTile: any, toTile: any) {
+function canStepBetween(fromTile: MapTile, toTile: MapTile) {
   if (!toTile || !isTileWalkable(toTile)) return false;
   const fromElevation = fromTile?.elevation ?? 0;
   const toElevation = toTile.elevation ?? 0;

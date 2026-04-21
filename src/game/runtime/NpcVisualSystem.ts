@@ -27,7 +27,6 @@ export function applyNpcVisuals({
   currentTime,
   isTalking,
   isPaused,
-  isObjective,
   npcScale,
   npcFootOffset,
   getVisualYAt,

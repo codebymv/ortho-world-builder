@@ -237,7 +237,6 @@ const Game = () => {
 
   // Healing cooldowns: interactionId -> last use timestamp
   const healCooldowns = useRef<Map<string, number>>(new Map());
-  const HEAL_COOLDOWN_MS = 30000; // 30 seconds
 
   // Map markers system
   const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
@@ -364,13 +363,6 @@ const Game = () => {
     playGrassChewRef.current?.();
   }, []);
 
-  const handlePlayMenuOpen = useCallback(() => {
-    playMenuOpenRef.current?.();
-  }, []);
-
-  const handlePlayMenuClose = useCallback(() => {
-    playMenuCloseRef.current?.();
-  }, []);
   const createDialogueProgression = () => {
     const runtimeContent = runtimeContentRef.current;
     const interactionContent = interactionContentRef.current;
@@ -443,8 +435,9 @@ const Game = () => {
       });
     };
 
-    if ('requestIdleCallback' in window) {
-      const idleId = window.requestIdleCallback(preloadMenuChunks, { timeout: 2000 });
+    const ric = (window as Window).requestIdleCallback as Window['requestIdleCallback'] | undefined;
+    if (typeof ric === 'function') {
+      const idleId = ric.call(window, preloadMenuChunks, { timeout: 2000 });
       return () => window.cancelIdleCallback(idleId);
     }
 

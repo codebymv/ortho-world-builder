@@ -1,0 +1,130 @@
+﻿
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\scripts\simulate-cottage-pad.ts
+  13:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  19:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  19:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\components\game\GameUI.tsx
+   11:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   25:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  128:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  200:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  245:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\components\game\Minimap.tsx
+  144:8  warning  React Hook useMemo has an unnecessary dependency: 'refreshToken'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\components\game\NotificationFeed.tsx
+  5:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\components\ui\button.tsx
+  47:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\components\ui\sonner.tsx
+  33:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\data\bonfires.ts
+  97:11  error  Redundant Boolean call  no-extra-boolean-cast
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\data\mapGenerator.ts
+  1083:50  error  Irregular whitespace not allowed  no-irregular-whitespace
+  1083:89  error  Irregular whitespace not allowed  no-irregular-whitespace
+  1181:80  error  Irregular whitespace not allowed  no-irregular-whitespace
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\domain\AudioDirector.ts
+  227:7  error  'ENEMY_AUDIO_TYPES' is assigned a value but only used as a type. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\EnemyVisualSystem.ts
+   49:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  145:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  234:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  288:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\PlayerSimulationSystem.ts
+   83:79   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   84:27   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   86:23   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  296:32   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  296:73   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  444:33   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  444:134  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\RuntimeActionPhase.ts
+   19:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   27:65  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   28:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   29:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   30:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   31:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   33:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   34:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   35:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   48:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  167:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  168:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  201:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  205:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  307:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  362:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  370:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  376:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  389:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\RuntimeCombatActions.ts
+   54:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  291:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  519:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  569:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\RuntimeFrameRunner.ts
+   79:63  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  132:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  168:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  182:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\RuntimeMapFlow.ts
+  352:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\RuntimePhaseBuilderOptions.ts
+  77:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\RuntimePhaseContexts.ts
+  91:79  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  92:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  94:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  97:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\RuntimePlayerFrame.ts
+  33:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\RuntimeRestFlow.ts
+  51:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\setupGameRuntime.ts
+   773:31  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   938:31  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  1032:24  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  1117:5   error  'cancelEnemyPrewarm' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\useGameMusic.ts
+  128:6  warning  React Hook useEffect has a missing dependency: 'musicDirector'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\game\runtime\useGameRuntime.ts
+  4:3  warning  React Hook useEffect received a function whose dependencies are unknown. Pass an inline function instead  react-hooks/exhaustive-deps
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\hooks\use-toast.ts
+  15:7  error  'actionTypes' is assigned a value but only used as a type. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\lib\game\AssetManager.ts
+  456:18  error  Unexpected constant condition  no-constant-condition
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\src\lib\game\SaveManager.ts
+  89:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\roxas\OneDrive\Desktop\PROJECTS\ortho-world-builder\tailwind.config.ts
+  90:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+Γ£û 74 problems (69 errors, 5 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

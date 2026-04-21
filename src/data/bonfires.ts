@@ -94,7 +94,7 @@ export function getKindledBonfiresForMap(
     mapId,
     getBonfiresForMap(mapId).filter(b => {
       const key = `bonfire_first_${b.mapId}_${b.tileX}_${b.tileY}`;
-      if (Boolean(gameFlags[key])) return true;
+      if (gameFlags[key]) return true;
       // Legacy tile for Iron Gate bonfire before reposition to ~(world -15, 58)
       if (b.id === 'bonfire_forest_south' && Boolean(gameFlags[`bonfire_first_${b.mapId}_130_206`])) {
         return true;

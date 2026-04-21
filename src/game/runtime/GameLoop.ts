@@ -65,7 +65,7 @@ export function advanceGameFrame({
   };
 }
 
-interface RunGameplayPreludeOptions extends GameplayPreludeContext {
+export interface RunGameplayPreludeOptions extends GameplayPreludeContext {
   currentTime: number;
   deltaTime: number;
   isBlocking: boolean;
@@ -120,7 +120,7 @@ export function runGameplayPrelude({
   interactBuffered,
   potionBuffered,
   checkInteraction,
-  usePotion,
+  consumePotion,
   isLmbHeld,
   isChargingAttack,
   chargeTimer,
@@ -246,7 +246,7 @@ export function runGameplayPrelude({
     interactBuffered = false;
   }
   if (potionBuffered && !state.dialogueActive) {
-    usePotion();
+    consumePotion();
     potionBuffered = false;
   }
 

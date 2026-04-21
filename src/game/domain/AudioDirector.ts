@@ -224,8 +224,7 @@ export function createRandomAudioPool(config: RandomAudioPoolConfig) {
   };
 }
 
-const ENEMY_AUDIO_TYPES = ['skeleton', 'slime', 'wolf', 'shadow', 'spider'] as const;
-type EnemyAudioType = typeof ENEMY_AUDIO_TYPES[number];
+type EnemyAudioType = 'skeleton' | 'slime' | 'wolf' | 'shadow' | 'spider';
 
 interface EnemyAudioDirectorConfig {
   processAudioElement: (audio: HTMLAudioElement) => void;

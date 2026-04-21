@@ -4,7 +4,7 @@ import { applySmoothedCameraFollow, updateInteractionIndicator } from '@/game/ru
 import type { PlayerFrameContext } from '@/game/runtime/RuntimePhaseContexts';
 import { items } from '@/data/items';
 
-interface RunPlayerFramePhaseOptions extends PlayerFrameContext {
+export interface RunPlayerFramePhaseOptions extends PlayerFrameContext {
   currentTime: number;
   deltaTime: number;
   playerAnimState: string;
@@ -30,7 +30,7 @@ interface RunPlayerFramePhaseOptions extends PlayerFrameContext {
   portalCooldown: number;
   isMapModalOpen: boolean;
   isPlayerDead: boolean;
-  particleSystem: any;
+  particleSystem: import('@/lib/game/ParticleSystem').ParticleSystem;
   lungeState: {
     active: boolean;
     recovering: boolean;
@@ -97,7 +97,6 @@ export function runPlayerFramePhase({
   particleSystem,
   lungeState,
   notify,
-  handleMapTransition,
   handlePortalTransition,
 }: RunPlayerFramePhaseOptions) {
   const newTexture = resolvePlayerTexture({
@@ -136,8 +135,8 @@ export function runPlayerFramePhase({
 
   if (playerAnimState === 'attack') {
     // Step 0: standard forward lunge on frame 1
-    // Step 1: backhand — body pulls back slightly on frame 0, then drifts perpendicular on frame 1
-    // Step 2: finisher — slight wind-up pull on frame 0, heavy forward plunge on frame 1
+    // Step 1: backhand ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â body pulls back slightly on frame 0, then drifts perpendicular on frame 1
+    // Step 2: finisher ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â slight wind-up pull on frame 0, heavy forward plunge on frame 1
     if (comboStep === 0 && attackFrame === 1) {
       const lungeAmount = 0.15;
       if (facing4 === 'up') attackOffsetY = lungeAmount;
@@ -153,7 +152,7 @@ export function runPlayerFramePhase({
         else if (facing4 === 'left') attackOffsetX = -recoil;
         else if (facing4 === 'right') attackOffsetX = recoil;
       } else if (attackFrame === 1) {
-        // Perpendicular drift with slight forward motion — the backhand whip
+        // Perpendicular drift with slight forward motion ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the backhand whip
         const lungeAmount = 0.10;
         const perpDrift = 0.10;
         if (facing4 === 'up') { attackOffsetY = lungeAmount; attackOffsetX = -perpDrift; }
@@ -237,7 +236,7 @@ export function runPlayerFramePhase({
       visualRotation += facing4 === 'right' ? 0.06 : facing4 === 'left' ? -0.06 : 0.03;
     } else if (comboStep === 1) {
       if (attackFrame === 0) {
-        // Coil back — slight opposite lean telegraphing the backhand
+        // Coil back ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â slight opposite lean telegraphing the backhand
         visualRotation += facing4 === 'right' ? 0.05 : facing4 === 'left' ? -0.05 : -0.03;
       } else if (attackFrame === 1) {
         // Backhand whip: body twists opposite direction from step 0
@@ -246,7 +245,7 @@ export function runPlayerFramePhase({
       }
     } else if (comboStep === 2) {
       if (attackFrame === 0) {
-        // Wind-up: body rises/coils — stretch tall, narrow
+        // Wind-up: body rises/coils ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â stretch tall, narrow
         visualScaleX *= 0.95;
         visualScaleY *= 1.08;
       } else if (attackFrame === 1) {

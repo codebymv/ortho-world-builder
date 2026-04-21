@@ -19,13 +19,11 @@ export const SharedGeometry = {
 export class AssetManager {
   private textures: Map<string, THREE.Texture>;
   private textureGenerators: Map<string, () => THREE.Texture>;
-  private textureLoader: THREE.TextureLoader;
   private textureDataUrls: Map<string, string>;
 
   constructor() {
     this.textures = new Map();
     this.textureGenerators = new Map();
-    this.textureLoader = new THREE.TextureLoader();
     this.textureDataUrls = new Map();
   }
 
@@ -183,7 +181,7 @@ export class AssetManager {
     bladeOnly: boolean = false,
     includeSword: boolean = true,
     // When provided the exact weapon icon is composited onto the character canvas
-    // instead of drawing hardcoded sword pixels — creating a 1:1 match with the inventory UI.
+    // instead of drawing hardcoded sword pixels â€” creating a 1:1 match with the inventory UI.
     weaponCanvas?: HTMLCanvasElement,
     weaponScale: number = 1.0,
     // Combo step: 0=default swing, 1=backhand return, 2=overhead finisher
@@ -311,7 +309,7 @@ export class AssetManager {
           cell(m(2), 11 + bob, GRIP);
         }
       } else if (drawHardcodedSword && atkFrame >= 0 && comboStep === 1) {
-        // ===== COMBO STEP 1: backhand return — left-to-right (mirrored arc) =====
+        // ===== COMBO STEP 1: backhand return â€” left-to-right (mirrored arc) =====
         // Blade starts low-left (where step 0 ended) and sweeps up-right
         if (atkFrame === 0) {
           // Wind-up from low opposite side
@@ -348,7 +346,7 @@ export class AssetManager {
           cell(m(10), 5 + bob, GRIP);
         }
       } else if (drawHardcodedSword && atkFrame >= 0 && comboStep === 2) {
-        // ===== COMBO STEP 2: overhead slam finisher — vertical downward =====
+        // ===== COMBO STEP 2: overhead slam finisher â€” vertical downward =====
         if (atkFrame === 0) {
           // Wind-up: blade raised straight overhead
           cell(m(7), -1 + bob, BLADE_H); cell(m(7), 0 + bob, BLADE); cell(m(7), 1 + bob, BLADE_E);
@@ -455,7 +453,7 @@ export class AssetManager {
       for (let dx = 5; dx <= 9; dx++) cell(m(dx), 0, (dx % 2 === 0) ? p.hairLight : p.hair);
       cell(m(6), 0, p.hairLight);
       // Spike
-      cell(m(7), -1 < 0 ? 0 : 0, p.hair);
+      cell(m(7), 0, p.hair);
       // Hair front bang
       cell(m(5), 1, p.hair); cell(m(5), 2, p.hair); cell(m(5), 3, p.hairDark);
       // Hair back
@@ -544,7 +542,7 @@ export class AssetManager {
           cell(3, 13 + bob, GRIP);
         }
       } else if (drawHardcodedSword && atkFrame >= 0 && comboStep === 1) {
-        // ===== COMBO STEP 1: backhand return — right-to-left (mirrored from step 0) =====
+        // ===== COMBO STEP 1: backhand return â€” right-to-left (mirrored from step 0) =====
         if (atkFrame === 0) {
           // Start from low-left (mirror of step 0 follow-through)
           cell(1, 9 + bob, BLADE_H); cell(2, 10 + bob, BLADE); cell(3, 11 + bob, BLADE_E);
@@ -580,7 +578,7 @@ export class AssetManager {
           cell(9, 3 + bob, GRIP);
         }
       } else if (drawHardcodedSword && atkFrame >= 0 && comboStep === 2) {
-        // ===== COMBO STEP 2: overhead slam — straight down =====
+        // ===== COMBO STEP 2: overhead slam â€” straight down =====
         if (atkFrame === 0) {
           // Wind-up: blade raised high overhead center
           cell(7, -1 + bob, BLADE_H); cell(7, 0 + bob, BLADE); cell(8, -1 + bob, BLADE_E);
@@ -783,12 +781,12 @@ export class AssetManager {
       interface WPose { cx: number; cy: number; angleDeg: number; scale: number }
       let pose: WPose | null = null;
 
-      // Weapon icons are 32×32 (8 design-pixels × cellSize 4).  Scale 1.0 = native res.
-      // Grip anchor: ~(0.25, 0.81) of icon — averaged between sword grip at design (1.5,6.5)
-      // and broadsword grip at (2.5,6.5).  Max per-weapon error ≈ 2 px (half a cell).
+      // Weapon icons are 32Ã—32 (8 design-pixels Ã— cellSize 4).  Scale 1.0 = native res.
+      // Grip anchor: ~(0.25, 0.81) of icon â€” averaged between sword grip at design (1.5,6.5)
+      // and broadsword grip at (2.5,6.5).  Max per-weapon error â‰ˆ 2 px (half a cell).
       //
-      // angleDeg = desired sword axis minus icon natural axis (~-60° from grip to tip).
-      // Mirror: left cx = W - right cx  (m(n) = 15-n ↔ n symmetry → pixel symmetry at W/2).
+      // angleDeg = desired sword axis minus icon natural axis (~-60Â° from grip to tip).
+      // Mirror: left cx = W - right cx  (m(n) = 15-n â†” n symmetry â†’ pixel symmetry at W/2).
       const AX = 0.25;
       const AY = 0.8125;
 
@@ -963,11 +961,11 @@ export class AssetManager {
     cell(4, 6, p.hairDark); cell(11, 6, p.hairDark);
     cell(4, 7, p.hairDark); cell(11, 7, p.hairDark);
 
-    // Furrowed eyebrows (row 5) — heavy, inward-angled (pain)
+    // Furrowed eyebrows (row 5) â€” heavy, inward-angled (pain)
     cell(6, 5, p.hairDark); cell(7, 5, p.hairDark);
     cell(9, 5, p.hairDark); cell(10, 5, p.hairDark);
 
-    // Eyes (row 6) — squinting, heavy-lidded
+    // Eyes (row 6) â€” squinting, heavy-lidded
     cell(5, 6, p.skinShadow);
     cell(6, 6, 0xDDDDDD); cell(7, 6, p.eyeIrisDark);
     cell(8, 6, p.skin);
@@ -976,13 +974,13 @@ export class AssetManager {
     // Nose (row 7)
     cell(8, 7, p.skinShadow);
 
-    // Mouth — tight grimace (row 8)
+    // Mouth â€” tight grimace (row 8)
     cell(7, 8, p.skinShadow); cell(8, 8, p.skinShadow);
 
-    // Neck (row 9) — tilted right toward barrel
+    // Neck (row 9) â€” tilted right toward barrel
     cell(7, 9, p.skinShadow); cell(8, 9, p.skinShadow); cell(9, 9, p.skinShadow);
 
-    // Upper body + shoulders (row 10) — hunched
+    // Upper body + shoulders (row 10) â€” hunched
     for (let dx = 5; dx <= 10; dx++) cell(dx, 10, p.tunicLight);
     cell(7, 10, p.trimColor); cell(8, 10, p.trimColor);
     cell(4, 10, p.tunicDark);
@@ -1003,16 +1001,16 @@ export class AssetManager {
     for (let dx = 5; dx <= 10; dx++) cell(dx, 12, p.bootDark);
     cell(7, 12, p.trimColor); cell(8, 12, p.trimColor);
 
-    // Thighs — bent wide, tunic skirt over lap (row 13)
+    // Thighs â€” bent wide, tunic skirt over lap (row 13)
     cell(4, 13, p.tunicDark); cell(5, 13, p.pantColor); cell(6, 13, p.pantColor);
     cell(7, 13, p.pantDark); cell(8, 13, p.pantDark);
     cell(9, 13, p.pantColor); cell(10, 13, p.pantColor); cell(11, 13, p.tunicDark);
 
-    // Lower legs — spread wide (row 14)
+    // Lower legs â€” spread wide (row 14)
     cell(3, 14, p.pantColor); cell(4, 14, p.pantDark);
     cell(10, 14, p.pantDark); cell(11, 14, p.pantColor);
 
-    // Boots — kicked out at far edges (row 15)
+    // Boots â€” kicked out at far edges (row 15)
     cell(2, 15, p.bootColor); cell(3, 15, p.bootDark);
     cell(11, 15, p.bootDark); cell(12, 15, p.bootColor);
 
@@ -1069,7 +1067,7 @@ export class AssetManager {
     return this.textureDataUrls.get(id) || null;
   }
 
-  getPalette(id: string): Record<string, number> {
+  getPalette(_id: string): Record<string, number> {
     // This method was added by the user's diff, but its implementation was not provided.
     // Returning an empty object as a placeholder to maintain syntactical correctness.
     return {};
@@ -1152,10 +1150,6 @@ export class AssetManager {
 
   loadDefaultAssets() {
     const C = 0; // transparent
-
-    const mirrorSprite = (sprite: number[][]): number[][] => {
-      return sprite.map(row => [...row].reverse());
-    };
 
     const registerColorTexture = (
       name: string,
@@ -1418,7 +1412,7 @@ export class AssetManager {
     };
     this.registerTexture('npc_grove_warden', () => this.createChibiCharacter('down', 'idle', 0, groveWardenPalette, 'npc_grove_warden', false, false));
 
-    // Field archaeologist — dusty slate coat, amber trim, tawny auburn hair
+    // Field archaeologist â€” dusty slate coat, amber trim, tawny auburn hair
     const petraPalette = {
       hair: 0x9E6B3C, hairLight: 0xBE8B52, hairDark: 0x7A4E28,
       skin: 0xFFE0BD, skinLight: 0xFFF0D8, skinShadow: 0xE8C4A0,
@@ -1513,7 +1507,7 @@ export class AssetManager {
       [C,        C,        WOLF_FUR_S,C,       WOLF_FUR_S,C,       WOLF_FUR_S,C,       C,        C],
     ], 4, 'enemy_wolf_attack'));
 
-    // Armored wolf — darker fur with iron plate accents
+    // Armored wolf â€” darker fur with iron plate accents
     const AW_FUR  = 0x3E3E3E;
     const AW_FUR_H = 0x505050;
     const AW_FUR_S = 0x2A2A2A;
@@ -1556,7 +1550,7 @@ export class AssetManager {
       [C,       C,       AW_FUR_S,C,        AW_FUR_S, C,       AW_FUR_S,C,       C,       C],
     ], 4, 'enemy_armored_wolf_attack'));
 
-    // Stone Sentinel — imposing stone-armored beast with layered rock plates, glowing
+    // Stone Sentinel â€” imposing stone-armored beast with layered rock plates, glowing
     // crystal eyes, heavy pauldrons, and thick legs. 12x10 grid at scale 4 for detail.
     const SS_STONE  = 0x546E7A;  // base blue-grey stone
     const SS_STONE_H= 0x78909C;  // stone highlight
@@ -1613,7 +1607,7 @@ export class AssetManager {
       [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
     ], 4, 'enemy_stone_sentinel_attack'));
 
-    // Walk frame 0 — left paw steps out 1 col
+    // Walk frame 0 â€” left paw steps out 1 col
     this.registerTexture('enemy_stone_sentinel_walk_0', () => this.createSpriteTexture([
       [C,        C,        C,        SS_FUR,   SS_FUR_H, C,        C,        SS_FUR_H, SS_FUR,   C,        C,        C       ],
       [C,        C,        SS_FUR,   SS_STONE_H,SS_FUR_H,SS_PLATE_H,SS_PLATE_H,SS_FUR_H,SS_STONE_H,SS_FUR,  C,        C       ],
@@ -1627,7 +1621,7 @@ export class AssetManager {
       [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
     ], 4, 'enemy_stone_sentinel_walk_0'));
 
-    // Walk frame 1 — right paw steps out 1 col
+    // Walk frame 1 â€” right paw steps out 1 col
     this.registerTexture('enemy_stone_sentinel_walk_1', () => this.createSpriteTexture([
       [C,        C,        C,        SS_FUR,   SS_FUR_H, C,        C,        SS_FUR_H, SS_FUR,   C,        C,        C       ],
       [C,        C,        SS_FUR,   SS_STONE_H,SS_FUR_H,SS_PLATE_H,SS_PLATE_H,SS_FUR_H,SS_STONE_H,SS_FUR,  C,        C       ],
@@ -1641,7 +1635,7 @@ export class AssetManager {
       [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
     ], 4, 'enemy_stone_sentinel_walk_1'));
 
-    // Stagger — paws splayed wide, off-balance
+    // Stagger â€” paws splayed wide, off-balance
     this.registerTexture('enemy_stone_sentinel_stagger', () => this.createSpriteTexture([
       [C,        C,        C,        SS_FUR,   SS_FUR_H, C,        C,        SS_FUR_H, SS_FUR,   C,        C,        C       ],
       [C,        C,        SS_FUR,   SS_STONE_H,SS_FUR_H,SS_PLATE_H,SS_PLATE_H,SS_FUR_H,SS_STONE_H,SS_FUR,  C,        C       ],
@@ -1655,7 +1649,7 @@ export class AssetManager {
       [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
     ], 4, 'enemy_stone_sentinel_stagger'));
 
-    // ========== VOID WISP — old shadow design preserved for later use ==========
+    // ========== VOID WISP â€” old shadow design preserved for later use ==========
     const VW_BODY  = 0x311B92;
     const VW_BODY_H = 0x4527A0;
     const VW_BODY_S = 0x1A0A5E;
@@ -1698,10 +1692,10 @@ export class AssetManager {
       [C,       VW_WISP,  C,        C,        VW_WISP,  C,        C,       VW_WISP,  C,      C],
     ], 4, 'enemy_void_wisp_attack'));
 
-    // ========== SHADOW REAPER — tall hooded figure, skull mask, curved scythe ==========
-    // Sprite: 10 wide × 12 tall @ 4px/cell.
+    // ========== SHADOW REAPER â€” tall hooded figure, skull mask, curved scythe ==========
+    // Sprite: 10 wide Ã— 12 tall @ 4px/cell.
     //
-    // Layout top→bottom:
+    // Layout topâ†’bottom:
     //   Rows  0- 1  pointed hood peak, narrow
     //   Rows  2- 3  skull/mask face, single cyan eye in hood opening
     //   Rows  4- 5  wide shoulders; scythe handle exits left shoulder
@@ -1709,65 +1703,65 @@ export class AssetManager {
     //   Rows  8- 9  tattered robe hem
     //   Rows 10-11  trailing dark wisps / tendrils
     //
-    // Attack arc: blade swings from left-hang (idle) → raised left (telegraph) → sweeps right (attack)
+    // Attack arc: blade swings from left-hang (idle) â†’ raised left (telegraph) â†’ sweeps right (attack)
     const RK_CK  = 0x080C18;   // cloak deep navy-black
-    const RK_CKH = 0x181E38;   // cloak fold — catches dim light
+    const RK_CKH = 0x181E38;   // cloak fold â€” catches dim light
     const RK_CKS = 0x030406;   // cloak deepest shadow
     const RK_HD  = 0x000408;   // hood interior void
-    const RK_SK  = 0xD8CEBB;   // skull bone — warm ivory
+    const RK_SK  = 0xD8CEBB;   // skull bone â€” warm ivory
     const RK_SKH = 0xEEE4D4;   // skull highlight
     const RK_SKS = 0x988A7C;   // skull shadow
-    const RK_EYE = 0x44FFEE;   // eye glow — teal cyan
-    const RK_BL  = 0xD8ECF8;   // scythe blade — pale silver-blue
+    const RK_EYE = 0x44FFEE;   // eye glow â€” teal cyan
+    const RK_BL  = 0xD8ECF8;   // scythe blade â€” pale silver-blue
     const RK_BLS = 0x5888A4;   // scythe blade shadow/edge
-    const RK_HN  = 0x1C1008;   // scythe handle — near-black wood
-    const RK_WSP = 0x10162C;   // trailing wisps — dark indigo
+    const RK_HN  = 0x1C1008;   // scythe handle â€” near-black wood
+    const RK_WSP = 0x10162C;   // trailing wisps â€” dark indigo
 
     this.registerTexture('enemy_shadow', () => this.createSpriteTexture([
       //        0        1        2        3        4        5        6        7        8        9
-      // hood peak — narrow 2-px point
+      // hood peak â€” narrow 2-px point
       [C,       C,       C,       C,       RK_CKH,  RK_CKH,  C,       C,       C,       C      ],
-      // hood upper — widens, void interior appears
+      // hood upper â€” widens, void interior appears
       [C,       C,       C,       RK_CKS,  RK_CK,   RK_HD,   RK_CKS,  C,       C,       C      ],
-      // skull face — bone catches faint light, single eye glows teal
+      // skull face â€” bone catches faint light, single eye glows teal
       [C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYE,  RK_CK,   RK_CKS,  C,       C      ],
       // skull lower jaw
       [C,       C,       RK_CKS,  RK_CK,   RK_SKS,  RK_SK,   RK_CK,   RK_CKS,  C,       C      ],
-      // wide shoulders — broadest point; handle exits at col 1
+      // wide shoulders â€” broadest point; handle exits at col 1
       [C,       RK_HN,   RK_CKS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKH,  RK_CKS,  C,       C      ],
-      // upper body; handle continues, blade starts col 0–1
+      // upper body; handle continues, blade starts col 0â€“1
       [RK_HN,   RK_BLS,  RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CK,   RK_CKS,  C,       C      ],
       // scythe blade curves down-left; lower cloak body
       [RK_BL,   RK_BLS,  RK_CKS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKS,  C,       C,       C      ],
       // blade tip fades; mid robe narrows
       [C,       RK_BLS,  RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
-      // lower robe — slightly ragged
+      // lower robe â€” slightly ragged
       [C,       C,       RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_WSP,  C,       C,       C      ],
-      // robe hem — tattered edges begin
+      // robe hem â€” tattered edges begin
       [C,       C,       RK_WSP,  RK_CKS,  RK_CK,   RK_CKS,  RK_WSP,  C,       C,       C      ],
-      // wisp tendrils — scattered, floating
+      // wisp tendrils â€” scattered, floating
       [C,       RK_WSP,  C,       RK_WSP,  RK_CKS,  RK_WSP,  C,       RK_WSP,  C,       C      ],
-      // root wisps — final trailing flecks
+      // root wisps â€” final trailing flecks
       [RK_WSP,  C,       C,       C,       RK_WSP,  C,       C,       C,       RK_WSP,  C      ],
     ], 4, 'enemy_shadow'));
 
-    const RK_EYG = 0x88FFFF;   // eye — intensified teal (telegraph/attack)
+    const RK_EYG = 0x88FFFF;   // eye â€” intensified teal (telegraph/attack)
     const RK_CHG = 0x2828A8;   // cold ethereal charge energy
-    const RK_SLH = 0xF0F8FF;   // blade slash flash — near-white
+    const RK_SLH = 0xF0F8FF;   // blade slash flash â€” near-white
 
     this.registerTexture('enemy_shadow_telegraph', () => this.createSpriteTexture([
       //        0        1        2        3        4        5        6        7        8        9
-      // hood — charge sparks appear at corners
+      // hood â€” charge sparks appear at corners
       [C,       C,       C,       RK_CHG,  RK_CKH,  RK_CKH,  RK_CHG,  C,       C,       C      ],
       [C,       C,       RK_CHG,  RK_CKS,  RK_CK,   RK_HD,   RK_CKS,  RK_CHG,  C,       C      ],
       // eye intensifies
       [C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYG,  RK_CK,   RK_CKS,  C,       C      ],
-      // scythe arm raises — handle swings up toward col 2
+      // scythe arm raises â€” handle swings up toward col 2
       [C,       C,       RK_HN,   RK_CKS,  RK_SKS,  RK_SK,   RK_CK,   RK_CKS,  C,       C      ],
       // blade raised to row 4-5, pointing upward-left
       [RK_BLS,  RK_HN,   RK_BLS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKH,  RK_CKS,  C,       C      ],
       [RK_BL,   RK_BLS,  RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CK,   RK_CKS,  C,       C      ],
-      // cloak billows — charge energy outlines body
+      // cloak billows â€” charge energy outlines body
       [C,       RK_CHG,  RK_CKS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKS,  RK_CHG,  C,       C      ],
       [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
       [C,       C,       RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_WSP,  C,       C,       C      ],
@@ -1779,17 +1773,17 @@ export class AssetManager {
 
     this.registerTexture('enemy_shadow_attack', () => this.createSpriteTexture([
       //        0        1        2        3        4        5        6        7        8        9
-      // hood stable — attack is fast and controlled
+      // hood stable â€” attack is fast and controlled
       [C,       C,       C,       C,       RK_CKH,  RK_CKH,  C,       C,       C,       C      ],
       [C,       C,       C,       RK_CKS,  RK_CK,   RK_HD,   RK_CKS,  C,       C,       C      ],
       // eye at full glow
       [C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYG,  RK_CK,   RK_CKS,  C,       C      ],
       [C,       C,       RK_CKS,  RK_CK,   RK_SKS,  RK_SK,   RK_CK,   RK_CKS,  C,       C      ],
-      // shoulders — blade has swung to right side
+      // shoulders â€” blade has swung to right side
       [C,       C,       RK_CKS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKH,  RK_HN,   RK_BLS,  C      ],
       // blade sweeps right; handle follows
       [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_HN,   RK_BL,   RK_SLH,  C      ],
-      // slash flash — bright arc at blade tip
+      // slash flash â€” bright arc at blade tip
       [C,       C,       C,       RK_CKH,  RK_CK,   RK_CK,   RK_BLS,  RK_SLH,  C,       C      ],
       [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
       [C,       C,       RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_WSP,  C,       C,       C      ],
@@ -1872,7 +1866,7 @@ export class AssetManager {
     this.registerTexture('enemy_skeleton_attack', () => this.getTexture('enemy_skeleton_down_attack_1')!);
 
     // ========== NEW ENEMY: Skeleton Captain ==========
-    // Blackened iron armor, crimson trim, blazing red eyes — a veteran undead commander.
+    // Blackened iron armor, crimson trim, blazing red eyes â€” a veteran undead commander.
     const skeletonCaptainPalette = {
       hair: 0x37474F, hairLight: 0x546E7A, hairDark: 0x263238,
       skin: 0xCFD8DC, skinLight: 0xECEFF1, skinShadow: 0x90A4AE,
@@ -1947,7 +1941,7 @@ export class AssetManager {
     ];
     const E = [C,C,C,C,C,C,C,C,C,C,C,C]; // empty row
 
-    // Idle — neutral stance (12 rows for consistent sizing)
+    // Idle â€” neutral stance (12 rows for consistent sizing)
     this.registerTexture('enemy_golem', () => this.createSpriteTexture([
       ...golemBody,
       [C,    C,    GOL_S,GOL,  GOL_D,C,    C,    GOL_D,GOL,  GOL_S,C,    C],
@@ -1955,7 +1949,7 @@ export class AssetManager {
       E, E,
     ], 4, 'enemy_golem'));
 
-    // Walk frame 0 — left leg steps out 1 col, right stays at idle
+    // Walk frame 0 â€” left leg steps out 1 col, right stays at idle
     this.registerTexture('enemy_golem_walk_0', () => this.createSpriteTexture([
       ...golemBody,
       [C,    GOL_S,GOL,  GOL_D,C,    C,    C,    GOL_D,GOL,  GOL_S,C,    C],
@@ -1963,7 +1957,7 @@ export class AssetManager {
       E, E,
     ], 4, 'enemy_golem_walk_0'));
 
-    // Walk frame 1 — right leg steps out 1 col, left stays at idle
+    // Walk frame 1 â€” right leg steps out 1 col, left stays at idle
     this.registerTexture('enemy_golem_walk_1', () => this.createSpriteTexture([
       ...golemBody,
       [C,    C,    GOL_S,GOL,  GOL_D,C,    C,    C,    GOL_D,GOL,  GOL_S,C],
@@ -1971,7 +1965,7 @@ export class AssetManager {
       E, E,
     ], 4, 'enemy_golem_walk_1'));
 
-    // Telegraph — rearing back to strike: body shifted down 1, arms wider, runes bright
+    // Telegraph â€” rearing back to strike: body shifted down 1, arms wider, runes bright
     this.registerTexture('enemy_golem_telegraph', () => this.createSpriteTexture([
       E,
       [C,    C,    C,    GOL_S,GOL,  GOL_H,GOL,  GOL_S,C,    C,    C,    C],
@@ -1987,7 +1981,7 @@ export class AssetManager {
       E,
     ], 4, 'enemy_golem_telegraph'));
 
-    // Attack — lunging forward: body shifted up 1, arms extended
+    // Attack â€” lunging forward: body shifted up 1, arms extended
     this.registerTexture('enemy_golem_attack', () => this.createSpriteTexture([
       [C,    C,    GOL_S,GOL,  GOL_H,GOL,  GOL,  GOL_H,GOL,  GOL_S,C,    C],
       [C,    GOL_S,GOL,  GOL_EYE,GOL_D,GOL,GOL,  GOL_D,GOL_EYE,GOL,GOL_S,C],
@@ -2001,7 +1995,7 @@ export class AssetManager {
       E, E, E,
     ], 4, 'enemy_golem_attack'));
 
-    // Stagger — off-balance: legs splayed wide, right foot buckles lower
+    // Stagger â€” off-balance: legs splayed wide, right foot buckles lower
     this.registerTexture('enemy_golem_stagger', () => this.createSpriteTexture([
       ...golemBody,
       [C,    GOL_S,GOL,  GOL_D,C,    C,    C,    C,    GOL_D,GOL,  GOL_S,C],
@@ -2010,7 +2004,7 @@ export class AssetManager {
       E,
     ], 4, 'enemy_golem_stagger'));
 
-    // ========== FIELD BOSS: Golem — Phase 2 (cracked stone, brighter runes) ==========
+    // ========== FIELD BOSS: Golem â€” Phase 2 (cracked stone, brighter runes) ==========
     const GOL_CRK = 0x1A2018;  // deep crack lines
     const GOL_P2 = 0x585858;   // weathered stone (slightly lighter, desaturated)
     const GOL_P2H = 0x707070;
@@ -2087,121 +2081,121 @@ export class AssetManager {
       E,
     ], 4, 'enemy_golem_phase2_stagger'));
 
-    // ========== BOSS: Hollow Apparition (giant shade, tall hooded figure) — 16x16 sprites ==========
+    // ========== BOSS: Hollow Apparition (giant shade, tall hooded figure) â€” 16x16 sprites ==========
     // Reuses the RK_* shade palette. Boss-specific extras:
-    const HA_CRWN = 0x1A3A4A;  // crown ridge — dark teal-grey, tops the oversized hood
-    const HA_CORE = 0x227777;  // chest core glow — muted teal (brighter on attack)
-    const HA_SUMM = 0x55FFEE;  // summoning arc — bright teal flash on attack/phase change
+    const HA_CRWN = 0x1A3A4A;  // crown ridge â€” dark teal-grey, tops the oversized hood
+    const HA_CORE = 0x227777;  // chest core glow â€” muted teal (brighter on attack)
+    const HA_SUMM = 0x55FFEE;  // summoning arc â€” bright teal flash on attack/phase change
 
     // Idle: towering hooded shade, dual teal eyes, energy-tendril arms, long trailing wisps
     this.registerTexture('enemy_hollow_guardian', () => this.createSpriteTexture([
-      // row 0 — narrow hood peak with crown ridge
+      // row 0 â€” narrow hood peak with crown ridge
       [C,       C,       C,       C,       C,       C,       HA_CRWN, RK_CKH,  HA_CRWN, C,       C,       C,       C,       C,       C,       C      ],
-      // row 1 — hood widens
+      // row 1 â€” hood widens
       [C,       C,       C,       C,       C,       RK_CKS,  RK_CKH,  RK_CK,   RK_CKH,  RK_CKS,  C,       C,       C,       C,       C,       C      ],
-      // row 2 — deep hood interior
+      // row 2 â€” deep hood interior
       [C,       C,       C,       C,       RK_CKS,  RK_CK,   RK_HD,   RK_HD,   RK_HD,   RK_CK,   RK_CKS,  C,       C,       C,       C,       C      ],
-      // row 3 — dual teal eye sockets (boss has two glowing eyes unlike regular shade)
+      // row 3 â€” dual teal eye sockets (boss has two glowing eyes unlike regular shade)
       [C,       C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYE,  RK_HD,   RK_EYE,  RK_SKH,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
-      // row 4 — skull jaw, bone plates flanking void
+      // row 4 â€” skull jaw, bone plates flanking void
       [C,       C,       RK_CKS,  RK_CK,   RK_SKS,  RK_SK,   RK_CKS,  RK_SKS,  RK_SK,   RK_CKS,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
-      // row 5 — wide shoulders begin, chest core flickers
+      // row 5 â€” wide shoulders begin, chest core flickers
       [C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  HA_CORE, RK_CKS,  HA_CORE, RK_CKS,  RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
-      // row 6 — broadest shoulder width; energy tendril arms start
+      // row 6 â€” broadest shoulder width; energy tendril arms start
       [RK_CKS,  RK_CK,   RK_CKH,  RK_BLS,  RK_CKH,  RK_CK,   RK_CKH,  RK_CK,   RK_CKH,  RK_BLS,  RK_CKH,  RK_CKH,  RK_CK,   RK_CKS,  C,       C      ],
-      // row 7 — tendrils reach outward, core pulses at center
+      // row 7 â€” tendrils reach outward, core pulses at center
       [RK_BL,   RK_BLS,  RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   HA_CORE, RK_CK,   RK_CKS,  RK_CKH,  RK_CK,   RK_BLS,  RK_BL,   C,       C      ],
-      // row 8 — lower body, cloak narrows
+      // row 8 â€” lower body, cloak narrows
       [C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
-      // row 9 — robe narrows further
+      // row 9 â€” robe narrows further
       [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   C,       C,       C,       C      ],
-      // row 10 — robe hem, wisps emerge
+      // row 10 â€” robe hem, wisps emerge
       [C,       C,       RK_CKS,  RK_CK,   RK_WSP,  RK_CKS,  RK_CKH,  RK_CKS,  RK_WSP,  RK_CK,   RK_CKS,  C,       C,       C,       C,       C      ],
-      // row 11 — wisp tendrils spread wide
+      // row 11 â€” wisp tendrils spread wide
       [C,       RK_WSP,  RK_CKS,  RK_WSP,  RK_CK,   RK_CKS,  RK_WSP,  RK_CKS,  RK_CK,   RK_WSP,  RK_CKS,  RK_WSP,  C,       C,       C,       C      ],
-      // row 12 — wisps scatter across full width
+      // row 12 â€” wisps scatter across full width
       [RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  RK_CKS,  C,       RK_CKS,  RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       C,       C      ],
-      // row 13 — sparse floating wisps
+      // row 13 â€” sparse floating wisps
       [C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       C,       C,       C      ],
-      // row 14 — fading wisp traces
+      // row 14 â€” fading wisp traces
       [RK_WSP,  C,       C,       C,       RK_WSP,  C,       RK_WSP,  C,       C,       RK_WSP,  C,       C,       C,       RK_WSP,  C,       C      ],
-      // row 15 — last ghostly tendrils
+      // row 15 â€” last ghostly tendrils
       [C,       C,       RK_WSP,  C,       C,       C,       C,       RK_WSP,  C,       C,       C,       C,       RK_WSP,  C,       C,       C      ],
     ], 4, 'enemy_hollow_guardian'));
 
     // Telegraph: hunches forward, arms pull inward gathering void energy, eyes blaze, CHG charge outline
     this.registerTexture('enemy_hollow_guardian_telegraph', () => this.createSpriteTexture([
-      // row 0 — hood peak with charge sparks
+      // row 0 â€” hood peak with charge sparks
       [C,       C,       C,       C,       C,       RK_CHG,  HA_CRWN, RK_CKH,  HA_CRWN, RK_CHG,  C,       C,       C,       C,       C,       C      ],
-      // row 1 — charge energy outlines hood
+      // row 1 â€” charge energy outlines hood
       [C,       C,       C,       C,       RK_CHG,  RK_CKS,  RK_CKH,  RK_CK,   RK_CKH,  RK_CKS,  RK_CHG,  C,       C,       C,       C,       C      ],
-      // row 2 — hood interior lit by charge
+      // row 2 â€” hood interior lit by charge
       [C,       C,       C,       RK_CKS,  RK_CK,   RK_CHG,  RK_HD,   RK_HD,   RK_HD,   RK_CHG,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
-      // row 3 — eyes blaze at full intensity
+      // row 3 â€” eyes blaze at full intensity
       [C,       C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYG,  RK_HD,   RK_EYG,  RK_SKH,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
-      // row 4 — jaw
+      // row 4 â€” jaw
       [C,       C,       RK_CKS,  RK_CK,   RK_SKS,  RK_SK,   RK_CKS,  RK_SKS,  RK_SK,   RK_CKS,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
-      // row 5 — shoulders hunch forward, core SUMM energy flares
+      // row 5 â€” shoulders hunch forward, core SUMM energy flares
       [C,       RK_CHG,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  HA_SUMM, RK_CKS,  HA_SUMM, RK_CKS,  RK_CKH,  RK_CK,   RK_CHG,  C,       C,       C      ],
-      // row 6 — arms pull inward, charge energy at shoulder tips
+      // row 6 â€” arms pull inward, charge energy at shoulder tips
       [RK_CHG,  RK_CK,   RK_CKH,  RK_BLS,  RK_CKH,  RK_CK,   RK_CKH,  RK_CK,   RK_CKH,  RK_BLS,  RK_CKH,  RK_CKH,  RK_CK,   RK_CHG,  C,       C      ],
-      // row 7 — tendrils gather to center, void pool forms
+      // row 7 â€” tendrils gather to center, void pool forms
       [C,       RK_BLS,  RK_CKS,  RK_BLS,  RK_CKH,  RK_BLS,  RK_CHG,  HA_SUMM, RK_CHG,  RK_BLS,  RK_CKH,  RK_BLS,  RK_CKS,  C,       C,       C      ],
-      // row 8 — body compressed inward
+      // row 8 â€” body compressed inward
       [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CHG,  RK_CK,   RK_CHG,  RK_CKS,  RK_CKH,  RK_CK,   C,       C,       C,       C      ],
-      // row 9 — body gathered tight
+      // row 9 â€” body gathered tight
       [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   C,       C,       C,       C      ],
-      // row 10 — wisps pulled upward (contracted)
+      // row 10 â€” wisps pulled upward (contracted)
       [C,       C,       C,       RK_CKS,  RK_WSP,  RK_CKS,  RK_CKH,  RK_CKS,  RK_WSP,  RK_CKS,  C,       C,       C,       C,       C,       C      ],
-      // row 11 — tighter wisps
+      // row 11 â€” tighter wisps
       [C,       C,       RK_WSP,  RK_CKS,  RK_CK,   RK_WSP,  RK_CKS,  RK_WSP,  RK_CK,   RK_CKS,  RK_WSP,  C,       C,       C,       C,       C      ],
-      // row 12 — sparse contracted wisps
+      // row 12 â€” sparse contracted wisps
       [C,       RK_WSP,  C,       RK_WSP,  C,       RK_CKS,  C,       RK_CKS,  C,       RK_WSP,  C,       RK_WSP,  C,       C,       C,       C      ],
-      // row 13 — minimal trailing wisps
+      // row 13 â€” minimal trailing wisps
       [C,       C,       RK_WSP,  C,       C,       RK_WSP,  C,       RK_WSP,  C,       C,       RK_WSP,  C,       C,       C,       C,       C      ],
-      // row 14 — last wisps (almost gone)
+      // row 14 â€” last wisps (almost gone)
       [C,       C,       C,       C,       RK_WSP,  C,       C,       C,       RK_WSP,  C,       C,       C,       C,       C,       C,       C      ],
-      // row 15 — void
+      // row 15 â€” void
       [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
     ], 4, 'enemy_hollow_guardian_telegraph'));
 
     // Attack: arms thrust wide, slash arcs erupt, wisps explode outward, SUMM core flares
     this.registerTexture('enemy_hollow_guardian_attack', () => this.createSpriteTexture([
-      // row 0 — hood stable
+      // row 0 â€” hood stable
       [C,       C,       C,       C,       C,       C,       HA_CRWN, RK_CKH,  HA_CRWN, C,       C,       C,       C,       C,       C,       C      ],
       // row 1
       [C,       C,       C,       C,       C,       RK_CKS,  RK_CKH,  RK_CK,   RK_CKH,  RK_CKS,  C,       C,       C,       C,       C,       C      ],
       // row 2
       [C,       C,       C,       C,       RK_CKS,  RK_CK,   RK_HD,   RK_HD,   RK_HD,   RK_CK,   RK_CKS,  C,       C,       C,       C,       C      ],
-      // row 3 — eyes full blaze
+      // row 3 â€” eyes full blaze
       [C,       C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYG,  RK_HD,   RK_EYG,  RK_SKH,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
       // row 4
       [C,       C,       RK_CKS,  RK_CK,   RK_SKS,  RK_SK,   RK_CKS,  RK_SKS,  RK_SK,   RK_CKS,  RK_CK,   RK_CKS,  C,       C,       C,       C      ],
-      // row 5 — core erupts with SUMM energy
+      // row 5 â€” core erupts with SUMM energy
       [C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_SLH,  HA_SUMM, RK_SLH,  HA_SUMM, RK_SLH,  RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
-      // row 6 — arms swing fully outward; slash arc at tips
+      // row 6 â€” arms swing fully outward; slash arc at tips
       [RK_SLH,  RK_BL,   RK_BLS,  RK_CKH,  RK_CK,   RK_CKH,  RK_CK,   RK_CKH,  RK_CK,   RK_CKH,  RK_BLS,  RK_BL,   RK_SLH,  C,       C,       C      ],
-      // row 7 — slash arc extends to full width, SUMM flash at ends
+      // row 7 â€” slash arc extends to full width, SUMM flash at ends
       [HA_SUMM, RK_SLH,  RK_BLS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   HA_SUMM, RK_CK,   RK_CKS,  RK_CKH,  RK_BLS,  RK_SLH,  HA_SUMM, C,       C      ],
-      // row 8 — body center
+      // row 8 â€” body center
       [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   C,       C,       C,       C      ],
       // row 9
       [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKH,  RK_CKS,  RK_CK,   C,       C,       C,       C      ],
-      // row 10 — wisps burst outward
+      // row 10 â€” wisps burst outward
       [C,       RK_WSP,  RK_CKS,  RK_WSP,  RK_CK,   RK_WSP,  RK_CKH,  RK_WSP,  RK_CK,   RK_WSP,  RK_CKS,  RK_WSP,  C,       C,       C,       C      ],
-      // row 11 — wisps exploding wide
+      // row 11 â€” wisps exploding wide
       [RK_WSP,  C,       RK_WSP,  RK_CKS,  RK_WSP,  RK_CKS,  RK_WSP,  RK_CKS,  RK_WSP,  RK_CKS,  RK_WSP,  C,       RK_WSP,  C,       C,       C      ],
-      // row 12 — wisps scatter
+      // row 12 â€” wisps scatter
       [C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  RK_CKS,  RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       C,       C,       C      ],
-      // row 13 — wisps burst further
+      // row 13 â€” wisps burst further
       [RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  C,       C,       RK_WSP,  C,       C      ],
-      // row 14 — last burst traces
+      // row 14 â€” last burst traces
       [C,       C,       C,       RK_WSP,  C,       C,       C,       RK_WSP,  C,       C,       RK_WSP,  C,       C,       C,       C,       C      ],
-      // row 15 — void
+      // row 15 â€” void
       [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
     ], 4, 'enemy_hollow_guardian_attack'));
 
-    // ========== BOSS: Ashen Reaver (corrupted commander in dark armor, ember-red accents) — 16x16 sprites ==========
+    // ========== BOSS: Ashen Reaver (corrupted commander in dark armor, ember-red accents) â€” 16x16 sprites ==========
     const AR_ARM  = 0x2C2C2C;  // dark plate armor
     const AR_ARMH = 0x4A4A4A;  // armor highlight
     const AR_ARMS = 0x1A1A1A;  // armor deep shadow
@@ -2294,9 +2288,9 @@ export class AssetManager {
     registerColorTexture('tall_grass', 0x388E3C, 32, 32, 'noise');
     registerColorTexture('sand', 0xF5DEB3, 32, 32, 'noise');
     registerColorTexture('swamp', 0x556B2F, 32, 32, 'noise');
-    // ── bridge: rickety wooden planks running E–W, bridge travels N–S ──────────
+    // â”€â”€ bridge: rickety wooden planks running Eâ€“W, bridge travels Nâ€“S â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Rail edges (L/R columns), plank rows with dark cracks between them.
-    const BR_RAIL  = 0x7A4F1E; // rail cap — dark aged timber
+    const BR_RAIL  = 0x7A4F1E; // rail cap â€” dark aged timber
     const BR_SIDE  = 0x3E2208; // rail shadow / side face
     const BR_PL    = 0xC49050; // plank highlight (warm sunlit oak)
     const BR_PM    = 0x9B6A35; // plank mid-tone
@@ -2308,7 +2302,7 @@ export class AssetManager {
       [BR_SIDE, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_SIDE],
       // crack
       [BR_SIDE, BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_SIDE],
-      // plank 1 — light lead edge, knot on col 4
+      // plank 1 â€” light lead edge, knot on col 4
       [BR_SIDE, BR_PL,   BR_PM,   BR_PD,   BR_KN,   BR_PM,   BR_PD,   BR_PM,   BR_PL,   BR_PD,   BR_PM,   BR_SIDE],
       // plank 1 low
       [BR_SIDE, BR_PM,   BR_PD,   BR_PM,   BR_PM,   BR_PD,   BR_PM,   BR_PD,   BR_PM,   BR_PM,   BR_PD,   BR_SIDE],
@@ -2320,7 +2314,7 @@ export class AssetManager {
       [BR_SIDE, BR_PM,   BR_PD,   BR_PM,   BR_PM,   BR_PD,   BR_PM,   BR_PL,   BR_PM,   BR_PD,   BR_PM,   BR_SIDE],
       // crack
       [BR_SIDE, BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_GP,   BR_SIDE],
-      // plank 3 — wider gap highlight on right half
+      // plank 3 â€” wider gap highlight on right half
       [BR_SIDE, BR_PL,   BR_PM,   BR_PD,   BR_PM,   BR_PL,   BR_PM,   BR_KN,   BR_PD,   BR_PM,   BR_PL,   BR_SIDE],
       // plank 3 low
       [BR_SIDE, BR_PM,   BR_PD,   BR_PM,   BR_PD,   BR_PM,   BR_PM,   BR_PD,   BR_PM,   BR_PD,   BR_PM,   BR_SIDE],
@@ -2337,38 +2331,38 @@ export class AssetManager {
       [BR_SIDE, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_RAIL, BR_SIDE],
     ], 2);
 
-    // ── bridge_corrupted: same plank structure, rotted + hollow-tainted ─────────
+    // â”€â”€ bridge_corrupted: same plank structure, rotted + hollow-tainted â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Planks are darker, redder, warped; corruption seeps through cracks as voids.
-    const BC_RAIL  = 0x5A2E1A; // corrupted rail — near-black reddish wood
+    const BC_RAIL  = 0x5A2E1A; // corrupted rail â€” near-black reddish wood
     const BC_SIDE  = 0x2A1008; // side shadow
     const BC_PL    = 0x9B5030; // plank highlight (reddish-brown, corrupted)
     const BC_PM    = 0x6B3020; // plank mid
     const BC_PD    = 0x3E1A10; // plank dark
-    const BC_GP    = 0x0C1820; // gap — shows void/dark water (bluish-black)
+    const BC_GP    = 0x0C1820; // gap â€” shows void/dark water (bluish-black)
     const BC_VD    = 0x102030; // void/corruption seep in crack
     const BC_CR    = 0x1A2810; // corruption growths on planks (dark green-black)
     registerSpriteTexture('bridge_corrupted', [
-      // north rail — crumbling
+      // north rail â€” crumbling
       [BC_SIDE, BC_RAIL, BC_CR,   BC_RAIL, BC_RAIL, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_RAIL, BC_CR,   BC_SIDE],
       // wide void crack (more exposed than normal bridge)
       [BC_SIDE, BC_VD,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_SIDE],
-      // plank 1 — warped, corruption blotch col 5
+      // plank 1 â€” warped, corruption blotch col 5
       [BC_SIDE, BC_PL,   BC_PM,   BC_PD,   BC_PM,   BC_CR,   BC_PD,   BC_PM,   BC_PL,   BC_PD,   BC_PM,   BC_SIDE],
-      // plank 1 low — missing chunk col 7 (void)
+      // plank 1 low â€” missing chunk col 7 (void)
       [BC_SIDE, BC_PM,   BC_PD,   BC_PM,   BC_PM,   BC_PD,   BC_PM,   BC_VD,   BC_PM,   BC_PM,   BC_PD,   BC_SIDE],
-      // crack — void seep pools
+      // crack â€” void seep pools
       [BC_SIDE, BC_GP,   BC_VD,   BC_GP,   BC_VD,   BC_GP,   BC_VD,   BC_GP,   BC_VD,   BC_GP,   BC_VD,   BC_SIDE],
-      // plank 2 — heavy rot, corruption col 2
+      // plank 2 â€” heavy rot, corruption col 2
       [BC_SIDE, BC_PL,   BC_CR,   BC_PL,   BC_PD,   BC_PM,   BC_PD,   BC_PM,   BC_PD,   BC_PL,   BC_PM,   BC_SIDE],
-      // plank 2 low — gap in plank col 9 (void)
+      // plank 2 low â€” gap in plank col 9 (void)
       [BC_SIDE, BC_PM,   BC_PD,   BC_PM,   BC_PM,   BC_CR,   BC_PM,   BC_PL,   BC_PM,   BC_VD,   BC_PM,   BC_SIDE],
-      // wide crack — void bleeding through
+      // wide crack â€” void bleeding through
       [BC_SIDE, BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_SIDE],
-      // plank 3 — almost gone, mostly void with thin plank fragments
+      // plank 3 â€” almost gone, mostly void with thin plank fragments
       [BC_SIDE, BC_VD,   BC_PD,   BC_VD,   BC_PM,   BC_CR,   BC_PM,   BC_VD,   BC_PD,   BC_PM,   BC_VD,   BC_SIDE],
       // plank 3 fragments
       [BC_SIDE, BC_VD,   BC_PM,   BC_VD,   BC_PD,   BC_VD,   BC_PM,   BC_VD,   BC_PM,   BC_VD,   BC_PD,   BC_SIDE],
-      // near-full void — almost collapsed
+      // near-full void â€” almost collapsed
       [BC_SIDE, BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_GP,   BC_SIDE],
       // last plank fragments barely holding
       [BC_SIDE, BC_PD,   BC_VD,   BC_PD,   BC_VD,   BC_CR,   BC_VD,   BC_PD,   BC_VD,   BC_PD,   BC_VD,   BC_SIDE],
@@ -2376,7 +2370,7 @@ export class AssetManager {
       [BC_SIDE, BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_VD,   BC_SIDE],
       // void dominant
       [BC_SIDE, BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_GP,   BC_VD,   BC_VD,   BC_SIDE],
-      // north face — corruption rail remnant
+      // north face â€” corruption rail remnant
       [BC_SIDE, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_CR,   BC_RAIL, BC_SIDE],
       [BC_SIDE, BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_CR,   BC_SIDE],
     ], 2);
@@ -2395,9 +2389,9 @@ export class AssetManager {
     const CLIFF_GRASS    = 0x81C784; // vivid grass cap
     const CLIFF_GRASS_D  = 0x558B2F; // dark grass edge below cap
     const CLIFF_SOIL     = 0x5A3D2E; // dark soil band
-    // Overhang lip — bright cream stripe, very readable as cliff edge
+    // Overhang lip â€” bright cream stripe, very readable as cliff edge
     const CLIFF_TOP_RIM  = 0xF0E0A0;
-    // Rock strata — cool grey-stone palette, high contrast across 3 tones
+    // Rock strata â€” cool grey-stone palette, high contrast across 3 tones
     const CL  = 0xC0B4AA; // light strata highlight (warm grey-stone)
     const CM  = 0x7E706A; // mid strata
     const CD  = 0x3E3430; // dark strata seam
@@ -2408,8 +2402,8 @@ export class AssetManager {
     const STAIRS_STONE_S = 0x6A5B53;
     const STAIRS_EDGE    = 0xFFFFFF; // bright tread edge
 
-    // cliff_edge: grass cap → soil → bright cream lip → clearly banded rock face → shadow base.
-    // Each row renders 4px tall (NearestFilter, 4× scale) — solid rows = clearly readable stripes.
+    // cliff_edge: grass cap â†’ soil â†’ bright cream lip â†’ clearly banded rock face â†’ shadow base.
+    // Each row renders 4px tall (NearestFilter, 4Ã— scale) â€” solid rows = clearly readable stripes.
     registerSpriteTexture('cliff_edge', [
       // rows 0-2: grass cap
       [CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS],
@@ -2417,9 +2411,9 @@ export class AssetManager {
       [CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS],
       // row 3: soil
       [CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL],
-      // row 4: bright overhang lip — the most visible marker of the cliff top
+      // row 4: bright overhang lip â€” the most visible marker of the cliff top
       [CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM],
-      // rows 5-13: banded rock face — strict L/M/D cycles for crisp horizontal stripes
+      // rows 5-13: banded rock face â€” strict L/M/D cycles for crisp horizontal stripes
       [CL,CL,CL,CL,CL,CL,CL,CL,CL,CL,CL,CL],
       [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
       [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
@@ -2434,7 +2428,7 @@ export class AssetManager {
       [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
     ]);
 
-    // cliff: pure rock body — 4 full L/M/D strata cycles then shadow base.
+    // cliff: pure rock body â€” 4 full L/M/D strata cycles then shadow base.
     registerSpriteTexture('cliff', [
       [CL,CL,CL,CL,CL,CL,CL,CL,CL,CL,CL,CL],
       [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
@@ -2454,7 +2448,7 @@ export class AssetManager {
       [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
     ]);
 
-    // stairs: carved stone steps — opaque grass cap at top, then treads
+    // stairs: carved stone steps â€” opaque grass cap at top, then treads
     registerSpriteTexture('stairs', [
       [CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS_D,CLIFF_GRASS,CLIFF_GRASS,CLIFF_GRASS],
       [CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL],
@@ -2480,7 +2474,7 @@ export class AssetManager {
     const RG3 = 0xBCAAA4;
     const Z = 0;
     registerSpriteTexture('ladder', [
-      // 8×12 @ 4px/cell — open center, double-thick rails, 5 rungs + feet
+      // 8Ã—12 @ 4px/cell â€” open center, double-thick rails, 5 rungs + feet
       [R, R2, Z, Z, Z, Z, R2, R],
       [R, R2, Z, Z, Z, Z, R2, R],
       [R, R2, RG3, RG, RG, RG3, R2, R],
@@ -2495,7 +2489,7 @@ export class AssetManager {
       [R, R, RG2, RG2, RG2, RG2, R, R],
     ]);
 
-    // Curled ladder — coiled rope bundle with visible rails, sitting on cliff edge
+    // Curled ladder â€” coiled rope bundle with visible rails, sitting on cliff edge
     const CL_RAIL = 0x5D4037;
     const CL_RAIL2 = 0x4E342E;
     const CL_ROPE = 0xBCAAA4;
@@ -2511,7 +2505,7 @@ export class AssetManager {
       [Z,        CL_RAIL,  CL_ROPE2, CL_ROPE3, CL_ROPE3, CL_ROPE2, CL_RAIL,  Z       ],
     ]);
 
-    // Gate with extended ladder — gate bars at top, full ladder rungs hanging below
+    // Gate with extended ladder â€” gate bars at top, full ladder rungs hanging below
     const GL_IRON = 0x455A64;
     const GL_IRON_H = 0x607D8B;
     const GL_RVT = 0x37474F;
@@ -2534,7 +2528,7 @@ export class AssetManager {
       [R,  R,  RG2, RG2, RG2, RG2, R,  R ],
     ]);
 
-    // Gate with curled ladder on top — simplified gate bars (upper rows) + coiled rope (lower rows)
+    // Gate with curled ladder on top â€” simplified gate bars (upper rows) + coiled rope (lower rows)
     registerSpriteTexture('gate_ladder', [
       [Z,        Z,         CL_RAIL,  CL_RAIL2,  CL_RAIL2, CL_RAIL,   Z,        Z        ],
       [Z,        CL_RAIL,   CL_ROPE2, CL_ROPE,   CL_ROPE,  CL_ROPE2,  CL_RAIL,  Z        ],
@@ -2553,7 +2547,7 @@ export class AssetManager {
     registerColorTexture('timber_wall', 0x5C4033, 32, 32, 'gradient');
     registerColorTexture('farmland', 0x6D4C41, 32, 32, 'noise');
     registerColorTexture('dark_grass', 0x2E7D32, 32, 32, 'noise');
-    // Bleached / ash-sick forest floor (Deep Hollow, tile y < 59 ≈ world y ≤ -91)
+    // Bleached / ash-sick forest floor (Deep Hollow, tile y < 59 â‰ˆ world y â‰¤ -91)
     registerColorTexture('hollow_blight', 0xC9B896, 32, 32, 'noise');
     registerColorTexture('mossy_stone', 0x6B7B5A, 32, 32, 'checker');
     registerColorTexture('wooden_path', 0x8D6E63, 32, 32, 'gradient');
@@ -2610,7 +2604,7 @@ export class AssetManager {
       [C,     C,     STATUE_S,STATUE_S,STATUE_S,STATUE_S, C,     C],
     ]);
 
-    // House — chimney + roof ridge trim + door arch read
+    // House â€” chimney + roof ridge trim + door arch read
     const WALL = 0x8D6E63;
     const WALL_H = 0xA1887F;
     const WALL_S = 0x6D4C41;
@@ -2807,7 +2801,7 @@ export class AssetManager {
       return px;
     }));
     registerSpriteTexture('cottage_house_forest', cottageHouseForestSprite);
-    // Ruined forest cottage — roof caved in with visible holes, exposed timber beams,
+    // Ruined forest cottage â€” roof caved in with visible holes, exposed timber beams,
     // crumbled walls. Derived from the forest sprite then punched with transparent gaps
     // and replaced roof sections with dark interior / beam colors.
     const RB = 0x5D4037; // exposed roof beam (dark wood)
@@ -2818,7 +2812,7 @@ export class AssetManager {
     const RV = 0x4CAF50;   // vine green
     const RV_D = 0x2E7D32; // dark vine
     const RM = 0x66BB6A;   // moss
-    const cottageHouseForestRuinedSprite = cottageHouseForestSprite.map(row => [...row]);
+    const cottageHouseForestRuinedSprite: number[][] = cottageHouseForestSprite.map(row => [...row]);
     cottageHouseForestRuinedSprite[0] = [C, C, C, C, CHIM, C, C, C, C, C, C, C, C, C, C, C];
     cottageHouseForestRuinedSprite[1] = [C, C, C, CHIM, RB, C, C, C, C, C, C, C, C, C, C, C];
     cottageHouseForestRuinedSprite[2] = [C, C, C, C, C, RI, RI, GROOF_H, GROOF_H, GROOF, GROOF_S, C, C, C, C, C];
@@ -2829,9 +2823,9 @@ export class AssetManager {
     cottageHouseForestRuinedSprite[7] = [C, RW_D, CWALL_H, RW_C, CWALL, RW_C, CWALL, CWALL_H, CWALL_H, RW_C, CWALL, RW_C, CWALL_H, RW_D, C, C];
     cottageHouseForestRuinedSprite[8] = [RW_D, CWALL_H, RI, RI, RW_C, CWALL, CWALL_H, RV, RV_D, CWALL_H, CWALL, SHUTTER, WINDOW, WINDOW, CWALL_H, C];
     cottageHouseForestRuinedSprite[9] = [RW_D, CWALL, RI, RI, RW_C, CWALL, RV_D, RM, RV, RW_C, CWALL, SHUTTER, RI, WINDOW, RW_D, C];
-    // Row 10: door arch area — completely blocked by rubble and overgrown with moss/vines
+    // Row 10: door arch area â€” completely blocked by rubble and overgrown with moss/vines
     cottageHouseForestRuinedSprite[10] = [RW_D, RW_C, CWALL, RW_C, CWALL, RV_D, RV, RW_C, RW_D, RV, RV_D, CWALL, RW_C, CWALL, RW_C, C];
-    // Row 11: door sealed — rubble pile and thick vine growth where door once was
+    // Row 11: door sealed â€” rubble pile and thick vine growth where door once was
     cottageHouseForestRuinedSprite[11] = [RW_C, CWALL, CWALL_H, CWALL, RV_D, RV, RW_C, RW_D, RW_C, RW_D, RV, RV_D, CWALL, CWALL_H, RW_C, C];
     // Row 12: foundation with rubble and moss spilling out at the base
     cottageHouseForestRuinedSprite[12] = [C, RW_C, RW_C, RW_C, RM, RV_D, RW_D, RW_C, RW_C, RW_D, RV_D, RM, RW_C, RW_C, C, C];
@@ -2882,9 +2876,6 @@ export class AssetManager {
     // Destroyed house variants
     const RUBBLE = 0x795548;
     const RUBBLE_S = 0x5D4037;
-    const CHAR = 0x2E2E2E;
-    const CHAR_S = 0x1A1A1A;
-    const SOOT = 0x4A4A4A;
     const OG_VINE = 0x4CAF50;
     const OG_VINE_D = 0x2E7D32;
     const OG_MOSS = 0x66BB6A;
@@ -3061,16 +3052,16 @@ export class AssetManager {
     ]);
 
     // ===== Riverbank props =====
-    const HULL     = 0x5D4037;   // dark weathered wood — hull planks
+    const HULL     = 0x5D4037;   // dark weathered wood â€” hull planks
     const HULL_H   = 0x795548;   // lighter highlight
     const HULL_S   = 0x4E342E;   // deep shadow grain
     const NAIL     = 0x37474F;   // iron nail heads
     const WATER_V  = 0x1565C0;   // water visible through holes
     const RIB      = 0x6D4C41;   // exposed rib strake
-    const CLOTH    = 0xB71C1C;   // tattered sail scrap — faded red
+    const CLOTH    = 0xB71C1C;   // tattered sail scrap â€” faded red
     const CLOTH_D  = 0x7F0000;
 
-    // boat_wreck — half-sunken rowboat viewed from top-down: broken bow at top, stern angled down
+    // boat_wreck â€” half-sunken rowboat viewed from top-down: broken bow at top, stern angled down
     registerSpriteTexture('boat_wreck', [
       //      0       1       2       3       4       5       6       7       8       9
       [C,      C,      HULL_H, HULL_H, HULL_H, HULL_H, C,      C,      C,      C    ],
@@ -3087,9 +3078,9 @@ export class AssetManager {
     const PLANK_H = 0x90A4AE;   // lighter board face
     const PLANK_S = 0x546E7A;   // shadow between planks
     const PLANK_D = 0x37474F;   // dark gap showing water below
-    const PPOST   = 0x4E342E;   // mooring post — dark wood
+    const PPOST   = 0x4E342E;   // mooring post â€” dark wood
 
-    // dock — top-down weathered wooden planking: posts at corners, plank gaps showing water
+    // dock â€” top-down weathered wooden planking: posts at corners, plank gaps showing water
     registerSpriteTexture('dock', [
       //      0        1        2        3        4        5        6        7
       [PPOST,  PLANK_D, PLANK_H, PLANK,   PLANK,   PLANK_H, PLANK_D, PPOST  ],
@@ -3216,7 +3207,6 @@ export class AssetManager {
 
     const ALCHEMY_B = 0x8D6E63;
     const ALCHEMY_W = 0x4527A0;
-    const ALCHEMY_G = 0x1B5E20;
     const BOTTLE_G = 0x81C784;
     const BOTTLE_R = 0xE57373;
     
@@ -3343,8 +3333,8 @@ export class AssetManager {
       [C,BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,C],
     ]);
 
-    // Fallen ranger: top-down lying figure — helmet at top, chest armour, cape body, blood pooling at edges.
-    // Row order: helmet dome → visor (eye-slits) → wide shoulders → chest → waist/cape → legs → feet/blood.
+    // Fallen ranger: top-down lying figure â€” helmet at top, chest armour, cape body, blood pooling at edges.
+    // Row order: helmet dome â†’ visor (eye-slits) â†’ wide shoulders â†’ chest â†’ waist/cape â†’ legs â†’ feet/blood.
     const RM_BL = 0x2A0707;  // dried blood darkest
     const RM_BR = 0x5C1010;  // blood dark
     const RM_BH = 0x8B1A1A;  // blood mid
@@ -3360,15 +3350,15 @@ export class AssetManager {
     registerSpriteTexture('ranger_remains', [
       [C,     C,     RM_HS, RM_HM, RM_HH, RM_HM, RM_HS, C,     C    ],  // helmet dome top
       [C,     RM_BH, RM_HS, RM_HH, RM_HH, RM_HH, RM_HS, RM_BH, C    ],  // helmet sides + blood
-      [RM_BR, RM_BH, RM_HS, RM_VV, RM_HH, RM_VV, RM_HS, RM_BH, RM_BR],  // visor — two dark eye-slits
-      [RM_BL, RM_BR, RM_AH, RM_AH, RM_AM, RM_AH, RM_AH, RM_BR, RM_BL],  // wide shoulders — steel plate
+      [RM_BR, RM_BH, RM_HS, RM_VV, RM_HH, RM_VV, RM_HS, RM_BH, RM_BR],  // visor â€” two dark eye-slits
+      [RM_BL, RM_BR, RM_AH, RM_AH, RM_AM, RM_AH, RM_AH, RM_BR, RM_BL],  // wide shoulders â€” steel plate
       [RM_BH, RM_CM, RM_AM, RM_AH, RM_AM, RM_AH, RM_AM, RM_CM, RM_BH],  // chest armour + cape edges
-      [C,     RM_CD, RM_CM, RM_CH, RM_AM, RM_CH, RM_CM, RM_CD, C    ],  // waist — cape wrapping torso
+      [C,     RM_CD, RM_CM, RM_CH, RM_AM, RM_CH, RM_CM, RM_CD, C    ],  // waist â€” cape wrapping torso
       [C,     RM_BL, RM_CD, RM_CM, RM_CM, RM_CM, RM_CD, RM_BL, C    ],  // legs / lower cape
       [C,     C,     RM_BL, RM_BR, RM_BH, RM_BR, RM_BL, C,     C    ],  // feet / blood pool
     ]);
 
-    // Fort gate key — gold ring bow + iron shaft with two teeth
+    // Fort gate key â€” gold ring bow + iron shaft with two teeth
     const FK_GH = 0xFFD54F;  // gold highlight
     const FK_G  = 0xD4AF37;  // gold mid
     const FK_GD = 0x8D7420;  // gold dark
@@ -3376,7 +3366,7 @@ export class AssetManager {
     const FK_S  = 0x607D8B;  // iron mid
     const FK_SD = 0x37474F;  // iron dark
     registerSpriteTexture('fort_gate_key', [
-      // Ring / bow (rows 0-4) — hollow oval
+      // Ring / bow (rows 0-4) â€” hollow oval
       [C,     FK_GH, FK_G,  FK_GD, FK_GD, FK_G,  FK_GH, C   ],
       [FK_GH, FK_G,  C,     C,     C,     C,     FK_G,  C   ],
       [FK_G,  FK_GD, C,     C,     C,     C,     FK_GD, FK_G],
@@ -3408,7 +3398,7 @@ export class AssetManager {
       [C,     STEM,  STEM_S, STEM,  STEM,  C],
     ], 4);
 
-    // Moonbloom — layered indigo / violet / crimson bloom (quest key item)
+    // Moonbloom â€” layered indigo / violet / crimson bloom (quest key item)
     const MB_B = 0x303F9F;
     const MB_BH = 0x5C6BC0;
     const MB_P = 0x6A1B9A;
@@ -3471,7 +3461,7 @@ export class AssetManager {
       return baseTexture;
     });
 
-    // Blighted Root Shard — gnarled dark bark fragment with pulsing green corruption veins
+    // Blighted Root Shard â€” gnarled dark bark fragment with pulsing green corruption veins
     const BR_BARK  = 0x3E2723;   // dark bark
     const BR_BARK_H = 0x5D4037;  // bark highlight
     const BR_BARK_D = 0x1B0F0A;  // bark deep shadow
@@ -3490,7 +3480,7 @@ export class AssetManager {
       [C,        C,        C,        BR_BARK_D,BR_THORN, C,        C,        C       ],
     ], 4);
 
-    // Golem Heart — dense stone core with warm amber inner glow, cracked exterior
+    // Golem Heart â€” dense stone core with warm amber inner glow, cracked exterior
     const GH_STONE  = 0x757575;  // stone surface
     const GH_STONE_H = 0x9E9E9E; // stone highlight
     const GH_STONE_D = 0x424242; // stone shadow
@@ -3579,7 +3569,7 @@ export class AssetManager {
       [C,     0x5D4037,0x5D4037,0x5D4037,0x5D4037,0x5D4037,0x5D4037,C],
     ]);
 
-    // Bonfire (unlit) — cold wood pile with faint embers, no flame
+    // Bonfire (unlit) â€” cold wood pile with faint embers, no flame
     registerSpriteTexture('bonfire_unlit', [
       [C,     C,     C,     0x4E342E,C,     C,     C,     C],
       [C,     0x5D4037,0x4E342E,0x3E2723,0x4E342E,0x5D4037,C,     C],
@@ -3589,7 +3579,7 @@ export class AssetManager {
       [C,     0x3E2723,0x4E342E,0x4E342E,0x4E342E,0x4E342E,0x3E2723,C],
     ]);
 
-    // Bonfire — taller violet/white flame (rest checkpoint)
+    // Bonfire â€” taller violet/white flame (rest checkpoint)
     registerSpriteTexture('bonfire', [
       [C,     C,     0xE1BEE7,0xFFFFFF,0xE1BEE7,C,     C,     C],
       [C,     0xBA68C8,0xFFFFFF,0xFFD54F,0xFFFFFF,0xBA68C8,C,     C],
@@ -3608,7 +3598,7 @@ export class AssetManager {
       [C,     C,     0x4A148C,0xCE93D8,0x4A148C,C,     C],
     ]);
 
-    // Tombstone — rounded top, etched cross in center body, narrow base.
+    // Tombstone â€” rounded top, etched cross in center body, narrow base.
     // Cross: vertical = rows 2-4 at cols 3-4; horizontal = row 3 at cols 2-5.
     const TS_H = 0x9E9E9E;   // stone highlight
     const TS_M = 0x757575;   // stone mid
@@ -3617,13 +3607,13 @@ export class AssetManager {
     registerSpriteTexture('tombstone', [
       [C,     C,     TS_H,  TS_H,  TS_H,  TS_H,  C,     C    ],  // rounded top
       [C,     TS_M,  TS_M,  TS_M,  TS_M,  TS_M,  TS_M,  C    ],  // upper body
-      [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // cross — vertical arm (top)
-      [C,     TS_D,  TS_C,  TS_C,  TS_C,  TS_C,  TS_D,  C    ],  // cross — horizontal arm
-      [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // cross — vertical arm (bottom)
+      [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // cross â€” vertical arm (top)
+      [C,     TS_D,  TS_C,  TS_C,  TS_C,  TS_C,  TS_D,  C    ],  // cross â€” horizontal arm
+      [C,     TS_D,  TS_D,  TS_C,  TS_C,  TS_D,  TS_D,  C    ],  // cross â€” vertical arm (bottom)
       [C,     C,     TS_D,  TS_D,  TS_D,  TS_D,  C,     C    ],  // base
     ]);
 
-    // Cracked horizontal — snapped at row 3, top half gone, only base remains.
+    // Cracked horizontal â€” snapped at row 3, top half gone, only base remains.
     // Same palette as the intact tombstone; the upper rows are cleared to transparent.
     const TK = 0x4E4E4E; // dark crack / break edge
     registerSpriteTexture('tombstone_broken', [
@@ -3635,7 +3625,7 @@ export class AssetManager {
       [C,     C,     TS_D,  TS_D,  TS_D,  TS_D,  C,     C    ],  // base
     ]);
 
-    // Cracked vertical — crack runs ~60/40 down the center, fading out at row 4.
+    // Cracked vertical â€” crack runs ~60/40 down the center, fading out at row 4.
     registerSpriteTexture('tombstone_cracked_v', [
       [C,     C,     TS_H,  TS_H,  TK,    TS_H,  C,     C    ],  // crack starts at col 4
       [C,     TS_M,  TS_M,  TS_M,  TK,    TS_M,  TS_M,  C    ],  // crack continues
@@ -3652,7 +3642,7 @@ export class AssetManager {
       [C,       0x5D4037,0x5D4037,0x5D4037,0x5D4037,0x5D4037,C],
     ]);
 
-    // Blighted stump — corrupted wood with dark thorny tendrils and green/purple glow
+    // Blighted stump â€” corrupted wood with dark thorny tendrils and green/purple glow
     const BV = 0x1B5E20; // dark blight vine
     const BG = 0x69F0AE; // bright green glow
     const BP = 0xB388FF; // purple glow highlight
@@ -3707,7 +3697,7 @@ export class AssetManager {
       [GATE_IRON, GATE_RIVET,  GATE_IRON, GATE_RIVET,  GATE_IRON, GATE_RIVET,  GATE_IRON, GATE_RIVET],
     ]);
 
-    // Fog gate — swirling white/grey mist wall
+    // Fog gate â€” swirling white/grey mist wall
     const FOG_W = 0xE0E0E0;
     const FOG_L = 0xBDBDBD;
     const FOG_M = 0x9E9E9E;
@@ -3792,15 +3782,15 @@ export class AssetManager {
       [C,      C,      C,      0x5D4037,0x5D4037,C,      C,      C],
     ]);
 
-    // Windmill — 10×18 sprite: 4 distinct blade arms in "+" orientation,
+    // Windmill â€” 10Ã—18 sprite: 4 distinct blade arms in "+" orientation,
     // conical cap, limestone tower with window + door, stone base.
     //
     // Blade layout (rows 0-9): top blade goes up (rows 0-3), hub + E/W blades
     // fill rows 4-5, bottom blade goes down (rows 6-9).  Transparent gaps
     // between arms make each of the 4 blades read separately.
-    const WM_SL  = 0xFAF2DE;   // sail canvas – light
-    const WM_SM  = 0xDACA9C;   // sail canvas – mid
-    const WM_SD  = 0xB8A878;   // sail canvas – dark edge
+    const WM_SL  = 0xFAF2DE;   // sail canvas â€“ light
+    const WM_SM  = 0xDACA9C;   // sail canvas â€“ mid
+    const WM_SD  = 0xB8A878;   // sail canvas â€“ dark edge
     const WM_FR  = 0x6D4C41;   // blade wooden frame/strut
     const WM_HB  = 0x3E2723;   // hub centre
     const WM_HH  = 0x5D4037;   // hub ring / blade root
@@ -3814,34 +3804,34 @@ export class AssetManager {
     const WM_BSL = 0xAAAAAA;   // stone base bright
     const WM_BSD = 0x787878;   // stone base dark
     registerSpriteTexture('windmill', [
-      // ── top blade (N arm, rows 0-3) ─ cols 3-6 only, rest transparent ────
+      // â”€â”€ top blade (N arm, rows 0-3) â”€ cols 3-6 only, rest transparent â”€â”€â”€â”€
       [C,       C,       C,       WM_SD,   WM_SL,   WM_SL,   WM_SD,   C,       C,       C      ],
       [C,       C,       C,       WM_SM,   WM_SL,   WM_SL,   WM_SM,   C,       C,       C      ],
       [C,       C,       C,       WM_SM,   WM_SL,   WM_SL,   WM_SM,   C,       C,       C      ],
       [C,       C,       C,       WM_FR,   WM_HH,   WM_HH,   WM_FR,   C,       C,       C      ],
-      // ── hub + left (W) blade + right (E) blade (rows 4-5) ────────────────
+      // â”€â”€ hub + left (W) blade + right (E) blade (rows 4-5) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       [WM_SD,   WM_SM,   WM_SM,   WM_FR,   WM_HB,   WM_HB,   WM_FR,   WM_SM,   WM_SM,   WM_SD  ],
       [WM_SD,   WM_SM,   WM_SM,   WM_FR,   WM_HB,   WM_HB,   WM_FR,   WM_SM,   WM_SM,   WM_SD  ],
-      // ── bottom blade (S arm, rows 6-9) ─ cols 3-6 only ───────────────────
+      // â”€â”€ bottom blade (S arm, rows 6-9) â”€ cols 3-6 only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       [C,       C,       C,       WM_FR,   WM_HH,   WM_HH,   WM_FR,   C,       C,       C      ],
       [C,       C,       C,       WM_SM,   WM_SL,   WM_SL,   WM_SM,   C,       C,       C      ],
       [C,       C,       C,       WM_SM,   WM_SL,   WM_SL,   WM_SM,   C,       C,       C      ],
       [C,       C,       C,       WM_SD,   WM_SL,   WM_SL,   WM_SD,   C,       C,       C      ],
-      // ── conical cap (rows 10-12) ──────────────────────────────────────────
+      // â”€â”€ conical cap (rows 10-12) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       [C,       C,       C,       C,       WM_CAH,  WM_CAD,  C,       C,       C,       C      ],
       [C,       C,       C,       WM_CAH,  WM_CAM,  WM_CAD,  WM_CAD,  C,       C,       C      ],
       [C,       C,       WM_CAH,  WM_CAM,  WM_CAM,  WM_CAD,  WM_CAD,  C,       C,       C      ],
-      // ── limestone tower (rows 13-16) ─────────────────────────────────────
+      // â”€â”€ limestone tower (rows 13-16) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       [C,       C,       WM_TWL,  WM_TWL,  WM_TWL,  WM_TWM,  WM_TWD,  C,       C,       C      ],
       [C,       C,       WM_TWL,  WM_WIN,  WM_TWL,  WM_TWM,  WM_TWD,  C,       C,       C      ],
       [C,       WM_TWL,  WM_TWL,  WM_TWM,  WM_TWL,  WM_TWM,  WM_TWD,  WM_TWD,  C,       C      ],
       [C,       WM_TWL,  WM_TWL,  WM_TWM,  WM_WIN,  WM_TWM,  WM_TWD,  WM_TWD,  C,       C      ],
-      // ── stone base (row 17) ───────────────────────────────────────────────
+      // â”€â”€ stone base (row 17) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       [WM_BSL,  WM_BSL,  WM_BSL,  WM_BSL,  WM_BSL,  WM_BSL,  WM_BSD,  WM_BSD,  C,       C      ],
     ]);
 
-    // Observatory — abandoned stone watchtower, 14×26 sprite grid
-    // Pointed shingle roof → crenellations → straight-walled tower sections → trim bands → heavy base
+    // Observatory â€” abandoned stone watchtower, 14Ã—26 sprite grid
+    // Pointed shingle roof â†’ crenellations â†’ straight-walled tower sections â†’ trim bands â†’ heavy base
     const RF_PK = 0xB8860B;  // roof peak finial (dark goldenrod)
     const RF_LT = 0x8B4513;  // roof shingle light (saddle brown)
     const RF_MD = 0x6B3410;  // roof shingle mid
@@ -3902,8 +3892,8 @@ export class AssetManager {
       [BS_TM,  BS_TM,  BS_TM,  BS_LT,  BS_LT,  BS_LT,  BS_MD,  BS_DK,  BS_DK,  BS_DK,  BS_DK,  BS_TM,  BS_TM,  BS_TM ],
     ]);
 
-    // Sword (Matches Player Buster Blade — fully diagonal, tip top-right to pommel bottom-left)
-    // Every element (blade, guard, grip, pommel) follows the same 45° angle.
+    // Sword (Matches Player Buster Blade â€” fully diagonal, tip top-right to pommel bottom-left)
+    // Every element (blade, guard, grip, pommel) follows the same 45Â° angle.
     const SW_B  = 0xC0D0E0;  // blade mid
     const SW_H  = 0xF0F4FF;  // blade highlight (bright edge)
     const SW_E  = 0x90A8C0;  // blade shadow edge
@@ -3923,12 +3913,11 @@ export class AssetManager {
       /* 7 */ [SW_GR, SW_G,  C,     C,     C,     C,     C,     C    ],  // pommel
     ]);
 
-    // Ornamental Broadsword inventory icon — straight blade that widens toward a wide
+    // Ornamental Broadsword inventory icon â€” straight blade that widens toward a wide
     // ornate guard.  Blue-steel tones, gold guard with highlights, ruby gem pommel.
     const BS_B  = 0x8AAEC8;  // blade body (blue-steel)
     const BS_H  = 0xD0E4FF;  // blade highlight (bright edge)
     const BS_E  = 0x5C7D99;  // blade shadow edge
-    const BS_G  = 0xDAA520;  // gold guard
     const BS_GH = 0xFFD700;  // gold guard highlight
     const BS_GR = 0x4E342E;  // dark leather grip
     const BS_GW = 0x7A5D42;  // grip wrap highlight (lighter leather)
@@ -3946,7 +3935,7 @@ export class AssetManager {
       /* 7 */ [C,     BS_GR, BS_GM, BS_GR, C,     C,     C,     C    ],  // pommel with ruby
     ]);
 
-    // Broadsword player sprites — identical chibi silhouette with blue-steel blade tones
+    // Broadsword player sprites â€” identical chibi silhouette with blue-steel blade tones
     const heroBroadswordPalette = {
       ...heroPalette,
       bladeMain:      0x9BB8D0,  // blue-steel blade
@@ -4044,7 +4033,7 @@ export class AssetManager {
       /* 7 */ [C,     C,     C,     C,     C,     C,     SC_G,  SC_SD],
     ]);
 
-    // Scythe player sprites — same chibi silhouette with dark-matter purple tones
+    // Scythe player sprites â€” same chibi silhouette with dark-matter purple tones
     const heroScythePalette = {
       ...heroPalette,
       bladeMain:      0x2A1B3D,
@@ -4142,7 +4131,7 @@ export class AssetManager {
       /* 7 */ [C,     P_G,   P_G,   P_G,   P_G,   P_G,   P_G,   C    ],
     ]);
 
-    // Verdant Tonic — tall narrow flask, teal-blue liquid, leaf cork stopper
+    // Verdant Tonic â€” tall narrow flask, teal-blue liquid, leaf cork stopper
     const VT_G  = 0x90A4AE;  // pale glass
     const VT_GD = 0x78909C;  // glass dark
     const VT_L  = 0x00ACC1;  // teal liquid

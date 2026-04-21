@@ -198,7 +198,6 @@ export class WeatherSystem {
     for (let i = 0; i < this.particleMeshes.length; i++) {
       const mesh = this.particleMeshes[i];
       const nextCount = this.particleBucketCounts[i];
-      const prevCount = this.lastParticleBucketCounts[i];
       if (mesh.count !== nextCount) {
         mesh.count = nextCount;
       }

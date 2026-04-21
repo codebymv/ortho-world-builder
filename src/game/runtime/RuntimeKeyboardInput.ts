@@ -16,10 +16,10 @@ interface RuntimeKeyboardInputOptions {
   setVendorModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   setIsPaused: Dispatch<SetStateAction<boolean>>;
   closeDialogueSession: () => void;
-  notify: (title: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
+  notify: (title: string, options?: { id?: string; type?: 'success' | 'info' | 'error'; description?: string; duration?: number }) => void;
   triggerUIUpdate: () => void;
   syncEquippedWeapon: (preferredWeaponId?: string | null) => void;
-  usePotion: () => void;
+  consumePotion: () => void;
   setTransitionDebugEnabled: Dispatch<SetStateAction<boolean>>;
   setTransitionDebugLines: Dispatch<SetStateAction<string[]>>;
   rebuildTransitionDebug: () => void;
@@ -52,7 +52,7 @@ export function createKeyboardInputController({
   notify,
   triggerUIUpdate,
   syncEquippedWeapon,
-  usePotion,
+  consumePotion,
   setTransitionDebugEnabled,
   setTransitionDebugLines,
   rebuildTransitionDebug,
@@ -62,8 +62,6 @@ export function createKeyboardInputController({
   keys,
   setInteractBuffered,
   setDodgeBuffered,
-  setPlayerAnimState,
-  getPlayerAnimState,
   bonfireMenuOpenRef,
   closeBonfireMenu,
 }: RuntimeKeyboardInputOptions) {
@@ -220,7 +218,7 @@ export function createKeyboardInputController({
     }
     if (e.key.toLowerCase() === 'z' && !state.dialogueActive) {
       e.preventDefault();
-      usePotion();
+      consumePotion();
     }
     if (e.key === 'ArrowLeft') {
       e.preventDefault();

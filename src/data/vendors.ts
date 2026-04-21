@@ -1,4 +1,3 @@
-import type { Item } from '@/lib/game/GameState';
 
 export interface VendorItem {
   itemId: string;       // references items.ts key

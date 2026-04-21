@@ -1,11 +1,10 @@
 import * as THREE from 'three';
 import { SharedGeometry } from '@/lib/game/AssetManager';
-import type { Enemy } from '@/lib/game/Combat';
 import { applyEnemyVisuals, updateDeadEnemyVisual } from '@/game/runtime/EnemyVisualSystem';
 import type { EnemyLoopContext } from '@/game/runtime/RuntimePhaseContexts';
 import { ENEMY_BLUEPRINTS } from '@/data/enemies';
 
-interface RunEnemyLoopOptions extends EnemyLoopContext {
+export interface RunEnemyLoopOptions extends EnemyLoopContext {
   currentTime: number;
   deltaTime: number;
   isBlocking: boolean;
@@ -179,7 +178,7 @@ export function runEnemyLoop({
       enemyShadow.renderOrder = 1;
       scene.add(enemyShadow);
 
-      const enemyOutline = createOutlineMesh(enemyGeometry, enemyTexture);
+      const enemyOutline = createOutlineMesh(enemyGeometry, enemyTexture ?? null);
       enemyOutline.position.z = 0.19;
       scene.add(enemyOutline);
 
@@ -210,7 +209,7 @@ export function runEnemyLoop({
       getOrCreateHPBar: () => registry.getOrCreateHPBar(enemy.id),
       getVisualYAt,
       getActorRenderOrder,
-      getTexture: key => assetManager.getTexture(key),
+      getTexture: key => assetManager.getTexture(key) ?? null,
     });
   }
 

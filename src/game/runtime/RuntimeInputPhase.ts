@@ -20,10 +20,10 @@ interface SetupRuntimeInputPhaseOptions {
   setVendorModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   setIsPaused: Dispatch<SetStateAction<boolean>>;
   closeDialogueSession: () => void;
-  notify: (title: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
+  notify: (title: string, options?: { id?: string; type?: 'success' | 'info' | 'error'; description?: string; duration?: number }) => void;
   triggerUIUpdate: () => void;
   syncEquippedWeapon: (preferredWeaponId?: string | null) => void;
-  usePotion: () => void;
+  consumePotion: () => void;
   setTransitionDebugEnabled: Dispatch<SetStateAction<boolean>>;
   setTransitionDebugLines: Dispatch<SetStateAction<string[]>>;
   rebuildTransitionDebug: () => void;
@@ -59,7 +59,7 @@ export function setupRuntimeInputPhase({
   notify,
   triggerUIUpdate,
   syncEquippedWeapon,
-  usePotion,
+  consumePotion,
   setTransitionDebugEnabled,
   setTransitionDebugLines,
   rebuildTransitionDebug,
@@ -126,7 +126,7 @@ export function setupRuntimeInputPhase({
     notify,
     triggerUIUpdate,
     syncEquippedWeapon,
-    usePotion,
+    consumePotion,
     setTransitionDebugEnabled,
     setTransitionDebugLines,
     rebuildTransitionDebug,

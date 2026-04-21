@@ -3,14 +3,14 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { GameState, NPC } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { World } from '@/lib/game/World';
-import { ENEMY_BLUEPRINTS, DEFAULT_ENEMY } from '@/data/enemies';
+import type { Enemy } from '@/lib/game/Combat';
+import type { RuntimePhaseContexts } from '@/game/runtime/RuntimePhaseContexts';
 import { getPrimaryObjectiveText, MapMarker, isNpcObjectiveTarget } from '@/lib/game/MapMarkers';
 import { SaveManager } from '@/lib/game/SaveManager';
 import { preloadMap, subscribeMapHotReload } from '@/data/maps';
 import type { DialogueNode } from '@/data/dialogues';
 import { hasDialogueId } from '@/data/dialogueIds';
 import { notify } from '@/lib/game/notificationBus';
-import type { WorldMap } from '@/lib/game/World';
 import type { Item } from '@/lib/game/GameState';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
 import { createRuntimeMapFlow } from '@/game/runtime/RuntimeMapFlow';
@@ -24,7 +24,7 @@ import {
   NPC_SCALE_BY_ID,
   syncVillageNpcReactivity,
 } from '@/game/runtime/RuntimeConfig';
-import { getMapDisplayName, resolveSafeTransitionPosition, SPAWN_BODY_R } from '@/game/runtime/RuntimeWorldUtils';
+import { getMapDisplayName, resolveSafeTransitionPosition } from '@/game/runtime/RuntimeWorldUtils';
 import { createCriticalItemVisualManager } from '@/game/runtime/CriticalItemVisualManager';
 import { createTransitionDebugManager } from '@/game/runtime/TransitionDebugManager';
 import { createPortalWarpManager } from '@/game/runtime/PortalWarpManager';
@@ -51,7 +51,6 @@ type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'd
 type CurrentDialogueState = { node: DialogueNode; npcName: string } | null;
 
 const PLAYER_BASE_SCALE = 1.06;
-const PLAYER_FOOT_OFFSET = 0.44;
 const NPC_FOOT_OFFSET = 0.42;
 const HEAL_COOLDOWN_MS = 30000;
 
@@ -159,7 +158,6 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       textureCacheRef,
       musicRef,
       musicStarted,
-      bonfireOverlayTimerRef,
       lastInteractionPromptRef,
       pausedRef,
       playerDeadRef,
@@ -205,7 +203,6 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       setTransitionDebugEnabled,
       setTransitionDebugLines,
       setInteractionPrompt,
-      setBonfireOverlayActive,
       setBonfireMenuOpen,
       setDeathEssenceLost,
       setDeathActive,
@@ -303,7 +300,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       }
 
       const activeQuestText = getPrimaryObjectiveText(state);
-      if (!activeQuestText) return npc.questGiver && npc.id === 'elder' && state.currentMap === 'village';
+      if (!activeQuestText) return !!npc.questGiver && npc.id === 'elder' && state.currentMap === 'village';
 
       const npcName = npc.name.toLowerCase();
       if (npcName.includes('elder') && activeQuestText.includes('elder')) return true;
@@ -342,7 +339,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       initialLastAutoSaveTime: initialNow,
       initialLastTime: initialNow,
     });
-    const getPlayerVisualY = (x: number, y: number) =>
+    const getPlayerVisualY = (_x: number, y: number) =>
       y + runtimeSession.visual.playerSmoothedElevation * World.ELEVATION_Y_OFFSET;
     const cameraTarget = { x: state.player.position.x, y: getVisualYAt(state.player.position.x, state.player.position.y) };
 
@@ -445,7 +442,6 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     let disposed = false;
     let rafId = 0;
     const effectTimeouts: ReturnType<typeof setTimeout>[] = [];
-    let cancelEnemyPrewarm: (() => void) | undefined;
 
     // Save helper
     const triggerSave = () => {
@@ -455,7 +451,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     // Kill tracker for quests — synced to ref so ProgressionService can snapshot baselines
     let killCount = killCountRef.current;
 
-    const getPlayerTextureName = (dir: Direction8, animState: string, frame: number): string => {
+    const getPlayerTextureName = (dir: string, animState: string, frame: number): string => {
       const weaponPrefix = state.equippedWeaponId === 'ornamental_broadsword' ? 'broadsword_'
         : state.equippedWeaponId === 'terminus_scythe' ? 'scythe_'
         : '';
@@ -518,7 +514,6 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
         playerMaterial,
         playerMesh,
         playerOutline,
-        bladeOverlayMaterial,
         bladeOverlayMesh,
         heldItemMaterial: potionMaterial,
         heldItemMesh,
@@ -683,7 +678,6 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       stopStormLoop,
       playThunder,
       playHeroEvent,
-      playGateShortcut,
       startPortalChargeLoop,
       stopPortalChargeLoop,
       playPortalWarp,
@@ -692,7 +686,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       stopDialogueLoop,
       playMenuOpen,
       playMenuClose,
-      usePotion,
+      consumePotion,
       checkInteraction,
       performDodge,
       performAttack,
@@ -777,7 +771,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
         fatalRuntime.report(error, 'action phase setup');
         fatalSetupError = true;
         return {
-          enemyAudio: null as any,
+          enemyAudio: null as unknown as ReturnType<typeof import('@/game/domain/AudioDirector').createEnemyAudioDirector>,
           playFootstep: () => {},
           playGameOverSound: () => {},
           playPotionDrink: () => {},
@@ -789,7 +783,6 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           stopStormLoop: () => {},
           playThunder: () => {},
           playHeroEvent: () => {},
-          playGateShortcut: () => {},
           startPortalChargeLoop: () => {},
           stopPortalChargeLoop: () => {},
           playPortalWarp: () => {},
@@ -798,7 +791,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           stopDialogueLoop: () => {},
           playMenuOpen: () => {},
           playMenuClose: () => {},
-          usePotion: () => {},
+          consumePotion: () => {},
           checkInteraction: () => {},
           performDodge: () => {},
           performAttack: () => {},
@@ -858,7 +851,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           },
           runtimeSession,
           playBlock,
-          usePotion,
+          consumePotion,
           performAttack,
           performChargeAttack,
           chargeTimeMin: CHARGE_TIME_MIN,
@@ -883,7 +876,6 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     const NPC_SCREEN_MIN_PX = 3;
     const phaseAdapters = createRuntimePhaseAdapters({
       state,
-      world,
       particleSystem,
       tempVector: _tmpVec3,
       criticalItemInteractionIds: CRITICAL_ITEM_INTERACTION_IDS,
@@ -923,11 +915,11 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           npcObjectiveHalos,
           npcObjectiveRings,
           checkInteraction,
-          usePotion,
+          consumePotion,
           keys,
           visitedTiles: visitedTilesRef.current,
           getDirection8: getDirection8FromVector,
-          dir8to4: direction8ToCardinal,
+          dir8to4: direction8ToCardinal as unknown as (direction: string) => string,
           performDodge,
           playFootstep,
           emitDust: phaseAdapters.emitDust,
@@ -944,7 +936,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           chargeTimeMin: CHARGE_TIME_MIN,
           chargeTimeMax: CHARGE_TIME_MAX,
           lungeState: runtimeSession.lunge,
-          onLungeHit: (enemy: any, damage: number) => {
+          onLungeHit: (enemy: Enemy, damage: number) => {
             const result = combatSystem.playerAttack(
               enemy,
               damage,
@@ -1038,7 +1030,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       } catch (error) {
         fatalRuntime.report(error, 'phase context setup');
         fatalSetupError = true;
-        return null as any;
+        return null as unknown as RuntimePhaseContexts;
       }
     })();
     const animate = () => {
@@ -1123,7 +1115,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
 
     animate();
 
-    cancelEnemyPrewarm = assetManager.startBackgroundEnemyPrewarm(() => disposed);
+    const cancelEnemyPrewarm = assetManager.startBackgroundEnemyPrewarm(() => disposed);
 
     queueRuntimeStartupNotifications({
       savedData,

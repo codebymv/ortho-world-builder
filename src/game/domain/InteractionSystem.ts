@@ -118,7 +118,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       const count = context.state.inventory.filter(i => i.id === 'moonbloom').length;
       const clamped = Math.min(count, 3);
       merchantQuest.objectives[0] = `Find Moonbloom flowers (${clamped}/3)`;
-      if (count >= 3) merchantQuest.objectives[0] = 'Find Moonbloom flowers (3/3) ✓';
+      if (count >= 3) merchantQuest.objectives[0] = 'Find Moonbloom flowers (3/3) âœ“';
     }
 
     context.notify('Picked Moonbloom', {
@@ -251,7 +251,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     const lastUse = context.getInteractionCooldown(interactionId);
     if (now - lastUse < context.healCooldownMs) {
       const remaining = Math.ceil((context.healCooldownMs - (now - lastUse)) / 1000);
-      context.notify(`Not ready yet… (${remaining}s)`, { id: 'heal-cooldown', duration: 1500 });
+      context.notify(`Not ready yetâ€¦ (${remaining}s)`, { id: 'heal-cooldown', duration: 1500 });
       return true;
     }
 
@@ -298,7 +298,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.notify('Shortcut unlocked', {
       id: 'forest-shortcut-unlocked',
       type: 'success',
-      description: 'The barred gate below groans open — a path back to the Ranger Outpost is now clear.',
+      description: 'The barred gate below groans open â€” a path back to the Ranger Outpost is now clear.',
       duration: 3200,
     });
     context.triggerSave();
@@ -323,7 +323,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.notify('Shortcut unlocked', {
       id: 'grove-shelf-shortcut-unlocked',
       type: 'success',
-      description: 'The iron gate at the trail head groans open — the path back through the Whispering Woods is clear.',
+      description: 'The iron gate at the trail head groans open â€” the path back through the Whispering Woods is clear.',
       duration: 3200,
     });
     context.triggerSave();
@@ -356,7 +356,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
-  const tryHandleHollowApproachLadder = (interactionId: string, ladderX: number, ladderY: number): boolean => {
+  const tryHandleHollowApproachLadder = (interactionId: string, ladderX: number, _ladderY: number): boolean => {
     if (interactionId !== 'hollow_approach_ladder') return false;
     if (context.state.currentMap !== 'forest') return true;
 
@@ -380,7 +380,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.notify('Ladder extended', {
       id: 'hollow-approach-ladder-extended',
       type: 'success',
-      description: 'You kick the coiled ladder over the edge. It unrolls down the cliff face — a shortcut back.',
+      description: 'You kick the coiled ladder over the edge. It unrolls down the cliff face â€” a shortcut back.',
       duration: 3200,
     });
     context.triggerSave();
@@ -388,7 +388,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
-  const tryHandleCliffCorridorLadder = (interactionId: string, ladderX: number, ladderY: number): boolean => {
+  const tryHandleCliffCorridorLadder = (interactionId: string, _ladderX: number, ladderY: number): boolean => {
     if (interactionId !== 'cliff_corridor_ladder') return false;
     if (context.state.currentMap !== 'forest') return true;
 
@@ -410,7 +410,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.notify('Ladder extended', {
       id: 'cliff-corridor-ladder-extended',
       type: 'success',
-      description: 'You kick the coiled ladder over the edge. It unrolls down the cliff face — a shortcut to the terrace below.',
+      description: 'You kick the coiled ladder over the edge. It unrolls down the cliff face â€” a shortcut to the terrace below.',
       duration: 3200,
     });
     context.triggerSave();

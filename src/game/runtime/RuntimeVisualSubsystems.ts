@@ -44,7 +44,7 @@ export function createRuntimeVisualSubsystems({
   const playerVisuals = createRuntimePlayerVisuals({
     scene,
     playerGeometry,
-    playerTexture,
+    playerTexture: playerTexture ?? null,
     heldItemTexture: assetManager.getTexture('tempest_grass_item') ?? assetManager.getTexture('potion') ?? null,
     playerBaseScale,
     initialPosition: state.player.position,

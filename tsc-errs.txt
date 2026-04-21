@@ -1,0 +1,126 @@
+﻿src/components/Game.tsx(443,30): error TS2339: Property 'setTimeout' does not exist on type 'never'.
+src/data/mapGenerator.ts(1511,7): error TS2322: Type 'Set<"water" | "water_corrupted" | "bridge" | "bridge_corrupted" | "bridge_decay_blend">' is not assignable to type 'Set<TileType>'.
+  Type '"water" | "water_corrupted" | "bridge" | "bridge_corrupted" | "bridge_decay_blend"' is not assignable to type 'TileType'.
+    Type '"bridge_decay_blend"' is not assignable to type 'TileType'.
+src/data/maps.ts(1597,5): error TS2741: Property 'interactionId' is missing in type '{ x: number; y: number; type: "windmill"; walkable: false; }' but required in type '{ x: number; y: number; type: TileType; walkable: boolean; interactionId: string; }'.
+src/data/maps.ts(1598,5): error TS2741: Property 'interactionId' is missing in type '{ x: number; y: number; type: "barrel"; walkable: false; }' but required in type '{ x: number; y: number; type: TileType; walkable: boolean; interactionId: string; }'.
+src/data/maps.ts(1599,5): error TS2741: Property 'interactionId' is missing in type '{ x: number; y: number; type: "crate"; walkable: false; }' but required in type '{ x: number; y: number; type: TileType; walkable: boolean; interactionId: string; }'.
+src/data/maps.ts(1600,5): error TS2741: Property 'interactionId' is missing in type '{ x: number; y: number; type: "stump"; walkable: false; }' but required in type '{ x: number; y: number; type: TileType; walkable: boolean; interactionId: string; }'.
+src/data/maps.ts(1601,5): error TS2741: Property 'interactionId' is missing in type '{ x: number; y: number; type: "hay_bale"; walkable: false; }' but required in type '{ x: number; y: number; type: TileType; walkable: boolean; interactionId: string; }'.
+src/data/maps.ts(1602,5): error TS2741: Property 'interactionId' is missing in type '{ x: number; y: number; type: "hay_bale"; walkable: false; }' but required in type '{ x: number; y: number; type: TileType; walkable: boolean; interactionId: string; }'.
+src/data/maps.ts(1603,5): error TS2741: Property 'interactionId' is missing in type '{ x: number; y: number; type: "barrel"; walkable: false; }' but required in type '{ x: number; y: number; type: TileType; walkable: boolean; interactionId: string; }'.
+src/game/domain/ProgressionService.ts(289,43): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/game/runtime/RuntimeActionPhase.ts(390,5): error TS2322: Type '{ tryInteractWithNearbyNpc: (interactionRange?: number) => boolean; tryReclaimDroppedEssence: (checkX: number, checkY: number) => boolean; tryHandleBonfireRest: (interactionId: string, px: number, py: number, mapWidth: number, mapHeight: number) => boolean; ... 16 more ...; tryPickupWorldItems: (px: number, py: numb...' is not assignable to type 'InteractionSystemLike'.
+  Types of property 'tryHandleBuildingTransition' are incompatible.
+    Types of parameters 'getTransitionAt' and 'getTransitionAt' are incompatible.
+      Type 'unknown' is not assignable to type '{ targetMap: string; targetX: number; targetY: number; } | null'.
+src/game/runtime/RuntimeCombatActions.ts(291,26): error TS2345: Argument of type 'BreakableWorldLike' is not assignable to parameter of type 'BreakableWorld'.
+  The types returned by 'getCurrentMap()' are incompatible between these types.
+    Type '{ width: number; height: number; tiles: any[][]; }' is missing the following properties from type 'WorldMap': name, spawnPoint
+src/game/runtime/RuntimeCombatActions.ts(519,26): error TS2345: Argument of type 'BreakableWorldLike' is not assignable to parameter of type 'BreakableWorld'.
+  The types returned by 'getCurrentMap()' are incompatible between these types.
+    Type '{ width: number; height: number; tiles: any[][]; }' is missing the following properties from type 'WorldMap': name, spawnPoint
+src/game/runtime/RuntimeCombatActions.ts(569,24): error TS2345: Argument of type 'BreakableWorldLike' is not assignable to parameter of type 'BreakableWorld'.
+  The types returned by 'getCurrentMap()' are incompatible between these types.
+    Type '{ width: number; height: number; tiles: any[][]; }' is missing the following properties from type 'WorldMap': name, spawnPoint
+src/game/runtime/RuntimeDialogueFlow.ts(119,53): error TS2345: Argument of type '{ state: GameState; startDialogue: (dialogueId: string, npcName?: string | undefined) => void; items: Record<string, Item>; playItemGrab: () => void; playGrassPull: () => void; ... 27 more ...; getAliveEnemyCountNearPlayer: ((radius: number) => number) | undefined; }' is not assignable to parameter of type 'InteractionSystemContext'.
+  Property 'syncGilrhymBossState' is missing in type '{ state: GameState; startDialogue: (dialogueId: string, npcName?: string | undefined) => void; items: Record<string, Item>; playItemGrab: () => void; playGrassPull: () => void; ... 27 more ...; getAliveEnemyCountNearPlayer: ((radius: number) => number) | undefined; }' but required in type 'InteractionSystemContext'.
+src/game/runtime/RuntimeEnemyLoop.ts(181,61): error TS2345: Argument of type 'Texture | undefined' is not assignable to parameter of type 'Texture | null'.
+  Type 'undefined' is not assignable to type 'Texture | null'.
+src/game/runtime/RuntimeEnemyLoop.ts(212,26): error TS2322: Type 'Texture | undefined' is not assignable to type 'Texture | null'.
+  Type 'undefined' is not assignable to type 'Texture | null'.
+src/game/runtime/RuntimeNpcVisuals.ts(75,55): error TS2345: Argument of type 'Texture | undefined' is not assignable to parameter of type 'Texture | null'.
+  Type 'undefined' is not assignable to type 'Texture | null'.
+src/game/runtime/RuntimePhaseBuilders.ts(70,5): error TS2322: Type '(direction: Direction8) => "right" | "left" | "up" | "down"' is not assignable to type '(direction: string) => string'.
+  Types of parameters 'direction' and 'direction' are incompatible.
+    Type 'string' is not assignable to type 'Direction8'.
+src/game/runtime/RuntimeVisualSubsystems.ts(47,5): error TS2322: Type 'Texture | undefined' is not assignable to type 'Texture | null'.
+  Type 'undefined' is not assignable to type 'Texture | null'.
+src/game/runtime/setupGameRuntime.ts(601,7): error TS2322: Type '(title: string, opts?: { id?: string | undefined; type?: NotifType | undefined; description?: string | undefined; duration?: number | undefined; } | undefined) => void' is not assignable to type '(message: string, options?: { id?: string | undefined; type?: string | undefined; description?: string | undefined; duration?: number | undefined; } | undefined) => void'.
+  Types of parameters 'opts' and 'options' are incompatible.
+    Type '{ id?: string | undefined; type?: string | undefined; description?: string | undefined; duration?: number | undefined; } | undefined' is not assignable to type '{ id?: string | undefined; type?: NotifType | undefined; description?: string | undefined; duration?: number | undefined; } | undefined'.
+      Type '{ id?: string | undefined; type?: string | undefined; description?: string | undefined; duration?: number | undefined; }' is not assignable to type '{ id?: string | undefined; type?: NotifType | undefined; description?: string | undefined; duration?: number | undefined; }'.
+        Types of property 'type' are incompatible.
+          Type 'string | undefined' is not assignable to type 'NotifType | undefined'.
+            Type 'string' is not assignable to type 'NotifType | undefined'.
+src/game/runtime/setupGameRuntime.ts(633,7): error TS2322: Type 'AssetManager' is not assignable to type '{ warmupEnemyTexturesForZones: (enemyZones: unknown) => void; }'.
+  Types of property 'warmupEnemyTexturesForZones' are incompatible.
+    Type '(zones: { enemyType: string; }[] | undefined) => void' is not assignable to type '(enemyZones: unknown) => void'.
+      Types of parameters 'zones' and 'enemyZones' are incompatible.
+        Type 'unknown' is not assignable to type '{ enemyType: string; }[] | undefined'.
+src/game/runtime/setupGameRuntime.ts(714,11): error TS2322: Type '() => DialogueProgression | null' is not assignable to type '() => { selectDialogueStartNode: (state: GameState, dialogueId: string) => DialogueNode | null | undefined; }'.
+  Type 'DialogueProgression | null' is not assignable to type '{ selectDialogueStartNode: (state: GameState, dialogueId: string) => DialogueNode | null | undefined; }'.
+    Type 'null' is not assignable to type '{ selectDialogueStartNode: (state: GameState, dialogueId: string) => DialogueNode | null | undefined; }'.
+src/game/runtime/setupGameRuntime.ts(718,11): error TS2322: Type '(title: string, opts?: { id?: string | undefined; type?: NotifType | undefined; description?: string | undefined; duration?: number | undefined; } | undefined) => void' is not assignable to type '(title: string, options?: { id?: string | undefined; type?: string | undefined; description?: string | undefined; duration?: number | undefined; } | undefined) => void'.
+  Types of parameters 'opts' and 'options' are incompatible.
+    Type '{ id?: string | undefined; type?: string | undefined; description?: string | undefined; duration?: number | undefined; } | undefined' is not assignable to type '{ id?: string | undefined; type?: NotifType | undefined; description?: string | undefined; duration?: number | undefined; } | undefined'.
+      Type '{ id?: string | undefined; type?: string | undefined; description?: string | undefined; duration?: number | undefined; }' is not assignable to type '{ id?: string | undefined; type?: NotifType | undefined; description?: string | undefined; duration?: number | undefined; }'.
+        Types of property 'type' are incompatible.
+          Type 'string | undefined' is not assignable to type 'NotifType | undefined'.
+            Type 'string' is not assignable to type 'NotifType | undefined'.
+src/game/runtime/setupGameRuntime.ts(835,11): error TS2322: Type '(title: string, opts?: { id?: string | undefined; type?: NotifType | undefined; description?: string | undefined; duration?: number | undefined; } | undefined) => void' is not assignable to type '(title: string, options?: { id?: string | undefined; type?: string | undefined; description?: string | undefined; duration?: number | undefined; } | undefined) => void'.
+  Types of parameters 'opts' and 'options' are incompatible.
+    Type '{ id?: string | undefined; type?: string | undefined; description?: string | undefined; duration?: number | undefined; } | undefined' is not assignable to type '{ id?: string | undefined; type?: NotifType | undefined; description?: string | undefined; duration?: number | undefined; } | undefined'.
+      Type '{ id?: string | undefined; type?: string | undefined; description?: string | undefined; duration?: number | undefined; }' is not assignable to type '{ id?: string | undefined; type?: NotifType | undefined; description?: string | undefined; duration?: number | undefined; }'.
+        Types of property 'type' are incompatible.
+          Type 'string | undefined' is not assignable to type 'NotifType | undefined'.
+            Type 'string' is not assignable to type 'NotifType | undefined'.
+src/game/runtime/setupGameRuntime.ts(906,11): error TS2322: Type '(npc: NPC) => boolean | undefined' is not assignable to type '(npc: NPC) => boolean'.
+  Type 'boolean | undefined' is not assignable to type 'boolean'.
+    Type 'undefined' is not assignable to type 'boolean'.
+src/game/runtime/setupGameRuntime.ts(971,11): error TS2322: Type '(dir: Direction8, animState: string, frame: number) => string' is not assignable to type '(direction: string, state: string, frame: number) => string'.
+  Types of parameters 'dir' and 'direction' are incompatible.
+    Type 'string' is not assignable to type 'Direction8'.
+src/lib/game/AssetManager.ts(2819,72): error TS2322: Type '7951688' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2821,105): error TS2322: Type '7951688' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2823,45): error TS2322: Type '9405822' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2823,60): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2823,73): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2823,104): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2823,117): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2823,132): error TS2322: Type '9405822' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2824,42): error TS2322: Type '9405822' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2824,65): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2824,87): error TS2322: Type '5025616' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2825,42): error TS2322: Type '9405822' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2825,63): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2825,82): error TS2322: Type '6732650' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2825,86): error TS2322: Type '5025616' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2825,90): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2825,124): error TS2322: Type '9405822' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2827,43): error TS2322: Type '9405822' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2827,49): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2827,62): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2827,81): error TS2322: Type '5025616' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2827,85): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2827,91): error TS2322: Type '9405822' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2827,97): error TS2322: Type '5025616' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2827,114): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2827,127): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2829,43): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2829,78): error TS2322: Type '5025616' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2829,82): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2829,88): error TS2322: Type '9405822' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2829,94): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2829,100): error TS2322: Type '9405822' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2829,106): error TS2322: Type '5025616' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2829,132): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2831,46): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2831,52): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2831,58): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2831,64): error TS2322: Type '6732650' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2831,74): error TS2322: Type '9405822' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2831,80): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2831,86): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2831,92): error TS2322: Type '9405822' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2831,104): error TS2322: Type '6732650' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2831,108): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/AssetManager.ts(2831,114): error TS2322: Type '7035984' is not assignable to type '0 | 6111287 | 4073251 | 7162945 | 5125166 | 13166281 | 3046706 | 1793568 | 14142664 | 15723497 | 4431943 | 12364452 | 1713022'.
+src/lib/game/World.ts(126,7): error TS2322: Type 'Set<"water" | "water_corrupted" | "bridge" | "bridge_corrupted" | "bridge_decay_blend">' is not assignable to type 'ReadonlySet<TileType>'.
+  Types of property 'forEach' are incompatible.
+    Type '(callbackfn: (value: "water" | "water_corrupted" | "bridge" | "bridge_corrupted" | "bridge_decay_blend", value2: "water" | "water_corrupted" | "bridge" | "bridge_corrupted" | "bridge_decay_blend", set: Set<...>) => void, thisArg?: any) => void' is not assignable to type '(callbackfn: (value: TileType, value2: TileType, set: ReadonlySet<TileType>) => void, thisArg?: any) => void'.
+      Types of parameters 'callbackfn' and 'callbackfn' are incompatible.
+        Types of parameters 'value' and 'value' are incompatible.
+          Type '"water" | "water_corrupted" | "bridge" | "bridge_corrupted" | "bridge_decay_blend"' is not assignable to type 'TileType'.
+            Type '"bridge_decay_blend"' is not assignable to type 'TileType'.

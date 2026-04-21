@@ -20,7 +20,7 @@ interface RuntimeMapFlowOptions {
   state: GameState;
   world: World;
   loadMap: (targetMap: string) => Promise<WorldMap | undefined>;
-  notify: (message: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
+  notify: (message: string, options?: { id?: string; type?: 'success' | 'info' | 'error'; description?: string; duration?: number }) => void;
   showTransitionOverlay: (mapName: string, mapSubtitle?: string) => void;
   setBiomeForMap: (mapId: string) => void;
   switchMusicTrack: (mapId: string) => void;
@@ -32,7 +32,7 @@ interface RuntimeMapFlowOptions {
   setPortalCooldown: (seconds: number) => void;
   setActiveForCurrentMap: () => void;
   playPortalWarp: () => void;
-  assetManager: { warmupEnemyTexturesForZones: (enemyZones: unknown) => void };
+  assetManager: { warmupEnemyTexturesForZones: (enemyZones: { enemyType: string }[] | undefined) => void };
   combatSystem: CombatSystem;
   enemyVisuals: EnemyVisualRegistryLike;
   applyMapEntryProgression: (targetMap: string) => void;
@@ -347,9 +347,9 @@ export function createRuntimeMapFlow({
       for (let x = 0; x < map.width; x++) {
         const tile = map.tiles[y][x];
         if (tile.interactionId !== 'blighted_root') continue;
-        const wantType = destroyed ? 'stump' : 'blighted_stump';
+        const wantType: TileType = destroyed ? 'stump' : 'blighted_stump';
         if (tile.type !== wantType) {
-          map.tiles[y][x] = { ...tile, type: wantType as any };
+          map.tiles[y][x] = { ...tile, type: wantType };
           world.refreshMapTileRegion(x - 1, y - 1, x + 1, y + 1);
         }
       }
@@ -542,7 +542,7 @@ export function createRuntimeMapFlow({
           continue;
         }
 
-        // 3-wide passage on the north wall — always open, cobblestone so it's visually distinct.
+        // 3-wide passage on the north wall - always open, cobblestone so it's visually distinct.
         if (ty === FORT_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
           row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
           continue;
@@ -604,7 +604,7 @@ export function createRuntimeMapFlow({
       }
     }
 
-    // Exterior north exit frame (row north of fort) — cobblestone runway so exit is obvious
+    // Exterior north exit frame (row north of fort) - cobblestone runway so exit is obvious
     const northFrameY = FORT_Y - 1;
     if (northFrameY >= 0 && northFrameY < map.tiles.length) {
       const nRow = map.tiles[northFrameY];
@@ -748,11 +748,11 @@ export function createRuntimeMapFlow({
     const defeated = state.getFlag('hollow_guardian_defeated');
     const GATE_Y = 18;
     const GATE_CX = 122;
-    // Portal tile lives in the hollow camp, just south of the old chest (world y≈-127).
+    // Portal tile lives in the hollow camp, just south of the old chest (world y--127).
     const CAMP_PORTAL_X = 122;
     const CAMP_PORTAL_Y = 23;
 
-    // Gate tiles — open to bleached hollow ground when defeated, fog_gate when not.
+    // Gate tiles - open to bleached hollow ground when defeated, fog_gate when not.
     for (let dx = -2; dx <= 2; dx++) {
       const tx = GATE_CX + dx;
       const row = map.tiles[GATE_Y];
@@ -771,7 +771,7 @@ export function createRuntimeMapFlow({
       }
     }
 
-    // Victory portal — placed in the hollow camp after boss defeat.
+    // Victory portal - placed in the hollow camp after boss defeat.
     const campRow = map.tiles[CAMP_PORTAL_Y];
     if (campRow) {
       const el = campRow[CAMP_PORTAL_X]?.elevation ?? 0;
@@ -953,22 +953,22 @@ export function createRuntimeMapFlow({
         });
       };
 
-      // Fixed faction skirmish on the river road — shifted west to avoid accidental triggering.
-      // Undead side — 3 regular skeletons + 1 captain
+      // Fixed faction skirmish on the river road - shifted west to avoid accidental triggering.
+      // Undead side - 3 regular skeletons + 1 captain
       spawnBattleEnemy('skeleton', { x: 50.5, y: -0.6 }, 'undead');
       spawnBattleEnemy('skeleton', { x: 51.8, y: 0.4 }, 'undead');
       spawnBattleEnemy('skeleton', { x: 49.5, y: 0.8 }, 'undead');
       spawnBattleEnemy('skeleton_captain', { x: 51.0, y: 0.0 }, 'undead');
-      // Beast side — 2 armored wolves
+      // Beast side - 2 armored wolves
       spawnBattleEnemy('armored_wolf', { x: 57.2, y: -0.3 }, 'beast');
       spawnBattleEnemy('armored_wolf', { x: 58.1, y: 0.7 }, 'beast');
 
-      // Observatory compound faction skirmish — SE of North Fort, offset from sentinels/golem.
-      // Undead side — 2 skeletons + 1 captain
+      // Observatory compound faction skirmish - SE of North Fort, offset from sentinels/golem.
+      // Undead side - 2 skeletons + 1 captain
       spawnBattleEnemy('skeleton', { x: 76.5, y: -57.4 }, 'undead');
       spawnBattleEnemy('skeleton', { x: 77.8, y: -56.6 }, 'undead');
       spawnBattleEnemy('skeleton_captain', { x: 77.0, y: -57.0 }, 'undead');
-      // Beast side — 2 armored wolves
+      // Beast side - 2 armored wolves
       spawnBattleEnemy('armored_wolf', { x: 80.2, y: -57.3 }, 'beast');
       spawnBattleEnemy('armored_wolf', { x: 81.0, y: -56.5 }, 'beast');
     }

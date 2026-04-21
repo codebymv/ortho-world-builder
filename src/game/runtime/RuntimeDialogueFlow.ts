@@ -43,6 +43,7 @@ interface CreateRuntimeDialogueFlowOptions {
   syncCliffCorridorLadderState: () => void;
   syncForestFortGateState: () => void;
   syncNorthFortGateState: () => void;
+  syncGilrhymBossState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
   hasDialogue: (interactionId: string) => boolean;
   onWorldItemPickup?: (itemId: string) => void;
@@ -81,6 +82,7 @@ export function createRuntimeDialogueFlow({
   syncCliffCorridorLadderState,
   syncForestFortGateState,
   syncNorthFortGateState,
+  syncGilrhymBossState,
   showHeroOverlay,
   hasDialogue,
   onWorldItemPickup,
@@ -150,6 +152,7 @@ export function createRuntimeDialogueFlow({
     syncCliffCorridorLadderState,
     syncForestFortGateState,
     syncNorthFortGateState,
+    syncGilrhymBossState,
     showHeroOverlay,
     hasDialogue,
     onWorldItemPickup,

@@ -106,13 +106,6 @@ export interface CollisionDebugSnapshot {
   scanRadius: number;
 }
 
-interface ChunkMesh {
-  mesh: THREE.Mesh;
-  tileX: number;
-  tileY: number;
-  active: boolean;
-}
-
 const RENDER_RADIUS = 32;
 const CULL_RADIUS = 42;
 const MAX_TILES_PER_FRAME = 200; // steady-state budget while moving
@@ -130,13 +123,13 @@ const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'tall_grass',
   'wheat',
 ]);
-const WATER_BRIDGE_TILES: ReadonlySet<TileType> = new Set([
+const WATER_BRIDGE_TILES: ReadonlySet<TileType> = new Set<TileType>([
   'water',
   'water_corrupted',
   'bridge',
   'bridge_corrupted',
   'bridge_decay_blend',
-]);
+] as TileType[]);
 const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'house',
   'house_entry',
@@ -1471,15 +1464,7 @@ export class World {
     };
   }
 
-  private getBaseTileWalkability(tileType: TileType): boolean {
-    // Define walkability for base tile types
-    const walkableBaseTiles = new Set([
-      'grass', 'dirt', 'stone', 'wood', 'sand', 'swamp', 'ice', 
-      'cobblestone', 'farmland', 'ash', 'ruins_floor', 'dark_grass', 'hollow_blight',
-      'mossy_stone', 'wooden_path', 'wood_floor'
-    ]);
-    return walkableBaseTiles.has(tileType);
-  }
+
 
   getSpawnPoint(): { x: number; y: number } {
     return {

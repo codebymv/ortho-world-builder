@@ -125,7 +125,7 @@ export function useGameMusic({
       window.removeEventListener('keydown', startMusic);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [cleanupAudioProcessor, gameStateRef, resolveMusicTrack, resumeAudioProcessor]);
+  }, [cleanupAudioProcessor, gameStateRef, musicDirector, resolveMusicTrack, resumeAudioProcessor]);
 
   return {
     musicRef,

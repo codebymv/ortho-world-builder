@@ -1,8 +1,7 @@
-import * as THREE from 'three';
 import { updateNpcDialogueProjection } from '@/game/runtime/NpcBehaviorSystem';
 import type { RuntimeLoopTailContext } from '@/game/runtime/RuntimePhaseContexts';
 
-interface RunRuntimeLoopTailOptions extends RuntimeLoopTailContext {
+export interface RunRuntimeLoopTailOptions extends RuntimeLoopTailContext {
   playerPosition: { x: number; y: number };
   activeNpcWorldPos: { x: number; y: number } | null;
   isDialogueActive: boolean;

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Enemy } from '@/lib/game/Combat';
 import type { GameState } from '@/lib/game/GameState';
-import { breakTilesInRadius } from '@/game/runtime/BreakableProps';
+import { breakTilesInRadius, type BreakableWorld } from '@/game/runtime/BreakableProps';
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
 type Direction4 = 'up' | 'down' | 'left' | 'right';
@@ -50,14 +50,9 @@ interface EnemyAudioLike {
   clearEnemy: (enemyId: string) => void;
 }
 
-interface BreakableWorldLike {
-  getCurrentMap(): { width: number; height: number; tiles: any[][] };
-  refreshMapTileRegion(minTX: number, minTY: number, maxTX: number, maxTY: number): void;
-}
-
 interface RuntimeCombatActionOptions {
   state: GameState;
-  world: BreakableWorldLike;
+  world: BreakableWorld;
   combatSystem: CombatSystemLike;
   floatingText: FloatingTextLike;
   screenShake: ScreenShakeLike;
@@ -153,7 +148,6 @@ export function createRuntimeCombatActions({
   setComboStep,
   getComboWindowTimer,
   setComboWindowTimer,
-  getComboInputBuffered,
   setComboInputBuffered,
   getPlayerAnimState,
   comboFrameMultipliers,
@@ -289,7 +283,7 @@ export function createRuntimeCombatActions({
       else if (direction === 'left') attackPos.x -= 1;
       else if (direction === 'right') attackPos.x += 1;
       particleSystem.emit(new THREE.Vector3(attackPos.x, attackPos.y, 0.3), 4, 0xffffff, 0.3, 1, 1);
-      breakTilesInRadius(world, world.getCurrentMap() as any, attackPos.x, attackPos.y, state.player.attackRange, particleSystem, playPropBreak);
+      breakTilesInRadius(world, world.getCurrentMap(), attackPos.x, attackPos.y, state.player.attackRange, particleSystem, playPropBreak);
       return;
     }
 
@@ -517,7 +511,7 @@ export function createRuntimeCombatActions({
         new THREE.Vector3(checkPos.x, checkPos.y, 0.3),
         3, 0x6A0DAD, 0.2, 0.8, 0.6,
       );
-      breakTilesInRadius(world, world.getCurrentMap() as any, checkPos.x, checkPos.y, arcWidth, particleSystem, playPropBreak);
+      breakTilesInRadius(world, world.getCurrentMap(), checkPos.x, checkPos.y, arcWidth, particleSystem, playPropBreak);
     }
 
     if (hitEnemyIds.size === 0) {
@@ -567,7 +561,7 @@ export function createRuntimeCombatActions({
     const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
     const chargeDamage = Math.floor(state.player.attackDamage * damageMultiplier);
     const chargeRange = state.player.attackRange * (1 + level * 0.5);
-    breakTilesInRadius(world, world.getCurrentMap() as any, state.player.position.x, state.player.position.y, chargeRange, particleSystem, playPropBreak);
+    breakTilesInRadius(world, world.getCurrentMap(), state.player.position.x, state.player.position.y, chargeRange, particleSystem, playPropBreak);
     const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, chargeRange);
 
     if (enemiesInRange.length === 0) {

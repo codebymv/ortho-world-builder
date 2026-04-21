@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { GameState, Item } from '@/lib/game/GameState';
+import type { GameState } from '@/lib/game/GameState';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
 import { INTERACTABLE_QUERY_RADIUS } from '@/lib/game/World';
 
@@ -16,12 +16,12 @@ interface InteractionSystemLike {
     px: number,
     py: number,
     isEntranceTile: boolean,
-    getTransitionAt: (x: number, y: number) => unknown,
+    getTransitionAt: (x: number, y: number) => { targetMap: string; targetX: number; targetY: number } | null,
   ) => boolean;
   tryHandleForestShortcutLever: (interactionId: string) => boolean;
   tryHandleGroveShelfShortcutLever: (interactionId: string) => boolean;
   tryHandleHollowShortcutLever: (interactionId: string) => boolean;
-  tryHandleHollowApproachLadder: (interactionId: string) => boolean;
+  tryHandleHollowApproachLadder: (interactionId: string, ladderX: number, ladderY: number) => boolean;
   tryHandleCliffCorridorLadder: (interactionId: string, ladderX: number, ladderY: number) => boolean;
   tryHandleHollowFogGate: (interactionId: string) => boolean;
   tryHandleForestFortGate: (interactionId: string) => boolean;
@@ -35,18 +35,18 @@ interface RuntimeWorldLike {
   getInteractableNear: (x: number, y: number, radius: number) => { interactionId: string; x: number; y: number } | null;
   getInteractableAt: (x: number, y: number) => string | null;
   getCurrentMap: () => { width: number; height: number };
-  getTile: (x: number, y: number) => { type?: string } | undefined;
+  getTile: (x: number, y: number) => { type?: string } | null | undefined;
   getTransitionAt: (x: number, y: number) => { targetMap: string; targetX: number; targetY: number } | null;
 }
 
 interface PotionActionOptions {
   state: GameState;
   particleSystem: { emitHeal: (position: THREE.Vector3) => void };
-  notify: (title: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
+  notify: (title: string, options?: { id?: string; type?: 'success' | 'info' | 'error'; description?: string; duration?: number }) => void;
   triggerUIUpdate: () => void;
   playPotionDrink?: () => void;
   playGrassChew?: () => void;
-  setPlayerAnimState?: (value: string) => void;
+  setPlayerAnimState?: (value: 'drinking') => void;
   setHeldConsumableSpriteId?: (value: string | null) => void;
   setDrinkTimer?: (value: number) => void;
   drinkDuration?: number;
@@ -54,11 +54,11 @@ interface PotionActionOptions {
 
 export function createUsePotionAction(options: PotionActionOptions) {
   return () => {
-    useHealthPotionAction(options);
+    applyHealthPotionAction(options);
   };
 }
 
-export function useHealthPotionAction({
+export function applyHealthPotionAction({
   state,
   particleSystem,
   notify,

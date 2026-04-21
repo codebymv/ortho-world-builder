@@ -4,6 +4,12 @@ import type { Item, GameState } from '@/lib/game/GameState';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
 import type { RuntimeSessionState } from '@/game/runtime/RuntimeSessionState';
 import type { Direction8 } from '@/game/runtime/PlayerSimulationSystem';
+import type { World, WorldMap } from '@/lib/game/World';
+import type { BreakableWorld } from '@/game/runtime/BreakableProps';
+import type { CombatSystem } from '@/lib/game/Combat';
+import type { FloatingTextSystem } from '@/lib/game/FloatingText';
+import type { ScreenShake } from '@/lib/game/ScreenShake';
+import type { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { createRuntimeSfx } from '@/game/runtime/RuntimeSfx';
 import { createBonfireRestAction } from '@/game/runtime/RuntimeRestFlow';
 import { createPerformDodgeAction } from '@/game/runtime/RuntimePlayerActions';
@@ -13,39 +19,29 @@ import { createInteractionCheckAction, createUsePotionAction } from '@/game/runt
 
 interface RuntimeActionPhaseOptions {
   state: GameState;
-  world: {
-    activateSwitch: (doorId: string) => void;
-    updateChunks: (x: number, y: number) => void;
-    getCurrentMap: () => any;
-  };
+  world: World & BreakableWorld;
   runtimeSession: RuntimeSessionState;
   processAudioElement: (audio: HTMLAudioElement) => void;
   musicRef: MutableRefObject<HTMLAudioElement | null>;
   musicStarted: MutableRefObject<boolean>;
   showHeroOverlay: (title: string, subtitle?: string) => void;
-  particleSystem: {
-    emitHeal: (position: { x: number; y: number; z?: number } | any) => void;
-    emitSparkles: (position: { x: number; y: number; z?: number } | any) => void;
-    emitBonfireKindled: (position: { x: number; y: number; z?: number } | any) => void;
-    emitDamage: (position: any) => void;
-    emit: (position: any, count: number, color: number, size: number, speed: number, life: number) => void;
-  };
-  combatSystem: any;
-  floatingText: any;
-  screenShake: any;
+  particleSystem: ParticleSystem;
+  combatSystem: CombatSystem;
+  floatingText: FloatingTextSystem;
+  screenShake: ScreenShake;
   items: Record<string, Item>;
   criticalPathItems: Record<string, CriticalPathItemVisual>;
   criticalItemInteractionIds: Set<string>;
   createDialogueProgression: () => {
     selectDialogueStartNode: (state: GameState, dialogueId: string) => DialogueNode | null | undefined;
-  };
+  } | null;
   activeNpcWorldPos: MutableRefObject<{ x: number; y: number } | null>;
   setCurrentDialogue: Dispatch<SetStateAction<{ node: DialogueNode; npcName: string } | null>>;
   addMarkersFromText: (text: string, currentMap: string) => void;
-  notify: (title: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
+  notify: (title: string, options?: { id?: string; type?: 'success' | 'info' | 'error'; description?: string; duration?: number }) => void;
   triggerSave: () => void;
   triggerUIUpdate: () => void;
-  respawnEnemiesForCurrentMap: (targetMap: string, map: any) => void;
+  respawnEnemiesForCurrentMap: (targetMap: string, map: WorldMap) => void;
   syncOpenedChestState: () => void;
   syncHarvestedTempestGrassState: () => void;
   syncHarvestedMoonbloomState: () => void;
@@ -59,6 +55,7 @@ interface RuntimeActionPhaseOptions {
   syncHollowFogGateState: () => void;
   syncHollowArenaVictoryPortalState: () => void;
   switchMusicTrack: (mapId: string) => void;
+  syncGilrhymBossState: () => void;
   handleMapTransition: (targetMap: string, targetX: number, targetY: number) => void;
   healCooldowns: MutableRefObject<Map<string, number>>;
   hasDialogue: (interactionId: string) => boolean;
@@ -126,6 +123,7 @@ export function setupRuntimeActionPhase({
   syncHollowFogGateState,
   syncHollowArenaVictoryPortalState,
   switchMusicTrack,
+  syncGilrhymBossState,
   handleMapTransition,
   healCooldowns,
   hasDialogue,
@@ -164,8 +162,8 @@ export function setupRuntimeActionPhase({
 
   const bonfireActions = createBonfireRestAction({
     state,
-    world: world as any,
-    particleSystem: particleSystem as any,
+    world,
+    particleSystem,
     notify,
     showHeroOverlay,
     playBonfireKindle: sfx.playBonfireKindle,
@@ -198,11 +196,11 @@ export function setupRuntimeActionPhase({
 
   const { onEnemyKilled, performAttack, performChargeAttack, triggerComboChain } = createRuntimeCombatActions({
     state,
-    world: world as any,
+    world,
     combatSystem,
     floatingText,
     screenShake,
-    particleSystem: particleSystem as any,
+    particleSystem,
     playPropBreak: sfx.playPropBreak,
     enemyAudio: sfx.enemyAudio,
     notify,
@@ -304,7 +302,7 @@ export function setupRuntimeActionPhase({
     playGrassPull: sfx.playGrassPull,
     playChestUnlock: sfx.playChestUnlock,
     playGateShortcut: sfx.playGateShortcut,
-    particleSystem: particleSystem as any,
+    particleSystem,
     notify,
     triggerSave,
     triggerUIUpdate,
@@ -331,6 +329,7 @@ export function setupRuntimeActionPhase({
     syncCliffCorridorLadderState,
     syncForestFortGateState,
     syncNorthFortGateState,
+    syncGilrhymBossState,
     showHeroOverlay,
     hasDialogue,
     onWorldItemPickup: (itemId: string) => {
@@ -359,21 +358,21 @@ export function setupRuntimeActionPhase({
     getAliveEnemyCountNearPlayer: (radius: number) => {
       const pos = state.player.position;
       return combatSystem.getEnemiesInRange(pos, radius)
-        .filter((e: any) => e.health > 0).length;
+        .filter(e => e.health > 0).length;
     },
   });
 
   dialoguePickupRef.startDialogue = startDialogue;
 
-  const usePotion = createUsePotionAction({
+  const consumePotion = createUsePotionAction({
     state,
-    particleSystem: particleSystem as any,
+    particleSystem,
     notify,
     triggerUIUpdate,
     playPotionDrink: sfx.playPotionDrink,
     playGrassChew: sfx.playGrassChew,
     setPlayerAnimState: value => {
-      runtimeSession.animation.playerAnimState = value as any;
+      runtimeSession.animation.playerAnimState = value;
     },
     setHeldConsumableSpriteId: value => {
       runtimeSession.animation.heldConsumableSpriteId = value;
@@ -386,7 +385,7 @@ export function setupRuntimeActionPhase({
 
   const checkInteraction = createInteractionCheckAction({
     state,
-    world: world as any,
+    world,
     interactionSystem,
     criticalPathItems,
     criticalItemInteractionIds,
@@ -417,7 +416,7 @@ export function setupRuntimeActionPhase({
     startStormLoop: sfx.startStormLoop,
     stopStormLoop: sfx.stopStormLoop,
     playThunder: sfx.playThunder,
-    usePotion,
+    consumePotion,
     checkInteraction,
     performDodge,
     performAttack,

@@ -27,7 +27,7 @@ export function buildGameplayPreludeContext(options: BuildRuntimePhaseContextsOp
     npcObjectiveHalos: options.npcObjectiveHalos,
     npcObjectiveRings: options.npcObjectiveRings,
     checkInteraction: options.checkInteraction,
-    usePotion: options.usePotion,
+    consumePotion: options.consumePotion,
     keys: options.keys,
     visitedTiles: options.visitedTiles,
     getDirection8: options.getDirection8,

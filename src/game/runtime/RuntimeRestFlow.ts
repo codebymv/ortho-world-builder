@@ -12,7 +12,7 @@ interface CreateBonfireRestActionOptions {
   state: GameState;
   world: World;
   particleSystem: RuntimeParticleSystemLike;
-  notify: (message: string, options?: { id?: string; type?: string; description?: string; duration?: number }) => void;
+  notify: (message: string, options?: { id?: string; type?: 'success' | 'info' | 'error'; description?: string; duration?: number }) => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
   playBonfireKindle: () => void;
   playBonfireRestore: () => void;
@@ -48,7 +48,7 @@ export function createBonfireRestAction({
 
       const row = map.tiles[tileY];
       if (row && row[tileX]) {
-        row[tileX]!.type = 'bonfire' as any;
+        row[tileX]!.type = 'bonfire';
         world.refreshMapTileRegion(tileX - 1, tileY - 1, tileX + 1, tileY + 1);
       }
 

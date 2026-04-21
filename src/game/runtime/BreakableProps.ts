@@ -36,7 +36,7 @@ const DEBRIS_COLORS: Partial<Record<TileType, number>> = {
   lantern:      0x666666,
 };
 
-interface BreakableWorld {
+export interface BreakableWorld {
   getCurrentMap(): WorldMap;
   refreshMapTileRegion(minTX: number, minTY: number, maxTX: number, maxTY: number): void;
 }

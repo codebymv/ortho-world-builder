@@ -72,7 +72,7 @@ export function createRuntimeNpcVisuals({
     scene.add(npcMesh);
     npcMeshes.push(npcMesh);
 
-    const npcOutline = createOutlineMesh(npcGeometry, npcTexture);
+    const npcOutline = createOutlineMesh(npcGeometry, npcTexture ?? null);
     npcOutline.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y), 0.19);
     npcOutline.scale.set(npcScale * outlinePad, npcScale * outlinePad, 1);
     npcOutline.renderOrder = npcMesh.renderOrder - 1;

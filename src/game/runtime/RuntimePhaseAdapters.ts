@@ -7,7 +7,6 @@ import { getInteractionPromptLabel } from '@/game/runtime/RuntimeWorldUtils';
 
 interface CreateRuntimePhaseAdaptersOptions {
   state: GameState;
-  world: World;
   particleSystem: ParticleSystem;
   tempVector: THREE.Vector3;
   criticalItemInteractionIds: Set<string>;
@@ -20,7 +19,6 @@ interface CreateRuntimePhaseAdaptersOptions {
 
 export function createRuntimePhaseAdapters({
   state,
-  world,
   particleSystem,
   tempVector,
   criticalItemInteractionIds,

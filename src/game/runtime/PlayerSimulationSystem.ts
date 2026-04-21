@@ -1,5 +1,7 @@
 import type { GameState } from '@/lib/game/GameState';
 import type { World } from '@/lib/game/World';
+import type { Enemy } from '@/lib/game/Combat';
+import type { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { makeVisitedTileKey } from '@/lib/game/visitedTiles';
 import { breakTileAt, breakTilesInRadius } from '@/game/runtime/BreakableProps';
 
@@ -61,7 +63,7 @@ interface UpdatePlayerSimulationOptions {
   keys: Record<string, boolean>;
   visitedTiles: Set<string>;
   getDirection8: (x: number, y: number) => Direction8;
-  dir8to4: (direction: Direction8) => CardinalDirection;
+  dir8to4: (direction: string) => string;
   performDodge: (moveX: number, moveY: number) => void;
   playFootstep: (isSprinting: boolean) => void;
   emitDust: (x: number, y: number) => void;
@@ -80,14 +82,12 @@ interface UpdatePlayerSimulationOptions {
     hitEnemyIds: Set<string>;
   };
   combatSystem: {
-    getEnemiesInRange: (position: { x: number; y: number }, range: number) => any[];
-    playerAttack: (enemy: any, damage: number, playerPosition: { x: number; y: number }, playerDirection: string) => { killed: boolean; staggered: boolean; backstab: boolean };
+    getEnemiesInRange: (position: { x: number; y: number }, range: number) => Enemy[];
+    playerAttack: (enemy: Enemy, damage: number, playerPosition: { x: number; y: number }, playerDirection: string) => { killed: boolean; staggered: boolean; backstab: boolean };
   };
-  onLungeHit: (enemy: any, damage: number) => void;
+  onLungeHit: (enemy: Enemy, damage: number) => void;
   onLungeEnd: () => void;
-  particleSystem: {
-    emit(position: { x: number; y: number; z: number }, count: number, color: number, lifetime: number, speed: number, spread: number): void;
-  };
+  particleSystem: ParticleSystem;
   playPropBreak?: () => void;
   dodgeIFrameDuration: number;
   // Combo chain state
@@ -136,7 +136,6 @@ export function updatePlayerSimulation({
   footstepInterval,
   attackFrame,
   attackFrameTimer,
-  attackFrameDuration,
   spinDirIndex,
   spinFrameTimer,
   spinFrameDuration,
@@ -294,7 +293,7 @@ export function updatePlayerSimulation({
     for (const [cx, cy] of dodgeCorners) {
       const tx = Math.floor(cx + dodgeMap.width / 2);
       const ty = Math.floor(cy + dodgeMap.height / 2);
-      if (breakTileAt(world as any, dodgeMap, tx, ty, particleSystem as any)) dodgeBroke = true;
+      if (breakTileAt(world, dodgeMap, tx, ty, particleSystem)) dodgeBroke = true;
     }
     if (dodgeBroke) playPropBreak?.();
     if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, newPos.y, 0.2)) {
@@ -309,7 +308,7 @@ export function updatePlayerSimulation({
   } else if (moved && !isBlocking && !isChargingAttack && playerAnimState !== 'spin_attack' && playerAnimState !== 'lunge' && playerAnimState !== 'lunge_recovery' && state.player.attackAnimationTimer <= 0) {
     const rawDir = getDirection8(moveX > 0 ? 1 : moveX < 0 ? -1 : 0, moveY > 0 ? 1 : moveY < 0 ? -1 : 0);
     currentDir8 = rawDir;
-    state.player.direction = dir8to4(rawDir);
+    state.player.direction = dir8to4(rawDir) as CardinalDirection;
 
     const wantsSprint = keys.shift && state.player.stamina > 0;
     state.player.isSprinting = wantsSprint;
@@ -442,7 +441,7 @@ export function updatePlayerSimulation({
       lungeState.distanceRemaining = 0;
     }
 
-    breakTilesInRadius(world as any, world.getCurrentMap(), state.player.position.x, state.player.position.y, 1.0, particleSystem as any, playPropBreak);
+    breakTilesInRadius(world, world.getCurrentMap(), state.player.position.x, state.player.position.y, 1.0, particleSystem, playPropBreak);
 
     lungeState.distanceRemaining -= step;
 

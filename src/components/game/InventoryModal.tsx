@@ -1,5 +1,5 @@
 import React, { memo, useMemo, useState } from 'react';
-import { Heart, Coins, Package, Sword, Zap, Key, Map as MapIcon, Sparkles, Shield, Check } from 'lucide-react';
+import { Heart, Coins, Package, Sword, Zap, Key, Map as MapIcon, Sparkles, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { GameState, Item } from '@/lib/game/GameState';

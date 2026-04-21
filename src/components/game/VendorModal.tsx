@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Coins, Sparkles, Package, Sword, Heart, Shield, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -142,13 +142,14 @@ export const VendorModal = memo(function VendorModal({
   itemsRegistry,
   onPurchase,
 }: VendorModalProps) {
-  if (!vendor) return null;
-
   const resolvedItems = useMemo(() => {
+    if (!vendor) return [];
     return vendor.items
       .map(vi => ({ vendorItem: vi, item: itemsRegistry[vi.itemId] }))
       .filter(({ item }) => !!item);
-  }, [vendor.items, itemsRegistry]);
+  }, [vendor, itemsRegistry]);
+
+  if (!vendor) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

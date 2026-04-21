@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, memo } from 'react';
+import { useEffect, useMemo, useRef, memo } from 'react';
 import type { MutableRefObject } from 'react';
 import { WorldMap } from '@/lib/game/World';
 import type { MapMarker } from '@/lib/game/MapMarkers';
@@ -141,7 +141,7 @@ export const Minimap = memo(
       );
       const supportMarkers = recentMarkers.filter(m => m.type !== 'quest').slice(0, 4);
       return [...objectiveMarkers, ...supportMarkers];
-    }, [markers, currentMapId, refreshToken, gameStateRef]);
+    }, [markers, currentMapId, gameStateRef]);
 
     return (
       <div

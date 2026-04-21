@@ -1,4 +1,4 @@
-import { GameState, type CurrencyGain } from '@/lib/game/GameState';
+import { GameState, type CurrencyGain, type Item } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { Button } from '@/components/ui/button';
 import { Heart, Coins, Package, Target, Zap, Volume2, VolumeX, Shield, Sword, Map as MapIcon, Key, Sparkles, ChevronRight, ChevronDown } from 'lucide-react';
@@ -8,7 +8,7 @@ interface GameUIProps {
   gameState: GameState;
   assetManager?: AssetManager | null;
   refreshToken: number;
-  justPickedUpItem?: any | null;
+  justPickedUpItem?: Item | null;
   justGainedCurrency?: CurrencyGain | null;
   onOpenInventory?: () => void;
   onOpenMap?: () => void;
@@ -22,7 +22,7 @@ interface GameUIProps {
 
 // --- Helpers ---
 
-const getItemIcon = (item: any, className: string, assetManager?: AssetManager | null) => {
+const getItemIcon = (item: Item | null | undefined, className: string, assetManager?: AssetManager | null) => {
   if (!item) return <div className={className} />;
   if (assetManager) {
     const url = assetManager.getTextureURL(item.sprite);
@@ -125,7 +125,7 @@ const SelectionWheel = React.memo(({
   nextLabel,
   badgeLabel,
 }: {
-  entries: Array<{ item: any; count: number }>;
+  entries: Array<{ item: Item; count: number }>;
   activeItemId: string | null | undefined;
   assetManager?: AssetManager | null;
   prevLabel: string;
@@ -197,7 +197,7 @@ const JustPickedUpDisplay = React.memo(({
   item,
   assetManager,
 }: {
-  item: any | null;
+  item: Item | null;
   assetManager?: AssetManager | null;
 }) => {
   if (!item) return null;
@@ -242,7 +242,7 @@ export const GameUI = ({
   void refreshToken;
 
   const groupedInventory = useMemo(() => {
-    const groups = new Map<string, { item: any; count: number }>();
+    const groups = new Map<string, { item: Item; count: number }>();
     gameState.inventory.forEach(item => {
       const existing = groups.get(item.id);
       if (existing) {

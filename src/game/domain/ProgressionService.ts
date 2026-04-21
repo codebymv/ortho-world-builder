@@ -226,7 +226,6 @@ export function createProgressionService(context: ProgressionServiceContext) {
     opensVendor,
   }: DialogueResponseContext): DialogueResponseResult => {
     let shouldSave = false;
-    let openVendorId: string | undefined;
 
     // If the response opens a vendor, close dialogue and signal the vendor to open
     if (opensVendor) {
@@ -287,7 +286,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
       shouldSave = true;
     }
 
-    if (['healer', 'apothecary'].includes(state.currentDialogue) && nextId === 'end' && currentDialogue.node.id === 'heal') {
+    if (state.currentDialogue !== null && ['healer', 'apothecary'].includes(state.currentDialogue) && nextId === 'end' && currentDialogue.node.id === 'heal') {
       state.player.health = state.player.maxHealth;
       context.triggerUIUpdate();
     }

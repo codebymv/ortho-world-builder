@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { AssetManager } from '@/lib/game/AssetManager';
-import type { CombatSystem } from '@/lib/game/Combat';
+import type { CombatSystem, Enemy } from '@/lib/game/Combat';
 import type { FloatingTextSystem } from '@/lib/game/FloatingText';
 import type { GameState, NPC } from '@/lib/game/GameState';
 import type { ParticleSystem } from '@/lib/game/ParticleSystem';
@@ -43,11 +43,11 @@ export interface BuildRuntimePhaseContextsOptions {
   npcObjectiveHalos: THREE.Mesh[];
   npcObjectiveRings: THREE.Mesh[];
   checkInteraction: () => void;
-  usePotion: () => void;
+  consumePotion: () => void;
   keys: Record<string, boolean>;
   visitedTiles: Set<string>;
   getDirection8: (x: number, y: number) => Direction8;
-  dir8to4: (direction: Direction8) => 'up' | 'down' | 'left' | 'right';
+  dir8to4: (direction: string) => string;
   performDodge: (moveX: number, moveY: number) => void;
   playFootstep: (isSprinting: boolean) => void;
   emitDust: (x: number, y: number) => void;
@@ -74,7 +74,7 @@ export interface BuildRuntimePhaseContextsOptions {
     damage: number;
     hitEnemyIds: Set<string>;
   };
-  onLungeHit: (enemy: any, damage: number) => void;
+  onLungeHit: (enemy: Enemy, damage: number) => void;
   onLungeEnd: () => void;
   dodgeIFrameDuration: number;
   triggerComboChain: () => { frameDuration: number } | null;
