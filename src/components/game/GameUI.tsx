@@ -3,6 +3,7 @@ import { AssetManager } from '@/lib/game/AssetManager';
 import { Button } from '@/components/ui/button';
 import { Heart, Coins, Package, Target, Zap, Volume2, VolumeX, Shield, Sword, Map as MapIcon, Key, Sparkles, ChevronRight, ChevronDown } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
+import { CONTROL_GROUPS } from './controlBindings';
 
 interface GameUIProps {
   gameState: GameState;
@@ -106,16 +107,21 @@ const CurrencyCountersWithGains = React.memo(({
   </div>
 ));
 
-const CurrentObjective = React.memo(({ title, onObjectiveClick }: { title: string, onObjectiveClick?: () => void }) => (
-  <div 
-    className="flex items-center gap-2 bg-[#2D1B11]/50 px-3 py-1 rounded-full border border-[#5C3A21] cursor-pointer hover:bg-[#3D2B21]/50 transition-colors animate-pulse"
-    onClick={onObjectiveClick}
-    title="Click to view on minimap"
-  >
-    <span className="text-[#DAA520] text-xs font-bold uppercase tracking-wider">Objective:</span>
-    <span className="text-[#F5DEB3] text-xs truncate max-w-[200px]">{title}</span>
-  </div>
-));
+const CurrentObjective = React.memo(({ title, onObjectiveClick }: { title: string, onObjectiveClick?: () => void }) => {
+  const interactive = typeof onObjectiveClick === 'function';
+  return (
+    <button
+      type="button"
+      onClick={onObjectiveClick}
+      disabled={!interactive}
+      title={interactive ? 'Click to open objectives' : undefined}
+      className={`flex items-center gap-2 bg-[#2D1B11]/50 px-3 py-1 rounded-full border border-[#5C3A21] transition-colors animate-pulse ${interactive ? 'cursor-pointer hover:bg-[#3D2B21]/50' : 'cursor-default'}`}
+    >
+      <span className="text-[#DAA520] text-xs font-bold uppercase tracking-wider">Objective:</span>
+      <span className="text-[#F5DEB3] text-xs truncate max-w-[200px]">{title}</span>
+    </button>
+  );
+});
 
 const SelectionWheel = React.memo(({
   entries,
@@ -314,7 +320,9 @@ export const GameUI = ({
             )}
             {(() => {
               const firstActiveQuest = gameState.quests.find(q => q.active && !q.completed);
-              return firstActiveQuest ? <CurrentObjective title={firstActiveQuest.title} /> : null;
+              if (!firstActiveQuest) return null;
+              const activeStep = firstActiveQuest.objectives.find(o => !o.includes('\u2713')) ?? firstActiveQuest.title;
+              return <CurrentObjective title={activeStep} onObjectiveClick={onOpenObjectives} />;
             })()}
           </div>
 
@@ -394,53 +402,27 @@ export const GameUI = ({
               id="game-controls-help-panel"
               role="region"
               aria-label="Control bindings"
-              className="bg-[#1A0F0A]/80 backdrop-blur-sm border border-[#5C3A21] rounded-sm p-2.5 shadow-sm w-[min(92vw,20rem)] max-h-[min(70vh,24rem)] overflow-y-auto"
+              className="bg-[#1A0F0A]/80 backdrop-blur-sm border border-[#5C3A21] rounded-sm p-2.5 shadow-sm w-[min(92vw,20rem)] max-h-[min(70vh,24rem)] overflow-y-auto space-y-2"
             >
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                <p className="text-[10px] text-[#D3D3D3]">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">WASD</kbd> Move
-                </p>
-                <p className="text-[10px] text-[#D3D3D3]">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">LMB</kbd> Attack
-                </p>
-                <p className="text-[10px] text-[#D3D3D3]">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">HOLD LMB</kbd> Charge
-                </p>
-                <p className="text-[10px] text-[#D3D3D3]">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SPACE</kbd> Dodge Roll
-                </p>
-                <p className="text-[10px] text-[#D3D3D3]">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">RMB</kbd> Block
-                </p>
-                <p className="text-[10px] text-[#D3D3D3]">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">SHIFT</kbd> Sprint
-                </p>
-                <p className="text-[10px] text-[#D3D3D3] col-span-2">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">F</kbd>
-                  {interactionPrompt || 'Interact'}
-                </p>
-                <p className="text-[10px] text-[#D3D3D3]">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Q/E</kbd> Item
-                </p>
-                <p className="text-[10px] text-[#D3D3D3]">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">←/→</kbd> Weapon
-                </p>
-                <p className="text-[10px] text-[#D3D3D3]">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">Z</kbd> Use Item
-                </p>
-                <p className="text-[10px] text-[#D3D3D3]">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">M</kbd> Map
-                </p>
-                <p className="text-[10px] text-[#D3D3D3]">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">I</kbd> Inventory
-                </p>
-                <p className="text-[10px] text-[#D3D3D3]">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">O</kbd> Objectives
-                </p>
-                <p className="text-[10px] text-[#D3D3D3] col-span-2">
-                  <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">ESC</kbd> Pause
-                </p>
-              </div>
+              {CONTROL_GROUPS.map(group => (
+                <div key={group.title}>
+                  <p className="text-[9px] font-bold text-[#DAA520]/70 uppercase tracking-[0.2em] mb-1">{group.title}</p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    {group.bindings.map(b => {
+                      const action = b.keys === 'F' ? (interactionPrompt || b.action) : b.action;
+                      return (
+                        <p
+                          key={`${group.title}-${b.keys}`}
+                          className={`text-[10px] text-[#D3D3D3] ${b.wide ? 'col-span-2' : ''}`}
+                        >
+                          <kbd className="bg-[#2D1B11] px-1 rounded border border-[#5C3A21] text-[#DAA520] mr-0.5">{b.keys}</kbd>{' '}
+                          {action}
+                        </p>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

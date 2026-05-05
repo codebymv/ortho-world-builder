@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { GameState, Item } from '@/lib/game/GameState';
+import { markObjectiveDone } from '@/lib/game/progressionToasts';
 
 type NotificationType = 'success' | 'info' | 'error';
 
@@ -118,7 +119,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       const count = context.state.inventory.filter(i => i.id === 'moonbloom').length;
       const clamped = Math.min(count, 3);
       merchantQuest.objectives[0] = `Find Moonbloom flowers (${clamped}/3)`;
-      if (count >= 3) merchantQuest.objectives[0] = 'Find Moonbloom flowers (3/3) âœ“';
+      if (count >= 3) {
+        markObjectiveDone(merchantQuest, 0, 'Find Moonbloom flowers (3/3)');
+      }
     }
 
     context.notify('Picked Moonbloom', {

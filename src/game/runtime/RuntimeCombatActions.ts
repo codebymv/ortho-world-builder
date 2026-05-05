@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Enemy } from '@/lib/game/Combat';
 import type { GameState } from '@/lib/game/GameState';
 import { breakTilesInRadius, type BreakableWorld } from '@/game/runtime/BreakableProps';
+import { markObjectiveDone } from '@/lib/game/progressionToasts';
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
 type Direction4 = 'up' | 'down' | 'left' | 'right';
@@ -194,7 +195,7 @@ export function createRuntimeCombatActions({
         state.setFlag('hollow_guardian_defeated', true);
         const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
         if (hunterQuest) {
-          hunterQuest.objectives[4] = 'Defeat the Hollow Apparition \u2713';
+          markObjectiveDone(hunterQuest, 4, 'Defeat the Hollow Apparition');
         }
         state.worldItems.push({
           instanceId: `heretical_essence_apparition_${state.currentMap}_${Math.round(enemy.position.x)}_${Math.round(enemy.position.y)}`,
@@ -240,12 +241,13 @@ export function createRuntimeCombatActions({
       const baseline = Number(state.getFlag('guard_duty_kill_baseline')) || 0;
       const forestKillCount = Number(state.getFlag('forest_kill_count')) || 0;
       const kills = Math.min(forestKillCount - baseline, 5);
+      const alreadyMaxed = guardQuest.objectives[1]?.includes('\u2713');
       guardQuest.objectives[1] = `Defeat any hostile creatures (${kills}/5)`;
       if (kills === 3) {
         notify('The forest is beginning to fear you.', { id: 'guard-progress', duration: 3000 });
       }
-      if (kills >= 5) {
-        guardQuest.objectives[1] = 'Defeat any hostile creatures (5/5) ✓';
+      if (kills >= 5 && !alreadyMaxed) {
+        markObjectiveDone(guardQuest, 1, 'Defeat any hostile creatures (5/5)');
         screenShake.shake(0.15, 0.1);
       }
     }

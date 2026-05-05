@@ -19,6 +19,7 @@ import { DeathOverlay } from './game/DeathOverlay';
 import { BonfireOverlay } from './game/BonfireOverlay';
 import { BonfireMenu } from './game/BonfireMenu';
 import { WeaponAcquiredOverlay } from './game/WeaponAcquiredOverlay';
+import { DevFooter } from './game/DevFooter';
 import { notify } from '@/lib/game/notificationBus';
 import { createProgressionService } from '@/game/domain/ProgressionService';
 import { createAudioProcessor } from '@/game/domain/AudioDirector';
@@ -695,6 +696,7 @@ const Game = () => {
 
   const activeQuests = gameState?.quests.filter(q => q.active && !q.completed) ?? [];
   const activeQuestTitle = activeQuests[0]?.title;
+  const activeQuestObjective = activeQuests[0]?.objectives.find(o => !o.includes('\u2713'));
   const currentWorldMap = worldRef.current?.getCurrentMap() ?? null;
   const runtimeContent = runtimeContentRef.current;
   const interactionContent = interactionContentRef.current;
@@ -894,7 +896,8 @@ const Game = () => {
       {isPaused && (
         <PauseMenu
           onResume={() => { pausedRef.current = false; setIsPaused(false); }}
-          questSummary={activeQuestTitle}
+          questTitle={activeQuestTitle}
+          questObjective={activeQuestObjective}
         />
       )}
 
@@ -939,6 +942,7 @@ const Game = () => {
         }}
         onDismiss={() => setWeaponAcquiredItem(null)}
       />
+      <DevFooter />
     </div>
   );
 };

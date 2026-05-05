@@ -13,6 +13,7 @@ import type { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { createRuntimeSfx } from '@/game/runtime/RuntimeSfx';
 import { createBonfireRestAction } from '@/game/runtime/RuntimeRestFlow';
 import { createPerformDodgeAction } from '@/game/runtime/RuntimePlayerActions';
+import { markObjectiveDone } from '@/lib/game/progressionToasts';
 import { createRuntimeCombatActions } from '@/game/runtime/RuntimeCombatActions';
 import { createRuntimeDialogueFlow } from '@/game/runtime/RuntimeDialogueFlow';
 import { createInteractionCheckAction, createUsePotionAction } from '@/game/runtime/RuntimeInteractionActions';
@@ -333,13 +334,12 @@ export function setupRuntimeActionPhase({
     showHeroOverlay,
     hasDialogue,
     onWorldItemPickup: (itemId: string) => {
-      const CHECKMARK = '\u2713';
       if (itemId === 'manuscript_fragment') {
         state.setFlag('manuscript_fragment_collected', true);
         const q = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
         if (q) {
-          q.objectives[1] = `Find the Disparaged Cottage ${CHECKMARK}`;
-          q.objectives[2] = `Find traces of the manuscript ${CHECKMARK}`;
+          markObjectiveDone(q, 1, 'Find the Disparaged Cottage');
+          markObjectiveDone(q, 2, 'Find traces of the manuscript');
           triggerUIUpdate();
         }
         if (!state.getFlag('hunter_clue_dialogue_seen') && hasDialogue('hunter_clue')) {
@@ -349,7 +349,7 @@ export function setupRuntimeActionPhase({
         state.setFlag('hunters_manuscript_collected', true);
         const q = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
         if (q) {
-          q.objectives[5] = `Recover the complete manuscript ${CHECKMARK}`;
+          markObjectiveDone(q, 5, 'Recover the complete manuscript');
           addMarkersFromText('Village Elder', 'village');
           triggerUIUpdate();
         }

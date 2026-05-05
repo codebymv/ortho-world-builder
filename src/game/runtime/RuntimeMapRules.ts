@@ -1,4 +1,5 @@
 import type { GameState } from '@/lib/game/GameState';
+import { markObjectiveDone } from '@/lib/game/progressionToasts';
 
 export const MAP_BIOMES: Record<string, string> = {
   village: 'grassland',
@@ -13,21 +14,21 @@ export function isPortalDestinationUnlocked(_state: GameState, _targetMap: strin
 export function applyMapEntryProgression(state: GameState, targetMap: string) {
   const guardQuest = state.quests.find(q => q.id === 'guard_duty' && q.active && !q.completed);
   if (guardQuest && targetMap === 'forest') {
-    guardQuest.objectives[0] = 'Patrol the northern forest border checked';
+    markObjectiveDone(guardQuest, 0, 'Patrol the northern forest border');
   }
 
   const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
   if (hunterQuest && targetMap === 'forest') {
-    hunterQuest.objectives[0] = 'Travel to the Whispering Woods checked';
-    hunterQuest.objectives[1] = 'Find the Disparaged Cottage';
+    markObjectiveDone(hunterQuest, 0, 'Travel to the Whispering Woods');
+    // Step 2 is just opened (no checkmark) so the player has a clear next pointer.
+    if (!hunterQuest.objectives[1]?.includes('\u2713')) {
+      hunterQuest.objectives[1] = 'Find the Disparaged Cottage';
+    }
   }
   if (hunterQuest && targetMap === 'interior_hunter_cottage') {
-    hunterQuest.objectives[1] = 'Find the Disparaged Cottage checked';
+    markObjectiveDone(hunterQuest, 1, 'Find the Disparaged Cottage');
   }
-
 }
-
-const CHECKMARK = '✓';
 
 /**
  * Checks position-based quest objectives each frame.
@@ -41,7 +42,7 @@ export function checkPositionBasedProgression(state: GameState, playerTileY: num
 
   if (playerTileY < 75 && !state.getFlag('hollow_entered')) {
     state.setFlag('hollow_entered', true);
-    hunterQuest.objectives[3] = `Cross the river into the Hollow ${CHECKMARK}`;
+    markObjectiveDone(hunterQuest, 3, 'Cross the river into the Hollow');
     return true;
   }
 

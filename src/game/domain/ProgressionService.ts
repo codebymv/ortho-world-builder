@@ -1,6 +1,7 @@
 import type { Dialogue, DialogueNode } from '@/data/dialogues';
 import type { GameState, Item, Quest } from '@/lib/game/GameState';
 import { getVillageReactivityStage, VILLAGE_REACTIVITY_FLAGS } from '@/game/domain/VillageReactivity';
+import { markObjectiveDone } from '@/lib/game/progressionToasts';
 
 type NotificationType = 'success' | 'info' | 'error';
 
@@ -176,7 +177,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
     const clamped = Math.min(count, 3);
     merchantQuest.objectives[0] = `Find Moonbloom flowers (${clamped}/3)`;
     if (count >= 3) {
-      merchantQuest.objectives[0] = `Find Moonbloom flowers (3/3) ${CHECKMARK}`;
+      markObjectiveDone(merchantQuest, 0, 'Find Moonbloom flowers (3/3)');
     }
   };
 
@@ -270,7 +271,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
     if (state.currentDialogue === 'elder' && nextId === 'end' && currentDialogue.node.id === 'after_reaver') {
       const pursuitQuest = state.quests.find(q => q.id === 'heretical_pursuit' && q.active && !q.completed);
       if (pursuitQuest) {
-        pursuitQuest.objectives[4] = `Return to the Elder ${CHECKMARK}`;
+        markObjectiveDone(pursuitQuest, 4, 'Return to the Elder', { silent: true });
         state.completeQuest('heretical_pursuit');
         state.setFlag(VILLAGE_REACTIVITY_FLAGS.afterReaver, true);
         context.notify('Quest Completed: The Heretical Pursuit!', {
@@ -294,8 +295,8 @@ export function createProgressionService(context: ProgressionServiceContext) {
     if (state.currentDialogue === 'oliver' && nextId === 'end' && currentDialogue.node.id === 'warning') {
       const pursuitQuest = state.quests.find(q => q.id === 'heretical_pursuit' && q.active && !q.completed);
       if (pursuitQuest) {
-        pursuitQuest.objectives[0] = `Find a survivor in Gilrhym ${CHECKMARK}`;
-        pursuitQuest.objectives[1] = `Learn about the Ashen Court ${CHECKMARK}`;
+        markObjectiveDone(pursuitQuest, 0, 'Find a survivor in Gilrhym');
+        markObjectiveDone(pursuitQuest, 1, 'Learn about the Ashen Court');
         context.triggerUIUpdate();
       }
     }
@@ -303,7 +304,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
     if (state.currentDialogue === 'guard' && nextId === 'end' && currentDialogue.node.id === 'guard_turnin') {
       const guardQuest = state.quests.find(q => q.id === 'guard_duty' && q.active && !q.completed);
       if (guardQuest && guardQuest.objectives[1]?.includes(CHECKMARK)) {
-        guardQuest.objectives[2] = `Report back to the guard ${CHECKMARK}`;
+        markObjectiveDone(guardQuest, 2, 'Report back to the guard', { silent: true });
         state.completeQuest('guard_duty');
         context.notify('Quest Completed: Guard Duty!', {
           id: 'quest-done-guard',
@@ -323,7 +324,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
         for (let i = 0; i < 3; i++) {
           state.removeItem('moonbloom');
         }
-        merchantQuest.objectives[1] = `Return to the merchant ${CHECKMARK}`;
+        markObjectiveDone(merchantQuest, 1, 'Return to the merchant', { silent: true });
         state.completeQuest('merchants_request');
         context.notify("Quest Completed: Merchant's Rare Goods!", {
           id: 'quest-done-merchant',
@@ -356,7 +357,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
       }
       const groveQuest = state.quests.find(q => q.id === 'blighted_heart' && q.active && !q.completed);
       if (groveQuest) {
-        groveQuest.objectives[1] = `Find and destroy the Blighted Root ${CHECKMARK}`;
+        markObjectiveDone(groveQuest, 1, 'Find and destroy the Blighted Root');
         context.addMarkersFromText('Warden Callum', state.currentMap);
         shouldSave = true;
         blightedRootProgress = true;
@@ -379,7 +380,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
         });
         const groveQuest = state.quests.find(q => q.id === 'blighted_heart' && q.active && !q.completed);
         if (groveQuest) {
-          groveQuest.objectives[1] = `Find and destroy the Blighted Root ${CHECKMARK}`;
+          markObjectiveDone(groveQuest, 1, 'Find and destroy the Blighted Root');
           context.addMarkersFromText('Warden Callum', state.currentMap);
         }
         context.triggerUIUpdate();
@@ -408,7 +409,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
       const groveQuest = state.quests.find(q => q.id === 'blighted_heart' && q.active && !q.completed);
       if (groveQuest && state.getFlag('blighted_root_destroyed')) {
         state.removeItem('blighted_root_shard');
-        groveQuest.objectives[2] = `Return to Warden Callum ${CHECKMARK}`;
+        markObjectiveDone(groveQuest, 2, 'Return to Warden Callum', { silent: true });
         state.completeQuest('blighted_heart');
         context.notify('Quest Completed: The Blighted Heart!', {
           id: 'quest-done-grove',
@@ -424,8 +425,8 @@ export function createProgressionService(context: ProgressionServiceContext) {
     if (state.currentDialogue === 'forest_ranger' && nextId === 'end' && currentDialogue.node.id === 'quest_complete') {
       const rangerQuest = state.quests.find(q => q.id === 'rangers_request' && q.active && !q.completed);
       if (rangerQuest && state.getFlag('forest_golem_defeated')) {
-        rangerQuest.objectives[0] = `Defeat the Stone Golem ${CHECKMARK}`;
-        rangerQuest.objectives[1] = `Return to the ranger ${CHECKMARK}`;
+        markObjectiveDone(rangerQuest, 0, 'Defeat the Stone Golem', { silent: true });
+        markObjectiveDone(rangerQuest, 1, 'Return to the ranger', { silent: true });
         state.completeQuest('rangers_request');
         context.notify("Quest Completed: The Ranger's Request!", {
           id: 'quest-done-ranger',
