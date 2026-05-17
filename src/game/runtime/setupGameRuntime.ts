@@ -1033,6 +1033,42 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
         return null as unknown as RuntimePhaseContexts;
       }
     })();
+    // Per-frame biome lookup only changes when the player crosses a tile or map.
+    // Cache the last result and recompute lazily to avoid the IIFE + string
+    // alloc on every frame.
+    let biomeCacheMap: string | null = null;
+    let biomeCacheTileX = NaN;
+    let biomeCacheTileY = NaN;
+    let biomeCacheValue = 'grassland';
+    const computeCurrentBiome = (): string => {
+      const mapId = state.currentMap;
+      const baseBiome = MAP_BIOMES[mapId] || 'grassland';
+      if (baseBiome !== 'forest') {
+        if (biomeCacheMap !== mapId || biomeCacheValue !== baseBiome) {
+          biomeCacheMap = mapId;
+          biomeCacheValue = baseBiome;
+          biomeCacheTileX = NaN;
+          biomeCacheTileY = NaN;
+        }
+        return baseBiome;
+      }
+      const map = world.getCurrentMap();
+      const tileX = Math.floor(state.player.position.x + map.width / 2);
+      const tileY = Math.floor(state.player.position.y + map.height / 2);
+      if (biomeCacheMap === mapId && biomeCacheTileX === tileX && biomeCacheTileY === tileY) {
+        return biomeCacheValue;
+      }
+      let next: string = baseBiome;
+      if (tileY < 59) next = 'forest_hollow_deep';
+      else if (tileY < 70) next = 'forest_hollow';
+      else if (tileY < 80) next = ((tileX + tileY) & 1) === 0 ? 'forest_hollow' : 'forest';
+      biomeCacheMap = mapId;
+      biomeCacheTileX = tileX;
+      biomeCacheTileY = tileY;
+      biomeCacheValue = next;
+      return next;
+    };
+
     const animate = () => {
       if (disposed) return;
       if (fatalSetupError || !phaseContexts) return;
@@ -1061,21 +1097,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           particleSystem,
           activeNpcWorldPos: activeNpcWorldPos.current,
           lastNpcProjected,
-          currentBiome: (() => {
-            const baseBiome = MAP_BIOMES[state.currentMap] || 'grassland';
-            if (baseBiome === 'forest') {
-              const map = world.getCurrentMap();
-              const tileY = Math.floor(state.player.position.y + map.height / 2);
-              const tileX = Math.floor(state.player.position.x + map.width / 2);
-              // Deep Hollow (world y <= -91, tile y <= 59): thickest gloom + ambience.
-              if (tileY < 59) return 'forest_hollow_deep';
-              // Hollow proper (tile y < 70, world y < -80)
-              if (tileY < 70) return 'forest_hollow';
-              // Transition band: deterministic blend (no per-frame random flicker).
-              if (tileY < 80) return ((tileX + tileY) & 1) === 0 ? 'forest_hollow' : 'forest';
-            }
-            return baseBiome;
-          })(),
+          currentBiome: computeCurrentBiome(),
           onPlayerDied: lostEssence => {
             playerDeadRef.current = true;
             playGameOverSound();

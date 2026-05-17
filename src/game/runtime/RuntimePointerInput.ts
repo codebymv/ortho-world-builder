@@ -90,7 +90,7 @@ export function createPointerInputController({
 
     if (e.button === 0) {
       if (!state.dialogueActive && !state.player.isDodging) {
-        const currentTime = Date.now();
+        const currentTime = performance.now();
         const playerAnimState = getPlayerAnimState();
 
         // Mid-swing: call performAttack directly so it can set comboInputBuffered.
@@ -161,7 +161,7 @@ export function createPointerInputController({
     if (e.button === 0) {
       if (getIsLmbHeld()) {
         setIsLmbHeld(false);
-        const holdDuration = (Date.now() - getLmbHoldStartTime()) / 1000;
+        const holdDuration = (performance.now() - getLmbHoldStartTime()) / 1000;
         if (getIsChargingAttack()) {
           if (holdDuration >= chargeTimeMin) {
             performChargeAttack(getChargeLevel());

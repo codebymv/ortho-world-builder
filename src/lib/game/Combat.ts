@@ -110,12 +110,16 @@ export interface Enemy {
   faction: string;
   /** The opposing-faction enemy this enemy is currently targeting (null = target player). */
   factionTarget: Enemy | null;
+  /** Seconds until the next faction-target search is allowed. Avoids re-scanning the spatial hash every frame when no candidate is in range. */
+  factionTargetSearchTimer: number;
   /** True once the player has attacked this enemy, permanently overriding faction targeting. */
   playerAggroed: boolean;
   /** Current attack variant being telegraphed. */
   currentAttackType: 'normal' | 'sweep' | 'nova';
   /** Timer for the dark nova windup (slamming state). */
   novaSlamTimer: number;
+  /** Stable per-enemy seed in [0, 1) used by visual systems for sub-tile jitter, idle bob phase, etc. */
+  visualSeed: number;
 }
 
 export interface AttackResult {
@@ -130,6 +134,8 @@ export class CombatSystem {
   private _cachedLiveEnemies: Enemy[] = [];
   private _enemiesDirty: boolean = true;
   private spatialHash: SpatialHash<Enemy>;
+  /** Monotonic counter for unique enemy ids — replaces the old Date.now()+Math.random() pair that could collide on rapid double-spawns. */
+  private _nextEnemyIdSeq: number = 0;
 
   constructor(gameState: GameState) {
     this.gameState = gameState;
@@ -145,7 +151,7 @@ export class CombatSystem {
     options: SpawnEnemyOptions = {}
   ): Enemy {
     const enemy: Enemy = {
-      id: `enemy_${Date.now()}_${Math.random()}`,
+      id: `enemy_${++this._nextEnemyIdSeq}`,
       name,
       position: { ...position },
       health,
@@ -189,9 +195,11 @@ export class CombatSystem {
       chargeSlamTarget: null,
       faction: options.faction ?? '',
       factionTarget: null,
+      factionTargetSearchTimer: 0,
       playerAggroed: false,
       currentAttackType: 'normal',
       novaSlamTimer: 0,
+      visualSeed: Math.random(),
     };
 
     this.enemies.push(enemy);
@@ -270,7 +278,16 @@ export class CombatSystem {
 
       if (enemy.faction && !enemy.playerAggroed && playerDistSq <= FACTION_FIGHT_WAKE_SQ) {
         // Player is close enough — resolve faction targeting so the fight begins.
-        if (!enemy.factionTarget || enemy.factionTarget.state === 'dead') {
+        // Throttle the spatial-hash search: once a target is found we keep it
+        // until it dies; if none was found we wait factionTargetSearchTimer
+        // seconds before scanning again instead of paying the cost every frame.
+        if (enemy.factionTargetSearchTimer > 0) {
+          enemy.factionTargetSearchTimer -= deltaTime;
+        }
+        if (
+          (!enemy.factionTarget || enemy.factionTarget.state === 'dead') &&
+          enemy.factionTargetSearchTimer <= 0
+        ) {
           enemy.factionTarget = null;
           const nearby = this.getEnemiesInRange(enemy.position, enemy.chaseRange * 1.5);
           let bestDistSq = Infinity;
@@ -285,6 +302,10 @@ export class CombatSystem {
               enemy.factionTarget = candidate;
             }
           }
+          // Whether or not we found one, back off for a quarter second before
+          // scanning again. A target acquired here will short-circuit the
+          // outer `if` on subsequent frames anyway.
+          enemy.factionTargetSearchTimer = 0.25;
         }
         if (enemy.factionTarget && enemy.factionTarget.state !== 'dead') {
           dx = enemy.factionTarget.position.x - enemy.position.x;

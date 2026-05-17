@@ -91,7 +91,9 @@ export function applyEnemyVisuals({
   const mat = enemyMesh.material as THREE.MeshBasicMaterial;
   const enemyType = enemy.sprite.replace('enemy_', '');
   const visual = enemyVisualProfiles[enemyType] ?? enemyVisualProfiles.wolf;
-  const seed = parseFloat(enemy.id.split('_')[1] || '0') * 0.001;
+  // Stable per-enemy jitter seed; matches the historical scale of the previous
+  // `parseFloat(id.split('_')[1]) * 0.001` formula so visuals don't change shape.
+  const seed = enemy.visualSeed * 1000;
 
   const spriteKey = resolveSpriteKey(enemy, enemyType);
   let enemyTex = getTexture(spriteKey);

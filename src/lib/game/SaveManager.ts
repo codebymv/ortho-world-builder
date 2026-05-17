@@ -9,7 +9,7 @@ export interface SaveData {
   timestamp: number;
   player: {
     position: { x: number; y: number };
-    direction: string;
+    direction: 'up' | 'down' | 'left' | 'right';
     health: number;
     maxHealth: number;
     gold: number;
@@ -33,6 +33,53 @@ export interface SaveData {
   gameFlags: Record<string, boolean | number>;
   mapMarkers: MapMarker[];
   visitedTiles: string[];
+}
+
+// Loose shape used during migration — every field optional so we can defensively
+// fill anything older saves don't carry. Only `player.position` etc. are needed
+// at runtime; missing ones get filled by `normalizeSave`.
+type RawSave = Partial<Omit<SaveData, 'player' | 'version'>> & {
+  version?: number;
+  player?: Partial<SaveData['player']>;
+};
+
+function isObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/** Fill every v5 field. Safe to call on any version's payload. */
+function normalizeSave(raw: RawSave): SaveData {
+  const player = raw.player ?? {};
+  return {
+    version: SAVE_VERSION,
+    timestamp: typeof raw.timestamp === 'number' ? raw.timestamp : Date.now(),
+    player: {
+      position: player.position ?? { x: 0, y: 0 },
+      direction: player.direction ?? 'down',
+      health: player.health ?? 100,
+      maxHealth: player.maxHealth ?? 100,
+      gold: player.gold ?? 0,
+      essence: player.essence ?? 0,
+      attackDamage: player.attackDamage ?? 20,
+      attackRange: player.attackRange,
+      stamina: player.stamina ?? 120,
+      maxStamina: player.maxStamina ?? 120,
+      level: player.level,
+      vitality: player.vitality,
+      endurance: player.endurance,
+      strength: player.strength,
+    },
+    currentMap: raw.currentMap ?? 'village',
+    inventory: Array.isArray(raw.inventory) ? raw.inventory : [],
+    equippedWeaponId: raw.equippedWeaponId ?? null,
+    lastBonfire: raw.lastBonfire ?? null,
+    droppedEssence: raw.droppedEssence ?? null,
+    worldItems: Array.isArray(raw.worldItems) ? raw.worldItems : [],
+    quests: Array.isArray(raw.quests) ? raw.quests : [],
+    gameFlags: isObject(raw.gameFlags) ? (raw.gameFlags as Record<string, boolean | number>) : {},
+    mapMarkers: Array.isArray(raw.mapMarkers) ? raw.mapMarkers : [],
+    visitedTiles: Array.isArray(raw.visitedTiles) ? raw.visitedTiles : [],
+  };
 }
 
 export class SaveManager {
@@ -70,67 +117,51 @@ export class SaveManager {
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     } catch (e) {
-      console.warn('Failed to save game:', e);
+      console.warn('[SaveManager] Failed to save game:', e);
     }
   }
 
   static load(): SaveData | null {
+    let raw: string | null;
     try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return null;
-      const data: SaveData = JSON.parse(raw);
-      if (data.version !== SAVE_VERSION) {
-        // Migrate from older versions
-        if (data.version === 4 || data.version === 3 || data.version === 2) {
-          const oldData = data as unknown as SaveData & { player: { estusCharges?: number; maxEstusCharges?: number } };
-          const migrated: SaveData = {
-            ...oldData,
-            version: SAVE_VERSION,
-            worldItems: (oldData as SaveData & { worldItems?: SaveData["worldItems"] }).worldItems ?? [],
-            player: {
-              position: oldData.player.position,
-              direction: oldData.player.direction,
-              health: oldData.player.health,
-              maxHealth: oldData.player.maxHealth,
-              gold: oldData.player.gold,
-              essence: oldData.player.essence,
-              attackDamage: oldData.player.attackDamage,
-              attackRange: oldData.player.attackRange,
-              stamina: oldData.player.stamina,
-              maxStamina: oldData.player.maxStamina,
-            },
-          };
-          return migrated;
-        }
-        if (data.version === 1) {
-          const v1 = data as unknown as Omit<SaveData, 'lastBonfire' | 'droppedEssence' | 'worldItems' | 'player'> & {
-            player: SaveData['player'] & { essence?: number };
-          };
-          return {
-            ...v1,
-            version: SAVE_VERSION,
-            player: {
-              ...v1.player,
-              essence: v1.player.essence ?? 0,
-            },
-            lastBonfire: null,
-            droppedEssence: null,
-            worldItems: [],
-          } as SaveData;
-        }
-        return null;
-      }
-      return data;
-    } catch {
+      raw = localStorage.getItem(SAVE_KEY);
+    } catch (e) {
+      console.warn('[SaveManager] localStorage unavailable:', e);
       return null;
     }
+    if (!raw) return null;
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      console.error('[SaveManager] Corrupt save (invalid JSON):', e);
+      return null;
+    }
+
+    if (!isObject(parsed)) {
+      console.error('[SaveManager] Corrupt save (not an object):', typeof parsed);
+      return null;
+    }
+
+    // Versions 1-4 (and any unset/future) all go through the same defensive
+    // normalizer — it tolerates missing fields and fills them with safe defaults.
+    return normalizeSave(parsed as RawSave);
   }
 
   static hasSave(): boolean {
-    return localStorage.getItem(SAVE_KEY) !== null;
+    try {
+      return localStorage.getItem(SAVE_KEY) !== null;
+    } catch {
+      return false;
+    }
   }
 
   static clearSave(): void {
-    localStorage.removeItem(SAVE_KEY);
+    try {
+      localStorage.removeItem(SAVE_KEY);
+    } catch (e) {
+      console.warn('[SaveManager] Failed to clear save:', e);
+    }
   }
 }

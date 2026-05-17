@@ -1,16 +1,24 @@
+// Cell coordinates are packed into a single 32-bit integer key. Maps reach ~300
+// tiles with default 2-unit cells, so cell coords stay well within ±32k and the
+// packing is collision-free. Using number keys avoids per-query string
+// concatenation, which was a significant GC source in the combat AI loop.
+const COORD_BIAS = 32768;
+const packKey = (cx: number, cy: number): number =>
+  ((cx + COORD_BIAS) << 16) | (cy + COORD_BIAS);
+
 export class SpatialHash<T extends { position: { x: number; y: number }, id: string }> {
   private cellSize: number;
-  private grid: Map<string, Set<T>>;
+  private grid: Map<number, Set<T>>;
 
   constructor(cellSize: number = 2) {
     this.cellSize = cellSize;
     this.grid = new Map();
   }
 
-  private getCellKey(x: number, y: number): string {
+  private getCellKey(x: number, y: number): number {
     const cx = Math.floor(x / this.cellSize);
     const cy = Math.floor(y / this.cellSize);
-    return `${cx},${cy}`;
+    return packKey(cx, cy);
   }
 
   clear() {
@@ -19,10 +27,12 @@ export class SpatialHash<T extends { position: { x: number; y: number }, id: str
 
   insert(entity: T) {
     const key = this.getCellKey(entity.position.x, entity.position.y);
-    if (!this.grid.has(key)) {
-      this.grid.set(key, new Set());
+    let cell = this.grid.get(key);
+    if (!cell) {
+      cell = new Set();
+      this.grid.set(key, cell);
     }
-    this.grid.get(key)!.add(entity);
+    cell.add(entity);
   }
 
   remove(entity: T, oldPos?: { x: number, y: number }) {
@@ -40,7 +50,7 @@ export class SpatialHash<T extends { position: { x: number; y: number }, id: str
   update(entity: T, oldPos: { x: number, y: number }) {
     const oldKey = this.getCellKey(oldPos.x, oldPos.y);
     const newKey = this.getCellKey(entity.position.x, entity.position.y);
-    
+
     if (oldKey !== newKey) {
       this.remove(entity, oldPos);
       this.insert(entity);
@@ -57,8 +67,7 @@ export class SpatialHash<T extends { position: { x: number; y: number }, id: str
 
     for (let cx = minX; cx <= maxX; cx++) {
       for (let cy = minY; cy <= maxY; cy++) {
-        const key = `${cx},${cy}`;
-        const cell = this.grid.get(key);
+        const cell = this.grid.get(packKey(cx, cy));
         if (cell) {
           for (const entity of cell) {
             const dx = entity.position.x - x;

@@ -19,6 +19,10 @@ export class ParticleSystem {
   private readonly particleMaterials: THREE.MeshBasicMaterial[] = [];
   private readonly particleMeshes: THREE.InstancedMesh[] = [];
   private readonly tempParticleObject = new THREE.Object3D();
+  /** Count of live particles. Lets the per-frame update bail before iterating an idle pool. */
+  private activeCount: number = 0;
+  /** Set when any mesh was non-empty last frame so we can clear instance counts once. */
+  private meshesDirty: boolean = false;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -100,13 +104,31 @@ export class ParticleSystem {
     speed: number = 2,
     spread: number = 1
   ) {
+    this.emitAt(position.x, position.y, position.z, count, color, lifetime, speed, spread);
+  }
+
+  /**
+   * Numeric-args variant of {@link emit} for hot-path callers — avoids the
+   * `new THREE.Vector3(...)` allocation that combat/AI loops were paying on
+   * every hit. Behaviorally identical to `emit`.
+   */
+  emitAt(
+    x: number,
+    y: number,
+    z: number,
+    count: number,
+    color: number,
+    lifetime: number = 1,
+    speed: number = 2,
+    spread: number = 1
+  ) {
     let emitted = 0;
     for (const particle of this.particles) {
       if (!particle.active && emitted < count) {
         particle.active = true;
         particle.lifetime = 0;
         particle.maxLifetime = lifetime;
-        particle.position.copy(position);
+        particle.position.set(x, y, z);
 
         particle.velocity.set(
           (Math.random() - 0.5) * spread,
@@ -117,8 +139,17 @@ export class ParticleSystem {
         particle.color.setHex(color);
 
         emitted++;
+        this.activeCount++;
       }
     }
+  }
+
+  emitSparklesAt(x: number, y: number, z: number) {
+    this.emitAt(x, y, z, 5, 0xcccccc, 0.4, 1, 1.5);
+  }
+
+  emitDamageAt(x: number, y: number, z: number) {
+    this.emitAt(x, y, z, 4, 0xdddddd, 0.4, 1.5, 1);
   }
 
   emitSparkles(position: THREE.Vector3) {
@@ -162,6 +193,19 @@ export class ParticleSystem {
   }
 
   update(deltaTime: number) {
+    if (this.activeCount === 0) {
+      // Nothing live — make sure the instanced meshes don't keep rendering
+      // stale instances from the last burst, then bail before touching the pool.
+      if (this.meshesDirty) {
+        for (const mesh of this.particleMeshes) {
+          mesh.count = 0;
+          mesh.visible = false;
+        }
+        this.meshesDirty = false;
+      }
+      return;
+    }
+
     for (const particle of this.particles) {
       if (particle.active) {
         particle.position.x += particle.velocity.x * deltaTime;
@@ -174,11 +218,13 @@ export class ParticleSystem {
 
         if (particle.lifetime >= particle.maxLifetime) {
           particle.active = false;
+          this.activeCount--;
         }
       }
     }
 
     this.syncParticleInstances();
+    this.meshesDirty = true;
   }
 
   cleanup() {

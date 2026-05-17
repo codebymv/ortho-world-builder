@@ -193,13 +193,10 @@ export function runPlayerFramePhase({
     if (Math.random() < 0.5) {
       const px = state.player.position.x - lungeState.dirX * 0.3 + (Math.random() - 0.5) * 0.3;
       const py = state.player.position.y - lungeState.dirY * 0.3 + (Math.random() - 0.5) * 0.3;
-      particleSystem.emit(new THREE.Vector3(px, py, 0.1), 2, 0x8899bb, 0.15, 0.5, 0.3);
+      particleSystem.emitAt(px, py, 0.1, 2, 0x8899bb, 0.15, 0.5, 0.3);
     }
     if (Math.random() < 0.3) {
-      particleSystem.emit(
-        new THREE.Vector3(state.player.position.x, state.player.position.y, 0.05),
-        1, 0x998866, 0.2, 0.3, 0.4,
-      );
+      particleSystem.emitAt(state.player.position.x, state.player.position.y, 0.05, 1, 0x998866, 0.2, 0.3, 0.4);
     }
   }
 

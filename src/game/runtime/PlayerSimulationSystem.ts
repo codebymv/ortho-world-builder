@@ -273,31 +273,28 @@ export function updatePlayerSimulation({
   if (state.player.isDodging) {
     state.player.dodgeTimer -= deltaTime;
     const dodgeFrameSpeed = state.player.dodgeSpeed * deltaTime * 60;
-    const newPos = {
-      x: state.player.position.x + state.player.dodgeDirection.x * dodgeFrameSpeed,
-      y: state.player.position.y + state.player.dodgeDirection.y * dodgeFrameSpeed,
-    };
+    const newDodgeX = state.player.position.x + state.player.dodgeDirection.x * dodgeFrameSpeed;
+    const newDodgeY = state.player.position.y + state.player.dodgeDirection.y * dodgeFrameSpeed;
 
     // Mirror the exact four corner probes that canMoveTo(r=0.2) uses so we
     // break whichever tile blocks the roll — radius checks against tile
     // centers are unreliable when the player straddles a tile boundary.
     const dodgeMap = world.getCurrentMap();
     const DR = 0.2;
-    const dodgeCorners: [number, number][] = [
-      [newPos.x - DR, newPos.y - DR],
-      [newPos.x + DR, newPos.y - DR],
-      [newPos.x - DR, newPos.y + DR],
-      [newPos.x + DR, newPos.y + DR],
-    ];
+    const halfW = dodgeMap.width / 2;
+    const halfH = dodgeMap.height / 2;
     let dodgeBroke = false;
-    for (const [cx, cy] of dodgeCorners) {
-      const tx = Math.floor(cx + dodgeMap.width / 2);
-      const ty = Math.floor(cy + dodgeMap.height / 2);
+    for (let i = 0; i < 4; i++) {
+      const cx = newDodgeX + (i & 1 ? DR : -DR);
+      const cy = newDodgeY + (i & 2 ? DR : -DR);
+      const tx = Math.floor(cx + halfW);
+      const ty = Math.floor(cy + halfH);
       if (breakTileAt(world, dodgeMap, tx, ty, particleSystem)) dodgeBroke = true;
     }
     if (dodgeBroke) playPropBreak?.();
-    if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, newPos.y, 0.2)) {
-      state.player.position = newPos;
+    if (world.canMoveTo(state.player.position.x, state.player.position.y, newDodgeX, newDodgeY, 0.2)) {
+      state.player.position.x = newDodgeX;
+      state.player.position.y = newDodgeY;
     }
 
     if (state.player.dodgeTimer <= 0) {
@@ -324,17 +321,18 @@ export function updatePlayerSimulation({
     }
 
     const frameSpeed = currentSpeed * deltaTime * 60;
-    const newPos = {
-      x: state.player.position.x + moveX * frameSpeed,
-      y: state.player.position.y + moveY * frameSpeed,
-    };
+    const newX = state.player.position.x + moveX * frameSpeed;
+    const newY = state.player.position.y + moveY * frameSpeed;
+    const curX = state.player.position.x;
+    const curY = state.player.position.y;
 
-    if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, newPos.y, 0.2)) {
-      state.player.position = newPos;
-    } else if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, state.player.position.y, 0.2)) {
-      state.player.position.x = newPos.x;
-    } else if (world.canMoveTo(state.player.position.x, state.player.position.y, state.player.position.x, newPos.y, 0.2)) {
-      state.player.position.y = newPos.y;
+    if (world.canMoveTo(curX, curY, newX, newY, 0.2)) {
+      state.player.position.x = newX;
+      state.player.position.y = newY;
+    } else if (world.canMoveTo(curX, curY, newX, curY, 0.2)) {
+      state.player.position.x = newX;
+    } else if (world.canMoveTo(curX, curY, curX, newY, 0.2)) {
+      state.player.position.y = newY;
     }
 
     state.player.isMoving = true;
@@ -383,12 +381,14 @@ export function updatePlayerSimulation({
         attackFrame = 0;
         comboWindowTimer = comboWindowDuration;
 
-        // If input was buffered during the swing, chain immediately
-        if (comboInputBuffered && comboStep < 2) {
+        // If input was buffered during the swing, chain immediately.
+        // After a finisher (step >= 2) triggerComboChain wraps back to step 0
+        // so the player keeps swinging instead of dropping the press.
+        if (comboInputBuffered) {
           comboInputBuffered = false;
           const chainResult = triggerComboChain();
           if (chainResult) {
-            comboStep = comboStep + 1; // keep local var in sync with the setter inside triggerComboChain
+            comboStep = comboStep >= 2 ? 0 : comboStep + 1; // mirror triggerComboChain's wrap-or-advance
             attackFrame = 0;
             attackFrameTimer = chainResult.frameDuration;
             playerAnimState = 'attack';
@@ -430,13 +430,12 @@ export function updatePlayerSimulation({
 
   if (playerAnimState === 'lunge' && lungeState.active) {
     const step = lungeState.speed * deltaTime;
-    const newPos = {
-      x: state.player.position.x + lungeState.dirX * step,
-      y: state.player.position.y + lungeState.dirY * step,
-    };
+    const newLungeX = state.player.position.x + lungeState.dirX * step;
+    const newLungeY = state.player.position.y + lungeState.dirY * step;
 
-    if (world.canMoveTo(state.player.position.x, state.player.position.y, newPos.x, newPos.y, 0.2)) {
-      state.player.position = newPos;
+    if (world.canMoveTo(state.player.position.x, state.player.position.y, newLungeX, newLungeY, 0.2)) {
+      state.player.position.x = newLungeX;
+      state.player.position.y = newLungeY;
     } else {
       lungeState.distanceRemaining = 0;
     }
@@ -503,7 +502,7 @@ export function updatePlayerSimulation({
         state.player.dodgeTimer = state.player.dodgeDuration;
         state.player.iFrameTimer = dodgeIFrameDuration;
         state.player.dodgeDirection = { x: -lungeState.dirX, y: -lungeState.dirY };
-        state.player.lastDodgeTime = Date.now();
+        state.player.lastDodgeTime = performance.now();
         playerAnimState = 'dodge';
       } else {
         playerAnimState = moved ? 'walk' : 'idle';

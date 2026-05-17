@@ -6,6 +6,14 @@ import { markObjectiveDone } from '@/lib/game/progressionToasts';
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
 type Direction4 = 'up' | 'down' | 'left' | 'right';
+
+// Hoisted to module scope so per-attack frames don't allocate the literal.
+const DIR_OFFSETS_4: Record<Direction4, { x: number; y: number }> = {
+  up: { x: 0, y: 1 },
+  down: { x: 0, y: -1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+};
 type PlayerAnimState =
   | 'idle'
   | 'walk'
@@ -186,10 +194,7 @@ export function createRuntimeCombatActions({
           y: enemy.position.y,
         });
         screenShake.shake(0.5, 0.4);
-        particleSystem.emit(
-          new THREE.Vector3(enemy.position.x, enemy.position.y, 0.5),
-          30, 0xAA8844, 0.1, 1.8, 1.2,
-        );
+        particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 30, 0xAA8844, 0.1, 1.8, 1.2);
       }
       if (enemy.type === 'hollow_guardian') {
         state.setFlag('hollow_guardian_defeated', true);
@@ -206,10 +211,7 @@ export function createRuntimeCombatActions({
         });
         screenShake.shake(0.6, 0.5);
         screenShake.hitStop(0.3);
-        particleSystem.emit(
-          new THREE.Vector3(enemy.position.x, enemy.position.y, 0.5),
-          40, 0x7C4DFF, 0.12, 2.0, 1.5,
-        );
+        particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 40, 0x7C4DFF, 0.12, 2.0, 1.5);
         if (onBossDefeated) onBossDefeated();
         for (const e of combatSystem.getAllEnemies()) {
           if (e.id !== enemy.id && e.state !== 'dead') {
@@ -222,10 +224,7 @@ export function createRuntimeCombatActions({
         state.setFlag('ashen_reaver_defeated', true);
         screenShake.shake(0.7, 0.6);
         screenShake.hitStop(0.35);
-        particleSystem.emit(
-          new THREE.Vector3(enemy.position.x, enemy.position.y, 0.5),
-          50, 0xFF4400, 0.14, 2.5, 1.8,
-        );
+        particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 50, 0xFF4400, 0.14, 2.5, 1.8);
         if (onBossDefeated) onBossDefeated();
         for (const e of combatSystem.getAllEnemies()) {
           if (e.id !== enemy.id && e.state !== 'dead') {
@@ -269,29 +268,20 @@ export function createRuntimeCombatActions({
   };
 
   const _applyAttackDamage = (step: number) => {
-    const dirOffsets: Record<Direction4, { x: number; y: number }> = {
-      up: { x: 0, y: 1 },
-      down: { x: 0, y: -1 },
-      left: { x: -1, y: 0 },
-      right: { x: 1, y: 0 },
-    };
-
     const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, state.player.attackRange);
     if (enemiesInRange.length === 0) {
-      const attackPos = { ...state.player.position };
-      const direction = dir8to4(getCurrentDir8());
-      if (direction === 'up') attackPos.y += 1;
-      else if (direction === 'down') attackPos.y -= 1;
-      else if (direction === 'left') attackPos.x -= 1;
-      else if (direction === 'right') attackPos.x += 1;
-      particleSystem.emit(new THREE.Vector3(attackPos.x, attackPos.y, 0.3), 4, 0xffffff, 0.3, 1, 1);
-      breakTilesInRadius(world, world.getCurrentMap(), attackPos.x, attackPos.y, state.player.attackRange, particleSystem, playPropBreak);
+      const direction = dir8to4(getCurrentDir8()) as Direction4;
+      const off = DIR_OFFSETS_4[direction];
+      const attackX = state.player.position.x + off.x;
+      const attackY = state.player.position.y + off.y;
+      particleSystem.emitAt(attackX, attackY, 0.3, 4, 0xffffff, 0.3, 1, 1);
+      breakTilesInRadius(world, world.getCurrentMap(), attackX, attackY, state.player.attackRange, particleSystem, playPropBreak);
       return;
     }
 
     let target = enemiesInRange[0];
-    const direction = dir8to4(getCurrentDir8());
-    const dir = dirOffsets[direction];
+    const direction = dir8to4(getCurrentDir8()) as Direction4;
+    const dir = DIR_OFFSETS_4[direction];
     const facingEnemies = enemiesInRange.filter(enemy => {
       const dx = enemy.position.x - state.player.position.x;
       const dy = enemy.position.y - state.player.position.y;
@@ -336,10 +326,10 @@ export function createRuntimeCombatActions({
 
     // Finisher: emit extra sparkles on step 2
     if (step === 2) {
-      particleSystem.emitSparkles(new THREE.Vector3(target.position.x, target.position.y + 0.3, 0.5));
+      particleSystem.emitSparklesAt(target.position.x, target.position.y + 0.3, 0.5);
     }
 
-    particleSystem.emitDamage(new THREE.Vector3(target.position.x, target.position.y, 0.3));
+    particleSystem.emitDamageAt(target.position.x, target.position.y, 0.3);
 
     if (result.killed) onEnemyKilled(target);
   };
@@ -347,7 +337,7 @@ export function createRuntimeCombatActions({
   // Core attack logic for a given combo step (0=first hit, 1=second, 2=finisher).
   // Returns the frameDuration so callers (e.g. simulation) can sync local timer variables.
   const _executeAttackStep = (step: number, skipCooldown = false): number => {
-    const currentTime = Date.now();
+    const currentTime = performance.now();
     if (!skipCooldown && currentTime - state.player.lastAttackTime < state.player.attackCooldown) return 0;
     if (state.player.isDodging) return 0;
     if (state.player.stamina < attackStaminaCost) return 0;
@@ -378,9 +368,12 @@ export function createRuntimeCombatActions({
     const animState = getPlayerAnimState();
     const step = getComboStep();
 
-    // During active swing: buffer the next hit rather than ignoring input
+    // During active swing: buffer the next press regardless of combo step.
+    // For step < 2 the buffer chains into the next combo hit; for step 2
+    // (finisher) it starts a fresh combo from step 0 once the swing ends —
+    // either way the player's input is honored instead of silently dropped.
     if (animState === 'attack') {
-      if (step < 2) setComboInputBuffered(true);
+      setComboInputBuffered(true);
       return;
     }
 
@@ -403,14 +396,15 @@ export function createRuntimeCombatActions({
   };
 
   // Called by PlayerSimulationSystem when a buffered input fires at animation end.
+  // For step 0/1 this advances the combo chain; for step 2 (finisher) it restarts
+  // a fresh combo at step 0 so a press during the finisher swing isn't lost.
   // Returns the new frameDuration so the simulation can update its local timer variables.
   const triggerComboChain = (): { frameDuration: number } | null => {
     const step = getComboStep();
-    if (step >= 2) return null;
     if (state.player.isDodging) return null;
     if (state.player.stamina < attackStaminaCost) return null;
 
-    const nextStep = step + 1;
+    const nextStep = step >= 2 ? 0 : step + 1;
     setComboStep(nextStep);
     setComboInputBuffered(false);
 
@@ -427,7 +421,7 @@ export function createRuntimeCombatActions({
   };
 
   const performLungeAttack = (level: number) => {
-    const currentTime = Date.now();
+    const currentTime = performance.now();
     if (state.player.isDodging || state.player.stamina < chargeAttackStaminaCost) {
       clearChargeState();
       setPlayerAnimState('idle');
@@ -457,7 +451,7 @@ export function createRuntimeCombatActions({
   };
 
   const performArcSlash = (level: number) => {
-    const currentTime = Date.now();
+    const currentTime = performance.now();
     if (state.player.isDodging || state.player.stamina < chargeAttackStaminaCost) {
       clearChargeState();
       setPlayerAnimState('idle');
@@ -506,13 +500,10 @@ export function createRuntimeCombatActions({
         if (result.staggered) {
           floatingText.spawn(target.position.x, target.position.y + 0.4, 'STAGGER!', '#88AAFF', 20);
         }
-        particleSystem.emitDamage(new THREE.Vector3(target.position.x, target.position.y, 0.3));
+        particleSystem.emitDamageAt(target.position.x, target.position.y, 0.3);
       }
 
-      particleSystem.emit(
-        new THREE.Vector3(checkPos.x, checkPos.y, 0.3),
-        3, 0x6A0DAD, 0.2, 0.8, 0.6,
-      );
+      particleSystem.emitAt(checkPos.x, checkPos.y, 0.3, 3, 0x6A0DAD, 0.2, 0.8, 0.6);
       breakTilesInRadius(world, world.getCurrentMap(), checkPos.x, checkPos.y, arcWidth, particleSystem, playPropBreak);
     }
 
@@ -521,7 +512,7 @@ export function createRuntimeCombatActions({
         x: state.player.position.x + dx * arcRange,
         y: state.player.position.y + dy * arcRange,
       };
-      particleSystem.emit(new THREE.Vector3(endPos.x, endPos.y, 0.3), 6, 0x6A0DAD, 0.3, 1, 0.8);
+      particleSystem.emitAt(endPos.x, endPos.y, 0.3, 6, 0x6A0DAD, 0.3, 1, 0.8);
     }
 
     setSpinSwooshTimer(spinSwooshDuration);
@@ -537,7 +528,7 @@ export function createRuntimeCombatActions({
       return;
     }
 
-    const currentTime = Date.now();
+    const currentTime = performance.now();
     if (state.player.isDodging || state.player.stamina < chargeAttackStaminaCost) {
       clearChargeState();
       setPlayerAnimState('idle');
@@ -574,7 +565,7 @@ export function createRuntimeCombatActions({
       else if (direction === 'left') attackPos.x -= 1.5;
       else if (direction === 'right') attackPos.x += 1.5;
 
-      particleSystem.emit(new THREE.Vector3(attackPos.x, attackPos.y, 0.3), 4, 0xcccccc, 0.3, 1, 1);
+      particleSystem.emitAt(attackPos.x, attackPos.y, 0.3, 4, 0xcccccc, 0.3, 1, 1);
       return;
     }
 
@@ -601,8 +592,8 @@ export function createRuntimeCombatActions({
         floatingText.spawn(target.position.x, target.position.y + 0.4, 'STAGGER!', '#88AAFF', 20);
       }
 
-      particleSystem.emitDamage(new THREE.Vector3(target.position.x, target.position.y, 0.3));
-      particleSystem.emitSparkles(new THREE.Vector3(target.position.x, target.position.y + 0.3, 0.5));
+      particleSystem.emitDamageAt(target.position.x, target.position.y, 0.3);
+      particleSystem.emitSparklesAt(target.position.x, target.position.y + 0.3, 0.5);
 
       if (result.killed) {
         onEnemyKilled(target);

@@ -32,7 +32,7 @@ export function createPerformDodgeAction({
   dodgeStaminaCost,
 }: CreatePerformDodgeActionOptions) {
   return (moveX: number, moveY: number) => {
-    const now = Date.now();
+    const now = performance.now();
     if (now - state.player.lastDodgeTime < state.player.dodgeCooldown) return;
     if (state.player.stamina < dodgeStaminaCost) return;
     if (state.player.isDodging) return;

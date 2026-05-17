@@ -1,6 +1,44 @@
 import * as THREE from 'three';
 import { items } from '../../data/items';
 
+/**
+ * Hand-curated names of game flags set anywhere in the codebase.
+ *
+ * Adding a flag here is optional — `setFlag`/`getFlag` still accept any
+ * `string` — but listing it unlocks autocomplete and a "find references"
+ * starting point. Dynamic keys (e.g. `tempest_grass_${map}_${x}_${y}`,
+ * `${interactionId}_opened`) are intentionally not listed.
+ */
+export type KnownGameFlag =
+  | 'ashen_reaver_defeated'
+  | 'blighted_root_destroyed'
+  | 'chapel_key_collected'
+  | 'cliff_corridor_ladder_extended'
+  | 'forest_fort_gate_open'
+  | 'forest_golem_defeated'
+  | 'forest_kill_count'
+  | 'grove_shelf_shortcut_open'
+  | 'guard_duty_kill_baseline'
+  | 'hollow_approach_ladder_extended'
+  | 'hollow_entered'
+  | 'hollow_guardian_defeated'
+  | 'hollow_shortcut_open'
+  | 'hunter_clue_dialogue_seen'
+  | 'hunters_manuscript_collected'
+  | 'manuscript_fragment_collected'
+  | 'north_fort_gate_open'
+  | 'petra_heart_delivered'
+  | 'village_after_manuscript'
+  | 'village_after_reaver'
+  | 'whispering_woods_shortcut_open';
+
+/**
+ * Accepts a known flag (autocomplete-friendly) or any other string
+ * for dynamically built keys. The `(string & {})` keeps the union
+ * from collapsing to plain `string` while still allowing any input.
+ */
+export type GameFlagKey = KnownGameFlag | (string & Record<never, never>);
+
 export interface PlayerState {
   position: { x: number; y: number };
   direction: 'up' | 'down' | 'left' | 'right';
@@ -308,11 +346,30 @@ export class GameState {
     return true;
   }
 
-  setFlag(flag: string, value: boolean | number) {
+  setFlag(flag: GameFlagKey, value: boolean | number) {
     this.gameFlags[flag] = value;
   }
 
-  getFlag(flag: string): boolean | number {
-    return this.gameFlags[flag] || false;
+  /**
+   * Returns the raw stored value (boolean or number) or `false` when unset.
+   *
+   * Prefer {@link getFlagBool} or {@link getFlagNumber} at call sites — the
+   * union return type forces every caller to narrow, and the legacy `||`
+   * fallback collapses a stored `0` to `false`, which can hide real state for
+   * numeric counters. Kept for back-compat with `if (state.getFlag(x))` usage.
+   */
+  getFlag(flag: GameFlagKey): boolean | number {
+    return this.gameFlags[flag] ?? false;
+  }
+
+  /** True iff the flag is set to a truthy value. Safe for boolean-style flags. */
+  getFlagBool(flag: GameFlagKey): boolean {
+    return Boolean(this.gameFlags[flag]);
+  }
+
+  /** Numeric value of the flag, or 0 when unset / non-numeric. */
+  getFlagNumber(flag: GameFlagKey): number {
+    const v = this.gameFlags[flag];
+    return typeof v === 'number' ? v : 0;
   }
 }
