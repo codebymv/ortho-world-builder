@@ -23,6 +23,7 @@ interface CreateGameRuntimeOptions {
   setAssetManagerRef: (assetManager: AssetManager) => void;
   setWorldRef: (world: World) => void;
   setGameStateRef: (state: GameState) => void;
+  setCombatSystemRef: (combatSystem: CombatSystem) => void;
   items: Record<string, Item>;
   criticalPathItems: Record<string, CriticalPathItemVisual>;
   setMapMarkers: (markers: MapMarker[]) => void;
@@ -55,6 +56,7 @@ export function createGameRuntime({
   setAssetManagerRef,
   setWorldRef,
   setGameStateRef,
+  setCombatSystemRef,
   items,
   criticalPathItems,
   setMapMarkers,
@@ -95,6 +97,7 @@ export function createGameRuntime({
 
   const particleSystem = new ParticleSystem(scene);
   const combatSystem = new CombatSystem(state);
+  setCombatSystemRef(combatSystem);
   const biomeAmbience = new BiomeAmbience(scene);
   const weatherSystem = new WeatherSystem(scene);
   const dayNightCycle = new DayNightCycle(scene);

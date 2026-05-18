@@ -14,6 +14,14 @@ const DORMANCY_RANGE_SQ = 40 * 40;
 // Keeps pre-staged battles in stasis until the player is close enough to witness the start.
 const FACTION_FIGHT_WAKE_SQ = 16 * 16;
 const _tmpOldPos = { x: 0, y: 0 };
+const HOLLOW_STILLNESS_THRESHOLD_SQ = 0.25 * 0.25;
+const HOLLOW_STILLNESS_TRIGGER = 0.75;
+const FALLING_SCYTHE_WARNING = 0.45;
+const FALLING_SCYTHE_STRIKE = 0.35;
+const FALLING_SCYTHE_RADIUS = 0.75;
+const HOLLOW_ECLIPSE_TELEGRAPH = 2.2;
+const HOLLOW_ECLIPSE_PHASE_DELAY = 8.0;
+const HOLLOW_ECLIPSE_CHANCE = 0.08;
 
 function trySlideEnemyMove(
   world: World,
@@ -115,9 +123,15 @@ export interface Enemy {
   /** True once the player has attacked this enemy, permanently overriding faction targeting. */
   playerAggroed: boolean;
   /** Current attack variant being telegraphed. */
-  currentAttackType: 'normal' | 'sweep' | 'nova';
+  currentAttackType: 'normal' | 'sweep' | 'nova' | 'combo_sweep' | 'combo_finisher' | 'hail_mary';
   /** Timer for the dark nova windup (slamming state). */
   novaSlamTimer: number;
+  /** Hollow Apparition phase-local timer, used by rare spectacle attacks. */
+  phaseElapsed: number;
+  /** Tracks once-per-phase Hollow Eclipse usage. */
+  hollowEclipseUsedPhases: Set<number>;
+  /** Remaining chained combo hits after a boss attack. */
+  comboHitsRemaining: number;
   /** Stable per-enemy seed in [0, 1) used by visual systems for sub-tile jitter, idle bob phase, etc. */
   visualSeed: number;
 }
@@ -128,14 +142,56 @@ export interface AttackResult {
   backstab: boolean;
 }
 
+/** Enemy-spawned thrown projectile (e.g. Hollow Reaver scythe). Resolves player collision in updateProjectiles. */
+export interface Projectile {
+  id: string;
+  position: { x: number; y: number };
+  velocity: { x: number; y: number };
+  damage: number;
+  lifetime: number;
+  maxLifetime: number;
+  sourceEnemyId: string;
+  sprite: string;
+  spinRate: number;
+  rotation: number;
+  hitRadius: number;
+  alive: boolean;
+  reflected: boolean;
+  reflectedTargetEnemyId?: string;
+}
+
+export interface FallingScytheHazard {
+  id: string;
+  position: { x: number; y: number };
+  radius: number;
+  damage: number;
+  warningTimer: number;
+  strikeTimer: number;
+  maxWarningTimer: number;
+  maxStrikeTimer: number;
+  rotation: number;
+  spinRate: number;
+  state: 'warning' | 'striking';
+  alive: boolean;
+  hitPlayer: boolean;
+  source: 'stillness' | 'eclipse';
+}
+
 export class CombatSystem {
   private enemies: Enemy[] = [];
+  private projectiles: Projectile[] = [];
+  private fallingScytheHazards: FallingScytheHazard[] = [];
   private gameState: GameState;
   private _cachedLiveEnemies: Enemy[] = [];
   private _enemiesDirty: boolean = true;
   private spatialHash: SpatialHash<Enemy>;
   /** Monotonic counter for unique enemy ids — replaces the old Date.now()+Math.random() pair that could collide on rapid double-spawns. */
   private _nextEnemyIdSeq: number = 0;
+  private _nextProjectileIdSeq: number = 0;
+  private _nextFallingScytheIdSeq: number = 0;
+  private hollowStillnessTimer: number = 0;
+  private hollowLastPlayerPosition: { x: number; y: number } | null = null;
+  private hollowStillnessCooldown: number = 0;
 
   constructor(gameState: GameState) {
     this.gameState = gameState;
@@ -199,6 +255,9 @@ export class CombatSystem {
       playerAggroed: false,
       currentAttackType: 'normal',
       novaSlamTimer: 0,
+      phaseElapsed: 0,
+      hollowEclipseUsedPhases: new Set<number>(),
+      comboHitsRemaining: 0,
       visualSeed: Math.random(),
     };
 
@@ -334,6 +393,10 @@ export class CombatSystem {
         }
       }
 
+      if (enemy.type === 'hollow_guardian') {
+        enemy.phaseElapsed += deltaTime;
+      }
+
       // Stone Golem phase 2 at 50% HP — cracks appear, becomes faster and more aggressive
       if (enemy.type === 'golem' && !enemy.phaseTransitioned && enemy.health <= enemy.maxHealth * 0.5) {
         enemy.phase = 2;
@@ -350,6 +413,19 @@ export class CombatSystem {
         if (onPhaseChange) onPhaseChange(enemy, 2);
       }
 
+      // Corrupted Giant enrage at 50% HP — corruption veins rupture, becomes relentless
+      if (enemy.type === 'corrupted_giant' && !enemy.phaseTransitioned && enemy.health <= enemy.maxHealth * 0.5) {
+        enemy.phase = 2;
+        enemy.phaseTransitioned = true;
+        enemy.speed *= 1.30;
+        enemy.telegraphDuration *= 0.80;
+        enemy.recoverDuration *= 0.75;
+        enemy.damage = Math.round(enemy.damage * 1.20);
+        // Chain chance spikes hard — feels relentless vs the methodical golem cadence
+        enemy.behaviorOverrides = { ...enemy.behaviorOverrides, chainChance: 0.75, snareDuration: 0.6 };
+        if (onPhaseChange) onPhaseChange(enemy, 2);
+      }
+
       // Phase 2 transition for the Hollow Apparition at 50% HP — gains speed and aggression
       if (enemy.type === 'hollow_guardian' && !enemy.phaseTransitioned && enemy.health <= enemy.maxHealth * 0.5) {
         enemy.phase = 2;
@@ -359,6 +435,8 @@ export class CombatSystem {
         enemy.recoverDuration *= 0.7;
         enemy.damage = Math.round(enemy.damage * 1.3);
         enemy.behaviorOverrides = { ...enemy.behaviorOverrides, chainChance: 0.4 };
+        enemy.phaseElapsed = 0;
+        enemy.comboHitsRemaining = 0;
         if (onPhaseChange) onPhaseChange(enemy, 2);
       }
       // Phase 3 transition at 25% HP — second summon wave, final enrage
@@ -369,6 +447,8 @@ export class CombatSystem {
         enemy.recoverDuration *= 0.8;
         enemy.damage = Math.round(enemy.damage * 1.15);
         enemy.behaviorOverrides = { ...enemy.behaviorOverrides, chainChance: 0.6 };
+        enemy.phaseElapsed = 0;
+        enemy.comboHitsRemaining = 0;
         if (onPhaseChange) onPhaseChange(enemy, 3);
       }
 
@@ -483,14 +563,44 @@ export class CombatSystem {
           updateMovementVisuals(enemy, 0, 0, false, 0);
 
           if (enemy.telegraphTimer <= 0) {
-            const isSweep = enemy.currentAttackType === 'sweep';
+            const isSweep = enemy.currentAttackType === 'sweep' || enemy.currentAttackType === 'combo_sweep';
+            const isComboFinisher = enemy.currentAttackType === 'combo_finisher';
             const rangeMult = isSweep ? 3.0 : 1.69;
             const extAttackRangeSq = attackRangeSq * rangeMult;
 
             const savedDamage = enemy.damage;
             if (isSweep) enemy.damage = Math.floor(enemy.damage * 0.7);
 
-            if (enemy.factionTarget && enemy.factionTarget.state !== 'dead') {
+            const eBo = enemy.behaviorOverrides;
+            // Ranged projectile path — release a thrown blade aimed at the player's current position.
+            // Skip the melee damage check entirely; the projectile resolves its own hit in updateProjectiles.
+            const rangedDistSq = distSq;
+            const rangedMaxSq = (eBo.rangedRange ?? 3.0) * (eBo.rangedRange ?? 3.0) * 4;
+            if (isComboFinisher) {
+              const finisherRadius = 2.0;
+              if (world && particleSystem) {
+                breakTilesInRadius(world, world.getCurrentMap(), enemy.position.x, enemy.position.y, finisherRadius, particleSystem, playPropBreak);
+              }
+              const finisherDx = playerPosition.x - enemy.position.x;
+              const finisherDy = playerPosition.y - enemy.position.y;
+              const finisherDistSq = finisherDx * finisherDx + finisherDy * finisherDy;
+              if (finisherDistSq <= finisherRadius * finisherRadius && !playerInvulnerable) {
+                this.applyAreaHitToPlayer(Math.floor(enemy.damage * 1.25), playerBlocking);
+              }
+            } else if (eBo.rangedAttack && eBo.rangedProjectile && rangedDistSq > attackRangeSq && rangedDistSq <= rangedMaxSq) {
+              const dxP = playerPosition.x - enemy.position.x;
+              const dyP = playerPosition.y - enemy.position.y;
+              const lenP = Math.hypot(dxP, dyP) || 1;
+              const speed = eBo.rangedProjectileSpeed ?? 6.0;
+              this.spawnProjectile({
+                position: { x: enemy.position.x, y: enemy.position.y },
+                velocity: { x: (dxP / lenP) * speed, y: (dyP / lenP) * speed },
+                damage: enemy.damage,
+                sprite: eBo.rangedProjectileSprite ?? 'projectile_scythe',
+                lifetime: eBo.rangedProjectileLifetime ?? 1.4,
+                sourceEnemyId: enemy.id,
+              });
+            } else if (enemy.factionTarget && enemy.factionTarget.state !== 'dead') {
               const ftDx = enemy.factionTarget.position.x - enemy.position.x;
               const ftDy = enemy.factionTarget.position.y - enemy.position.y;
               const ftDistSq = ftDx * ftDx + ftDy * ftDy;
@@ -532,6 +642,31 @@ export class CombatSystem {
           if (enemy.recoverTimer <= 0) {
             const bo = enemy.behaviorOverrides;
 
+            if (enemy.type === 'hollow_guardian') {
+              if (enemy.comboHitsRemaining > 0 && distSq <= attackRangeSq * 2.75) {
+                enemy.state = 'telegraphing';
+                enemy.currentAttackType = enemy.phase >= 3 && enemy.comboHitsRemaining === 1
+                  ? 'combo_finisher'
+                  : 'combo_sweep';
+                enemy.telegraphTimer = enemy.currentAttackType === 'combo_finisher' ? 0.55 : 0.5;
+                enemy.comboHitsRemaining--;
+                break;
+              }
+
+              if (
+                enemy.phaseElapsed >= HOLLOW_ECLIPSE_PHASE_DELAY &&
+                !enemy.hollowEclipseUsedPhases.has(enemy.phase) &&
+                Math.random() < HOLLOW_ECLIPSE_CHANCE
+              ) {
+                enemy.hollowEclipseUsedPhases.add(enemy.phase);
+                enemy.state = 'slamming';
+                enemy.currentAttackType = 'hail_mary';
+                enemy.novaSlamTimer = HOLLOW_ECLIPSE_TELEGRAPH;
+                enemy.attackAnimationTimer = 0.5;
+                break;
+              }
+            }
+
             if (enemy.type === 'hollow_guardian' && enemy.phase >= 2 &&
                 distSq <= attackRangeSq * 2.25) {
               const isP3 = enemy.phase === 3;
@@ -561,6 +696,15 @@ export class CombatSystem {
                 enemy.state = 'telegraphing';
                 enemy.currentAttackType = 'sweep';
                 enemy.telegraphTimer = isP3 ? 0.6 : 0.7;
+                break;
+              }
+
+              const comboChance = isP3 ? 0.35 : 0.28;
+              if (roll < chargeChance + novaThreshold + sweepChance + comboChance) {
+                enemy.state = 'telegraphing';
+                enemy.currentAttackType = 'combo_sweep';
+                enemy.telegraphTimer = isP3 ? 0.5 : 0.55;
+                enemy.comboHitsRemaining = isP3 ? 1 : 0;
                 break;
               }
 
@@ -596,6 +740,15 @@ export class CombatSystem {
           enemy.novaSlamTimer -= deltaTime;
           updateMovementVisuals(enemy, 0, 0, false, 0);
           if (enemy.novaSlamTimer <= 0) {
+            if (enemy.currentAttackType === 'hail_mary') {
+              this.spawnHollowEclipseHazards(enemy);
+              enemy.currentAttackType = 'normal';
+              enemy.state = 'recovering';
+              enemy.recoverTimer = enemy.recoverDuration * 2.0;
+              enemy.attackAnimationTimer = 0.5;
+              break;
+            }
+
             const novaRadius = 3.0;
             if (world && particleSystem) {
               breakTilesInRadius(world, world.getCurrentMap(), enemy.position.x, enemy.position.y, novaRadius, particleSystem, playPropBreak);
@@ -737,6 +890,23 @@ export class CombatSystem {
       // Award the player half the normal essence for witnessing the kill
       this.gameState.addEssence(Math.floor(target.essenceReward * 0.5));
     }
+  }
+
+  private applyAreaHitToPlayer(damage: number, isBlocking: boolean): void {
+    const player = this.gameState.player;
+    let finalDamage = damage;
+    if (isBlocking && player.guardBrokenTimer <= 0) {
+      player.stamina -= damage * 0.8;
+      if (player.stamina <= 0) {
+        player.stamina = 0;
+        player.guardBrokenTimer = 1.2;
+      }
+      finalDamage = Math.floor(damage * (1 - BLOCK_DAMAGE_REDUCTION));
+    }
+
+    player.health = Math.max(0, player.health - finalDamage);
+    player.damageFlashTimer = 0.4;
+    player.iFrameTimer = Math.max(player.iFrameTimer, 0.35);
   }
 
   private attackPlayer(
@@ -897,5 +1067,361 @@ export class CombatSystem {
     this.enemies = [];
     this.spatialHash.clear();
     this._enemiesDirty = true;
+    this.projectiles = [];
+    this.fallingScytheHazards = [];
+    this.hollowStillnessTimer = 0;
+    this.hollowStillnessCooldown = 0;
+    this.hollowLastPlayerPosition = null;
+  }
+
+  // ===== Hollow Apparition arena hazards =====
+
+  updateFallingScytheHazards(
+    deltaTime: number,
+    playerPosition: { x: number; y: number },
+    playerInvulnerable: boolean = false,
+    playerBlocking: boolean = false,
+    blockStartTime: number = 0,
+  ): void {
+    const guardian = this.enemies.find(e => e.type === 'hollow_guardian' && e.state !== 'dead');
+    if (!guardian) {
+      this.fallingScytheHazards = [];
+      this.hollowStillnessTimer = 0;
+      this.hollowStillnessCooldown = 0;
+      this.hollowLastPlayerPosition = null;
+      return;
+    }
+
+    this.updateHollowStillnessScythes(deltaTime, playerPosition, guardian.phase);
+
+    const now = performance.now() / 1000;
+    for (const hazard of this.fallingScytheHazards) {
+      if (!hazard.alive) continue;
+
+      hazard.rotation += hazard.spinRate * deltaTime;
+      if (hazard.state === 'warning') {
+        hazard.warningTimer -= deltaTime;
+        if (hazard.warningTimer <= 0) {
+          hazard.state = 'striking';
+          hazard.strikeTimer = hazard.maxStrikeTimer;
+        }
+        continue;
+      }
+
+      hazard.strikeTimer -= deltaTime;
+      if (!hazard.hitPlayer && !playerInvulnerable) {
+        const dx = playerPosition.x - hazard.position.x;
+        const dy = playerPosition.y - hazard.position.y;
+        if (dx * dx + dy * dy <= hazard.radius * hazard.radius) {
+          hazard.hitPlayer = true;
+          const isPerfectBlock = playerBlocking && (now - blockStartTime) < PARRY_WINDOW;
+          if (isPerfectBlock) {
+            this.gameState.player.parryBonusTimer = Math.max(this.gameState.player.parryBonusTimer, 0.6);
+            this.gameState.player.iFrameTimer = Math.max(this.gameState.player.iFrameTimer, 0.35);
+          } else {
+            this.applyAreaHitToPlayer(hazard.damage, playerBlocking);
+          }
+        }
+      }
+
+      if (hazard.strikeTimer <= 0) {
+        hazard.alive = false;
+      }
+    }
+
+    if (this.fallingScytheHazards.some(h => !h.alive)) {
+      this.fallingScytheHazards = this.fallingScytheHazards.filter(h => h.alive);
+    }
+  }
+
+  getFallingScytheHazards(): FallingScytheHazard[] {
+    return this.fallingScytheHazards;
+  }
+
+  private updateHollowStillnessScythes(
+    deltaTime: number,
+    playerPosition: { x: number; y: number },
+    guardianPhase: number,
+  ): void {
+    if (this.hollowStillnessCooldown > 0) {
+      this.hollowStillnessCooldown = Math.max(0, this.hollowStillnessCooldown - deltaTime);
+    }
+
+    const anchor = this.hollowLastPlayerPosition;
+    if (!anchor) {
+      this.hollowLastPlayerPosition = { ...playerPosition };
+      return;
+    }
+
+    const dx = playerPosition.x - anchor.x;
+    const dy = playerPosition.y - anchor.y;
+    if (dx * dx + dy * dy > HOLLOW_STILLNESS_THRESHOLD_SQ) {
+      this.hollowStillnessTimer = 0;
+      this.hollowLastPlayerPosition = { ...playerPosition };
+      return;
+    }
+
+    this.hollowStillnessTimer += deltaTime;
+    if (this.hollowStillnessTimer >= HOLLOW_STILLNESS_TRIGGER && this.hollowStillnessCooldown <= 0) {
+      this.spawnFallingScytheHazard({
+        position: { ...playerPosition },
+        damage: this.getFallingScytheDamageForPhase(guardianPhase),
+        source: 'stillness',
+      });
+      this.hollowStillnessTimer = 0;
+      this.hollowStillnessCooldown = 0.55;
+    }
+  }
+
+  private getFallingScytheDamageForPhase(phase: number): number {
+    if (phase >= 3) return 28;
+    if (phase >= 2) return 22;
+    return 16;
+  }
+
+  private spawnFallingScytheHazard(opts: {
+    position: { x: number; y: number };
+    damage: number;
+    source: 'stillness' | 'eclipse';
+    warningTimer?: number;
+    strikeTimer?: number;
+    radius?: number;
+  }): FallingScytheHazard {
+    const warningTimer = opts.warningTimer ?? FALLING_SCYTHE_WARNING;
+    const strikeTimer = opts.strikeTimer ?? FALLING_SCYTHE_STRIKE;
+    const hazard: FallingScytheHazard = {
+      id: `falling_scythe_${++this._nextFallingScytheIdSeq}`,
+      position: { ...opts.position },
+      radius: opts.radius ?? FALLING_SCYTHE_RADIUS,
+      damage: opts.damage,
+      warningTimer,
+      strikeTimer,
+      maxWarningTimer: warningTimer,
+      maxStrikeTimer: strikeTimer,
+      rotation: 0,
+      spinRate: 18 + Math.random() * 8,
+      state: 'warning',
+      alive: true,
+      hitPlayer: false,
+      source: opts.source,
+    };
+    this.fallingScytheHazards.push(hazard);
+    return hazard;
+  }
+
+  private spawnHollowEclipseHazards(enemy: Enemy): void {
+    const positions = [
+      { x: -5.5, y: 0 }, { x: -3.5, y: 0 }, { x: 3.5, y: 0 }, { x: 5.5, y: 0 },
+      { x: 0, y: -5.5 }, { x: 0, y: -3.5 }, { x: 0, y: 3.5 }, { x: 0, y: 5.5 },
+      { x: -5.0, y: -2.5 }, { x: -2.5, y: -5.0 }, { x: 2.5, y: -5.0 }, { x: 5.0, y: -2.5 },
+      { x: -5.0, y: 2.5 }, { x: -2.5, y: 5.0 }, { x: 2.5, y: 5.0 }, { x: 5.0, y: 2.5 },
+    ];
+
+    for (const pos of positions) {
+      this.spawnFallingScytheHazard({
+        position: { x: enemy.position.x + pos.x, y: enemy.position.y + pos.y },
+        damage: 20,
+        source: 'eclipse',
+        warningTimer: 0.65,
+        strikeTimer: 0.45,
+        radius: 0.8,
+      });
+    }
+  }
+
+  // ===== Projectiles =====
+
+  spawnProjectile(opts: {
+    position: { x: number; y: number };
+    velocity: { x: number; y: number };
+    damage: number;
+    sprite: string;
+    lifetime: number;
+    sourceEnemyId: string;
+    hitRadius?: number;
+    spinRate?: number;
+  }): Projectile {
+    const proj: Projectile = {
+      id: `proj_${++this._nextProjectileIdSeq}`,
+      position: { ...opts.position },
+      velocity: { ...opts.velocity },
+      damage: opts.damage,
+      lifetime: opts.lifetime,
+      maxLifetime: opts.lifetime,
+      sourceEnemyId: opts.sourceEnemyId,
+      sprite: opts.sprite,
+      spinRate: opts.spinRate ?? 18,
+      rotation: 0,
+      hitRadius: opts.hitRadius ?? 0.45,
+      alive: true,
+      reflected: false,
+    };
+    this.projectiles.push(proj);
+    return proj;
+  }
+
+  getProjectiles(): Projectile[] {
+    return this.projectiles;
+  }
+
+  updateProjectiles(
+    deltaTime: number,
+    playerPosition: { x: number; y: number },
+    playerInvulnerable: boolean = false,
+    playerBlocking: boolean = false,
+    blockStartTime: number = 0,
+    world?: World,
+  ): void {
+    const now = performance.now() / 1000;
+    const playerHitRadius = 0.4;
+
+    for (const p of this.projectiles) {
+      if (!p.alive) continue;
+
+      p.lifetime -= deltaTime;
+      p.rotation += p.spinRate * deltaTime;
+
+      const nextX = p.position.x + p.velocity.x * deltaTime;
+      const nextY = p.position.y + p.velocity.y * deltaTime;
+
+      // Wall collision — fizzle if the tile is not walkable.
+      if (world && !world.canMoveTo(p.position.x, p.position.y, nextX, nextY, 0.05)) {
+        p.alive = false;
+        continue;
+      }
+
+      p.position.x = nextX;
+      p.position.y = nextY;
+
+      if (p.lifetime <= 0) {
+        p.alive = false;
+        continue;
+      }
+
+      if (p.reflected) {
+        const hitEnemy = this.getProjectileReflectionTarget(p);
+        if (hitEnemy) {
+          this.applyReflectedProjectileHit(p, hitEnemy);
+          p.alive = false;
+        }
+        continue;
+      }
+
+      // Player hit check.
+      const pdx = playerPosition.x - p.position.x;
+      const pdy = playerPosition.y - p.position.y;
+      const distSq = pdx * pdx + pdy * pdy;
+      const reach = p.hitRadius + playerHitRadius;
+      if (distSq <= reach * reach) {
+        if (!playerInvulnerable) {
+          const result = this.applyProjectileHit(p, playerBlocking, blockStartTime, now);
+          if (result === 'reflected') {
+            continue;
+          }
+        }
+        p.alive = false;
+      }
+    }
+
+    // Sweep dead projectiles every frame — array is small (rarely > a dozen).
+    if (this.projectiles.some(p => !p.alive)) {
+      this.projectiles = this.projectiles.filter(p => p.alive);
+    }
+  }
+
+  private applyProjectileHit(
+    projectile: Projectile,
+    isBlocking: boolean,
+    blockStartTime: number,
+    now: number,
+  ): 'hit' | 'blocked' | 'reflected' {
+    const player = this.gameState.player;
+    const isParry = isBlocking && (now - blockStartTime) < PARRY_WINDOW;
+    const suppressBlockFlash = projectile.sprite === 'projectile_scythe';
+
+    if (isParry) {
+      // Parry deflects the projectile cleanly — short i-frames, no damage.
+      player.parryBonusTimer = 1.0;
+      player.iFrameTimer = Math.max(player.iFrameTimer, 0.4);
+      return this.reflectProjectile(projectile) ? 'reflected' : 'blocked';
+    }
+
+    let damage = projectile.damage;
+    if (isBlocking && player.guardBrokenTimer <= 0) {
+      player.stamina -= projectile.damage * 0.8;
+      if (player.stamina <= 0) {
+        player.stamina = 0;
+        player.guardBrokenTimer = 1.2;
+        if (!suppressBlockFlash) {
+          player.damageFlashTimer = 0.6;
+        }
+        return 'blocked';
+      }
+      if (!suppressBlockFlash) {
+        player.damageFlashTimer = 0.18;
+      }
+      return 'blocked';
+    }
+    player.health = Math.max(0, player.health - damage);
+    player.damageFlashTimer = 0.3;
+    return 'hit';
+  }
+
+  private reflectProjectile(projectile: Projectile): boolean {
+    const sourceEnemy = this.enemies.find(e => e.id === projectile.sourceEnemyId && e.state !== 'dead');
+    if (!sourceEnemy) {
+      return false;
+    }
+
+    const dx = sourceEnemy.position.x - projectile.position.x;
+    const dy = sourceEnemy.position.y - projectile.position.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const speed = Math.hypot(projectile.velocity.x, projectile.velocity.y) || 7;
+
+    projectile.velocity.x = (dx / dist) * speed;
+    projectile.velocity.y = (dy / dist) * speed;
+    projectile.lifetime = Math.max(projectile.lifetime, 1.2);
+    projectile.maxLifetime = Math.max(projectile.maxLifetime, projectile.lifetime);
+    projectile.reflected = true;
+    projectile.reflectedTargetEnemyId = sourceEnemy.id;
+    projectile.spinRate *= -1.35;
+    return true;
+  }
+
+  private getProjectileReflectionTarget(projectile: Projectile): Enemy | undefined {
+    const target = this.enemies.find(e => e.id === (projectile.reflectedTargetEnemyId ?? projectile.sourceEnemyId) && e.state !== 'dead');
+    if (!target) {
+      return undefined;
+    }
+
+    const dx = target.position.x - projectile.position.x;
+    const dy = target.position.y - projectile.position.y;
+    const reach = projectile.hitRadius + 0.45;
+    return dx * dx + dy * dy <= reach * reach ? target : undefined;
+  }
+
+  private applyReflectedProjectileHit(projectile: Projectile, target: Enemy): void {
+    target.poise -= projectile.damage;
+    if (target.poise <= 0 && target.state !== 'staggered') {
+      target.state = 'staggered';
+      target.staggerTimer = target.staggerDuration;
+      target.damageFlashTimer = target.staggerDuration;
+    }
+
+    target.health = Math.max(0, target.health - projectile.damage);
+    target.damageFlashTimer = Math.max(target.damageFlashTimer, 0.3);
+    target.poiseRegenTimer = 0;
+    target.playerAggroed = true;
+
+    if (target.health <= 0) {
+      target.state = 'dead';
+      this._enemiesDirty = true;
+      this.gameState.addEssence(target.essenceReward);
+    }
+  }
+
+  clearAllProjectiles(): void {
+    this.projectiles = [];
+    this.fallingScytheHazards = [];
   }
 }

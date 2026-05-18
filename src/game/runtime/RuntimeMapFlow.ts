@@ -259,6 +259,24 @@ export function createRuntimeMapFlow({
   // back to the bonfire. No separate shortcut gate needed. Kept as stub for plumbing.
   const syncHollowShortcutState = () => {};
 
+  // Writes the permanent iron fence gate directly to the live map after generation,
+  // bypassing the feature-array pipeline which cannot guarantee ordering for this gate.
+  // Placed deep inside the corridor (y:50-51) so the dead-tree walls (x:100-115 and
+  // x:130-147, y:28-71) fully enclose the gate on both sides — cannot be flanked.
+  const syncHollowCorridorGateState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    for (let ty = 50; ty < 52; ty++) {
+      const row = map.tiles[ty];
+      if (!row) continue;
+      for (let tx = 116; tx < 130; tx++) {
+        const el = row[tx]?.elevation ?? 0;
+        row[tx] = { type: 'iron_fence' as TileType, walkable: false, elevation: el };
+      }
+    }
+    world.rebuildChunks();
+  };
+
   const syncHollowApproachLadderState = () => {
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
@@ -537,7 +555,7 @@ export function createRuntimeMapFlow({
         // 3-wide gate on the south wall
         if (ty === SOUTH_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
           row[tx] = gateOpen
-            ? { type: 'stone' as TileType, walkable: true, elevation: el }
+            ? { type: 'cobblestone' as TileType, walkable: true, elevation: el }
             : { type: 'gate' as TileType, walkable: false, elevation: el, interactable: true, interactionId: 'forest_fort_gate' };
           continue;
         }
@@ -576,6 +594,12 @@ export function createRuntimeMapFlow({
           continue;
         }
 
+        // Third ring at gate passage — open when gate is open so no iron bar blocks the walkway
+        if (isThird && !isOuter && !isSecond && gateOpen && dy === FORT_H - 3 && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
+          row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          continue;
+        }
+
         // Third ring: iron fence / cobblestone pattern
         if (isThird && !isOuter && !isSecond) {
           row[tx] = (dx + dy) % 3 === 0
@@ -589,18 +613,27 @@ export function createRuntimeMapFlow({
       }
     }
 
-    // Exterior gatehouse frame (row south of fort)
+    // Exterior gatehouse frame (row south of fort) — open style matches north exit when key used
     const frameY = FORT_Y + FORT_H;
     if (frameY < map.tiles.length) {
       const frameRow = map.tiles[frameY];
       if (frameRow) {
         const el = frameRow[GATE_CX]?.elevation ?? 0;
-        const pillarL = GATE_CX - 2, pillarR = GATE_CX + 2;
-        const torchL = GATE_CX - 1, torchR = GATE_CX + 1;
-        if (pillarL >= 0) frameRow[pillarL] = { type: 'stone' as TileType, walkable: false, elevation: el };
-        if (pillarR < frameRow.length) frameRow[pillarR] = { type: 'stone' as TileType, walkable: false, elevation: el };
-        if (torchL >= 0) frameRow[torchL] = { type: 'lantern' as TileType, walkable: false, elevation: el };
-        if (torchR < frameRow.length) frameRow[torchR] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+        if (gateOpen) {
+          for (let nx = GATE_CX - 2; nx <= GATE_CX + 2; nx++) {
+            if (nx < 0 || nx >= frameRow.length) continue;
+            frameRow[nx] = nx === GATE_CX - 2 || nx === GATE_CX + 2
+              ? { type: 'lantern' as TileType, walkable: false, elevation: el }
+              : { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          }
+        } else {
+          const pillarL = GATE_CX - 2, pillarR = GATE_CX + 2;
+          const torchL = GATE_CX - 1, torchR = GATE_CX + 1;
+          if (pillarL >= 0) frameRow[pillarL] = { type: 'stone' as TileType, walkable: false, elevation: el };
+          if (pillarR < frameRow.length) frameRow[pillarR] = { type: 'stone' as TileType, walkable: false, elevation: el };
+          if (torchL >= 0) frameRow[torchL] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+          if (torchR < frameRow.length) frameRow[torchR] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+        }
       }
     }
 
@@ -660,7 +693,7 @@ export function createRuntimeMapFlow({
 
         if (ty === SOUTH_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
           row[tx] = gateOpen
-            ? { type: 'stone' as TileType, walkable: true, elevation: el }
+            ? { type: 'cobblestone' as TileType, walkable: true, elevation: el }
             : { type: 'gate' as TileType, walkable: false, elevation: el, interactable: true, interactionId: 'north_fort_gate' };
           continue;
         }
@@ -695,6 +728,12 @@ export function createRuntimeMapFlow({
           continue;
         }
 
+        // Third ring at gate passage — clear to cobblestone when open
+        if (isThird && !isOuter && !isSecond && gateOpen && dy === FORT_H - 3 && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
+          row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          continue;
+        }
+
         if (isThird && !isOuter && !isSecond) {
           row[tx] = (dx + dy) % 3 === 0
             ? { type: 'iron_fence' as TileType, walkable: false, elevation: el }
@@ -711,12 +750,21 @@ export function createRuntimeMapFlow({
       const frameRow = map.tiles[frameY];
       if (frameRow) {
         const el = frameRow[GATE_CX]?.elevation ?? 0;
-        const pillarL = GATE_CX - 2, pillarR = GATE_CX + 2;
-        const torchL = GATE_CX - 1, torchR = GATE_CX + 1;
-        if (pillarL >= 0) frameRow[pillarL] = { type: 'stone' as TileType, walkable: false, elevation: el };
-        if (pillarR < frameRow.length) frameRow[pillarR] = { type: 'stone' as TileType, walkable: false, elevation: el };
-        if (torchL >= 0) frameRow[torchL] = { type: 'lantern' as TileType, walkable: false, elevation: el };
-        if (torchR < frameRow.length) frameRow[torchR] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+        if (gateOpen) {
+          for (let nx = GATE_CX - 2; nx <= GATE_CX + 2; nx++) {
+            if (nx < 0 || nx >= frameRow.length) continue;
+            frameRow[nx] = nx === GATE_CX - 2 || nx === GATE_CX + 2
+              ? { type: 'lantern' as TileType, walkable: false, elevation: el }
+              : { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          }
+        } else {
+          const pillarL = GATE_CX - 2, pillarR = GATE_CX + 2;
+          const torchL = GATE_CX - 1, torchR = GATE_CX + 1;
+          if (pillarL >= 0) frameRow[pillarL] = { type: 'stone' as TileType, walkable: false, elevation: el };
+          if (pillarR < frameRow.length) frameRow[pillarR] = { type: 'stone' as TileType, walkable: false, elevation: el };
+          if (torchL >= 0) frameRow[torchL] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+          if (torchR < frameRow.length) frameRow[torchR] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+        }
       }
     }
 
@@ -734,6 +782,41 @@ export function createRuntimeMapFlow({
             }
           }
         }
+      }
+    }
+
+    world.rebuildChunks();
+  };
+
+  const syncManuscriptCheckpointGateState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const gateOpen = state.getFlag('manuscript_checkpoint_gate_open');
+    const gateY = 153;
+    const gateCenterX = 231;
+    const gateRow = map.tiles[gateY];
+    const apronRow = map.tiles[gateY + 1];
+    if (!gateRow) return;
+
+    for (let tx = gateCenterX - 3; tx <= gateCenterX + 3; tx++) {
+      if (tx < 0 || tx >= gateRow.length) continue;
+      const el = gateRow[tx]?.elevation ?? 0;
+      if (tx === gateCenterX - 3 || tx === gateCenterX + 3) {
+        gateRow[tx] = { type: 'stone' as TileType, walkable: false, elevation: el };
+      } else {
+        gateRow[tx] = gateOpen
+          ? { type: 'cobblestone' as TileType, walkable: true, elevation: el }
+          : { type: 'gate' as TileType, walkable: false, elevation: el, interactable: true, interactionId: 'manuscript_checkpoint_gate' };
+      }
+    }
+
+    if (apronRow) {
+      for (let tx = gateCenterX - 2; tx <= gateCenterX + 2; tx++) {
+        if (tx < 0 || tx >= apronRow.length) continue;
+        const el = apronRow[tx]?.elevation ?? 0;
+        apronRow[tx] = (tx === gateCenterX - 2 || tx === gateCenterX + 2)
+          ? { type: 'lantern' as TileType, walkable: false, elevation: el }
+          : { type: 'cobblestone' as TileType, walkable: true, elevation: el };
       }
     }
 
@@ -795,6 +878,11 @@ export function createRuntimeMapFlow({
     const map = world.getCurrentMap();
     const portalX = 18;
     const portalY = 18;
+    const victoryChests = [
+      { x: 5, y: 5, interactionId: 'hollow_arena_chest_nw' },
+      { x: 30, y: 5, interactionId: 'hollow_arena_chest_ne' },
+      { x: 5, y: 30, interactionId: 'hollow_arena_chest_sw' },
+    ];
     const row = map.tiles[portalY];
     if (!row) return;
     const el = row[portalX]?.elevation ?? 0;
@@ -817,8 +905,26 @@ export function createRuntimeMapFlow({
           interactionId: 'hollow_arena_bonfire',
         };
       }
+      for (const chest of victoryChests) {
+        const chestRow = map.tiles[chest.y];
+        if (!chestRow) continue;
+        const chestEl = chestRow[chest.x]?.elevation ?? 0;
+        chestRow[chest.x] = {
+          type: 'chest' as TileType,
+          walkable: true,
+          elevation: chestEl,
+          interactable: true,
+          interactionId: chest.interactionId,
+        };
+      }
     } else {
       row[portalX] = { type: 'ruins_floor' as TileType, walkable: true, elevation: el };
+      for (const chest of victoryChests) {
+        const chestRow = map.tiles[chest.y];
+        if (!chestRow) continue;
+        const chestEl = chestRow[chest.x]?.elevation ?? 0;
+        chestRow[chest.x] = { type: 'dark_grass' as TileType, walkable: true, elevation: chestEl };
+      }
     }
     world.rebuildChunks();
   };
@@ -844,7 +950,7 @@ export function createRuntimeMapFlow({
   const syncPreplacedWorldItems = () => {
     const PREPLACED: Array<{ itemId: string; collectedFlag: string; mapId: string; x: number; y: number }> = [
       { itemId: 'manuscript_fragment', collectedFlag: 'manuscript_fragment_collected', mapId: 'interior_hunter_cottage', x: 0.5, y: -0.5 },
-      { itemId: 'hunters_manuscript', collectedFlag: 'hunters_manuscript_collected', mapId: 'forest', x: -28, y: -128 },
+      { itemId: 'hunters_manuscript', collectedFlag: 'hunters_manuscript_collected', mapId: 'forest', x: 63, y: -80 },
     ];
     for (const entry of PREPLACED) {
       if (state.getFlag(entry.collectedFlag)) continue;
@@ -908,8 +1014,10 @@ export function createRuntimeMapFlow({
     syncWhisperingWoodsShortcutState();
     syncGroveShelfShortcutState();
     syncHollowShortcutState();
+    syncHollowCorridorGateState();
     syncForestFortGateState();
     syncNorthFortGateState();
+    syncManuscriptCheckpointGateState();
     syncHollowFogGateState();
     syncHollowArenaVictoryPortalState();
     syncGilrhymBossState();
@@ -990,6 +1098,31 @@ export function createRuntimeMapFlow({
           behaviorOverrides: bp.behaviorOverrides,
         });
       }
+
+      // Four Hollow Reavers at the corners of the central arena area — they pelt the player
+      // with thrown scythe-blades while the boss controls the center.
+      const reaverBp = ENEMY_BLUEPRINTS.hollow_reaver;
+      if (reaverBp) {
+        const reaverCorners = [
+          { x: -7, y: -7 }, // NW corner, inset from statue at tile (10,10)
+          { x:  6, y: -7 }, // NE corner, inset from statue at tile (25,10)
+          { x: -7, y:  6 }, // SW corner, inset from statue at tile (10,25)
+          { x:  6, y:  6 }, // SE corner, inset from statue at tile (25,25)
+        ];
+        for (const corner of reaverCorners) {
+          combatSystem.spawnEnemy(reaverBp.name, corner, reaverBp.hp, reaverBp.damage, reaverBp.sprite, {
+            speed: reaverBp.speed,
+            attackRange: reaverBp.attackRange,
+            chaseRange: reaverBp.chaseRange,
+            essenceReward: reaverBp.essenceReward,
+            telegraphDuration: reaverBp.telegraphDuration,
+            recoverDuration: reaverBp.recoverDuration,
+            poise: reaverBp.poise,
+            staggerDuration: reaverBp.staggerDuration,
+            behaviorOverrides: reaverBp.behaviorOverrides,
+          });
+        }
+      }
     }
 
     console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
@@ -1028,10 +1161,12 @@ export function createRuntimeMapFlow({
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
     syncHollowShortcutState,
+    syncHollowCorridorGateState,
     syncHollowApproachLadderState,
     syncCliffCorridorLadderState,
     syncForestFortGateState,
     syncNorthFortGateState,
+    syncManuscriptCheckpointGateState,
     syncHollowFogGateState,
     syncHollowArenaVictoryPortalState,
     syncGilrhymBossState,

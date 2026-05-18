@@ -57,6 +57,7 @@ export function createDeathRespawnHandler({
       state.player.stamina = state.player.maxStamina;
       state.player.isDodging = false;
       state.player.iFrameTimer = 0;
+      state.player.lastBreathUsedThisLife = false;
 
       const potionCount = state.inventory.filter(i => i.id === 'health_potion').length;
       if (potionCount < 2) {

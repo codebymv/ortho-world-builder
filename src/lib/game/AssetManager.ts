@@ -890,6 +890,489 @@ export class AssetManager {
     return texture;
   }
 
+  /**
+   * Olwen the Mountain Hermit — built from scratch, not a chibi palette swap.
+   * Distinct silhouette: hunched, hooded, white-bearded, leaning on a gnarled
+   * walking staff that breaks the standard chibi proportions on the right side.
+   * Bandaged hand (vine wound from the grove) is the silent visual link to
+   * Callum's questline.
+   */
+  createOlwenHermit(spriteId?: string): THREE.Texture {
+    const G = 4;
+    const W = 16 * G, H = 20 * G;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+
+    const cell = (gx: number, gy: number, color: number) => {
+      ctx.fillStyle = this.hex(color);
+      ctx.fillRect(gx * G, gy * G, G, G);
+    };
+
+    // Palette — earthen, weathered, deliberately desaturated so he reads as old
+    // and out of place next to the brighter villager NPCs.
+    const HOOD_D = 0x4A3B2E;  // hood deep shadow
+    const HOOD   = 0x6B5440;  // hood main (mossy brown)
+    const HOOD_H = 0x8A7158;  // hood highlight
+    const SHADOW = 0x1E1812;  // hooded-face shadow
+    const SKIN   = 0xC9A87A;  // weathered cheek
+    const SKIN_D = 0x8E724A;  // weathered cheek shadow
+    const EYE    = 0xE8D9A6;  // pale glint inside hood
+    const BEARD  = 0xE8E0D2;  // long white beard
+    const BEARD_S = 0xB5AC9A; // beard shadow
+    const CLOAK  = 0x5A4A38;  // cloak main
+    const CLOAK_H = 0x7C6648; // cloak highlight
+    const CLOAK_D = 0x352818; // cloak deep
+    const TRIM   = 0x9C6B2A;  // copper/bronze trim around cloak hem
+    const ROPE   = 0xC9A66B;  // belt rope
+    const BOOT   = 0x3E2A18;  // boots
+    const BOOT_H = 0x5C4028;
+    const STAFF  = 0x4A2E1A;  // dark gnarled staff
+    const STAFF_H = 0x6B442A; // staff highlight
+    const KNOT   = 0x2A1808;  // gnarled knots in staff
+    const BANDAGE = 0xD9CFB8; // wrapped hand (vine wound)
+    const BANDAGE_S = 0xA89E80;
+
+    // ── STAFF (right side, full vertical, breaks chibi silhouette) ──
+    // Gnarled top knob at row 1
+    cell(13, 1, KNOT); cell(14, 1, STAFF_H);
+    cell(13, 2, STAFF_H); cell(14, 2, STAFF);
+    cell(13, 3, STAFF); cell(14, 3, STAFF);
+    // Long shaft with knots
+    for (let dy = 4; dy <= 16; dy++) {
+      cell(13, dy, dy === 7 || dy === 12 ? KNOT : STAFF);
+      cell(14, dy, dy === 7 || dy === 12 ? STAFF : STAFF_H);
+    }
+    // Staff base (where it rests on the ground)
+    cell(13, 17, STAFF_H); cell(14, 17, STAFF_H);
+
+    // ── HOOD PEAK (drooping, no chibi spiky hair on top) ──
+    cell(6, 1, HOOD_D); cell(7, 1, HOOD_D);
+    cell(5, 2, HOOD_D); cell(6, 2, HOOD); cell(7, 2, HOOD); cell(8, 2, HOOD_D);
+    cell(4, 3, HOOD_D); cell(5, 3, HOOD); cell(6, 3, HOOD_H); cell(7, 3, HOOD_H); cell(8, 3, HOOD); cell(9, 3, HOOD_D);
+
+    // ── HOOD FRAMING FACE (rows 4-7) — deep shadow inside ──
+    cell(3, 4, HOOD_D); cell(4, 4, HOOD); cell(5, 4, HOOD_H);
+    cell(6, 4, SHADOW); cell(7, 4, SHADOW); cell(8, 4, SHADOW);
+    cell(9, 4, HOOD_H); cell(10, 4, HOOD); cell(11, 4, HOOD_D);
+
+    cell(3, 5, HOOD_D); cell(4, 5, HOOD);
+    cell(5, 5, SHADOW); cell(6, 5, EYE); cell(7, 5, SHADOW); cell(8, 5, EYE); cell(9, 5, SHADOW);
+    cell(10, 5, HOOD); cell(11, 5, HOOD_D);
+
+    cell(3, 6, HOOD_D); cell(4, 6, HOOD); cell(5, 6, SKIN_D);
+    cell(6, 6, SKIN); cell(7, 6, SKIN); cell(8, 6, SKIN);
+    cell(9, 6, SKIN_D); cell(10, 6, HOOD); cell(11, 6, HOOD_D);
+
+    // Beard begins under nose
+    cell(3, 7, HOOD_D); cell(4, 7, HOOD);
+    cell(5, 7, BEARD_S); cell(6, 7, BEARD); cell(7, 7, BEARD); cell(8, 7, BEARD); cell(9, 7, BEARD_S);
+    cell(10, 7, HOOD); cell(11, 7, HOOD_D);
+
+    // ── LONG BEARD (rows 8-10) — extends down chest, very distinctive ──
+    cell(4, 8, HOOD); cell(5, 8, BEARD_S); cell(6, 8, BEARD); cell(7, 8, BEARD);
+    cell(8, 8, BEARD); cell(9, 8, BEARD); cell(10, 8, BEARD_S); cell(11, 8, HOOD);
+
+    cell(4, 9, HOOD_D); cell(5, 9, BEARD); cell(6, 9, BEARD); cell(7, 9, BEARD_S);
+    cell(8, 9, BEARD_S); cell(9, 9, BEARD); cell(10, 9, BEARD); cell(11, 9, HOOD_D);
+
+    cell(5, 10, BEARD_S); cell(6, 10, BEARD); cell(7, 10, BEARD_S);
+    cell(8, 10, BEARD_S); cell(9, 10, BEARD); cell(10, 10, BEARD_S);
+
+    cell(6, 11, BEARD_S); cell(7, 11, BEARD_S); cell(8, 11, BEARD_S); cell(9, 11, BEARD_S);
+
+    // ── HUNCHED SHOULDERS / CLOAK (rows 8-14) — wider, rounder than chibi ──
+    cell(2, 9, CLOAK_D); cell(3, 9, CLOAK);
+    cell(12, 9, CLOAK); cell(11, 10, CLOAK);
+
+    cell(2, 10, CLOAK_D); cell(3, 10, CLOAK_H); cell(4, 10, CLOAK_H);
+    cell(11, 10, CLOAK_H); cell(12, 10, CLOAK);
+
+    // Mid cloak (rows 11-13)
+    for (let dy = 11; dy <= 13; dy++) {
+      cell(2, dy, CLOAK_D);
+      cell(3, dy, CLOAK);
+      cell(4, dy, CLOAK_H);
+      cell(11, dy, CLOAK_H);
+      cell(12, dy, CLOAK);
+    }
+    // Fill cloak interior (under beard, around it)
+    cell(5, 12, CLOAK); cell(10, 12, CLOAK);
+    cell(4, 13, CLOAK_H); cell(5, 13, CLOAK); cell(6, 13, CLOAK); cell(7, 13, CLOAK);
+    cell(8, 13, CLOAK); cell(9, 13, CLOAK); cell(10, 13, CLOAK); cell(11, 13, CLOAK_H);
+
+    // Belt rope across waist (row 13 trim)
+    cell(5, 13, ROPE); cell(6, 13, ROPE); cell(9, 13, ROPE); cell(10, 13, ROPE);
+
+    // ── BANDAGED HAND clutching the staff (left side of staff at row 11-12) ──
+    cell(12, 11, BANDAGE); cell(12, 12, BANDAGE_S);
+    cell(11, 12, BANDAGE);
+
+    // ── CLOAK SKIRT FLARES (rows 14-16) — wider at bottom, with copper hem trim ──
+    cell(2, 14, CLOAK_D); cell(3, 14, CLOAK_H); cell(4, 14, CLOAK);
+    cell(5, 14, CLOAK); cell(6, 14, CLOAK); cell(7, 14, CLOAK); cell(8, 14, CLOAK);
+    cell(9, 14, CLOAK); cell(10, 14, CLOAK); cell(11, 14, CLOAK); cell(12, 14, CLOAK_H);
+
+    cell(2, 15, CLOAK_D); cell(3, 15, CLOAK); cell(4, 15, CLOAK_H);
+    cell(5, 15, CLOAK); cell(6, 15, CLOAK_H); cell(7, 15, CLOAK); cell(8, 15, CLOAK);
+    cell(9, 15, CLOAK_H); cell(10, 15, CLOAK); cell(11, 15, CLOAK_H); cell(12, 15, CLOAK_D);
+
+    // Trim along hem (row 16)
+    cell(3, 16, TRIM); cell(4, 16, CLOAK_D); cell(5, 16, TRIM);
+    cell(6, 16, CLOAK_D); cell(7, 16, TRIM); cell(8, 16, TRIM);
+    cell(9, 16, CLOAK_D); cell(10, 16, TRIM); cell(11, 16, CLOAK_D); cell(12, 16, TRIM);
+
+    // ── BOOTS poking out under cloak (row 17) ──
+    cell(6, 17, BOOT_H); cell(7, 17, BOOT);
+    cell(9, 17, BOOT); cell(10, 17, BOOT_H);
+    cell(6, 18, BOOT); cell(7, 18, BOOT);
+    cell(9, 18, BOOT); cell(10, 18, BOOT);
+
+    // ── Subtle per-pixel highlight/shadow pass for depth (mirrors other chibis) ──
+    const imgData = ctx.getImageData(0, 0, W, H);
+    for (let y = 0; y < H; y += G) {
+      for (let x = 0; x < W; x += G) {
+        const i = (y * W + x) * 4;
+        if (imgData.data[i + 3] > 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.10)';
+          ctx.fillRect(x, y, 1, 1);
+          ctx.fillStyle = 'rgba(0,0,0,0.12)';
+          ctx.fillRect(x + G - 1, y + G - 1, 1, 1);
+        }
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+
+    if (spriteId) {
+      this.textureDataUrls.set(spriteId, canvas.toDataURL());
+    }
+
+    return texture;
+  }
+
+  createCorruptedGiant(spriteId?: string, isTelegraph = false, isAttack = false): THREE.Texture {
+    // Redesigned for maximum readability at field-boss scale:
+    // — Head fills the top half of the canvas (wide, no neck)
+    // — Eyes are 2×2 cell blocks with a bright violet centre and black socket surround
+    // — Corruption veins read clearly against the warm-grey stone
+    // — Shoulders span the full 16-cell width at peak
+    const G = 4;
+    const W = 16 * G, H = 20 * G;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+
+    const cell = (gx: number, gy: number, color: number) => {
+      ctx.fillStyle = this.hex(color);
+      ctx.fillRect(gx * G, gy * G, G, G);
+    };
+
+    const ST_D  = 0x241A16;
+    const ST    = 0x3C2C28;
+    const ST_H  = 0x604840;
+    const ST_L  = 0x7A6058;
+    const ST_HL = 0x9A8070;
+    const CRACK = 0x0E0806;
+    const BROW  = 0x1A100C;
+    const SOCK  = 0x08040A;  // deep eye socket — near-black with purple tint
+    const EYE_C = 0xFFDDFF;  // white-violet eye centre (very bright)
+    const EYE   = 0xDD55FF;  // vivid violet iris ring
+    const EYE_D = 0x9922CC;  // eye shadow edge
+    const VEIN  = 0x7B3FA0;
+    const VEIN_G = 0xCC6EF0;
+    const VEIN_D = 0x3D1A55;
+
+    // Telegraph/attack: veins and eyes pulse brighter
+    const VG  = isTelegraph ? 0xFF99FF : isAttack ? 0xFFBBFF : VEIN_G;
+    const V   = isTelegraph ? 0xDD44FF : isAttack ? 0xFF44FF : VEIN;
+    const EC  = isTelegraph ? 0xFFFFFF : isAttack ? 0xFFFFFF : EYE_C;
+    const EI  = isTelegraph ? 0xFF66FF : isAttack ? 0xFF88FF : EYE;
+
+    // ── HEAD — starts at row 0, spans x:2-13 (12 cells wide) ──
+    // Crown
+    cell(5, 0, ST_D); cell(6, 0, ST_H); cell(7, 0, ST_L); cell(8, 0, ST_L); cell(9, 0, ST_H); cell(10, 0, ST_D);
+
+    // Upper head
+    cell(3, 1, ST_D); cell(4, 1, ST); cell(5, 1, ST_H); cell(6, 1, ST_L); cell(7, 1, ST_HL);
+    cell(8, 1, ST_HL); cell(9, 1, ST_L); cell(10, 1, ST_H); cell(11, 1, ST); cell(12, 1, ST_D);
+
+    // Forehead — wide, flat crown crack runs down centre
+    cell(2, 2, ST_D); cell(3, 2, ST); cell(4, 2, ST_H); cell(5, 2, ST_L); cell(6, 2, ST_HL);
+    cell(7, 2, CRACK); cell(8, 2, CRACK);
+    cell(9, 2, ST_HL); cell(10, 2, ST_L); cell(11, 2, ST_H); cell(12, 2, ST); cell(13, 2, ST_D);
+
+    // Brow ridge — heavy shadow shelf above eye sockets
+    cell(2, 3, ST_D); cell(3, 3, BROW); cell(4, 3, BROW); cell(5, 3, BROW);
+    cell(6, 3, SOCK); cell(7, 3, CRACK); cell(8, 3, CRACK); cell(9, 3, SOCK);
+    cell(10, 3, BROW); cell(11, 3, BROW); cell(12, 3, BROW); cell(13, 3, ST_D);
+
+    // ── EYES — 2×2 bright blocks, rows 4-5 ──
+    // Left socket surround
+    cell(2, 4, ST_D); cell(3, 4, SOCK); cell(4, 4, SOCK); cell(5, 4, SOCK);
+    // Left eye (bright centre 2×2)
+    cell(4, 4, EYE_D); cell(5, 4, EI);
+    // Nose bridge
+    cell(6, 4, ST_D); cell(7, 4, CRACK); cell(8, 4, CRACK); cell(9, 4, ST_D);
+    // Right eye
+    cell(10, 4, EI); cell(11, 4, EYE_D);
+    // Right socket surround
+    cell(11, 4, SOCK); cell(12, 4, SOCK); cell(13, 4, SOCK); cell(13, 4, ST_D);
+
+    // Eye row 2 (lower — bright centre here)
+    cell(2, 5, ST_D); cell(3, 5, SOCK); cell(4, 5, EI); cell(5, 5, EC);
+    cell(6, 5, ST_D); cell(7, 5, CRACK); cell(8, 5, CRACK); cell(9, 5, ST_D);
+    cell(10, 5, EC); cell(11, 5, EI); cell(12, 5, SOCK); cell(13, 5, ST_D);
+
+    // Cheekbones / lower face
+    cell(2, 6, ST_D); cell(3, 6, ST); cell(4, 6, ST_H); cell(5, 6, ST_L);
+    cell(6, 6, ST_H); cell(7, 6, CRACK); cell(8, 6, CRACK); cell(9, 6, ST_H);
+    cell(10, 6, ST_L); cell(11, 6, ST_H); cell(12, 6, ST); cell(13, 6, ST_D);
+
+    // Jaw / chin — blends into shoulder line
+    cell(2, 7, ST_D); cell(3, 7, ST_H); cell(4, 7, ST_L); cell(5, 7, ST_H);
+    cell(6, 7, ST); cell(7, 7, ST_D); cell(8, 7, ST_D); cell(9, 7, ST);
+    cell(10, 7, ST_H); cell(11, 7, ST_L); cell(12, 7, ST_H); cell(13, 7, ST_D);
+
+    // ── SHOULDERS — full 16-cell width at peak ──
+    // Row 8: shoulder slab emerges, vein nodes near shoulder tops
+    cell(0, 8, ST_D); cell(1, 8, ST); cell(2, 8, ST_H); cell(3, 8, ST_L);
+    cell(4, 8, ST_H); cell(5, 8, VEIN_D); cell(6, 8, ST_H); cell(7, 8, ST);
+    cell(8, 8, ST); cell(9, 8, ST_H); cell(10, 8, VEIN_D); cell(11, 8, ST_H);
+    cell(12, 8, ST_L); cell(13, 8, ST_H); cell(14, 8, ST); cell(15, 8, ST_D);
+
+    // Row 9: peak width, veins glow
+    cell(0, 9, ST_D); cell(1, 9, ST_H); cell(2, 9, ST_L); cell(3, 9, ST_H);
+    cell(4, 9, ST); cell(5, 9, V); cell(6, 9, ST_H); cell(7, 9, ST_L);
+    cell(8, 9, ST_L); cell(9, 9, ST_H); cell(10, 9, V); cell(11, 9, ST);
+    cell(12, 9, ST_H); cell(13, 9, ST_L); cell(14, 9, ST_H); cell(15, 9, ST_D);
+
+    // Row 10: shoulders begin to taper, upper arms visible at edges
+    cell(0, 10, ST_D); cell(1, 10, ST); cell(2, 10, ST_H);
+    cell(3, 10, ST); cell(4, 10, VG); cell(5, 10, ST_H); cell(6, 10, ST_L);
+    cell(7, 10, ST_H); cell(8, 10, ST_H); cell(9, 10, ST_L); cell(10, 10, ST_H);
+    cell(11, 10, VG); cell(12, 10, ST); cell(13, 10, ST_H); cell(14, 10, ST); cell(15, 10, ST_D);
+
+    // ── TORSO — corruption veins split vertically down the chest ──
+    // Row 11
+    cell(1, 11, ST_D); cell(2, 11, ST_H); cell(3, 11, ST);
+    cell(4, 11, V); cell(5, 11, ST_H); cell(6, 11, ST_L);
+    cell(7, 11, CRACK); cell(8, 11, CRACK);
+    cell(9, 11, ST_L); cell(10, 11, ST_H); cell(11, 11, V);
+    cell(12, 11, ST); cell(13, 11, ST_H); cell(14, 11, ST_D);
+
+    // Arms (hanging beside torso, rows 11-14)
+    cell(0, 11, ST_D); cell(0, 12, ST); cell(0, 13, ST_H); cell(0, 14, ST);
+    cell(15, 11, ST_D); cell(15, 12, ST); cell(15, 13, ST_H); cell(15, 14, ST);
+
+    // Row 12
+    cell(1, 12, ST_D); cell(2, 12, ST); cell(3, 12, ST_H);
+    cell(4, 12, VG); cell(5, 12, ST_L); cell(6, 12, ST_H);
+    cell(7, 12, ST); cell(8, 12, ST); cell(9, 12, ST_H);
+    cell(10, 12, ST_L); cell(11, 12, VG);
+    cell(12, 12, ST_H); cell(13, 12, ST); cell(14, 12, ST_D);
+
+    // Row 13
+    cell(1, 13, ST_D); cell(2, 13, ST_H); cell(3, 13, ST);
+    cell(4, 13, V); cell(5, 13, ST_H); cell(6, 13, ST_L);
+    cell(7, 13, VG); cell(8, 13, VG);
+    cell(9, 13, ST_L); cell(10, 13, ST_H); cell(11, 13, V);
+    cell(12, 13, ST); cell(13, 13, ST_H); cell(14, 13, ST_D);
+
+    // Fists at sides (rows 13-14)
+    cell(0, 13, ST_H); cell(1, 14, ST_H); cell(2, 14, ST_L);
+    cell(15, 13, ST_H); cell(14, 14, ST_L); cell(13, 14, ST_H);
+
+    // ── WAIST — vein convergence ──
+    cell(3, 14, ST_D); cell(4, 14, ST);
+    cell(5, 14, VEIN_D); cell(6, 14, V); cell(7, 14, VG); cell(8, 14, VG); cell(9, 14, V); cell(10, 14, VEIN_D);
+    cell(11, 14, ST); cell(12, 14, ST_D);
+
+    // ── LEGS — wide, heavy ──
+    cell(3, 15, ST_D); cell(4, 15, ST_H); cell(5, 15, ST_L); cell(6, 15, ST_H);
+    cell(7, 15, CRACK); cell(8, 15, CRACK);
+    cell(9, 15, ST_H); cell(10, 15, ST_L); cell(11, 15, ST_H); cell(12, 15, ST_D);
+
+    cell(3, 16, ST_D); cell(4, 16, ST); cell(5, 16, ST_H); cell(6, 16, ST_L);
+    cell(7, 16, VEIN_D); cell(8, 16, VEIN_D);
+    cell(9, 16, ST_L); cell(10, 16, ST_H); cell(11, 16, ST); cell(12, 16, ST_D);
+
+    // ── FEET — splayed outward ──
+    cell(2, 17, ST_D); cell(3, 17, ST); cell(4, 17, ST_H); cell(5, 17, ST_L); cell(6, 17, ST_H);
+    cell(9, 17, ST_H); cell(10, 17, ST_L); cell(11, 17, ST_H); cell(12, 17, ST); cell(13, 17, ST_D);
+
+    cell(2, 18, ST_D); cell(3, 18, ST); cell(4, 18, ST_H);
+    cell(11, 18, ST_H); cell(12, 18, ST); cell(13, 18, ST_D);
+
+    // ── Depth pass ──
+    const imgData = ctx.getImageData(0, 0, W, H);
+    for (let y = 0; y < H; y += G) {
+      for (let x = 0; x < W; x += G) {
+        const i = (y * W + x) * 4;
+        if (imgData.data[i + 3] > 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.08)';
+          ctx.fillRect(x, y, 1, 1);
+          ctx.fillStyle = 'rgba(0,0,0,0.16)';
+          ctx.fillRect(x + G - 1, y + G - 1, 1, 1);
+        }
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+
+    if (spriteId) {
+      this.textureDataUrls.set(spriteId, canvas.toDataURL());
+    }
+
+    return texture;
+  }
+
+  createMysteriousMan(spriteId?: string): THREE.Texture {
+    // Design intent: tall, perfectly still, face completely absent inside the hood.
+    // Void-black with violet seepage along the hem — same corruption palette as the
+    // Hollow enemies — so the player feels something is wrong before they speak to him.
+    const G = 4;
+    const W = 16 * G, H = 20 * G;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+
+    const cell = (gx: number, gy: number, color: number) => {
+      ctx.fillStyle = this.hex(color);
+      ctx.fillRect(gx * G, gy * G, G, G);
+    };
+
+    // Palette — voidborne, barely-there, with violet corruption seeping up from below
+    const VOID    = 0x0A080C;  // deepest black (true void)
+    const CLOAK   = 0x161220;  // cloak base — near-black with blue-purple tint
+    const CLOAK_H = 0x2A2440;  // cloak subtle highlight
+    const CLOAK_D = 0x060408;  // cloak deepest shadow
+    const HOOD    = 0x120F1C;  // hood outer
+    const HOOD_D  = 0x080610;  // hood deep shadow
+    const FACE    = 0x0D0B14;  // near-black inside hood (not pure void — eyes need contrast)
+    const EYE     = 0x8A8296;  // dim silver-grey eyes — reads as person, not glowing enemy
+    const EYE_D   = 0x4A4458;  // eye shadow
+    const VIOLET  = 0x7B3FA0;  // corruption accent (matches Hollow enemies)
+    const VIOLET_D = 0x4A1E6A; // corruption shadow
+    const VIOLET_G = 0xB06ECC; // corruption glow/sparkle
+    const SLEEVE  = 0x1A1628;  // sleeve ends, hands hidden
+    const SEAM    = 0x221C34;  // cloak seam lines
+
+    // ── HOOD — tall, upright (not drooping like Olwen), swallows the face entirely ──
+    // Peak
+    cell(7, 0, HOOD_D); cell(8, 0, HOOD_D);
+    cell(6, 1, HOOD_D); cell(7, 1, HOOD); cell(8, 1, HOOD); cell(9, 1, HOOD_D);
+    cell(5, 2, HOOD_D); cell(6, 2, HOOD); cell(7, 2, CLOAK_H); cell(8, 2, CLOAK_H); cell(9, 2, HOOD); cell(10, 2, HOOD_D);
+    cell(4, 3, HOOD_D); cell(5, 3, HOOD); cell(6, 3, HOOD); cell(7, 3, CLOAK_H);
+    cell(8, 3, CLOAK_H); cell(9, 3, HOOD); cell(10, 3, HOOD); cell(11, 3, HOOD_D);
+
+    // Hood sides framing the void-face (rows 4-8)
+    cell(3, 4, HOOD_D); cell(4, 4, HOOD); cell(5, 4, HOOD);
+    cell(6, 4, FACE); cell(7, 4, FACE); cell(8, 4, FACE); cell(9, 4, FACE);
+    cell(10, 4, HOOD); cell(11, 4, HOOD); cell(12, 4, HOOD_D);
+
+    cell(3, 5, HOOD_D); cell(4, 5, HOOD);
+    cell(5, 5, FACE); cell(6, 5, EYE_D); cell(7, 5, EYE);
+    cell(8, 5, FACE);
+    cell(9, 5, EYE); cell(10, 5, EYE_D);
+    cell(11, 5, HOOD); cell(12, 5, HOOD_D);
+
+    cell(3, 6, HOOD_D); cell(4, 6, HOOD);
+    cell(5, 6, FACE); cell(6, 6, FACE); cell(7, 6, FACE);
+    cell(8, 6, FACE); cell(9, 6, FACE); cell(10, 6, FACE);
+    cell(11, 6, HOOD); cell(12, 6, HOOD_D);
+
+    cell(3, 7, HOOD_D); cell(4, 7, HOOD); cell(5, 7, HOOD);
+    cell(6, 7, FACE); cell(7, 7, FACE); cell(8, 7, FACE); cell(9, 7, FACE);
+    cell(10, 7, HOOD); cell(11, 7, HOOD); cell(12, 7, HOOD_D);
+
+    // Hood collar merges into shoulders (row 8)
+    cell(3, 8, HOOD_D); cell(4, 8, HOOD); cell(5, 8, HOOD); cell(6, 8, HOOD);
+    cell(7, 8, CLOAK_D); cell(8, 8, CLOAK_D);
+    cell(9, 8, HOOD); cell(10, 8, HOOD); cell(11, 8, HOOD); cell(12, 8, HOOD_D);
+
+    // ── SHOULDERS — wide and straight (taller posture than Olwen) ──
+    cell(2, 9, CLOAK_D); cell(3, 9, CLOAK); cell(4, 9, CLOAK_H);
+    cell(5, 9, CLOAK); cell(6, 9, CLOAK); cell(7, 9, SEAM); cell(8, 9, SEAM);
+    cell(9, 9, CLOAK); cell(10, 9, CLOAK); cell(11, 9, CLOAK_H); cell(12, 9, CLOAK); cell(13, 9, CLOAK_D);
+
+    cell(2, 10, CLOAK_D); cell(3, 10, CLOAK); cell(4, 10, CLOAK_H);
+    cell(5, 10, CLOAK); cell(6, 10, SEAM); cell(7, 10, CLOAK); cell(8, 10, CLOAK);
+    cell(9, 10, SEAM); cell(10, 10, CLOAK); cell(11, 10, CLOAK_H); cell(12, 10, CLOAK); cell(13, 10, CLOAK_D);
+
+    // ── BODY — monolithic cloak slab (rows 11-14) no belt, no feature, just presence ──
+    for (let dy = 11; dy <= 14; dy++) {
+      cell(2, dy, CLOAK_D);
+      cell(3, dy, CLOAK);
+      cell(4, dy, CLOAK_H);
+      cell(5, dy, CLOAK);
+      cell(6, dy, dy === 12 ? SEAM : CLOAK);
+      cell(7, dy, CLOAK);
+      cell(8, dy, CLOAK);
+      cell(9, dy, dy === 12 ? SEAM : CLOAK);
+      cell(10, dy, CLOAK);
+      cell(11, dy, CLOAK_H);
+      cell(12, dy, CLOAK);
+      cell(13, dy, CLOAK_D);
+    }
+
+    // Hidden sleeves — arms not visible, just dark sleeve mouths at sides (rows 12-13)
+    cell(2, 12, SLEEVE); cell(2, 13, SLEEVE);
+    cell(13, 12, SLEEVE); cell(13, 13, SLEEVE);
+
+    // ── CLOAK SKIRT (rows 15-16) — widens slightly ──
+    cell(2, 15, CLOAK_D); cell(3, 15, CLOAK); cell(4, 15, CLOAK_H);
+    cell(5, 15, CLOAK); cell(6, 15, CLOAK); cell(7, 15, CLOAK); cell(8, 15, CLOAK);
+    cell(9, 15, CLOAK); cell(10, 15, CLOAK); cell(11, 15, CLOAK_H); cell(12, 15, CLOAK); cell(13, 15, CLOAK_D);
+
+    cell(1, 16, CLOAK_D); cell(2, 16, CLOAK_D); cell(3, 16, CLOAK); cell(4, 16, CLOAK_H);
+    cell(5, 16, CLOAK); cell(6, 16, CLOAK); cell(7, 16, CLOAK); cell(8, 16, CLOAK);
+    cell(9, 16, CLOAK); cell(10, 16, CLOAK); cell(11, 16, CLOAK_H); cell(12, 16, CLOAK);
+    cell(13, 16, CLOAK_D); cell(14, 16, CLOAK_D);
+
+    // ── VIOLET CORRUPTION HEM — seeping up from the ground, marks him as Hollow-touched ──
+    // Row 17: main corruption band
+    cell(2, 17, VIOLET_D); cell(3, 17, VIOLET); cell(4, 17, VIOLET_D);
+    cell(5, 17, VIOLET); cell(6, 17, VIOLET_G); cell(7, 17, VIOLET);
+    cell(8, 17, VIOLET); cell(9, 17, VIOLET_G); cell(10, 17, VIOLET);
+    cell(11, 17, VIOLET_D); cell(12, 17, VIOLET); cell(13, 17, VIOLET_D);
+
+    // Row 18: corruption drips (irregular pattern — not a clean line)
+    cell(3, 18, VIOLET_D); cell(5, 18, VIOLET_D); cell(7, 18, VIOLET_D);
+    cell(9, 18, VIOLET_D); cell(11, 18, VIOLET_D);
+
+    // Row 19: faint trailing wisps
+    cell(4, 19, VOID); cell(6, 19, VOID); cell(10, 19, VOID);
+
+    // ── Subtle depth pass (same as Olwen) ──
+    const imgData = ctx.getImageData(0, 0, W, H);
+    for (let y = 0; y < H; y += G) {
+      for (let x = 0; x < W; x += G) {
+        const i = (y * W + x) * 4;
+        if (imgData.data[i + 3] > 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.06)';
+          ctx.fillRect(x, y, 1, 1);
+          ctx.fillStyle = 'rgba(0,0,0,0.18)';
+          ctx.fillRect(x + G - 1, y + G - 1, 1, 1);
+        }
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+
+    if (spriteId) {
+      this.textureDataUrls.set(spriteId, canvas.toDataURL());
+    }
+
+    return texture;
+  }
+
   createInjuredSittingChibi(
     palette: {
       hair: number; hairLight: number; hairDark: number;
@@ -1425,6 +1908,15 @@ export class AssetManager {
     };
     this.registerTexture('npc_petra', () => this.createChibiCharacter('down', 'idle', 0, petraPalette, 'npc_petra', false, false));
 
+    // Olwen — fully custom sprite (hooded hermit with long beard and gnarled staff).
+    // Intentionally NOT a chibi palette swap so the player recognises him as a
+    // distinct character, not a recolour of the villagers.
+    this.registerTexture('npc_olwen', () => this.createOlwenHermit('npc_olwen'));
+
+    // Mysterious Man — void-black cloak with violet corruption hem. No face visible.
+    // Distinct from any chibi variant; the Hollow colour palette marks him as dangerous.
+    this.registerTexture('npc_mysterious_man', () => this.createMysteriousMan('npc_mysterious_man'));
+
     // ========== NEW ENEMY: Spider ==========
     const SPIDER_BODY = 0x212121;
     const SPIDER_BODY_H = 0x424242;
@@ -1463,6 +1955,11 @@ export class AssetManager {
     ], 4, 'enemy_slime'));
     this.registerTexture('enemy_slime_telegraph', () => this.getTexture('enemy_slime')!);
     this.registerTexture('enemy_slime_attack', () => this.getTexture('enemy_slime')!);
+
+    // ========== CORRUPTED GIANT ==========
+    this.registerTexture('enemy_corrupted_giant', () => this.createCorruptedGiant('enemy_corrupted_giant'));
+    this.registerTexture('enemy_corrupted_giant_telegraph', () => this.createCorruptedGiant('enemy_corrupted_giant_telegraph', true));
+    this.registerTexture('enemy_corrupted_giant_attack', () => this.createCorruptedGiant('enemy_corrupted_giant_attack', false, true));
 
     // ========== ENEMY SPRITES ==========
     const WOLF_FUR = 0x616161;
@@ -1717,6 +2214,11 @@ export class AssetManager {
     const RK_HN  = 0x1C1008;   // scythe handle â€” near-black wood
     const RK_WSP = 0x10162C;   // trailing wisps â€” dark indigo
 
+    const RK_ARM = 0x4B5668;   // decayed blue-grey armor
+    const RK_ARH = 0x7F8EA0;   // chipped armor highlight
+    const RK_ARS = 0x252C38;   // armor shadow
+    const RK_RUST = 0x6A3A22;  // rust streak
+
     this.registerTexture('enemy_shadow', () => this.createSpriteTexture([
       //        0        1        2        3        4        5        6        7        8        9
       // hood peak â€” narrow 2-px point
@@ -1728,13 +2230,13 @@ export class AssetManager {
       // skull lower jaw
       [C,       C,       RK_CKS,  RK_CK,   RK_SKS,  RK_SK,   RK_CK,   RK_CKS,  C,       C      ],
       // wide shoulders â€” broadest point; handle exits at col 1
-      [C,       RK_HN,   RK_CKS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKH,  RK_CKS,  C,       C      ],
+      [C,       RK_HN,   RK_ARS,  RK_ARM,  RK_CK,   RK_CK,   RK_ARM,  RK_ARS,  C,       C      ],
       // upper body; handle continues, blade starts col 0â€“1
-      [RK_HN,   RK_BLS,  RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CK,   RK_CKS,  C,       C      ],
+      [RK_HN,   RK_BLS,  RK_ARM,  RK_CK,   RK_RUST, RK_CK,   RK_CK,   RK_ARM,  C,       C      ],
       // scythe blade curves down-left; lower cloak body
-      [RK_BL,   RK_BLS,  RK_CKS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKS,  C,       C,       C      ],
+      [RK_BL,   RK_BLS,  RK_CKS,  RK_ARM,  RK_CK,   RK_CK,   RK_CKS,  C,       C,       C      ],
       // blade tip fades; mid robe narrows
-      [C,       RK_BLS,  RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
+      [C,       RK_BLS,  RK_CKS,  RK_CK,   RK_ARM,  RK_CK,   RK_CKS,  C,       C,       C      ],
       // lower robe â€” slightly ragged
       [C,       C,       RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_WSP,  C,       C,       C      ],
       // robe hem â€” tattered edges begin
@@ -1759,11 +2261,11 @@ export class AssetManager {
       // scythe arm raises â€” handle swings up toward col 2
       [C,       C,       RK_HN,   RK_CKS,  RK_SKS,  RK_SK,   RK_CK,   RK_CKS,  C,       C      ],
       // blade raised to row 4-5, pointing upward-left
-      [RK_BLS,  RK_HN,   RK_BLS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKH,  RK_CKS,  C,       C      ],
-      [RK_BL,   RK_BLS,  RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CK,   RK_CKS,  C,       C      ],
+      [RK_BLS,  RK_HN,   RK_BLS,  RK_ARM,  RK_CK,   RK_CK,   RK_ARM,  RK_CKS,  C,       C      ],
+      [RK_BL,   RK_BLS,  RK_ARM,  RK_CK,   RK_RUST, RK_CK,   RK_CK,   RK_ARM,  C,       C      ],
       // cloak billows â€” charge energy outlines body
-      [C,       RK_CHG,  RK_CKS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKS,  RK_CHG,  C,       C      ],
-      [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
+      [C,       RK_CHG,  RK_ARS,  RK_ARM,  RK_CK,   RK_CK,   RK_ARS,  RK_CHG,  C,       C      ],
+      [C,       C,       RK_CKS,  RK_CK,   RK_ARM,  RK_CK,   RK_CKS,  C,       C,       C      ],
       [C,       C,       RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_WSP,  C,       C,       C      ],
       // wisps spread wider as energy rises
       [C,       RK_WSP,  RK_WSP,  RK_CKS,  RK_CK,   RK_CKS,  RK_WSP,  RK_WSP,  C,       C      ],
@@ -1780,18 +2282,141 @@ export class AssetManager {
       [C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYG,  RK_CK,   RK_CKS,  C,       C      ],
       [C,       C,       RK_CKS,  RK_CK,   RK_SKS,  RK_SK,   RK_CK,   RK_CKS,  C,       C      ],
       // shoulders â€” blade has swung to right side
-      [C,       C,       RK_CKS,  RK_CKH,  RK_CK,   RK_CK,   RK_CKH,  RK_HN,   RK_BLS,  C      ],
+      [C,       C,       RK_ARS,  RK_ARM,  RK_CK,   RK_CK,   RK_ARM,  RK_HN,   RK_BLS,  C      ],
       // blade sweeps right; handle follows
-      [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_HN,   RK_BL,   RK_SLH,  C      ],
+      [C,       C,       RK_ARM,  RK_CK,   RK_RUST, RK_CK,   RK_HN,   RK_BL,   RK_SLH,  C      ],
       // slash flash â€” bright arc at blade tip
-      [C,       C,       C,       RK_CKH,  RK_CK,   RK_CK,   RK_BLS,  RK_SLH,  C,       C      ],
-      [C,       C,       RK_CKS,  RK_CK,   RK_CKH,  RK_CK,   RK_CKS,  C,       C,       C      ],
+      [C,       C,       C,       RK_ARM,  RK_CK,   RK_CK,   RK_BLS,  RK_SLH,  C,       C      ],
+      [C,       C,       RK_CKS,  RK_CK,   RK_ARM,  RK_CK,   RK_CKS,  C,       C,       C      ],
       [C,       C,       RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_WSP,  C,       C,       C      ],
       // wisps burst outward on strike
       [C,       RK_WSP,  RK_WSP,  RK_CKS,  RK_CK,   RK_CKS,  RK_WSP,  RK_WSP,  C,       C      ],
       [RK_WSP,  C,       RK_WSP,  RK_WSP,  RK_CKS,  RK_WSP,  RK_WSP,  C,       RK_WSP,  C      ],
       [RK_WSP,  C,       C,       RK_WSP,  C,       RK_WSP,  C,       C,       RK_WSP,  C      ],
     ], 4, 'enemy_shadow_attack'));
+
+    // ========== HOLLOW REAVER — ranged shade that throws scythe-blades ==========
+    // Sister to the Hollow Shade but recognisably distinct: violet palette,
+    // hood pulled lower over a single magenta eye, blade held aloft in a throwing pose,
+    // and trailing wisps tinted toward magenta/violet rather than indigo.
+    const RV_CK  = 0x080C18;   // cloak deep navy-black
+    const RV_CKH = 0x181E38;   // cloak fold highlight
+    const RV_CKS = 0x030406;   // deepest cloak shadow
+    const RV_HD  = 0x05010A;   // hood interior void
+    const RV_SK  = 0xC8B6D8;   // skull bone — cool ivory with violet wash
+    const RV_SKH = 0xE2D2F0;   // skull highlight
+    const RV_SKS = 0x8878A0;   // skull shadow
+    const RV_EYE = 0xCC44FF;   // eye glow — violet/magenta
+    const RV_BL  = 0xD8E4F8;   // blade pale silver-violet
+    const RV_BLS = 0x6A4E94;   // blade shadow
+    const RV_HN  = 0x140820;   // handle near-black violet
+    const RV_WSP = 0x4E2378;   // trailing wisps — deep violet
+    const RV_MST = 0x6E5BA8;
+    const RV_MSH = 0xB9B0EA;
+    const RV_BLM = 0xC8D5FF;
+
+    this.registerTexture('enemy_hollow_reaver', () => this.createSpriteTexture([
+      //        0        1        2        3        4        5        6        7        8        9
+      // raised blade above hood — caster's signature silhouette
+      [C,       C,       C,       C,       RK_BLS,  RK_BL,   RV_BLM,  C,       C,       C      ],
+      [C,       C,       C,       RK_BLS,  RK_BL,   RV_BLM,  RK_HN,   C,       C,       C      ],
+      // hood peak — narrower than shade's
+      [C,       C,       C,       C,       RK_HN,   RK_HN,   C,       C,       C,       C      ],
+      // hood upper — pulled lower over face
+      [C,       C,       C,       RK_WSP,  RK_CKH,  RK_CKH,  RK_WSP,  C,       C,       C      ],
+      // skull/eye — single magenta glow
+      [C,       C,       RK_WSP,  RK_CK,   RK_HD,   RK_HD,   RK_CK,   RK_WSP,  C,       C      ],
+      // skull lower jaw
+      [C,       C,       RK_CKS,  RK_CK,   RK_EYE,  RK_HD,   RK_CK,   RK_CKS,  C,       C      ],
+      // wide shoulders — both arms raised forward
+      [C,       RK_WSP,  RK_ARS,  RK_ARM,  RK_CK,   RK_CK,   RK_ARM,  RK_ARS,  RK_WSP,  C      ],
+      // upper body — billowing cloak
+      [C,       RK_HN,   RK_ARM,  RK_CK,   RK_RUST, RK_CK,   RK_CK,   RK_ARM,  RK_HN,   C      ],
+      // mid cloak
+      [RK_WSP,  C,       RK_WSP,  RK_CKS,  RK_CK,   RK_CK,   RK_CKS,  RK_WSP,  C,       RK_WSP ],
+      // lower robe
+      [C,       RK_WSP,  C,       RK_WSP,  RK_CK,   RK_CKS,  RK_WSP,  C,       RK_WSP,  C      ],
+      // hem — wisps spread
+      [C,       C,       RK_WSP,  C,       RV_MSH,  RK_WSP,  C,       RK_WSP,  C,       C      ],
+      // root wisps
+      [RK_WSP,  C,       C,       RK_WSP,  C,       C,       RK_WSP,  C,       C,       RK_WSP ],
+    ], 4, 'enemy_hollow_reaver'));
+
+    this.registerTexture('enemy_hollow_reaver_telegraph', () => this.createSpriteTexture([
+      //        0        1        2        3        4        5        6        7        8        9
+      [C,       C,       RK_CHG,  C,       RK_BLS,  RK_BL,   RV_BLM,  C,       RK_CHG,  C      ],
+      [C,       RK_CHG,  C,       RK_BLS,  RK_BL,   RK_SLH,  RK_HN,   C,       C,       C      ],
+      [C,       C,       C,       C,       RK_HN,   RK_HN,   C,       C,       C,       C      ],
+      [C,       C,       RK_CHG,  RK_WSP,  RK_CKH,  RK_CKH,  RK_WSP,  RK_CHG,  C,       C      ],
+      [C,       C,       RK_WSP,  RK_CK,   RK_HD,   RK_HD,   RK_CK,   RK_WSP,  C,       C      ],
+      [C,       C,       RK_CKS,  RK_CK,   RK_EYG,  RK_HD,   RK_CK,   RK_CKS,  C,       C      ],
+      [C,       RK_CHG,  RK_ARS,  RK_ARM,  RK_CK,   RK_CK,   RK_ARM,  RK_ARS,  RK_CHG,  C      ],
+      [C,       RK_HN,   RK_ARM,  RK_CK,   RK_RUST, RK_CK,   RK_CK,   RK_ARM,  RK_HN,   C      ],
+      [RK_WSP,  RK_CHG,  RK_WSP,  RK_CKS,  RK_CK,   RK_CK,   RK_CKS,  RK_WSP,  RK_CHG,  RK_WSP ],
+      [C,       RK_WSP,  C,       RK_WSP,  RK_CK,   RK_CKS,  RK_WSP,  C,       RK_WSP,  C      ],
+      [RK_WSP,  C,       RK_WSP,  C,       RV_MSH,  RK_WSP,  C,       RK_WSP,  C,       RK_WSP ],
+      [RK_WSP,  C,       C,       RK_WSP,  C,       RK_WSP,  C,       C,       RK_WSP,  C      ],
+    ], 4, 'enemy_hollow_reaver_telegraph'));
+
+    this.registerTexture('enemy_hollow_reaver_attack', () => this.createSpriteTexture([
+      //        0        1        2        3        4        5        6        7        8        9
+      [C,       C,       C,       C,       RK_WSP,  C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RK_HN,   RK_HN,   C,       C,       C,       C      ],
+      [C,       C,       C,       RK_WSP,  RK_CKH,  RK_CKH,  RK_WSP,  C,       C,       C      ],
+      [C,       C,       RK_WSP,  RK_CK,   RK_HD,   RK_HD,   RK_CK,   RK_WSP,  C,       C      ],
+      [C,       C,       RK_CKS,  RK_CK,   RK_EYG,  RK_HD,   RK_CK,   RK_CKS,  C,       C      ],
+      [C,       RK_WSP,  RK_ARS,  RK_ARM,  RK_CK,   RK_CK,   RK_ARM,  RK_ARS,  RK_WSP,  C      ],
+      [C,       RK_HN,   RK_ARM,  RK_CK,   RK_RUST, RK_CK,   RK_CK,   RK_ARM,  RK_HN,   C      ],
+      [RK_WSP,  C,       RK_WSP,  RK_CKS,  RK_CK,   RK_CK,   RK_CKS,  RK_WSP,  C,       RK_WSP ],
+      [C,       RK_WSP,  C,       RK_WSP,  RK_CK,   RK_CKS,  RK_WSP,  C,       RK_WSP,  C      ],
+      [C,       C,       RK_WSP,  C,       RV_MSH,  RK_WSP,  C,       RK_WSP,  C,       C      ],
+      [RK_WSP,  C,       C,       RK_WSP,  C,       C,       RK_WSP,  C,       C,       RK_WSP ],
+      [C,       C,       C,       RK_CHG,  C,       RK_SLH,  RK_CHG,  C,       C,       C      ],
+    ], 4, 'enemy_hollow_reaver_attack'));
+
+    // ========== PROJECTILE: thrown scythe-blade ==========
+    // 8×8 sprite — a curved blade with handle stub. Renders with rotation in flight.
+    const PB_BL  = 0xE8F4FF;   // blade highlight
+    const PB_BLM = 0xA8C4E0;   // blade mid
+    const PB_BLS = 0x5888A4;   // blade edge/shadow
+    const PB_HN  = 0x140820;   // handle stub
+    const PB_GLW = 0x44FFEE;   // hollow trailing glow
+    const PB_DIM = 0x10162C;   // dim spectral edge
+
+    this.registerTexture('projectile_scythe', () => this.createSpriteTexture([
+      //        0        1        2        3        4        5        6        7
+      [C,       PB_GLW,  PB_BL,   PB_BL,   PB_BLS,  C,       C,       C      ],
+      [PB_GLW,  PB_BL,   PB_BLM,  PB_BLS,  C,       C,       C,       C      ],
+      [C,       PB_DIM,  PB_BLS,  PB_BL,   PB_HN,   C,       C,       C      ],
+      [C,       C,       PB_DIM,  PB_HN,   PB_HN,   PB_DIM,  C,       C      ],
+      [C,       C,       C,       PB_DIM,  PB_HN,   PB_HN,   C,       C      ],
+      [C,       C,       C,       C,       PB_DIM,  PB_HN,   PB_HN,   C      ],
+      [C,       C,       C,       C,       C,       PB_GLW,  PB_HN,   PB_DIM ],
+      [C,       C,       C,       C,       C,       C,       PB_GLW,  PB_HN  ],
+    ], 4, 'projectile_scythe'));
+
+    this.registerTexture('projectile_scythe_falling', () => this.createSpriteTexture([
+      //        0        1        2        3        4        5        6        7
+      [C,       C,       C,       PB_GLW,  PB_BLS,  PB_BL,   PB_BLM,  C      ],
+      [C,       C,       PB_DIM,  PB_BLS,  PB_BL,   PB_BLM,  PB_BL,   PB_BLS ],
+      [C,       PB_DIM,  PB_BLS,  PB_BL,   PB_BLM,  C,       PB_HN,   C      ],
+      [PB_GLW,  PB_BLS,  PB_BL,   PB_BLM,  C,       PB_HN,   C,       C      ],
+      [PB_DIM,  PB_BLS,  PB_BL,   PB_BLM,  C,       PB_HN,   C,       C      ],
+      [C,       PB_DIM,  PB_BLS,  PB_BL,   PB_BLM,  C,       PB_HN,   C      ],
+      [C,       C,       PB_DIM,  PB_BLS,  PB_BL,   PB_BLM,  PB_BL,   PB_BLS ],
+      [C,       C,       C,       PB_GLW,  PB_BLS,  PB_BL,   PB_BLM,  C      ],
+    ], 4, 'projectile_scythe_falling'));
+
+    this.registerTexture('hazard_scythe_marker', () => this.createSpriteTexture([
+      [C,       C,       PB_DIM,  C,       C,       PB_DIM,  C,       C      ],
+      [C,       PB_DIM,  C,       PB_GLW,  PB_GLW,  C,       PB_DIM,  C      ],
+      [PB_DIM,  C,       PB_GLW,  C,       C,       PB_GLW,  C,       PB_DIM ],
+      [C,       PB_GLW,  C,       PB_BLM,  PB_BLM,  C,       PB_GLW,  C      ],
+      [C,       PB_GLW,  C,       PB_BLM,  PB_BLM,  C,       PB_GLW,  C      ],
+      [PB_DIM,  C,       PB_GLW,  C,       C,       PB_GLW,  C,       PB_DIM ],
+      [C,       PB_DIM,  C,       PB_GLW,  PB_GLW,  C,       PB_DIM,  C      ],
+      [C,       C,       PB_DIM,  C,       C,       PB_DIM,  C,       C      ],
+    ], 4, 'hazard_scythe_marker'));
 
     // ========== NEW ENEMY: Plant Monster ==========
     const VINE = 0x2E7D32;
@@ -2446,6 +3071,56 @@ export class AssetManager {
       [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
       [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
       [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
+    ]);
+
+    // Corrupted cliff palette — Hollow-tinted variants placed for ty < 77 on the
+    // Whispering Woods map. Slightly darker and shifted cool/violet from the base palette
+    // so the rock face reads as drained of life without looking like a different material.
+    const CLIFF_GRASS_C   = 0x4F5A52; // sickly grey-green cap (drained CLIFF_GRASS)
+    const CLIFF_GRASS_D_C = 0x2F3A33; // dark cap edge
+    const CLIFF_SOIL_C    = 0x3A2A26; // burnt soil band
+    const CLIFF_TOP_RIM_C = 0xB8A890; // muted dirty cream lip (less buttery than base)
+    const CL_C = 0x9A8E94; // cool-shifted light strata (was warm 0xC0B4AA)
+    const CM_C = 0x5E5258; // mid strata (cooler violet-grey)
+    const CD_C = 0x2A2228; // dark seam
+    const CS_C = 0x0A0608; // base shadow (near-black with violet bias)
+
+    registerSpriteTexture('cliff_edge_corrupted', [
+      [CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_D_C,CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_D_C,CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_D_C,CLIFF_GRASS_C],
+      [CLIFF_GRASS_C,CLIFF_GRASS_D_C,CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_D_C,CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_D_C,CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_D_C],
+      [CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_D_C,CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_D_C,CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_D_C,CLIFF_GRASS_C,CLIFF_GRASS_C,CLIFF_GRASS_C],
+      [CLIFF_SOIL_C,CLIFF_SOIL_C,CLIFF_SOIL_C,CLIFF_SOIL_C,CLIFF_SOIL_C,CLIFF_SOIL_C,CLIFF_SOIL_C,CLIFF_SOIL_C,CLIFF_SOIL_C,CLIFF_SOIL_C,CLIFF_SOIL_C,CLIFF_SOIL_C],
+      [CLIFF_TOP_RIM_C,CLIFF_TOP_RIM_C,CLIFF_TOP_RIM_C,CLIFF_TOP_RIM_C,CLIFF_TOP_RIM_C,CLIFF_TOP_RIM_C,CLIFF_TOP_RIM_C,CLIFF_TOP_RIM_C,CLIFF_TOP_RIM_C,CLIFF_TOP_RIM_C,CLIFF_TOP_RIM_C,CLIFF_TOP_RIM_C],
+      [CL_C,CL_C,CL_C,CL_C,CL_C,CL_C,CL_C,CL_C,CL_C,CL_C,CL_C,CL_C],
+      [CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C],
+      [CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C],
+      [CL_C,CL_C,CM_C,CL_C,CL_C,CM_C,CL_C,CM_C,CL_C,CL_C,CM_C,CL_C],
+      [CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C],
+      [CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C],
+      [CL_C,CM_C,CL_C,CL_C,CL_C,CM_C,CL_C,CL_C,CM_C,CL_C,CL_C,CL_C],
+      [CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C],
+      [CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C],
+      [CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C],
+      [CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C],
+    ]);
+
+    registerSpriteTexture('cliff_corrupted', [
+      [CL_C,CL_C,CL_C,CL_C,CL_C,CL_C,CL_C,CL_C,CL_C,CL_C,CL_C,CL_C],
+      [CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C],
+      [CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C],
+      [CL_C,CL_C,CM_C,CL_C,CL_C,CL_C,CM_C,CL_C,CL_C,CM_C,CL_C,CL_C],
+      [CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C],
+      [CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C],
+      [CL_C,CM_C,CL_C,CL_C,CM_C,CL_C,CL_C,CM_C,CL_C,CL_C,CM_C,CL_C],
+      [CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C],
+      [CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C],
+      [CL_C,CL_C,CL_C,CM_C,CL_C,CL_C,CL_C,CM_C,CL_C,CL_C,CL_C,CM_C],
+      [CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C],
+      [CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C,CD_C],
+      [CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C,CM_C],
+      [CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C],
+      [CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C],
+      [CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C,CS_C],
     ]);
 
     // stairs: carved stone steps â€” opaque grass cap at top, then treads
@@ -3307,30 +3982,43 @@ export class AssetManager {
       [C,            C,            C,            LEVER_WOOD_S, LEVER_WOOD_S, C,            C,            C],
     ], 4);
 
-    const CAGE = 0x424242;
-    const CAGE_H = 0x616161;
-    const CAGE_B = 0x212121;
+    const CAGE = 0x455A64;
+    const CAGE_H = 0x90A4AE;
+    const CAGE_S = 0x263238;
+    const CAGE_B = 0x11171A;
+    const CAGE_LOCK = 0xD6A21E;
     
     registerSpriteTexture('cage', [
-      [CAGE_B,CAGE_H,CAGE,CAGE,CAGE_H,CAGE_B],
-      [CAGE_H,CAGE,CAGE_H,CAGE_H,CAGE,CAGE_H],
-      [CAGE,CAGE_H,CAGE,CAGE,CAGE_H,CAGE],
-      [CAGE_H,CAGE,CAGE_H,CAGE_H,CAGE,CAGE_H],
-      [CAGE,CAGE_H,CAGE,CAGE,CAGE_H,CAGE],
-      [CAGE_H,CAGE,CAGE_H,CAGE_H,CAGE,CAGE_H],
-    ]);
+      [C,      C,      CAGE_S, CAGE,   CAGE,   CAGE,   CAGE,   CAGE_S, C,      C     ],
+      [C,      CAGE_S, CAGE_H, CAGE_H, CAGE_H, CAGE_H, CAGE_H, CAGE_H, CAGE_S, C     ],
+      [CAGE_S, CAGE_H, CAGE_B, CAGE,   CAGE_B, CAGE_B, CAGE,   CAGE_B, CAGE_H, CAGE_S],
+      [CAGE,   CAGE_B, CAGE_B, CAGE,   CAGE_B, CAGE_B, CAGE,   CAGE_B, CAGE_B, CAGE ],
+      [CAGE,   CAGE_H, CAGE,   CAGE_H, CAGE,   CAGE,   CAGE_H, CAGE,   CAGE_H, CAGE ],
+      [CAGE,   CAGE_B, CAGE_B, CAGE,   CAGE_B, CAGE_B, CAGE,   CAGE_B, CAGE_B, CAGE ],
+      [CAGE,   CAGE_B, CAGE_B, CAGE,   CAGE_LOCK,CAGE_B,CAGE,  CAGE_B, CAGE_B, CAGE ],
+      [CAGE,   CAGE_H, CAGE,   CAGE_H, CAGE,   CAGE,   CAGE_H, CAGE,   CAGE_H, CAGE ],
+      [CAGE_S, CAGE_B, CAGE_B, CAGE,   CAGE_B, CAGE_B, CAGE,   CAGE_B, CAGE_B, CAGE_S],
+      [C,      CAGE_S, CAGE_H, CAGE_H, CAGE_H, CAGE_H, CAGE_H, CAGE_H, CAGE_S, C     ],
+      [C,      C,      CAGE_S, CAGE_S, C,      C,      CAGE_S, CAGE_S, C,      C     ],
+    ], 4);
 
     const BONE_W = 0xFFF8E1;
-    const BONE_S = 0xE0E0E0;
+    const BONE_M = 0xE6D8B8;
+    const BONE_S = 0xBCA88A;
+    const BONE_D = 0x6D5A46;
     const SKULL = 0xFFFDE7;
+    const SKULL_EYE = 0x3E3328;
     
     registerSpriteTexture('bones_pile', [
-      [C,C,BONE_W,BONE_S,BONE_W,C,C,C,C],
-      [C,BONE_S,SKULL,SKULL,SKULL,BONE_S,C,C,C],
-      [BONE_W,SKULL,0xBDBDBD,BONE_W,BONE_S,SKULL,BONE_W,C,C],
-      [BONE_S,BONE_W,BONE_S,SKULL,BONE_W,BONE_S,BONE_S,BONE_W,C],
-      [BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,BONE_S,C],
-      [C,BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,BONE_S,BONE_W,C],
+      [C,      C,      C,      SKULL,  SKULL,    SKULL,  C,      C,      C,      C     ],
+      [C,      C,      SKULL,  SKULL,  SKULL,    SKULL,  SKULL,  C,      C,      C     ],
+      [C,      C,      SKULL,  SKULL_EYE,SKULL,  SKULL_EYE,SKULL,C,      C,      C     ],
+      [C,      C,      SKULL,  SKULL,  BONE_D,   SKULL,  SKULL,  C,      C,      C     ],
+      [C,      BONE_D, BONE_M, BONE_D, SKULL,    BONE_D, BONE_M, BONE_D, C,      C     ],
+      [BONE_D, BONE_W, BONE_M, C,      BONE_S,   C,      BONE_M, BONE_W, BONE_D, C     ],
+      [C,      C,      BONE_D, BONE_W, BONE_M,   BONE_W, BONE_D, C,      C,      C     ],
+      [C,      BONE_D, BONE_M, BONE_W, BONE_D,   BONE_W, BONE_M, BONE_D, C,      C     ],
+      [BONE_D, BONE_W, BONE_D, C,      C,        C,      BONE_D, BONE_W, BONE_D, C     ],
     ]);
 
     // Fallen ranger: top-down lying figure â€” helmet at top, chest armour, cape body, blood pooling at edges.
@@ -3506,6 +4194,28 @@ export class AssetManager {
     const HE_BC = 0xEA80FC;
     const HE_WC = 0xF3E5F5;
     const HE_SH = 0x311B92;
+    // Cursed Idol — squat humanoid figurine carved from a black absorbent stone.
+    // Faint violet seep in the eye sockets — same hue as the Hollow corruption.
+    const CI_K  = 0x1A1418;  // deepest black-stone
+    const CI_KH = 0x2C2429;  // stone highlight
+    const CI_KS = 0x0E0A0C;  // stone shadow
+    const CI_E  = 0x4A148C;  // violet eye seep (matches HE_DP)
+    const CI_EH = 0x7C4DFF;  // eye gleam
+    const CI_BS = 0x6B4226;  // small wooden base
+    const CI_BH = 0x8B5A33;  // base highlight
+
+    registerSpriteTexture('cursed_idol', [
+      //       0      1      2      3      4      5      6      7
+      /* 0 */ [C,     C,     CI_KH, CI_K,  CI_K,  CI_KH, C,     C    ],
+      /* 1 */ [C,     CI_KH, CI_K,  CI_K,  CI_K,  CI_K,  CI_KH, C    ],
+      /* 2 */ [C,     CI_K,  CI_KS, CI_E,  CI_E,  CI_KS, CI_K,  C    ],
+      /* 3 */ [C,     CI_KH, CI_K,  CI_EH, CI_EH, CI_K,  CI_KH, C    ],
+      /* 4 */ [CI_KH, CI_K,  CI_K,  CI_KS, CI_KS, CI_K,  CI_K,  CI_KH],
+      /* 5 */ [CI_K,  CI_K,  CI_KH, CI_K,  CI_K,  CI_KH, CI_K,  CI_K ],
+      /* 6 */ [CI_KS, CI_K,  CI_K,  CI_K,  CI_K,  CI_K,  CI_K,  CI_KS],
+      /* 7 */ [C,     CI_BH, CI_BS, CI_BS, CI_BS, CI_BS, CI_BH, C    ],
+    ], 4);
+
     registerSpriteTexture('heretical_essence_apparition', [
       [C,      C,      HE_SH,  HE_DP,  HE_DP,  HE_SH,  C,      C     ],
       [C,      HE_SH,  HE_DP,  HE_P,   HE_P,   HE_DP,  HE_SH,  C     ],
@@ -4153,6 +4863,50 @@ export class AssetManager {
       /* 7 */ [VT_G,  VT_LH, VT_L,  VT_L,  VT_LS, VT_GD],
       /* 8 */ [C,     VT_G,  VT_L,  VT_LS, VT_GD, C    ],
       /* 9 */ [C,     C,     VT_GD, VT_GD, C,     C    ],
+    ]);
+
+    // Berserker Draught — black flask, deep red liquid, iron cork
+    const BD_G  = 0x2C2A2E;  // dark glass
+    const BD_GD = 0x1A181C;  // glass shadow
+    const BD_L  = 0xB71C1C;  // red liquid
+    const BD_LH = 0xE53935;  // red highlight
+    const BD_LS = 0x7F0F0F;  // red shadow
+    const BD_LG = 0xFF5252;  // ember gleam
+    const BD_CK = 0x3E2723;  // iron cork
+    const BD_CH = 0x5D4037;  // cork highlight
+
+    registerSpriteTexture('berserker_draught', [
+      //       0      1      2      3      4      5
+      /* 0 */ [C,     C,     BD_CH, BD_CK, C,     C    ],
+      /* 1 */ [C,     C,     BD_CK, BD_CK, C,     C    ],
+      /* 2 */ [C,     C,     BD_G,  BD_GD, C,     C    ],
+      /* 3 */ [C,     BD_G,  BD_LG, BD_L,  BD_GD, C    ],
+      /* 4 */ [C,     BD_G,  BD_LH, BD_L,  BD_GD, C    ],
+      /* 5 */ [BD_G,  BD_LH, BD_L,  BD_L,  BD_LS, BD_GD],
+      /* 6 */ [BD_G,  BD_L,  BD_L,  BD_LS, BD_LS, BD_GD],
+      /* 7 */ [BD_G,  BD_LH, BD_L,  BD_L,  BD_LS, BD_GD],
+      /* 8 */ [C,     BD_G,  BD_L,  BD_LS, BD_GD, C    ],
+      /* 9 */ [C,     C,     BD_GD, BD_GD, C,     C    ],
+    ]);
+
+    // Last Breath Charm — ivory bone token with a single carved red rune
+    const LB_B  = 0xEFE6D2;  // bone white
+    const LB_BH = 0xFFFAF0;  // bone highlight
+    const LB_BS = 0xB7A78A;  // bone shadow
+    const LB_BD = 0x7A6A52;  // bone deep shadow
+    const LB_R  = 0xB71C1C;  // rune red
+    const LB_RG = 0xFF5252;  // rune glow
+
+    registerSpriteTexture('last_breath_charm', [
+      //       0      1      2      3      4      5      6      7
+      /* 0 */ [C,     C,     LB_BS, LB_B,  LB_B,  LB_BS, C,     C    ],
+      /* 1 */ [C,     LB_BS, LB_BH, LB_B,  LB_B,  LB_BH, LB_BS, C    ],
+      /* 2 */ [LB_BS, LB_BH, LB_B,  LB_R,  LB_R,  LB_B,  LB_BH, LB_BS],
+      /* 3 */ [LB_B,  LB_B,  LB_R,  LB_RG, LB_RG, LB_R,  LB_B,  LB_B ],
+      /* 4 */ [LB_B,  LB_B,  LB_R,  LB_RG, LB_RG, LB_R,  LB_B,  LB_B ],
+      /* 5 */ [LB_BS, LB_BS, LB_B,  LB_R,  LB_R,  LB_B,  LB_BS, LB_BS],
+      /* 6 */ [C,     LB_BS, LB_BD, LB_B,  LB_B,  LB_BD, LB_BS, C    ],
+      /* 7 */ [C,     C,     LB_BD, LB_BS, LB_BS, LB_BD, C,     C    ],
     ]);
 
     const TG_WRAP = 0x8D6E63;

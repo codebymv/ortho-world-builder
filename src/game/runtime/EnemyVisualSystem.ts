@@ -145,9 +145,14 @@ export function applyEnemyVisuals({
     mat.color.setHex(0xaaaaee);
   } else if (enemy.state === 'slamming') {
     const novaTimer = enemy.novaSlamTimer ?? 0;
-    const novaProgress = 1 - novaTimer / 0.5;
+    const novaDuration = enemy.currentAttackType === 'hail_mary' ? 2.2 : 0.5;
+    const novaProgress = 1 - novaTimer / novaDuration;
     const flash = Math.sin(novaProgress * Math.PI * 6) * 0.4 + 0.6;
-    mat.color.setRGB(flash * 0.5, flash * 0.2, flash);
+    if (enemy.currentAttackType === 'hail_mary') {
+      mat.color.setRGB(flash * 0.3, flash, flash);
+    } else {
+      mat.color.setRGB(flash * 0.5, flash * 0.2, flash);
+    }
   } else if (isPhase3) {
     const pulse = Math.sin(currentTime / 200) * 0.15 + 0.85;
     mat.color.setRGB(pulse * 0.3, pulse, pulse);
@@ -181,8 +186,16 @@ export function applyEnemyVisuals({
       case 'shadow':
         finalEnemyY += Math.sin(currentTime / 180 + seed) * 0.05;
         finalEnemyX += Math.cos(currentTime / 220 + seed) * 0.025;
-        scaleX *= 1 + stride * 0.02;
-        scaleY *= 1 - stride * 0.02;
+        scaleX *= 1 + stride * 0.035;
+        scaleY *= 1 - stride * 0.025;
+        rotation += Math.sin(currentTime / 260 + seed) * 0.01;
+        rotation *= 0.4;
+        break;
+      case 'hollow_reaver':
+        finalEnemyY += Math.sin(currentTime / 170 + seed) * 0.06;
+        finalEnemyX += Math.cos(currentTime / 210 + seed) * 0.03;
+        scaleX *= 1 + stride * 0.025;
+        scaleY *= 1 - stride * 0.025;
         rotation *= 0.4;
         break;
       case 'slime':
@@ -233,9 +246,10 @@ export function applyEnemyVisuals({
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
     const isBoss = enemyType === 'hollow_guardian';
-    const isSweep = enemy.currentAttackType === 'sweep';
+    const isSweep = enemy.currentAttackType === 'sweep' || enemy.currentAttackType === 'combo_sweep';
+    const isComboFinisher = enemy.currentAttackType === 'combo_finisher';
     const phaseMultiplier = isPhase3 ? 1.4 : isPhase2 ? 1.15 : 1.0;
-    const scaleSwellX = ((isBoss ? 0.28 : isGolem ? 0.22 : 0.15) + (isSweep ? 0.18 : 0)) * phaseMultiplier;
+    const scaleSwellX = ((isBoss ? 0.28 : isGolem ? 0.22 : 0.15) + (isSweep ? 0.18 : isComboFinisher ? 0.12 : 0)) * phaseMultiplier;
     const scaleSwellY = ((isBoss ? 0.22 : isGolem ? 0.18 : 0.12) - (isSweep ? 0.06 : 0)) * phaseMultiplier;
     const windUp = isBoss ? 0.3 : isGolem ? 0.25 : 0.15;
     const shakeBase = ((isBoss ? 0.07 : isGolem ? 0.06 : 0.03) + (isSweep ? 0.04 : 0)) * phaseMultiplier;
@@ -253,7 +267,7 @@ export function applyEnemyVisuals({
     const shakeIntensity = shakeBase * telegraphProgress * telegraphProgress;
     finalEnemyX += Math.sin(currentTime / 25 + seed) * shakeIntensity;
     finalEnemyY += Math.cos(currentTime / 30 + seed) * shakeIntensity;
-    if (isSweep) {
+    if (isSweep || isComboFinisher) {
       finalEnemyX += Math.sin(currentTime / 12 + seed) * 0.08 * telegraphProgress;
     }
     rotation = Math.atan2(dy, dx) * (isBoss ? 0.12 : 0.08) * telegraphProgress;
@@ -288,8 +302,9 @@ export function applyEnemyVisuals({
     finalEnemyY += Math.cos(currentTime / 20 + seed) * shakeAmt * 0.5;
   } else if (enemy.state === 'slamming') {
     const novaTimer = enemy.novaSlamTimer ?? 0;
-    const novaProgress = 1 - novaTimer / 0.5;
-    const expand = Math.sin(novaProgress * Math.PI) * 0.35;
+    const novaDuration = enemy.currentAttackType === 'hail_mary' ? 2.2 : 0.5;
+    const novaProgress = 1 - novaTimer / novaDuration;
+    const expand = Math.sin(novaProgress * Math.PI) * (enemy.currentAttackType === 'hail_mary' ? 0.5 : 0.35);
     scaleX *= 1 + expand;
     scaleY *= 1 + expand;
     const shakeAmt = 0.06 * novaProgress * novaProgress;
@@ -307,8 +322,15 @@ export function applyEnemyVisuals({
     } else if (enemyType === 'shadow') {
       finalEnemyY += breathe * 0.05;
       finalEnemyX += Math.cos(currentTime / 900 + seed) * 0.02;
-      scaleX *= 1 + breathe * 0.012;
-      scaleY *= 1 - breathe * 0.012;
+      scaleX *= 1 + breathe * 0.018;
+      scaleY *= 1 - breathe * 0.016;
+      rotation = Math.sin(currentTime / 1100 + seed) * 0.01;
+    } else if (enemyType === 'hollow_reaver') {
+      finalEnemyY += breathe * 0.065;
+      finalEnemyX += Math.cos(currentTime / 760 + seed) * 0.028;
+      scaleX *= 1 + breathe * 0.014;
+      scaleY *= 1 - breathe * 0.018;
+      rotation = Math.sin(currentTime / 850 + seed) * 0.014;
     } else if (enemyType === 'slime') {
       finalEnemyY += Math.abs(breathe) * 0.025;
       scaleX *= 1 + Math.abs(breathe) * 0.04;
@@ -351,6 +373,16 @@ export function applyEnemyVisuals({
     outline.scale.set(scaleX * outlinePad, scaleY * outlinePad, 1);
     outline.rotation.z = rotation;
     outline.renderOrder = enemyMesh.renderOrder - 1;
+  }
+
+  const usesScreenBossBar = enemy.type === 'hollow_guardian';
+  if (usesScreenBossBar) {
+    const existingHpBar = registry.hpBars.get(enemy.id);
+    if (existingHpBar) {
+      existingHpBar.bg.visible = false;
+      existingHpBar.fill.visible = false;
+    }
+    return;
   }
 
   const hpBar = getOrCreateHPBar();

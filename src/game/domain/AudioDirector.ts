@@ -35,6 +35,30 @@ export function createAudioProcessor(refs: AudioProcessorRefs) {
     return refs.audioContextRef.current;
   };
 
+  // All non-looping SFX elements registered here get played+paused at volume=0
+  // after the first AudioContext resume, forcing the browser to pre-decode the
+  // MP3 data. Without this, each sound pays a 5-50ms decode penalty on first play.
+  const prewarmQueue: HTMLAudioElement[] = [];
+  let hasPrewarmed = false;
+
+  const prewarmRegistered = () => {
+    if (hasPrewarmed) return;
+    hasPrewarmed = true;
+    for (const audio of prewarmQueue) {
+      const vol = audio.volume;
+      audio.volume = 0;
+      audio.play()
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = vol;
+        })
+        .catch(() => {
+          audio.volume = vol;
+        });
+    }
+  };
+
   const resumeAudioContext = async () => {
     const context = initializeAudioContext();
     if (context?.state === 'suspended') {
@@ -44,10 +68,14 @@ export function createAudioProcessor(refs: AudioProcessorRefs) {
         // Ignore autoplay-policy resume failures and try again on the next user gesture.
       }
     }
+    prewarmRegistered();
     return context;
   };
 
   const processAudioElement = (audio: HTMLAudioElement) => {
+    // Register non-looping SFX for pre-warming (music loops are excluded).
+    if (!audio.loop) prewarmQueue.push(audio);
+
     if (refs.audioSourcesConnectedRef.current.has(audio)) return;
 
     const context = initializeAudioContext();
@@ -207,7 +235,11 @@ export function createRandomAudioPool(config: RandomAudioPoolConfig) {
 
   const play = () => {
     if (pool.length === 0) return;
-    const audio = pool[Math.floor(Math.random() * pool.length)];
+    // Prefer an element that isn't currently playing to avoid cutting a clip short.
+    const idle = pool.filter(a => a.paused);
+    const audio = idle.length > 0
+      ? idle[Math.floor(Math.random() * idle.length)]
+      : pool[Math.floor(Math.random() * pool.length)];
     audio.currentTime = 0;
     audio.play()
       .then(() => {

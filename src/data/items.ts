@@ -149,6 +149,25 @@ export const items: Record<string, Item> = {
     buffDuration: 14,
   },
 
+  berserker_draught: {
+    id: 'berserker_draught',
+    name: 'Berserker Draught',
+    description: 'A black tincture that floods the veins with heat. For 10 seconds, your strikes hit 50% harder and you move 40% faster — but the cost is paid in nerves and shaking hands when it ends.',
+    type: 'consumable',
+    sprite: 'berserker_draught',
+    buffType: 'berserker',
+    buffDuration: 10,
+  },
+
+  last_breath_charm: {
+    id: 'last_breath_charm',
+    name: 'Last Breath Charm',
+    description: 'A bone token carved with a single rune. When a killing blow lands, the charm cracks and pulls you back from the brink — once. Carry it close; it cannot be drunk or willed to act, only spent by death itself.',
+    type: 'consumable',
+    sprite: 'last_breath_charm',
+    buffType: 'last_breath',
+  },
+
   blighted_root_shard: {
     id: 'blighted_root_shard',
     name: 'Blighted Root Shard',
@@ -171,6 +190,14 @@ export const items: Record<string, Item> = {
     description: 'A weathered badge from the old outpost, pressed into your palm as proof that the high road is safe again.',
     type: 'quest',
     sprite: 'map',
+  },
+
+  cursed_idol: {
+    id: 'cursed_idol',
+    name: 'Cursed Idol',
+    description: 'A blackened figurine no taller than a thumb, carved from a stone that absorbs warmth and gives back none. The hermit who gave it to you said it was worthless — and yet you cannot quite bring yourself to drop it.',
+    type: 'quest',
+    sprite: 'cursed_idol',
   },
 
   heretical_essence_apparition: {

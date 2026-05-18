@@ -79,6 +79,7 @@ export function createBonfireRestAction({
   const restAtBonfire = () => {
     state.player.health = state.player.maxHealth;
     state.player.stamina = state.player.maxStamina;
+    state.player.lastBreathUsedThisLife = false;
     playBonfireRestore();
     const map = world.getCurrentMap();
     respawnEnemiesForCurrentMap(state.currentMap, map);

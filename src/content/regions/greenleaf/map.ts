@@ -165,10 +165,17 @@ export const villageDef: MapDefinition = {
     { x: 58, y: 108, width: 5, height: 4, type: 'broken_wagon' },
 
     // ====== NORTH CORRIDOR: ZONE A â€” VILLAGE GATE CROSSROADS (y:53-58) ======
-    { x: 108, y: 53, width: 22, height: 6, type: 'clearing', fill: 'dirt' },
+    // Keep the happy-path lane visually direct; avoid one wide dirt slab across the gate.
+    { x: 114, y: 53, width: 10, height: 6, type: 'clearing', fill: 'dirt' },
+    { x: 101, y: 48, width: 7, height: 6, type: 'cottage' },
+    { x: 130, y: 48, width: 7, height: 6, type: 'cottage' },
+    { x: 99, y: 55, width: 10, height: 4, type: 'garden' },
+    { x: 129, y: 55, width: 10, height: 4, type: 'garden' },
 
     // ====== NORTH CORRIDOR: ZONE B â€” THE THRESHOLD (y:22-42) ======
     { x: 124, y: 30, width: 5, height: 4, type: 'cottage' },
+    { x: 101, y: 31, width: 5, height: 4, type: 'cottage' },
+    { x: 132, y: 38, width: 5, height: 4, type: 'cottage' },
     { x: 106, y: 28, width: 7, height: 5, type: 'clearing', fill: 'dark_grass' },
     { x: 127, y: 36, width: 7, height: 5, type: 'clearing', fill: 'dark_grass' },
     { x: 108, y: 36, width: 6, height: 4, type: 'clearing', fill: 'tall_grass' },
@@ -193,6 +200,10 @@ export const villageDef: MapDefinition = {
     { x: 160, y: 100, width: 20, height: 3, type: 'path', fill: 'dirt' },
     { x: 170, y: 36, width: 24, height: 3, type: 'path', fill: 'dirt' },
     { x: 112, y: 38, width: 4, height: 20, type: 'path', fill: 'dirt' },
+    // Upper ridge detour: the obvious center climb is sealed; follow the cliff east to find the break.
+    { x: 120, y: 31, width: 22, height: 3, type: 'path', fill: 'dirt' },
+    { x: 136, y: 27, width: 6, height: 7, type: 'path', fill: 'dirt' },
+    { x: 112, y: 27, width: 12, height: 4, type: 'cliff_face' },
     // Dirt widening at key intersections
     { x: 113, y: 70, width: 10, height: 8, type: 'clearing', fill: 'dirt' },
     { x: 113, y: 98, width: 10, height: 8, type: 'clearing', fill: 'dirt' },
@@ -238,27 +249,27 @@ export const villageDef: MapDefinition = {
     { x: 108, y: 100, type: 'sign', walkable: false, interactionId: 'village_sign' },
 
     // ====== LANTERNS along main N-S road (every ~12 tiles) ======
-    { x: 115, y: 18, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 122, y: 30, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 115, y: 42, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 122, y: 50, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 115, y: 62, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 122, y: 80, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 115, y: 90, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 122, y: 108, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 115, y: 120, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 122, y: 132, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 115, y: 18, type: 'lantern', walkable: false },
+    { x: 122, y: 30, type: 'lantern', walkable: false },
+    { x: 115, y: 42, type: 'lantern', walkable: false },
+    { x: 122, y: 50, type: 'lantern', walkable: false },
+    { x: 115, y: 62, type: 'lantern', walkable: false },
+    { x: 122, y: 80, type: 'lantern', walkable: false },
+    { x: 115, y: 90, type: 'lantern', walkable: false },
+    { x: 122, y: 108, type: 'lantern', walkable: false },
+    { x: 115, y: 120, type: 'lantern', walkable: false },
+    { x: 122, y: 132, type: 'lantern', walkable: false },
     // ====== LANTERNS along E-W road ======
-    { x: 35, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 50, y: 76, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 70, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 90, y: 76, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 145, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 165, y: 76, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 195, y: 71, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 35, y: 71, type: 'lantern', walkable: false },
+    { x: 50, y: 76, type: 'lantern', walkable: false },
+    { x: 70, y: 71, type: 'lantern', walkable: false },
+    { x: 90, y: 76, type: 'lantern', walkable: false },
+    { x: 145, y: 71, type: 'lantern', walkable: false },
+    { x: 165, y: 76, type: 'lantern', walkable: false },
+    { x: 195, y: 71, type: 'lantern', walkable: false },
     // ====== LANTERNS at district entries ======
-    { x: 152, y: 64, type: 'lantern', walkable: false, interactionId: 'lantern' },
-    { x: 200, y: 64, type: 'lantern', walkable: false, interactionId: 'lantern' },
+    { x: 152, y: 64, type: 'lantern', walkable: false },
+    { x: 200, y: 64, type: 'lantern', walkable: false },
 
     // ====== TEMPEST GRASS ======
     { x: 105, y: 78, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
@@ -787,6 +798,10 @@ export const villageDef: MapDefinition = {
     // Gate area village props
     { x: 110, y: 53, type: 'bench', walkable: false },
     { x: 126, y: 53, type: 'bench', walkable: false },
+    { x: 102, y: 55, type: 'flower', walkable: true },
+    { x: 106, y: 57, type: 'flower', walkable: true },
+    { x: 132, y: 55, type: 'flower', walkable: true },
+    { x: 136, y: 57, type: 'flower', walkable: true },
     { x: 108, y: 57, type: 'barrel', walkable: false },
     { x: 129, y: 57, type: 'barrel', walkable: false },
     { x: 110, y: 57, type: 'cart', walkable: false },
@@ -797,6 +812,10 @@ export const villageDef: MapDefinition = {
     // ====== NORTH CORRIDOR: ZONE B â€” THE THRESHOLD ======
     // Abandoned guard post debris
     { x: 123, y: 34, type: 'barrel', walkable: false },
+    { x: 103, y: 36, type: 'barrel', walkable: false },
+    { x: 105, y: 36, type: 'crate', walkable: false },
+    { x: 134, y: 43, type: 'barrel', walkable: false },
+    { x: 136, y: 43, type: 'crate', walkable: false },
     { x: 130, y: 30, type: 'barrel', walkable: false },
     { x: 130, y: 32, type: 'crate', walkable: false },
     { x: 124, y: 35, type: 'bones', walkable: true },
@@ -864,7 +883,7 @@ export const villageDef: MapDefinition = {
     // stampCliffs entirely so narrow stairways only needed at scenic crossing points.
 
     // Center peak (el2 â†’ el1): south_face=27, on the main N-S cobble
-    { x: 114, y: 27, width: 8, height: 4, elevation: 2 },
+    { x: 136, y: 27, width: 6, height: 4, elevation: 2 },
     // North ridge (el1 â†’ el0): south_face=45, main N-S cobble
     { x: 114, y: 45, width: 8, height: 4, elevation: 1 },
     // NE citadel (el2 â†’ el1): south_face=29
@@ -882,6 +901,9 @@ export const villageDef: MapDefinition = {
   ],
   enemyZones: [
     { x: 215, y: 12, width: 16, height: 12, enemyType: 'bandit', count: 4 },
+    { x: 60, y: 28, width: 6, height: 5, enemyType: 'wolf', count: 1 },
+    { x: 126, y: 28, width: 12, height: 6, enemyType: 'wolf', count: 2 },
+    { x: 136, y: 28, width: 6, height: 5, enemyType: 'wolf', count: 1 },
     { x: 5, y: 130, width: 12, height: 10, enemyType: 'slime', count: 3 },
   ],
 };

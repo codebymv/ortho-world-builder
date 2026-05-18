@@ -130,6 +130,7 @@ export function buildEnemyLoopContext(options: BuildRuntimePhaseContextsOptions)
     registry: options.enemyVisuals,
     enemyAudio: options.enemyAudio,
     playPlayerHit: options.playPlayerHit,
+    playBossAttack: options.playBossAttack,
     playPropBreak: options.playPropBreak,
     shadowGeometry: options.shadowGeometry,
     shadowMaterial: options.shadowMaterial,

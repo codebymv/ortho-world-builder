@@ -43,7 +43,48 @@ interface UpdateNpcDialogueProjectionOptions {
   minDeltaPx?: number;
 }
 
+const NPC_WANDER_BODY_RADIUS = 0.15;
+const NPC_WANDER_TARGET_ATTEMPTS = 10;
+const NPC_STUCK_FRAME_LIMIT = 4;
 const worldPosVec3 = new THREE.Vector3();
+
+function chooseNpcWanderTarget(
+  npc: NPC,
+  wander: NpcWanderState,
+  world: World,
+): { x: number; y: number } | null {
+  if (wander.radius <= 0 || wander.speed <= 0) return null;
+
+  for (let attempt = 0; attempt < NPC_WANDER_TARGET_ATTEMPTS; attempt++) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = wander.radius * Math.sqrt(Math.random());
+    const x = wander.origin.x + Math.cos(angle) * distance;
+    const y = wander.origin.y + Math.sin(angle) * distance;
+    const dx = x - npc.position.x;
+    const dy = y - npc.position.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const firstStep = Math.min(0.35, dist);
+    const firstStepX = dist > 0 ? npc.position.x + (dx / dist) * firstStep : x;
+    const firstStepY = dist > 0 ? npc.position.y + (dy / dist) * firstStep : y;
+
+    if (
+      world.canMoveTo(x, y, x, y, NPC_WANDER_BODY_RADIUS) &&
+      world.canMoveTo(npc.position.x, npc.position.y, firstStepX, firstStepY, NPC_WANDER_BODY_RADIUS)
+    ) {
+      wander.angle = angle;
+      return { x, y };
+    }
+  }
+
+  return null;
+}
+
+function pauseNpcWander(wander: NpcWanderState, minPause: number, randomPause: number) {
+  wander.isPaused = true;
+  wander.pauseTimer = minPause + Math.random() * randomPause;
+  wander.target = null;
+  wander.stuckFrames = 0;
+}
 
 export function updateNpcBehaviors({
   activeNpcIndices,
@@ -96,30 +137,53 @@ export function updateNpcBehaviors({
     if (wander.isPaused) {
       wander.pauseTimer -= deltaTime;
       if (wander.pauseTimer <= 0) {
-        wander.isPaused = false;
-        wander.angle += (Math.random() - 0.5) * Math.PI;
+        wander.target = chooseNpcWanderTarget(npc, wander, world);
+        if (wander.target) {
+          wander.isPaused = false;
+        } else {
+          pauseNpcWander(wander, 0.4, 1.0);
+        }
       }
     } else {
-      const targetX = wander.origin.x + Math.cos(wander.angle) * wander.radius;
-      const targetY = wander.origin.y + Math.sin(wander.angle) * wander.radius;
+      wander.target ??= chooseNpcWanderTarget(npc, wander, world);
+      if (!wander.target) {
+        pauseNpcWander(wander, 0.4, 1.0);
+        applyNpcVisuals({
+          npc,
+          index: ni,
+          currentTime,
+          isTalking: false,
+          isPaused: true,
+          isObjective: isNpcPriorityCueTarget(npc),
+          npcScale: npcScaleById[npc.id] ?? 1,
+          npcFootOffset,
+          getVisualYAt,
+          getActorRenderOrder,
+          meshes: visualMeshes,
+        });
+        continue;
+      }
+
+      const targetX = wander.target.x;
+      const targetY = wander.target.y;
       const dx = targetX - npc.position.x;
       const dy = targetY - npc.position.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist > 0.1) {
-        const moveSpeed = wander.speed * deltaTime;
+        const moveSpeed = Math.min(wander.speed * deltaTime, dist);
         const nx = npc.position.x + (dx / dist) * moveSpeed;
         const ny = npc.position.y + (dy / dist) * moveSpeed;
         let moved = false;
 
-        if (world.canMoveTo(npc.position.x, npc.position.y, nx, ny)) {
+        if (world.canMoveTo(npc.position.x, npc.position.y, nx, ny, NPC_WANDER_BODY_RADIUS)) {
           npc.position.x = nx;
           npc.position.y = ny;
           moved = true;
-        } else if (world.canMoveTo(npc.position.x, npc.position.y, nx, npc.position.y)) {
+        } else if (world.canMoveTo(npc.position.x, npc.position.y, nx, npc.position.y, NPC_WANDER_BODY_RADIUS)) {
           npc.position.x = nx;
           moved = true;
-        } else if (world.canMoveTo(npc.position.x, npc.position.y, npc.position.x, ny)) {
+        } else if (world.canMoveTo(npc.position.x, npc.position.y, npc.position.x, ny, NPC_WANDER_BODY_RADIUS)) {
           npc.position.y = ny;
           moved = true;
         }
@@ -128,19 +192,13 @@ export function updateNpcBehaviors({
           wander.stuckFrames = 0;
         } else {
           wander.stuckFrames++;
-          if (wander.stuckFrames >= 4) {
-            wander.isPaused = true;
-            wander.pauseTimer = 0.3 + Math.random() * 1.0;
-            wander.angle = Math.random() * Math.PI * 2;
-            wander.stuckFrames = 0;
-          } else {
-            wander.angle += Math.PI * (0.4 + Math.random() * 0.6);
+          wander.target = null;
+          if (wander.stuckFrames >= NPC_STUCK_FRAME_LIMIT) {
+            pauseNpcWander(wander, 0.3, 1.0);
           }
         }
       } else {
-        wander.isPaused = true;
-        wander.pauseTimer = 1.5 + Math.random() * 3;
-        wander.angle += (Math.random() - 0.5) * Math.PI * 1.5;
+        pauseNpcWander(wander, 1.5, 3.0);
       }
     }
 

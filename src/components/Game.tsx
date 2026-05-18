@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { GameState } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { World, type CollisionDebugSnapshot } from '@/lib/game/World';
+import type { CombatSystem } from '@/lib/game/Combat';
 import { MapMarker, extractMarkersFromText } from '@/lib/game/MapMarkers';
 import { SaveManager } from '@/lib/game/SaveManager';
 import { preloadMap } from '@/data/maps';
@@ -34,6 +35,12 @@ import { useGameMusic } from '@/game/runtime/useGameMusic';
 import { useGameRuntime } from '@/game/runtime/useGameRuntime';
 
 type InteractionPrompt = string | null;
+type BossHudSnapshot = {
+  name: string;
+  health: number;
+  maxHealth: number;
+  phase: number;
+} | null;
 type LoadedRuntimeContent = {
   items: typeof import('@/data/items').items;
   criticalPathItems: typeof import('@/data/criticalPathItems').criticalPathItems;
@@ -97,6 +104,7 @@ const Game = () => {
   const gameStateRef = useRef<GameState | null>(null);
   const assetManagerRef = useRef<AssetManager | null>(null);
   const worldRef = useRef<World | null>(null);
+  const combatSystemRef = useRef<CombatSystem | null>(null);
   const textureCacheRef = useRef<Map<string, THREE.Texture>>(new Map());
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const killCountRef = useRef(0);
@@ -104,6 +112,7 @@ const Game = () => {
   const interactionContentRef = useRef<LoadedInteractionContent | null>(null);
   const syncVillageReactivityRef = useRef<(() => void) | null>(null);
   const syncBlightedRootStateRef = useRef<(() => void) | null>(null);
+  const syncManuscriptCheckpointGateStateRef = useRef<(() => void) | null>(null);
   const playPotionDrinkRef = useRef<(() => void) | null>(null);
   const playGrassChewRef = useRef<(() => void) | null>(null);
   const playHeroEventRef = useRef<(() => void) | null>(null);
@@ -167,7 +176,9 @@ const Game = () => {
   const [bonfireOverlaySubtitle, setBonfireOverlaySubtitle] = useState<string | null>(null);
   const [justPickedUpItem, setJustPickedUpItem] = useState<Item | null>(null);
   const [justGainedCurrency, setJustGainedCurrency] = useState<CurrencyGain | null>(null);
-  const [weaponAcquiredItem, setWeaponAcquiredItem] = useState<Item | null>(null);
+  const [bossHud, setBossHud] = useState<BossHudSnapshot>(null);
+  /** Queue of first-time pickups awaiting the acquisition overlay (one at a time). */
+  const [acquiredItemQueue, setAcquiredItemQueue] = useState<Item[]>([]);
   const [bonfireMenuOpen, setBonfireMenuOpen] = useState(false);
   const bonfireOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const justPickedUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -200,11 +211,15 @@ const Game = () => {
   useEffect(() => {
     if (!gameState) return;
 
-    gameState.onItemAdded = (item: Item) => {
-      if (item.type === 'equipment') {
-        setWeaponAcquiredItem({ ...item });
+    gameState.onItemAdded = (item: Item, isFirstTime: boolean) => {
+      // First-time pickups (any type) go through the full acquisition overlay.
+      // The queue lets multi-item grants (chest with weapon + consumable) present
+      // sequentially instead of having one swallow the other.
+      if (isFirstTime) {
+        setAcquiredItemQueue(q => [...q, { ...item }]);
         return;
       }
+      // Repeat pickups fall through to the existing brief notification flow.
       setJustPickedUpItem({ ...item });
       if (justPickedUpTimerRef.current) {
         clearTimeout(justPickedUpTimerRef.current);
@@ -297,10 +312,26 @@ const Game = () => {
     maxStamina: number;
     gold: number;
     essence: number;
+    bossName: string;
+    bossHealth: number;
+    bossMaxHealth: number;
+    bossPhase: number;
   } | null>(null);
   const triggerUIUpdateThrottled = (now: number = performance.now()) => {
     const state = gameStateRef.current;
     if (!state) return;
+    const bossEnemy = combatSystemRef.current?.getEnemies().find(enemy =>
+      enemy.health > 0 &&
+      enemy.type === 'hollow_guardian'
+    );
+    const nextBossHud: BossHudSnapshot = bossEnemy
+      ? {
+          name: bossEnemy.name,
+          health: bossEnemy.health,
+          maxHealth: bossEnemy.maxHealth,
+          phase: bossEnemy.phase,
+        }
+      : null;
 
     const nextSnapshot = {
       health: state.player.health,
@@ -309,6 +340,10 @@ const Game = () => {
       maxStamina: state.player.maxStamina,
       gold: state.player.gold,
       essence: state.player.essence,
+      bossName: nextBossHud?.name ?? '',
+      bossHealth: Math.ceil(nextBossHud?.health ?? 0),
+      bossMaxHealth: nextBossHud?.maxHealth ?? 0,
+      bossPhase: nextBossHud?.phase ?? 0,
     };
     const prevSnapshot = lastUiHudSnapshotRef.current;
     const changed = !prevSnapshot ||
@@ -317,13 +352,18 @@ const Game = () => {
       prevSnapshot.maxHealth !== nextSnapshot.maxHealth ||
       prevSnapshot.maxStamina !== nextSnapshot.maxStamina ||
       prevSnapshot.gold !== nextSnapshot.gold ||
-      prevSnapshot.essence !== nextSnapshot.essence;
+      prevSnapshot.essence !== nextSnapshot.essence ||
+      prevSnapshot.bossName !== nextSnapshot.bossName ||
+      prevSnapshot.bossHealth !== nextSnapshot.bossHealth ||
+      prevSnapshot.bossMaxHealth !== nextSnapshot.bossMaxHealth ||
+      prevSnapshot.bossPhase !== nextSnapshot.bossPhase;
 
     if (!changed) return;
     if (now - lastUIUpdateRef.current < 90) return;
 
     lastUIUpdateRef.current = now;
     lastUiHudSnapshotRef.current = nextSnapshot;
+    setBossHud(nextBossHud);
     setUiVersion(prev => prev + 1);
   };
   const triggerMinimapUpdate = (force: boolean = false, now: number = performance.now()) => {
@@ -394,6 +434,9 @@ const Game = () => {
       },
       syncBlightedRootState: () => {
         syncBlightedRootStateRef.current?.();
+      },
+      syncManuscriptCheckpointGateState: () => {
+        syncManuscriptCheckpointGateStateRef.current?.();
       },
     });
   };
@@ -579,6 +622,7 @@ const Game = () => {
     assetManagerRef,
     worldRef,
     gameStateRef,
+    combatSystemRef,
     textureCacheRef,
     musicRef,
     musicStarted,
@@ -601,6 +645,7 @@ const Game = () => {
     activeNpcWorldPos,
     syncVillageReactivityRef,
     syncBlightedRootStateRef,
+    syncManuscriptCheckpointGateStateRef,
     playPotionDrinkRef,
     playGrassChewRef,
     playHeroEventRef,
@@ -728,6 +773,7 @@ const Game = () => {
             gameState={gameState}
             assetManager={assetManagerRef.current}
             refreshToken={uiVersion}
+            bossHud={bossHud}
             justPickedUpItem={justPickedUpItem}
             justGainedCurrency={justGainedCurrency}
             onOpenInventory={openInventoryModal}
@@ -927,7 +973,7 @@ const Game = () => {
         />
       )}
       <WeaponAcquiredOverlay
-        weapon={weaponAcquiredItem}
+        item={acquiredItemQueue[0] ?? null}
         currentWeapon={
           gameState
             ? (gameState.equippedWeaponId
@@ -940,7 +986,7 @@ const Game = () => {
           gameState?.setEquippedWeapon(weaponId);
           triggerUIUpdate();
         }}
-        onDismiss={() => setWeaponAcquiredItem(null)}
+        onDismiss={() => setAcquiredItemQueue(q => q.slice(1))}
       />
       <DevFooter />
     </div>
@@ -948,4 +994,3 @@ const Game = () => {
 };
 
 export default Game;
-

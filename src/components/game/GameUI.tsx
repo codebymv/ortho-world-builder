@@ -9,6 +9,12 @@ interface GameUIProps {
   gameState: GameState;
   assetManager?: AssetManager | null;
   refreshToken: number;
+  bossHud?: {
+    name: string;
+    health: number;
+    maxHealth: number;
+    phase: number;
+  } | null;
   justPickedUpItem?: Item | null;
   justGainedCurrency?: CurrencyGain | null;
   onOpenInventory?: () => void;
@@ -74,6 +80,36 @@ const CombatBars = React.memo(({ health, maxHealth, stamina, maxStamina }: {
     </div>
   </div>
 ));
+
+const BossHealthBar = React.memo(({
+  name,
+  health,
+  maxHealth,
+}: {
+  name: string;
+  health: number;
+  maxHealth: number;
+}) => {
+  const ratio = Math.max(0, Math.min(1, health / Math.max(1, maxHealth)));
+  return (
+    <div className="fixed left-1/2 bottom-8 z-40 w-[min(72vw,46rem)] -translate-x-1/2 pointer-events-none">
+      <div className="mb-1 flex items-end justify-between px-1">
+        <span className="text-[13px] font-semibold tracking-[0.16em] text-[#E8D8BA] uppercase drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
+          {name}
+        </span>
+        <span className="text-[10px] font-bold text-[#BFA06A] drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
+          {Math.max(0, Math.ceil(health))}
+        </span>
+      </div>
+      <div className="h-3 border border-[#8A6A3A] bg-[#090504]/90 shadow-[0_0_0_1px_rgba(0,0,0,0.9),0_3px_10px_rgba(0,0,0,0.65)]">
+        <div
+          className="h-full bg-gradient-to-r from-[#6B0F18] via-[#B8202A] to-[#E14A4A] transition-[width] duration-100 ease-out"
+          style={{ width: `${ratio * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+});
 
 const CurrencyCountersWithGains = React.memo(({
   gold,
@@ -230,6 +266,7 @@ export const GameUI = ({
   gameState,
   assetManager,
   refreshToken,
+  bossHud = null,
   justPickedUpItem = null,
   justGainedCurrency = null,
   onOpenInventory,
@@ -318,6 +355,12 @@ export const GameUI = ({
                 <span className="text-[9px] font-bold text-emerald-200">{Math.ceil(gameState.player.stealthTimer)}s</span>
               </div>
             )}
+            {gameState.player.berserkerTimer > 0 && (
+              <div className="flex items-center gap-1.5 bg-red-900/70 border border-red-500/60 rounded-full px-2.5 py-0.5 animate-pulse">
+                <span className="text-[9px] font-bold text-red-300 tracking-widest uppercase">Berserker</span>
+                <span className="text-[9px] font-bold text-red-200">{Math.ceil(gameState.player.berserkerTimer)}s</span>
+              </div>
+            )}
             {(() => {
               const firstActiveQuest = gameState.quests.find(q => q.active && !q.completed);
               if (!firstActiveQuest) return null;
@@ -377,6 +420,14 @@ export const GameUI = ({
       </div>
 
       {/* Inventory and Objectives are now rendered as modals in Game.tsx */}
+
+      {bossHud && bossHud.health > 0 && (
+        <BossHealthBar
+          name={bossHud.name}
+          health={bossHud.health}
+          maxHealth={bossHud.maxHealth}
+        />
+      )}
 
       {/* Controls help: collapsible rectangular panel (same kbd / text colors as before) */}
       {showControls && (

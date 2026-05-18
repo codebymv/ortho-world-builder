@@ -2,10 +2,12 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Item } from '@/lib/game/GameState';
 import type { AssetManager } from '@/lib/game/AssetManager';
 
-interface WeaponAcquiredOverlayProps {
-  weapon: Item | null;
+interface ItemAcquiredOverlayProps {
+  item: Item | null;
+  /** Currently equipped weapon — only used when the acquired item is equipment, for the stat compare. */
   currentWeapon: Item | null;
   assetManager?: AssetManager | null;
+  /** Equip handler for weapons. Ignored for non-equipment items. */
   onEquip: (weaponId: string) => void;
   onDismiss: () => void;
 }
@@ -13,21 +15,76 @@ interface WeaponAcquiredOverlayProps {
 const EQUIP_DELAY_MS = 350;
 const AUTO_DISMISS_MS = 10_000;
 
+interface TypeChrome {
+  header: string;
+  acquiredHeader: string;
+  chip: string;
+  border: string;
+  shadow: string;
+  ringActive: string;
+  ringEquipped: string;
+}
+
+const TYPE_CHROME: Record<Item['type'], TypeChrome> = {
+  equipment: {
+    header: 'Weapon',
+    acquiredHeader: 'Weapon Acquired',
+    chip: 'Weapon',
+    border: 'border-[#DAA520]',
+    shadow: 'shadow-[#DAA520]/15',
+    ringActive: 'border-[#DAA520]',
+    ringEquipped: 'border-emerald-400',
+  },
+  consumable: {
+    header: 'Consumable',
+    acquiredHeader: 'Item Acquired',
+    chip: 'Consumable',
+    border: 'border-amber-500',
+    shadow: 'shadow-amber-500/15',
+    ringActive: 'border-amber-500',
+    ringEquipped: 'border-amber-300',
+  },
+  key: {
+    header: 'Key Item',
+    acquiredHeader: 'Key Item Acquired',
+    chip: 'Key Item',
+    border: 'border-violet-400',
+    shadow: 'shadow-violet-400/15',
+    ringActive: 'border-violet-400',
+    ringEquipped: 'border-violet-300',
+  },
+  quest: {
+    header: 'Quest Item',
+    acquiredHeader: 'Quest Item Acquired',
+    chip: 'Quest Item',
+    border: 'border-cyan-400',
+    shadow: 'shadow-cyan-400/15',
+    ringActive: 'border-cyan-400',
+    ringEquipped: 'border-cyan-300',
+  },
+};
+
+/**
+ * Renamed from WeaponAcquiredOverlay — now fires for any first-time pickup so the
+ * player sees real fanfare the first time they find a potion, charm, key, or weapon.
+ * Game.tsx is responsible for only invoking this with first-time items (tracked via
+ * GameState.seenItemIds); the overlay itself just renders whatever it's handed.
+ */
 export const WeaponAcquiredOverlay = ({
-  weapon,
+  item,
   currentWeapon,
   assetManager,
   onEquip,
   onDismiss,
-}: WeaponAcquiredOverlayProps) => {
+}: ItemAcquiredOverlayProps) => {
   const [phase, setPhase] = useState<'hidden' | 'fadein' | 'ready' | 'equipped' | 'fadeout'>('hidden');
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const onEquipRef = useRef(onEquip);
   const onDismissRef = useRef(onDismiss);
   onEquipRef.current = onEquip;
   onDismissRef.current = onDismiss;
-  const weaponRef = useRef(weapon);
-  weaponRef.current = weapon;
+  const itemRef = useRef(item);
+  itemRef.current = item;
 
   const clearTimers = useCallback(() => {
     timersRef.current.forEach(clearTimeout);
@@ -44,9 +101,13 @@ export const WeaponAcquiredOverlay = ({
   }, [clearTimers]);
 
   const handleEquip = useCallback(() => {
-    if (phase !== 'ready' || !weaponRef.current) return;
+    if (phase !== 'ready' || !itemRef.current) return;
+    if (itemRef.current.type !== 'equipment') {
+      dismiss();
+      return;
+    }
     clearTimers();
-    onEquipRef.current(weaponRef.current.id);
+    onEquipRef.current(itemRef.current.id);
     setPhase('equipped');
     timersRef.current.push(setTimeout(() => {
       setPhase('fadeout');
@@ -55,10 +116,10 @@ export const WeaponAcquiredOverlay = ({
         onDismissRef.current();
       }, 500));
     }, 800));
-  }, [phase, clearTimers]);
+  }, [phase, clearTimers, dismiss]);
 
   useEffect(() => {
-    if (weapon) {
+    if (item) {
       setPhase('fadein');
       timersRef.current.push(setTimeout(() => setPhase('ready'), EQUIP_DELAY_MS));
       timersRef.current.push(setTimeout(() => dismiss(), AUTO_DISMISS_MS));
@@ -66,15 +127,17 @@ export const WeaponAcquiredOverlay = ({
     } else {
       setPhase('hidden');
     }
-  }, [weapon, dismiss, clearTimers]);
+  }, [item, dismiss, clearTimers]);
 
   useEffect(() => {
     if (phase !== 'ready') return;
+    const isEquipment = itemRef.current?.type === 'equipment';
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'KeyF' || e.code === 'Enter') {
+      if ((isEquipment && e.code === 'KeyF') || e.code === 'Enter' || e.code === 'Space') {
         e.preventDefault();
         e.stopPropagation();
-        handleEquip();
+        if (isEquipment) handleEquip();
+        else dismiss();
       }
       if (e.code === 'Escape') {
         e.preventDefault();
@@ -85,18 +148,19 @@ export const WeaponAcquiredOverlay = ({
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
   }, [phase, handleEquip, dismiss]);
 
-  if (phase === 'hidden' || !weapon) return null;
+  if (phase === 'hidden' || !item) return null;
 
-  const newDmg = weapon.stats?.damage ?? 0;
+  const chrome = TYPE_CHROME[item.type];
+  const isEquipment = item.type === 'equipment';
+  const isEquipped = phase === 'equipped';
+  const spriteUrl = assetManager?.getTextureURL(item.sprite) ?? null;
+
+  const newDmg = item.stats?.damage ?? 0;
   const oldDmg = currentWeapon?.stats?.damage ?? 0;
-  const newRange = weapon.stats?.range ?? 0;
+  const newRange = item.stats?.range ?? 0;
   const oldRange = currentWeapon?.stats?.range ?? 0;
   const dmgDiff = newDmg - oldDmg;
   const rangeDiff = +(newRange - oldRange).toFixed(2);
-
-  const spriteUrl = assetManager?.getTextureURL(weapon.sprite) ?? null;
-
-  const isEquipped = phase === 'equipped';
 
   return (
     <div
@@ -116,21 +180,19 @@ export const WeaponAcquiredOverlay = ({
           className="text-xs uppercase tracking-[0.4em] text-[#DAA520] mb-4 drop-shadow-[0_0_6px_rgba(218,165,32,0.3)]"
           style={{ fontFamily: '"Times New Roman", Georgia, serif' }}
         >
-          {isEquipped ? 'Weapon Equipped' : 'Weapon Acquired'}
+          {isEquipped ? 'Weapon Equipped' : chrome.acquiredHeader}
         </p>
 
-        {/* Weapon icon */}
+        {/* Item icon */}
         <div
           className={`w-24 h-24 bg-[#1A0F0A]/90 border-2 rounded-lg flex items-center justify-center shadow-2xl mb-4 transition-all duration-500 ${
-            isEquipped
-              ? 'border-emerald-400 shadow-emerald-400/20'
-              : 'border-[#DAA520] shadow-[#DAA520]/15'
+            isEquipped ? `${chrome.ringEquipped} shadow-emerald-400/20` : `${chrome.ringActive} ${chrome.shadow}`
           }`}
         >
           {spriteUrl ? (
             <img
               src={spriteUrl}
-              alt={weapon.name}
+              alt={item.name}
               className="w-16 h-16 [image-rendering:pixelated] object-contain drop-shadow-md"
             />
           ) : (
@@ -138,68 +200,77 @@ export const WeaponAcquiredOverlay = ({
           )}
         </div>
 
-        {/* Weapon name */}
+        {/* Item name */}
         <h2
           className={`text-2xl font-bold tracking-wide mb-1 transition-colors duration-300 ${
             isEquipped ? 'text-emerald-300' : 'text-[#F5DEB3]'
           }`}
         >
-          {weapon.name}
+          {item.name}
         </h2>
+
+        {/* Type chip (non-equipment only — equipment header already says "Weapon") */}
+        {!isEquipment && (
+          <span className={`mb-2 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-sm ${chrome.border} border bg-black/30 text-[#F5DEB3]`}>
+            {chrome.chip}
+          </span>
+        )}
 
         {/* Description */}
         <p className="text-xs text-[#D3D3D3]/70 max-w-xs text-center leading-relaxed mb-5 px-4">
-          {weapon.description}
+          {item.description}
         </p>
 
-        {/* Stat comparison */}
-        <div className="flex items-stretch gap-6 mb-6">
-          {/* Current weapon */}
-          <div className="flex flex-col items-center min-w-[100px]">
-            <span className="text-[9px] uppercase tracking-wider text-[#A0522D] mb-2">Current</span>
-            <span className="text-xs text-[#D3D3D3]/60 font-semibold mb-1">{currentWeapon?.name ?? 'None'}</span>
-            <div className="flex flex-col gap-1 items-center">
-              <span className="text-[11px] text-[#F5DEB3]/60">
-                ATK <span className="font-bold">{oldDmg}</span>
-              </span>
-              <span className="text-[11px] text-[#F5DEB3]/60">
-                RNG <span className="font-bold">{oldRange.toFixed(2)}</span>
-              </span>
+        {/* Stat comparison — equipment only */}
+        {isEquipment && (
+          <div className="flex items-stretch gap-6 mb-6">
+            {/* Current weapon */}
+            <div className="flex flex-col items-center min-w-[100px]">
+              <span className="text-[9px] uppercase tracking-wider text-[#A0522D] mb-2">Current</span>
+              <span className="text-xs text-[#D3D3D3]/60 font-semibold mb-1">{currentWeapon?.name ?? 'None'}</span>
+              <div className="flex flex-col gap-1 items-center">
+                <span className="text-[11px] text-[#F5DEB3]/60">
+                  ATK <span className="font-bold">{oldDmg}</span>
+                </span>
+                <span className="text-[11px] text-[#F5DEB3]/60">
+                  RNG <span className="font-bold">{oldRange.toFixed(2)}</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div className="flex items-center">
+              <span className="text-lg text-[#DAA520]">&rarr;</span>
+            </div>
+
+            {/* New weapon */}
+            <div className="flex flex-col items-center min-w-[100px]">
+              <span className="text-[9px] uppercase tracking-wider text-[#DAA520] mb-2">New</span>
+              <span className="text-xs text-[#F5DEB3] font-semibold mb-1">{item.name}</span>
+              <div className="flex flex-col gap-1 items-center">
+                <span className="text-[11px] text-[#F5DEB3]">
+                  ATK <span className="font-bold">{newDmg}</span>
+                  {dmgDiff !== 0 && (
+                    <span className={`ml-1 text-[10px] font-bold ${dmgDiff > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {dmgDiff > 0 ? '+' : ''}{dmgDiff}
+                    </span>
+                  )}
+                </span>
+                <span className="text-[11px] text-[#F5DEB3]">
+                  RNG <span className="font-bold">{newRange.toFixed(2)}</span>
+                  {rangeDiff !== 0 && (
+                    <span className={`ml-1 text-[10px] font-bold ${rangeDiff > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {rangeDiff > 0 ? '+' : ''}{rangeDiff}
+                    </span>
+                  )}
+                </span>
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Arrow */}
-          <div className="flex items-center">
-            <span className="text-lg text-[#DAA520]">&rarr;</span>
-          </div>
-
-          {/* New weapon */}
-          <div className="flex flex-col items-center min-w-[100px]">
-            <span className="text-[9px] uppercase tracking-wider text-[#DAA520] mb-2">New</span>
-            <span className="text-xs text-[#F5DEB3] font-semibold mb-1">{weapon.name}</span>
-            <div className="flex flex-col gap-1 items-center">
-              <span className="text-[11px] text-[#F5DEB3]">
-                ATK <span className="font-bold">{newDmg}</span>
-                {dmgDiff !== 0 && (
-                  <span className={`ml-1 text-[10px] font-bold ${dmgDiff > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {dmgDiff > 0 ? '+' : ''}{dmgDiff}
-                  </span>
-                )}
-              </span>
-              <span className="text-[11px] text-[#F5DEB3]">
-                RNG <span className="font-bold">{newRange.toFixed(2)}</span>
-                {rangeDiff !== 0 && (
-                  <span className={`ml-1 text-[10px] font-bold ${rangeDiff > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {rangeDiff > 0 ? '+' : ''}{rangeDiff}
-                  </span>
-                )}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Equip prompt */}
-        {phase === 'ready' && (
+        {/* Prompt button */}
+        {phase === 'ready' && isEquipment && (
           <button
             className="flex items-center gap-2 bg-[#2D1B11]/80 border border-[#DAA520]/60 rounded-md px-5 py-2 cursor-pointer hover:bg-[#3D2B21] transition-colors group"
             onClick={(e) => { e.stopPropagation(); handleEquip(); }}
@@ -209,6 +280,19 @@ export const WeaponAcquiredOverlay = ({
               F
             </kbd>
             <span className="text-xs text-[#D3D3D3]/70 uppercase tracking-wider">to equip</span>
+          </button>
+        )}
+
+        {phase === 'ready' && !isEquipment && (
+          <button
+            className="flex items-center gap-2 bg-[#2D1B11]/80 border border-[#DAA520]/60 rounded-md px-5 py-2 cursor-pointer hover:bg-[#3D2B21] transition-colors group"
+            onClick={(e) => { e.stopPropagation(); dismiss(); }}
+          >
+            <span className="text-xs text-[#D3D3D3]/70 uppercase tracking-wider">Press</span>
+            <kbd className="bg-[#1A0F0A] px-2 py-0.5 rounded border border-[#5C3A21] text-[#DAA520] text-sm font-bold shadow-inner group-hover:border-[#DAA520]">
+              Space
+            </kbd>
+            <span className="text-xs text-[#D3D3D3]/70 uppercase tracking-wider">to continue</span>
           </button>
         )}
 

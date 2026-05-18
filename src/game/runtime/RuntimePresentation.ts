@@ -99,16 +99,22 @@ export function updateInteractionIndicator({
     ) {
       if (intId === 'building_entrance' || intId === 'building_exit') {
         if (world.getTransitionAt(x, y)) {
+          const prompt = getInteractionPromptLabel(intId, state, world, x, y);
+          if (prompt) {
+            showIndicator = true;
+            indicatorX = x;
+            indicatorY = y;
+            nextInteractionPrompt = prompt;
+          }
+        }
+      } else {
+        const prompt = getInteractionPromptLabel(intId, state, world, x, y);
+        if (prompt) {
           showIndicator = true;
           indicatorX = x;
           indicatorY = y;
-          nextInteractionPrompt = getInteractionPromptLabel(intId, state, world, x, y);
+          nextInteractionPrompt = prompt;
         }
-      } else {
-        showIndicator = true;
-        indicatorX = x;
-        indicatorY = y;
-        nextInteractionPrompt = getInteractionPromptLabel(intId, state, world, x, y);
       }
     }
   }
@@ -120,11 +126,14 @@ export function updateInteractionIndicator({
       const intId = world.getInteractableAt(cx, cy);
       if (intId !== 'building_entrance' && intId !== 'building_exit') continue;
       if (!world.getTransitionAt(cx, cy)) continue;
-      showIndicator = true;
-      indicatorX = cx;
-      indicatorY = cy;
-      nextInteractionPrompt = getInteractionPromptLabel(intId, state, world, cx, cy);
-      break;
+      const prompt = getInteractionPromptLabel(intId, state, world, cx, cy);
+      if (prompt) {
+        showIndicator = true;
+        indicatorX = cx;
+        indicatorY = cy;
+        nextInteractionPrompt = prompt;
+        break;
+      }
     }
   }
 
@@ -171,12 +180,7 @@ export function updateInteractionIndicator({
       const ndy = state.player.position.y - npc.position.y;
       const distSq = ndx * ndx + ndy * ndy;
       if (distSq < closestDistSq) {
-        closestDistSq = distSq;
-        showIndicator = true;
-        indicatorX = npc.position.x;
-        indicatorY = npc.position.y;
-        indicatorIsObjectiveNpc = isNpcPriorityCueTarget(npc);
-        nextInteractionPrompt = getInteractionPromptLabel(
+        const prompt = getInteractionPromptLabel(
           npc.dialogueId,
           state,
           world,
@@ -184,6 +188,14 @@ export function updateInteractionIndicator({
           npc.position.y,
           npc.name,
         );
+        if (!prompt) continue;
+
+        closestDistSq = distSq;
+        showIndicator = true;
+        indicatorX = npc.position.x;
+        indicatorY = npc.position.y;
+        indicatorIsObjectiveNpc = isNpcPriorityCueTarget(npc);
+        nextInteractionPrompt = prompt;
       }
     }
   }

@@ -26,6 +26,7 @@ interface InteractionSystemLike {
   tryHandleHollowFogGate: (interactionId: string) => boolean;
   tryHandleForestFortGate: (interactionId: string) => boolean;
   tryHandleNorthFortGate: (interactionId: string) => boolean;
+  tryHandleManuscriptCheckpointGate: (interactionId: string) => boolean;
   tryHandleBlightedRoot: (interactionId: string) => boolean;
   tryHandleDialogueInteraction: (interactionId: string) => boolean;
   tryPickupWorldItems: (x: number, y: number) => void;
@@ -72,12 +73,15 @@ export function applyHealthPotionAction({
 }: PotionActionOptions) {
   let activeItem = state.inventory[state.activeItemIndex];
 
-  // Accept consumables that either heal OR apply a buff.
+  // Accept consumables that either heal OR apply an actively-triggered buff.
+  // last_breath is passive — never selectable via the hotkey.
   const isUsable = (i: typeof activeItem) =>
     i?.type === 'consumable' &&
+    i.buffType !== 'last_breath' &&
     (
       (typeof i.healAmount === 'number' && i.healAmount > 0) ||
-      i.buffType === 'stealth'
+      i.buffType === 'stealth' ||
+      i.buffType === 'berserker'
     );
 
   if (!isUsable(activeItem)) {
@@ -86,6 +90,31 @@ export function applyHealthPotionAction({
     state.activeItemIndex = firstUsableIdx;
     activeItem = state.inventory[firstUsableIdx];
     triggerUIUpdate();
+  }
+
+  // Berserker buff — does not require low health.
+  if (activeItem.buffType === 'berserker') {
+    const duration = activeItem.buffDuration ?? 10;
+    state.player.berserkerTimer = duration;
+    state.player.berserkerDamageMult = 1.5;
+    state.player.berserkerSpeedMult = 1.4;
+    playPotionDrink?.();
+    setPlayerAnimState?.('drinking');
+    setHeldConsumableSpriteId?.(activeItem.sprite);
+    if (typeof drinkDuration === 'number') setDrinkTimer?.(drinkDuration);
+    state.removeItem(activeItem.id);
+    if (state.activeItemIndex >= state.inventory.length) {
+      state.activeItemIndex = Math.max(0, state.inventory.length - 1);
+    }
+    particleSystem.emitDamage(new THREE.Vector3(state.player.position.x, state.player.position.y, 0.3));
+    notify('Berserker Draught Active', {
+      id: 'berserker-active',
+      type: 'success',
+      description: `Strikes hit harder and your stride lengthens for ${duration} seconds.`,
+      duration: 3000,
+    });
+    triggerUIUpdate();
+    return;
   }
 
   // Stealth buff — does not require low health.
@@ -244,6 +273,7 @@ export function runInteractionCheck({
     if (interactionSystem.tryHandleCliffCorridorLadder(interactionId, px, py)) return;
     if (interactionSystem.tryHandleForestFortGate(interactionId)) return;
     if (interactionSystem.tryHandleNorthFortGate(interactionId)) return;
+    if (interactionSystem.tryHandleManuscriptCheckpointGate(interactionId)) return;
     if (interactionSystem.tryHandleHollowFogGate(interactionId)) return;
     if (interactionSystem.tryHandleBlightedRoot(interactionId)) return;
     if (interactionSystem.tryHandleDialogueInteraction(interactionId)) return;

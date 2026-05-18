@@ -190,6 +190,14 @@ export function runGameplayPrelude({
       notify('Stealth faded.', { id: 'stealth-faded', duration: 2000 });
     }
   }
+  if (state.player.berserkerTimer > 0) {
+    state.player.berserkerTimer = Math.max(0, state.player.berserkerTimer - deltaTime);
+    if (state.player.berserkerTimer <= 0) {
+      state.player.berserkerDamageMult = 1.0;
+      state.player.berserkerSpeedMult = 1.0;
+      notify('Berserker rage subsides.', { id: 'berserker-faded', duration: 2000 });
+    }
+  }
   if (nowSec - state.player.lastStaminaUseTime > state.player.staminaRegenDelay) {
     state.player.stamina = Math.min(
       state.player.maxStamina,

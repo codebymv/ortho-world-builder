@@ -41,6 +41,7 @@ interface InteractionSystemContext {
   syncCliffCorridorLadderState: () => void;
   syncForestFortGateState: () => void;
   syncNorthFortGateState: () => void;
+  syncManuscriptCheckpointGateState: () => void;
   syncGilrhymBossState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
   hasDialogue: (interactionId: string) => boolean;
@@ -162,9 +163,28 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       : 20;
 
     context.state.addGold(goldAmount);
-    if (context.items.health_potion) {
-      context.state.addItem(context.items.health_potion);
+
+    // Per-chest consumable override. Chests not listed here fall through to
+    // the default Ephemeral Extract so we keep healing potions broadly available.
+    const CHEST_CONSUMABLE_OVERRIDES: Record<string, string> = {
+      hidden_grove_chest: 'berserker_draught',
+      forest_hermit_chest: 'berserker_draught',
+      forgotten_shrine_chest: 'last_breath_charm',
+      wolf_den_chest: 'last_breath_charm',
+      // In front of the hollow corridor gate — "you'll need this" before the Hollow proper.
+      hollow_gate_chest: 'last_breath_charm',
+    };
+    const overrideItemId = CHEST_CONSUMABLE_OVERRIDES[interactionId];
+    const consumableItem = overrideItemId ? context.items[overrideItemId] : context.items.health_potion;
+    let consumableLabel = 'an Ephemeral Extract';
+    if (consumableItem) {
+      context.state.addItem({ ...consumableItem });
       context.playItemGrab();
+      if (overrideItemId) {
+        // Article matches the item name's first vowel sound.
+        const startsWithVowel = /^[aeiou]/i.test(consumableItem.name);
+        consumableLabel = `${startsWithVowel ? 'an' : 'a'} ${consumableItem.name}`;
+      }
     }
 
     let bonusDescription = '';
@@ -188,7 +208,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.notify('Chest Opened!', {
       id: 'chest-open',
       type: 'success',
-      description: `Found ${goldAmount} gold, an Ephemeral Extract${bonusDescription}.`,
+      description: `Found ${goldAmount} gold, ${consumableLabel}${bonusDescription}.`,
       duration: 3000,
     });
     context.triggerUIUpdate();
@@ -481,6 +501,16 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  const tryHandleManuscriptCheckpointGate = (interactionId: string): boolean => {
+    if (interactionId !== 'manuscript_checkpoint_gate') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    // Gate can only be opened by the guard through dialogue — never auto-opens here.
+    // Route all interactions to the guard so the player must speak with him.
+    context.startDialogue('manuscript_gate_guard');
+    return true;
+  };
+
   const tryHandleHollowFogGate = (interactionId: string): boolean => {
     if (interactionId === 'gilrhym_fog_gate') {
       if (context.state.getFlag('ashen_reaver_defeated')) {
@@ -625,6 +655,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleCliffCorridorLadder,
     tryHandleForestFortGate,
     tryHandleNorthFortGate,
+    tryHandleManuscriptCheckpointGate,
     tryHandleHollowFogGate,
     tryHandleGilrhymShortcutLever,
     tryHandleBlightedRoot,

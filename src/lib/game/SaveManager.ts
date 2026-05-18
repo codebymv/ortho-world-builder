@@ -2,7 +2,7 @@ import { GameState, Item, Quest, LastBonfire, DroppedEssence, WorldItem } from '
 import { MapMarker } from './MapMarkers';
 
 const SAVE_KEY = 'rpg_save_data';
-const SAVE_VERSION = 5;
+const SAVE_VERSION = 6;
 
 export interface SaveData {
   version: number;
@@ -33,6 +33,7 @@ export interface SaveData {
   gameFlags: Record<string, boolean | number>;
   mapMarkers: MapMarker[];
   visitedTiles: string[];
+  seenItemIds: string[];
 }
 
 // Loose shape used during migration — every field optional so we can defensively
@@ -79,6 +80,15 @@ function normalizeSave(raw: RawSave): SaveData {
     gameFlags: isObject(raw.gameFlags) ? (raw.gameFlags as Record<string, boolean | number>) : {},
     mapMarkers: Array.isArray(raw.mapMarkers) ? raw.mapMarkers : [],
     visitedTiles: Array.isArray(raw.visitedTiles) ? raw.visitedTiles : [],
+    // Pre-v6 saves had no seen-item tracking. Seed from current inventory so the
+    // first-time overlay doesn't blast every loaded item; this is an intentional
+    // backfill — players upgrading mid-game won't see overlays for items they
+    // were already carrying, which is the right call.
+    seenItemIds: Array.isArray(raw.seenItemIds)
+      ? (raw.seenItemIds as string[])
+      : Array.isArray(raw.inventory)
+        ? (raw.inventory as Item[]).map(i => i.id)
+        : [],
   };
 }
 
@@ -113,6 +123,7 @@ export class SaveManager {
       gameFlags: { ...state.gameFlags },
       mapMarkers: mapMarkers.map(m => ({ ...m })),
       visitedTiles: Array.from(visitedTiles),
+      seenItemIds: Array.from(state.seenItemIds),
     };
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));

@@ -67,10 +67,10 @@ export function getInteractionPromptLabel(
   if (interactionId.includes('sign')) return 'Read Sign';
   if (interactionId === 'tombstone') return 'Read Epitaph';
   if (interactionId === 'campfire') return 'Rest at Campfire';
+  if (interactionId === 'lantern') return null;
   if (interactionId === 'ancient_well') return 'Drink from Well';
   if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'ancient_well' || interactionId === 'gilrhym_fountain' || interactionId === 'gilrhym_market_well' || interactionId === 'gilrhym_cathedral_well') return 'Drink from Fountain';
   if (interactionId === 'healing_mushroom') return 'Gather Mushroom';
-  if (interactionId === 'lantern') return 'Inspect Lantern';
   if (interactionId === 'hunter_clue') return "Read Hunter's Manuscript";
   if (interactionId === 'stump_lore') return 'Inspect Carvings';
   if (interactionId === 'wolf_den_bones') return 'Inspect Remains';
@@ -81,6 +81,10 @@ export function getInteractionPromptLabel(
   if (interactionId === 'forest_fort_gate') {
     if (state.getFlag('forest_fort_gate_open')) return 'Fort Gate (Open)';
     return state.hasItem('fort_gate_key') ? 'Unlock Fort Gate' : 'Fort Gate (Locked — Key Required)';
+  }
+  if (interactionId === 'manuscript_checkpoint_gate') {
+    if (state.getFlag('manuscript_checkpoint_gate_open')) return 'Checkpoint Gate (Open)';
+    return state.getFlag('manuscript_fragment_collected') ? 'Open Checkpoint Gate' : 'Checkpoint Gate (Ranger Permission Required)';
   }
   if (interactionId === 'hollow_fog_gate') {
     return state.getFlag('hollow_guardian_defeated') ? 'The Fog Has Lifted' : 'Enter the Fog';

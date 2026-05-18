@@ -65,8 +65,9 @@ export function createRuntimeNpcVisuals({
     });
     const npcMesh = new THREE.Mesh(npcGeometry, npcMaterial);
     const npcScale = npcScaleById[npc.id] ?? 1;
+    const npcScaleX = npc.facing === 'left' ? -npcScale : npcScale;
     npcMesh.position.set(npc.position.x, getVisualYAt(npc.position.x, npc.position.y), 0.2);
-    npcMesh.scale.set(npcScale, npcScale, 1);
+    npcMesh.scale.set(npcScaleX, npcScale, 1);
     npcMesh.renderOrder = getActorRenderOrder(npc.position.x, npc.position.y, npcFootOffset);
     npcMesh.userData = { npcId: npc.id };
     scene.add(npcMesh);

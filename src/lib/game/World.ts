@@ -11,7 +11,7 @@ export type TileType =
   | 'fence' | 'gate' | 'barrel' | 'crate' | 'spike_trap' | 'bones'
   | 'volcanic_rock' | 'ash' | 'ruins_floor' | 'waterfall' | 'snow'
   | 'dead_tree' | 'destroyed_house' | 'destroyed_house_rubble' | 'destroyed_house_overgrown' | 'broken_sign' | 'statue'
-  | 'cliff' | 'cliff_edge' | 'cobblestone' | 'farmland' | 'wheat'
+  | 'cliff' | 'cliff_edge' | 'cliff_corrupted' | 'cliff_edge_corrupted' | 'cobblestone' | 'farmland' | 'wheat'
   | 'iron_fence' | 'hedge' | 'scarecrow' | 'windmill' | 'hay_bale' | 'lantern'
   | 'dark_grass' | 'hollow_blight' | 'mossy_stone' | 'wooden_path' | 'stairs' | 'ladder' | 'curled_ladder' | 'gate_ladder' | 'gate_ladder_open'
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
@@ -110,7 +110,7 @@ const RENDER_RADIUS = 32;
 const CULL_RADIUS = 42;
 const MAX_TILES_PER_FRAME = 200; // steady-state budget while moving
 const INITIAL_LOAD_TILES_PER_FRAME = 320; // smoother initial/after-rebuild streaming without one-frame spikes
-const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'stairs', 'ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open']);
+const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted', 'stairs', 'ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open']);
 const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'bones',
   'flower',
@@ -686,11 +686,11 @@ export class World {
     let yOffset = 0;
     let sortTrim = 0.16;
 
-    if (tile.type === 'cliff') {
+    if (tile.type === 'cliff' || tile.type === 'cliff_corrupted') {
       scale = 2.4;
       yOffset = 0.76;
       sortTrim = 0.04;
-    } else if (tile.type === 'cliff_edge') {
+    } else if (tile.type === 'cliff_edge' || tile.type === 'cliff_edge_corrupted') {
       scale = 2.0;
       yOffset = 0.55;
       sortTrim = 0.05;
@@ -718,7 +718,8 @@ export class World {
     }
 
     const sortAnchorY = yOffset - scale * 0.5 + sortTrim;
-    const isCliffArt = tile.type === 'cliff' || tile.type === 'cliff_edge';
+    const isCliffArt = tile.type === 'cliff' || tile.type === 'cliff_edge'
+      || tile.type === 'cliff_corrupted' || tile.type === 'cliff_edge_corrupted';
     group.userData = {
       tileType: tile.type,
       sortAnchorY,
@@ -921,7 +922,8 @@ export class World {
     const south = this.map.tiles[ty]?.[tileX];
     if (!south) return;
     const sheer =
-      (south.type === 'cliff' || south.type === 'cliff_edge') &&
+      (south.type === 'cliff' || south.type === 'cliff_edge'
+        || south.type === 'cliff_corrupted' || south.type === 'cliff_edge_corrupted') &&
       !south.transition &&
       !this.isTileWalkable(south);
     if (!sheer) return;
@@ -1493,7 +1495,7 @@ export class World {
     }
     let best: InteractableHit | null = null;
     let bestDistSq = Number.POSITIVE_INFINITY;
-    /** On equal distance, prefer map transitions so doors are not “stolen” by nearer lanterns/signs. */
+    /** On equal distance, prefer map transitions so doors are not stolen by nearer signs. */
     let bestPriority = -1;
     const interactablePriority = (tile: Tile): number => {
       if (tile.interactionId === 'building_exit' || tile.interactionId === 'building_entrance') return 2;
@@ -1509,6 +1511,7 @@ export class World {
         if (tx < 0 || tx >= this.map.width) continue;
         const tile = this.map.tiles[ty][tx];
         if (!tile?.interactable || !tile.interactionId) continue;
+        if (tile.interactionId === 'lantern') continue;
 
         const tileCenterX = tx - this.map.width / 2;
         const tileCenterY = ty - this.map.height / 2;

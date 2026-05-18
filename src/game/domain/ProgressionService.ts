@@ -38,6 +38,7 @@ interface ProgressionServiceContext {
   triggerMinimapUpdate: (reset: boolean) => void;
   syncVillageReactivity?: () => void;
   syncBlightedRootState?: () => void;
+  syncManuscriptCheckpointGateState?: () => void;
 }
 
 interface DialogueResponseResult {
@@ -126,6 +127,14 @@ export function createProgressionService(context: ProgressionServiceContext) {
       }
     }
 
+    if (dialogueId === 'manuscript_gate_guard') {
+      if (state.getFlag('manuscript_checkpoint_gate_open')) {
+        startNode = dialogue.nodes.find(node => node.id === 'gate_open') ?? startNode;
+      } else if (state.getFlag('manuscript_fragment_collected')) {
+        startNode = dialogue.nodes.find(node => node.id === 'has_fragment') ?? startNode;
+      }
+    }
+
     if (dialogueId === 'blighted_root') {
       if (state.getFlag('blighted_root_destroyed')) {
         startNode = dialogue.nodes.find(node => node.id === 'already_destroyed') ?? startNode;
@@ -150,6 +159,23 @@ export function createProgressionService(context: ProgressionServiceContext) {
         } else {
           startNode = dialogue.nodes.find(node => node.id === 'quest_active') ?? startNode;
         }
+      }
+    }
+
+    if (dialogueId === 'mountain_hermit') {
+      // Once the idol has been handed over, Olwen has nothing else to give —
+      // skip straight to his post-gift reflection.
+      if (state.getFlag('cursed_idol_received')) {
+        startNode = dialogue.nodes.find(node => node.id === 'after_idol') ?? startNode;
+      }
+    }
+
+    if (dialogueId === 'mysterious_man') {
+      // Real dialogue unlocks once the Hollow Apparition is dead. Until then he
+      // stays dismissive — same cold-shoulder node every time so the player learns
+      // to come back later rather than fishing for content that isn't there yet.
+      if (state.getFlag('hollow_guardian_defeated')) {
+        startNode = dialogue.nodes.find(node => node.id === 'unlocked') ?? startNode;
       }
     }
 
@@ -242,6 +268,21 @@ export function createProgressionService(context: ProgressionServiceContext) {
       shouldSave = acceptQuest(state, givesQuest) || shouldSave;
     }
 
+    if (state.currentDialogue === 'mountain_hermit' && currentDialogue.node.id === 'offer_idol' && nextId === 'take_idol') {
+      if (!state.getFlag('cursed_idol_received') && context.items.cursed_idol) {
+        state.setFlag('cursed_idol_received', true);
+        state.addItem({ ...context.items.cursed_idol });
+        context.notify('Cursed Idol Acquired', {
+          id: 'cursed-idol-pickup',
+          type: 'success',
+          description: 'Olwen pressed the small black figure into your palm.',
+          duration: 3200,
+        });
+        shouldSave = true;
+        context.triggerUIUpdate();
+      }
+    }
+
     if (state.currentDialogue === 'chapel_dead_ranger' && currentDialogue.node.id === 'take_key' && nextId === 'end') {
       if (!state.getFlag('chapel_key_collected')) {
         state.setFlag('chapel_key_collected', true);
@@ -260,6 +301,21 @@ export function createProgressionService(context: ProgressionServiceContext) {
     if (state.currentDialogue === 'hunter_clue' && nextId === 'end') {
       state.setFlag('hunter_clue_dialogue_seen', true);
       shouldSave = true;
+    }
+
+    if (state.currentDialogue === 'manuscript_gate_guard' && currentDialogue.node.id === 'has_fragment' && nextId === 'end') {
+      if (!state.getFlag('manuscript_checkpoint_gate_open')) {
+        state.setFlag('manuscript_checkpoint_gate_open', true);
+        context.syncManuscriptCheckpointGateState?.();
+        context.notify('Checkpoint opened', {
+          id: 'manuscript-checkpoint-guard-opened',
+          type: 'success',
+          description: 'The ranger raises the checkpoint gate. The road north is clear.',
+          duration: 3200,
+        });
+        shouldSave = true;
+        context.triggerUIUpdate();
+      }
     }
 
     if (state.currentDialogue === 'elder' && nextId === 'end' && currentDialogue.node.id === 'quest_complete') {

@@ -193,6 +193,13 @@ export function applyPlayerVisuals({
     const pulse = Math.sin(currentTime / 200) * 0.1 + 0.45;
     playerMaterial.opacity = pulse;
     playerMaterial.color.setHex(0xaaffcc);
+  } else if (state.player.berserkerTimer > 0) {
+    // Ember pulse — red tint that throbs with the heart-rate of the rage.
+    const beat = Math.sin(currentTime / 120) * 0.15 + 0.85;
+    const r = Math.floor(255 * beat);
+    const gb = Math.floor(140 * beat);
+    playerMaterial.color.setRGB(r / 255, gb / 255, gb / 255);
+    playerMaterial.opacity = 1;
   } else {
     playerMaterial.color.setHex(0xffffff);
     playerMaterial.opacity = 1;

@@ -196,6 +196,11 @@ export function createRuntimeCombatActions({
         screenShake.shake(0.5, 0.4);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 30, 0xAA8844, 0.1, 1.8, 1.2);
       }
+      if (enemy.type === 'corrupted_giant') {
+        state.setFlag('corrupted_giant_defeated', true);
+        screenShake.shake(0.8, 0.6);
+        particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.6, 60, 0x7B3FA0, 0.12, 2.6, 1.8);
+      }
       if (enemy.type === 'hollow_guardian') {
         state.setFlag('hollow_guardian_defeated', true);
         const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
@@ -291,7 +296,7 @@ export function createRuntimeCombatActions({
 
     const parryBonus = state.player.parryBonusTimer > 0 ? 1.25 : 1;
     const stepDamageMult = comboDamageMultipliers[step] ?? 1;
-    const baseDamage = Math.floor(state.player.attackDamage * parryBonus * stepDamageMult);
+    const baseDamage = Math.floor(state.player.attackDamage * parryBonus * stepDamageMult * state.player.berserkerDamageMult);
 
     const result = combatSystem.playerAttack(target, baseDamage, state.player.position, state.player.direction);
 
@@ -435,7 +440,7 @@ export function createRuntimeCombatActions({
     const speed = lungeSpeedBase - (lungeSpeedBase - lungeSpeedFull) * level;
     const recovery = lungeRecoveryMin + (lungeRecoveryMax - lungeRecoveryMin) * level;
     const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
-    const damage = Math.floor(state.player.attackDamage * damageMultiplier);
+    const damage = Math.floor(state.player.attackDamage * damageMultiplier * state.player.berserkerDamageMult);
 
     state.player.lastAttackTime = currentTime;
     state.player.stamina = Math.max(0, state.player.stamina - chargeAttackStaminaCost);
@@ -472,7 +477,7 @@ export function createRuntimeCombatActions({
     clearChargeState();
 
     const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
-    const arcDamage = Math.floor(state.player.attackDamage * damageMultiplier);
+    const arcDamage = Math.floor(state.player.attackDamage * damageMultiplier * state.player.berserkerDamageMult);
     const arcRange = 5 + level * 3;
     const arcWidth = 2.0;
 
@@ -552,7 +557,7 @@ export function createRuntimeCombatActions({
     clearChargeState();
 
     const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
-    const chargeDamage = Math.floor(state.player.attackDamage * damageMultiplier);
+    const chargeDamage = Math.floor(state.player.attackDamage * damageMultiplier * state.player.berserkerDamageMult);
     const chargeRange = state.player.attackRange * (1 + level * 0.5);
     breakTilesInRadius(world, world.getCurrentMap(), state.player.position.x, state.player.position.y, chargeRange, particleSystem, playPropBreak);
     const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, chargeRange);

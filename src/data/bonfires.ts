@@ -54,6 +54,7 @@ const FOREST_BONFIRE_LIST_ORDER: readonly string[] = [
   'bonfire_hollow',
   'bonfire_cliff_cemetery',
   'bonfire_forest_fort',
+  'bonfire_deep_hollow',
 ];
 
 function sortBonfiresByMapProgression(mapId: string, entries: BonfireEntry[]): BonfireEntry[] {
@@ -75,6 +76,7 @@ export const BONFIRE_REGISTRY: BonfireEntry[] = [
   // World ~(-15.5, 58.5) — slightly NE of old (130,206); legacy 130_206 still unlocks (see getKindledBonfiresForMap)
   { id: 'bonfire_forest_south',      name: 'Iron Gate',           mapId: 'forest',        tileX: 134, tileY: 208 },
   { id: 'bonfire_cliff_cemetery',    name: 'Cliff Cemetery',      mapId: 'forest',        tileX: 281, tileY: 145 },
+  { id: 'bonfire_deep_hollow',       name: 'Deep Hollow',         mapId: 'forest',        tileX: 126, tileY: 46  },
   { id: 'bonfire_gilrhym_gate',       name: 'City Gate',           mapId: 'gilrhym',       tileX: 150, tileY: 268 },
   { id: 'bonfire_gilrhym_market',     name: 'Market Square',       mapId: 'gilrhym',       tileX: 150, tileY: 155 },
   { id: 'bonfire_gilrhym_heights',    name: 'The Heights',         mapId: 'gilrhym',       tileX: 140, tileY: 85  },

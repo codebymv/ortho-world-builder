@@ -3,7 +3,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { GameState, NPC } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { World } from '@/lib/game/World';
-import type { Enemy } from '@/lib/game/Combat';
+import type { CombatSystem, Enemy } from '@/lib/game/Combat';
 import type { RuntimePhaseContexts } from '@/game/runtime/RuntimePhaseContexts';
 import { getPrimaryObjectiveText, MapMarker, isNpcObjectiveTarget } from '@/lib/game/MapMarkers';
 import { SaveManager } from '@/lib/game/SaveManager';
@@ -65,6 +65,7 @@ export interface RuntimeHostRefs {
   assetManagerRef: MutableRefObject<AssetManager | null>;
   worldRef: MutableRefObject<World | null>;
   gameStateRef: MutableRefObject<GameState | null>;
+  combatSystemRef: MutableRefObject<CombatSystem | null>;
   textureCacheRef: MutableRefObject<Map<string, THREE.Texture>>;
   musicRef: MutableRefObject<HTMLAudioElement | null>;
   musicStarted: MutableRefObject<boolean>;
@@ -87,6 +88,7 @@ export interface RuntimeHostRefs {
   activeNpcWorldPos: MutableRefObject<{ x: number; y: number } | null>;
   syncVillageReactivityRef: MutableRefObject<(() => void) | null>;
   syncBlightedRootStateRef: MutableRefObject<(() => void) | null>;
+  syncManuscriptCheckpointGateStateRef: MutableRefObject<(() => void) | null>;
   playPotionDrinkRef: MutableRefObject<(() => void) | null>;
   playGrassChewRef: MutableRefObject<(() => void) | null>;
   playHeroEventRef: MutableRefObject<(() => void) | null>;
@@ -155,6 +157,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       assetManagerRef,
       worldRef,
       gameStateRef,
+      combatSystemRef,
       textureCacheRef,
       musicRef,
       musicStarted,
@@ -176,6 +179,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       activeNpcWorldPos,
       syncVillageReactivityRef,
       syncBlightedRootStateRef,
+      syncManuscriptCheckpointGateStateRef,
       playPotionDrinkRef,
       playGrassChewRef,
       playHeroEventRef,
@@ -256,6 +260,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       },
       setGameStateRef: state => {
         gameStateRef.current = state;
+      },
+      setCombatSystemRef: combatSystem => {
+        combatSystemRef.current = combatSystem;
       },
       items,
       criticalPathItems,
@@ -345,7 +352,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
 
     let transitionDebug = false;
     const footstepInterval = 0.3;
-    const MAX_DELTA = 0.1;
+    const MAX_DELTA = 0.05;
     const portalWarpManager = createPortalWarpManager({
       startPortalChargeLoop: () => {
         startPortalChargeLoopRef.current?.();
@@ -583,6 +590,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       syncCliffCorridorLadderState,
       syncForestFortGateState,
       syncNorthFortGateState,
+      syncManuscriptCheckpointGateState,
       syncHollowFogGateState,
       syncHollowArenaVictoryPortalState,
       syncGilrhymBossState,
@@ -641,6 +649,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       syncVillageReactivityState();
     };
     syncBlightedRootStateRef.current = syncBlightedRootState;
+    syncManuscriptCheckpointGateStateRef.current = syncManuscriptCheckpointGateState;
 
     syncPersistentMapState();
     world.updateChunks(state.player.position.x, state.player.position.y);
@@ -673,6 +682,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       playGrassChew,
       playBlock,
       playPlayerHit,
+      playSwordSwing,
       playPropBreak,
       startStormLoop,
       stopStormLoop,
@@ -730,6 +740,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncCliffCorridorLadderState,
           syncForestFortGateState,
           syncNorthFortGateState,
+          syncManuscriptCheckpointGateState,
           syncHollowFogGateState,
           syncHollowArenaVictoryPortalState,
           switchMusicTrack,
@@ -778,6 +789,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           playGrassChew: () => {},
           playBlock: () => {},
           playPlayerHit: () => {},
+          playSwordSwing: () => {},
           playPropBreak: () => {},
           startStormLoop: () => {},
           stopStormLoop: () => {},
@@ -1010,8 +1022,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           handlePortalTransition,
           enemyVisualProfiles: ENEMY_VISUALS,
           enemyVisuals,
-      enemyAudio,
+          enemyAudio,
       playPlayerHit,
+      playBossAttack: playSwordSwing,
       playPropBreak,
       startStormLoop,
       stopStormLoop,
@@ -1160,6 +1173,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           stopPortalChargeLoopRef.current?.();
           syncVillageReactivityRef.current = null;
           syncBlightedRootStateRef.current = null;
+          syncManuscriptCheckpointGateStateRef.current = null;
           playPotionDrinkRef.current = null;
           playGrassChewRef.current = null;
           playHeroEventRef.current = null;

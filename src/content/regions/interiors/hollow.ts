@@ -21,11 +21,7 @@ export const interiorHollowArenaDef: MapDefinition = {
     { x: 13, y: 13, width: 10, height: 10, type: 'clearing', fill: 'ruins_floor' },
   ],
   portals: [],
-  chests: [
-    { x: 5, y: 5, interactionId: 'hollow_arena_chest_nw' },
-    { x: 30, y: 5, interactionId: 'hollow_arena_chest_ne' },
-    { x: 5, y: 30, interactionId: 'hollow_arena_chest_sw' },
-  ],
+  chests: [],
   interactables: [],
   props: [
     { x: 10, y: 10, type: 'statue', walkable: false },

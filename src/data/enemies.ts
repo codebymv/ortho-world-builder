@@ -8,6 +8,14 @@ export interface EnemyBehaviorOverrides {
   rangedAttack?: boolean;
   rangedRange?: number;
   rangedChance?: number;
+  /** When true, ranged attacks emit a Projectile (e.g. thrown scythe) instead of resolving as a melee hit at telegraph end. */
+  rangedProjectile?: boolean;
+  /** Tiles per second for the thrown projectile. */
+  rangedProjectileSpeed?: number;
+  /** Sprite key for the projectile (e.g. 'projectile_scythe'). */
+  rangedProjectileSprite?: string;
+  /** Maximum lifetime (seconds) before the projectile fizzles out. */
+  rangedProjectileLifetime?: number;
   snareOnHit?: boolean;
   snareDuration?: number;
   snareSpeedMult?: number;
@@ -78,7 +86,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
   shadow_lurker: {
     type: 'shadow_lurker',
     name: 'Hollow Shade',
-    hp: 70,
+    hp: 110,
     damage: 18,
     sprite: 'enemy_shadow',
     speed: 0.038,
@@ -93,6 +101,30 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       chainAttack: true,
       chainChance: 0.25,
       chainTelegraph: 0.6,
+    },
+  },
+  hollow_reaver: {
+    type: 'hollow_reaver',
+    name: 'Hollow Reaver',
+    hp: 95,
+    damage: 14,
+    sprite: 'enemy_hollow_reaver',
+    speed: 0.028,
+    attackRange: 1.5,
+    chaseRange: 7.5,
+    telegraphDuration: 0.9,
+    recoverDuration: 0.7,
+    poise: 60,
+    staggerDuration: 1.2,
+    essenceReward: 65,
+    behaviorOverrides: {
+      rangedAttack: true,
+      rangedRange: 5.0,
+      rangedChance: 0.7,
+      rangedProjectile: true,
+      rangedProjectileSpeed: 7.0,
+      rangedProjectileSprite: 'projectile_scythe',
+      rangedProjectileLifetime: 1.6,
     },
   },
   void_wisp: {
@@ -316,6 +348,33 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     recoverDuration: 0.8,
     poise: 40,
     staggerDuration: 1.0,
+  },
+  corrupted_giant: {
+    type: 'corrupted_giant',
+    name: 'Corrupted Giant',
+    hp: 480,
+    damage: 24,
+    sprite: 'enemy_corrupted_giant',
+    speed: 0.017,
+    attackRange: 2.4,
+    chaseRange: 9,
+    telegraphDuration: 1.4,
+    recoverDuration: 1.1,
+    poise: 280,
+    staggerDuration: 1.8,
+    essenceReward: 180,
+    behaviorOverrides: {
+      // Relentless chain pressure — 50% follow-up before phase 2, ramps to 75% after
+      chainAttack: true,
+      chainChance: 0.5,
+      chainTelegraph: 1.0,
+      // Crushing weight — roots the player briefly on every clean hit
+      snareOnHit: true,
+      snareDuration: 0.9,
+      snareSpeedMult: 0.4,
+      // First stagger is absorbed — corruption-hardened flesh
+      poiseImmunityFirstHit: true,
+    },
   },
 };
 

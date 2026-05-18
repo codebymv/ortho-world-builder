@@ -1254,6 +1254,28 @@ export const dialogues: Record<string, Dialogue> = {
     ],
   },
 
+  manuscript_gate_guard: {
+    id: 'manuscript_gate_guard',
+    nodes: [
+      {
+        id: 'start',
+        text: "The ranger plants his spear across the northern checkpoint. \"No farther. The woods beyond this wall have gone wrong, and I won't send another traveler into them on a rumor. If the missing hunter found proof in that cottage, bring it to me.\"",
+        responses: [{ text: "[Continue]", nextId: 'end' }],
+      },
+      {
+        id: 'has_fragment',
+        text: "The ranger studies the torn manuscript pages, then looks toward the dark road. \"So the hunter was right. If the rest lies beyond the Hollow, someone has to reach it. I'll open the checkpoint. Bring back enough proof for Greenleaf to act.\"",
+        responses: [{ text: "[Continue]", nextId: 'end' }],
+      },
+      {
+        id: 'gate_open',
+        text: "\"The checkpoint is open. Follow the old road north, and keep those pages dry. Greenleaf needs the whole truth, not another rumor.\"",
+        responses: [{ text: "[Continue]", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
   blighted_root_guarded: {
     id: 'blighted_root_guarded',
     nodes: [
@@ -1286,6 +1308,98 @@ export const dialogues: Record<string, Dialogue> = {
         id: 'already_destroyed',
         text: "The remains of the Blighted Root slump in a ring of dead bark and dried ichor. Without its heart, the corruption is fading. New shoots of green are already pushing through the blackened soil.",
         responses: [{ text: "[Continue]", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  mountain_hermit: {
+    id: 'mountain_hermit',
+    nodes: [
+      {
+        id: 'start',
+        text: "Mind the headstones. Most of them are honest folk. — I'm **Olwen**. Used to keep a hut in the **enchanted grove** west of here, before the vines turned and made a charnel house of the place. Now I tend graves and wait for my hands to stop shaking.",
+        responses: [
+          { text: "The grove turned on you?", nextId: 'grove_lost' },
+          { text: "You keep this cemetery?", nextId: 'caretaker' },
+          { text: "Goodbye.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'grove_lost',
+        text: "Overnight. One evening the mushrooms were singing and the moss was warm under my feet; by dawn the **thorns had teeth**. I left with what I could carry on my back. If you meet a **ranger named Callum** down the trail — tell him an old man wishes him better luck than I had. He means to put it right. Maybe he can.",
+        responses: [
+          { text: "What did you carry out?", nextId: 'offer_idol' },
+          { text: "Stay safe, Olwen.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'caretaker',
+        text: "Someone has to. The garrison cut and ran when the Hollow started leaking south, and the dead deserve a hand that remembers their names. It's quiet work. The shaking helps, sometimes.",
+        responses: [
+          { text: "What did you bring with you from the grove?", nextId: 'offer_idol' },
+          { text: "I'll leave you to it.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'offer_idol',
+        text: "Strange you should ask. Pull this from a turned grave when I dug it last winter — small thing, black as wet coal, won't warm up no matter how long you hold it. Tried to throw it twice. It was back in my pack by morning, both times. I'm done with it. **Take it.** Maybe it speaks to you instead. Or maybe it just doesn't speak to a tired old hermit.",
+        responses: [
+          { text: "[Take the idol]", nextId: 'take_idol' },
+          { text: "Keep it. It sounds like trouble.", nextId: 'refuse_idol' },
+        ],
+      },
+      {
+        id: 'take_idol',
+        text: "Good. The weight's already lifted, and I haven't even handed it over yet. Tells you something, that. Don't lose it in a fight — if it wants to come back to me, I'd rather it didn't bother trying.",
+        responses: [{ text: "I'll keep it safe.", nextId: 'end' }],
+      },
+      {
+        id: 'refuse_idol',
+        text: "Hmph. Wiser than I was at your age. The offer stands if you change your mind. Cursed things have a way of knowing when they're wanted.",
+        responses: [{ text: "Goodbye, Olwen.", nextId: 'end' }],
+      },
+      {
+        id: 'after_idol',
+        text: "The idol sits easier on a young pack than an old one. I sleep through the night again, first time since the grove. Whatever it does — or doesn't — it's your burden now. The dead and I are grateful.",
+        responses: [{ text: "Rest well, Olwen.", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  mysterious_man: {
+    id: 'mysterious_man',
+    nodes: [
+      {
+        id: 'start',
+        text: "…Not yet. Not while the **Apparition** still breathes. Come back when the fog above the gate has lifted, and we will see what is left to say. *Until then — keep walking.*",
+        responses: [{ text: "[Leave]", nextId: 'end' }],
+      },
+      {
+        id: 'unlocked',
+        text: "So. You did it. The fog is gone from the gate and the air has stopped tasting of iron. I owed you a conversation; here it is. — I am no one in particular. I came north a long time ago looking for an answer, and I have been standing here ever since waiting for someone to come back __from__ that gate instead of through it. You are the first.",
+        responses: [
+          { text: "Who are you?", nextId: 'who' },
+          { text: "Why were you waiting?", nextId: 'why_wait' },
+          { text: "I'll come back later.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'who',
+        text: "A name would only make me easier to find. Call me a witness — that is closer than most truths. Whatever I was before I came to the Hollow is buried under it now, and I would not dig it up for you or anyone.",
+        responses: [
+          { text: "Why were you waiting?", nextId: 'why_wait' },
+          { text: "Understood.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'why_wait',
+        text: "Because something in that fog has a long memory, and I needed to know whose. You have made the answer simpler than I expected. — Go on. Rest. I am still thinking about what to do with what you have shown me. When I have settled it, I will have more to say.",
+        responses: [
+          { text: "Who are you, then?", nextId: 'who' },
+          { text: "I'll be back.", nextId: 'end' },
+        ],
       },
       { id: 'end', text: '', responses: [] },
     ],

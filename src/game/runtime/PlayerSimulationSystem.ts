@@ -310,7 +310,8 @@ export function updatePlayerSimulation({
     const wantsSprint = keys.shift && state.player.stamina > 0;
     state.player.isSprinting = wantsSprint;
     const baseSpeed = wantsSprint ? state.player.sprintSpeed : state.player.speed;
-    const currentSpeed = state.player.snareTimer > 0 ? baseSpeed * state.player.snareSpeedMult : baseSpeed;
+    const snareAdjusted = state.player.snareTimer > 0 ? baseSpeed * state.player.snareSpeedMult : baseSpeed;
+    const currentSpeed = snareAdjusted * state.player.berserkerSpeedMult;
 
     if (wantsSprint) {
       state.player.stamina = Math.max(0, state.player.stamina - 16 * deltaTime);

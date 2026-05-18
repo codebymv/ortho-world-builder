@@ -198,6 +198,7 @@ export interface EnemyLoopContext {
   getVisualYAt: (x: number, y: number) => number;
   getActorRenderOrder: (x: number, y: number, footOffset: number) => number;
   playPlayerHit: () => void;
+  playBossAttack?: () => void;
   playPropBreak?: () => void;
 }
 

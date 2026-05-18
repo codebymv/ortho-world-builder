@@ -53,6 +53,7 @@ interface RuntimeActionPhaseOptions {
   syncCliffCorridorLadderState: () => void;
   syncForestFortGateState: () => void;
   syncNorthFortGateState: () => void;
+  syncManuscriptCheckpointGateState: () => void;
   syncHollowFogGateState: () => void;
   syncHollowArenaVictoryPortalState: () => void;
   switchMusicTrack: (mapId: string) => void;
@@ -121,6 +122,7 @@ export function setupRuntimeActionPhase({
   syncCliffCorridorLadderState,
   syncForestFortGateState,
   syncNorthFortGateState,
+  syncManuscriptCheckpointGateState,
   syncHollowFogGateState,
   syncHollowArenaVictoryPortalState,
   switchMusicTrack,
@@ -330,6 +332,7 @@ export function setupRuntimeActionPhase({
     syncCliffCorridorLadderState,
     syncForestFortGateState,
     syncNorthFortGateState,
+    syncManuscriptCheckpointGateState,
     syncGilrhymBossState,
     showHeroOverlay,
     hasDialogue,
@@ -402,6 +405,7 @@ export function setupRuntimeActionPhase({
     playGrassChew: sfx.playGrassChew,
     playBlock: sfx.playBlock,
     playPlayerHit: sfx.playPlayerHit,
+    playSwordSwing: sfx.playSwordSwing,
     playHeroEvent: sfx.playHeroEvent,
     playGateShortcut: sfx.playGateShortcut,
     startPortalChargeLoop: sfx.startPortalChargeLoop,

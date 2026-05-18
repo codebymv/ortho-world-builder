@@ -99,6 +99,9 @@ export function bootstrapRuntimeState(context: BootstrapContext) {
 
     state.quests = savedData.quests;
     state.gameFlags = savedData.gameFlags;
+    state.seenItemIds = new Set(savedData.seenItemIds);
+    // Always keep the starter weapon flagged as seen even on legacy saves.
+    state.seenItemIds.add(STARTING_WEAPON_ID);
     reconcileCriticalQuestItems(state, items, criticalPathItems);
     state.lastBonfire = savedData.lastBonfire ?? null;
     state.droppedEssence = savedData.droppedEssence ?? null;

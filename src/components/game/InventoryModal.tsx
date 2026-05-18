@@ -106,33 +106,55 @@ const ConsumableCard = memo(({
   count,
   assetManager,
   onUse,
+  lastBreathSpent,
 }: {
   item: Item;
   count: number;
   assetManager: AssetManager | null;
   onUse: (item: Item) => void;
-}) => (
-  <div className="flex items-center gap-3 p-2.5 border border-[#5C3A21]/50 bg-[#2D1B11]/40 rounded-sm hover:border-[#DAA520]/40 transition-colors">
-    <div className="w-12 h-12 flex-shrink-0 bg-[#1A0F0A]/60 rounded border border-[#5C3A21]/50 flex items-center justify-center shadow-inner relative overflow-hidden">
-      {getItemIcon(item, 'w-9 h-9', assetManager)}
-      {count > 1 && (
-        <div className="absolute -top-0.5 -right-0.5 bg-[#1A0F0A] border border-[#DAA520]/50 rounded-full min-w-[14px] h-3.5 px-0.5 flex items-center justify-center z-10">
-          <span className="text-[7px] font-bold text-[#DAA520]">x{count}</span>
+  /** Last Breath was already burned this life. Dim remaining charms so the player isn't confused why a stack isn't saving them. */
+  lastBreathSpent: boolean;
+}) => {
+  const isLastBreath = item.buffType === 'last_breath';
+  const isDimmed = isLastBreath && lastBreathSpent;
+  return (
+    <div className={`flex items-center gap-3 p-2.5 border border-[#5C3A21]/50 bg-[#2D1B11]/40 rounded-sm hover:border-[#DAA520]/40 transition-colors ${isDimmed ? 'opacity-50' : ''}`}>
+      <div className="w-12 h-12 flex-shrink-0 bg-[#1A0F0A]/60 rounded border border-[#5C3A21]/50 flex items-center justify-center shadow-inner relative overflow-hidden">
+        {getItemIcon(item, 'w-9 h-9', assetManager)}
+        {count > 1 && (
+          <div className="absolute -top-0.5 -right-0.5 bg-[#1A0F0A] border border-[#DAA520]/50 rounded-full min-w-[14px] h-3.5 px-0.5 flex items-center justify-center z-10">
+            <span className="text-[7px] font-bold text-[#DAA520]">x{count}</span>
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-bold text-[#F5DEB3] text-sm truncate leading-tight">{item.name}</h4>
+        <p className="text-[10px] text-[#C9B8A8] leading-snug line-clamp-1 mt-0.5">{item.description}</p>
+      </div>
+      {isLastBreath ? (
+        <div
+          title={isDimmed
+            ? 'Reserve already spent this life — rest at a bonfire to restore.'
+            : 'Spent automatically when a killing blow lands.'}
+          className={`flex-shrink-0 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-sm border ${
+            isDimmed
+              ? 'text-stone-400 border-stone-500/40 bg-stone-900/30'
+              : 'text-red-300 border-red-400/50 bg-red-900/20'
+          }`}
+        >
+          {isDimmed ? 'Spent' : 'Equipped'}
         </div>
+      ) : (
+        <button
+          onClick={() => onUse(item)}
+          className="flex-shrink-0 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#DAA520] border border-[#DAA520]/40 rounded-sm hover:bg-[#DAA520]/15 hover:border-[#DAA520]/70 transition-colors"
+        >
+          Use
+        </button>
       )}
     </div>
-    <div className="flex-1 min-w-0">
-      <h4 className="font-bold text-[#F5DEB3] text-sm truncate leading-tight">{item.name}</h4>
-      <p className="text-[10px] text-[#C9B8A8] leading-snug line-clamp-1 mt-0.5">{item.description}</p>
-    </div>
-    <button
-      onClick={() => onUse(item)}
-      className="flex-shrink-0 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#DAA520] border border-[#DAA520]/40 rounded-sm hover:bg-[#DAA520]/15 hover:border-[#DAA520]/70 transition-colors"
-    >
-      Use
-    </button>
-  </div>
-));
+  );
+});
 
 const KeyItemCard = memo(({
   item,
@@ -215,6 +237,15 @@ export const InventoryModal = memo(function InventoryModal({
 
   // ─── Actions ───
   const useConsumable = (item: Item) => {
+    if (item.buffType === 'last_breath') {
+      notify('Cannot be used by hand', {
+        id: 'last-breath-passive',
+        description: 'The charm spends itself only when a killing blow lands.',
+        duration: 2000,
+      });
+      return;
+    }
+
     if (item.buffType === 'stealth') {
       const duration = item.buffDuration ?? 14;
       gameState.player.stealthTimer = duration;
@@ -225,6 +256,23 @@ export const InventoryModal = memo(function InventoryModal({
         id: 'stealth-active',
         type: 'success',
         description: `Enemies will not detect you for ${duration} seconds.`,
+        duration: 3000,
+      });
+      triggerUIUpdate();
+      return;
+    }
+
+    if (item.buffType === 'berserker') {
+      const duration = item.buffDuration ?? 10;
+      gameState.player.berserkerTimer = duration;
+      gameState.player.berserkerDamageMult = 1.5;
+      gameState.player.berserkerSpeedMult = 1.4;
+      playPotionDrink?.();
+      gameState.removeItem(item.id);
+      notify('Berserker Draught Active', {
+        id: 'berserker-active',
+        type: 'success',
+        description: `Strikes hit harder and your stride lengthens for ${duration} seconds.`,
         duration: 3000,
       });
       triggerUIUpdate();
@@ -365,6 +413,7 @@ export const InventoryModal = memo(function InventoryModal({
                     count={count}
                     assetManager={assetManager}
                     onUse={useConsumable}
+                    lastBreathSpent={gameState.player.lastBreathUsedThisLife}
                   />
                 ))}
               </div>

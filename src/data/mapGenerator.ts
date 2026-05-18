@@ -1136,7 +1136,7 @@ const PATH_BLOCKERS: Set<TileType> = new Set([
   'tree', 'rock', 'stump', 'dead_tree', 'hedge',
   // Carve through decorative cliff_face stamps when a path runs over them (e.g. south-bank artery
   // y=148 vs funnel block at x=144ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ153) so elevation seam fillers do not show as sky strips.
-  'cliff_edge', 'cliff',
+  'cliff_edge', 'cliff', 'cliff_edge_corrupted', 'cliff_corrupted',
 ]);
 
 function placePath(tiles: Tile[][], f: MapFeature) {
@@ -1973,7 +1973,7 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
 function placeCottage(tiles: Tile[][], f: MapFeature) {
   // witch_cottage is intentionally adjacent to the golem boss arena; hunter_cottage and ranger_cabin
   // share a compound. All three may coexist with nearby structure tiles.
-  const allowNearbyStructureCluster = /hunter_cottage|ranger_cabin|woodcutter_cottage_ruin/.test(f.interactionId ?? '');
+  const allowNearbyStructureCluster = /hunter_cottage|ranger_cabin|woodcutter_cottage_ruin|hollow_ruin/.test(f.interactionId ?? '');
   if (!allowNearbyStructureCluster && isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
 
   // Clear a yard around the cottage to prevent blocked doors.
@@ -2005,8 +2005,10 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
   const hasInterior = !!(f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined);
   const isWhisperingCottage = /hunter_cottage|forest_cottage|ruin_cottage|hidden_cottage|ranger_cabin/.test(f.interactionId ?? '');
   // Abandoned exterior prop ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ruined facade, vines/tall grass, no door interaction (set dressing).
-  const isAbandonedForestShack = f.interactionId === 'forest_hermit' || f.interactionId === 'woodcutter_cottage_ruin';
-  const isRuinedForestCottageFacade = /forest_hermit|woodcutter_cottage_ruin/.test(f.interactionId ?? '');
+  const isAbandonedForestShack = f.interactionId === 'forest_hermit'
+    || f.interactionId === 'woodcutter_cottage_ruin'
+    || /^hollow_ruin/.test(f.interactionId ?? '');
+  const isRuinedForestCottageFacade = /forest_hermit|woodcutter_cottage_ruin|hollow_ruin/.test(f.interactionId ?? '');
   const isNonEnterable = !f.interactionId && !hasInterior;
   const isRangerCabin = f.interactionId === 'ranger_cabin';
   const facadeTile: TileType = isRuinedForestCottageFacade
@@ -2353,7 +2355,7 @@ function placeSecretAreas(tiles: Tile[][], def: MapDefinition) {
 const INCOMPATIBLE_BASE: Set<TileType> = new Set([
   'water', 'water_corrupted', 'lava', 'ice', 'swamp', 'waterfall', 'bridge', 'bridge_corrupted',
   // Cliff faces: trees growing out of vertical rock walls look wrong
-  'cliff', 'cliff_edge',
+  'cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted',
 ]);
 
 // Decoration overlay types that should only appear on land
@@ -2703,6 +2705,64 @@ function applyDeepHollowBleachedGround(tiles: Tile[][], def: MapDefinition) {
   }
 }
 
+// Swap any cliff / cliff_edge tile in the Hollow side of the corruption blend boundary
+// (ty < 77, matching UI y < -73) for its Hollow-tinted variant. Pure visual reskin —
+// walkability, elevation, transitions, and other tile metadata are preserved.
+function applyHollowCliffCorruption(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const w = tiles[0]?.length ?? 0;
+  const maxY = Math.min(77, tiles.length);
+  for (let ty = 0; ty < maxY; ty++) {
+    for (let tx = 0; tx < w; tx++) {
+      const t = tiles[ty][tx];
+      if (t.type === 'cliff') {
+        tiles[ty][tx] = { ...t, type: 'cliff_corrupted' };
+      } else if (t.type === 'cliff_edge') {
+        tiles[ty][tx] = { ...t, type: 'cliff_edge_corrupted' };
+      }
+    }
+  }
+}
+
+// Soft transition band between the Hollow's hollow_blight ground and the forest grass
+// south of it. Mirrors placeBridgeDecayBlend's smoothstep + 3-octave speckle pattern so
+// the ground boundary reads visually consistent with the bridge above it. Runs AFTER
+// applyDeepHollowBleachedGround so it can re-introduce occasional dark_grass / grass
+// speckles into the top of the blend band (y:57-58) where the deep-hollow pass forced
+// everything to hollow_blight.
+function applyHollowBoundaryBlend(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const w = tiles[0]?.length ?? 0;
+  const y0 = 57;
+  const y1 = 77;
+  const span = y1 - y0;
+  for (let ty = y0; ty <= y1; ty++) {
+    if (ty < 0 || ty >= tiles.length) continue;
+    for (let tx = 0; tx < w; tx++) {
+      const t = tiles[ty][tx];
+      if (t.transition || t.interactable) continue;
+      if (t.type !== 'grass' && t.type !== 'dark_grass' && t.type !== 'hollow_blight') continue;
+
+      const northness = (y1 - ty) / span;
+      const smooth = northness * northness * (3 - 2 * northness);
+      const h1 = bridgeDecayHash01(tx, ty, 1);
+      const h2 = bridgeDecayHash01(tx + 3, ty - 2, 7);
+      const h3 = bridgeDecayHash01(tx - 1, ty + 5, 13);
+      const speckle = (h1 - 0.5) * 0.38 + (h2 - 0.5) * 0.22 + (h3 - 0.5) * 0.14;
+      const score = smooth + speckle;
+
+      let newType: TileType;
+      if (score > 0.65) newType = 'hollow_blight';
+      else if (score > 0.30) newType = 'dark_grass';
+      else newType = 'grass';
+
+      if (newType !== t.type) {
+        tiles[ty][tx] = { ...t, type: newType };
+      }
+    }
+  }
+}
+
 /**
  * Whispering Woods hollow lake: repaint authored `water` near world position (4, -112) as
  * `water_corrupted` after all other passes. This intentionally leaves the corrupted-bridge river
@@ -2739,6 +2799,24 @@ function enforceForestRockyHillShelf(tiles: Tile[][], def: MapDefinition) {
         ...existing,
         walkable: true,
       };
+    }
+  }
+}
+
+function enforceGreenleafUpperRidgeDetour(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Greenleaf Village') return;
+
+  // The obvious north-road climb is intentionally sealed so players follow the
+  // ridge east to find the break. Run this after stair/path cleanup so it cannot
+  // be softened back into grass by proximity-to-path cleanup.
+  for (let ty = 27; ty <= 30; ty++) {
+    for (let tx = 64; tx <= 135; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const existing = tiles[ty][tx];
+      if (existing.transition || existing.interactable) continue;
+      tiles[ty][tx] = createTile(ty <= 28 ? 'cliff_edge' : 'cliff', false, {
+        elevation: ty <= 28 ? 2 : 1,
+      });
     }
   }
 }
@@ -2787,10 +2865,13 @@ export function generateMap(def: MapDefinition): WorldMap {
   stampCliffs(tiles, def);
   placeStairways(tiles, def);
   placeLadders(tiles, def);
+  enforceGreenleafUpperRidgeDetour(tiles, def);
   // Final pass: keep interior cottage approaches traversable even after elevation/cliff stamping.
   enforceInteriorCottageAprons(tiles, def);
   enforceForestRockyHillShelf(tiles, def);
   applyDeepHollowBleachedGround(tiles, def);
+  applyHollowBoundaryBlend(tiles, def);
+  applyHollowCliffCorruption(tiles, def);
   applyWhisperingWoodsHollowApproachCorruptedWater(tiles, def);
   validateMapTransitions(tiles, def);
   validateAuthoredPlacements(tiles, def);

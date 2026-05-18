@@ -75,6 +75,11 @@ export interface PlayerState {
   snareSpeedMult: number;
   stealthTimer: number;
   stealthDetectionMult: number;
+  berserkerTimer: number;
+  berserkerDamageMult: number;
+  berserkerSpeedMult: number;
+  /** Set when Last Breath Charm triggers; cleared on bonfire rest or true death. */
+  lastBreathUsedThisLife: boolean;
   level: number;
   vitality: number;
   endurance: number;
@@ -89,6 +94,7 @@ export interface NPC {
   dialogueId: string;
   sprite: string;
   questGiver?: boolean;
+  facing?: 'left' | 'right';
 }
 
 export interface Item {
@@ -98,7 +104,7 @@ export interface Item {
   type: 'consumable' | 'key' | 'quest' | 'equipment';
   sprite: string;
   healAmount?: number;
-  buffType?: 'stealth';
+  buffType?: 'stealth' | 'berserker' | 'last_breath';
   buffDuration?: number;
   stats?: {
     damage?: number;
@@ -162,7 +168,9 @@ export class GameState {
   gameFlags: Record<string, boolean | number>;
   /** Items dropped in the world (persisted across sessions) */
   worldItems: WorldItem[];
-  onItemAdded: ((item: Item) => void) | null;
+  /** Item ids the player has ever picked up. Drives the first-time acquisition overlay. */
+  seenItemIds: Set<string>;
+  onItemAdded: ((item: Item, isFirstTime: boolean) => void) | null;
   onCurrencyGained: ((gain: CurrencyGain) => void) | null;
 
   constructor(scene: THREE.Scene, camera: THREE.OrthographicCamera) {
@@ -172,6 +180,7 @@ export class GameState {
     this.dialogueActive = false;
     this.currentDialogue = null;
     this.gameFlags = {};
+    this.seenItemIds = new Set();
     this.onItemAdded = null;
     this.onCurrencyGained = null;
     
@@ -211,6 +220,10 @@ export class GameState {
       snareSpeedMult: 1.0,
       stealthTimer: 0,
       stealthDetectionMult: 1.0,
+      berserkerTimer: 0,
+      berserkerDamageMult: 1.0,
+      berserkerSpeedMult: 1.0,
+      lastBreathUsedThisLife: false,
       level: 1,
       vitality: 1,
       endurance: 1,
@@ -225,6 +238,8 @@ export class GameState {
     this.worldItems = [];
     this.quests = [];
     this.npcs = [];
+    // Starter weapon shouldn't trigger the first-time acquisition overlay.
+    this.seenItemIds.add(items.meek_short_sword.id);
   }
 
   addItem(item: Item) {
@@ -245,7 +260,9 @@ export class GameState {
     } else {
       this.inventory = [...this.inventory, item];
     }
-    this.onItemAdded?.(item);
+    const isFirstTime = !this.seenItemIds.has(item.id);
+    if (isFirstTime) this.seenItemIds.add(item.id);
+    this.onItemAdded?.(item, isFirstTime);
     if (item.type === 'equipment' && !this.equippedWeaponId) {
       this.setEquippedWeapon(item.id);
     }

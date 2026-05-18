@@ -133,6 +133,7 @@ export interface BuildRuntimePhaseContextsOptions {
   enemyVisuals: EnemyVisualRegistry;
   enemyAudio: EnemyLoopContext['enemyAudio'];
   playPlayerHit: () => void;
+  playBossAttack?: () => void;
   playPropBreak?: () => void;
   startStormLoop?: () => void;
   stopStormLoop?: () => void;
