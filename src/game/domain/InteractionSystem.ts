@@ -457,6 +457,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
     context.state.setFlag('forest_fort_gate_open', true);
     context.syncForestFortGateState();
+    context.syncManuscriptCheckpointGateState();
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
     context.showHeroOverlay('Fortress Unlocked');

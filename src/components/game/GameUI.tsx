@@ -1,7 +1,7 @@
 import { GameState, type CurrencyGain, type Item } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { Button } from '@/components/ui/button';
-import { Heart, Coins, Package, Target, Zap, Volume2, VolumeX, Shield, Sword, Map as MapIcon, Key, Sparkles, ChevronRight, ChevronDown } from 'lucide-react';
+import { Heart, Coins, Package, Target, Zap, Volume2, VolumeX, Shield, Sword, Map as MapIcon, Key, Sparkles, ChevronRight, ChevronDown, Gem } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import { CONTROL_GROUPS } from './controlBindings';
 
@@ -114,10 +114,12 @@ const BossHealthBar = React.memo(({
 const CurrencyCountersWithGains = React.memo(({
   gold,
   essence,
+  cursedSediment,
   justGainedCurrency,
 }: {
   gold: number;
   essence: number;
+  cursedSediment: number;
   justGainedCurrency?: CurrencyGain | null;
 }) => (
   <div className="flex items-center gap-4">
@@ -140,6 +142,18 @@ const CurrencyCountersWithGains = React.memo(({
         </span>
       )}
     </div>
+
+    {cursedSediment > 0 && (
+      <div className="flex items-center gap-1.5 relative min-w-[42px]" title="Cursed Sediment">
+        <Gem className="w-4 h-4 text-fuchsia-400 drop-shadow" />
+        <span className="text-xs font-bold text-fuchsia-200 tracking-wide">{cursedSediment}</span>
+        {justGainedCurrency?.kind === 'cursed_sediment' && (
+          <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 text-[10px] font-bold text-fuchsia-200 tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,1)] animate-in fade-in slide-in-from-top-1">
+            +{justGainedCurrency.amount}
+          </span>
+        )}
+      </div>
+    )}
   </div>
 ));
 
@@ -337,6 +351,7 @@ export const GameUI = ({
             <CurrencyCountersWithGains
               gold={gameState.player.gold}
               essence={gameState.player.essence}
+              cursedSediment={gameState.player.cursedSediment}
               justGainedCurrency={justGainedCurrency}
             />
           </div>

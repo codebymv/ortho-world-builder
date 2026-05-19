@@ -3936,6 +3936,38 @@ export class AssetManager {
       [ALTAR_D,ALTAR_D,ALTAR_D,ALTAR_D,ALTAR_D,ALTAR_D],
     ]);
 
+    // Heresy altar — corrupted shrine, hollow-violet glow, gnarled obelisk profile.
+    const HA_STN = 0x2A1F33; // base dark stone with violet undertone
+    const HA_MID = 0x3D2A4A; // mid corrupted stone
+    const HA_RIM = 0x584068; // lit rim / fractured edge
+    const HA_GLW = 0xCC44FF; // violet rune glow (matches hollow corruption palette)
+    const HA_CR  = 0x7A1F8C; // crystalline core
+    const HA_SHD = 0x140A1E; // deep shadow
+    registerSpriteTexture('heresy_altar', [
+      [C,      C,      HA_SHD, HA_GLW, HA_SHD, C,      C     ],
+      [C,      HA_SHD, HA_CR,  HA_GLW, HA_CR,  HA_SHD, C     ],
+      [C,      HA_MID, HA_GLW, HA_CR,  HA_GLW, HA_MID, C     ],
+      [HA_SHD, HA_STN, HA_MID, HA_GLW, HA_MID, HA_STN, HA_SHD],
+      [HA_SHD, HA_STN, HA_RIM, HA_MID, HA_RIM, HA_STN, HA_SHD],
+      [HA_SHD, HA_RIM, HA_STN, HA_STN, HA_STN, HA_RIM, HA_SHD],
+      [HA_SHD, HA_RIM, HA_RIM, HA_RIM, HA_RIM, HA_RIM, HA_SHD],
+      [HA_SHD, HA_SHD, HA_SHD, HA_SHD, HA_SHD, HA_SHD, HA_SHD],
+    ]);
+
+    // Heresy altar — cracked/damaged state after first hit.
+    // Same palette; glow dimmed, diagonal crack slashes top-right → bottom-left.
+    const HA_CRACK = 0xB090CC; // pale violet crack highlight
+    registerSpriteTexture('heresy_altar_cracked', [
+      [C,       C,       HA_SHD,  HA_CR,    HA_SHD,  C,       C      ], // tip — glow weakened
+      [C,       HA_SHD,  HA_CR,   HA_CRACK, HA_MID,  HA_SHD,  C      ], // crack at col 3
+      [C,       HA_MID,  HA_CRACK,HA_MID,   HA_GLW,  HA_MID,  C      ], // crack col 2, glow survives
+      [HA_SHD,  HA_CR,   HA_CRACK,HA_MID,   HA_MID,  HA_STN,  HA_SHD], // crack continues
+      [HA_SHD,  HA_CRACK,HA_RIM,  HA_MID,   HA_RIM,  HA_STN,  HA_SHD], // crack reaches col 1
+      [HA_SHD,  HA_RIM,  HA_STN,  HA_STN,   HA_STN,  HA_RIM,  HA_SHD], // base intact
+      [HA_SHD,  HA_RIM,  HA_RIM,  HA_STN,   HA_RIM,  HA_RIM,  HA_SHD], // chip in base
+      [HA_SHD,  HA_STN,  HA_SHD,  HA_SHD,   HA_SHD,  HA_SHD,  HA_SHD], // rubble chip
+    ]);
+
     const BLOOD_R = 0x8B0000;
     const BLOOD_D = 0x4A0000;
     const BLOOD_S = 0x2A0000;

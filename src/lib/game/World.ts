@@ -17,7 +17,7 @@ export type TileType =
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
   | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter'
   | 'bed' | 'wardrobe' | 'fireplace' | 'weapon_rack' | 'alchemy_table' | 'cauldron'
-  | 'throne' | 'altar' | 'bloodstain' | 'chain' | 'shortcut_lever' | 'cage' | 'bones_pile' | 'ranger_remains'
+  | 'throne' | 'altar' | 'heresy_altar' | 'heresy_altar_cracked' | 'bloodstain' | 'chain' | 'shortcut_lever' | 'cage' | 'bones_pile' | 'ranger_remains'
   | 'door' | 'door_interior' | 'door_iron'
   | 'fog_gate'
   | 'bonfire_unlit'
@@ -555,6 +555,75 @@ export class World {
     return group;
   }
 
+  /**
+   * Violet corruption halo rendered directly on the heresy_altar overlay tile.
+   * Scatters motes and a broad veil in a ring around the altar's footprint.
+   */
+  private createHeresyAltarSelfAura(tileX: number, tileY: number): THREE.Group | null {
+    const moteTex = this.detailTextures.get('detail_corruption_mote');
+    const veilTex = this.detailTextures.get('detail_corruption_veil');
+    if (!moteTex) return null;
+
+    const makeMat = (variant: 'mote' | 'veil', opacity: number): THREE.MeshBasicMaterial => {
+      const key = `heresy_aura_${variant}_${Math.round(opacity * 100)}`;
+      let mat = this.materialCache.get(key);
+      if (!mat) {
+        mat = new THREE.MeshBasicMaterial({
+          map: variant === 'mote' ? moteTex : (veilTex ?? moteTex),
+          transparent: true,
+          opacity,
+          depthWrite: false,
+          depthTest: false,
+          alphaTest: 0.02,
+        });
+        this.materialCache.set(key, mat);
+      }
+      return mat;
+    };
+
+    const group = new THREE.Group();
+    group.matrixAutoUpdate = false;
+
+    // Broad veil underneath — covers the altar base
+    const veilMat = makeMat('veil', 0.38);
+    const veil = new THREE.Mesh(this.detailGeometry, veilMat);
+    veil.frustumCulled = true;
+    veil.matrixAutoUpdate = false;
+    veil.position.set(0, 0.05, 0.12);
+    veil.scale.set(2.2, 2.2, 1);
+    veil.rotation.z = tileHash(tileX, tileY, 800) * Math.PI * 2;
+    this.setRenderRole(veil, 'overlay');
+    veil.updateMatrix();
+    group.add(veil);
+
+    // Ring of 6 motes scattered at ~0.35 radius
+    const MOTE_COUNT = 6;
+    for (let i = 0; i < MOTE_COUNT; i++) {
+      const angle = (i / MOTE_COUNT) * Math.PI * 2 + tileHash(tileX, tileY, 810 + i) * 0.9;
+      const r = 0.28 + tileHash(tileX, tileY, 820 + i) * 0.22;
+      const mx = Math.cos(angle) * r;
+      const my = Math.sin(angle) * r * 0.6; // flatten for isometric feel
+      const moteMat = makeMat('mote', 0.42 + tileHash(tileX, tileY, 830 + i) * 0.18);
+      const mote = new THREE.Mesh(this.detailGeometry, moteMat);
+      mote.frustumCulled = true;
+      mote.matrixAutoUpdate = false;
+      mote.position.set(mx, my + 0.08, 0.14 + i * 0.005);
+      const sc = 1.1 + tileHash(tileX, tileY, 840 + i) * 0.5;
+      mote.scale.set(sc, sc, 1);
+      mote.rotation.z = tileHash(tileX, tileY, 850 + i) * Math.PI * 2;
+      this.setRenderRole(mote, 'overlay');
+      mote.updateMatrix();
+      group.add(mote);
+    }
+
+    return group;
+  }
+
+  /** @deprecated No longer used — aura now renders on the altar itself via createHeresyAltarSelfAura */
+  private createHeresyAltarAuraDecals(_tileX: number, _tileY: number): THREE.Group | null {
+    return null;
+  }
+
   private createShadowMesh(textureKey: string, opacity: number, rotation: number = 0, flipX: boolean = false): THREE.Mesh | null {
     const tex = this.detailTextures.get(textureKey);
     if (!tex) return null;
@@ -1076,6 +1145,13 @@ export class World {
     group.add(baseMesh, overlayMesh);
     if (tileX !== undefined && tileY !== undefined) {
       this.appendTerrainSeamFillers(group, tile, tileX, tileY);
+      if (tile.type === 'heresy_altar' || tile.type === 'heresy_altar_cracked') {
+        const aura = this.createHeresyAltarSelfAura(tileX, tileY);
+        if (aura) {
+          aura.updateMatrix();
+          group.add(aura);
+        }
+      }
     }
     return group;
   }

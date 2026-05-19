@@ -14,6 +14,7 @@ export interface SaveData {
     maxHealth: number;
     gold: number;
     essence: number;
+    cursedSediment?: number;
     attackDamage: number;
     attackRange?: number;
     stamina: number;
@@ -61,6 +62,7 @@ function normalizeSave(raw: RawSave): SaveData {
       maxHealth: player.maxHealth ?? 100,
       gold: player.gold ?? 0,
       essence: player.essence ?? 0,
+      cursedSediment: player.cursedSediment ?? 0,
       attackDamage: player.attackDamage ?? 20,
       attackRange: player.attackRange,
       stamina: player.stamina ?? 120,
@@ -104,6 +106,7 @@ export class SaveManager {
         maxHealth: state.player.maxHealth,
         gold: state.player.gold,
         essence: state.player.essence,
+        cursedSediment: state.player.cursedSediment,
         attackDamage: state.player.attackDamage,
         attackRange: state.player.attackRange,
         stamina: state.player.stamina,

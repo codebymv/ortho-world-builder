@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Enemy } from '@/lib/game/Combat';
 import type { GameState } from '@/lib/game/GameState';
 import { breakTilesInRadius, type BreakableWorld } from '@/game/runtime/BreakableProps';
+import { damageHeresyAltarsInRadius } from '@/game/runtime/HeresyAltars';
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
@@ -281,6 +282,7 @@ export function createRuntimeCombatActions({
       const attackY = state.player.position.y + off.y;
       particleSystem.emitAt(attackX, attackY, 0.3, 4, 0xffffff, 0.3, 1, 1);
       breakTilesInRadius(world, world.getCurrentMap(), attackX, attackY, state.player.attackRange, particleSystem, playPropBreak);
+      damageHeresyAltarsInRadius(state, world, world.getCurrentMap(), attackX, attackY, state.player.attackRange, particleSystem, playPropBreak, notify);
       return;
     }
 

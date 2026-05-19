@@ -752,6 +752,12 @@ export const forestDef: MapDefinition = {
     { x: 30, y: 35, type: 'bones_pile', walkable: true, interactionId: 'wolf_den_bones' },
     { x: 65, y: 183, type: 'ranger_remains', walkable: true, interactionId: 'chapel_dead_ranger' },
     { x: 45, y: 157, type: 'altar', walkable: false, interactionId: 'old_chapel_altar' },
+    // === HERESY ALTARS ===
+    // Corrupted shrines hidden off the main progression spine — 2 hits to destroy, +1 cursed sediment each.
+    { x: 34, y: 259, type: 'heresy_altar', walkable: false }, // world (-116, 109) — far SW dirt plot
+    { x: 235, y: 45, type: 'heresy_altar', walkable: false }, // world (85, -105) — NE ridge clearing
+    { x: 277, y: 205, type: 'heresy_altar', walkable: false }, // world (127, 55) — east ranger outpost flank
+    { x: 68, y: 138, type: 'heresy_altar', walkable: false }, // world (-82, -12) — mid-west isolated patch
     { x: 262, y: 25, type: 'sign', walkable: false, interactionId: 'volcano_warning' },
     { x: 22, y: 248, type: 'cage', walkable: false, interactionId: 'spider_cocoon' },
     // Potion pickups in forest clearings and paths

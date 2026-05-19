@@ -50,6 +50,7 @@ export interface PlayerState {
   maxHealth: number;
   gold: number;
   essence: number;
+  cursedSediment: number;
   attackDamage: number;
   attackRange: number;
   lastAttackTime: number;
@@ -136,7 +137,7 @@ export interface DroppedEssence {
 }
 
 export interface CurrencyGain {
-  kind: 'gold' | 'essence';
+  kind: 'gold' | 'essence' | 'cursed_sediment';
   amount: number;
 }
 
@@ -195,6 +196,7 @@ export class GameState {
       maxHealth: 100,
       gold: 0,
       essence: 0,
+      cursedSediment: 0,
       attackDamage: 20,
       attackRange: 2,
       lastAttackTime: 0,
@@ -288,6 +290,17 @@ export class GameState {
   spendEssence(amount: number) {
     if (amount <= 0) return;
     this.player.essence = Math.max(0, this.player.essence - amount);
+  }
+
+  addCursedSediment(amount: number) {
+    if (amount <= 0) return;
+    this.player.cursedSediment += amount;
+    this.onCurrencyGained?.({ kind: 'cursed_sediment', amount });
+  }
+
+  spendCursedSediment(amount: number) {
+    if (amount <= 0) return;
+    this.player.cursedSediment = Math.max(0, this.player.cursedSediment - amount);
   }
 
   removeItem(itemId: string) {

@@ -80,7 +80,7 @@ export function createDefaultNpcData(): NPC[] {
     { id: 'farmer', name: 'Old Farmer', mapId: 'village', position: { x: -56, y: 35 }, dialogueId: 'farmer', sprite: 'npc_farmer' },
     { id: 'child', name: 'Village Child', mapId: 'village', position: { x: 8, y: -12 }, dialogueId: 'child', sprite: 'npc_child' },
     { id: 'forest_ranger', name: 'Forest Ranger', mapId: 'forest', position: { x: 158, y: 168 }, dialogueId: 'forest_ranger', sprite: 'npc_guard', questGiver: true },
-    { id: 'manuscript_gate_guard', name: 'Ranger Gatekeeper', mapId: 'forest', position: { x: 81, y: 4 }, dialogueId: 'manuscript_gate_guard', sprite: 'npc_guard' },
+    { id: 'manuscript_gate_guard', name: 'Ranger Gatekeeper', mapId: 'forest', position: { x: 80, y: 4 }, dialogueId: 'manuscript_gate_guard', sprite: 'npc_guard' },
     { id: 'fort_quartermaster', name: 'Listless Merchant', mapId: 'forest', position: { x: 80, y: 13 }, dialogueId: 'fort_quartermaster', sprite: 'npc_merchant' },
     { id: 'grove_warden', name: 'Warden Callum', mapId: 'forest', position: { x: -7, y: -1 }, dialogueId: 'grove_warden', sprite: 'npc_grove_warden', questGiver: true },
     { id: 'petra_ashveil', name: 'Petra the Researcher', mapId: 'forest', position: { x: 12, y: -37 }, dialogueId: 'petra_ashveil', sprite: 'npc_petra' },

@@ -7,6 +7,7 @@ import { mapDefinitions } from '@/data/maps';
 import { TILE_METADATA } from '@/data/tiles';
 import { spawnEnemiesFromMapZones } from '@/game/runtime/RuntimeWorldUtils';
 import { ENEMY_BLUEPRINTS } from '@/data/enemies';
+import { syncHeresyAltarsForMap } from '@/game/runtime/HeresyAltars';
 
 interface RuntimeMapTransitionServiceLike {
   transitionTo: (targetMap: string, targetX: number, targetY: number) => void;
@@ -560,9 +561,8 @@ export function createRuntimeMapFlow({
           continue;
         }
 
-        // 3-wide passage on the north wall - always open, cobblestone so it's visually distinct.
+        // North wall passage — owned by syncManuscriptCheckpointGateState, skip here.
         if (ty === FORT_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
-          row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
           continue;
         }
 
@@ -793,9 +793,8 @@ export function createRuntimeMapFlow({
     const map = world.getCurrentMap();
     const gateOpen = state.getFlag('manuscript_checkpoint_gate_open');
     const gateY = 153;
-    const gateCenterX = 231;
+    const gateCenterX = 230; // aligned with forest fort GATE_CX
     const gateRow = map.tiles[gateY];
-    const apronRow = map.tiles[gateY + 1];
     if (!gateRow) return;
 
     for (let tx = gateCenterX - 3; tx <= gateCenterX + 3; tx++) {
@@ -807,16 +806,6 @@ export function createRuntimeMapFlow({
         gateRow[tx] = gateOpen
           ? { type: 'cobblestone' as TileType, walkable: true, elevation: el }
           : { type: 'gate' as TileType, walkable: false, elevation: el, interactable: true, interactionId: 'manuscript_checkpoint_gate' };
-      }
-    }
-
-    if (apronRow) {
-      for (let tx = gateCenterX - 2; tx <= gateCenterX + 2; tx++) {
-        if (tx < 0 || tx >= apronRow.length) continue;
-        const el = apronRow[tx]?.elevation ?? 0;
-        apronRow[tx] = (tx === gateCenterX - 2 || tx === gateCenterX + 2)
-          ? { type: 'lantern' as TileType, walkable: false, elevation: el }
-          : { type: 'cobblestone' as TileType, walkable: true, elevation: el };
       }
     }
 
@@ -1031,6 +1020,7 @@ export function createRuntimeMapFlow({
     syncPreplacedWorldItems();
     syncHollowApproachLadderState();
     syncCliffCorridorLadderState();
+    syncHeresyAltarsForMap(state, world.getCurrentMap(), state.currentMap);
   };
 
   const respawnEnemiesForCurrentMap = (targetMap: string, map: WorldMap) => {

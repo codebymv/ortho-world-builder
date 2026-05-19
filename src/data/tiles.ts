@@ -83,6 +83,8 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   cauldron: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.14 },
   throne: { isOverlay: true, baseTile: 'ruins_floor', scale: 1.6, sortTrim: 0.06 },
   altar: { isOverlay: true, baseTile: 'stone', scale: 1.4, sortTrim: 0.08 },
+  heresy_altar: { isOverlay: true, baseTile: 'hollow_blight', scale: 1.45, sortTrim: 0.1, yOffset: 0.08 },
+  heresy_altar_cracked: { isOverlay: true, baseTile: 'hollow_blight', scale: 1.45, sortTrim: 0.1, yOffset: 0.08 },
   bloodstain: { isOverlay: true, baseTile: 'stone', scale: 0.8, sortTrim: 0.28 },
   chain: { isOverlay: true, baseTile: 'stone', scale: 0.7, sortTrim: 0.2 },
   shortcut_lever: { isOverlay: true, baseTile: 'dirt', scale: 1.18, sortTrim: 0.2, yOffset: 0.08 },

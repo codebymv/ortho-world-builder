@@ -77,6 +77,7 @@ export function bootstrapRuntimeState(context: BootstrapContext) {
     state.player.maxHealth = savedData.player.maxHealth;
     state.player.gold = savedData.player.gold;
     state.player.essence = savedData.player.essence ?? 0;
+    state.player.cursedSediment = savedData.player.cursedSediment ?? 0;
     state.player.attackDamage = savedData.player.attackDamage;
     state.player.attackRange = savedData.player.attackRange ?? state.player.attackRange;
     state.player.maxStamina = normalizedMaxStamina;
