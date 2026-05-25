@@ -94,7 +94,7 @@ export function updateInteractionIndicator({
       ) &&
       !(
         intId === 'cliff_corridor_ladder' &&
-        state.player.position.y > y
+        state.player.position.x > x
       )
     ) {
       if (intId === 'building_entrance' || intId === 'building_exit') {
@@ -225,19 +225,11 @@ export function updateInteractionIndicator({
       1,
     );
     indicatorMaterial.color.setHex(
-      indicatorIsObjectiveNpc ? 0xffe596 : indicatorIsWorldItem ? 0xffd966 : 0xffffff,
+      indicatorIsWorldItem ? 0xffd966 : 0xffffff,
     );
-    objectiveIndicatorRingMesh.visible = indicatorIsObjectiveNpc;
-    objectiveIndicatorOuterMesh.visible = indicatorIsObjectiveNpc;
-    if (indicatorIsObjectiveNpc) {
-      const objectivePulse = 0.82 + Math.sin(currentTime / 260) * 0.18;
-      objectiveIndicatorRingMesh.position.set(indicatorX, getVisualYAt(indicatorX, indicatorY) + 0.8, 0.49);
-      objectiveIndicatorRingMaterial.opacity = 0.18 + objectivePulse * 0.12;
-      objectiveIndicatorRingMesh.scale.setScalar(1 + objectivePulse * 0.06);
-      objectiveIndicatorOuterMesh.position.set(indicatorX, getVisualYAt(indicatorX, indicatorY) + 0.8, 0.47);
-      objectiveIndicatorOuterMaterial.opacity = 0.05 + objectivePulse * 0.05;
-      objectiveIndicatorOuterMesh.scale.setScalar(0.98 + objectivePulse * 0.08);
-    }
+    // Objective NPCs use the same standard indicator — no extra rings.
+    objectiveIndicatorRingMesh.visible = false;
+    objectiveIndicatorOuterMesh.visible = false;
   } else {
     indicatorMesh.visible = false;
     objectiveIndicatorRingMesh.visible = false;

@@ -1,4 +1,6 @@
 import { WorldMap, Tile, TileType } from '@/lib/game/World';
+import { TILE_METADATA } from './tiles';
+import { getClosedChestTileType, isChestTileType } from './specialChests';
 
 
 // Simple 2D noise
@@ -12,8 +14,11 @@ function smoothNoise(x: number, y: number, seed: number, scale: number = 8): num
   const sy = y / scale;
   const x0 = Math.floor(sx);
   const y0 = Math.floor(sy);
-  const fx = sx - x0;
-  const fy = sy - y0;
+  let fx = sx - x0;
+  let fy = sy - y0;
+  // Smoothstep: t²(3-2t) — removes the linear gradient banding that creates visible grid lines
+  fx = fx * fx * (3 - 2 * fx);
+  fy = fy * fy * (3 - 2 * fy);
 
   const v00 = noise2D(x0, y0, seed);
   const v10 = noise2D(x0 + 1, y0, seed);
@@ -23,6 +28,21 @@ function smoothNoise(x: number, y: number, seed: number, scale: number = 8): num
   const i0 = v00 * (1 - fx) + v10 * fx;
   const i1 = v01 * (1 - fx) + v11 * fx;
   return i0 * (1 - fy) + i1 * fy;
+}
+
+/** Fractional Brownian Motion — layers multiple octaves of smoothNoise for organic, non-grid terrain.
+ *  Each octave halves amplitude and doubles frequency, adding fine detail on top of broad shapes. */
+function octaveNoise(x: number, y: number, seed: number, scale: number, octaves: number = 3): number {
+  let value = 0;
+  let amplitude = 1;
+  let norm = 0;
+  for (let i = 0; i < octaves; i++) {
+    const s = scale / Math.pow(2, i);
+    value += smoothNoise(x, y, seed + i * 73, s) * amplitude;
+    norm += amplitude;
+    amplitude *= 0.5;
+  }
+  return value / norm;
 }
 
 export function createTile(
@@ -135,6 +155,8 @@ export interface MapDefinition {
     count: number;
     /** Optional faction key. Enemies with different factions attack each other before targeting the player. */
     faction?: string;
+    /** Optional idle patrol radius in world units (defaults to 2–4). */
+    patrolRadius?: number;
   }>;
 }
 
@@ -219,7 +241,11 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
         }
       }
 
-      const n1 = smoothNoise(x, y, def.seed, 12);
+      // n1 uses octave noise for organic, non-grid tree distribution.
+      // n2/n3 stay single-sample for fine detail (mushrooms, rocks, flowers).
+      const n1 = def.baseTerrain === 'forest'
+        ? octaveNoise(x, y, def.seed, 16, 3)
+        : smoothNoise(x, y, def.seed, 12);
       const n2 = smoothNoise(x, y, def.seed + 100, 6);
       const n3 = smoothNoise(x, y, def.seed + 200, 20);
 
@@ -263,6 +289,10 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
             tile = createTile('flower', true);
           } else if (!inHollow && n1 > 0.32 && n1 < 0.35 && n2 < 0.3) {
             tile = createTile('stump', false);
+          } else if (!inHollow && noise2D(x, y, def.seed + 400) > 0.86) {
+            // 50/50 horizontal vs vertical orientation, picked per-tile by an independent noise channel
+            const isVertical = noise2D(x, y, def.seed + 500) > 0.5;
+            tile = createTile(isVertical ? 'fallen_log_v' : 'fallen_log', false);
           } else if (n1 < 0.15) {
             tile = createTile('tall_grass', true);
           } else {
@@ -388,7 +418,7 @@ function carvePath(tiles: Tile[][], x1: number, y1: number, x2: number, y2: numb
           const isCarveableBlocker = !existing.walkable && PATH_BLOCKERS.has(existing.type);
           if (
             existing.type !== 'portal' &&
-            existing.type !== 'chest' &&
+            !isChestTileType(existing.type) &&
             !existing.interactable &&
             !ROAD_CARVE_PROTECTED.has(existing.type) &&
             (existing.walkable || isCarveableBlocker)
@@ -628,7 +658,7 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean, 
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         const existing = tiles[ty][tx];
         if (HOUSE_TYPES.has(existing.type) || existing.type === 'portal' || 
-            existing.type === 'chest' || existing.interactable) continue;
+            isChestTileType(existing.type) || existing.interactable) continue;
         if (!existing.walkable || existing.type === 'water' || existing.type === 'water_corrupted' || existing.type === 'tree' || 
             existing.type === 'rock' || existing.type === 'swamp') {
           tiles[ty][tx] = createTile(yardFill, true);
@@ -811,6 +841,156 @@ function placeProps(tiles: Tile[][], def: MapDefinition) {
   }
 }
 
+function applyPropFoundations(tiles: Tile[][], def: MapDefinition) {
+  for (const p of def.props ?? []) {
+    const foundation = TILE_METADATA[p.type]?.foundation;
+    if (!foundation) continue;
+
+    const targets: Array<{ tx: number; ty: number }> = [];
+    if (foundation.rows && foundation.rows.length > 0) {
+      for (const row of foundation.rows) {
+        for (let x = row.xMin; x <= row.xMax; x++) {
+          targets.push({ tx: p.x + x, ty: p.y + row.y });
+        }
+      }
+    } else {
+      for (let dy = 0; dy < foundation.height; dy++) {
+        for (let dx = 0; dx < foundation.width; dx++) {
+          targets.push({ tx: p.x + foundation.x + dx, ty: p.y + foundation.y + dy });
+        }
+      }
+    }
+
+    for (const { tx, ty } of targets) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+
+      const existing = tiles[ty][tx];
+      const isAnchor = tx === p.x && ty === p.y;
+      if (isAnchor) {
+        // Overlay prop stays on the anchor tile for rendering; still enforce solid collision.
+        tiles[ty][tx] = createTile(p.type, false, {
+          elevation: existing.elevation,
+          hidden: existing.hidden,
+          interactable: existing.interactable,
+          interactionId: existing.interactionId,
+        });
+        continue;
+      }
+
+      if (
+        PROTECTED_INTERACTIVE_TILES.has(existing.type) ||
+        existing.interactable
+      ) {
+        continue;
+      }
+
+      tiles[ty][tx] = foundation.tile
+        ? createTile(foundation.tile, foundation.walkable, { elevation: existing.elevation })
+        : createTile(resolveInvisibleFoundationTileType(tiles, tx, ty), foundation.walkable, {
+            elevation: existing.elevation,
+            hidden: existing.hidden,
+          });
+    }
+
+    // Walkable aprons last so they win over solid collision rows at the same cells.
+    for (const row of foundation.clearRows ?? []) {
+      for (let x = row.xMin; x <= row.xMax; x++) {
+        const tx = p.x + x;
+        const ty = p.y + row.y;
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+
+        const existing = tiles[ty][tx];
+        if (
+          PROTECTED_INTERACTIVE_TILES.has(existing.type) ||
+          existing.interactable
+        ) {
+          continue;
+        }
+
+        tiles[ty][tx] = createTile(resolveInvisibleFoundationTileType(tiles, tx, ty), true, {
+          elevation: existing.elevation,
+          hidden: existing.hidden,
+        });
+      }
+    }
+  }
+}
+
+/** Riverside broken bridge (146–153): keep north + south spine stair approaches open after late passes. */
+function enforceRiversideBridgeSpineApproach(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  const stampStairs = (yMin: number, yMax: number) => {
+    for (let ty = yMin; ty <= yMax; ty++) {
+      for (let tx = 146; tx <= 153; tx++) {
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        const existing = tiles[ty][tx];
+        if (existing.transition || existing.interactable) continue;
+        if (PROTECTED_INTERACTIVE_TILES.has(existing.type)) continue;
+        tiles[ty][tx] = createTile('stairs', true, { elevation: existing.elevation ?? 1 });
+      }
+    }
+  };
+
+  stampStairs(152, 154);
+  stampStairs(162, 164);
+}
+
+/** Western bypass observatory (131,222): restore bypass path + front meadow after foundation/cliff passes. */
+function enforceWesternBypassObservatoryApproach(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  const setTile = (tx: number, ty: number, type: TileType, walkable: boolean) => {
+    if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) return;
+    const existing = tiles[ty][tx];
+    if (existing.transition || existing.interactable) return;
+    if (PROTECTED_INTERACTIVE_TILES.has(existing.type)) return;
+    tiles[ty][tx] = createTile(type, walkable, { elevation: existing.elevation ?? 0 });
+  };
+
+  // East-west bypass in front of the tower (UI y ~ 64–67).
+  for (let ty = 214; ty <= 217; ty++) {
+    for (let tx = 110; tx <= 128; tx++) setTile(tx, ty, 'dirt', true);
+  }
+  // Cliff-1 sprite-buffer rows — reopen the authored clearing west of the tower base.
+  for (let ty = 212; ty <= 213; ty++) {
+    for (let tx = 110; tx <= 121; tx++) setTile(tx, ty, 'grass', true);
+  }
+  // The observatory's shared foundation mask now preserves underlying terrain while blocking
+  // the sprite footprint, so do not stamp a separate visible stone rectangle here.
+}
+
+function resolveInvisibleFoundationTileType(tiles: Tile[][], tx: number, ty: number): TileType {
+  const existing = tiles[ty][tx];
+  if (!TILE_METADATA[existing.type]?.isOverlay) {
+    return existing.type;
+  }
+
+  const counts = new Map<TileType, number>();
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dy === 0) continue;
+      const nx = tx + dx;
+      const ny = ty + dy;
+      if (ny < 0 || ny >= tiles.length || nx < 0 || nx >= tiles[0].length) continue;
+      const neighbor = tiles[ny][nx];
+      if (TILE_METADATA[neighbor.type]?.isOverlay) continue;
+      counts.set(neighbor.type, (counts.get(neighbor.type) ?? 0) + 1);
+    }
+  }
+
+  let bestType: TileType | null = null;
+  let bestCount = -1;
+  for (const [type, count] of counts) {
+    if (count > bestCount) {
+      bestType = type;
+      bestCount = count;
+    }
+  }
+
+  return bestType ?? TILE_METADATA[existing.type]?.baseTile ?? 'grass';
+}
+
 function placeLake(tiles: Tile[][], f: MapFeature) {
   const cx = f.x + f.width / 2;
   const cy = f.y + f.height / 2;
@@ -990,11 +1170,11 @@ function placeCamp(tiles: Tile[][], f: MapFeature) {
       }
     }
   }
-  // Center campfire
+  // Center remains of a campfire - atmospheric only, not a healing/rest source.
   const cx = f.x + Math.floor(f.width / 2);
   const cy = f.y + Math.floor(f.height / 2);
   if (cy < tiles.length && cx < tiles[0].length) {
-    tiles[cy][cx] = createTile('campfire', true, { interactable: true, interactionId: f.interactionId || 'campfire' });
+    tiles[cy][cx] = createTile('campfire_remains', false);
   }
   // Barrels and crates around edges
   const corners = [[f.x + 1, f.y + 1], [f.x + f.width - 2, f.y + 1], [f.x + 1, f.y + f.height - 2]];
@@ -1133,7 +1313,7 @@ function placeBridgeDecayBlend(tiles: Tile[][], f: MapFeature) {
 // Fence / gate / iron_fence are always skipped (gates are walkable and would otherwise be paved over).
 /** Unwalkable terrain types an authored path strip is allowed to replace with path fill (dirt etc.). */
 const PATH_BLOCKERS: Set<TileType> = new Set([
-  'tree', 'rock', 'stump', 'dead_tree', 'hedge',
+  'tree', 'rock', 'stump', 'dead_tree', 'hedge', 'fallen_log', 'fallen_log_v',
   // Carve through decorative cliff_face stamps when a path runs over them (e.g. south-bank artery
   // y=148 vs funnel block at x=144ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ153) so elevation seam fillers do not show as sky strips.
   'cliff_edge', 'cliff', 'cliff_edge_corrupted', 'cliff_corrupted',
@@ -1412,7 +1592,7 @@ function placeBossArena(tiles: Tile[][], f: MapFeature) {
   }
   // Central marker
   if (cy < tiles.length && cx < tiles[0].length) {
-    tiles[cy][cx] = createTile('campfire', true, { interactable: true, interactionId: f.interactionId || 'boss_summon' });
+    tiles[cy][cx] = createTile('campfire_remains', false);
   }
 }
 
@@ -1441,7 +1621,7 @@ function placeAbandonedCamp(tiles: Tile[][], f: MapFeature) {
   const ccx = f.x + Math.floor(f.width / 2);
   const ccy = f.y + Math.floor(f.height / 2);
   if (ccy < tiles.length && ccx < tiles[0].length) {
-    tiles[ccy][ccx] = createTile('campfire', false);
+    tiles[ccy][ccx] = createTile('campfire_remains', false);
   }
 }
 
@@ -1508,7 +1688,7 @@ function placeCemetery(tiles: Tile[][], f: MapFeature) {
   }
 }
 
-const WATER_BRIDGE_TILES: Set<TileType> = new Set<TileType>(['water', 'water_corrupted', 'bridge', 'bridge_corrupted', 'bridge_decay_blend'] as TileType[]);
+const WATER_BRIDGE_TILES: Set<TileType> = new Set<TileType>(['water', 'water_corrupted', 'bridge', 'bridge_corrupted', 'bridge_folded', 'bridge_decay_blend'] as TileType[]);
 
 function placeCliffFace(tiles: Tile[][], f: MapFeature) {
   for (let dy = 0; dy < f.height; dy++) {
@@ -1778,10 +1958,7 @@ function placeFort(tiles: Tile[][], f: MapFeature) {
         if (f.interactionId === 'forest_fort') {
           tiles[ty][tx] = createTile('cobblestone', true);
         } else {
-          tiles[ty][tx] = createTile('campfire', true, {
-            interactable: true,
-            interactionId: f.interactionId || 'fort_campfire',
-          });
+          tiles[ty][tx] = createTile('campfire_remains', false);
         }
       } else if ((dx + dy * 3) % 11 === 0) {
         tiles[ty][tx] = createTile('barrel', false);
@@ -1966,7 +2143,7 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
   const cx = f.x + midX;
   const cy = f.y + midY;
   if (cy < tiles.length && cx < tiles[0].length) {
-    tiles[cy][cx] = createTile('campfire', true, { interactable: true, interactionId: f.interactionId || 'ruined_fort' });
+    tiles[cy][cx] = createTile('campfire_remains', false);
   }
 }
 
@@ -1992,7 +2169,7 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         const existing = tiles[ty][tx];
         if (HOUSE_TYPES.has(existing.type) || existing.type === 'portal' ||
-            existing.type === 'chest' || existing.interactable) continue;
+            isChestTileType(existing.type) || existing.interactable) continue;
         if (!existing.walkable || existing.type === 'water' || existing.type === 'water_corrupted' || existing.type === 'tree' ||
             existing.type === 'rock' || existing.type === 'swamp') {
           tiles[ty][tx] = createTile(yardFill, true);
@@ -2190,7 +2367,7 @@ function validateAuthoredPlacements(tiles: Tile[][], def: MapDefinition) {
       continue;
     }
     const tile = tiles[chest.y][chest.x];
-    if (tile.type !== 'chest' || tile.interactionId !== chest.interactionId) {
+    if (!isChestTileType(tile.type) || tile.interactionId !== chest.interactionId) {
       console.warn(`[MapValidation] ${def.name}: chest placement overwritten at (${chest.x},${chest.y}) [${chest.interactionId}]`);
     }
     const distSq = spawnDx(chest.x) * spawnDx(chest.x) + spawnDy(chest.y) * spawnDy(chest.y);
@@ -2296,7 +2473,7 @@ function placeChests(tiles: Tile[][], def: MapDefinition) {
   const shouldCarveAccess = def.width >= 40 || def.height >= 40;
   for (const chest of def.chests) {
     if (chest.y >= 0 && chest.y < tiles.length && chest.x >= 0 && chest.x < tiles[0].length) {
-      tiles[chest.y][chest.x] = createTile('chest', true, { interactable: true, interactionId: chest.interactionId });
+      tiles[chest.y][chest.x] = createTile(getClosedChestTileType(chest.interactionId), true, { interactable: true, interactionId: chest.interactionId });
       if (shouldCarveAccess) {
         // Only auto-carve access in large field maps; authored interiors should keep their walls/floors intact.
         for (let dx = -1; dx <= 1; dx++) {
@@ -2305,7 +2482,7 @@ function placeChests(tiles: Tile[][], def: MapDefinition) {
             const ty = chest.y + dy;
             if (ty >= 2 && ty < tiles.length - 2 && tx >= 2 && tx < tiles[0].length - 2) {
               const t = tiles[ty][tx];
-              if (!t.walkable && t.type !== 'chest' && !CHEST_CARVE_SKIP_TYPES.has(t.type)) {
+              if (!t.walkable && !isChestTileType(t.type) && !CHEST_CARVE_SKIP_TYPES.has(t.type)) {
                 tiles[ty][tx] = createTile('grass', true);
               }
             }
@@ -2352,21 +2529,22 @@ function placeSecretAreas(tiles: Tile[][], def: MapDefinition) {
 }
 
 // Tiles that should not have decoration overlays on or adjacent to them
-const INCOMPATIBLE_BASE: Set<TileType> = new Set([
-  'water', 'water_corrupted', 'lava', 'ice', 'swamp', 'waterfall', 'bridge', 'bridge_corrupted',
+const INCOMPATIBLE_BASE: Set<TileType> = new Set<TileType>([
+  'water', 'water_corrupted', 'lava', 'ice', 'swamp', 'waterfall', 'bridge', 'bridge_corrupted', 'bridge_folded', 'bridge_decay_blend',
   // Cliff faces: trees growing out of vertical rock walls look wrong
   'cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted',
-]);
+] as TileType[]);
 
 // Decoration overlay types that should only appear on land
 const LAND_DECORATIONS: Set<TileType> = new Set([
   'flower', 'moonbloom', 'tall_grass', 'mushroom', 'rock', 'tree', 'dead_tree',
   'stump', 'bones', 'scarecrow', 'hay_bale', 'tombstone',
+  'fallen_log', 'fallen_log_v',
 ]);
 
 // Path-type tiles that trees/rocks should be cleared away from
 const PATH_TILES: Set<TileType> = new Set([
-  'dirt', 'cobblestone', 'wooden_path', 'wood_floor', 'bridge', 'bridge_corrupted', 'sand',
+  'dirt', 'cobblestone', 'wooden_path', 'wood_floor', 'bridge', 'bridge_corrupted', 'bridge_folded', 'sand',
 ]);
 
 /**
@@ -2399,6 +2577,13 @@ const PROTECTED_INTERACTIVE_TILES: Set<TileType> = new Set([
   'chest', 'door', 'door_interior', 'door_iron',
 ]);
 
+// Cliff tile types that must NEVER be converted to walkable terrain by any cleanup pass.
+// Stairways are the only walkable transition through cliff; all raw cliff/cliff_edge tiles
+// must stay non-walkable regardless of proximity to paths, cottages, or anything else.
+const CLIFF_TILE_TYPES: Set<TileType> = new Set<TileType>([
+  'cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted',
+]);
+
 // How far from paths to clear blocking objects (trees, rocks)
 const PATH_CLEAR_RADIUS = 2;
 
@@ -2406,7 +2591,7 @@ const PATH_CLEAR_RADIUS = 2;
 const MIN_DECORATION_SPACING = 2;
 const SPACED_DECORATIONS: Set<TileType> = new Set([
   'tree', 'dead_tree', 'rock', 'stump', 'tombstone', 'statue',
-  'scarecrow', 'hay_bale', 'well', 'campfire', 'bonfire', 'barrel', 'crate',
+  'scarecrow', 'hay_bale', 'well', 'campfire', 'campfire_remains', 'bonfire', 'barrel', 'crate',
   'mushroom', 'bones', 'lantern',
   'street_lamp', 'iron_railing', 'fountain', 'pillar', 'rubble',
   'broken_stall', 'crate_stack', 'barrel_stack', 'chimney', 'wall_torch',
@@ -2452,13 +2637,17 @@ function cleanupIllogicalPlacements(tiles: Tile[][], def: MapDefinition) {
           }
         }
         if (onBadTerrain) {
-          tiles[y][x] = createTile('sand', true);
+          // Use grass instead of sand in forest biomes — sand looks wrong beside forest water
+          const shoreType = isForestBiome ? 'grass' : 'sand';
+          tiles[y][x] = createTile(shoreType as TileType, true);
           continue;
         }
       }
 
-      // Clear trees/rocks near paths (reduced radius in forest biomes)
-      if (PATH_BLOCKERS.has(tile.type)) {
+      // Clear trees/rocks near paths (reduced radius in forest biomes).
+      // Cliff tiles are in PATH_BLOCKERS so placePath can carve through authored cliff_face stamps,
+      // but cleanup must NEVER touch them — cliffs must stay non-walkable regardless of path proximity.
+      if (PATH_BLOCKERS.has(tile.type) && !CLIFF_TILE_TYPES.has(tile.type)) {
         const clearRadius = isForestBiome ? 1 : PATH_CLEAR_RADIUS;
         let nearPath = false;
         for (let dy = -clearRadius; dy <= clearRadius && !nearPath; dy++) {
@@ -2480,6 +2669,30 @@ function cleanupIllogicalPlacements(tiles: Tile[][], def: MapDefinition) {
       // Remove any decoration directly ON water/lava
       if (INCOMPATIBLE_BASE.has(tile.type) && LAND_DECORATIONS.has(tile.type)) {
         tiles[y][x] = createTile('water', false);
+      }
+    }
+  }
+
+  // Fallen-log-specific spacing: enforce minimum 2 tiles between any two fallen logs
+  // (either orientation) so they appear as isolated singles between trees, never
+  // adjacent. Checks only log-vs-log (not against trees, which would wipe them all).
+  const isFallenLog = (t: Tile) => t.type === 'fallen_log' || t.type === 'fallen_log_v';
+  const FALLEN_LOG_MIN_SPACING = 2;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!isFallenLog(tiles[y][x])) continue;
+      for (let dy = -FALLEN_LOG_MIN_SPACING; dy <= FALLEN_LOG_MIN_SPACING; dy++) {
+        for (let dx = -FALLEN_LOG_MIN_SPACING; dx <= FALLEN_LOG_MIN_SPACING; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = x + dx;
+          const ny = y + dy;
+          if (ny < 0 || ny >= h || nx < 0 || nx >= w) continue;
+          // Only remove neighbors that come after in scan order (keeps the first encountered)
+          if (ny < y || (ny === y && nx <= x)) continue;
+          if (isFallenLog(tiles[ny][nx])) {
+            tiles[ny][nx] = createTile('grass', true);
+          }
+        }
       }
     }
   }
@@ -2572,6 +2785,23 @@ function stampCliffs(tiles: Tile[][], def: MapDefinition) {
       }
       tiles[y - 1][x] = createTile('cliff_edge', false, { elevation: upperElevation });
 
+      // Mark the tile immediately above the cliff_edge (the high-elevation lip) as
+      // enemy-blocked so enemies cannot press against the edge and appear to float
+      // over the cliff face.
+      const northBufY = y - 2;
+      if (northBufY >= 0) {
+        const northOk = protectRing
+          ? !cellInCoastalRing(x, northBufY)
+          : northBufY >= coastProtectMaxY;
+        if (northOk) {
+          const northBufTile = tiles[northBufY]?.[x];
+          if (northBufTile && !northBufTile.transition && !northBufTile.interactable
+              && !PATH_TILES.has(northBufTile.type) && !WATER_BRIDGE_TILES.has(northBufTile.type)) {
+            tiles[northBufY][x] = { ...northBufTile, enemyBlocked: true };
+          }
+        }
+      }
+
       // Extra wall tiles proportional to elevation drop ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â a 2-step drop gets 3 cliff tiles
       const elevDrop = upperElevation - lowerElevation;
       const wallDepth = Math.min(2 + elevDrop, h - y);
@@ -2655,7 +2885,7 @@ function enforceInteriorCottageAprons(tiles: Tile[][], def: MapDefinition) {
       for (let tx = normalizeMinX; tx <= normalizeMaxX; tx++) {
         if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
         const existing = tiles[ty][tx];
-        if (existing.type === 'portal' || existing.type === 'chest') continue;
+        if (existing.type === 'portal' || isChestTileType(existing.type)) continue;
         if (HOUSE_TYPES.has(existing.type)) continue;
         if (!existing.walkable && (existing.type === 'grass' || existing.type === 'dirt' || existing.type === 'dark_grass' || existing.type === 'hollow_blight')) {
           tiles[ty][tx] = {
@@ -2675,8 +2905,9 @@ function enforceInteriorCottageAprons(tiles: Tile[][], def: MapDefinition) {
       for (let tx = apronMinX; tx <= apronMaxX; tx++) {
         if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
         const existing = tiles[ty][tx];
-        if (existing.type === 'portal' || existing.type === 'chest') continue;
+        if (existing.type === 'portal' || isChestTileType(existing.type)) continue;
         if (HOUSE_TYPES.has(existing.type)) continue;
+        if (CLIFF_TILE_TYPES.has(existing.type)) continue; // never pave over cliff tiles
 
         tiles[ty][tx] = createTile('dirt', true, {
           elevation: existing.elevation,
@@ -2794,12 +3025,178 @@ function enforceForestRockyHillShelf(tiles: Tile[][], def: MapDefinition) {
     for (let tx = 78; tx <= 83; tx++) {
       if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
       const existing = tiles[ty][tx];
-      if (existing.type !== 'grass' && existing.type !== 'chest') continue;
+      if (existing.type !== 'grass' && !isChestTileType(existing.type)) continue;
       tiles[ty][tx] = {
         ...existing,
         walkable: true,
       };
     }
+  }
+}
+
+function enforceWhisperingWoodsOverlookChain(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  const setRect = (x: number, y: number, width: number, height: number, type: TileType, walkable: boolean) => {
+    for (let ty = y; ty < y + height; ty++) {
+      for (let tx = x; tx < x + width; tx++) {
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        tiles[ty][tx] = createTile(type, walkable, { elevation: 0 });
+      }
+    }
+  };
+
+  // Final tiny lookout at UI ~24..30, 30..33, with a skinny stair down to the long shelf.
+  setRect(174, 177, 12, 3, 'cliff', false);
+  setRect(171, 180, 3, 7, 'cliff', false);
+  setRect(181, 180, 5, 7, 'cliff', false);
+  setRect(174, 184, 12, 3, 'cliff', false);
+  setRect(174, 180, 7, 3, 'grass', true);
+  setRect(174, 183, 2, 1, 'grass', true);
+  setRect(179, 183, 2, 1, 'grass', true);
+  setRect(176, 183, 3, 7, 'stairs', true);
+  setRect(177, 182, 1, 1, 'heresy_altar', false);
+
+  // Windmill hay scatter at UI 35,42; restore after decoration cleanup.
+  setRect(181, 199, 1, 1, 'hay_bale', false);
+  setRect(184, 201, 1, 1, 'hay_bale', false);
+  setRect(191, 199, 1, 1, 'hay_bale', false);
+
+  // West cliff overlook: seal the grass pocket's south edge around UI -60,46.
+  setRect(84, 196, 18, 1, 'cliff_edge', false);
+  setRect(84, 197, 18, 3, 'cliff', false);
+  setRect(91, 193, 1, 1, 'barrel', false);
+  setRect(89, 194, 1, 1, 'crate', false);
+  setRect(93, 195, 1, 1, 'barrel', false);
+
+  // Lower west sentinel overlook: NS stair UI -76,48 → -76,53; landing UI ~-79..-73, 52..55.
+  setRect(68, 198, 3, 7, 'cliff', false);
+  setRect(78, 198, 5, 7, 'cliff', false);
+  setRect(72, 198, 5, 6, 'stairs', true);
+  setRect(71, 202, 7, 3, 'grass', true);
+  setRect(72, 202, 1, 1, 'barrel', false);
+  setRect(76, 202, 1, 1, 'crate', false);
+  setRect(76, 204, 1, 1, 'lantern', false);
+  setRect(73, 204, 1, 1, 'bones_pile', true);
+  // (74,203) left as walkable grass for the Stone Sentinel spawn tile.
+  // South cap — seals shelf above the cliff drop; bypass dirt spine at UI ~64 stays untouched.
+  setRect(71, 205, 7, 1, 'cliff_edge', false);
+  setRect(71, 206, 7, 2, 'cliff', false);
+}
+
+function enforceHollowWestCorruptedStairShelf(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  const setRect = (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    type: TileType,
+    walkable: boolean,
+    extra: Partial<Tile> = {},
+  ) => {
+    for (let ty = y; ty < y + height; ty++) {
+      for (let tx = x; tx < x + width; tx++) {
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        tiles[ty][tx] = createTile(type, walkable, { elevation: 1, ...extra });
+      }
+    }
+  };
+
+  // East-facing stair at world ~(-56,-98), climbing into a sealed corrupted cliff-top pocket.
+  setRect(99, 47, 18, 2, 'cliff_edge', false);
+  setRect(116, 49, 3, 8, 'cliff', false);
+  setRect(99, 57, 18, 1, 'cliff_edge', false);
+  setRect(99, 58, 18, 3, 'cliff', false);
+  setRect(101, 49, 15, 8, 'hollow_blight', true);
+  setRect(100, 51, 16, 3, 'dirt', true);
+  setRect(113, 49, 3, 9, 'cliff', false);
+  setRect(92, 52, 2, 3, 'hollow_blight', true);
+  setRect(94, 49, 7, 6, 'stairs', true, { stairAxis: 'ew' });
+  setRect(107, 54, 1, 1, 'heresy_altar', false);
+}
+
+/**
+ * Second-pass decoration cleanup that runs AFTER stampCliffs.
+ * cleanupIllogicalPlacements runs before cliff stamping, so freshly-stamped cliff
+ * tiles can leave non-interactable decorations (mushrooms, flowers, etc.) stranded
+ * on the inaccessible cliff plateau. This pass removes them.
+ */
+const POST_CLIFF_DECOR_TYPES: Set<string> = new Set([
+  'mushroom', 'flower', 'moonbloom', 'tall_grass', 'stump',
+  'fallen_log', 'fallen_log_v', 'bones', 'rock', 'dead_tree',
+]);
+const CLIFF_FACE_TYPES: Set<string> = new Set([
+  'cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted',
+]);
+
+function scrubDecorationsAdjacentToCliffs(tiles: Tile[][]): void {
+  const h = tiles.length;
+  const w = tiles[0]?.length ?? 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const tile = tiles[y][x];
+      // Skip interactables (tempest_grass pickups, etc.) — those are handled individually
+      if (!POST_CLIFF_DECOR_TYPES.has(tile.type) || tile.interactable) continue;
+      let adjacentToCliff = false;
+      outer: for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const ny = y + dy;
+          const nx = x + dx;
+          if (ny >= 0 && ny < h && nx >= 0 && nx < w && CLIFF_FACE_TYPES.has(tiles[ny][nx].type)) {
+            adjacentToCliff = true;
+            break outer;
+          }
+        }
+      }
+      if (adjacentToCliff) {
+        tiles[y][x] = createTile('grass', true);
+      }
+    }
+  }
+}
+
+/** cleanupIllogicalPlacements turns shore decor beside water/cliffs into sand; restore grass at the portal seam. */
+function scrubWhisperingWoodsPortalSandSeam(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  for (const [tx, ty] of [
+    [144, 293],
+    [145, 293],
+  ] as const) {
+    if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+    const existing = tiles[ty][tx];
+    if (existing.type !== 'sand') continue;
+    tiles[ty][tx] = createTile('grass', true, { elevation: existing.elevation ?? 0 });
+  }
+}
+
+function scrubWhisperingWoodsNorthFortFrontTree(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const tx = 211;
+  const ty = 77;
+  if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) return;
+  const existing = tiles[ty][tx];
+  if (existing.type !== 'tree') return;
+  tiles[ty][tx] = createTile('grass', true, { elevation: existing.elevation ?? 0 });
+}
+
+function scrubWhisperingWoodsNorthFortElevationSeam(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // The northern fort spans a procedural elevation break around world x=54.
+  // Keep the authored fort pieces, but flatten their elevation so the seam does not render through it.
+  for (let ty = 60; ty <= 75; ty++) {
+    for (let tx = 200; tx <= 217; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      tiles[ty][tx] = { ...tiles[ty][tx], elevation: 1 };
+    }
+  }
+
+  const seamX = 204;
+  for (let ty = 59; ty <= 76; ty++) {
+    if (ty < 0 || ty >= tiles.length || seamX < 0 || seamX >= tiles[0].length) continue;
+    tiles[ty][seamX] = { ...tiles[ty][seamX], elevation: 1 };
   }
 }
 
@@ -2817,6 +3214,279 @@ function enforceGreenleafUpperRidgeDetour(tiles: Tile[][], def: MapDefinition) {
       tiles[ty][tx] = createTile(ty <= 28 ? 'cliff_edge' : 'cliff', false, {
         elevation: ty <= 28 ? 2 : 1,
       });
+    }
+  }
+}
+
+// Clears the enclosed landing and exit of the traditional cliff-corridor stairway at x=260-262.
+// The main cliff_face (x=238-267, y=118-173) stamps cliff tiles across the stairway's exit
+// row. placeStairways handles y=118-130, but the upper overlook beside the ladder stays
+// sealed unless we reopen it. Keep x=268 sealed as cliff so the player drops a ladder down
+// the face, then steps off to the lower corridor on the east side at the bottom.
+function enforceCliffCorridorTraditionalApproach(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const gateX = 268;
+  const gateY = 132;
+  const bottomY = gateY - 4;
+
+  // Upper/high grass overlook. x=268 is intentionally excluded so the gate_ladder reads
+  // as mounted on the cliff edge, not as part of the grass path.
+  for (let ty = 130; ty <= 132; ty++) {
+    for (let tx = 260; tx <= 267; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === ('cliff' as TileType) || t.type === ('cliff_edge' as TileType)) {
+        tiles[ty][tx] = createTile('grass', true, { elevation: 1 });
+      } else if (t.type === 'grass') {
+        tiles[ty][tx] = { ...t, walkable: true, elevation: 1 };
+      }
+    }
+  }
+
+  // Reassert the cliff face around the ladder drop. Only the west top tile and the east bottom
+  // tile remain open, so the shortcut reads as a lowered ladder instead of a side hallway.
+  for (let ty = bottomY; ty <= gateY; ty++) {
+    for (const tx of [gateX - 1, gateX, gateX + 1]) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (tx === gateX - 1 && ty === gateY) {
+        tiles[ty][tx] = createTile('grass', true, { elevation: 1, enemyBlocked: true });
+      } else if (tx === gateX + 1 && ty === bottomY) {
+        tiles[ty][tx] = createTile('grass', true, { elevation: 0 });
+      } else {
+        tiles[ty][tx] = createTile(ty === gateY ? 'cliff_edge' : 'cliff', false, {
+          elevation: ty === gateY ? 1 : 0,
+        });
+      }
+    }
+  }
+}
+
+// Reopens the grass shelf below the hollow-approach stairway (world ~-38,-37 / tiles x=110-118,
+// y=111-112). stampCliffs' south-face sprite buffer marks these grass tiles non-walkable even
+// though they must stay traversable so the player can reach the stair mouth at y=107-110.
+// Also marks the cliff_edge row at y=107 (x=110-118) as enemyBlocked so enemies that climb the
+// stair cannot roam east along the highland ledge toward the ladder column.
+function enforceHollowApproachOverlookShelf(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const scatterTypes: Set<string> = new Set([
+    'tall_grass',
+    'fallen_log',
+    'fallen_log_v',
+    'tree',
+    'fallen_tree',
+    'stump',
+  ]);
+  for (let ty = 111; ty <= 112; ty++) {
+    for (let tx = 110; tx <= 118; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'grass' && !t.walkable) {
+        tiles[ty][tx] = { ...t, walkable: true };
+        continue;
+      }
+      if (scatterTypes.has(t.type)) {
+        tiles[ty][tx] = createTile('grass', true, { elevation: t.elevation ?? 0 });
+      }
+    }
+  }
+  // Enemy collision centers are smaller than large wolf sprites; keep enemies one tile
+  // west of the ladder column so their art does not hang over the climb path.
+  for (let ty = 111; ty <= 112; ty++) {
+    const tx = 118;
+    if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+    const t = tiles[ty][tx];
+    if (!t || t.transition || t.interactable || !t.walkable) continue;
+    tiles[ty][tx] = { ...t, enemyBlocked: true };
+  }
+  // Mark cliff_edge row at the top of the stairway as enemyBlocked so wolves cannot walk
+  // from the stair landing onto the highland ledge and appear north of the ladder.
+  for (let tx = 110; tx <= 125; tx++) {
+    const ty = 107;
+    if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+    const t = tiles[ty][tx];
+    if (!t || t.transition) continue;
+    if (t.walkable) {
+      tiles[ty][tx] = { ...t, enemyBlocked: true };
+    }
+  }
+}
+
+// Reopens the east-west ridge walkway west of the spine gate (world ~-10,-37 /
+// tiles x=119-144, y=112). stampCliffs' south-face buffer and scatter props on that row
+// block r=0.2 corner probes from the y=113 floor and cause invisible walls.
+function enforceHollowApproachSpineCorridor(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const ty = 112;
+  const scatterTypes: Set<string> = new Set([
+    'tall_grass',
+    'fallen_log',
+    'fallen_log_v',
+    'tree',
+    'fallen_tree',
+    'stump',
+  ]);
+  for (let tx = 119; tx <= 144; tx++) {
+    if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+    const t = tiles[ty][tx];
+    if (!t || t.transition || t.interactable) continue;
+    if ((t.type === 'grass' || t.type === 'dirt') && !t.walkable) {
+      tiles[ty][tx] = { ...t, walkable: true };
+      continue;
+    }
+    if (scatterTypes.has(t.type)) {
+      tiles[ty][tx] = createTile('grass', true, { elevation: t.elevation ?? 0 });
+    }
+  }
+}
+
+// South step-off beside the hollow-approach ladder gate (world ~-31,-42 / tile x=119, y=106).
+function enforceHollowApproachLadderSouthExit(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  for (let ty = 106; ty <= 106; ty++) {
+    for (let tx = 119; tx <= 119; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'grass' && !t.walkable) {
+        tiles[ty][tx] = { ...t, walkable: true, enemyBlocked: true };
+      } else if (t.type === 'grass' && t.walkable) {
+        tiles[ty][tx] = { ...t, enemyBlocked: true };
+      }
+    }
+  }
+}
+
+// Force-stamps cliff tiles onto the highland passage canyon walls after all other passes.
+// Something in the pipeline (carveRoads, scatter cleanup, or an enforce function) clears
+// the placeCliffFace tiles at x=240-242 (west wall) and x=247-250 (east wall), y=80-95.
+// This runs last and re-asserts the canyon walls unconditionally.
+function enforceHighlandPassageCanyonWalls(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const westCols = [240, 241, 242];
+  const eastCols = [247, 248, 249, 250];
+  const wallCols = [...westCols, ...eastCols];
+  // Canyon entrance walls only span y=80-85 (world ~-70 to -65); the corridor opens
+  // below y=86 so the barrier at y=96 is the only blocker south of the entrance.
+  for (let ty = 80; ty <= 85; ty++) {
+    for (const tx of wallCols) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.transition || t.interactable) continue;
+      const tileType: TileType = (ty - 80) < 2 ? 'cliff_edge' : 'cliff';
+      tiles[ty][tx] = createTile(tileType, false, { elevation: t.elevation ?? 0 });
+    }
+  }
+  // South seal: x=242-247, y=96-105 (world ~92-97, -54 to -45). Fills the barrier passage
+  // gap and extends the cliff band below the barrier height so the corridor is fully enclosed.
+  const sealCols = [242, 243, 244, 245, 246, 247];
+  for (let ty = 96; ty <= 105; ty++) {
+    for (const tx of sealCols) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.transition || t.interactable) continue;
+      const tileType: TileType = (ty - 96) < 2 ? 'cliff_edge' : 'cliff';
+      tiles[ty][tx] = createTile(tileType, false, { elevation: t.elevation ?? 0 });
+    }
+  }
+}
+
+// Clears tree/scatter types from the narrow highland passage (x=243-246, y=87-106,
+// world ~93-96, worldY ~-46 to -63). The dirt path at y=79-86 handles stampCliffs bypass;
+// this function handles the cave/corridor section south of that without leaving a dirt spine.
+function enforceHighlandPassageCorridor(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const scatterTypes: Set<string> = new Set([
+    'tree',
+    'dead_tree',
+    'fallen_log',
+    'fallen_log_v',
+    'stump',
+    'tall_grass',
+    'mushroom',
+    'rock',
+    'bones',
+  ]);
+  for (let ty = 87; ty <= 106; ty++) {
+    for (let tx = 243; tx <= 246; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (scatterTypes.has(t.type)) {
+        tiles[ty][tx] = createTile('grass', true, { elevation: t.elevation ?? 0 });
+      }
+    }
+  }
+}
+
+// North landing in the hollow-approach ladder column (world ~-31,-37 / tile x=119, y=112).
+function enforceHollowApproachLadderLanding(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  for (let ty = 112; ty <= 113; ty++) {
+    for (let tx = 119; tx <= 120; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      const blockEnemies = tx === 119 && ty === 112;
+      if (t.type === 'grass' && !t.walkable) {
+        tiles[ty][tx] = {
+          ...t,
+          walkable: true,
+          ...(blockEnemies ? { enemyBlocked: true } : {}),
+        };
+      } else if (t.type === 'grass' && t.walkable && blockEnemies) {
+        tiles[ty][tx] = { ...t, enemyBlocked: true };
+      }
+    }
+  }
+}
+
+// Keeps the north-fort grass walkway mouth open around world (41,-44) / tile (191,106).
+// Tree/log scatter can land directly on the choke point after the fort apron is stamped.
+function scrubWhisperingWoodsNorthFortWalkwayLog(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const scatterTypes: Set<string> = new Set([
+    'fallen_log',
+    'fallen_log_v',
+    'tree',
+    'dead_tree',
+    'fallen_tree',
+    'stump',
+  ]);
+  for (let ty = 104; ty <= 111; ty++) {
+    for (let tx = 189; tx <= 193; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (scatterTypes.has(t.type)) {
+        tiles[ty][tx] = createTile('grass', true, { elevation: t.elevation ?? 0 });
+      }
+    }
+  }
+}
+
+// Keeps the south-east corridor open around world (57,100) / tile (207,250).
+// A generated log plus authored rocks can pinch the route after prop foundations run.
+function scrubWhisperingWoodsSouthEastCorridorBlockers(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const blockerTypes: Set<string> = new Set([
+    'fallen_log',
+    'fallen_log_v',
+    'fallen_tree',
+    'rock',
+    'stump',
+  ]);
+  for (let ty = 248; ty <= 257; ty++) {
+    for (let tx = 202; tx <= 219; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (blockerTypes.has(t.type)) {
+        tiles[ty][tx] = createTile('grass', true, { elevation: t.elevation ?? 0 });
+      }
     }
   }
 }
@@ -2843,6 +3513,7 @@ export function generateMap(def: MapDefinition): WorldMap {
   // Clean up illogical placements (flowers in water, etc.)
   if (!isHandCraftedInterior) {
     cleanupIllogicalPlacements(tiles, def);
+    scrubWhisperingWoodsPortalSandSeam(tiles, def);
   }
 
   // Ensure spawn point is walkable (skip for hand-crafted interior maps)
@@ -2863,16 +3534,37 @@ export function generateMap(def: MapDefinition): WorldMap {
 
   applyElevationZones(tiles, def);
   stampCliffs(tiles, def);
+  // Second decoration cleanup: catches non-interactable decor that ended up adjacent
+  // to cliffs after stampCliffs ran (pre-cliff cleanup couldn't see those yet).
+  scrubDecorationsAdjacentToCliffs(tiles);
   placeStairways(tiles, def);
   placeLadders(tiles, def);
   enforceGreenleafUpperRidgeDetour(tiles, def);
   // Final pass: keep interior cottage approaches traversable even after elevation/cliff stamping.
   enforceInteriorCottageAprons(tiles, def);
   enforceForestRockyHillShelf(tiles, def);
+  enforceWhisperingWoodsOverlookChain(tiles, def);
+  enforceHollowWestCorruptedStairShelf(tiles, def);
   applyDeepHollowBleachedGround(tiles, def);
   applyHollowBoundaryBlend(tiles, def);
   applyHollowCliffCorruption(tiles, def);
   applyWhisperingWoodsHollowApproachCorruptedWater(tiles, def);
+  // Apply large-prop collision/foundation masks last so cleanup/elevation passes cannot reopen them.
+  applyPropFoundations(tiles, def);
+  scrubWhisperingWoodsNorthFortFrontTree(tiles, def);
+  scrubWhisperingWoodsNorthFortWalkwayLog(tiles, def);
+  scrubWhisperingWoodsSouthEastCorridorBlockers(tiles, def);
+  scrubWhisperingWoodsNorthFortElevationSeam(tiles, def);
+  enforceWesternBypassObservatoryApproach(tiles, def);
+  enforceRiversideBridgeSpineApproach(tiles, def);
+  enforceCliffCorridorTraditionalApproach(tiles, def);
+  enforceHollowApproachOverlookShelf(tiles, def);
+  enforceHollowApproachSpineCorridor(tiles, def);
+  enforceHollowApproachLadderLanding(tiles, def);
+  enforceHollowApproachLadderSouthExit(tiles, def);
+  enforceHighlandPassageCanyonWalls(tiles, def);
+  enforceHighlandPassageCorridor(tiles, def);
+
   validateMapTransitions(tiles, def);
   validateAuthoredPlacements(tiles, def);
 

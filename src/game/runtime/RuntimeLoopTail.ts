@@ -65,7 +65,13 @@ export function runRuntimeLoopTail({
   });
 
   biomeAmbience.setBiome(currentBiome);
-  biomeAmbience.update(deltaTime, playerPosition.x, playerPosition.y);
+  const campSmokeSources = world.getNearbyTileWorldPositions(
+    'campfire_remains',
+    playerPosition.x,
+    playerPosition.y,
+    18,
+  );
+  biomeAmbience.update(deltaTime, playerPosition.x, playerPosition.y, campSmokeSources);
 
   if (playThunder) weatherSystem.onLightningFlash = playThunder;
   weatherSystem.update(deltaTime, playerPosition.x, playerPosition.y, currentBiome);

@@ -253,6 +253,9 @@ export function resolvePlayerTexture({
     textureKey = getPlayerTextureName(currentDir8, `attack_${comboStep}`, Math.min(attackFrame, 2));
   } else if (playerAnimState === 'dodge') {
     textureKey = getPlayerTextureName(currentDir8, 'walk', animFrame);
+  } else if (playerAnimState === 'climb') {
+    // Reuse walk frames until dedicated climb sprites exist.
+    textureKey = getPlayerTextureName(currentDir8, 'walk', animFrame);
   } else if (playerAnimState === 'drinking') {
     textureKey = getPlayerTextureName(currentDir8, 'attack', 2);
   } else if (playerAnimState === 'block') {

@@ -5,6 +5,7 @@ import { createMapTransitionService } from '@/game/domain/MapTransitionService';
 import { getVillageReactivityStage } from '@/game/domain/VillageReactivity';
 import { mapDefinitions } from '@/data/maps';
 import { TILE_METADATA } from '@/data/tiles';
+import { getClosedChestTileType, getOpenedChestTileType, isChestTileType } from '@/data/specialChests';
 import { spawnEnemiesFromMapZones } from '@/game/runtime/RuntimeWorldUtils';
 import { ENEMY_BLUEPRINTS } from '@/data/enemies';
 import { syncHeresyAltarsForMap } from '@/game/runtime/HeresyAltars';
@@ -256,6 +257,29 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
+  const syncRiversideBridgeShortcutState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const shortcutOpen = state.getFlag('riverside_bridge_shortcut_open');
+    for (let y = 155; y <= 161; y++) {
+      for (let x = 146; x <= 153; x++) {
+        const existing = map.tiles[y]?.[x];
+        if (!existing) continue;
+        const elevation = existing.elevation ?? 0;
+        if (shortcutOpen) {
+          map.tiles[y][x] = { type: 'bridge' as TileType, walkable: true, elevation };
+        } else if (y <= 156) {
+          map.tiles[y][x] = { type: 'bridge_folded' as TileType, walkable: false, elevation };
+        } else if (y <= 158) {
+          map.tiles[y][x] = { type: 'water' as TileType, walkable: false, elevation };
+        } else {
+          map.tiles[y][x] = { type: 'bridge' as TileType, walkable: true, elevation };
+        }
+      }
+    }
+    world.rebuildChunks();
+  };
+
   // No-op: fog gate clears after boss defeat, making the corridor fully walkable
   // back to the bonfire. No separate shortcut gate needed. Kept as stub for plumbing.
   const syncHollowShortcutState = () => {};
@@ -278,22 +302,127 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
+  // Permanent iron fence blocking the dirt-spine entrance to the hollow-approach ridge
+  // (world ~-4,-37 / tile x=145, y=112-113). Vertical picket at the grass/dirt boundary —
+  // perpendicular to the horizontal hollow corridor gate at y=50-51.
+  // Reopens the hollow-approach stair landing shelf at runtime (world ~-38,-38 / x=110-118, y=111-112).
+  const syncHollowApproachOverlookShelfState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const scatterTypes = new Set<TileType>([
+      'tall_grass',
+      'fallen_log',
+      'fallen_log_v',
+      'tree',
+      'fallen_tree',
+      'stump',
+    ]);
+    for (let ty = 111; ty <= 112; ty++) {
+      for (let tx = 110; tx <= 118; tx++) {
+        const t = map.tiles[ty]?.[tx];
+        if (!t || t.transition || t.interactable) continue;
+        if (t.type === 'grass' && !t.walkable) {
+          map.tiles[ty][tx] = { ...t, walkable: true };
+          continue;
+        }
+        if (scatterTypes.has(t.type)) {
+          map.tiles[ty][tx] = {
+            type: 'grass' as TileType,
+            walkable: true,
+            elevation: t.elevation ?? 0,
+          };
+        }
+      }
+    }
+    // Enemy collision centers are smaller than large wolf sprites; keep enemies one tile
+    // west of the ladder column so their art does not hang over the climb path.
+    for (let ty = 111; ty <= 112; ty++) {
+      const tx = 118;
+      const t = map.tiles[ty]?.[tx];
+      if (!t || t.transition || t.interactable || !t.walkable) continue;
+      map.tiles[ty][tx] = { ...t, enemyBlocked: true };
+    }
+    world.rebuildChunks();
+  };
+
+  const syncHollowApproachSpineGateState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const scatterTypes = new Set<TileType>([
+      'tall_grass',
+      'fallen_log',
+      'fallen_log_v',
+      'tree',
+      'fallen_tree',
+      'stump',
+    ]);
+    const corridorY = 112;
+    for (let tx = 119; tx <= 144; tx++) {
+      const t = map.tiles[corridorY]?.[tx];
+      if (!t || t.transition || t.interactable) continue;
+      if ((t.type === 'grass' || t.type === 'dirt') && !t.walkable) {
+        map.tiles[corridorY][tx] = { ...t, walkable: true };
+        continue;
+      }
+      if (scatterTypes.has(t.type)) {
+        map.tiles[corridorY][tx] = {
+          type: 'grass' as TileType,
+          walkable: true,
+          elevation: t.elevation ?? 0,
+        };
+      }
+    }
+    const gateX = 145;
+    for (let ty = 112; ty < 114; ty++) {
+      const row = map.tiles[ty];
+      if (!row?.[gateX]) continue;
+      const el = row[gateX].elevation ?? 0;
+      row[gateX] = { type: 'iron_fence' as TileType, walkable: false, elevation: el };
+    }
+    world.rebuildChunks();
+  };
+
   const syncHollowApproachLadderState = () => {
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
     const extended = state.getFlag('hollow_approach_ladder_extended');
-    const tx = 117;
-    const ty = 106;
-    const row = map.tiles[ty];
-    if (!row) return;
-    const el = row[tx]?.elevation ?? 1;
+    // Coiled rope at the foot of the cliff (x=119, y=112, world -31,-38).
+    // Player activates from the grass strip below the cliff face; the rope hooks on the
+    // overlook edge above and gives a shortcut back up.
+    const gateX = 119;
+    const gateY = 112;
+    if (!map.tiles[gateY]?.[gateX]) return;
     if (extended) {
-      row[tx] = { type: 'ladder' as TileType, walkable: true, elevation: el };
+      // Foot tile reverts to walkable grass once the rope is deployed.
+      const foot = map.tiles[gateY]?.[gateX];
+      if (foot) {
+        map.tiles[gateY][gateX] = {
+          type: 'grass' as TileType,
+          walkable: true,
+          elevation: foot.elevation ?? 0,
+          enemyBlocked: true,
+        };
+      }
+      // Ladder tiles through the cliff face body (y=108–111, elevation 0).
+      for (let ty = 108; ty <= 111; ty++) {
+        if (map.tiles[ty]?.[gateX]) {
+          map.tiles[ty][gateX] = { type: 'ladder' as TileType, walkable: true, elevation: 0 };
+        }
+      }
+      // Top rung at the overlook edge (y=107, elevation 1) — step off onto the overlook.
+      if (map.tiles[107]?.[gateX]) {
+        map.tiles[107][gateX] = { type: 'ladder' as TileType, walkable: true, elevation: 1 };
+      }
+      // Overlook dismount tile (y=106) — ensure it is walkable as the step-off point.
+      const topExit = map.tiles[106]?.[gateX];
+      if (topExit) {
+        map.tiles[106][gateX] = { ...topExit, walkable: true, enemyBlocked: true };
+      }
     } else {
-      row[tx] = {
+      map.tiles[gateY][gateX] = {
         type: 'gate_ladder' as TileType,
         walkable: false,
-        elevation: el,
+        elevation: 0,
         interactable: true,
         interactionId: 'hollow_approach_ladder',
       };
@@ -305,21 +434,139 @@ export function createRuntimeMapFlow({
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
     const extended = state.getFlag('cliff_corridor_ladder_extended');
-    const tx = 269;
-    const ty = 123;
-    const row = map.tiles[ty];
-    if (!row) return;
-    const el = row[tx]?.elevation ?? 1;
+    // Gate at the cliff edge of the enclosed overlook: x=268, y=132 (world ~118, -18).
+    // The high-side grass ledge reaches the top from the west. Once kicked open, the ladder
+    // drops toward lower screen rows and the player steps off to the east at the bottom.
+    const gateX = 268;
+    const gateY = 132;
+    const bottomY = gateY - 4;
+    if (!map.tiles[gateY]?.[gateX]) return;
+
+    // Older live sessions may still have the previous y=133..136 ladder stamped in the map.
+    // Always scrub that legacy footprint first so the player cannot walk through stale rungs
+    // while the corrected ladder drops toward y=128.
+    for (let ty = gateY + 1; ty <= gateY + 4; ty++) {
+      if (map.tiles[ty]?.[gateX - 1]) {
+        map.tiles[ty][gateX - 1] = { type: 'cliff' as TileType, walkable: false, elevation: 1 };
+      }
+      if (map.tiles[ty]?.[gateX]) {
+        map.tiles[ty][gateX] = ty === gateY + 1
+          ? { type: 'cliff' as TileType, walkable: false, elevation: 1 }
+          : { type: 'grass' as TileType, walkable: true, elevation: 1 };
+      }
+      if (map.tiles[ty]?.[gateX + 1]) {
+        map.tiles[ty][gateX + 1] = {
+          type: 'grass' as TileType,
+          walkable: true,
+          elevation: 1,
+          enemyBlocked: true,
+        };
+      }
+    }
+
     if (extended) {
-      row[tx] = { type: 'ladder' as TileType, walkable: true, elevation: el };
+      // Rope unrolled: the release point stays on the high west ledge while the rungs descend
+      // to the lower east-side landing. This mirrors Hollow Approach's "drop a shortcut down"
+      // read, but with the dismount to the right of the bottom rung.
+      map.tiles[gateY][gateX] = {
+        type: 'ladder' as TileType,
+        walkable: true,
+        elevation: 1,
+        baseTile: 'stone' as TileType,
+      };
+      for (let ty = gateY - 1; ty >= bottomY; ty--) {
+        if (map.tiles[ty]?.[gateX]) {
+          map.tiles[ty][gateX] = {
+            type: 'ladder' as TileType,
+            walkable: true,
+            elevation: 0,
+            baseTile: 'stone' as TileType,
+          };
+        }
+      }
+
+      const highLanding = map.tiles[gateY]?.[gateX - 1];
+      if (highLanding?.type === 'grass') {
+        map.tiles[gateY][gateX - 1] = {
+          ...highLanding,
+          walkable: true,
+          elevation: 1,
+          enemyBlocked: true,
+        };
+      }
+      if (map.tiles[gateY]?.[gateX + 1]) {
+        map.tiles[gateY][gateX + 1] = { type: 'cliff_edge' as TileType, walkable: false, elevation: 1 };
+      }
+
+      for (let ty = gateY - 1; ty > bottomY; ty--) {
+        if (map.tiles[ty]?.[gateX - 1]) {
+          map.tiles[ty][gateX - 1] = { type: 'cliff' as TileType, walkable: false, elevation: 0 };
+        }
+        if (map.tiles[ty]?.[gateX + 1]) {
+          map.tiles[ty][gateX + 1] = { type: 'cliff' as TileType, walkable: false, elevation: 0 };
+        }
+      }
+
+      if (map.tiles[bottomY]?.[gateX - 1]) {
+        map.tiles[bottomY][gateX - 1] = { type: 'cliff' as TileType, walkable: false, elevation: 0 };
+      }
+      const eastLanding = map.tiles[bottomY]?.[gateX + 1];
+      if (eastLanding) {
+        map.tiles[bottomY][gateX + 1] = {
+          type: 'grass' as TileType,
+          walkable: true,
+          elevation: 0,
+          enemyBlocked: true,
+        };
+      }
     } else {
-      row[tx] = {
+      // Sealed: coiled gate-ladder mounted on the new cliff edge. The cliff body to the east
+      // is natural from authored cliff_face features and needs no explicit restoration on load.
+      map.tiles[gateY][gateX] = {
         type: 'gate_ladder' as TileType,
         walkable: false,
-        elevation: el,
+        elevation: 1,
+        baseTile: 'stone' as TileType,
         interactable: true,
         interactionId: 'cliff_corridor_ladder',
       };
+      for (let ty = gateY - 1; ty >= bottomY; ty--) {
+        if (map.tiles[ty]?.[gateX]) {
+          map.tiles[ty][gateX] = { type: 'cliff' as TileType, walkable: false, elevation: 0 };
+        }
+      }
+      const highLanding = map.tiles[gateY]?.[gateX - 1];
+      if (highLanding?.type === 'grass') {
+        map.tiles[gateY][gateX - 1] = {
+          ...highLanding,
+          walkable: true,
+          elevation: 1,
+          enemyBlocked: true,
+        };
+      }
+      if (map.tiles[gateY]?.[gateX + 1]) {
+        map.tiles[gateY][gateX + 1] = { type: 'cliff_edge' as TileType, walkable: false, elevation: 1 };
+      }
+      for (let ty = gateY - 1; ty > bottomY; ty--) {
+        if (map.tiles[ty]?.[gateX - 1]) {
+          map.tiles[ty][gateX - 1] = { type: 'cliff' as TileType, walkable: false, elevation: 0 };
+        }
+        if (map.tiles[ty]?.[gateX + 1]) {
+          map.tiles[ty][gateX + 1] = { type: 'cliff' as TileType, walkable: false, elevation: 0 };
+        }
+      }
+      if (map.tiles[bottomY]?.[gateX - 1]) {
+        map.tiles[bottomY][gateX - 1] = { type: 'cliff' as TileType, walkable: false, elevation: 0 };
+      }
+      const eastLanding = map.tiles[bottomY]?.[gateX + 1];
+      if (eastLanding) {
+        map.tiles[bottomY][gateX + 1] = {
+          type: 'grass' as TileType,
+          walkable: true,
+          elevation: 0,
+          enemyBlocked: true,
+        };
+      }
     }
     world.rebuildChunks();
   };
@@ -342,12 +589,12 @@ export function createRuntimeMapFlow({
         const tile = map.tiles[y][x];
         if (!tile.interactionId || !tile.interactionId.includes('chest')) continue;
         const opened = state.getFlag(`${tile.interactionId}_opened`);
-        if (opened && tile.type === 'chest') {
-          map.tiles[y][x] = { ...tile, type: 'chest_opened' };
+        if (opened && isChestTileType(tile.type) && tile.type !== getOpenedChestTileType(tile.interactionId)) {
+          map.tiles[y][x] = { ...tile, type: getOpenedChestTileType(tile.interactionId) };
           changed = true;
           grow(x, y);
-        } else if (!opened && tile.type === 'chest_opened') {
-          map.tiles[y][x] = { ...tile, type: 'chest' };
+        } else if (!opened && isChestTileType(tile.type) && tile.type !== getClosedChestTileType(tile.interactionId)) {
+          map.tiles[y][x] = { ...tile, type: getClosedChestTileType(tile.interactionId) };
           changed = true;
           grow(x, y);
         }
@@ -546,12 +793,19 @@ export function createRuntimeMapFlow({
         const isOuter = dx === 0 || dx === FORT_W - 1 || dy === 0 || dy === FORT_H - 1;
         const isSecond = dx === 1 || dx === FORT_W - 2 || dy === 1 || dy === FORT_H - 2;
         const isThird = dx === 2 || dx === FORT_W - 3 || dy === 2 || dy === FORT_H - 3;
-        if (!isOuter && !isSecond && !isThird && !inCornerTower(dx, dy)) continue;
         const tx = FORT_X + dx;
         const ty = FORT_Y + dy;
         const row = map.tiles[ty];
         if (!row) continue;
         const el = row[tx]?.elevation ?? 0;
+
+        if (!isOuter && !isSecond && !isThird && !inCornerTower(dx, dy)) {
+          const existing = row[tx];
+          if (!existing?.interactable) {
+            row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          }
+          continue;
+        }
 
         // 3-wide gate on the south wall
         if (ty === SOUTH_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
@@ -788,6 +1042,137 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
+  // Shared builder for the two optional dual-gated forts (western + northern/golem).
+  // Differences from the required forts: both north AND south walls are gated (same key),
+  // and every interior tile is explicitly written as cobblestone so no trees bleed in.
+  const buildOptionalFort = (
+    flagKey: string,
+    interactionId: string,
+    FORT_X: number, FORT_Y: number, FORT_W: number, FORT_H: number,
+  ) => {
+    const map = world.getCurrentMap();
+    const gateOpen = state.getFlag(flagKey);
+    const GATE_CX = FORT_X + Math.floor(FORT_W / 2);
+    const SOUTH_Y = FORT_Y + FORT_H - 1;
+    const TOWER_R = 3;
+    const GDX = GATE_CX - FORT_X; // gate column offset
+
+    const inCornerTower = (dx: number, dy: number) =>
+      (dx < TOWER_R && dy < TOWER_R) ||
+      (dx >= FORT_W - TOWER_R && dy < TOWER_R) ||
+      (dx < TOWER_R && dy >= FORT_H - TOWER_R) ||
+      (dx >= FORT_W - TOWER_R && dy >= FORT_H - TOWER_R);
+
+    const towerCenter = (dx: number, dy: number) => {
+      const cxL = dx < FORT_W / 2 ? Math.floor(TOWER_R / 2) : FORT_W - 1 - Math.floor(TOWER_R / 2);
+      const cyL = dy < FORT_H / 2 ? Math.floor(TOWER_R / 2) : FORT_H - 1 - Math.floor(TOWER_R / 2);
+      return dx === cxL && dy === cyL;
+    };
+
+    const applyExteriorFrame = (frameRow: typeof map.tiles[0], open: boolean) => {
+      if (!frameRow) return;
+      const el = frameRow[GATE_CX]?.elevation ?? 0;
+      if (open) {
+        for (let nx = GATE_CX - 2; nx <= GATE_CX + 2; nx++) {
+          if (nx < 0 || nx >= frameRow.length) continue;
+          frameRow[nx] = nx === GATE_CX - 2 || nx === GATE_CX + 2
+            ? { type: 'lantern' as TileType, walkable: false, elevation: el }
+            : { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+        }
+      } else {
+        for (const nx of [GATE_CX - 2, GATE_CX + 2]) {
+          if (nx >= 0 && nx < frameRow.length) frameRow[nx] = { type: 'stone' as TileType, walkable: false, elevation: el };
+        }
+        for (const nx of [GATE_CX - 1, GATE_CX + 1]) {
+          if (nx >= 0 && nx < frameRow.length) frameRow[nx] = { type: 'lantern' as TileType, walkable: false, elevation: el };
+        }
+      }
+    };
+
+    for (let dy = 0; dy < FORT_H; dy++) {
+      for (let dx = 0; dx < FORT_W; dx++) {
+        const tx = FORT_X + dx;
+        const ty = FORT_Y + dy;
+        if (tx < 0 || tx >= map.width || ty < 0 || ty >= map.height) continue;
+        const row = map.tiles[ty];
+        if (!row) continue;
+        const el = row[tx]?.elevation ?? 0;
+
+        const isOuter  = dx === 0 || dx === FORT_W - 1 || dy === 0 || dy === FORT_H - 1;
+        const isSecond = dx === 1 || dx === FORT_W - 2 || dy === 1 || dy === FORT_H - 2;
+        const isThird  = dx === 2 || dx === FORT_W - 3 || dy === 2 || dy === FORT_H - 3;
+        const inTower  = inCornerTower(dx, dy);
+
+        // ── Gate tiles on BOTH walls ──────────────────────────────────────────
+        const nearGate = tx >= GATE_CX - 1 && tx <= GATE_CX + 1;
+        if (isOuter && nearGate && (ty === FORT_Y || ty === SOUTH_Y)) {
+          row[tx] = gateOpen
+            ? { type: 'cobblestone' as TileType, walkable: true, elevation: el }
+            : { type: 'gate' as TileType, walkable: false, elevation: el, interactable: true, interactionId };
+          continue;
+        }
+
+        // ── Corner towers ─────────────────────────────────────────────────────
+        if (inTower) {
+          row[tx] = towerCenter(dx, dy)
+            ? { type: 'lantern' as TileType, walkable: false, elevation: el }
+            : { type: 'stone' as TileType, walkable: false, elevation: el };
+          continue;
+        }
+
+        // ── Outer & second rings → stone wall (gate passage cleared when open) ──
+        if (isOuter || isSecond) {
+          const isSecondGatePassage = isSecond && nearGate && (dy === 1 || dy === FORT_H - 2);
+          if (isSecondGatePassage && gateOpen) {
+            row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          } else {
+            row[tx] = { type: 'stone' as TileType, walkable: false, elevation: el };
+          }
+          continue;
+        }
+
+        // ── Third ring: iron-fence pattern, gate passage clears when open ─────
+        if (isThird) {
+          const isNorthPassage = dy === 2    && nearGate;
+          const isSouthPassage = dy === FORT_H - 3 && nearGate;
+          if ((isNorthPassage || isSouthPassage) && gateOpen) {
+            row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          } else if (isNorthPassage || isSouthPassage) {
+            row[tx] = { type: 'stone' as TileType, walkable: false, elevation: el };
+          } else {
+            row[tx] = (dx + dy) % 3 === 0
+              ? { type: 'iron_fence' as TileType, walkable: false, elevation: el }
+              : { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+          }
+          continue;
+        }
+
+        // ── Interior — always cobblestone (overwrites trees/grass from map) ────
+        row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+      }
+    }
+
+    // Exterior frames — both sides show pillar+lantern when locked, lantern+cobblestone when open
+    const southFrameRow = map.tiles[FORT_Y + FORT_H];
+    applyExteriorFrame(southFrameRow, gateOpen);
+    const northFrameRow = map.tiles[FORT_Y - 1];
+    applyExteriorFrame(northFrameRow, gateOpen);
+
+    world.rebuildChunks();
+  };
+
+  const syncWestFortGateState = () => {
+    if (state.currentMap !== 'forest') return;
+    // Western fort — moved +10 y from original placement, fully sealed (dual gates)
+    buildOptionalFort('west_fort_gate_open', 'west_fort_gate', 12, 141, 14, 14);
+  };
+
+  const syncGolemFortGateState = () => {
+    if (state.currentMap !== 'forest') return;
+    // Northern (golem) fort — fully sealed (dual gates)
+    buildOptionalFort('golem_fort_gate_open', 'golem_fort_gate', 80, 242, 14, 14);
+  };
+
   const syncManuscriptCheckpointGateState = () => {
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
@@ -1002,10 +1387,15 @@ export function createRuntimeMapFlow({
   const syncPersistentMapState = () => {
     syncWhisperingWoodsShortcutState();
     syncGroveShelfShortcutState();
+    syncRiversideBridgeShortcutState();
     syncHollowShortcutState();
     syncHollowCorridorGateState();
+    syncHollowApproachOverlookShelfState();
+    syncHollowApproachSpineGateState();
     syncForestFortGateState();
     syncNorthFortGateState();
+    syncWestFortGateState();
+    syncGolemFortGateState();
     syncManuscriptCheckpointGateState();
     syncHollowFogGateState();
     syncHollowArenaVictoryPortalState();
@@ -1150,12 +1540,17 @@ export function createRuntimeMapFlow({
   return {
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
+    syncRiversideBridgeShortcutState,
     syncHollowShortcutState,
     syncHollowCorridorGateState,
+    syncHollowApproachOverlookShelfState,
+    syncHollowApproachSpineGateState,
     syncHollowApproachLadderState,
     syncCliffCorridorLadderState,
     syncForestFortGateState,
     syncNorthFortGateState,
+    syncWestFortGateState,
+    syncGolemFortGateState,
     syncManuscriptCheckpointGateState,
     syncHollowFogGateState,
     syncHollowArenaVictoryPortalState,

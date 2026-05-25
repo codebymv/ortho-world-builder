@@ -80,7 +80,14 @@ function normalizeSave(raw: RawSave): SaveData {
     worldItems: Array.isArray(raw.worldItems) ? raw.worldItems : [],
     quests: Array.isArray(raw.quests) ? raw.quests : [],
     gameFlags: isObject(raw.gameFlags) ? (raw.gameFlags as Record<string, boolean | number>) : {},
-    mapMarkers: Array.isArray(raw.mapMarkers) ? raw.mapMarkers : [],
+    // Strip portal-type markers on load — they are always regenerated fresh
+    // from the current objective, so persisting them causes stale labels/colours.
+    // Also drop any removed legend entries (e.g. Whispering Woods) from old saves.
+    mapMarkers: Array.isArray(raw.mapMarkers)
+      ? (raw.mapMarkers as MapMarker[]).filter(
+          m => m.type !== 'portal' && m.label !== 'Whispering Woods'
+        )
+      : [],
     visitedTiles: Array.isArray(raw.visitedTiles) ? raw.visitedTiles : [],
     // Pre-v6 saves had no seen-item tracking. Seed from current inventory so the
     // first-time overlay doesn't blast every loaded item; this is an intentional

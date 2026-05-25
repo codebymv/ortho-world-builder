@@ -1,16 +1,23 @@
-import { useCallback, useEffect, useRef, useState, memo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import type { MutableRefObject } from 'react';
 import { WorldMap } from '@/lib/game/World';
-import type { MapMarker } from '@/lib/game/MapMarkers';
-import type { GameState } from '@/lib/game/GameState';
 import {
-  MARKER_TYPE_NAMES,
-  MINIMAP_TERRAIN_LEGEND,
+  getManuscriptPrimaryObjectiveMarker,
+  getVillagePrimaryObjectiveMarker,
+  isPrimaryObjectiveMarker,
+  MANUSCRIPT_PRIMARY_MARKER_ID,
+  VILLAGE_PRIMARY_MARKER_ID,
+  type MapMarker,
+} from '@/lib/game/MapMarkers';
+import type { GameState } from '@/lib/game/GameState';
+import type { AssetManager } from '@/lib/game/AssetManager';
+import {
   computeMinimapScaleToFit,
   drawMinimapContent,
 } from '@/components/game/minimapDrawing';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { PlayerFaceMapIcon } from '@/components/game/PlayerFaceMapIcon';
 
 interface MapModalProps {
   open: boolean;
@@ -22,6 +29,7 @@ interface MapModalProps {
   mapMarkersRef: MutableRefObject<MapMarker[]>;
   markers: MapMarker[];
   refreshToken: number;
+  assetManager?: AssetManager | null;
 }
 
 export const MapModal = memo(function MapModal({
@@ -34,6 +42,7 @@ export const MapModal = memo(function MapModal({
   mapMarkersRef,
   markers,
   refreshToken,
+  assetManager,
 }: MapModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -88,7 +97,18 @@ export const MapModal = memo(function MapModal({
         return;
       }
 
-      const currentMarkers = mapMarkersRef.current.filter(m => m.map === currentMapId);
+      const DYNAMIC_IDS = new Set([MANUSCRIPT_PRIMARY_MARKER_ID, VILLAGE_PRIMARY_MARKER_ID]);
+      const HIDE_WHEN_PRIMARY = new Set(['forest_Disparaged Cottage', 'village_Village Elder']);
+      const dynamicPrimary = ([getManuscriptPrimaryObjectiveMarker(state), getVillagePrimaryObjectiveMarker(state)]
+        .find(m => m?.map === currentMapId) ?? null);
+      const baseMarkers = mapMarkersRef.current.filter(
+        m =>
+          m.map === currentMapId &&
+          !DYNAMIC_IDS.has(m.id) &&
+          m.type !== 'portal' &&
+          !(dynamicPrimary && HIDE_WHEN_PRIMARY.has(m.id)),
+      );
+      const currentMarkers = dynamicPrimary ? [dynamicPrimary, ...baseMarkers] : baseMarkers;
       const hasPulsing = currentMarkers.some(m => nowMs < m.pulseUntil);
       const minFrameMs = hasPulsing ? 16 : 48;
       if (nowPerf - lastDrawPerf < minFrameMs) {
@@ -122,6 +142,7 @@ export const MapModal = memo(function MapModal({
         markers: currentMarkers,
         scale,
         nowMs,
+        assetManager,
       });
 
       animRef.current = requestAnimationFrame(draw);
@@ -143,14 +164,37 @@ export const MapModal = memo(function MapModal({
     gameStateRef,
     visitedTilesRef,
     mapMarkersRef,
+    assetManager,
   ]);
 
-  const currentMarkers = markers.filter(m => m.map === currentMapId);
-  const now = Date.now();
-  const legendMarkers = currentMarkers.filter(
-    m => m.permanent || now - m.createdAt < 120000 || now < m.pulseUntil
-  );
-
+  // Legend shows every marker drawn on the map for this region (no recency filter)
+  // so the map key always matches the dots visible on the canvas.
+  // The dynamic manuscript primary marker is injected first so it renders at the top.
+  // refreshToken is a dep so the list re-evaluates whenever game state changes.
+  const legendMarkers = useMemo(() => {
+    const state = gameStateRef.current;
+    const DYNAMIC_IDS = new Set([MANUSCRIPT_PRIMARY_MARKER_ID, VILLAGE_PRIMARY_MARKER_ID]);
+    const HIDE_WHEN_PRIMARY = new Set(['forest_Disparaged Cottage', 'village_Village Elder']);
+    // Resolve the primary only for THIS map so cross-map markers don't interfere.
+    const dynamicPrimary = state
+      ? ([getManuscriptPrimaryObjectiveMarker(state), getVillagePrimaryObjectiveMarker(state)]
+          .find(m => m?.map === currentMapId) ?? null)
+      : null;
+    const base = markers.filter(
+      m =>
+        m.map === currentMapId &&
+        !DYNAMIC_IDS.has(m.id) &&
+        m.type !== 'portal' &&
+        !(dynamicPrimary && HIDE_WHEN_PRIMARY.has(m.id)),
+    );
+    const all = dynamicPrimary ? [dynamicPrimary, ...base] : base;
+    // Primary objective first, everything else after.
+    const objective = all.filter(m => state && isPrimaryObjectiveMarker(m, state));
+    const objectiveIds = new Set(objective.map(m => m.id));
+    const rest = all.filter(m => !objectiveIds.has(m.id));
+    return [...objective, ...rest];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [markers, currentMapId, gameStateRef, refreshToken]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -185,94 +229,35 @@ export const MapModal = memo(function MapModal({
 
         <div className="flex-shrink-0 border-t border-[#5C3A21]/50 pt-3">
           <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#DAA520]/90">Map key</p>
-          <p className="mb-2 text-[9px] uppercase tracking-wider text-[#8B7355]">Terrain (matches overworld materials)</p>
-          <div className="mb-3 grid grid-cols-1 gap-1.5 text-[10px] sm:grid-cols-2 lg:grid-cols-3">
-            {MINIMAP_TERRAIN_LEGEND.map(row => (
-              <div
-                key={row.label}
-                className="flex items-center gap-2 rounded border border-[#5C3A21]/30 bg-[#0f0906]/80 px-2 py-1"
-              >
-                <span
-                  className="h-3 w-3 flex-shrink-0 rounded-sm border border-black/40"
-                  style={{ backgroundColor: row.color }}
-                />
-                <span className="text-[#C9B8A8] leading-tight">{row.label}</span>
-              </div>
-            ))}
-          </div>
-          <p className="mb-2 text-[9px] uppercase tracking-wider text-[#8B7355]">Markers &amp; player</p>
-          <div className="grid grid-cols-1 gap-2 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
-            <div className="flex items-center gap-2 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60 px-2 py-1.5">
-              <span className="h-3 w-3 flex-shrink-0 rounded-full bg-[#4488ff] ring-2 ring-white/40" />
-              <span className="text-[#F5DEB3]">You</span>
-            </div>
-            <div className="flex items-center gap-2 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60 px-2 py-1.5">
-              <span className="h-3 w-3 flex-shrink-0 rounded-full bg-[#FFD700] ring-1 ring-black/50" />
-              <span className="text-[#F5DEB3]">Villagers &amp; NPCs (this area)</span>
-            </div>
-            <div className="flex items-center gap-2 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60 px-2 py-1.5">
-              <span className="relative h-3 w-3 flex-shrink-0 rounded-full bg-[#FFD700] ring-2 ring-[#ffe9a8]/80">
-                <span className="absolute inset-[-4px] rounded-full border border-[#FFD700]/70" />
-              </span>
-              <span className="text-[#F5DEB3]">Gold pulse means this is where to go next</span>
-            </div>
-            <div className="flex items-center gap-2 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60 px-2 py-1.5">
-              <span
-                className="h-3 w-3 flex-shrink-0 rounded-full"
-                style={{ background: 'rgba(186,104,255,0.85)', boxShadow: '0 0 6px #ba68c8' }}
-              />
-              <span className="text-[#F5DEB3]">Lost essence (reclaim at glow)</span>
-            </div>
-            {(['quest', 'poi', 'danger', 'npc', 'portal'] as const).map(type => (
-              <div
-                key={type}
-                className="flex items-center gap-2 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60 px-2 py-1.5"
-              >
-                <span className="w-7 flex-shrink-0 text-center font-bold uppercase tracking-wide text-[#DAA520]">
-                  {type === 'quest'
-                    ? 'Goal'
-                    : type === 'poi'
-                      ? 'Place'
-                      : type === 'danger'
-                        ? 'Risk'
-                        : type === 'npc'
-                          ? 'NPC'
-                          : 'Gate'}
-                </span>
-                <span className="text-[#C9B8A8]">{MARKER_TYPE_NAMES[type]}</span>
-              </div>
-            ))}
-          </div>
-
-          {legendMarkers.length > 0 && (
-            <div className="mt-3 border-t border-[#5C3A21]/40 pt-2">
-              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-[#DAA520]/80">Visible markers</p>
-              <ul className="space-y-1.5 text-[11px] text-[#E8DCC8]">
-                {legendMarkers.map(m => (
-                  <li key={m.id} className="flex items-start gap-2">
+          <div className="grid grid-cols-1 gap-1.5 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
+            {legendMarkers.map(m => {
+              const isObjective = gameStateRef.current
+                ? isPrimaryObjectiveMarker(m, gameStateRef.current)
+                : false;
+              return (
+                <div
+                  key={m.id}
+                  className="flex items-center gap-2 rounded border border-[#5C3A21]/40 bg-[#1A0F0A]/60 px-2 py-1.5"
+                >
+                  <span className="relative h-4 w-4 flex-shrink-0">
+                    <span className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[#050302]" />
                     <span
-                      className="mt-0.5 h-2.5 w-2.5 flex-shrink-0 rounded-sm"
-                      style={{ backgroundColor: m.color, boxShadow: `0 0 4px ${m.color}` }}
+                      className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 border border-white/60"
+                      style={{
+                        backgroundColor: m.color,
+                        boxShadow: `0 0 3px ${m.color}80`,
+                      }}
                     />
-                    <span>
-                      <span className="font-bold uppercase tracking-wide text-[#DAA520]">
-                        {m.type === 'quest'
-                          ? 'Goal'
-                          : m.type === 'poi'
-                            ? 'Place'
-                            : m.type === 'danger'
-                              ? 'Risk'
-                              : m.type === 'npc'
-                                ? 'NPC'
-                                : 'Gate'}
-                      </span>{' '}
-                      <span className="text-[#A1887F]">({MARKER_TYPE_NAMES[m.type]})</span> {m.label}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+                  </span>
+                  <span className="text-[#F5DEB3] leading-tight">
+                    {m.type === 'quest' || m.type === 'poi'
+                      ? isObjective ? 'Primary' : 'Secondary'
+                      : m.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

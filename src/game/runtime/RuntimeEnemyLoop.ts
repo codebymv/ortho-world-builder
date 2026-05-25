@@ -3,6 +3,7 @@ import { SharedGeometry } from '@/lib/game/AssetManager';
 import { applyEnemyVisuals, updateDeadEnemyVisual } from '@/game/runtime/EnemyVisualSystem';
 import type { EnemyLoopContext } from '@/game/runtime/RuntimePhaseContexts';
 import { ENEMY_BLUEPRINTS } from '@/data/enemies';
+import { getClimbVisualElevation } from '@/game/runtime/PlayerSimulationSystem';
 
 const announcedHollowEclipses = new Set<string>();
 const bossAttackSfxKeys = new Map<string, string>();
@@ -43,6 +44,9 @@ export function runEnemyLoop({
   getActorRenderOrder,
 }: RunEnemyLoopOptions) {
   const playerHealthBeforeUpdate = state.player.health;
+  const playerCombatElevation = state.player.isClimbing
+    ? getClimbVisualElevation(world, state.player.position.x, state.player.position.y)
+    : world.getElevationAt(state.player.position.x, state.player.position.y);
   const combatResult = combatSystem.updateEnemies(
     deltaTime,
     state.player.position,
@@ -157,6 +161,8 @@ export function runEnemyLoop({
     state.player.stealthDetectionMult,
     particleSystem,
     playPropBreak,
+    state.player.isClimbing,
+    playerCombatElevation,
   );
 
   if (state.player.health < playerHealthBeforeUpdate) {

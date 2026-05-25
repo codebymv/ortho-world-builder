@@ -48,11 +48,14 @@ interface RuntimeActionPhaseOptions {
   syncHarvestedMoonbloomState: () => void;
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
+  syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncHollowApproachLadderState: () => void;
   syncCliffCorridorLadderState: () => void;
   syncForestFortGateState: () => void;
   syncNorthFortGateState: () => void;
+  syncWestFortGateState: () => void;
+  syncGolemFortGateState: () => void;
   syncManuscriptCheckpointGateState: () => void;
   syncHollowFogGateState: () => void;
   syncHollowArenaVictoryPortalState: () => void;
@@ -117,11 +120,14 @@ export function setupRuntimeActionPhase({
   syncHarvestedMoonbloomState,
   syncWhisperingWoodsShortcutState,
   syncGroveShelfShortcutState,
+  syncRiversideBridgeShortcutState,
   syncHollowShortcutState,
   syncHollowApproachLadderState,
   syncCliffCorridorLadderState,
   syncForestFortGateState,
   syncNorthFortGateState,
+  syncWestFortGateState,
+  syncGolemFortGateState,
   syncManuscriptCheckpointGateState,
   syncHollowFogGateState,
   syncHollowArenaVictoryPortalState,
@@ -327,11 +333,14 @@ export function setupRuntimeActionPhase({
     },
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
+    syncRiversideBridgeShortcutState,
     syncHollowShortcutState,
     syncHollowApproachLadderState,
     syncCliffCorridorLadderState,
     syncForestFortGateState,
     syncNorthFortGateState,
+    syncWestFortGateState,
+    syncGolemFortGateState,
     syncManuscriptCheckpointGateState,
     syncGilrhymBossState,
     showHeroOverlay,

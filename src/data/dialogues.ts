@@ -317,6 +317,10 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'danger_sign',
     nodes: [{ id: 'start', text: "**WARNING:** __Wolf territory__ ahead. The ruin road is faster, but only experienced hunters should proceed.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
+  village_approach_sign: {
+    id: 'village_approach_sign',
+    nodes: [{ id: 'start', text: "A waypost stands at the trail junction, letters still readable through the weather: __\"Greenleaf Village — ahead.\"__ Below, in a smaller hand: _\"Mountain range — further south.\"_", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+  },
   north_gate_sign: {
     id: 'north_gate_sign',
     nodes: [{ id: 'start', text: "A weathered post marks the village boundary: __\"Northern Trail — Whispering Woods Ahead.\"__ Below, in smaller letters: _\"Travel with caution. Report sightings to the Elder.\"_", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
@@ -1055,15 +1059,11 @@ export const dialogues: Record<string, Dialogue> = {
   // === WHISPERING WOODS — NEW ENVIRONMENT LORE ===
   forest_milestone: {
     id: 'forest_milestone',
-    nodes: [{ id: 'start', text: "A moss-covered milestone. The words are barely legible: '**Whispering Woods** — Three leagues. Those who enter after dark should carry iron and regret.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A weathered milestone: '__Whispering Mountain Woodlands__' — below it, a second line: _'Riverside village further south, nearest fortress —'_ The sign is broken from there.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   hollow_dead_ranger: {
     id: 'hollow_dead_ranger',
     nodes: [{ id: 'start', text: "A ranger who fell here long ago. Their shield is cracked in two. Claw marks run deep across the chest plate. Whatever killed them was **massive**.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
-  fort_garrison_orders: {
-    id: 'fort_garrison_orders',
-    nodes: [{ id: 'start', text: "A rotting notice pinned to the wall: '**Standing Order 14:** The armored wolves have broken the eastern perimeter. Hold the courtyard at all costs. Reinforcements are not coming. — Commander Hale'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   dead_ranger_shortcut_note: {
     id: 'dead_ranger_shortcut_note',
@@ -1247,7 +1247,31 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       {
         id: 'start',
-        text: "The northern fort's gate is bound shut with iron chains. The lock bears the same crest as the southern fort — the same key should work here.",
+        text: "The southern fort's gate is bound shut with iron chains. The lock bears the same crest as the eastern fort — the same key should work here.",
+        responses: [{ text: "[Step back]", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  west_fort_gate_locked: {
+    id: 'west_fort_gate_locked',
+    nodes: [
+      {
+        id: 'start',
+        text: "Iron chains loop through the gate bars, sealed with a familiar crest. The ranger's key would turn this lock.",
+        responses: [{ text: "[Step back]", nextId: 'end' }],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  golem_fort_gate_locked: {
+    id: 'golem_fort_gate_locked',
+    nodes: [
+      {
+        id: 'start',
+        text: "The gate doesn't budge.",
         responses: [{ text: "[Step back]", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },

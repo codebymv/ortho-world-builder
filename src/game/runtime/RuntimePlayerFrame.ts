@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { applyPlayerVisuals, resolvePlayerTexture } from '@/game/runtime/PlayerVisualSystem';
 import { applySmoothedCameraFollow, updateInteractionIndicator } from '@/game/runtime/RuntimePresentation';
 import type { PlayerFrameContext } from '@/game/runtime/RuntimePhaseContexts';
+import { getClimbVisualElevation } from '@/game/runtime/PlayerSimulationSystem';
 import { items } from '@/data/items';
 
 export interface RunPlayerFramePhaseOptions extends PlayerFrameContext {
@@ -215,6 +216,14 @@ export function runPlayerFramePhase({
       moveWave *
       (facing4 === 'left' ? -0.035 : facing4 === 'right' ? 0.035 : 0.018) *
       sprintMult;
+  } else if (playerAnimState === 'climb') {
+    // Up/down walk frames used for climbing read slightly east of the ladder center.
+    if (facing4 === 'up' || facing4 === 'down') {
+      attackOffsetX -= 0.07;
+    }
+    const climbWave = Math.sin(currentTime / 180);
+    if (facing4 === 'left') attackOffsetX -= climbWave * 0.015;
+    else if (facing4 === 'right') attackOffsetX += climbWave * 0.015;
   }
 
   if (state.player.isDodging) {
@@ -258,8 +267,11 @@ export function runPlayerFramePhase({
     }
   }
 
-  const targetElevation = world.getElevationAt(state.player.position.x, state.player.position.y);
-  playerSmoothedElevation += (targetElevation - playerSmoothedElevation) * Math.min(1, 12 * deltaTime);
+  const targetElevation = state.player.isClimbing
+    ? getClimbVisualElevation(world, state.player.position.x, state.player.position.y)
+    : world.getElevationAt(state.player.position.x, state.player.position.y);
+  const elevationLerp = state.player.isClimbing ? Math.min(1, 24 * deltaTime) : Math.min(1, 12 * deltaTime);
+  playerSmoothedElevation += (targetElevation - playerSmoothedElevation) * elevationLerp;
 
   const { playerVisualX, playerVisualY } = applyPlayerVisuals({
     state,

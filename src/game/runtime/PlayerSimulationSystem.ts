@@ -5,6 +5,224 @@ import type { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { makeVisitedTileKey } from '@/lib/game/visitedTiles';
 import { breakTileAt, breakTilesInRadius } from '@/game/runtime/BreakableProps';
 
+const CLIMB_SPEED_MULT = 0.55;
+/** Narrow collision while on a 1-tile ladder column surrounded by cliff. */
+const CLIMB_MOVE_RADIUS = 0;
+/**
+ * Exponential lerp rate (per second) for sliding onto the ladder rail or off onto
+ * a landing tile. ~12/s gives ~85% smoothing in ~150ms — fast enough to feel
+ * responsive, slow enough to read as a smooth glide instead of a teleport.
+ */
+const LADDER_SNAP_RATE = 12;
+const LADDER_DISMOUNT_RATE = 14;
+
+interface ClimbMovementResult {
+  moveX: number;
+  moveY: number;
+  dismount: boolean;
+  dismountTarget?: { x: number; y: number };
+  sideDismount?: boolean;
+}
+
+let activeLadderDismount: { targetX: number; targetY: number; facing: Direction8 } | null = null;
+
+function isLadderTile(world: World, px: number, py: number): boolean {
+  return world.getTile(px, py)?.type === 'ladder';
+}
+
+function isStructuralWallTile(type: string | undefined): boolean {
+  if (!type) return true;
+  return (
+    type === 'cliff' ||
+    type === 'cliff_edge' ||
+    type === 'cliff_corrupted' ||
+    type === 'cliff_edge_corrupted'
+  );
+}
+
+/** Pick one X for the whole ladder column so mount side does not flip mid-climb. */
+function resolveVerticalLadderColumnX(
+  map: ReturnType<World['getCurrentMap']>,
+  tileX: number,
+  tileY: number,
+  hw: number,
+): number {
+  const tileAt = (tx: number, ty: number) => map.tiles[ty]?.[tx] ?? null;
+
+  let minY = tileY;
+  let maxY = tileY;
+  while (minY > 0 && tileAt(tileX, minY - 1)?.type === 'ladder') minY--;
+  while (maxY < map.tiles.length - 1 && tileAt(tileX, maxY + 1)?.type === 'ladder') maxY++;
+
+  let westWalls = 0;
+  let eastWalls = 0;
+  for (let ty = minY; ty <= maxY; ty++) {
+    if (isStructuralWallTile(tileAt(tileX - 1, ty)?.type)) westWalls++;
+    if (isStructuralWallTile(tileAt(tileX + 1, ty)?.type)) eastWalls++;
+  }
+
+  // 0.15 / 0.85 hug the rail against the dominant structural wall across the full span.
+  if (westWalls >= eastWalls) return tileX - hw + 0.15;
+  return tileX - hw + 0.85;
+}
+
+/** Stand flush on the ladder rails — hug the adjacent wall rather than tile center. */
+function snapToLadderAxis(world: World, px: number, py: number): { x: number; y: number } {
+  const map = world.getCurrentMap();
+  const hw = map.width / 2;
+  const hh = map.height / 2;
+  const tileX = Math.floor(px + hw);
+  const tileY = Math.floor(py + hh);
+  const centerX = tileX - hw + 0.5;
+  const centerY = tileY - hh + 0.5;
+
+  const tileAt = (tx: number, ty: number) => map.tiles[ty]?.[tx] ?? null;
+  const ladderAt = (dx: number, dy: number) => isLadderTile(world, px + dx, py + dy);
+
+  const resolveHorizontalY = () => {
+    let minX = tileX;
+    let maxX = tileX;
+    while (minX > 0 && tileAt(minX - 1, tileY)?.type === 'ladder') minX--;
+    while (maxX < map.tiles[0].length - 1 && tileAt(maxX + 1, tileY)?.type === 'ladder') maxX++;
+
+    let northWalls = 0;
+    let southWalls = 0;
+    for (let tx = minX; tx <= maxX; tx++) {
+      if (isStructuralWallTile(tileAt(tx, tileY + 1)?.type)) northWalls++;
+      if (isStructuralWallTile(tileAt(tx, tileY - 1)?.type)) southWalls++;
+    }
+
+    if (northWalls >= southWalls) return tileY - hh + 0.85;
+    return tileY - hh + 0.15;
+  };
+
+  if (ladderAt(0, 1) || ladderAt(0, -1) || isLadderTile(world, px, py)) {
+    return { x: resolveVerticalLadderColumnX(map, tileX, tileY, hw), y: py };
+  }
+  if (ladderAt(1, 0) || ladderAt(-1, 0)) {
+    return { x: px, y: resolveHorizontalY() };
+  }
+  return { x: centerX, y: centerY };
+}
+
+/** Lock traversal to the ladder axis, but allow stepping off onto adjacent walkable ground. */
+function resolveClimbMovement(
+  world: World,
+  px: number,
+  py: number,
+  moveX: number,
+  moveY: number,
+): ClimbMovementResult {
+  const map = world.getCurrentMap();
+  const hw = map.width / 2;
+  const hh = map.height / 2;
+  const tileX = Math.floor(px + hw);
+  const tileY = Math.floor(py + hh);
+  const tileAt = (tx: number, ty: number) => map.tiles[ty]?.[tx] ?? null;
+  const ladderAt = (dx: number, dy: number) => isLadderTile(world, px + dx, py + dy);
+
+  const neighborInMoveDir = (mx: number, my: number) => {
+    if (mx === 0 && my === 0) return null;
+    const ntx = tileX + (mx > 0 ? 1 : mx < 0 ? -1 : 0);
+    const nty = tileY + (my > 0 ? 1 : my < 0 ? -1 : 0);
+    return { tile: tileAt(ntx, nty), tx: ntx, ty: nty };
+  };
+
+  const isDismountTarget = (tile: ReturnType<typeof tileAt>) =>
+    Boolean(tile?.walkable && tile.type !== 'ladder');
+
+  const tryDismount = (mx: number, my: number, sideDismount = false): ClimbMovementResult | null => {
+    if (mx === 0 && my === 0) return null;
+    const neighbor = neighborInMoveDir(mx, my);
+    if (neighbor && isDismountTarget(neighbor.tile)) {
+      return {
+        moveX: mx,
+        moveY: my,
+        dismount: true,
+        dismountTarget: {
+          x: neighbor.tx - hw + 0.5,
+          y: neighbor.ty - hh + 0.5,
+        },
+        sideDismount,
+      };
+    }
+    return null;
+  };
+
+  if (ladderAt(0, 1) || ladderAt(0, -1) || isLadderTile(world, px, py)) {
+    return (
+      tryDismount(moveX, 0, true) ??
+      tryDismount(0, moveY) ??
+      { moveX: 0, moveY, dismount: false }
+    );
+  }
+  if (ladderAt(1, 0) || ladderAt(-1, 0)) {
+    return (
+      tryDismount(moveX, moveY) ??
+      tryDismount(moveX, 0) ??
+      tryDismount(0, moveY) ??
+      { moveX, moveY: 0, dismount: false }
+    );
+  }
+  return { moveX, moveY, dismount: false };
+}
+
+/** Interpolate elevation smoothly along a ladder column instead of stepping per tile. */
+export function getClimbVisualElevation(world: World, px: number, py: number): number {
+  const map = world.getCurrentMap();
+  const hw = map.width / 2;
+  const hh = map.height / 2;
+  const tileX = Math.floor(px + hw);
+  let tileY = Math.floor(py + hh);
+  const tileAt = (tx: number, ty: number) => map.tiles[ty]?.[tx] ?? null;
+
+  if (tileAt(tileX, tileY)?.type !== 'ladder') {
+    return world.getElevationAt(px, py);
+  }
+
+  let minY = tileY;
+  let maxY = tileY;
+  while (minY > 0 && tileAt(tileX, minY - 1)?.type === 'ladder') minY--;
+  while (maxY < map.tiles.length - 1 && tileAt(tileX, maxY + 1)?.type === 'ladder') maxY++;
+
+  const bottomElev = tileAt(tileX, minY)?.elevation ?? 0;
+  const topElev = tileAt(tileX, maxY)?.elevation ?? 0;
+  const bottomWorldY = minY - hh + 0.5;
+  const topWorldY = maxY - hh + 0.5;
+
+  if (Math.abs(topWorldY - bottomWorldY) < 1e-6) return topElev;
+
+  const t = Math.max(0, Math.min(1, (py - bottomWorldY) / (topWorldY - bottomWorldY)));
+  return bottomElev + (topElev - bottomElev) * t;
+}
+
+/** While on a ladder, face the ladder plane instead of the movement vector. */
+function resolveClimbFacingDirection(
+  world: World,
+  px: number,
+  py: number,
+  moveX: number,
+  moveY: number,
+): Direction8 {
+  const isLadderAt = (dx: number, dy: number) => world.getTile(px + dx, py + dy)?.type === 'ladder';
+  const north = isLadderAt(0, 1);
+  const south = isLadderAt(0, -1);
+  const east = isLadderAt(1, 0);
+  const west = isLadderAt(-1, 0);
+
+  // Vertical ladder column: face up toward the ladder plane (reads correctly for both W and S).
+  if (north || south) return 'up';
+
+  // Horizontal ladder run: face into the ladder from the side.
+  if (east || west) return west ? 'left' : 'right';
+
+  // Single-tile / end cap: infer axis from movement, still biased toward the ladder plane.
+  if (moveY !== 0) return 'up';
+  if (moveX > 0) return 'left';
+  if (moveX < 0) return 'right';
+  return 'up';
+}
+
 export type PlayerAnimState =
   | 'idle'
   | 'walk'
@@ -16,7 +234,8 @@ export type PlayerAnimState =
   | 'lunge'
   | 'lunge_recovery'
   | 'drinking'
-  | 'block';
+  | 'block'
+  | 'climb';
 
 export type Direction8 =
   | 'up'
@@ -238,6 +457,9 @@ export function updatePlayerSimulation({
 
   revealVisibleTiles();
 
+  const playerTile = world.getTile(state.player.position.x, state.player.position.y);
+  state.player.isClimbing = playerTile?.type === 'ladder';
+
   let moveX = 0;
   let moveY = 0;
   let moved = false;
@@ -259,7 +481,36 @@ export function updatePlayerSimulation({
     moved = true;
   }
 
-  if (dodgeBuffered && !isBlocking && playerAnimState !== 'lunge' && playerAnimState !== 'lunge_recovery') {
+  let handledLadderDismount = false;
+  if (activeLadderDismount) {
+    const target = activeLadderDismount;
+    const lerp = 1 - Math.exp(-LADDER_DISMOUNT_RATE * deltaTime);
+    state.player.position.x += (target.targetX - state.player.position.x) * lerp;
+    state.player.position.y += (target.targetY - state.player.position.y) * lerp;
+
+    const dx = target.targetX - state.player.position.x;
+    const dy = target.targetY - state.player.position.y;
+    const arrived = Math.hypot(dx, dy) < 0.035;
+    if (arrived) {
+      state.player.position.x = target.targetX;
+      state.player.position.y = target.targetY;
+      activeLadderDismount = null;
+    }
+
+    state.player.isClimbing = !arrived;
+    state.player.isMoving = true;
+    state.player.isSprinting = false;
+    currentDir8 = target.facing;
+    state.player.direction = dir8to4(target.facing) as CardinalDirection;
+    playerAnimState = 'climb';
+    moveX = 0;
+    moveY = 0;
+    moved = false;
+    dodgeBuffered = false;
+    handledLadderDismount = true;
+  }
+
+  if (!handledLadderDismount && dodgeBuffered && !isBlocking && !state.player.isClimbing && playerAnimState !== 'lunge' && playerAnimState !== 'lunge_recovery') {
     performDodge(moveX, moveY);
     dodgeBuffered = false;
   }
@@ -268,6 +519,35 @@ export function updatePlayerSimulation({
     const length = Math.sqrt(moveX * moveX + moveY * moveY);
     moveX /= length;
     moveY /= length;
+  }
+
+  let climbingDismount = false;
+  let climbingDismountTarget: { x: number; y: number } | undefined;
+  let climbingSideDismount = false;
+  if (!handledLadderDismount && state.player.isClimbing) {
+    const resolved = resolveClimbMovement(
+      world,
+      state.player.position.x,
+      state.player.position.y,
+      moveX,
+      moveY,
+    );
+    moveX = resolved.moveX;
+    moveY = resolved.moveY;
+    climbingDismount = resolved.dismount;
+    climbingDismountTarget = resolved.dismountTarget;
+    climbingSideDismount = Boolean(resolved.sideDismount);
+    moved = moveX !== 0 || moveY !== 0;
+
+    // Smoothly ease the player onto the ladder rail rather than hard-snapping —
+    // a sudden lateral jump of ~0.35 units on the first climb frame reads as a
+    // teleport. Dismount handles its own glide further below.
+    if (!climbingDismount) {
+      const snapped = snapToLadderAxis(world, state.player.position.x, state.player.position.y);
+      const lerp = 1 - Math.exp(-LADDER_SNAP_RATE * deltaTime);
+      state.player.position.x += (snapped.x - state.player.position.x) * lerp;
+      state.player.position.y += (snapped.y - state.player.position.y) * lerp;
+    }
   }
 
   if (state.player.isDodging) {
@@ -302,15 +582,20 @@ export function updatePlayerSimulation({
       state.player.iFrameTimer = 0;
       playerAnimState = moved ? 'walk' : 'idle';
     }
+  } else if (handledLadderDismount) {
+    footstepTimer = 0;
   } else if (moved && !isBlocking && !isChargingAttack && playerAnimState !== 'spin_attack' && playerAnimState !== 'lunge' && playerAnimState !== 'lunge_recovery' && state.player.attackAnimationTimer <= 0) {
-    const rawDir = getDirection8(moveX > 0 ? 1 : moveX < 0 ? -1 : 0, moveY > 0 ? 1 : moveY < 0 ? -1 : 0);
+    const rawDir = state.player.isClimbing
+      ? resolveClimbFacingDirection(world, state.player.position.x, state.player.position.y, moveX, moveY)
+      : getDirection8(moveX > 0 ? 1 : moveX < 0 ? -1 : 0, moveY > 0 ? 1 : moveY < 0 ? -1 : 0);
     currentDir8 = rawDir;
     state.player.direction = dir8to4(rawDir) as CardinalDirection;
 
-    const wantsSprint = keys.shift && state.player.stamina > 0;
+    const wantsSprint = !state.player.isClimbing && keys.shift && state.player.stamina > 0;
     state.player.isSprinting = wantsSprint;
     const baseSpeed = wantsSprint ? state.player.sprintSpeed : state.player.speed;
-    const snareAdjusted = state.player.snareTimer > 0 ? baseSpeed * state.player.snareSpeedMult : baseSpeed;
+    const climbAdjusted = state.player.isClimbing ? baseSpeed * CLIMB_SPEED_MULT : baseSpeed;
+    const snareAdjusted = state.player.snareTimer > 0 ? climbAdjusted * state.player.snareSpeedMult : climbAdjusted;
     const currentSpeed = snareAdjusted * state.player.berserkerSpeedMult;
 
     if (wantsSprint) {
@@ -326,14 +611,38 @@ export function updatePlayerSimulation({
     const newY = state.player.position.y + moveY * frameSpeed;
     const curX = state.player.position.x;
     const curY = state.player.position.y;
-
-    if (world.canMoveTo(curX, curY, newX, newY, 0.2)) {
-      state.player.position.x = newX;
-      state.player.position.y = newY;
-    } else if (world.canMoveTo(curX, curY, newX, curY, 0.2)) {
-      state.player.position.x = newX;
-    } else if (world.canMoveTo(curX, curY, curX, newY, 0.2)) {
-      state.player.position.y = newY;
+    if (climbingDismount && climbingDismountTarget && (moveX !== 0 || moveY !== 0)) {
+      // Commit to the landing once a ladder dismount starts. Side exits are allowed to finish
+      // even if the input is released, which makes the rail-to-ground step read as one action.
+      const dismountFacing: Direction8 = climbingSideDismount
+        ? Math.abs(moveX) >= Math.abs(moveY)
+          ? (moveX >= 0 ? 'right' : 'left')
+          : (moveY >= 0 ? 'up' : 'down')
+        : rawDir;
+      currentDir8 = dismountFacing;
+      state.player.direction = dir8to4(dismountFacing) as CardinalDirection;
+      activeLadderDismount = {
+        targetX: climbingDismountTarget.x,
+        targetY: climbingDismountTarget.y,
+        facing: dismountFacing,
+      };
+      const lerp = 1 - Math.exp(-LADDER_DISMOUNT_RATE * deltaTime);
+      const dismountX = curX + (climbingDismountTarget.x - curX) * lerp;
+      const dismountY = curY + (climbingDismountTarget.y - curY) * lerp;
+      if (world.canMoveTo(curX, curY, dismountX, dismountY, 0)) {
+        state.player.position.x = dismountX;
+        state.player.position.y = dismountY;
+      }
+    } else {
+      const moveRadius = state.player.isClimbing ? CLIMB_MOVE_RADIUS : 0.2;
+      if (world.canMoveTo(curX, curY, newX, newY, moveRadius)) {
+        state.player.position.x = newX;
+        state.player.position.y = newY;
+      } else if (world.canMoveTo(curX, curY, newX, curY, moveRadius)) {
+        state.player.position.x = newX;
+      } else if (world.canMoveTo(curX, curY, curX, newY, moveRadius)) {
+        state.player.position.y = newY;
+      }
     }
 
     state.player.isMoving = true;
@@ -345,7 +654,7 @@ export function updatePlayerSimulation({
       playerAnimState !== 'drinking' &&
       playerAnimState !== 'block'
     ) {
-      playerAnimState = 'walk';
+      playerAnimState = state.player.isClimbing ? 'climb' : 'walk';
     }
 
     footstepTimer += deltaTime;
@@ -359,6 +668,17 @@ export function updatePlayerSimulation({
   } else {
     state.player.isMoving = false;
     footstepTimer = 0;
+    if (state.player.isClimbing) {
+      const climbDir = resolveClimbFacingDirection(
+        world,
+        state.player.position.x,
+        state.player.position.y,
+        0,
+        0,
+      );
+      currentDir8 = climbDir;
+      state.player.direction = dir8to4(climbDir) as CardinalDirection;
+    }
     if (
       playerAnimState !== 'attack' &&
       playerAnimState !== 'dodge' &&
@@ -368,7 +688,7 @@ export function updatePlayerSimulation({
       playerAnimState !== 'lunge_recovery' &&
       playerAnimState !== 'block'
     ) {
-      playerAnimState = 'idle';
+      playerAnimState = state.player.isClimbing ? 'climb' : 'idle';
     }
   }
 
@@ -462,7 +782,7 @@ export function updatePlayerSimulation({
           for (const dist of KNOCKBACK_DISTANCES) {
             const pushX = state.player.position.x + dirX * dist;
             const pushY = state.player.position.y + dirY * dist;
-            if (world.canMoveTo(enemy.position.x, enemy.position.y, pushX, pushY, 0.2)) {
+            if (world.canEnemyMoveTo(enemy.position.x, enemy.position.y, pushX, pushY, 0.2)) {
               enemy.position.x = pushX;
               enemy.position.y = pushY;
               break;
@@ -532,7 +852,10 @@ export function updatePlayerSimulation({
     playerAnimState !== 'drinking' &&
     playerAnimState !== 'block'
   ) {
-    const frameDuration = playerAnimState === 'walk' ? walkFrameDuration : idleFrameDuration;
+    const frameDuration =
+      playerAnimState === 'walk' || playerAnimState === 'climb'
+        ? walkFrameDuration
+        : idleFrameDuration;
     animTimer += deltaTime;
     if (animTimer >= frameDuration) {
       animFrame = (animFrame + 1) % 2;

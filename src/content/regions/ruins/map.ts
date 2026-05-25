@@ -720,11 +720,11 @@ export const gilrhymDef: MapDefinition = {
     { x: 55, y: 240, type: 'shortcut_lever', walkable: false, interactionId: 'gilrhym_shortcut_lever_1' },
     { x: 200, y: 118, type: 'shortcut_lever', walkable: false, interactionId: 'gilrhym_shortcut_lever_2' },
 
-    // Campfires (4)
-    { x: 65, y: 260, type: 'campfire', walkable: false, interactionId: 'campfire' },
-    { x: 235, y: 235, type: 'campfire', walkable: false, interactionId: 'campfire' },
-    { x: 100, y: 175, type: 'campfire', walkable: false, interactionId: 'campfire' },
-    { x: 35, y: 100, type: 'campfire', walkable: false, interactionId: 'campfire' },
+    // Stomped-out campfire remains (atmosphere only)
+    { x: 65, y: 260, type: 'campfire_remains', walkable: false },
+    { x: 235, y: 235, type: 'campfire_remains', walkable: false },
+    { x: 100, y: 175, type: 'campfire_remains', walkable: false },
+    { x: 35, y: 100, type: 'campfire_remains', walkable: false },
 
     // Moonblooms (4)
     { x: 112, y: 255, type: 'moonbloom', walkable: true, interactionId: 'moonbloom_pickup' },
@@ -2554,6 +2554,12 @@ export const gilrhymDef: MapDefinition = {
     { x: 185, y: 42, type: 'street_lamp', walkable: false },
     { x: 125, y: 48, type: 'street_lamp', walkable: false },
     { x: 175, y: 48, type: 'street_lamp', walkable: false },
+
+    // === HERESY ALTARS (minimap landmarks — downscaled sprite icons once explored) ===
+    { x: 38, y: 230, type: 'heresy_altar', walkable: false },  // world (-112, 80) — west alley cul-de-sac
+    { x: 252, y: 198, type: 'heresy_altar', walkable: false }, // world (102, 48) — upper east ruin nook
+    { x: 62, y: 35, type: 'heresy_altar', walkable: false },   // world (-88, -115) — north cathedral flank
+    { x: 268, y: 262, type: 'heresy_altar', walkable: false }, // world (118, 112) — far SE corner
   ],
   secretAreas: [
     { x: 28, y: 255, width: 6, height: 4, fill: 'cobblestone' },

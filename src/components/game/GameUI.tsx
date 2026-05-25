@@ -200,11 +200,11 @@ const SelectionWheel = React.memo(({
   const sideIconClass = hasTwoEntries ? 'w-7 h-7 mb-1' : 'w-6 h-6 mb-1';
 
   return (
-    <div className={`flex items-end transition-all duration-300 ${hasTwoEntries ? 'gap-2' : 'gap-3'}`}>
+    <div className="w-full flex items-end justify-between">
       <div className={`flex flex-col items-center transition-opacity ${hasMultipleDistinct ? 'opacity-80 hover:opacity-100' : 'opacity-[0.85]'}`}>
-        <span className="text-[10px] text-[#DAA520]/60 font-bold mb-1 font-mono drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,1)]">{prevLabel}</span>
+        <kbd className="bg-[#2D1B11] px-2 py-0.5 rounded border border-[#5C3A21] text-[#DAA520] text-xs font-bold leading-none mb-1.5 shadow-sm">{prevLabel}</kbd>
         {prevEntry ? (
-          <div className={`${sideCardClass} bg-[#1A0F0A]/90 backdrop-blur-md border border-[#5C3A21] rounded-md shadow-lg flex flex-col items-center justify-center p-1 relative overflow-hidden`}>
+          <div className={`${sideCardClass} bg-[#2D1B11]/70 border border-[#5C3A21] rounded-md shadow-lg flex flex-col items-center justify-center p-1 relative overflow-hidden`}>
             {getItemIcon(prevEntry.item, sideIconClass, assetManager)}
             {prevEntry.count > 1 && (
               <span className="absolute top-0 right-0.5 text-[8px] font-bold text-[#F5DEB3] drop-shadow-md">x{prevEntry.count}</span>
@@ -217,24 +217,24 @@ const SelectionWheel = React.memo(({
       </div>
 
       <div className="flex flex-col items-center transform scale-100 translate-y-[-4px]">
-        <span className="text-[11px] text-[#F5DEB3] font-bold mb-1.5 uppercase tracking-wider text-center drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
+        <span className="text-[11px] text-[#F5DEB3] font-bold mb-1.5 uppercase tracking-wider text-center drop-shadow-[0_2px_2px_rgba(0,0,0,1)] max-w-[170px] truncate">
           {activeEntry?.item?.name || 'Empty'}
         </span>
-        <div className="w-16 h-16 bg-[#1A0F0A]/95 backdrop-blur-md border-[1.5px] border-[#DAA520] rounded-lg flex items-center justify-center shadow-xl relative overflow-hidden group">
+        <div className="w-16 h-16 bg-[#2D1B11]/80 border-[1.5px] border-[#DAA520] rounded-lg flex items-center justify-center shadow-xl relative overflow-hidden group">
           {activeEntry && getItemIcon(activeEntry.item, "w-12 h-12 transform group-hover:scale-110 transition-transform", assetManager)}
           {activeEntry && activeEntry.count > 1 && (
             <span className="absolute top-1 right-1.5 text-[10px] font-bold text-[#F5DEB3] drop-shadow-[0_1px_1px_rgba(0,0,0,1)] bg-[#1A0F0A]/60 px-1 rounded-sm border border-[#5C3A21]/50">x{activeEntry.count}</span>
           )}
         </div>
-        <span className="text-[9px] text-[#F5DEB3] mt-2 font-mono bg-[#1A0F0A]/95 backdrop-blur border border-[#5C3A21] px-2.5 py-0.5 rounded-md uppercase tracking-widest shadow-lg drop-shadow-md">
+        <span className="text-[9px] text-[#DAA520]/60 mt-1.5 font-mono uppercase tracking-widest drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">
           {badgeLabel}
         </span>
       </div>
 
       <div className={`flex flex-col items-center transition-opacity ${hasMultipleDistinct ? 'opacity-80 hover:opacity-100' : 'opacity-[0.85]'}`}>
-        <span className="text-[10px] text-[#DAA520]/60 font-bold mb-1 font-mono drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,1)]">{nextLabel}</span>
+        <kbd className="bg-[#2D1B11] px-2 py-0.5 rounded border border-[#5C3A21] text-[#DAA520] text-xs font-bold leading-none mb-1.5 shadow-sm">{nextLabel}</kbd>
         {nextEntry ? (
-          <div className={`${sideCardClass} bg-[#1A0F0A]/90 backdrop-blur-md border border-[#5C3A21] rounded-md shadow-lg flex flex-col items-center justify-center p-1 relative overflow-hidden`}>
+          <div className={`${sideCardClass} bg-[#2D1B11]/70 border border-[#5C3A21] rounded-md shadow-lg flex flex-col items-center justify-center p-1 relative overflow-hidden`}>
             {getItemIcon(nextEntry.item, sideIconClass, assetManager)}
             {nextEntry.count > 1 && (
               <span className="absolute top-0 right-0.5 text-[8px] font-bold text-[#F5DEB3] drop-shadow-md">x{nextEntry.count}</span>
@@ -494,23 +494,28 @@ export const GameUI = ({
         </div>
       )}
 
-      <div className="fixed bottom-4 right-4 z-30 pointer-events-auto flex flex-col items-end gap-5">
-        <SelectionWheel
-          entries={groupedConsumables}
-          activeItemId={activeConsumableId}
-          assetManager={assetManager}
-          prevLabel="Q"
-          nextLabel="E"
-          badgeLabel="Item"
-        />
-        <SelectionWheel
-          entries={groupedWeapons}
-          activeItemId={activeWeaponId}
-          assetManager={assetManager}
-          prevLabel="←"
-          nextLabel="→"
-          badgeLabel="Weapon"
-        />
+      <div className="fixed bottom-4 right-4 z-30 pointer-events-auto">
+        <div className="bg-[#1A0F0A]/85 backdrop-blur-md border border-[#5C3A21] rounded-lg px-3 pt-2.5 pb-2 shadow-xl flex flex-col items-center gap-3 w-[290px]">
+          <SelectionWheel
+            entries={groupedConsumables}
+            activeItemId={activeConsumableId}
+            assetManager={assetManager}
+            prevLabel="Q"
+            nextLabel="E"
+            badgeLabel="Item"
+          />
+          {groupedConsumables.length > 0 && groupedWeapons.length > 0 && (
+            <div className="w-full border-t border-[#5C3A21]/50" />
+          )}
+          <SelectionWheel
+            entries={groupedWeapons}
+            activeItemId={activeWeaponId}
+            assetManager={assetManager}
+            prevLabel="←"
+            nextLabel="→"
+            badgeLabel="Weapon"
+          />
+        </div>
       </div>
       <JustPickedUpDisplay item={justPickedUpItem} assetManager={assetManager} />
     </>

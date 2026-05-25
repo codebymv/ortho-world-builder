@@ -8,7 +8,7 @@ type CardinalDirection = 'up' | 'down' | 'left' | 'right';
 
 const BLOCK_DAMAGE_REDUCTION = 0.6;
 const PARRY_WINDOW = 0.25;
-const ENEMY_MOVE_RADIUS = 0.15;
+const ENEMY_MOVE_RADIUS = 0.3;
 const DORMANCY_RANGE_SQ = 40 * 40;
 // Faction enemies only begin fighting each other once the player is within this radius.
 // Keeps pre-staged battles in stasis until the player is close enough to witness the start.
@@ -22,6 +22,16 @@ const FALLING_SCYTHE_RADIUS = 0.75;
 const HOLLOW_ECLIPSE_TELEGRAPH = 2.2;
 const HOLLOW_ECLIPSE_PHASE_DELAY = 8.0;
 const HOLLOW_ECLIPSE_CHANCE = 0.08;
+const MELEE_ELEVATION_TOLERANCE = 0.55;
+const MELEE_TRACE_STEP = 0.25;
+const PLAYER_LADDER_SAFE_TILE_TYPES = new Set(['ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open']);
+// Number of consecutive blocked frames before an enemy is forced into a brief recover pause.
+const ENEMY_STUCK_FRAME_LIMIT = 6;
+const ENEMY_PATH_RECOVERY_DURATION = 0.85;
+const ENEMY_PATH_RECOVERY_BLEND = 0.28;
+
+type EnemyMoveStep = { x: number; y: number; moved: boolean; vx: number; vy: number };
+type EnemyChaseMoveStep = EnemyMoveStep & { usedRecovery: boolean };
 
 function trySlideEnemyMove(
   world: World,
@@ -30,22 +40,95 @@ function trySlideEnemyMove(
   nx: number,
   ny: number,
   r: number
-): { x: number; y: number; moved: boolean; vx: number; vy: number } {
-  if (world.canMoveTo(ox, oy, nx, ny, r)) {
+): EnemyMoveStep {
+  if (world.canEnemyMoveTo(ox, oy, nx, ny, r)) {
     const dx = nx - ox;
     const dy = ny - oy;
     const len = Math.hypot(dx, dy) || 1;
     return { x: nx, y: ny, moved: true, vx: dx / len, vy: dy / len };
   }
-  if (world.canMoveTo(ox, oy, nx, oy, r)) {
+  if (world.canEnemyMoveTo(ox, oy, nx, oy, r)) {
     const sx = nx - ox;
     return { x: nx, y: oy, moved: true, vx: sx >= 0 ? 1 : -1, vy: 0 };
   }
-  if (world.canMoveTo(ox, oy, ox, ny, r)) {
+  if (world.canEnemyMoveTo(ox, oy, ox, ny, r)) {
     const sy = ny - oy;
     return { x: ox, y: ny, moved: true, vx: 0, vy: sy >= 0 ? 1 : -1 };
   }
   return { x: ox, y: oy, moved: false, vx: 0, vy: 0 };
+}
+
+function normalizeMoveVector(x: number, y: number): { x: number; y: number } {
+  const len = Math.hypot(x, y) || 1;
+  return { x: x / len, y: y / len };
+}
+
+function tryEnemyMoveVector(
+  world: World,
+  ox: number,
+  oy: number,
+  vx: number,
+  vy: number,
+  moveDistance: number,
+  r: number,
+  usedRecovery: boolean,
+): EnemyChaseMoveStep {
+  const step = trySlideEnemyMove(
+    world,
+    ox,
+    oy,
+    ox + vx * moveDistance,
+    oy + vy * moveDistance,
+    r,
+  );
+  return { ...step, usedRecovery: step.moved && usedRecovery };
+}
+
+function tryEnemyChaseMove(
+  world: World,
+  enemy: Enemy,
+  vx: number,
+  vy: number,
+  moveDistance: number,
+  r: number,
+): EnemyChaseMoveStep {
+  const preferredSide = enemy.pathRecoverySide || (enemy.visualSeed < 0.5 ? -1 : 1);
+  const sideOrder: Array<-1 | 1> = [preferredSide, preferredSide === 1 ? -1 : 1];
+  const candidates: Array<{ vx: number; vy: number; usedRecovery: boolean }> = [];
+
+  if (enemy.pathRecoveryTimer <= 0) {
+    candidates.push({ vx, vy, usedRecovery: false });
+  }
+
+  for (const side of sideOrder) {
+    const sideVx = -vy * side;
+    const sideVy = vx * side;
+    candidates.push({
+      ...normalizeMoveVector(vx * ENEMY_PATH_RECOVERY_BLEND + sideVx, vy * ENEMY_PATH_RECOVERY_BLEND + sideVy),
+      usedRecovery: true,
+    });
+    candidates.push({ vx: sideVx, vy: sideVy, usedRecovery: true });
+  }
+
+  if (enemy.pathRecoveryTimer > 0) {
+    candidates.push({ vx, vy, usedRecovery: false });
+  }
+
+  for (const candidate of candidates) {
+    const step = tryEnemyMoveVector(
+      world,
+      enemy.position.x,
+      enemy.position.y,
+      candidate.vx,
+      candidate.vy,
+      moveDistance,
+      r,
+      candidate.usedRecovery,
+    );
+    if (step.moved) return step;
+  }
+
+  return { x: enemy.position.x, y: enemy.position.y, moved: false, vx: 0, vy: 0, usedRecovery: false };
 }
 
 import type { EnemyBehaviorOverrides } from '../../data/enemies';
@@ -62,6 +145,7 @@ interface SpawnEnemyOptions {
   behaviorOverrides?: EnemyBehaviorOverrides;
   /** Faction key. Enemies with different (non-empty) factions will attack each other. */
   faction?: string;
+  patrolRadius?: number;
 }
 
 export interface Enemy {
@@ -134,6 +218,45 @@ export interface Enemy {
   comboHitsRemaining: number;
   /** Stable per-enemy seed in [0, 1) used by visual systems for sub-tile jitter, idle bob phase, etc. */
   visualSeed: number;
+  /** Consecutive frames where all movement directions were blocked while chasing. Resets on any successful move. */
+  stuckFrames: number;
+  /** Seconds remaining where chase movement prefers a side-step vector instead of retrying a known blocked line. */
+  pathRecoveryTimer: number;
+  /** Preferred side for temporary obstacle recovery. Flips when the chosen side is also hard blocked. */
+  pathRecoverySide: -1 | 1;
+}
+
+function canEnemyMeleeReachPlayer(
+  world: World | undefined,
+  enemy: Enemy,
+  playerPosition: { x: number; y: number },
+  playerCombatElevation: number | undefined,
+  playerIsClimbing: boolean,
+): boolean {
+  if (!world) return true;
+  if (playerIsClimbing) return false;
+
+  const playerTile = world.getTile(playerPosition.x, playerPosition.y);
+  if (!playerTile || PLAYER_LADDER_SAFE_TILE_TYPES.has(playerTile.type)) return false;
+
+  const enemyElevation = world.getElevationAt(enemy.position.x, enemy.position.y);
+  const targetElevation = playerCombatElevation ?? world.getElevationAt(playerPosition.x, playerPosition.y);
+  if (Math.abs(enemyElevation - targetElevation) > MELEE_ELEVATION_TOLERANCE) return false;
+
+  const dx = playerPosition.x - enemy.position.x;
+  const dy = playerPosition.y - enemy.position.y;
+  const distance = Math.hypot(dx, dy);
+  const steps = Math.max(1, Math.ceil(distance / MELEE_TRACE_STEP));
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const sampleTile = world.getTile(enemy.position.x + dx * t, enemy.position.y + dy * t);
+    if (!sampleTile || PLAYER_LADDER_SAFE_TILE_TYPES.has(sampleTile.type)) return false;
+    if (!sampleTile.walkable && !sampleTile.transition) return false;
+    const sampleElevation = sampleTile.elevation ?? 0;
+    if (Math.abs(sampleElevation - enemyElevation) > MELEE_ELEVATION_TOLERANCE) return false;
+  }
+
+  return true;
 }
 
 export interface AttackResult {
@@ -230,7 +353,7 @@ export class CombatSystem {
       recoverDuration: options.recoverDuration ?? 0.6,
       patrolOrigin: { ...position },
       patrolAngle: Math.random() * Math.PI * 2,
-      patrolRadius: 2 + Math.random() * 2,
+      patrolRadius: options.patrolRadius ?? 2 + Math.random() * 2,
       facing: 'down',
       moveCycle: Math.random() * Math.PI * 2,
       moveBlend: 0,
@@ -259,6 +382,9 @@ export class CombatSystem {
       hollowEclipseUsedPhases: new Set<number>(),
       comboHitsRemaining: 0,
       visualSeed: Math.random(),
+      stuckFrames: 0,
+      pathRecoveryTimer: 0,
+      pathRecoverySide: Math.random() < 0.5 ? -1 : 1,
     };
 
     this.enemies.push(enemy);
@@ -290,6 +416,8 @@ export class CombatSystem {
     stealthDetectionMult: number = 1.0,
     particleSystem?: { emit(position: THREE.Vector3, count: number, color: number, lifetime: number, speed: number, spread: number): void },
     playPropBreak?: () => void,
+    playerIsClimbing: boolean = false,
+    playerCombatElevation: number | undefined = undefined,
   ): { parried: boolean; parryEnemyId: string | null } {
     const updateMovementVisuals = (enemy: Enemy, vx: number, vy: number, moving: boolean, cadence: number) => {
       if (moving) {
@@ -320,6 +448,9 @@ export class CombatSystem {
 
       if (enemy.attackWindupLockTimer > 0) {
         enemy.attackWindupLockTimer = Math.max(0, enemy.attackWindupLockTimer - deltaTime);
+      }
+      if (enemy.pathRecoveryTimer > 0) {
+        enemy.pathRecoveryTimer = Math.max(0, enemy.pathRecoveryTimer - deltaTime);
       }
 
       // Dormancy: always measured against the player so the battle only activates on approach.
@@ -461,8 +592,14 @@ export class CombatSystem {
       switch (enemy.state) {
         case 'idle': {
           enemy.patrolAngle += deltaTime * 0.5;
-          const px = enemy.patrolOrigin.x + Math.cos(enemy.patrolAngle) * enemy.patrolRadius;
-          const py = enemy.patrolOrigin.y + Math.sin(enemy.patrolAngle) * enemy.patrolRadius;
+          let px = enemy.patrolOrigin.x + Math.cos(enemy.patrolAngle) * enemy.patrolRadius;
+          let py = enemy.patrolOrigin.y + Math.sin(enemy.patrolAngle) * enemy.patrolRadius;
+          // Skip patrol targets that land on unwalkable tiles so enemies don't hug cliffs
+          // or drift off their authored grass pockets.
+          if (world && !world.canEnemyMoveTo(px, py, px, py, 0.15)) {
+            px = enemy.patrolOrigin.x;
+            py = enemy.patrolOrigin.y;
+          }
           const pdx = px - enemy.position.x;
           const pdy = py - enemy.position.y;
           const pdistSq = pdx * pdx + pdy * pdy;
@@ -476,13 +613,21 @@ export class CombatSystem {
             const nvy = pdy / pdist;
             const nextX = enemy.position.x + nvx * moveSpeed;
             const nextY = enemy.position.y + nvy * moveSpeed;
-            if (!world || world.canMoveTo(enemy.position.x, enemy.position.y, nextX, nextY, 0.15)) {
+            if (!world) {
               enemy.position.x = nextX;
               enemy.position.y = nextY;
               this.updateEnemyHash(enemy, _tmpOldPos);
               updateMovementVisuals(enemy, nvx, nvy, true, 7);
             } else {
-              updateMovementVisuals(enemy, 0, 0, false, 0);
+              const step = trySlideEnemyMove(world, enemy.position.x, enemy.position.y, nextX, nextY, 0.15);
+              if (step.moved) {
+                enemy.position.x = step.x;
+                enemy.position.y = step.y;
+                this.updateEnemyHash(enemy, _tmpOldPos);
+                updateMovementVisuals(enemy, step.vx, step.vy, true, 7);
+              } else {
+                updateMovementVisuals(enemy, 0, 0, false, 0);
+              }
             }
           } else {
             updateMovementVisuals(enemy, 0, 0, false, 0);
@@ -516,7 +661,10 @@ export class CombatSystem {
             }
           }
 
-          if (distSq <= attackRangeSq) {
+          if (
+            distSq <= attackRangeSq &&
+            canEnemyMeleeReachPlayer(world, enemy, playerPosition, playerCombatElevation, playerIsClimbing)
+          ) {
             if (enemy.attackWindupLockTimer > 0) {
               updateMovementVisuals(enemy, 0, 0, false, 0);
               break;
@@ -542,13 +690,28 @@ export class CombatSystem {
               this.updateEnemyHash(enemy, _tmpOldPos);
               updateMovementVisuals(enemy, nvx, nvy, true, 10);
             } else {
-              const step = trySlideEnemyMove(world, enemy.position.x, enemy.position.y, nextX, nextY, ENEMY_MOVE_RADIUS);
+              const step = tryEnemyChaseMove(world, enemy, nvx, nvy, moveSpeed, ENEMY_MOVE_RADIUS);
               if (step.moved) {
+                enemy.stuckFrames = 0;
+                enemy.pathRecoveryTimer = step.usedRecovery
+                  ? Math.max(enemy.pathRecoveryTimer, ENEMY_PATH_RECOVERY_DURATION)
+                  : 0;
                 enemy.position.x = step.x;
                 enemy.position.y = step.y;
                 this.updateEnemyHash(enemy, _tmpOldPos);
-                updateMovementVisuals(enemy, step.vx, step.vy, true,10);
+                updateMovementVisuals(enemy, step.vx, step.vy, true, 10);
               } else {
+                enemy.stuckFrames++;
+                if (enemy.stuckFrames >= ENEMY_STUCK_FRAME_LIMIT) {
+                  const wasRecoveringPath = enemy.pathRecoveryTimer > 0;
+                  enemy.stuckFrames = 0;
+                  enemy.pathRecoverySide = enemy.pathRecoverySide === 1 ? -1 : 1;
+                  enemy.pathRecoveryTimer = ENEMY_PATH_RECOVERY_DURATION;
+                  if (wasRecoveringPath) {
+                    enemy.state = 'recovering';
+                    enemy.recoverTimer = 0.25 + Math.random() * 0.2;
+                  }
+                }
                 updateMovementVisuals(enemy, 0, 0, false, 0);
               }
             }
@@ -611,7 +774,8 @@ export class CombatSystem {
               const newDx = playerPosition.x - enemy.position.x;
               const newDy = playerPosition.y - enemy.position.y;
               const newDistSq = newDx * newDx + newDy * newDy;
-              if (newDistSq <= extAttackRangeSq && !playerInvulnerable) {
+              if (newDistSq <= extAttackRangeSq && !playerInvulnerable
+                && canEnemyMeleeReachPlayer(world, enemy, playerPosition, playerCombatElevation, playerIsClimbing)) {
                 const result = this.attackPlayer(enemy, playerBlocking, blockStartTime, now);
                 if (result.parried) {
                   parried = true;
@@ -795,13 +959,21 @@ export class CombatSystem {
           _tmpOldPos.y = enemy.position.y;
           const rnx = enemy.position.x + rvx * retreatSpeed;
           const rny = enemy.position.y + rvy * retreatSpeed;
-          if (!world || world.canMoveTo(enemy.position.x, enemy.position.y, rnx, rny, ENEMY_MOVE_RADIUS)) {
+          if (!world) {
             enemy.position.x = rnx;
             enemy.position.y = rny;
             this.updateEnemyHash(enemy, _tmpOldPos);
             updateMovementVisuals(enemy, rvx, rvy, true, 12);
           } else {
-            updateMovementVisuals(enemy, 0, 0, false, 0);
+            const step = trySlideEnemyMove(world, enemy.position.x, enemy.position.y, rnx, rny, ENEMY_MOVE_RADIUS);
+            if (step.moved) {
+              enemy.position.x = step.x;
+              enemy.position.y = step.y;
+              this.updateEnemyHash(enemy, _tmpOldPos);
+              updateMovementVisuals(enemy, step.vx, step.vy, true, 12);
+            } else {
+              updateMovementVisuals(enemy, 0, 0, false, 0);
+            }
           }
           break;
         }
@@ -848,8 +1020,23 @@ export class CombatSystem {
             const chargeSpeed = enemy.speed * chargeMult * deltaTime * 60;
             const cvx = cdx / cdist;
             const cvy = cdy / cdist;
-            enemy.position.x += cvx * chargeSpeed;
-            enemy.position.y += cvy * chargeSpeed;
+            const chargeNextX = enemy.position.x + cvx * chargeSpeed;
+            const chargeNextY = enemy.position.y + cvy * chargeSpeed;
+            if (!world) {
+              enemy.position.x = chargeNextX;
+              enemy.position.y = chargeNextY;
+            } else {
+              const step = trySlideEnemyMove(
+                world,
+                enemy.position.x,
+                enemy.position.y,
+                chargeNextX,
+                chargeNextY,
+                ENEMY_MOVE_RADIUS,
+              );
+              enemy.position.x = step.x;
+              enemy.position.y = step.y;
+            }
             this.updateEnemyHash(enemy, _tmpOldPos);
             updateMovementVisuals(enemy, cvx, cvy, true, 14);
           }

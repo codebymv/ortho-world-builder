@@ -1,7 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, User } from 'lucide-react';
 import type { GameState } from '@/lib/game/GameState';
-import { type BonfireEntry, getKindledBonfiresForMap, isPlayerAtBonfireEntry } from '@/data/bonfires';
+import {
+  type BonfireEntry,
+  bonfireEntryWorldPosition,
+  getKindledBonfiresForMap,
+  isPlayerAtBonfireEntry,
+} from '@/data/bonfires';
 
 // Inline essence icon — matches the HUD's violet-300 sparkle (`size` bumps cost readouts)
 const EssenceIcon = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
@@ -43,6 +48,40 @@ const STAT_INFO: Record<string, { label: string; description: string }> = {
   vitality:  { label: 'Vigor',      description: 'Max HP +20'      },
   endurance: { label: 'Endurance',  description: 'Max Stamina +15' },
   strength:  { label: 'Strength',   description: 'Attack +3'       },
+};
+
+const BONFIRE_NPC_RADIUS = 30;
+
+function countNearbyNpcs(gameState: GameState, entry: BonfireEntry): number {
+  const bonfirePos = bonfireEntryWorldPosition(entry);
+  const radiusSq = BONFIRE_NPC_RADIUS * BONFIRE_NPC_RADIUS;
+
+  return gameState.npcs.filter(npc => {
+    if (npc.mapId && npc.mapId !== entry.mapId) return false;
+    const dx = npc.position.x - bonfirePos.x;
+    const dy = npc.position.y - bonfirePos.y;
+    return dx * dx + dy * dy <= radiusSq;
+  }).length;
+}
+
+const NearbyNpcBadge = ({ count }: { count: number }) => {
+  if (count <= 0) return null;
+
+  const visibleIcons = Math.min(count, 3);
+  return (
+    <span
+      className="ml-2 inline-flex shrink-0 items-center gap-0.5 text-[#B8A590]"
+      title={`${count} nearby NPC${count === 1 ? '' : 's'}`}
+      aria-label={`${count} nearby NPC${count === 1 ? '' : 's'}`}
+    >
+      {Array.from({ length: visibleIcons }, (_, i) => (
+        <User key={i} className="h-3.5 w-3.5" strokeWidth={2.4} />
+      ))}
+      {count > visibleIcons && (
+        <span className="ml-0.5 text-[10px] font-bold normal-case tracking-normal">+{count - visibleIcons}</span>
+      )}
+    </span>
+  );
 };
 
 export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, triggerUIUpdate }: BonfireMenuProps) => {
@@ -190,21 +229,29 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
           <div className="space-y-[2px] mb-5 max-h-64 overflow-y-auto">
             {kindled.map(entry => {
               const isCurrent = isCurrentBonfire(entry);
+              const nearbyNpcCount = countNearbyNpcs(gameState, entry);
               return (
                 <button
                   key={entry.id}
                   disabled={isCurrent}
                   onClick={() => { onTravel(entry); }}
-                  className={`w-full text-left px-4 py-3 border text-sm font-bold uppercase tracking-wider transition-colors ${
+                  className={`flex w-full items-center justify-between gap-3 px-4 py-3 border text-left text-sm font-bold uppercase tracking-wider transition-colors ${
                     isCurrent
                       ? 'border-[#2A1A0F] text-[#3D2B21] cursor-not-allowed bg-[#120806]/40'
                       : 'border-[#3A2215] text-[#F5DEB3] hover:bg-[#2D1B11] hover:border-[#8B5A2B] hover:text-[#FFD98A]'
                   }`}
                 >
-                  {entry.name}
-                  {isCurrent && (
-                    <span className="ml-2 text-[10px] normal-case tracking-normal text-[#5C4033]">
-                      (here)
+                  <span className="min-w-0">
+                    {entry.name}
+                    {isCurrent && (
+                      <span className="ml-2 text-[10px] normal-case tracking-normal text-[#5C4033]">
+                        (here)
+                      </span>
+                    )}
+                  </span>
+                  {nearbyNpcCount > 0 && (
+                    <span className={isCurrent ? 'text-[#5C4033]' : ''}>
+                      <NearbyNpcBadge count={nearbyNpcCount} />
                     </span>
                   )}
                 </button>

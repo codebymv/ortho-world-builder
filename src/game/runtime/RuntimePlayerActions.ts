@@ -36,6 +36,7 @@ export function createPerformDodgeAction({
     if (now - state.player.lastDodgeTime < state.player.dodgeCooldown) return;
     if (state.player.stamina < dodgeStaminaCost) return;
     if (state.player.isDodging) return;
+    if (state.player.isClimbing) return;
 
     let dx = moveX;
     let dy = moveY;

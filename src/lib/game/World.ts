@@ -4,10 +4,10 @@ import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
 
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'water_corrupted' | 'stone' | 'wood' 
-  | 'tree' | 'house' | 'house_entry' | 'house_blue' | 'house_blue_entry' | 'house_green' | 'house_green_entry' | 'house_thatch' | 'house_thatch_entry' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'cottage_house_ranger' | 'rock' | 'chest' | 'chest_opened' | 'portal' | 'flower' | 'moonbloom' | 'tempest_grass'
-  | 'tall_grass' | 'bridge' | 'bridge_corrupted' | 'sand' | 'swamp' | 'lava' | 'ice'
+  | 'tree' | 'house' | 'house_entry' | 'house_blue' | 'house_blue_entry' | 'house_green' | 'house_green_entry' | 'house_thatch' | 'house_thatch_entry' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'cottage_house_ranger' | 'rock' | 'chest' | 'chest_opened' | 'special_chest' | 'special_chest_opened' | 'portal' | 'flower' | 'moonbloom' | 'tempest_grass'
+  | 'tall_grass' | 'bridge' | 'bridge_corrupted' | 'bridge_folded' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
-  | 'campfire' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'tombstone_broken' | 'tombstone_cracked_v' | 'mushroom' | 'stump'
+  | 'campfire' | 'campfire_remains' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'tombstone_broken' | 'tombstone_cracked_v' | 'mushroom' | 'stump'
   | 'fence' | 'gate' | 'barrel' | 'crate' | 'spike_trap' | 'bones'
   | 'volcanic_rock' | 'ash' | 'ruins_floor' | 'waterfall' | 'snow'
   | 'dead_tree' | 'destroyed_house' | 'destroyed_house_rubble' | 'destroyed_house_overgrown' | 'broken_sign' | 'statue'
@@ -27,7 +27,9 @@ export type TileType =
   | 'rubble' | 'broken_stall' | 'crate_stack' | 'barrel_stack' | 'chimney'
   | 'cottage_shed'
   | 'blighted_stump'
-  | 'observatory';
+  | 'observatory'
+  | 'fallen_log'
+  | 'fallen_log_v';
 
 /** Pass as `getInteractableNear` radius from gameplay so gates / chunky facades stay in scan + reach.
  * Must be >= every `getInteractableReach` value so the min() cap does not shrink large reaches. */
@@ -50,6 +52,10 @@ export interface Tile {
   activated?: boolean;
   /** Set for `stairs` when map stairways use `axis: 'ew'` — treads run east–west. */
   stairAxis?: 'ns' | 'ew';
+  /** Optional fixed backing drawn beneath overlay/height art when neighbor sampling would show seams. */
+  baseTile?: TileType;
+  /** When true, enemies cannot stand on or path onto this tile (e.g. ladder landings). */
+  enemyBlocked?: boolean;
 }
 
 export interface WorldMap {
@@ -111,6 +117,9 @@ const CULL_RADIUS = 42;
 const MAX_TILES_PER_FRAME = 200; // steady-state budget while moving
 const INITIAL_LOAD_TILES_PER_FRAME = 320; // smoother initial/after-rebuild streaming without one-frame spikes
 const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted', 'stairs', 'ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open']);
+
+/** Tile types enemies treat as solid — mirrors ladder/gate art and vertical traversal the player can use. */
+const ENEMY_BLOCKED_TILE_TYPES: ReadonlySet<TileType> = new Set(['ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open', 'stairs']);
 const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'bones',
   'flower',
@@ -128,6 +137,7 @@ const WATER_BRIDGE_TILES: ReadonlySet<TileType> = new Set<TileType>([
   'water_corrupted',
   'bridge',
   'bridge_corrupted',
+  'bridge_folded',
   'bridge_decay_blend',
 ] as TileType[]);
 const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
@@ -149,6 +159,8 @@ const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'destroyed_house_overgrown',
 ]);
 const OVERWORLD_STRUCTURE_SCALE_MULTIPLIER = 1.18;
+const BLOODSTAIN_VARIANT_COUNT = 16;
+const RUINED_FOREST_COTTAGE_VARIANT_COUNT = 12;
 
 // Seeded hash for deterministic detail placement
 function tileHash(x: number, y: number, seed: number = 0): number {
@@ -156,6 +168,23 @@ function tileHash(x: number, y: number, seed: number = 0): number {
   h = (h ^ (h >> 13)) * 1274126177;
   h = h ^ (h >> 16);
   return (h & 0x7fffffff) / 0x7fffffff; // 0..1
+}
+
+function getBloodstainTextureId(tileX: number, tileY: number): string {
+  const variant = Math.floor(tileHash(tileX, tileY, 911) * BLOODSTAIN_VARIANT_COUNT);
+  return `bloodstain_variant_${Math.min(BLOODSTAIN_VARIANT_COUNT - 1, variant)}`;
+}
+
+function getRuinedForestCottageTextureId(tileX: number, tileY: number): string {
+  const variant = Math.floor(tileHash(tileX, tileY, 947) * RUINED_FOREST_COTTAGE_VARIANT_COUNT);
+  return `cottage_house_forest_ruined_variant_${Math.min(RUINED_FOREST_COTTAGE_VARIANT_COUNT - 1, variant)}`;
+}
+
+function getOverlayTextureId(tileType: TileType, tileX: number | undefined, tileY: number | undefined): string {
+  if (tileX === undefined || tileY === undefined) return tileType;
+  if (tileType === 'bloodstain') return getBloodstainTextureId(tileX, tileY);
+  if (tileType === 'cottage_house_forest_ruined') return getRuinedForestCottageTextureId(tileX, tileY);
+  return tileType;
 }
 
 // detail Decals - now imported from data/tiles.ts
@@ -738,12 +767,13 @@ export class World {
   }
 
   private createHeightTileObject(tile: Tile, tileX?: number, tileY?: number): THREE.Object3D | null {
-    const overlayTexture = this.assetManager.getTexture(tile.type);
+    const overlayTextureId = getOverlayTextureId(tile.type, tileX, tileY);
+    const overlayTexture = this.assetManager.getTexture(overlayTextureId) ?? this.assetManager.getTexture(tile.type);
     if (!overlayTexture) return null;
 
-    const baseType = tileX !== undefined && tileY !== undefined
+    const baseType = tile.baseTile ?? (tileX !== undefined && tileY !== undefined
       ? this.resolveBaseTileType(tileX, tileY, tile.type === 'stairs' ? 'dirt' : 'grass')
-      : (tile.type === 'stairs' ? 'dirt' : 'grass');
+      : (tile.type === 'stairs' ? 'dirt' : 'grass'));
     const baseTexture = this.assetManager.getTexture(baseType);
     if (!baseTexture) return null;
 
@@ -933,10 +963,15 @@ export class World {
   }
 
   private appendTerrainSeamFillers(parent: THREE.Group, tile: Tile, tileX: number, tileY: number): void {
-    if (HEIGHT_TILE_TYPES.has(tile.type)) return;
     if (WATER_BRIDGE_TILES.has(tile.type)) return;
     const me = tile.elevation ?? 0;
     const kind = this.seamTerrainKind(tile, tileX, tileY);
+    // Height tiles (cliff_edge, cliff body, etc.) only participate in the south→north
+    // seam so that an elevation jump *within* a cliff_face feature (e.g. el0 cliff body
+    // tile adjacent to an el1 tile above it) doesn't leave a sky-coloured strip.
+    // All other seam directions are either handled by the adjacent non-height tile or
+    // are already covered by the cliff sprite itself.
+    const heightTile = HEIGHT_TILE_TYPES.has(tile.type);
 
     const addSouth = () => {
       if (tileY >= this.map.height - 1) return;
@@ -980,8 +1015,54 @@ export class World {
       parent.add(mesh);
     };
 
+    const addNorth = () => {
+      if (tileY <= 0) return;
+      const nb = this.map.tiles[tileY - 1]?.[tileX];
+      if (!nb) return;
+      if (WATER_BRIDGE_TILES.has(nb.type)) return;
+      const ne = nb.elevation ?? 0;
+      if (HEIGHT_TILE_TYPES.has(nb.type) && ne <= me) return;
+      if (ne <= me) return;
+      const gap = (ne - me) * World.ELEVATION_Y_OFFSET;
+      if (gap < 0.02) return;
+      const variant = Math.floor(tileHash(tileX, tileY, 113) * 6);
+      const mesh = new THREE.Mesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
+      this.setRenderRole(mesh, 'ground');
+      mesh.scale.set(1, gap, 1);
+      mesh.position.set(0, -(this.tileSize * 0.5 + gap * 0.5), 0.04);
+      mesh.frustumCulled = true;
+      mesh.matrixAutoUpdate = false;
+      mesh.updateMatrix();
+      parent.add(mesh);
+    };
+
+    const addWest = () => {
+      if (tileX <= 0) return;
+      const nb = this.map.tiles[tileY]?.[tileX - 1];
+      if (!nb) return;
+      if (WATER_BRIDGE_TILES.has(nb.type)) return;
+      const ne = nb.elevation ?? 0;
+      if (HEIGHT_TILE_TYPES.has(nb.type) && ne <= me) return;
+      if (ne <= me) return;
+      const gap = (ne - me) * World.ELEVATION_Y_OFFSET;
+      if (gap < 0.02) return;
+      const variant = Math.floor(tileHash(tileX, tileY, 419) * 6);
+      const mesh = new THREE.Mesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
+      this.setRenderRole(mesh, 'ground');
+      mesh.scale.set(gap, 1, 1);
+      mesh.position.set(-(this.tileSize * 0.5 + gap * 0.5), 0, 0.04);
+      mesh.frustumCulled = true;
+      mesh.matrixAutoUpdate = false;
+      mesh.updateMatrix();
+      parent.add(mesh);
+    };
+
     addSouth();
-    addEast();
+    if (!heightTile) {
+      addEast();
+      addNorth();
+      addWest();
+    }
   }
 
   /** When a ladder sits on a ledge and map-south is an unwalkable cliff, darken the south lip so the sheer face reads clearly. */
@@ -1081,7 +1162,8 @@ export class World {
       return this.createPlaneMesh(texture, -0.5, `base_${tile.type}`);
     }
 
-    const overlayTexture = this.assetManager.getTexture(tile.type);
+    const overlayTextureId = getOverlayTextureId(tile.type, tileX, tileY);
+    const overlayTexture = this.assetManager.getTexture(overlayTextureId) ?? this.assetManager.getTexture(tile.type);
     
     // Determine base tile: check surrounding terrain for context, fall back to default
     const baseType = tileX !== undefined && tileY !== undefined
@@ -1117,7 +1199,7 @@ export class World {
         ? 1500
         : tile.type === 'door' || tile.type === 'door_interior' || tile.type === 'door_iron'
           ? 1300
-          : tile.type === 'chest' || tile.type === 'chest_opened'
+          : tile.type === 'chest' || tile.type === 'chest_opened' || tile.type === 'special_chest' || tile.type === 'special_chest_opened'
             ? 900
             : tile.type === 'windmill'
               ? 850
@@ -1131,11 +1213,17 @@ export class World {
 
     const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
     const overlayZ = tile.type === 'windmill' ? 0.22 : 0.1;
-    const overlayMesh = this.createPlaneMesh(overlayTexture, overlayZ, `overlay_${tile.type}`);
+    const overlayMesh = this.createPlaneMesh(overlayTexture, overlayZ, `overlay_${overlayTextureId}`);
     this.setRenderRole(baseMesh, 'ground');
     this.setRenderRole(overlayMesh, 'overlay');
 
-    if (scale !== 1.0) {
+    if (tile.type === 'bloodstain' && tileX !== undefined && tileY !== undefined) {
+      const scaleJitter = 0.9 + tileHash(tileX, tileY, 932) * 0.18;
+      overlayMesh.scale.set(scale * scaleJitter, scale * (0.9 + tileHash(tileX, tileY, 933) * 0.16), 1);
+      overlayMesh.position.x = (tileHash(tileX, tileY, 934) - 0.5) * 0.1;
+      overlayMesh.position.y = yOffset + (tileHash(tileX, tileY, 935) - 0.5) * 0.08;
+      overlayMesh.rotation.z = Math.floor(tileHash(tileX, tileY, 936) * 4) * (Math.PI / 2);
+    } else if (scale !== 1.0) {
       overlayMesh.scale.set(scale, scale, 1);
       overlayMesh.position.y = yOffset;
     }
@@ -1403,6 +1491,31 @@ export class World {
     return y + this.getElevationAt(x, y) * World.ELEVATION_Y_OFFSET;
   }
 
+  getNearbyTileWorldPositions(tileType: TileType, playerWorldX: number, playerWorldY: number, radius: number): Array<{ x: number; y: number }> {
+    const centerTileX = Math.floor(playerWorldX + this.map.width / 2);
+    const centerTileY = Math.floor(playerWorldY + this.map.height / 2);
+    const tileRadius = Math.ceil(radius);
+    const radiusSq = radius * radius;
+    const positions: Array<{ x: number; y: number }> = [];
+
+    for (let y = Math.max(0, centerTileY - tileRadius); y <= Math.min(this.map.height - 1, centerTileY + tileRadius); y++) {
+      for (let x = Math.max(0, centerTileX - tileRadius); x <= Math.min(this.map.width - 1, centerTileX + tileRadius); x++) {
+        const tile = this.map.tiles[y]?.[x];
+        if (!tile || tile.type !== tileType) continue;
+
+        const worldX = x - this.map.width / 2 + 0.5;
+        const worldY = y - this.map.height / 2 + 0.5 + (tile.elevation ?? 0) * World.ELEVATION_Y_OFFSET;
+        const dx = worldX - playerWorldX;
+        const dy = worldY - playerWorldY;
+        if (dx * dx + dy * dy <= radiusSq) {
+          positions.push({ x: worldX, y: worldY });
+        }
+      }
+    }
+
+    return positions;
+  }
+
   private isTileWalkable(tile: Tile | null): boolean {
     if (!tile) return false;
     if (tile.transition) return true;
@@ -1455,6 +1568,36 @@ export class World {
            this.isWalkable(x + r, y - r) &&
            this.isWalkable(x - r, y + r) &&
            this.isWalkable(x + r, y + r);
+  }
+
+  private isEnemyBlockedStandingTile(tile: Tile | null): boolean {
+    if (!tile) return true;
+    if (tile.enemyBlocked) return true;
+    return ENEMY_BLOCKED_TILE_TYPES.has(tile.type);
+  }
+
+  private canEnemyStepBetween(fromTile: Tile | null, toTile: Tile | null): boolean {
+    if (toTile && ENEMY_BLOCKED_TILE_TYPES.has(toTile.type)) return false;
+    return this.canStepBetween(fromTile, toTile);
+  }
+
+  canEnemyMoveTo(fromX: number, fromY: number, toX: number, toY: number, r: number = 0): boolean {
+    if (r === 0) {
+      if (!this.canEnemyStepBetween(this.getTile(fromX, fromY), this.getTile(toX, toY))) return false;
+      if (this.isEnemyBlockedStandingTile(this.getTile(toX, toY))) return false;
+      return true;
+    }
+
+    // 4 corners + 4 edge midpoints = 8-point hull — catches obstacles that straddle
+    // the diagonal between two corners and gives tighter clearance from cliff edges.
+    return this.canEnemyMoveTo(fromX - r, fromY - r, toX - r, toY - r) &&
+           this.canEnemyMoveTo(fromX + r, fromY - r, toX + r, toY - r) &&
+           this.canEnemyMoveTo(fromX - r, fromY + r, toX - r, toY + r) &&
+           this.canEnemyMoveTo(fromX + r, fromY + r, toX + r, toY + r) &&
+           this.canEnemyMoveTo(fromX,     fromY - r, toX,     toY - r) &&
+           this.canEnemyMoveTo(fromX,     fromY + r, toX,     toY + r) &&
+           this.canEnemyMoveTo(fromX - r, fromY,     toX - r, toY    ) &&
+           this.canEnemyMoveTo(fromX + r, fromY,     toX + r, toY    );
   }
 
   canMoveTo(fromX: number, fromY: number, toX: number, toY: number, r: number = 0): boolean {
@@ -1710,7 +1853,7 @@ export class World {
     if (tile.type === 'fog_gate') {
       return 2.85;
     }
-    if (tile.type === 'chest' || tile.type === 'chest_opened') {
+    if (tile.type === 'chest' || tile.type === 'chest_opened' || tile.type === 'special_chest' || tile.type === 'special_chest_opened') {
       return 1.5;
     }
     if (tile.type === 'flower' || tile.type === 'moonbloom' || tile.type === 'mushroom' || tile.type === 'tempest_grass') {

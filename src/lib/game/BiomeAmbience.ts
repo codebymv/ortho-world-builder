@@ -7,7 +7,7 @@ interface AmbientParticle {
   maxLifetime: number;
   baseY: number;
   phase: number;
-  type: 'firefly' | 'fog' | 'dust' | 'smoke' | 'snow' | 'ember' | 'leaf';
+  type: 'firefly' | 'fog' | 'dust' | 'smoke' | 'snow' | 'ember' | 'leaf' | 'camp_smoke';
   active: boolean;
 }
 
@@ -16,7 +16,8 @@ export class BiomeAmbience {
   private scene: THREE.Scene;
   private currentBiome: string = '';
   private spawnTimer: number = 0;
-  private readonly MAX_PARTICLES = 60;
+  private campSmokeTimer: number = 0;
+  private readonly MAX_PARTICLES = 90;
 
   // Shared geometry for all ambient particles (avoids per-particle allocation)
   private readonly sharedGeometry = new THREE.PlaneGeometry(1, 1);
@@ -205,7 +206,45 @@ export class BiomeAmbience {
     mat.opacity = baseOpacity;
   }
 
-  update(deltaTime: number, playerX: number, playerY: number) {
+  private spawnCampSmokeParticle(sourceX: number, sourceY: number) {
+    let particle: AmbientParticle | null = null;
+    for (const p of this.particles) {
+      if (!p.active) {
+        particle = p;
+        break;
+      }
+    }
+    if (!particle) return;
+
+    const size = 0.08 + Math.random() * 0.06;
+    const lifetime = 1.35 + Math.random() * 0.75;
+    const x = sourceX + (Math.random() - 0.5) * 0.18;
+    const y = sourceY + 0.16 + Math.random() * 0.08;
+
+    particle.active = true;
+    particle.lifetime = 0;
+    particle.maxLifetime = lifetime;
+    particle.baseY = y;
+    particle.phase = Math.random() * Math.PI * 2;
+    particle.type = 'camp_smoke';
+    particle.velocity.set((Math.random() - 0.5) * 0.08, -0.14 - Math.random() * 0.08, 0);
+
+    particle.mesh.visible = true;
+    particle.mesh.position.set(x, y, 0.32);
+    particle.mesh.scale.set(size, size, 1);
+    particle.mesh.rotation.z = Math.random() * Math.PI * 2;
+
+    const mat = particle.mesh.material as THREE.MeshBasicMaterial;
+    mat.color.setHex(Math.random() > 0.5 ? 0xB0B0B0 : 0x8E8E8E);
+    mat.opacity = 0.22;
+  }
+
+  update(
+    deltaTime: number,
+    playerX: number,
+    playerY: number,
+    campSmokeSources: Array<{ x: number; y: number }> = [],
+  ) {
     this.spawnTimer += deltaTime;
     const spawnInterval =
       this.currentBiome === 'swamp'
@@ -217,6 +256,26 @@ export class BiomeAmbience {
     if (this.spawnTimer >= spawnInterval) {
       this.spawnParticle(playerX, playerY);
       this.spawnTimer = 0;
+    }
+
+    this.campSmokeTimer += deltaTime;
+    if (this.campSmokeTimer >= 0.26 && campSmokeSources.length > 0) {
+      const nearestSources = campSmokeSources
+        .map(source => {
+          const dx = source.x - playerX;
+          const dy = source.y - playerY;
+          return { source, distSq: dx * dx + dy * dy };
+        })
+        .filter(entry => entry.distSq <= 18 * 18)
+        .sort((a, b) => a.distSq - b.distSq)
+        .slice(0, 4);
+
+      for (const { source } of nearestSources) {
+        if (Math.random() < 0.7) {
+          this.spawnCampSmokeParticle(source.x, source.y);
+        }
+      }
+      this.campSmokeTimer = 0;
     }
 
     for (const p of this.particles) {
@@ -240,13 +299,18 @@ export class BiomeAmbience {
       } else if (p.type === 'leaf') {
         p.mesh.position.x += Math.sin(p.lifetime * 0.8 + p.phase) * 0.004;
         p.mesh.rotation.z += deltaTime * (0.5 + Math.sin(p.phase) * 0.3);
+      } else if (p.type === 'camp_smoke') {
+        p.mesh.position.x += Math.sin(p.lifetime * 4 + p.phase) * 0.0025;
+        p.mesh.rotation.z += deltaTime * 0.18;
+        const grow = 1 + p.lifetime * 0.45;
+        p.mesh.scale.setScalar(grow * (0.08 + (p.phase % 0.06)));
       }
 
       // Fade in/out
       const mat = p.mesh.material as THREE.MeshBasicMaterial;
       const fadeIn = Math.min(1, p.lifetime / 0.5);
       const fadeOut = Math.max(0, 1 - (p.lifetime - p.maxLifetime + 1) / 1);
-      const baseFade = p.type === 'fog' ? 0.15 : 0.8;
+      const baseFade = p.type === 'fog' ? 0.15 : p.type === 'camp_smoke' ? 0.24 : 0.8;
       mat.opacity = baseFade * fadeIn * fadeOut;
 
       // Deactivate old/far particles (return to pool)

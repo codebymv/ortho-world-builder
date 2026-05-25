@@ -58,6 +58,7 @@ export interface PlayerState {
   damageFlashTimer: number;
   attackAnimationTimer: number;
   isDodging: boolean;
+  isClimbing: boolean;
   dodgeTimer: number;
   iFrameTimer: number;
   dodgeDuration: number;
@@ -204,6 +205,7 @@ export class GameState {
       damageFlashTimer: 0,
       attackAnimationTimer: 0,
       isDodging: false,
+      isClimbing: false,
       dodgeTimer: 0,
       iFrameTimer: 0,
       dodgeDuration: 0.25,

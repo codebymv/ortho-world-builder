@@ -1,5 +1,6 @@
 import type { GameState, NPC } from '@/lib/game/GameState';
 import type { World } from '@/lib/game/World';
+import { isChestTileType } from '@/data/specialChests';
 
 interface TransitionLike {
   targetMap: string;
@@ -52,7 +53,7 @@ export function createPortalWarpFootSampler(state: GameState, world: World) {
     const center = world.getTile(px, py);
     if (center?.type === 'portal' && center.transition) return center.transition;
 
-    if (center?.type === 'chest' || center?.type === 'chest_opened') return null;
+    if (center && isChestTileType(center.type)) return null;
 
     for (const dir of [
       { x: 0, y: 1 },

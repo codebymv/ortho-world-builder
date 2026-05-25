@@ -217,9 +217,7 @@ export const villageDef: MapDefinition = {
     { x: 237, y: 80, targetMap: 'forest', targetX: 4, targetY: 150 },
   ],
   chests: [
-    { x: 116, y: 112, interactionId: 'start_potion_chest_1' },
-    { x: 120, y: 115, interactionId: 'start_potion_chest_2' },
-    { x: 124, y: 112, interactionId: 'start_potion_chest_3' },
+    { x: 120, y: 113, interactionId: 'start_extract_chest' },
     { x: 70, y: 100, interactionId: 'chest_1' },
     { x: 190, y: 35, interactionId: 'training_chest' },
     { x: 25, y: 120, interactionId: 'garden_chest' },
@@ -235,7 +233,7 @@ export const villageDef: MapDefinition = {
     // ====== CORE INTERACTABLES ======
     { x: 120, y: 104, type: 'bonfire', walkable: false, interactionId: 'bonfire_village' },
     { x: 119, y: 82, type: 'well', walkable: false, interactionId: 'fountain' },
-    { x: 119, y: 125, type: 'campfire', walkable: false, interactionId: 'campfire' },
+    { x: 119, y: 125, type: 'campfire_remains', walkable: false },
     { x: 20, y: 30, type: 'tombstone', walkable: false, interactionId: 'tombstone' },
 
     // ====== WELLS (residential, farm, lakeside) ======
@@ -286,14 +284,15 @@ export const villageDef: MapDefinition = {
     { x: 25, y: 110, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 140, y: 120, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 190, y: 115, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
-    { x: 75, y: 18, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 210, y: 45, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 8, y: 95, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 155, y: 38, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
 
     // ====== NORTH CORRIDOR: SUPPLIES ======
-    { x: 117, y: 38, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    { x: 117, y: 141, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 120, y: 24, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
+    // Waypost at the trail junction (world 2, -39)
+    { x: 122, y: 41, type: 'sign', walkable: false, interactionId: 'village_approach_sign' },
   ],
   props: [
     // ====== NORTH RIDGE OVERLOOK ======
@@ -850,6 +849,11 @@ export const villageDef: MapDefinition = {
     { x: 126, y: 12, type: 'rock', walkable: false },
     // Last lantern before the woods
     { x: 118, y: 10, type: 'lantern', walkable: false },
+
+    // === HERESY ALTARS (minimap landmarks — downscaled sprite icons once explored) ===
+    { x: 80, y: 10, type: 'heresy_altar', walkable: false },   // world (-40, -70) — north ridge overlook
+    { x: 16, y: 38, type: 'heresy_altar', walkable: false },   // world (-104, -42) — cemetery back grove
+    { x: 228, y: 148, type: 'heresy_altar', walkable: false }, // world (108, 68) — far east lake shore
   ],
   secretAreas: [
     { x: 5, y: 20, width: 6, height: 4, fill: 'stone' },

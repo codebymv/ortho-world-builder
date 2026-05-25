@@ -57,14 +57,14 @@ export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
   skeleton: { baseScale: 1.18, footOffset: 0.22, strideAmp: 0.04, bobAmp: 0.04, squashAmp: 0.05, leanAmp: 0.05, hpBarOffset: 0.66 },
   skeleton_captain: { baseScale: 1.54, footOffset: 0.26, strideAmp: 0.03, bobAmp: 0.035, squashAmp: 0.05, leanAmp: 0.04, hpBarOffset: 0.80 },
   bandit: { baseScale: 1.12, footOffset: 0.24, strideAmp: 0.04, bobAmp: 0.05, squashAmp: 0.06, leanAmp: 0.05, hpBarOffset: 0.7 },
-  golem: { baseScale: 2.8, footOffset: 0.46, strideAmp: 0.05, bobAmp: 0.07, squashAmp: 0.08, leanAmp: 0.05, hpBarOffset: 1.4 },
+  golem: { baseScale: 2.8, footOffset: 0.46, strideAmp: 0.03, bobAmp: 0.045, squashAmp: 0.05, leanAmp: 0.025, hpBarOffset: 1.4 },
   spider: { baseScale: 1.08, footOffset: 0.14, strideAmp: 0.06, bobAmp: 0.02, squashAmp: 0.08, leanAmp: 0.06, hpBarOffset: 0.56 },
   armored_wolf: { baseScale: 1.34, footOffset: 0.2, strideAmp: 0.045, bobAmp: 0.04, squashAmp: 0.06, leanAmp: 0.07, hpBarOffset: 0.68 },
-  stone_sentinel: { baseScale: 2.0, footOffset: 0.3, strideAmp: 0.04, bobAmp: 0.06, squashAmp: 0.07, leanAmp: 0.05, hpBarOffset: 1.0 },
+  stone_sentinel: { baseScale: 2.0, footOffset: 0.3, strideAmp: 0.026, bobAmp: 0.038, squashAmp: 0.045, leanAmp: 0.026, hpBarOffset: 1.0 },
   slime: { baseScale: 1.18, footOffset: 0.12, strideAmp: 0.02, bobAmp: 0.035, squashAmp: 0.12, leanAmp: 0.02, hpBarOffset: 0.58 },
   hollow_guardian: { baseScale: 2.6, footOffset: 0.22, strideAmp: 0.012, bobAmp: 0.04, squashAmp: 0.03, leanAmp: 0.02, hpBarOffset: 1.35 },
   ashen_reaver: { baseScale: 2.8, footOffset: 0.24, strideAmp: 0.015, bobAmp: 0.035, squashAmp: 0.025, leanAmp: 0.02, hpBarOffset: 1.45 },
-  corrupted_giant: { baseScale: 2.6, footOffset: 0.42, strideAmp: 0.038, bobAmp: 0.055, squashAmp: 0.07, leanAmp: 0.04, hpBarOffset: 1.35 },
+  corrupted_giant: { baseScale: 2.6, footOffset: 0.42, strideAmp: 0.026, bobAmp: 0.04, squashAmp: 0.05, leanAmp: 0.025, hpBarOffset: 1.35 },
 };
 
 export function createDefaultNpcData(): NPC[] {

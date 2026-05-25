@@ -51,7 +51,7 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   { keywords: ['cemetery', 'graveyard', 'tombstone'], tileX: 24, tileY: 26, map: 'village', label: 'Cemetery', type: 'poi', color: '#9370DB' },
   { keywords: ['market', 'shop', 'merchant'], tileX: 170, tileY: 72, map: 'village', label: 'Market District', type: 'poi', color: '#FFD700' },
   { keywords: ['training ground', 'training'], tileX: 182, tileY: 28, map: 'village', label: 'Training Grounds', type: 'poi', color: '#FF6347' },
-  { keywords: ['elder', 'village elder'], tileX: 102, tileY: 70, map: 'village', label: 'Village Elder', type: 'npc', color: '#FFD700' },
+  { keywords: ['elder', 'village elder'], tileX: 124, tileY: 100, map: 'village', label: 'Village Elder', type: 'npc', color: '#FFD700' },
   { keywords: ['blacksmith', 'forge', 'grond'], tileX: 155, tileY: 72, map: 'village', label: 'Blacksmith', type: 'npc', color: '#FF8C00' },
   { keywords: ['healer', 'sister lenna'], tileX: 110, tileY: 95, map: 'village', label: 'Healer', type: 'npc', color: '#98FB98' },
   { keywords: ['farm', 'farmer', 'crops', 'cabbage'], tileX: 40, tileY: 112, map: 'village', label: 'Farmlands', type: 'poi', color: '#8B7355' },
@@ -61,7 +61,7 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   { keywords: ['lake'], tileX: 185, tileY: 120, map: 'village', label: 'Village Lake', type: 'poi', color: '#4169E1' },
 
   // Forest locations
-  { keywords: ['forest', 'whispering woods', 'woods'], tileX: 150, tileY: 150, map: 'forest', label: 'Whispering Woods', type: 'danger', color: '#228B22' },
+
   { keywords: ['ranger', 'ranger outpost'], tileX: 140, tileY: 170, map: 'forest', label: 'Ranger Outpost', type: 'poi', color: '#8FBC8F' },
   // Fort gate key — use "chapel ruins" only (not plain "chapel") so village chapel dialogue does not ping the woods
   { keywords: ['chapel ruins'], tileX: 55, tileY: 114, map: 'forest', label: 'Chapel Ruins (ranger remains)', type: 'poi', color: '#A1887F' },
@@ -130,7 +130,14 @@ export function isNpcObjectiveTarget(
   return markers.some(marker => marker.map === currentMap && marker.type === 'quest' && markerTargetsNpc(marker, npc));
 }
 
-export function isPrimaryObjectiveMarker(marker: Pick<MapMarker, 'label' | 'type'>, state: GameState): boolean {
+export function isPrimaryObjectiveMarker(
+  marker: Pick<MapMarker, 'label' | 'type'> & { id?: string },
+  state: GameState,
+): boolean {
+  // Dynamic objective markers are always primary when they exist
+  if (marker.id === MANUSCRIPT_PRIMARY_MARKER_ID) return true;
+  if (marker.id === VILLAGE_PRIMARY_MARKER_ID) return true;
+
   const objectiveText = getPrimaryObjectiveText(state);
   if (!objectiveText) return false;
 
@@ -150,6 +157,100 @@ export function isPrimaryObjectiveMarker(marker: Pick<MapMarker, 'label' | 'type
   if (label.includes('ranger') && objectiveText.includes('ranger')) return true;
 
   return false;
+}
+
+// ─── Manuscript quest — dynamic primary objective marker ──────────────────────
+
+export const MANUSCRIPT_PRIMARY_MARKER_ID = 'manuscript_primary_objective';
+
+/**
+ * Computes the single "Primary" objective marker for the manuscript
+ * (find_hunter) quest.  Its tile position advances automatically as the player
+ * collects fragments and opens gates.  Returns null when the quest is not
+ * active, already completed, or no longer needs a map pin.
+ *
+ * Stage 1 — initial:                  Disparaged Cottage (tile 137, 184)
+ * Stage 2 — fragment collected:        Manuscript Gate Guard (tile 230, 154)
+ * Stage 3 — checkpoint gate open:      Second manuscript location (tile 213, 70)
+ * Stage 4 — second manuscript in hand: Hollow fog-gate entrance (tile 122, 18)
+ */
+export function getManuscriptPrimaryObjectiveMarker(state: GameState): MapMarker | null {
+  const quest = state.quests.find(q => q.id === 'find_hunter' && !q.completed);
+  if (!quest) return null;
+  // Show the marker once the quest is active OR the player has already collected
+  // the first fragment (in case they picked it up before the quest was formally started).
+  if (!quest.active && !state.getFlag('manuscript_fragment_collected')) return null;
+
+  const now = Date.now();
+  const base = {
+    id: MANUSCRIPT_PRIMARY_MARKER_ID,
+    label: 'Primary',
+    type: 'quest' as const,
+    color: '#FFD700',
+    map: 'forest',
+    pulseUntil: 0,
+    createdAt: now,
+    permanent: true,
+  };
+
+  // Stage 4: second manuscript in hand → go fight the boss at the fog gate
+  if (state.getFlag('hunters_manuscript_collected') && !state.getFlag('hollow_guardian_defeated')) {
+    return { ...base, tileX: 122, tileY: 18 };
+  }
+  // Boss defeated — quest is wrapping up; no forest pin needed
+  if (state.getFlag('hollow_guardian_defeated')) return null;
+
+  // Stage 3: checkpoint gate open → go collect the second manuscript piece
+  if (state.getFlag('manuscript_checkpoint_gate_open')) {
+    return { ...base, tileX: 213, tileY: 70 };
+  }
+  // Stage 2: first fragment collected → talk to the gate guard to open the checkpoint
+  if (state.getFlag('manuscript_fragment_collected')) {
+    return { ...base, tileX: 230, tileY: 154 };
+  }
+  // Stage 1: initial → find the Disparaged Cottage
+  return { ...base, tileX: 137, tileY: 184 };
+}
+
+// ─── Village — dynamic primary objective marker ────────────────────────────────
+
+export const VILLAGE_PRIMARY_MARKER_ID = 'village_primary_objective';
+
+/**
+ * Computes the "Primary" objective marker shown in Greenleaf Village for the
+ * find_hunter quest.
+ *
+ * Stage 1 — quest not yet given:  Village Elder (tile 124, 100)
+ * Stage 2 — quest active:         Forest portal (tile 120, 8)
+ */
+export function getVillagePrimaryObjectiveMarker(state: GameState): MapMarker | null {
+  const quest = state.quests.find(q => q.id === 'find_hunter');
+
+  // Quest fully completed → no village pin needed
+  if (quest?.completed) return null;
+  // Player has already progressed into the forest — the static "Village Elder"
+  // marker handles the "return to report" stage on its own.
+  if (state.getFlag('manuscript_fragment_collected')) return null;
+
+  const now = Date.now();
+  const base = {
+    id: VILLAGE_PRIMARY_MARKER_ID,
+    label: 'Primary',
+    type: 'quest' as const,
+    color: '#FFD700',
+    map: 'village',
+    pulseUntil: 0,
+    createdAt: now,
+    permanent: true,
+  };
+
+  // Quest accepted → direct the player to the forest entrance portal
+  if (quest?.active) {
+    return { ...base, tileX: 120, tileY: 8 };
+  }
+  // Quest not yet given (beginning of game, elder not spoken to yet) →
+  // point to the Elder regardless of whether the quest record exists yet.
+  return { ...base, tileX: 124, tileY: 100 };
 }
 
 /**
@@ -198,12 +299,12 @@ export function extractMarkersFromText(
           addedIds.add(portalMarkerId);
           markers.push({
             id: portalMarkerId,
-            label: `→ ${loc.label}`,
+            label: 'Portal',
             tileX: portal.portalTileX,
             tileY: portal.portalTileY,
             map: currentMap,
             type: 'portal',
-            color: '#9370DB',
+            color: '#C71585',
             pulseUntil: now + 120000, // portal pulses for 2 minutes
             createdAt: now,
             permanent: true,

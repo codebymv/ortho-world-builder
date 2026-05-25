@@ -13,6 +13,31 @@ type EnemyVisualProfile = {
   hpBarOffset: number;
 };
 
+type EnemyWalkAnimationConfig = {
+  frameCount: number;
+  frameRate: number;
+};
+
+const ENEMY_WALK_ANIMATIONS: Record<string, EnemyWalkAnimationConfig> = {
+  bandit: { frameCount: 4, frameRate: 2.4 },
+  skeleton: { frameCount: 4, frameRate: 2.4 },
+  skeleton_captain: { frameCount: 4, frameRate: 2.2 },
+  wolf: { frameCount: 4, frameRate: 2.2 },
+  armored_wolf: { frameCount: 4, frameRate: 2.0 },
+  spider: { frameCount: 4, frameRate: 1.35 },
+  golem: { frameCount: 4, frameRate: 0.72 },
+  stone_sentinel: { frameCount: 4, frameRate: 0.9 },
+  corrupted_giant: { frameCount: 4, frameRate: 0.72 },
+  slime: { frameCount: 4, frameRate: 2.0 },
+  plant: { frameCount: 4, frameRate: 1.4 },
+  shadow: { frameCount: 4, frameRate: 1.2 },
+  shadow_lurker: { frameCount: 4, frameRate: 1.0 },
+  hollow_reaver: { frameCount: 4, frameRate: 1.1 },
+  hollow_guardian: { frameCount: 4, frameRate: 0.8 },
+  ashen_reaver: { frameCount: 4, frameRate: 0.75 },
+  void_wisp: { frameCount: 4, frameRate: 1.3 },
+};
+
 interface ApplyEnemyVisualsOptions {
   enemy: Enemy;
   state: GameState;
@@ -27,8 +52,13 @@ interface ApplyEnemyVisualsOptions {
   getTexture: (key: string) => THREE.Texture | null;
 }
 
+function resolveWalkFrame(enemy: Enemy, enemyType: string): number {
+  const config = ENEMY_WALK_ANIMATIONS[enemyType] ?? { frameCount: 2, frameRate: 2.0 };
+  return Math.floor(enemy.moveCycle * config.frameRate) % config.frameCount;
+}
+
 function resolveSpriteKey(enemy: Enemy, enemyType: string): string {
-  if (enemyType === 'bandit' || enemyType === 'skeleton_captain') {
+  if (enemyType === 'bandit' || enemyType === 'skeleton' || enemyType === 'skeleton_captain') {
     const animState = enemy.state === 'telegraphing'
       ? 'charge'
       : enemy.state === 'recovering' && enemy.attackAnimationTimer > 0
@@ -37,7 +67,7 @@ function resolveSpriteKey(enemy: Enemy, enemyType: string): string {
           ? 'walk'
           : 'idle';
     const animFrame = animState === 'walk'
-      ? Math.floor(enemy.moveCycle * 2.4) % 2
+      ? resolveWalkFrame(enemy, enemyType)
       : animState === 'charge'
         ? Math.min(2, Math.floor((1 - enemy.telegraphTimer / enemy.telegraphDuration) * 3))
         : animState === 'attack'
@@ -52,7 +82,7 @@ function resolveSpriteKey(enemy: Enemy, enemyType: string): string {
     if (enemy.state === 'telegraphing') return `${prefix}_telegraph`;
     if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return `${prefix}_attack`;
     if (enemy.moveBlend > 0.25) {
-      const frame = Math.floor(enemy.moveCycle * 0.4) % 2;
+      const frame = resolveWalkFrame(enemy, enemyType);
       return `${prefix}_walk_${frame}`;
     }
     return prefix;
@@ -62,13 +92,16 @@ function resolveSpriteKey(enemy: Enemy, enemyType: string): string {
     if (enemy.state === 'telegraphing') return 'enemy_stone_sentinel_telegraph';
     if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return 'enemy_stone_sentinel_attack';
     if (enemy.moveBlend > 0.25) {
-      const frame = Math.floor(enemy.moveCycle * 0.5) % 2;
+      const frame = resolveWalkFrame(enemy, enemyType);
       return `enemy_stone_sentinel_walk_${frame}`;
     }
     return 'enemy_stone_sentinel';
   }
   if (enemy.state === 'telegraphing') return `${enemy.sprite}_telegraph`;
   if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return `${enemy.sprite}_attack`;
+  if (enemy.moveBlend > 0.25 && ENEMY_WALK_ANIMATIONS[enemyType]) {
+    return `${enemy.sprite}_walk_${resolveWalkFrame(enemy, enemyType)}`;
+  }
   return enemy.sprite;
 }
 
@@ -205,25 +238,29 @@ export function applyEnemyVisuals({
         rotation = moveWave * 0.015;
         break;
       case 'spider':
-        finalEnemyY += Math.sin(enemy.moveCycle * 2) * 0.012;
-        rotation = moveWave * 0.03;
+        finalEnemyY += Math.sin(enemy.moveCycle * 1.35) * 0.004;
+        scaleX *= 1 + stride * 0.006;
+        scaleY *= 1 - stride * 0.004;
+        rotation = moveWave * 0.008;
         break;
       case 'golem': {
-        const golemStep = Math.abs(Math.sin(enemy.moveCycle * 0.9));
-        finalEnemyY += golemStep * 0.1;
-        scaleX *= 1 + golemStep * 0.08;
-        scaleY *= 1 - golemStep * 0.1;
-        finalEnemyX += Math.sin(enemy.moveCycle * 0.9) * visual.strideAmp * (lateralBias !== 0 ? lateralBias * 0.8 : 0.4);
-        rotation = Math.sin(enemy.moveCycle * 0.9) * 0.08 * (lateralBias !== 0 ? lateralBias : 1);
+        const golemStep = Math.abs(Math.sin(enemy.moveCycle * 0.72));
+        const plant = golemStep > 0.82 ? (golemStep - 0.82) / 0.18 : 0;
+        finalEnemyY += golemStep * 0.045 - plant * 0.035;
+        scaleX *= 1 + plant * 0.075;
+        scaleY *= 1 - plant * 0.085;
+        finalEnemyX += Math.sin(enemy.moveCycle * 0.72) * visual.strideAmp * (lateralBias !== 0 ? lateralBias * 0.32 : 0.12);
+        rotation = Math.sin(enemy.moveCycle * 0.72) * 0.028 * (lateralBias !== 0 ? lateralBias : 1);
         break;
       }
       case 'stone_sentinel': {
-        const sentinelStep = Math.abs(Math.sin(enemy.moveCycle * 1.2));
-        finalEnemyY += sentinelStep * 0.06;
-        scaleX *= 1 + sentinelStep * 0.05;
-        scaleY *= 1 - sentinelStep * 0.07;
-        finalEnemyX += Math.sin(enemy.moveCycle * 1.2) * visual.strideAmp * (lateralBias !== 0 ? lateralBias * 0.6 : 0.3);
-        rotation = Math.sin(enemy.moveCycle * 1.2) * 0.05 * (lateralBias !== 0 ? lateralBias : 1);
+        const sentinelStep = Math.abs(Math.sin(enemy.moveCycle * 0.95));
+        const shoulderDrop = sentinelStep > 0.78 ? (sentinelStep - 0.78) / 0.22 : 0;
+        finalEnemyY += sentinelStep * 0.035 - shoulderDrop * 0.02;
+        scaleX *= 1 + shoulderDrop * 0.045;
+        scaleY *= 1 - shoulderDrop * 0.055;
+        finalEnemyX += Math.sin(enemy.moveCycle * 0.95) * visual.strideAmp * (lateralBias !== 0 ? lateralBias * 0.28 : 0.1);
+        rotation = Math.sin(enemy.moveCycle * 0.95) * 0.024 * (lateralBias !== 0 ? lateralBias : 1);
         break;
       }
       case 'hollow_guardian':
@@ -235,8 +272,10 @@ export function applyEnemyVisuals({
         rotation *= 0.3;
         break;
       case 'plant':
-        finalEnemyX += Math.sin(currentTime / 260 + seed) * 0.02;
-        rotation = moveWave * 0.025;
+        finalEnemyX += Math.sin(enemy.moveCycle * 0.7 + seed) * 0.008;
+        scaleX *= 1 + stride * 0.012;
+        scaleY *= 1 - stride * 0.01;
+        rotation = Math.sin(enemy.moveCycle * 0.7 + seed) * 0.018;
         break;
     }
   } else if (enemy.state === 'telegraphing') {

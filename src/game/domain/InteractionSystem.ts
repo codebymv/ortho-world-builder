@@ -36,11 +36,14 @@ interface InteractionSystemContext {
   updateWorldChunksAtPlayer: () => void;
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
+  syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncHollowApproachLadderState: () => void;
   syncCliffCorridorLadderState: () => void;
   syncForestFortGateState: () => void;
   syncNorthFortGateState: () => void;
+  syncWestFortGateState: () => void;
+  syncGolemFortGateState: () => void;
   syncManuscriptCheckpointGateState: () => void;
   syncGilrhymBossState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
@@ -169,16 +172,24 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     const CHEST_CONSUMABLE_OVERRIDES: Record<string, string> = {
       hidden_grove_chest: 'berserker_draught',
       forest_hermit_chest: 'berserker_draught',
+      forest_shore_divide_chest: 'berserker_draught',
       forgotten_shrine_chest: 'last_breath_charm',
       wolf_den_chest: 'last_breath_charm',
       // In front of the hollow corridor gate — "you'll need this" before the Hollow proper.
       hollow_gate_chest: 'last_breath_charm',
+      cliff_corridor_chest: 'last_breath_charm',
     };
+    // Chests that yield multiple Ephemeral Extracts instead of the usual single one.
+    const TRIPLE_EXTRACT_CHESTS = new Set(['start_extract_chest']);
+    const extractCount = TRIPLE_EXTRACT_CHESTS.has(interactionId) ? 3 : 1;
+
     const overrideItemId = CHEST_CONSUMABLE_OVERRIDES[interactionId];
     const consumableItem = overrideItemId ? context.items[overrideItemId] : context.items.health_potion;
-    let consumableLabel = 'an Ephemeral Extract';
+    let consumableLabel = extractCount > 1 ? `${extractCount}× Ephemeral Extract` : 'an Ephemeral Extract';
     if (consumableItem) {
-      context.state.addItem({ ...consumableItem });
+      for (let i = 0; i < extractCount; i++) {
+        context.state.addItem({ ...consumableItem });
+      }
       context.playItemGrab();
       if (overrideItemId) {
         // Article matches the item name's first vowel sound.
@@ -264,8 +275,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       interactionId !== 'gilrhym_fountain' &&
       interactionId !== 'gilrhym_market_well' &&
       interactionId !== 'gilrhym_cathedral_well' &&
-      interactionId !== 'healing_mushroom' &&
-      interactionId !== 'campfire'
+      interactionId !== 'healing_mushroom'
     ) {
       return false;
     }
@@ -288,9 +298,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.emitHeal(new THREE.Vector3(checkX, checkY, 0.3));
 
     const label =
-      interactionId === 'campfire'
-        ? 'Resting by the Fire'
-        : interactionId === 'healing_mushroom'
+      interactionId === 'healing_mushroom'
           ? 'Mushroom Energy!'
           : 'Refreshing Water!';
 
@@ -354,6 +362,31 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  const tryHandleRiversideBridgeShortcutLever = (interactionId: string): boolean => {
+    if (interactionId !== 'riverside_bridge_shortcut_lever') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('riverside_bridge_shortcut_open')) {
+      context.notify('The bridge is already lowered.', { id: 'riverside-bridge-open', duration: 1800 });
+      return true;
+    }
+
+    context.state.setFlag('riverside_bridge_shortcut_open', true);
+    context.syncRiversideBridgeShortcutState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Shortcut Unlocked');
+    context.notify('Shortcut unlocked', {
+      id: 'riverside-bridge-shortcut-unlocked',
+      type: 'success',
+      description: 'The folded bridge slams down over the river, opening the path back to the south bank.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
   const tryHandleHollowShortcutLever = (interactionId: string): boolean => {
     if (interactionId !== 'hollow_shortcut_lever') return false;
     if (context.state.currentMap !== 'forest') return true;
@@ -379,19 +412,12 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
-  const tryHandleHollowApproachLadder = (interactionId: string, ladderX: number, _ladderY: number): boolean => {
+  const tryHandleHollowApproachLadder = (interactionId: string, _ladderX: number, _ladderY: number): boolean => {
     if (interactionId !== 'hollow_approach_ladder') return false;
     if (context.state.currentMap !== 'forest') return true;
 
     if (context.state.getFlag('hollow_approach_ladder_extended')) {
       context.notify('The ladder is already extended.', { id: 'ladder-already-extended', duration: 1800 });
-      return true;
-    }
-
-    // Only allow from the left/west side (long way around).
-    // Reject if player is to the right/east of the ladder (short-way, unintended approach).
-    if (context.state.player.position.x > ladderX) {
-      context.startDialogue('hollow_approach_ladder_wrong_side');
       return true;
     }
 
@@ -403,7 +429,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.notify('Ladder extended', {
       id: 'hollow-approach-ladder-extended',
       type: 'success',
-      description: 'You kick the coiled ladder over the edge. It unrolls down the cliff face â€” a shortcut back.',
+      description: 'You toss the rope up. It hooks on the clifftop — a shortcut back up.',
       duration: 3200,
     });
     context.triggerSave();
@@ -411,7 +437,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
-  const tryHandleCliffCorridorLadder = (interactionId: string, _ladderX: number, ladderY: number): boolean => {
+  const tryHandleCliffCorridorLadder = (interactionId: string, ladderX: number, _ladderWorldY: number): boolean => {
     if (interactionId !== 'cliff_corridor_ladder') return false;
     if (context.state.currentMap !== 'forest') return true;
 
@@ -420,7 +446,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
-    if (context.state.player.position.y > ladderY) {
+    // Only allow from the enclosed overlook west of the cliff seam. The lower corridor side
+    // sees the coiled ladder but cannot reach the release pin.
+    if (context.state.player.position.x > ladderX) {
       context.startDialogue('cliff_corridor_ladder_wrong_side');
       return true;
     }
@@ -429,11 +457,11 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.syncCliffCorridorLadderState();
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
-    context.showHeroOverlay('Ladder Extended');
-    context.notify('Ladder extended', {
+    context.showHeroOverlay('Shortcut Unlocked');
+    context.notify('Passage opened', {
       id: 'cliff-corridor-ladder-extended',
       type: 'success',
-      description: 'You kick the coiled ladder over the edge. It unrolls down the cliff face â€” a shortcut to the terrace below.',
+      description: 'You kick the coiled ladder over the edge. It drops to the lower east landing.',
       duration: 3200,
     });
     context.triggerSave();
@@ -460,8 +488,8 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.syncManuscriptCheckpointGateState();
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
-    context.showHeroOverlay('Fortress Unlocked');
-    context.notify('Fort gate unlocked', {
+    context.showHeroOverlay('Eastern Fort Unlocked');
+    context.notify('Eastern fort gate unlocked', {
       id: 'fort-gate-unlocked',
       type: 'success',
       description: 'The iron lock gives way. The fort is open.',
@@ -490,9 +518,69 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.syncNorthFortGateState();
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
-    context.showHeroOverlay('Fortress Unlocked');
-    context.notify('Fort gate unlocked', {
+    context.showHeroOverlay('Southern Fort Unlocked');
+    context.notify('Southern fort gate unlocked', {
       id: 'north-fort-gate-unlocked',
+      type: 'success',
+      description: 'The iron lock yields. The southern fort stands open.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
+  const tryHandleWestFortGate = (interactionId: string): boolean => {
+    if (interactionId !== 'west_fort_gate') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('west_fort_gate_open')) {
+      context.notify('The fort gate is already open.', { id: 'west-fort-gate-open', duration: 1800 });
+      return true;
+    }
+
+    if (!context.state.hasItem('fort_gate_key')) {
+      context.startDialogue('west_fort_gate_locked');
+      return true;
+    }
+
+    context.state.setFlag('west_fort_gate_open', true);
+    context.syncWestFortGateState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Western Fort Unlocked');
+    context.notify('Western fort gate unlocked', {
+      id: 'west-fort-gate-unlocked',
+      type: 'success',
+      description: 'The iron lock yields. The western fort stands open.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
+  const tryHandleGolemFortGate = (interactionId: string): boolean => {
+    if (interactionId !== 'golem_fort_gate') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('golem_fort_gate_open')) {
+      context.notify('The fort gate is already open.', { id: 'golem-fort-gate-open', duration: 1800 });
+      return true;
+    }
+
+    if (!context.state.hasItem('fort_gate_key')) {
+      context.startDialogue('golem_fort_gate_locked');
+      return true;
+    }
+
+    context.state.setFlag('golem_fort_gate_open', true);
+    context.syncGolemFortGateState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Northern Fort Unlocked');
+    context.notify('Northern fort gate unlocked', {
+      id: 'golem-fort-gate-unlocked',
       type: 'success',
       description: 'The iron lock yields. The northern fort stands open.',
       duration: 3200,
@@ -651,11 +739,14 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleHealingSource,
     tryHandleForestShortcutLever,
     tryHandleGroveShelfShortcutLever,
+    tryHandleRiversideBridgeShortcutLever,
     tryHandleHollowShortcutLever,
     tryHandleHollowApproachLadder,
     tryHandleCliffCorridorLadder,
     tryHandleForestFortGate,
     tryHandleNorthFortGate,
+    tryHandleWestFortGate,
+    tryHandleGolemFortGate,
     tryHandleManuscriptCheckpointGate,
     tryHandleHollowFogGate,
     tryHandleGilrhymShortcutLever,

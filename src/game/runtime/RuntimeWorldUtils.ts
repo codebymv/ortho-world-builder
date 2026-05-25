@@ -8,7 +8,7 @@ import { ENEMY_BLUEPRINTS, DEFAULT_ENEMY } from '@/data/enemies';
 import type { Item } from '@/lib/game/GameState';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
 
-export const SPAWN_BODY_R = 0.15;
+export const SPAWN_BODY_R = 0.3;
 
 export function getMapDisplayName(mapId: string): string {
   return mapDefinitions[mapId]?.name ?? mapId.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
@@ -49,6 +49,9 @@ export function getInteractionPromptLabel(
   if (interactionId === 'grove_shelf_shortcut_lever') {
     return state.getFlag('grove_shelf_shortcut_open') ? 'Shortcut Unlocked' : 'Unbar Trail Gate';
   }
+  if (interactionId === 'riverside_bridge_shortcut_lever') {
+    return state.getFlag('riverside_bridge_shortcut_open') ? 'Shortcut Unlocked' : 'Lower Bridge';
+  }
 
   if (criticalItemInteractionIds.has(interactionId)) {
     const config = criticalPathItems[interactionId];
@@ -66,7 +69,6 @@ export function getInteractionPromptLabel(
 
   if (interactionId.includes('sign')) return 'Read Sign';
   if (interactionId === 'tombstone') return 'Read Epitaph';
-  if (interactionId === 'campfire') return 'Rest at Campfire';
   if (interactionId === 'lantern') return null;
   if (interactionId === 'ancient_well') return 'Drink from Well';
   if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'ancient_well' || interactionId === 'gilrhym_fountain' || interactionId === 'gilrhym_market_well' || interactionId === 'gilrhym_cathedral_well') return 'Drink from Fountain';
@@ -110,7 +112,7 @@ export function getInteractionPromptLabel(
 }
 
 function pickEnemySpawnInZone(
-  zone: { x: number; y: number; width: number; height: number },
+  zone: { x: number; y: number; width: number; height: number; patrolRadius?: number },
   mapWorld: WorldMap,
   world: World,
   index: number,
@@ -127,12 +129,12 @@ function pickEnemySpawnInZone(
   for (let t = 0; t < 10; t++) {
     const ex = bx + Math.random() * subW - mapWorld.width / 2;
     const ey = by + Math.random() * subH - mapWorld.height / 2;
-    if (world.canMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)) return { x: ex, y: ey };
+    if (world.canEnemyMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)) return { x: ex, y: ey };
   }
   for (let t = 0; t < 28; t++) {
     const ex = zone.x + Math.random() * zone.width - mapWorld.width / 2;
     const ey = zone.y + Math.random() * zone.height - mapWorld.height / 2;
-    if (world.canMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)) return { x: ex, y: ey };
+    if (world.canEnemyMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)) return { x: ex, y: ey };
   }
   return null;
 }
@@ -192,6 +194,7 @@ export function spawnEnemiesFromMapZones(mapKey: string, mapWorld: WorldMap, com
           staggerDuration: blueprint.staggerDuration,
           behaviorOverrides: blueprint.behaviorOverrides,
           faction: zone.faction ?? blueprint.faction,
+          patrolRadius: zone.patrolRadius,
         },
       );
     }

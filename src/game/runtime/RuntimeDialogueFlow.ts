@@ -38,11 +38,14 @@ interface CreateRuntimeDialogueFlowOptions {
   updateWorldChunksAtPlayer: () => void;
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
+  syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncHollowApproachLadderState: () => void;
   syncCliffCorridorLadderState: () => void;
   syncForestFortGateState: () => void;
   syncNorthFortGateState: () => void;
+  syncWestFortGateState: () => void;
+  syncGolemFortGateState: () => void;
   syncManuscriptCheckpointGateState: () => void;
   syncGilrhymBossState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
@@ -78,11 +81,14 @@ export function createRuntimeDialogueFlow({
   updateWorldChunksAtPlayer,
   syncWhisperingWoodsShortcutState,
   syncGroveShelfShortcutState,
+  syncRiversideBridgeShortcutState,
   syncHollowShortcutState,
   syncHollowApproachLadderState,
   syncCliffCorridorLadderState,
   syncForestFortGateState,
   syncNorthFortGateState,
+  syncWestFortGateState,
+  syncGolemFortGateState,
   syncManuscriptCheckpointGateState,
   syncGilrhymBossState,
   showHeroOverlay,
@@ -149,11 +155,14 @@ export function createRuntimeDialogueFlow({
     updateWorldChunksAtPlayer,
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
+    syncRiversideBridgeShortcutState,
     syncHollowShortcutState,
     syncHollowApproachLadderState,
     syncCliffCorridorLadderState,
     syncForestFortGateState,
     syncNorthFortGateState,
+    syncWestFortGateState,
+    syncGolemFortGateState,
     syncManuscriptCheckpointGateState,
     syncGilrhymBossState,
     showHeroOverlay,

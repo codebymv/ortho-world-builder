@@ -346,7 +346,7 @@ export function createRuntimeCombatActions({
   const _executeAttackStep = (step: number, skipCooldown = false): number => {
     const currentTime = performance.now();
     if (!skipCooldown && currentTime - state.player.lastAttackTime < state.player.attackCooldown) return 0;
-    if (state.player.isDodging) return 0;
+    if (state.player.isDodging || state.player.isClimbing) return 0;
     if (state.player.stamina < attackStaminaCost) return 0;
 
     if (getIsBlocking()) setIsBlocking(false);
@@ -384,7 +384,7 @@ export function createRuntimeCombatActions({
       return;
     }
 
-    if (state.player.isDodging) return;
+    if (state.player.isDodging || state.player.isClimbing) return;
     if (state.player.stamina < attackStaminaCost) return;
 
     // In combo window: chain immediately to the next step
@@ -408,7 +408,7 @@ export function createRuntimeCombatActions({
   // Returns the new frameDuration so the simulation can update its local timer variables.
   const triggerComboChain = (): { frameDuration: number } | null => {
     const step = getComboStep();
-    if (state.player.isDodging) return null;
+    if (state.player.isDodging || state.player.isClimbing) return null;
     if (state.player.stamina < attackStaminaCost) return null;
 
     const nextStep = step >= 2 ? 0 : step + 1;
@@ -429,7 +429,7 @@ export function createRuntimeCombatActions({
 
   const performLungeAttack = (level: number) => {
     const currentTime = performance.now();
-    if (state.player.isDodging || state.player.stamina < chargeAttackStaminaCost) {
+    if (state.player.isDodging || state.player.isClimbing || state.player.stamina < chargeAttackStaminaCost) {
       clearChargeState();
       setPlayerAnimState('idle');
       return;
@@ -459,7 +459,7 @@ export function createRuntimeCombatActions({
 
   const performArcSlash = (level: number) => {
     const currentTime = performance.now();
-    if (state.player.isDodging || state.player.stamina < chargeAttackStaminaCost) {
+    if (state.player.isDodging || state.player.isClimbing || state.player.stamina < chargeAttackStaminaCost) {
       clearChargeState();
       setPlayerAnimState('idle');
       return;
@@ -536,7 +536,7 @@ export function createRuntimeCombatActions({
     }
 
     const currentTime = performance.now();
-    if (state.player.isDodging || state.player.stamina < chargeAttackStaminaCost) {
+    if (state.player.isDodging || state.player.isClimbing || state.player.stamina < chargeAttackStaminaCost) {
       clearChargeState();
       setPlayerAnimState('idle');
       return;

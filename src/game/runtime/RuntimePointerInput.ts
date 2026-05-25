@@ -89,7 +89,7 @@ export function createPointerInputController({
     if (pausedRef.current || mapModalOpenRef.current || playerDeadRef.current) return;
 
     if (e.button === 0) {
-      if (!state.dialogueActive && !state.player.isDodging) {
+      if (!state.dialogueActive && !state.player.isDodging && !state.player.isClimbing) {
         const currentTime = performance.now();
         const playerAnimState = getPlayerAnimState();
 
@@ -135,7 +135,7 @@ export function createPointerInputController({
       setIsRmbHeld(true);
       const currentAnim = getPlayerAnimState();
       if (currentAnim === 'lunge' || currentAnim === 'lunge_recovery') return;
-      if (!getIsBlocking() && !state.player.isDodging && state.player.stamina > 0) {
+      if (!getIsBlocking() && !state.player.isDodging && !state.player.isClimbing && state.player.stamina > 0) {
         setIsBlocking(true);
         setBlockStartTime(performance.now() / 1000);
         playBlock();

@@ -6,50 +6,143 @@ export interface TileMetadata {
   scale?: number;
   sortTrim?: number;
   yOffset?: number;
+  foundation?: {
+    clearRows?: Array<{
+      y: number;
+      xMin: number;
+      xMax: number;
+    }>;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    tile?: TileType;
+    walkable: boolean;
+    rows?: Array<{
+      y: number;
+      xMin: number;
+      xMax: number;
+    }>;
+  };
 }
 
+const HOUSE_BODY_FOUNDATION: TileMetadata['foundation'] = {
+  walkable: false,
+  rows: [
+    { y: -4, xMin: -1, xMax: 1 },
+    { y: -3, xMin: -2, xMax: 2 },
+    { y: -2, xMin: -2, xMax: 2 },
+    { y: -1, xMin: -3, xMax: 3 },
+    { y: 0, xMin: -3, xMax: 3 },
+    { y: 1, xMin: -2, xMax: 2 },
+  ],
+};
+
+const HOUSE_ENTRY_FOUNDATION: TileMetadata['foundation'] = {
+  ...HOUSE_BODY_FOUNDATION,
+  clearRows: [
+    // Keep the south door prompt/approach open while the house body stays solid.
+    { y: 2, xMin: -1, xMax: 1 },
+  ],
+};
+
+const COTTAGE_BODY_FOUNDATION: TileMetadata['foundation'] = {
+  walkable: false,
+  rows: [
+    { y: -6, xMin: -1, xMax: 1 },
+    { y: -5, xMin: -2, xMax: 2 },
+    { y: -4, xMin: -3, xMax: 3 },
+    { y: -3, xMin: -4, xMax: 4 },
+    { y: -2, xMin: -5, xMax: 5 },
+    { y: -1, xMin: -5, xMax: 5 },
+    { y: 0, xMin: -5, xMax: 5 },
+    { y: 1, xMin: -5, xMax: 5 },
+    { y: 2, xMin: -4, xMax: 4 },
+  ],
+};
+
+const COTTAGE_ENTRY_FOUNDATION: TileMetadata['foundation'] = {
+  ...COTTAGE_BODY_FOUNDATION,
+  clearRows: [
+    // The door interaction tile is protected separately; these rows keep the approach readable.
+    { y: 3, xMin: -2, xMax: 2 },
+    { y: 4, xMin: -3, xMax: 3 },
+  ],
+};
+
+const COTTAGE_SHED_FOUNDATION: TileMetadata['foundation'] = {
+  walkable: false,
+  rows: [
+    { y: -4, xMin: -1, xMax: 1 },
+    { y: -3, xMin: -2, xMax: 2 },
+    { y: -2, xMin: -3, xMax: 3 },
+    { y: -1, xMin: -4, xMax: 4 },
+    { y: 0, xMin: -4, xMax: 4 },
+    { y: 1, xMin: -3, xMax: 3 },
+  ],
+};
+
+const WINDMILL_BODY_FOUNDATION: TileMetadata['foundation'] = {
+  walkable: false,
+  rows: [
+    // Mask the tower and base, not the full spinning blade silhouette.
+    { y: -4, xMin: -1, xMax: 1 },
+    { y: -3, xMin: -1, xMax: 1 },
+    { y: -2, xMin: -2, xMax: 2 },
+    { y: -1, xMin: -2, xMax: 2 },
+    { y: 0, xMin: -2, xMax: 2 },
+    { y: 1, xMin: -2, xMax: 2 },
+  ],
+};
+
 export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
-  tree: { isOverlay: true, baseTile: 'grass', scale: 1.8, sortTrim: 0.12 },
-  house: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1 },
-  house_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.95, sortTrim: 0.26, yOffset: 0.7 },
-  house_blue: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1 },
-  house_blue_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.95, sortTrim: 0.26, yOffset: 0.7 },
-  house_green: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1 },
-  house_green_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.95, sortTrim: 0.26, yOffset: 0.7 },
-  house_thatch: { isOverlay: true, baseTile: 'dirt', scale: 2.0, sortTrim: 0.12, yOffset: 0 },
-  house_thatch_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.8, sortTrim: 0.24, yOffset: 0.66 },
-  cottage_house: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
-  cottage_house_entry: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
-  cottage_house_forest: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
-  cottage_house_forest_ruined: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
-  cottage_house_ranger: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8 },
-  cottage_shed: { isOverlay: true, baseTile: 'dirt', scale: 4.0, sortTrim: 0.25, yOffset: 1.2 },
+  tree: { isOverlay: true, baseTile: 'grass', scale: 2.25, sortTrim: 0.12 },
+  house: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1, foundation: HOUSE_BODY_FOUNDATION },
+  house_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.95, sortTrim: 0.26, yOffset: 0.7, foundation: HOUSE_ENTRY_FOUNDATION },
+  house_blue: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1, foundation: HOUSE_BODY_FOUNDATION },
+  house_blue_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.95, sortTrim: 0.26, yOffset: 0.7, foundation: HOUSE_ENTRY_FOUNDATION },
+  house_green: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1, foundation: HOUSE_BODY_FOUNDATION },
+  house_green_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.95, sortTrim: 0.26, yOffset: 0.7, foundation: HOUSE_ENTRY_FOUNDATION },
+  house_thatch: { isOverlay: true, baseTile: 'dirt', scale: 2.0, sortTrim: 0.12, yOffset: 0, foundation: HOUSE_BODY_FOUNDATION },
+  house_thatch_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.8, sortTrim: 0.24, yOffset: 0.66, foundation: HOUSE_ENTRY_FOUNDATION },
+  cottage_house: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8, foundation: COTTAGE_ENTRY_FOUNDATION },
+  cottage_house_entry: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8, foundation: COTTAGE_ENTRY_FOUNDATION },
+  cottage_house_forest: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8, foundation: COTTAGE_ENTRY_FOUNDATION },
+  cottage_house_forest_ruined: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8, foundation: COTTAGE_BODY_FOUNDATION },
+  cottage_house_ranger: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8, foundation: COTTAGE_ENTRY_FOUNDATION },
+  cottage_shed: { isOverlay: true, baseTile: 'dirt', scale: 4.0, sortTrim: 0.25, yOffset: 1.2, foundation: COTTAGE_SHED_FOUNDATION },
   rock: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.18 },
   chest: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.32 },
   chest_opened: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.32 },
+  special_chest: { isOverlay: true, baseTile: 'cobblestone', scale: 1.14, sortTrim: 0.36, yOffset: 0.03 },
+  special_chest_opened: { isOverlay: true, baseTile: 'cobblestone', scale: 1.14, sortTrim: 0.36, yOffset: 0.03 },
   portal: { isOverlay: true, baseTile: 'stone', scale: 1.45, sortTrim: 0.24, yOffset: 0.08 },
   flower: { isOverlay: true, baseTile: 'grass', scale: 0.5, sortTrim: 0.22 },
   moonbloom: { isOverlay: true, baseTile: 'grass', scale: 0.62, sortTrim: 0.2 },
   tempest_grass: { isOverlay: true, baseTile: 'grass', scale: 0.72, sortTrim: 0.24 },
   push_block: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.16 },
   campfire: { isOverlay: true, baseTile: 'dirt', scale: 0.8, sortTrim: 0.2 },
+  campfire_remains: { isOverlay: true, baseTile: 'dirt', scale: 0.8, sortTrim: 0.2 },
   bonfire: { isOverlay: true, baseTile: 'dirt', scale: 1.0, sortTrim: 0.16 },
   bonfire_unlit: { isOverlay: true, baseTile: 'dirt', scale: 1.0, sortTrim: 0.16 },
+  bridge_folded: { isOverlay: false, scale: 1.0 },
   sign: { isOverlay: true, baseTile: 'dirt', scale: 1.08, sortTrim: 0.2, yOffset: 0.08 },
   well: { isOverlay: true, baseTile: 'stone', scale: 1.2, sortTrim: 0.18 },
   tombstone: { isOverlay: true, baseTile: 'grass', scale: 0.88, sortTrim: 0.16 },
   tombstone_broken: { isOverlay: true, baseTile: 'dirt', scale: 0.88, sortTrim: 0.16 },
   tombstone_cracked_v: { isOverlay: true, baseTile: 'dirt', scale: 0.88, sortTrim: 0.16 },
   mushroom: { isOverlay: true, baseTile: 'grass', scale: 0.7, sortTrim: 0.2 },
-  stump: { isOverlay: true, baseTile: 'grass', scale: 0.6, sortTrim: 0.16 },
-  blighted_stump: { isOverlay: true, baseTile: 'grass', scale: 0.75, sortTrim: 0.16 },
+  stump: { isOverlay: true, baseTile: 'grass', scale: 0.75, sortTrim: 0.16 },
+  fallen_log: { isOverlay: true, baseTile: 'grass', scale: 1.6, sortTrim: 0.18 },
+  fallen_log_v: { isOverlay: true, baseTile: 'grass', scale: 1.6, sortTrim: 0.18 },
+  blighted_stump: { isOverlay: true, baseTile: 'grass', scale: 0.95, sortTrim: 0.16 },
   fence: { isOverlay: true, baseTile: 'grass', scale: 1.0, sortTrim: 0.22 },
   gate: { isOverlay: true, baseTile: 'stone', scale: 1.15, sortTrim: 0.22 },
   barrel: { isOverlay: true, baseTile: 'wood', scale: 0.7, sortTrim: 0.16 },
   crate: { isOverlay: true, baseTile: 'wood', scale: 0.7, sortTrim: 0.16 },
   spike_trap: { isOverlay: true, baseTile: 'stone', scale: 0.8, sortTrim: 0.2 },
   bones: { isOverlay: true, baseTile: 'dirt', scale: 0.5, sortTrim: 0.18 },
-  dead_tree: { isOverlay: true, baseTile: 'ash', scale: 1.5, sortTrim: 0.1 },
+  dead_tree: { isOverlay: true, baseTile: 'ash', scale: 1.9, sortTrim: 0.1 },
   destroyed_house: { isOverlay: true, baseTile: 'ruins_floor', scale: 2.0, sortTrim: 0.1 },
   destroyed_house_rubble: { isOverlay: true, baseTile: 'ruins_floor', scale: 2.0, sortTrim: 0.1 },
   destroyed_house_overgrown: { isOverlay: true, baseTile: 'ruins_floor', scale: 2.0, sortTrim: 0.1 },
@@ -58,7 +151,14 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   iron_fence: { isOverlay: true, baseTile: 'cobblestone', scale: 1.1, sortTrim: 0.22 },
   hedge: { isOverlay: true, baseTile: 'grass', scale: 0.9, sortTrim: 0.2 },
   scarecrow: { isOverlay: true, baseTile: 'farmland', scale: 1.4, sortTrim: 0.12 },
-  windmill: { isOverlay: true, baseTile: 'dirt', scale: 4.8, sortTrim: 0.11, yOffset: 0.98 },
+  windmill: {
+    isOverlay: true,
+    baseTile: 'dirt',
+    scale: 4.8,
+    sortTrim: 0.11,
+    yOffset: 0.98,
+    foundation: WINDMILL_BODY_FOUNDATION,
+  },
   hay_bale: { isOverlay: true, baseTile: 'farmland', scale: 0.7, sortTrim: 0.18 },
   lantern: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.14 },
   tall_grass: { isOverlay: true, baseTile: 'grass', scale: 0.9, sortTrim: 0.24 },
@@ -110,7 +210,42 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   crate_stack: { isOverlay: true, baseTile: 'cobblestone', scale: 1.2, sortTrim: 0.1 },
   barrel_stack: { isOverlay: true, baseTile: 'cobblestone', scale: 1.2, sortTrim: 0.1 },
   chimney: { isOverlay: true, baseTile: 'roof_tile', scale: 1.0, sortTrim: 0.14 },
-  observatory: { isOverlay: true, baseTile: 'stone', scale: 9.6, sortTrim: 0.04, yOffset: 3.3 },
+  observatory: {
+    isOverlay: true,
+    baseTile: 'stone',
+    scale: 9.6,
+    sortTrim: 0.04,
+    yOffset: 3.3,
+    // Collision mask follows the sprite silhouette instead of stamping a broad stone pad.
+    // Rows without an explicit tile preserve the underlying terrain while still blocking
+    // movement, so the tall tower remains solid without a rectangular foundation.
+    foundation: {
+      walkable: false,
+      clearRows: [
+        // South entrance apron (arched door faces map-south / +Y).
+        { y: 4, xMin: -2, xMax: 2 },
+        { y: 5, xMin: -3, xMax: 3 },
+        { y: 6, xMin: -4, xMax: 4 },
+      ],
+      rows: [
+        { y: -10, xMin: 0, xMax: 0 },
+        { y: -9, xMin: -1, xMax: 1 },
+        { y: -8, xMin: -2, xMax: 2 },
+        { y: -7, xMin: -3, xMax: 3 },
+        { y: -6, xMin: -4, xMax: 4 },
+        { y: -5, xMin: -5, xMax: 5 },
+        { y: -4, xMin: -4, xMax: 4 },
+        { y: -3, xMin: -4, xMax: 4 },
+        { y: -2, xMin: -4, xMax: 4 },
+        { y: -1, xMin: -4, xMax: 4 },
+        { y: 0, xMin: -4, xMax: 4 },
+        { y: 1, xMin: -5, xMax: 5 },
+        { y: 2, xMin: -5, xMax: 5 },
+        { y: 3, xMin: -5, xMax: 5 },
+        { y: 4, xMin: -5, xMax: 5 },
+      ],
+    },
+  },
 };
 
 export const DETAIL_CONFIG: Partial<Record<TileType, { chance: number; types: string[]; scale: number; opacity: number }>> = {

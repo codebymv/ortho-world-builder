@@ -862,6 +862,7 @@ const Game = () => {
                 refreshToken={minimapVersion}
                 playerX={gameState.player.position.x}
                 playerY={gameState.player.position.y}
+                assetManager={assetManagerRef.current}
               />
             )}
             <NotificationFeed />
@@ -878,6 +879,7 @@ const Game = () => {
                 mapMarkersRef={mapMarkersRef}
                 markers={mapMarkers}
                 refreshToken={minimapVersion}
+                assetManager={assetManagerRef.current}
               />
             </Suspense>
           )}
