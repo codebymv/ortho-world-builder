@@ -41,6 +41,10 @@ function trySlideEnemyMove(
   ny: number,
   r: number
 ): EnemyMoveStep {
+  if (![ox, oy, nx, ny, r].every(Number.isFinite)) {
+    return { x: ox, y: oy, moved: false, vx: 0, vy: 0 };
+  }
+
   if (world.canEnemyMoveTo(ox, oy, nx, ny, r)) {
     const dx = nx - ox;
     const dy = ny - oy;
@@ -59,6 +63,7 @@ function trySlideEnemyMove(
 }
 
 function normalizeMoveVector(x: number, y: number): { x: number; y: number } {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return { x: 0, y: 0 };
   const len = Math.hypot(x, y) || 1;
   return { x: x / len, y: y / len };
 }
@@ -92,6 +97,10 @@ function tryEnemyChaseMove(
   moveDistance: number,
   r: number,
 ): EnemyChaseMoveStep {
+  if (![vx, vy, moveDistance, r].every(Number.isFinite)) {
+    return { x: enemy.position.x, y: enemy.position.y, moved: false, vx: 0, vy: 0, usedRecovery: false };
+  }
+
   const preferredSide = enemy.pathRecoverySide || (enemy.visualSeed < 0.5 ? -1 : 1);
   const sideOrder: Array<-1 | 1> = [preferredSide, preferredSide === 1 ? -1 : 1];
   const candidates: Array<{ vx: number; vy: number; usedRecovery: boolean }> = [];

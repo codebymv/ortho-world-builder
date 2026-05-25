@@ -377,10 +377,6 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'tombstone',
     nodes: [{ id: 'start', text: "The weathered inscription is barely legible: '__Here lies one who sought the truth__ and found only **darkness**.'", responses: [{ text: "[Pay respects]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
-  stump_lore: {
-    id: 'stump_lore',
-    nodes: [{ id: 'start', text: "This ancient tree stump has __strange markings__ carved into it. They seem to point deeper into the **forest**, toward an older trail.", responses: [{ text: "[Interesting...]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
-  },
   wolf_den_bones: {
     id: 'wolf_den_bones',
     nodes: [{ id: 'start', text: "The bones are picked clean and stacked almost neatly. A snapped spear shaft lies among them, suggesting the wolves dragged more than deer back to this hollow.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],

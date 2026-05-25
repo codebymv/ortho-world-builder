@@ -20,7 +20,6 @@ export const dialogueIds = new Set<string>([
   'hollow_hunter_camp_2',
   'hollow_hunters_final_camp',
   'tombstone',
-  'stump_lore',
   'wolf_den_bones',
   'highland_garrison_remains',
   'old_chapel_altar',

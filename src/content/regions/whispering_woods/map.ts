@@ -942,9 +942,9 @@ export const forestDef: MapDefinition = {
     // navigate the long way around through the forest to reach the cottage, then on the way
     // back south they pull the lever to open the shortcut home to the Ranger Outpost.
     { x: 127, y: 196, type: 'shortcut_lever', walkable: false, interactionId: 'forest_shortcut_lever' },
-    { x: 146, y: 240, type: 'stump', walkable: false, interactionId: 'stump_lore' },
-    { x: 100, y: 100, type: 'stump', walkable: false, interactionId: 'stump_lore' },
-    { x: 200, y: 90, type: 'stump', walkable: false, interactionId: 'stump_lore' },
+    { x: 146, y: 240, type: 'stump', walkable: false },
+    { x: 100, y: 100, type: 'stump', walkable: false },
+    { x: 200, y: 90, type: 'stump', walkable: false },
     { x: 87, y: 228, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 250, y: 190, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
     { x: 45, y: 145, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
@@ -993,7 +993,7 @@ export const forestDef: MapDefinition = {
     // === SOUTH ENTRY CORRIDOR ? moss-covered milestone before the spine bridge (world ~-3, 132).
     { x: 147, y: 282, type: 'sign', walkable: false, interactionId: 'forest_milestone' },
     // Carved marker on the path ? a ranger-carved note, east of the main trail so it reads as optional.
-    { x: 157, y: 283, type: 'stump', walkable: false, interactionId: 'stump_lore' },
+    { x: 157, y: 283, type: 'stump', walkable: false },
 
     // === ABANDONED HOMESTEAD SURROUNDS ===
     { x: 224, y: 127, type: 'windmill', walkable: false, interactionId: '' },

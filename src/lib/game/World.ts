@@ -1473,6 +1473,8 @@ export class World {
   }
 
   getTile(x: number, y: number): Tile | null {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+
     const tileX = Math.floor(x + this.map.width / 2);
     const tileY = Math.floor(y + this.map.height / 2);
 
