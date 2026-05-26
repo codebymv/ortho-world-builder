@@ -20,6 +20,7 @@ export type NpcWanderState = {
   pauseTimer: number;
   isPaused: boolean;
   stuckFrames: number;
+  nextRetargetTime: number;
 };
 
 type VillageNpcLayout = {
@@ -156,6 +157,7 @@ export function createNpcWanderState(npcData: NPC[]): Record<string, NpcWanderSt
       pauseTimer: Math.random() * 3,
       isPaused: true,
       stuckFrames: 0,
+      nextRetargetTime: 0,
     };
   }
   return npcWander;

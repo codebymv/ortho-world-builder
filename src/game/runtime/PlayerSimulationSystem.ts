@@ -26,6 +26,14 @@ interface ClimbMovementResult {
 
 let activeLadderDismount: { targetX: number; targetY: number; facing: Direction8 } | null = null;
 
+let _lastRevealTileX = -999999;
+let _lastRevealTileY = -999999;
+let _cachedViewHalfW = 0;
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', () => { _cachedViewHalfW = 0; });
+}
+const _scratchLungeEnemies: Enemy[] = [];
+
 function isLadderTile(world: World, px: number, py: number): boolean {
   return world.getTile(px, py)?.type === 'ladder';
 }
@@ -301,7 +309,7 @@ interface UpdatePlayerSimulationOptions {
     hitEnemyIds: Set<string>;
   };
   combatSystem: {
-    getEnemiesInRange: (position: { x: number; y: number }, range: number) => Enemy[];
+    getEnemiesInRange: (position: { x: number; y: number }, range: number, out?: Enemy[]) => Enemy[];
     playerAttack: (enemy: Enemy, damage: number, playerPosition: { x: number; y: number }, playerDirection: string) => { killed: boolean; staggered: boolean; backstab: boolean };
   };
   onLungeHit: (enemy: Enemy, damage: number) => void;
@@ -393,13 +401,20 @@ export function updatePlayerSimulation({
   const revealVisibleTiles = () => {
     const currentMap = world.getCurrentMap();
     const viewHalfH = 7;
-    const viewHalfW = Math.ceil(viewHalfH * (window.innerWidth / window.innerHeight));
+    if (_cachedViewHalfW === 0) {
+      _cachedViewHalfW = Math.ceil(viewHalfH * (window.innerWidth / window.innerHeight));
+    }
     const centerTileX = Math.floor(state.player.position.x + currentMap.width / 2);
     const centerTileY = Math.floor(state.player.position.y + currentMap.height / 2);
+
+    if (centerTileX === _lastRevealTileX && centerTileY === _lastRevealTileY) return;
+    _lastRevealTileX = centerTileX;
+    _lastRevealTileY = centerTileY;
+
     let newTilesRevealed = false;
 
     for (let dy = -viewHalfH; dy <= viewHalfH; dy++) {
-      for (let dx = -viewHalfW; dx <= viewHalfW; dx++) {
+      for (let dx = -_cachedViewHalfW; dx <= _cachedViewHalfW; dx++) {
         const tx = centerTileX + dx;
         const ty = centerTileY + dy;
         if (tx >= 0 && tx < currentMap.width && ty >= 0 && ty < currentMap.height) {
@@ -766,7 +781,7 @@ export function updatePlayerSimulation({
     lungeState.distanceRemaining -= step;
 
     const hitRadius = 1.5;
-    const nearby = combatSystem.getEnemiesInRange(state.player.position, hitRadius);
+    const nearby = combatSystem.getEnemiesInRange(state.player.position, hitRadius, _scratchLungeEnemies);
     const { dirX, dirY } = lungeState;
     const LUNGE_POST_HIT_LOCK = 0.42;
     // Fixed push distances from the player's current position — independent of

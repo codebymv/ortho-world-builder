@@ -14,10 +14,12 @@ interface WorldItemVisual {
   mesh: THREE.Mesh;
   shadow: THREE.Mesh;
   seedOffset: number;
+  seenAt: number;
 }
 
 export function createWorldItemRenderer(scene: THREE.Scene) {
   const visuals = new Map<string, WorldItemVisual>();
+  let frameToken = 0;
 
   const _shadowMat = new THREE.MeshBasicMaterial({
     color: 0x000000,
@@ -42,7 +44,7 @@ export function createWorldItemRenderer(scene: THREE.Scene) {
     mesh.renderOrder = 100;
     scene.add(mesh);
 
-    const shadow = new THREE.Mesh(SharedGeometry.tile, _shadowMat.clone());
+    const shadow = new THREE.Mesh(SharedGeometry.tile, _shadowMat);
     shadow.scale.set(SHADOW_SCALE, SHADOW_SCALE * 0.4, 1);
     shadow.renderOrder = 99;
     scene.add(shadow);
@@ -51,6 +53,7 @@ export function createWorldItemRenderer(scene: THREE.Scene) {
       mesh,
       shadow,
       seedOffset: Math.random() * Math.PI * 2,
+      seenAt: frameToken,
     };
     visuals.set(item.instanceId, visual);
     return visual;
@@ -62,7 +65,6 @@ export function createWorldItemRenderer(scene: THREE.Scene) {
     scene.remove(v.mesh);
     (v.mesh.material as THREE.Material).dispose();
     scene.remove(v.shadow);
-    (v.shadow.material as THREE.Material).dispose();
     visuals.delete(instanceId);
   }
 
@@ -74,27 +76,28 @@ export function createWorldItemRenderer(scene: THREE.Scene) {
     /** Match player/NPCs and interaction diamond — raw item.y ignores map elevation. */
     getVisualYAt: (x: number, y: number) => number,
   ) {
-    const activeIds = new Set<string>();
+    frameToken++;
 
     for (const item of worldItems) {
       if (item.mapId !== currentMap) continue;
-      activeIds.add(item.instanceId);
 
       const v = getOrCreate(item, assetManager);
+      v.seenAt = frameToken;
 
       const baseY = getVisualYAt(item.x, item.y);
-      const bob = Math.sin(currentTime / 1000 * BOB_SPEED + v.seedOffset) * BOB_AMPLITUDE;
+      const wave = Math.sin(currentTime / 1000 * BOB_SPEED + v.seedOffset);
+      const bob = wave * BOB_AMPLITUDE;
       v.mesh.position.set(item.x, baseY + bob, RENDER_Z);
       v.shadow.position.set(item.x, baseY - 0.3, RENDER_Z - 0.01);
 
       // Gentle pulse scale
-      const pulse = 1 + Math.sin(currentTime / 1000 * BOB_SPEED + v.seedOffset) * 0.04;
+      const pulse = 1 + wave * 0.04;
       v.mesh.scale.set(ITEM_SCALE * pulse, ITEM_SCALE * pulse, 1);
     }
 
     // Remove visuals for items no longer present
-    for (const [id] of visuals) {
-      if (!activeIds.has(id)) remove(id);
+    for (const [id, visual] of visuals) {
+      if (visual.seenAt !== frameToken) remove(id);
     }
   }
 
@@ -103,7 +106,11 @@ export function createWorldItemRenderer(scene: THREE.Scene) {
     _shadowMat.dispose();
   }
 
-  return { update, remove, dispose };
+  function getPerformanceStats(): { activeVisuals: number } {
+    return { activeVisuals: visuals.size };
+  }
+
+  return { update, remove, dispose, getPerformanceStats };
 }
 
 export type WorldItemRendererInstance = ReturnType<typeof createWorldItemRenderer>;

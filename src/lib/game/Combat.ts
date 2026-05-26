@@ -309,6 +309,19 @@ export interface FallingScytheHazard {
   source: 'stillness' | 'eclipse';
 }
 
+function removeDeadInPlace<T extends { alive: boolean }>(arr: T[]): void {
+  let i = 0;
+  let len = arr.length;
+  while (i < len) {
+    if (!arr[i].alive) {
+      arr[i] = arr[--len];
+      arr.length = len;
+    } else {
+      i++;
+    }
+  }
+}
+
 export class CombatSystem {
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
@@ -324,6 +337,7 @@ export class CombatSystem {
   private hollowStillnessTimer: number = 0;
   private hollowLastPlayerPosition: { x: number; y: number } | null = null;
   private hollowStillnessCooldown: number = 0;
+  private _scratchQueryResult: Enemy[] = [];
 
   constructor(gameState: GameState) {
     this.gameState = gameState;
@@ -414,6 +428,15 @@ export class CombatSystem {
     return this.enemies;
   }
 
+  getPerformanceStats(): { liveEnemies: number; totalEnemies: number; projectiles: number; hazards: number } {
+    return {
+      liveEnemies: this.getEnemies().length,
+      totalEnemies: this.enemies.length,
+      projectiles: this.projectiles.length,
+      hazards: this.fallingScytheHazards.length,
+    };
+  }
+
   updateEnemies(
     deltaTime: number,
     playerPosition: { x: number; y: number },
@@ -488,7 +511,7 @@ export class CombatSystem {
           enemy.factionTargetSearchTimer <= 0
         ) {
           enemy.factionTarget = null;
-          const nearby = this.getEnemiesInRange(enemy.position, enemy.chaseRange * 1.5);
+          const nearby = this.getEnemiesInRange(enemy.position, enemy.chaseRange * 1.5, this._scratchQueryResult);
           let bestDistSq = Infinity;
           for (const candidate of nearby) {
             if (candidate === enemy || candidate.state === 'dead') continue;
@@ -1223,7 +1246,7 @@ export class CombatSystem {
     if (targetEnemy.faction) {
       targetEnemy.playerAggroed = true;
       const PACK_ALERT_RANGE = 8;
-      const allies = this.getEnemiesInRange(targetEnemy.position, PACK_ALERT_RANGE);
+      const allies = this.getEnemiesInRange(targetEnemy.position, PACK_ALERT_RANGE, this._scratchQueryResult);
       for (const ally of allies) {
         if (ally !== targetEnemy && ally.faction === targetEnemy.faction && ally.state !== 'dead') {
           ally.playerAggroed = true;
@@ -1234,8 +1257,8 @@ export class CombatSystem {
     return { killed: false, staggered: isStaggered, backstab: isBackstab };
   }
 
-  getEnemiesInRange(position: { x: number; y: number }, range: number): Enemy[] {
-    return this.spatialHash.query(position.x, position.y, range);
+  getEnemiesInRange(position: { x: number; y: number }, range: number, out?: Enemy[]): Enemy[] {
+    return this.spatialHash.query(position.x, position.y, range, out);
   }
 
   updateEnemyHash(enemy: Enemy, oldPos: { x: number; y: number }) {
@@ -1251,6 +1274,23 @@ export class CombatSystem {
   }
 
   removeDeadEnemiesByIds(ids: string[]): Enemy[] {
+    if (ids.length === 0) return [];
+    if (ids.length === 1) {
+      const id = ids[0];
+      const removed: Enemy[] = [];
+      const kept: Enemy[] = [];
+      for (const enemy of this.enemies) {
+        if (enemy.id === id) removed.push(enemy);
+        else kept.push(enemy);
+      }
+      for (const enemy of removed) this.spatialHash.remove(enemy);
+      if (removed.length > 0) {
+        this.enemies = kept;
+        this._enemiesDirty = true;
+      }
+      return removed;
+    }
+
     const toRemove = new Set(ids);
     const removed = this.enemies.filter(e => toRemove.has(e.id));
     removed.forEach(e => this.spatialHash.remove(e));
@@ -1325,9 +1365,7 @@ export class CombatSystem {
       }
     }
 
-    if (this.fallingScytheHazards.some(h => !h.alive)) {
-      this.fallingScytheHazards = this.fallingScytheHazards.filter(h => h.alive);
-    }
+    removeDeadInPlace(this.fallingScytheHazards);
   }
 
   getFallingScytheHazards(): FallingScytheHazard[] {
@@ -1519,10 +1557,7 @@ export class CombatSystem {
       }
     }
 
-    // Sweep dead projectiles every frame — array is small (rarely > a dozen).
-    if (this.projectiles.some(p => !p.alive)) {
-      this.projectiles = this.projectiles.filter(p => p.alive);
-    }
+    removeDeadInPlace(this.projectiles);
   }
 
   private applyProjectileHit(

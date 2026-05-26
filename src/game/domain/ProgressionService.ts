@@ -163,10 +163,13 @@ export function createProgressionService(context: ProgressionServiceContext) {
     }
 
     if (dialogueId === 'mountain_hermit') {
-      // Once the idol has been handed over, Olwen has nothing else to give —
-      // skip straight to his post-gift reflection.
+      // Once the idol has been picked up from the ranger cottage, Olwen
+      // acknowledges it and settles into his post-gift reflection.
       if (state.getFlag('cursed_idol_received')) {
         startNode = dialogue.nodes.find(node => node.id === 'after_idol') ?? startNode;
+      } else if (state.getFlag('olwen_ranger_cabin_hint')) {
+        // Player heard the hint but hasn't found the idol yet — remind them.
+        startNode = dialogue.nodes.find(node => node.id === 'take_idol') ?? startNode;
       }
     }
 
@@ -269,17 +272,17 @@ export function createProgressionService(context: ProgressionServiceContext) {
     }
 
     if (state.currentDialogue === 'mountain_hermit' && currentDialogue.node.id === 'offer_idol' && nextId === 'take_idol') {
-      if (!state.getFlag('cursed_idol_received') && context.items.cursed_idol) {
-        state.setFlag('cursed_idol_received', true);
-        state.addItem({ ...context.items.cursed_idol });
-        context.notify('Cursed Idol Acquired', {
-          id: 'cursed-idol-pickup',
-          type: 'success',
-          description: 'Olwen pressed the small black figure into your palm.',
+      if (!state.getFlag('olwen_ranger_cabin_hint')) {
+        state.setFlag('olwen_ranger_cabin_hint', true);
+        context.notify('Location Revealed', {
+          id: 'olwen-cabin-hint',
+          type: 'info',
+          description: 'Olwen mentioned a ranger cottage in the southeast hills.',
           duration: 3200,
         });
         shouldSave = true;
         context.triggerUIUpdate();
+        context.triggerMinimapUpdate(true);
       }
     }
 

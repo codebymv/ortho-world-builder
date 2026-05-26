@@ -4,19 +4,25 @@ import { WorldMap } from '@/lib/game/World';
 import {
   getManuscriptPrimaryObjectiveMarker,
   getVillagePrimaryObjectiveMarker,
+  getIdolHintMarker,
   isPrimaryObjectiveMarker,
   MANUSCRIPT_PRIMARY_MARKER_ID,
   VILLAGE_PRIMARY_MARKER_ID,
+  IDOL_HINT_MARKER_ID,
   type MapMarker,
 } from '@/lib/game/MapMarkers';
 import type { GameState } from '@/lib/game/GameState';
 import type { AssetManager } from '@/lib/game/AssetManager';
+import type { PerfProfiler } from '@/game/runtime/PerfProfiler';
 import {
   computeMinimapScale,
   drawMinimapDynamicOverlay,
   drawMinimapTerrain,
 } from '@/components/game/minimapDrawing';
 import { PlayerFaceMapIcon } from '@/components/game/PlayerFaceMapIcon';
+
+const DYNAMIC_PRIMARY_MARKER_IDS = new Set([MANUSCRIPT_PRIMARY_MARKER_ID, VILLAGE_PRIMARY_MARKER_ID]);
+const HIDE_MARKER_IDS_WHEN_PRIMARY = new Set(['forest_Disparaged Cottage', 'village_Village Elder']);
 
 interface MinimapProps {
   currentMap: WorldMap;
@@ -30,6 +36,7 @@ interface MinimapProps {
   playerX: number;
   playerY: number;
   assetManager?: AssetManager | null;
+  perfProfiler?: PerfProfiler | null;
 }
 
 export const Minimap = memo(
@@ -44,6 +51,7 @@ export const Minimap = memo(
     playerX,
     playerY,
     assetManager,
+    perfProfiler,
   }: MinimapProps) => {
     const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
     const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -76,6 +84,7 @@ export const Minimap = memo(
       const state = gameStateRef.current;
       if (!state) return;
 
+      const start = performance.now();
       drawMinimapTerrain({
         ctx,
         currentMap,
@@ -85,7 +94,8 @@ export const Minimap = memo(
         scale,
         assetManager,
       });
-    }, [canvasHeight, canvasWidth, currentMap, currentMapId, gameStateRef, refreshToken, scale, visitedTilesRef, assetManager]);
+      perfProfiler?.recordExternal('minimapTerrain', performance.now() - start);
+    }, [canvasHeight, canvasWidth, currentMap, currentMapId, gameStateRef, refreshToken, scale, visitedTilesRef, assetManager, perfProfiler]);
 
     useEffect(() => {
       const canvas = overlayCanvasRef.current;
@@ -104,20 +114,21 @@ export const Minimap = memo(
         const state = gameStateRef.current;
         // Resolve the dynamic primary for THIS map specifically so a forest marker
         // cannot accidentally suppress village markers (or vice-versa).
-        const DYNAMIC_IDS = new Set([MANUSCRIPT_PRIMARY_MARKER_ID, VILLAGE_PRIMARY_MARKER_ID]);
-        const HIDE_WHEN_PRIMARY = new Set(['forest_Disparaged Cottage', 'village_Village Elder']);
         const dynamicPrimary = state
           ? ([getManuscriptPrimaryObjectiveMarker(state), getVillagePrimaryObjectiveMarker(state)]
               .find(m => m?.map === currentMapId) ?? null)
           : null;
+        const idolMarker = state ? getIdolHintMarker(state) : null;
         const baseMarkers = mapMarkersRef.current.filter(
           m =>
             m.map === currentMapId &&
-            !DYNAMIC_IDS.has(m.id) &&
+            !DYNAMIC_PRIMARY_MARKER_IDS.has(m.id) &&
+            m.id !== IDOL_HINT_MARKER_ID &&
             m.type !== 'portal' &&
-            !(dynamicPrimary && HIDE_WHEN_PRIMARY.has(m.id)),
+            !(dynamicPrimary && HIDE_MARKER_IDS_WHEN_PRIMARY.has(m.id)),
         );
-        const currentMarkers = dynamicPrimary ? [dynamicPrimary, ...baseMarkers] : baseMarkers;
+        const dynamicSecondary = idolMarker?.map === currentMapId ? [idolMarker] : [];
+        const currentMarkers = [...(dynamicPrimary ? [dynamicPrimary] : []), ...baseMarkers, ...dynamicSecondary];
         const hasPulsing = currentMarkers.some(m => nowMs < m.pulseUntil);
         const minFrameMs = hasPulsing ? 16 : 48;
 
@@ -132,6 +143,7 @@ export const Minimap = memo(
           return;
         }
 
+        const start = performance.now();
         drawMinimapDynamicOverlay({
           ctx,
           currentMap,
@@ -145,6 +157,7 @@ export const Minimap = memo(
           assetManager,
           visited: visitedTilesRef.current,
         });
+        perfProfiler?.recordExternal('minimapOverlay', performance.now() - start);
 
         animFrameRef.current = requestAnimationFrame(draw);
       };
@@ -155,35 +168,48 @@ export const Minimap = memo(
         running = false;
         if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       };
-    }, [assetManager, currentMap, currentMapId, gameStateRef, mapMarkersRef, refreshToken, scale, visitedTilesRef]);
+    }, [assetManager, currentMap, currentMapId, gameStateRef, mapMarkersRef, refreshToken, scale, visitedTilesRef, perfProfiler]);
 
     // All markers drawn on this map's overlay — no recency filter, so the HUD legend
     // matches the dots actually visible on the minimap. Objective first, others after.
     // refreshToken is a dep so the list re-evaluates whenever game state changes.
     const visibleMarkers = useMemo(() => {
       const state = gameStateRef.current;
-      const DYNAMIC_IDS = new Set([MANUSCRIPT_PRIMARY_MARKER_ID, VILLAGE_PRIMARY_MARKER_ID]);
-      const HIDE_WHEN_PRIMARY = new Set(['forest_Disparaged Cottage', 'village_Village Elder']);
       // Resolve the primary only for THIS map — prevents a forest marker from
       // accidentally hiding village markers while on the village minimap.
       const dynamicPrimary = state
         ? ([getManuscriptPrimaryObjectiveMarker(state), getVillagePrimaryObjectiveMarker(state)]
             .find(m => m?.map === currentMapId) ?? null)
         : null;
+      const idolMarker = state ? getIdolHintMarker(state) : null;
       const base = markers.filter(
         m =>
           m.map === currentMapId &&
-          !DYNAMIC_IDS.has(m.id) &&
+          !DYNAMIC_PRIMARY_MARKER_IDS.has(m.id) &&
+          m.id !== IDOL_HINT_MARKER_ID &&
           m.type !== 'portal' &&
-          !(dynamicPrimary && HIDE_WHEN_PRIMARY.has(m.id)),
+          !(dynamicPrimary && HIDE_MARKER_IDS_WHEN_PRIMARY.has(m.id)),
       );
-      const all = dynamicPrimary ? [dynamicPrimary, ...base] : base;
+      const dynamicSecondary = idolMarker?.map === currentMapId ? [idolMarker] : [];
+      const all = [...(dynamicPrimary ? [dynamicPrimary] : []), ...base, ...dynamicSecondary];
       const objective = all.filter(m => state && isPrimaryObjectiveMarker(m, state));
       const objectiveIds = new Set(objective.map(m => m.id));
       const rest = all.filter(m => !objectiveIds.has(m.id));
       return [...objective, ...rest];
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [markers, currentMapId, gameStateRef, refreshToken]);
+    const legendEntries = useMemo(() => {
+      const state = gameStateRef.current;
+      const hasPrimary = visibleMarkers.some(m => state && isPrimaryObjectiveMarker(m, state));
+      const hasSecondary = visibleMarkers.some(m => {
+        const isObjective = state ? isPrimaryObjectiveMarker(m, state) : false;
+        return (m.type === 'quest' || m.type === 'poi') && !isObjective;
+      });
+      return [
+        ...(hasPrimary ? [{ key: 'primary', label: 'Primary' }] : []),
+        ...(hasSecondary ? [{ key: 'secondary', label: 'Secondary' }] : []),
+      ];
+    }, [visibleMarkers, gameStateRef]);
 
     return (
       <div
@@ -218,33 +244,26 @@ export const Minimap = memo(
               {Math.round(playerX)}, {Math.round(playerY)}
             </span>
           </div>
-          {visibleMarkers.map(m => {
-            const isObjective = gameStateRef.current
-              ? isPrimaryObjectiveMarker(m, gameStateRef.current)
-              : false;
-            return (
-              <div
-                key={m.id}
-                className="flex items-center gap-2 rounded border border-[#5C3A21]/35 bg-[#120907]/55 px-1.5 py-1 text-[11px] leading-tight"
-              >
-                <span className="relative h-4 w-4 flex-shrink-0">
-                  <span className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[#050302]" />
-                  <span
-                    className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 border border-white/60"
-                    style={{
-                      backgroundColor: m.color,
-                      boxShadow: `0 0 2px ${m.color}80`,
-                    }}
-                  />
-                </span>
-                <span className="text-[#F5DEB3] font-medium leading-tight">
-                  {m.type === 'quest' || m.type === 'poi'
-                    ? isObjective ? 'Primary' : 'Secondary'
-                    : m.label}
-                </span>
-              </div>
-            );
-          })}
+          {legendEntries.map(entry => (
+            <div
+              key={entry.key}
+              className="flex items-center gap-2 rounded border border-[#5C3A21]/35 bg-[#120907]/55 px-1.5 py-1 text-[11px] leading-tight"
+            >
+              <span className="relative h-4 w-4 flex-shrink-0">
+                <span className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[#050302]" />
+                <span
+                  className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 border border-white/60"
+                  style={{
+                    backgroundColor: entry.key === 'primary' ? '#FFD700' : '#8FBC8F',
+                    boxShadow: entry.key === 'primary' ? '0 0 2px #FFD70080' : '0 0 2px #8FBC8F80',
+                  }}
+                />
+              </span>
+              <span className="text-[#F5DEB3] font-medium leading-tight">
+                {entry.label}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     );

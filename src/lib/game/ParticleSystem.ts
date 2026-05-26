@@ -19,6 +19,7 @@ export class ParticleSystem {
   private readonly particleMaterials: THREE.MeshBasicMaterial[] = [];
   private readonly particleMeshes: THREE.InstancedMesh[] = [];
   private readonly tempParticleObject = new THREE.Object3D();
+  private readonly bucketCounts = new Uint16Array(PARTICLE_ALPHA_BUCKETS.length);
   /** Count of live particles. Lets the per-frame update bail before iterating an idle pool. */
   private activeCount: number = 0;
   /** Set when any mesh was non-empty last frame so we can clear instance counts once. */
@@ -67,14 +68,14 @@ export class ParticleSystem {
   }
 
   private syncParticleInstances() {
-    const bucketCounts = new Array(this.particleMeshes.length).fill(0);
+    this.bucketCounts.fill(0);
 
     for (const particle of this.particles) {
       if (!particle.active) continue;
 
       const opacity = 1 - (particle.lifetime / particle.maxLifetime);
       const bucketIndex = this.getOpacityBucket(opacity);
-      const instanceIndex = bucketCounts[bucketIndex]++;
+      const instanceIndex = this.bucketCounts[bucketIndex]++;
       const mesh = this.particleMeshes[bucketIndex];
 
       this.tempParticleObject.position.copy(particle.position);
@@ -87,8 +88,8 @@ export class ParticleSystem {
 
     for (let i = 0; i < this.particleMeshes.length; i++) {
       const mesh = this.particleMeshes[i];
-      mesh.count = bucketCounts[i];
-      mesh.visible = bucketCounts[i] > 0;
+      mesh.count = this.bucketCounts[i];
+      mesh.visible = this.bucketCounts[i] > 0;
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) {
         mesh.instanceColor.needsUpdate = true;
@@ -225,6 +226,13 @@ export class ParticleSystem {
 
     this.syncParticleInstances();
     this.meshesDirty = true;
+  }
+
+  getPerformanceStats(): { activeParticles: number; poolSize: number } {
+    return {
+      activeParticles: this.activeCount,
+      poolSize: this.poolSize,
+    };
   }
 
   cleanup() {

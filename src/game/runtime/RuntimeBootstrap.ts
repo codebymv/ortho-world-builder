@@ -99,7 +99,7 @@ export function bootstrapRuntimeState(context: BootstrapContext) {
     syncEquippedWeapon(state, savedData.equippedWeaponId);
 
     state.quests = savedData.quests;
-    state.gameFlags = savedData.gameFlags;
+    state.replaceGameFlags(savedData.gameFlags);
     state.seenItemIds = new Set(savedData.seenItemIds);
     // Always keep the starter weapon flagged as seen even on legacy saves.
     state.seenItemIds.add(STARTING_WEAPON_ID);

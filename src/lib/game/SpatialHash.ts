@@ -57,8 +57,9 @@ export class SpatialHash<T extends { position: { x: number; y: number }, id: str
     }
   }
 
-  query(x: number, y: number, radius: number): T[] {
-    const results: T[] = [];
+  query(x: number, y: number, radius: number, out?: T[]): T[] {
+    const results: T[] = out ?? [];
+    if (out) out.length = 0;
     const minX = Math.floor((x - radius) / this.cellSize);
     const maxX = Math.floor((x + radius) / this.cellSize);
     const minY = Math.floor((y - radius) / this.cellSize);

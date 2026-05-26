@@ -7,6 +7,7 @@ import type { RuntimePhaseContexts } from '@/game/runtime/RuntimePhaseContexts';
 import type { RuntimeSessionState } from '@/game/runtime/RuntimeSessionState';
 import type { GameState } from '@/lib/game/GameState';
 import type { ParticleSystem } from '@/lib/game/ParticleSystem';
+import type { PerfProfiler, PerfStatsInput } from '@/game/runtime/PerfProfiler';
 
 interface RunRuntimeFrameOptions {
   runtimeSession: RuntimeSessionState;
@@ -30,7 +31,22 @@ interface RunRuntimeFrameOptions {
   activeNpcWorldPos: { x: number; y: number } | null;
   lastNpcProjected: { x: number; y: number };
   currentBiome: string;
+  perfProfiler?: PerfProfiler;
   onPlayerDied: (lostEssence: number) => void;
+}
+
+function collectPerfStats(phaseContexts: RuntimePhaseContexts): PerfStatsInput {
+  const tail = phaseContexts.runtimeLoopTailContext;
+  const enemy = phaseContexts.enemyLoopContext;
+  return {
+    renderer: tail.renderer,
+    world: tail.world,
+    combatSystem: enemy.combatSystem,
+    particleSystem: tail.particleSystem,
+    weatherSystem: tail.weatherSystem,
+    biomeAmbience: tail.biomeAmbience,
+    worldItemCount: tail.state.worldItems.length,
+  };
 }
 
 export function runRuntimeFrame({
@@ -55,8 +71,24 @@ export function runRuntimeFrame({
   activeNpcWorldPos,
   lastNpcProjected,
   currentBiome,
+  perfProfiler,
   onPlayerDied,
 }: RunRuntimeFrameOptions) {
+  perfProfiler?.beginFrame(currentTime);
+  const profilePhases = perfProfiler?.isEnabled() ?? false;
+  const profiledRenderFrame = () => {
+    if (!profilePhases) {
+      renderFrame();
+      return;
+    }
+    perfProfiler?.start('render');
+    try {
+      renderFrame();
+    } finally {
+      perfProfiler?.end('render');
+    }
+  };
+
   const frameState = advanceGameFrame({
     currentTime,
     lastTime: runtimeSession.loop.lastTime,
@@ -66,11 +98,12 @@ export function runRuntimeFrame({
     isPlayerDead,
     updateScreenShake,
     updateFloatingText,
-    renderFrame,
+    renderFrame: profiledRenderFrame,
   });
 
   runtimeSession.loop.lastTime = frameState.lastTime;
   if (!frameState.shouldContinue) {
+    perfProfiler?.endFrame(collectPerfStats(phaseContexts));
     return lastInteractionPrompt;
   }
 
@@ -103,7 +136,9 @@ export function runRuntimeFrame({
   preludeOpts.comboWindowTimer = runtimeSession.animation.comboWindowTimer;
   preludeOpts.comboInputBuffered = runtimeSession.input.comboInputBuffered;
 
+  if (profilePhases) perfProfiler?.start('prelude');
   const preludeState = runGameplayPrelude(preludeOpts);
+  if (profilePhases) perfProfiler?.end('prelude');
 
   runtimeSession.combat.isBlocking = preludeState.isBlocking;
   runtimeSession.combat.blockAngle = preludeState.blockAngle;
@@ -157,6 +192,7 @@ export function runRuntimeFrame({
     pfOpts.isPlayerDead = isPlayerDead;
     pfOpts.particleSystem = particleSystem;
 
+    if (profilePhases) perfProfiler?.start('player');
     ({
       playerSmoothedElevation: runtimeSession.visual.playerSmoothedElevation,
       swooshTimer: runtimeSession.visual.swooshTimer,
@@ -164,6 +200,7 @@ export function runRuntimeFrame({
       lastInteractionPrompt,
       lastTransitionDebugRefreshAt: runtimeSession.visual.lastTransitionDebugRefreshAt,
     } = runPlayerFramePhase(pfOpts));
+    if (profilePhases) perfProfiler?.end('player');
 
     const elOpts = phaseContexts.enemyLoopContext as RunEnemyLoopOptions;
     elOpts.currentTime = currentTime;
@@ -172,7 +209,9 @@ export function runRuntimeFrame({
     elOpts.blockStartTime = runtimeSession.combat.blockStartTime;
     elOpts.isPlayerDead = isPlayerDead;
 
+    if (profilePhases) perfProfiler?.start('enemy');
     const enemyLoopResult = runEnemyLoop(elOpts);
+    if (profilePhases) perfProfiler?.end('enemy');
 
     if (enemyLoopResult.playerDied) {
       onPlayerDied(enemyLoopResult.lostEssence);
@@ -189,11 +228,15 @@ export function runRuntimeFrame({
   tailOpts.lastNpcProjected = lastNpcProjected;
   tailOpts.currentBiome = currentBiome;
   tailOpts.lastAutoSaveTime = runtimeSession.loop.lastAutoSaveTime;
+  tailOpts.perfProfiler = perfProfiler;
 
+  if (profilePhases) perfProfiler?.start('tail');
   ({
     lastNpcScreenUpdate: runtimeSession.loop.lastNpcScreenUpdate,
     lastAutoSaveTime: runtimeSession.loop.lastAutoSaveTime,
   } = runRuntimeLoopTail(tailOpts));
+  if (profilePhases) perfProfiler?.end('tail');
+  perfProfiler?.endFrame(collectPerfStats(phaseContexts));
 
   return lastInteractionPrompt;
 }

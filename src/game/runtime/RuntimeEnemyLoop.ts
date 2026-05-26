@@ -5,8 +5,13 @@ import type { EnemyLoopContext } from '@/game/runtime/RuntimePhaseContexts';
 import { ENEMY_BLUEPRINTS } from '@/data/enemies';
 import { getClimbVisualElevation } from '@/game/runtime/PlayerSimulationSystem';
 
-const announcedHollowEclipses = new Set<string>();
-const bossAttackSfxKeys = new Map<string, string>();
+const announcedHollowEclipses = new Set<number>();
+type BossSfxState = { state: string; type: string | undefined; phase: number | undefined; combo: number | undefined };
+const bossAttackSfxKeys = new Map<string, BossSfxState>();
+const liveProjectileIdsScratch = new Set<string>();
+const liveHazardIdsScratch = new Set<string>();
+const projectileRemovalScratch: string[] = [];
+const hazardRemovalScratch: string[] = [];
 
 export interface RunEnemyLoopOptions extends EnemyLoopContext {
   currentTime: number;
@@ -185,6 +190,7 @@ export function runEnemyLoop({
   const VISUAL_RANGE_SQ = 36 * 36;
   const px = state.player.position.x;
   const py = state.player.position.y;
+  const getTexture = (key: string): THREE.Texture | null => assetManager.getTexture(key) ?? null;
 
   for (const enemy of enemies) {
     const edx = enemy.position.x - px;
@@ -210,13 +216,18 @@ export function runEnemyLoop({
 
     let enemyMesh = existingVisuals;
 
-    const bossSfxKey = ['hollow_guardian', 'golem', 'ashen_reaver', 'corrupted_giant'].includes(enemy.type) &&
-      ['telegraphing', 'charging', 'slamming'].includes(enemy.state)
-      ? `${enemy.state}:${enemy.currentAttackType}:${enemy.phase}:${enemy.comboHitsRemaining}`
-      : '';
-    if (bossSfxKey) {
-      if (bossAttackSfxKeys.get(enemy.id) !== bossSfxKey) {
-        bossAttackSfxKeys.set(enemy.id, bossSfxKey);
+    const isBossType = enemy.type === 'hollow_guardian' || enemy.type === 'golem' ||
+      enemy.type === 'ashen_reaver' || enemy.type === 'corrupted_giant';
+    const isBossAttackState = enemy.state === 'telegraphing' || enemy.state === 'charging' ||
+      enemy.state === 'slamming';
+    if (isBossType && isBossAttackState) {
+      const cached = bossAttackSfxKeys.get(enemy.id);
+      if (!cached ||
+          cached.state !== enemy.state ||
+          cached.type !== enemy.currentAttackType ||
+          cached.phase !== enemy.phase ||
+          cached.combo !== enemy.comboHitsRemaining) {
+        bossAttackSfxKeys.set(enemy.id, { state: enemy.state, type: enemy.currentAttackType, phase: enemy.phase, combo: enemy.comboHitsRemaining });
         playBossAttack?.();
       }
     } else {
@@ -224,9 +235,9 @@ export function runEnemyLoop({
     }
 
     if (enemy.type === 'hollow_guardian' && enemy.state === 'slamming' && enemy.currentAttackType === 'hail_mary') {
-      const key = `${enemy.id}:${enemy.phase}`;
-      if (!announcedHollowEclipses.has(key)) {
-        announcedHollowEclipses.add(key);
+      const eclipsePhase = enemy.phase ?? 1;
+      if (!announcedHollowEclipses.has(eclipsePhase)) {
+        announcedHollowEclipses.add(eclipsePhase);
         floatingText.spawn(enemy.position.x, enemy.position.y + 1.5, 'HOLLOW ECLIPSE', '#44FFEE', 24);
         screenShake.shake(0.55, 0.35);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.6, 45, 0x44ffee, 0.18, 2.6, 1.8);
@@ -282,23 +293,22 @@ export function runEnemyLoop({
       outlinePad,
       enemyVisualProfiles,
       registry,
-      getOrCreateHPBar: () => registry.getOrCreateHPBar(enemy.id),
       getVisualYAt,
       getActorRenderOrder,
-      getTexture: key => assetManager.getTexture(key) ?? null,
+      getTexture,
     });
   }
 
-  const fullyDeadEnemyIds = new Set<string>();
+  const fullyDeadEnemyIds: string[] = [];
   for (const enemy of combatSystem.getAllEnemies()) {
     if (enemy.state === 'dead' && updateDeadEnemyVisual(enemy, registry)) {
       enemyAudio.clearEnemy(enemy.id);
-      fullyDeadEnemyIds.add(enemy.id);
+      fullyDeadEnemyIds.push(enemy.id);
     }
   }
 
-  if (fullyDeadEnemyIds.size > 0) {
-    combatSystem.removeDeadEnemiesByIds(Array.from(fullyDeadEnemyIds));
+  if (fullyDeadEnemyIds.length > 0) {
+    combatSystem.removeDeadEnemiesByIds(fullyDeadEnemyIds);
   }
 
   // Update + render thrown projectiles.
@@ -319,7 +329,8 @@ export function runEnemyLoop({
   );
 
   const projectiles = combatSystem.getProjectiles();
-  const liveProjectileIds = new Set<string>();
+  const liveProjectileIds = liveProjectileIdsScratch;
+  liveProjectileIds.clear();
   for (const proj of projectiles) {
     liveProjectileIds.add(proj.id);
     let mesh = registry.projectileMeshes.get(proj.id);
@@ -350,15 +361,16 @@ export function runEnemyLoop({
 
   // Dispose meshes for projectiles that died this frame.
   if (registry.projectileMeshes.size > liveProjectileIds.size) {
-    const toRemove: string[] = [];
+    projectileRemovalScratch.length = 0;
     registry.projectileMeshes.forEach((_mesh, id) => {
-      if (!liveProjectileIds.has(id)) toRemove.push(id);
+      if (!liveProjectileIds.has(id)) projectileRemovalScratch.push(id);
     });
-    for (const id of toRemove) registry.removeProjectile(id);
+    for (const id of projectileRemovalScratch) registry.removeProjectile(id);
   }
 
   const hazards = combatSystem.getFallingScytheHazards();
-  const liveHazardIds = new Set<string>();
+  const liveHazardIds = liveHazardIdsScratch;
+  liveHazardIds.clear();
   for (const hazard of hazards) {
     liveHazardIds.add(hazard.id);
     let meshes = registry.hazardMeshes.get(hazard.id);
@@ -421,11 +433,11 @@ export function runEnemyLoop({
   }
 
   if (registry.hazardMeshes.size > liveHazardIds.size) {
-    const toRemove: string[] = [];
+    hazardRemovalScratch.length = 0;
     registry.hazardMeshes.forEach((_mesh, id) => {
-      if (!liveHazardIds.has(id)) toRemove.push(id);
+      if (!liveHazardIds.has(id)) hazardRemovalScratch.push(id);
     });
-    for (const id of toRemove) registry.removeHazard(id);
+    for (const id of hazardRemovalScratch) registry.removeHazard(id);
   }
 
   if (state.player.health <= 0 && !isPlayerDead) {

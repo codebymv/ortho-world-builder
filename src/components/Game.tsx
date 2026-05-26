@@ -21,6 +21,7 @@ import { BonfireOverlay } from './game/BonfireOverlay';
 import { BonfireMenu } from './game/BonfireMenu';
 import { WeaponAcquiredOverlay } from './game/WeaponAcquiredOverlay';
 import { DevFooter } from './game/DevFooter';
+import { PerfOverlay } from './game/PerfOverlay';
 import { notify } from '@/lib/game/notificationBus';
 import { createProgressionService } from '@/game/domain/ProgressionService';
 import { createAudioProcessor } from '@/game/domain/AudioDirector';
@@ -33,6 +34,7 @@ import type {
 } from '@/game/runtime/setupGameRuntime';
 import { useGameMusic } from '@/game/runtime/useGameMusic';
 import { useGameRuntime } from '@/game/runtime/useGameRuntime';
+import { PerfProfiler, type PerfSnapshot } from '@/game/runtime/PerfProfiler';
 
 type InteractionPrompt = string | null;
 type BossHudSnapshot = {
@@ -107,6 +109,9 @@ const Game = () => {
   const combatSystemRef = useRef<CombatSystem | null>(null);
   const textureCacheRef = useRef<Map<string, THREE.Texture>>(new Map());
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const perfProfilerRef = useRef<PerfProfiler>(new PerfProfiler());
+  const [perfOverlayEnabled, setPerfOverlayEnabled] = useState(false);
+  const [perfOverlaySnapshot, setPerfOverlaySnapshot] = useState<PerfSnapshot | null>(null);
   const killCountRef = useRef(0);
   const runtimeContentRef = useRef<LoadedRuntimeContent | null>(null);
   const interactionContentRef = useRef<LoadedInteractionContent | null>(null);
@@ -523,6 +528,31 @@ const Game = () => {
   }, [refreshCollisionDebug]);
 
   useEffect(() => {
+    const handlePerfToggle = (e: KeyboardEvent) => {
+      if (e.key !== 'F8' || e.repeat) return;
+      e.preventDefault();
+      const enabled = perfProfilerRef.current.toggleEnabled();
+      setPerfOverlayEnabled(enabled);
+      setPerfOverlaySnapshot(enabled ? perfProfilerRef.current.getSnapshot() : null);
+      notify(enabled ? 'Performance profiler ON' : 'Performance profiler OFF', {
+        id: 'performance-profiler-toggle',
+        duration: enabled ? 2200 : 1400,
+      });
+    };
+
+    window.addEventListener('keydown', handlePerfToggle);
+    return () => window.removeEventListener('keydown', handlePerfToggle);
+  }, []);
+
+  useEffect(() => {
+    if (!perfOverlayEnabled) return;
+    const interval = window.setInterval(() => {
+      setPerfOverlaySnapshot(perfProfilerRef.current.getSnapshot());
+    }, 250);
+    return () => window.clearInterval(interval);
+  }, [perfOverlayEnabled]);
+
+  useEffect(() => {
     if (!collisionDebugEnabled) return;
     refreshCollisionDebug();
     const interval = window.setInterval(refreshCollisionDebug, 100);
@@ -624,6 +654,7 @@ const Game = () => {
     gameStateRef,
     combatSystemRef,
     textureCacheRef,
+    perfProfilerRef,
     musicRef,
     musicStarted,
     bonfireOverlayTimerRef,
@@ -850,6 +881,7 @@ const Game = () => {
               </div>
             </div>
           )}
+          {perfOverlaySnapshot && <PerfOverlay snapshot={perfOverlaySnapshot} />}
           <div className="fixed top-16 right-4 z-30 flex flex-col gap-2 pointer-events-none">
             {currentWorldMap && (
               <Minimap
@@ -863,6 +895,7 @@ const Game = () => {
                 playerX={gameState.player.position.x}
                 playerY={gameState.player.position.y}
                 assetManager={assetManagerRef.current}
+                perfProfiler={perfProfilerRef.current}
               />
             )}
             <NotificationFeed />
@@ -880,6 +913,7 @@ const Game = () => {
                 markers={mapMarkers}
                 refreshToken={minimapVersion}
                 assetManager={assetManagerRef.current}
+                perfProfiler={perfProfilerRef.current}
               />
             </Suspense>
           )}

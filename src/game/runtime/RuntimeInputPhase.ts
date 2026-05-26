@@ -78,9 +78,10 @@ export function setupRuntimeInputPhase({
   closeBonfireMenu,
 }: SetupRuntimeInputPhaseOptions) {
   const keys: Record<string, boolean> = {};
+  const TRACKED_KEYS = ['w', 'a', 's', 'd', 'shift'];
 
   const resetInputState = () => {
-    for (const key of Object.keys(keys)) {
+    for (const key of TRACKED_KEYS) {
       keys[key] = false;
     }
 

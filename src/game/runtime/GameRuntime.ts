@@ -79,7 +79,7 @@ export function createGameRuntime({
   setCameraRef(camera);
 
   const renderer = new THREE.WebGLRenderer({
-    antialias: true,
+    antialias: false,
     powerPreference: 'high-performance',
     stencil: false,
   });

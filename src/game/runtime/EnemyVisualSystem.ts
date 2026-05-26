@@ -3,6 +3,17 @@ import type { Enemy } from '@/lib/game/Combat';
 import type { GameState } from '@/lib/game/GameState';
 import type { EnemyVisualRegistry, EnemyHPBar } from '@/game/runtime/EnemyVisualRegistry';
 
+const _SIN_TABLE_SIZE = 1024;
+const _TWO_PI = Math.PI * 2;
+const _sinScale = _SIN_TABLE_SIZE / _TWO_PI;
+const _SIN_TABLE = new Float32Array(_SIN_TABLE_SIZE);
+for (let i = 0; i < _SIN_TABLE_SIZE; i++) {
+  _SIN_TABLE[i] = Math.sin((i / _SIN_TABLE_SIZE) * _TWO_PI);
+}
+const fastSin = (t: number): number =>
+  _SIN_TABLE[((t * _sinScale) | 0) & (_SIN_TABLE_SIZE - 1)];
+const fastCos = (t: number): number => fastSin(t + Math.PI * 0.5);
+
 type EnemyVisualProfile = {
   baseScale: number;
   footOffset: number;
@@ -38,6 +49,12 @@ const ENEMY_WALK_ANIMATIONS: Record<string, EnemyWalkAnimationConfig> = {
   void_wisp: { frameCount: 4, frameRate: 1.3 },
 };
 
+type EnemyRenderCache = { x: number; y: number; scaleX: number; scaleY: number; rot: number; hpBucket: number };
+const _enemyRenderCache = new Map<string, EnemyRenderCache>();
+
+type EnemySpriteCache = { key: string; state: string; facing: string; walkFrame: number; hasAttack: boolean; phase: number; chargeFrame: number };
+const _enemySpriteCache = new Map<string, EnemySpriteCache>();
+
 interface ApplyEnemyVisualsOptions {
   enemy: Enemy;
   state: GameState;
@@ -46,7 +63,6 @@ interface ApplyEnemyVisualsOptions {
   outlinePad: number;
   enemyVisualProfiles: Record<string, EnemyVisualProfile>;
   registry: EnemyVisualRegistry;
-  getOrCreateHPBar: () => EnemyHPBar;
   getVisualYAt: (x: number, y: number) => number;
   getActorRenderOrder: (x: number, y: number, footOffset: number) => number;
   getTexture: (key: string) => THREE.Texture | null;
@@ -57,7 +73,7 @@ function resolveWalkFrame(enemy: Enemy, enemyType: string): number {
   return Math.floor(enemy.moveCycle * config.frameRate) % config.frameCount;
 }
 
-function resolveSpriteKey(enemy: Enemy, enemyType: string): string {
+function resolveSpriteKey(enemy: Enemy, enemyType: string, walkFrame: number, chargeFrame: number): string {
   if (enemyType === 'bandit' || enemyType === 'skeleton' || enemyType === 'skeleton_captain') {
     const animState = enemy.state === 'telegraphing'
       ? 'charge'
@@ -67,9 +83,9 @@ function resolveSpriteKey(enemy: Enemy, enemyType: string): string {
           ? 'walk'
           : 'idle';
     const animFrame = animState === 'walk'
-      ? resolveWalkFrame(enemy, enemyType)
+      ? walkFrame
       : animState === 'charge'
-        ? Math.min(2, Math.floor((1 - enemy.telegraphTimer / enemy.telegraphDuration) * 3))
+        ? chargeFrame
         : animState === 'attack'
           ? 1
           : 0;
@@ -81,26 +97,20 @@ function resolveSpriteKey(enemy: Enemy, enemyType: string): string {
     if (enemy.state === 'staggered') return `${prefix}_stagger`;
     if (enemy.state === 'telegraphing') return `${prefix}_telegraph`;
     if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return `${prefix}_attack`;
-    if (enemy.moveBlend > 0.25) {
-      const frame = resolveWalkFrame(enemy, enemyType);
-      return `${prefix}_walk_${frame}`;
-    }
+    if (enemy.moveBlend > 0.25) return `${prefix}_walk_${walkFrame}`;
     return prefix;
   }
   if (enemyType === 'stone_sentinel') {
     if (enemy.state === 'staggered') return 'enemy_stone_sentinel_stagger';
     if (enemy.state === 'telegraphing') return 'enemy_stone_sentinel_telegraph';
     if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return 'enemy_stone_sentinel_attack';
-    if (enemy.moveBlend > 0.25) {
-      const frame = resolveWalkFrame(enemy, enemyType);
-      return `enemy_stone_sentinel_walk_${frame}`;
-    }
+    if (enemy.moveBlend > 0.25) return `enemy_stone_sentinel_walk_${walkFrame}`;
     return 'enemy_stone_sentinel';
   }
   if (enemy.state === 'telegraphing') return `${enemy.sprite}_telegraph`;
   if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return `${enemy.sprite}_attack`;
   if (enemy.moveBlend > 0.25 && ENEMY_WALK_ANIMATIONS[enemyType]) {
-    return `${enemy.sprite}_walk_${resolveWalkFrame(enemy, enemyType)}`;
+    return `${enemy.sprite}_walk_${walkFrame}`;
   }
   return enemy.sprite;
 }
@@ -113,7 +123,6 @@ export function applyEnemyVisuals({
   outlinePad,
   enemyVisualProfiles,
   registry,
-  getOrCreateHPBar,
   getVisualYAt,
   getActorRenderOrder,
   getTexture,
@@ -128,18 +137,45 @@ export function applyEnemyVisuals({
   // `parseFloat(id.split('_')[1]) * 0.001` formula so visuals don't change shape.
   const seed = enemy.visualSeed * 1000;
 
-  const spriteKey = resolveSpriteKey(enemy, enemyType);
-  let enemyTex = getTexture(spriteKey);
-  if (!enemyTex) {
-    const fallbackKey = enemy.state === 'telegraphing'
-      ? `${enemy.sprite}_telegraph`
-      : enemy.state === 'recovering' && enemy.attackAnimationTimer > 0
-        ? `${enemy.sprite}_attack`
-        : enemy.sprite;
-    enemyTex = getTexture(fallbackKey);
-  }
-  if (enemyTex && mat.map !== enemyTex) {
-    mat.map = enemyTex;
+  const walkFrame = resolveWalkFrame(enemy, enemyType);
+  const hasAttackAnim = enemy.attackAnimationTimer > 0;
+  const animPhase = enemy.phase ?? 1;
+  const chargeFrame = (enemy.state === 'telegraphing' && enemy.telegraphDuration > 0)
+    ? Math.min(2, Math.floor((1 - enemy.telegraphTimer / enemy.telegraphDuration) * 3))
+    : 0;
+
+  const sc = _enemySpriteCache.get(enemy.id);
+  if (!sc ||
+      sc.state !== enemy.state ||
+      sc.facing !== enemy.facing ||
+      sc.walkFrame !== walkFrame ||
+      sc.hasAttack !== hasAttackAnim ||
+      sc.phase !== animPhase ||
+      sc.chargeFrame !== chargeFrame) {
+    const spriteKey = resolveSpriteKey(enemy, enemyType, walkFrame, chargeFrame);
+    if (sc) {
+      sc.key = spriteKey;
+      sc.state = enemy.state;
+      sc.facing = enemy.facing;
+      sc.walkFrame = walkFrame;
+      sc.hasAttack = hasAttackAnim;
+      sc.phase = animPhase;
+      sc.chargeFrame = chargeFrame;
+    } else {
+      _enemySpriteCache.set(enemy.id, { key: spriteKey, state: enemy.state, facing: enemy.facing, walkFrame, hasAttack: hasAttackAnim, phase: animPhase, chargeFrame });
+    }
+    let enemyTex = getTexture(spriteKey);
+    if (!enemyTex) {
+      const fallbackKey = enemy.state === 'telegraphing'
+        ? `${enemy.sprite}_telegraph`
+        : hasAttackAnim
+          ? `${enemy.sprite}_attack`
+          : enemy.sprite;
+      enemyTex = getTexture(fallbackKey);
+    }
+    if (enemyTex && mat.map !== enemyTex) {
+      mat.map = enemyTex;
+    }
   }
 
   const bossPhase = (enemyType === 'hollow_guardian' || enemyType === 'golem')
@@ -154,7 +190,7 @@ export function applyEnemyVisuals({
     // Distinct sprite frames handle all state cues — no color tinting
     if (enemy.damageFlashTimer > 0) {
       enemy.damageFlashTimer -= deltaTime;
-      mat.opacity = 0.5 + Math.abs(Math.sin(enemy.damageFlashTimer * 25)) * 0.5;
+      mat.opacity = 0.5 + Math.abs(fastSin(enemy.damageFlashTimer * 25)) * 0.5;
     } else {
       mat.opacity = 1.0;
     }
@@ -165,13 +201,13 @@ export function applyEnemyVisuals({
   } else if (enemy.state === 'telegraphing') {
     const flashPhase = enemy.telegraphTimer / enemy.telegraphDuration;
     if (isPhase3) {
-      const flash = Math.sin(flashPhase * Math.PI * 10) * 0.45 + 0.55;
+      const flash = fastSin(flashPhase * Math.PI * 10) * 0.45 + 0.55;
       mat.color.setRGB(flash * 0.4, flash, flash);
     } else if (isPhase2) {
-      const flash = Math.sin(flashPhase * Math.PI * 8) * 0.4 + 0.6;
+      const flash = fastSin(flashPhase * Math.PI * 8) * 0.4 + 0.6;
       mat.color.setRGB(flash * 0.3, flash, flash);
     } else {
-      const flash = Math.sin(flashPhase * Math.PI * 6) * 0.3 + 0.7;
+      const flash = fastSin(flashPhase * Math.PI * 6) * 0.3 + 0.7;
       mat.color.setRGB(1, flash, flash);
     }
   } else if (enemy.state === 'staggered') {
@@ -180,19 +216,19 @@ export function applyEnemyVisuals({
     const novaTimer = enemy.novaSlamTimer ?? 0;
     const novaDuration = enemy.currentAttackType === 'hail_mary' ? 2.2 : 0.5;
     const novaProgress = 1 - novaTimer / novaDuration;
-    const flash = Math.sin(novaProgress * Math.PI * 6) * 0.4 + 0.6;
+    const flash = fastSin(novaProgress * Math.PI * 6) * 0.4 + 0.6;
     if (enemy.currentAttackType === 'hail_mary') {
       mat.color.setRGB(flash * 0.3, flash, flash);
     } else {
       mat.color.setRGB(flash * 0.5, flash * 0.2, flash);
     }
   } else if (isPhase3) {
-    const pulse = Math.sin(currentTime / 200) * 0.15 + 0.85;
+    const pulse = fastSin(currentTime / 200) * 0.15 + 0.85;
     mat.color.setRGB(pulse * 0.3, pulse, pulse);
-    mat.opacity = 0.75 + Math.sin(currentTime / 120) * 0.15;
+    mat.opacity = 0.75 + fastSin(currentTime / 120) * 0.15;
     mat.transparent = true;
   } else if (isPhase2) {
-    const pulse = Math.sin(currentTime / 350) * 0.08 + 0.92;
+    const pulse = fastSin(currentTime / 350) * 0.08 + 0.92;
     mat.color.setRGB(pulse * 0.35, pulse, pulse);
   } else {
     mat.color.setHex(0xffffff);
@@ -204,7 +240,7 @@ export function applyEnemyVisuals({
   let scaleX = visual.baseScale;
   let scaleY = visual.baseScale;
   let rotation = 0;
-  const moveWave = Math.sin(enemy.moveCycle);
+  const moveWave = fastSin(enemy.moveCycle);
   const stride = Math.abs(moveWave) * enemy.moveBlend;
   const lateralBias = Math.abs(enemy.velocity.x) > 0.001 ? Math.sign(enemy.velocity.x) : 0;
 
@@ -217,16 +253,16 @@ export function applyEnemyVisuals({
 
     switch (enemyType) {
       case 'shadow':
-        finalEnemyY += Math.sin(currentTime / 180 + seed) * 0.05;
-        finalEnemyX += Math.cos(currentTime / 220 + seed) * 0.025;
+        finalEnemyY += fastSin(currentTime / 180 + seed) * 0.05;
+        finalEnemyX += fastCos(currentTime / 220 + seed) * 0.025;
         scaleX *= 1 + stride * 0.035;
         scaleY *= 1 - stride * 0.025;
-        rotation += Math.sin(currentTime / 260 + seed) * 0.01;
+        rotation += fastSin(currentTime / 260 + seed) * 0.01;
         rotation *= 0.4;
         break;
       case 'hollow_reaver':
-        finalEnemyY += Math.sin(currentTime / 170 + seed) * 0.06;
-        finalEnemyX += Math.cos(currentTime / 210 + seed) * 0.03;
+        finalEnemyY += fastSin(currentTime / 170 + seed) * 0.06;
+        finalEnemyX += fastCos(currentTime / 210 + seed) * 0.03;
         scaleX *= 1 + stride * 0.025;
         scaleY *= 1 - stride * 0.025;
         rotation *= 0.4;
@@ -238,44 +274,44 @@ export function applyEnemyVisuals({
         rotation = moveWave * 0.015;
         break;
       case 'spider':
-        finalEnemyY += Math.sin(enemy.moveCycle * 1.35) * 0.004;
+        finalEnemyY += fastSin(enemy.moveCycle * 1.35) * 0.004;
         scaleX *= 1 + stride * 0.006;
         scaleY *= 1 - stride * 0.004;
         rotation = moveWave * 0.008;
         break;
       case 'golem': {
-        const golemStep = Math.abs(Math.sin(enemy.moveCycle * 0.72));
+        const golemStep = Math.abs(fastSin(enemy.moveCycle * 0.72));
         const plant = golemStep > 0.82 ? (golemStep - 0.82) / 0.18 : 0;
         finalEnemyY += golemStep * 0.045 - plant * 0.035;
         scaleX *= 1 + plant * 0.075;
         scaleY *= 1 - plant * 0.085;
-        finalEnemyX += Math.sin(enemy.moveCycle * 0.72) * visual.strideAmp * (lateralBias !== 0 ? lateralBias * 0.32 : 0.12);
-        rotation = Math.sin(enemy.moveCycle * 0.72) * 0.028 * (lateralBias !== 0 ? lateralBias : 1);
+        finalEnemyX += fastSin(enemy.moveCycle * 0.72) * visual.strideAmp * (lateralBias !== 0 ? lateralBias * 0.32 : 0.12);
+        rotation = fastSin(enemy.moveCycle * 0.72) * 0.028 * (lateralBias !== 0 ? lateralBias : 1);
         break;
       }
       case 'stone_sentinel': {
-        const sentinelStep = Math.abs(Math.sin(enemy.moveCycle * 0.95));
+        const sentinelStep = Math.abs(fastSin(enemy.moveCycle * 0.95));
         const shoulderDrop = sentinelStep > 0.78 ? (sentinelStep - 0.78) / 0.22 : 0;
         finalEnemyY += sentinelStep * 0.035 - shoulderDrop * 0.02;
         scaleX *= 1 + shoulderDrop * 0.045;
         scaleY *= 1 - shoulderDrop * 0.055;
-        finalEnemyX += Math.sin(enemy.moveCycle * 0.95) * visual.strideAmp * (lateralBias !== 0 ? lateralBias * 0.28 : 0.1);
-        rotation = Math.sin(enemy.moveCycle * 0.95) * 0.024 * (lateralBias !== 0 ? lateralBias : 1);
+        finalEnemyX += fastSin(enemy.moveCycle * 0.95) * visual.strideAmp * (lateralBias !== 0 ? lateralBias * 0.28 : 0.1);
+        rotation = fastSin(enemy.moveCycle * 0.95) * 0.024 * (lateralBias !== 0 ? lateralBias : 1);
         break;
       }
       case 'hollow_guardian':
         // Shade-like ethereal float — glides rather than stomps
-        finalEnemyY += Math.sin(currentTime / 200 + seed) * 0.06;
-        finalEnemyX += Math.cos(currentTime / 250 + seed) * 0.03;
+        finalEnemyY += fastSin(currentTime / 200 + seed) * 0.06;
+        finalEnemyX += fastCos(currentTime / 250 + seed) * 0.03;
         scaleX *= 1 + stride * 0.02;
         scaleY *= 1 - stride * 0.02;
         rotation *= 0.3;
         break;
       case 'plant':
-        finalEnemyX += Math.sin(enemy.moveCycle * 0.7 + seed) * 0.008;
+        finalEnemyX += fastSin(enemy.moveCycle * 0.7 + seed) * 0.008;
         scaleX *= 1 + stride * 0.012;
         scaleY *= 1 - stride * 0.01;
-        rotation = Math.sin(enemy.moveCycle * 0.7 + seed) * 0.018;
+        rotation = fastSin(enemy.moveCycle * 0.7 + seed) * 0.018;
         break;
     }
   } else if (enemy.state === 'telegraphing') {
@@ -294,7 +330,7 @@ export function applyEnemyVisuals({
     const shakeBase = ((isBoss ? 0.07 : isGolem ? 0.06 : 0.03) + (isSweep ? 0.04 : 0)) * phaseMultiplier;
 
     const pulseBeat = telegraphProgress < 0.5
-      ? Math.sin(telegraphProgress * Math.PI * 4) * 0.08
+      ? fastSin(telegraphProgress * Math.PI * 4) * 0.08
       : 0;
     scaleX *= 1 + telegraphProgress * scaleSwellX + pulseBeat;
     scaleY *= 1 - telegraphProgress * scaleSwellY + pulseBeat * 0.5;
@@ -304,10 +340,10 @@ export function applyEnemyVisuals({
     finalEnemyY += (dy / dist) * -windUpDist;
 
     const shakeIntensity = shakeBase * telegraphProgress * telegraphProgress;
-    finalEnemyX += Math.sin(currentTime / 25 + seed) * shakeIntensity;
-    finalEnemyY += Math.cos(currentTime / 30 + seed) * shakeIntensity;
+    finalEnemyX += fastSin(currentTime / 25 + seed) * shakeIntensity;
+    finalEnemyY += fastCos(currentTime / 30 + seed) * shakeIntensity;
     if (isSweep || isComboFinisher) {
-      finalEnemyX += Math.sin(currentTime / 12 + seed) * 0.08 * telegraphProgress;
+      finalEnemyX += fastSin(currentTime / 12 + seed) * 0.08 * telegraphProgress;
     }
     rotation = Math.atan2(dy, dx) * (isBoss ? 0.12 : 0.08) * telegraphProgress;
   } else if (enemy.state === 'recovering') {
@@ -320,56 +356,56 @@ export function applyEnemyVisuals({
         const isBoss = enemyType === 'hollow_guardian';
         const lungeDist = isBoss ? 0.7 : 0.4;
         const lungeProgress = enemy.attackAnimationTimer / 0.3;
-        const lungeDistance = Math.sin(lungeProgress * Math.PI) * lungeDist;
+        const lungeDistance = fastSin(lungeProgress * Math.PI) * lungeDist;
         finalEnemyX += (dx / dist) * lungeDistance;
         finalEnemyY += (dy / dist) * lungeDistance;
         if (isBoss) {
-          scaleX *= 1 + Math.sin(lungeProgress * Math.PI) * 0.1;
-          scaleY *= 1 - Math.sin(lungeProgress * Math.PI) * 0.15;
+          scaleX *= 1 + fastSin(lungeProgress * Math.PI) * 0.1;
+          scaleY *= 1 - fastSin(lungeProgress * Math.PI) * 0.15;
         }
       }
     }
     const recoverProgress = enemy.recoverTimer / enemy.recoverDuration;
     scaleX *= 0.92 + recoverProgress * 0.08;
     scaleY *= 0.88 + recoverProgress * 0.12;
-    rotation = Math.sin(currentTime / 90 + seed) * 0.02;
+    rotation = fastSin(currentTime / 90 + seed) * 0.02;
   } else if (enemy.state === 'charging') {
     scaleX *= 1.15;
     scaleY *= 0.85;
     const shakeAmt = 0.05;
-    finalEnemyX += Math.sin(currentTime / 15 + seed) * shakeAmt;
-    finalEnemyY += Math.cos(currentTime / 20 + seed) * shakeAmt * 0.5;
+    finalEnemyX += fastSin(currentTime / 15 + seed) * shakeAmt;
+    finalEnemyY += fastCos(currentTime / 20 + seed) * shakeAmt * 0.5;
   } else if (enemy.state === 'slamming') {
     const novaTimer = enemy.novaSlamTimer ?? 0;
     const novaDuration = enemy.currentAttackType === 'hail_mary' ? 2.2 : 0.5;
     const novaProgress = 1 - novaTimer / novaDuration;
-    const expand = Math.sin(novaProgress * Math.PI) * (enemy.currentAttackType === 'hail_mary' ? 0.5 : 0.35);
+    const expand = fastSin(novaProgress * Math.PI) * (enemy.currentAttackType === 'hail_mary' ? 0.5 : 0.35);
     scaleX *= 1 + expand;
     scaleY *= 1 + expand;
     const shakeAmt = 0.06 * novaProgress * novaProgress;
-    finalEnemyX += Math.sin(currentTime / 10 + seed) * shakeAmt;
-    finalEnemyY += Math.cos(currentTime / 12 + seed) * shakeAmt;
-    finalEnemyY += Math.sin(novaProgress * Math.PI * 3) * 0.04;
+    finalEnemyX += fastSin(currentTime / 10 + seed) * shakeAmt;
+    finalEnemyY += fastCos(currentTime / 12 + seed) * shakeAmt;
+    finalEnemyY += fastSin(novaProgress * Math.PI * 3) * 0.04;
   } else {
-    const breathe = Math.sin(currentTime / 800 + seed * 3);
+    const breathe = fastSin(currentTime / 800 + seed * 3);
     if (enemyType === 'hollow_guardian') {
       // Deep, slow ethereal float — like a giant shade hovering
       finalEnemyY += breathe * 0.06;
-      finalEnemyX += Math.cos(currentTime / 700 + seed) * 0.025;
+      finalEnemyX += fastCos(currentTime / 700 + seed) * 0.025;
       scaleX *= 1 + breathe * 0.018;
       scaleY *= 1 - breathe * 0.018;
     } else if (enemyType === 'shadow') {
       finalEnemyY += breathe * 0.05;
-      finalEnemyX += Math.cos(currentTime / 900 + seed) * 0.02;
+      finalEnemyX += fastCos(currentTime / 900 + seed) * 0.02;
       scaleX *= 1 + breathe * 0.018;
       scaleY *= 1 - breathe * 0.016;
-      rotation = Math.sin(currentTime / 1100 + seed) * 0.01;
+      rotation = fastSin(currentTime / 1100 + seed) * 0.01;
     } else if (enemyType === 'hollow_reaver') {
       finalEnemyY += breathe * 0.065;
-      finalEnemyX += Math.cos(currentTime / 760 + seed) * 0.028;
+      finalEnemyX += fastCos(currentTime / 760 + seed) * 0.028;
       scaleX *= 1 + breathe * 0.014;
       scaleY *= 1 - breathe * 0.018;
-      rotation = Math.sin(currentTime / 850 + seed) * 0.014;
+      rotation = fastSin(currentTime / 850 + seed) * 0.014;
     } else if (enemyType === 'slime') {
       finalEnemyY += Math.abs(breathe) * 0.025;
       scaleX *= 1 + Math.abs(breathe) * 0.04;
@@ -378,13 +414,13 @@ export function applyEnemyVisuals({
       finalEnemyX += breathe * 0.015;
       rotation = breathe * 0.02;
     } else if (enemyType === 'stone_sentinel') {
-      const sentinelBreath = Math.sin(currentTime / 1000 + seed * 3);
+      const sentinelBreath = fastSin(currentTime / 1000 + seed * 3);
       finalEnemyY += sentinelBreath * 0.028;
       scaleX *= 1 + sentinelBreath * 0.02;
       scaleY *= 1 - sentinelBreath * 0.018;
       rotation = sentinelBreath * 0.006;
     } else if (enemyType === 'golem') {
-      const slowBreath = Math.sin(currentTime / 1200 + seed * 3);
+      const slowBreath = fastSin(currentTime / 1200 + seed * 3);
       finalEnemyY += slowBreath * 0.035;
       scaleX *= 1 + slowBreath * 0.025;
       scaleY *= 1 - slowBreath * 0.02;
@@ -401,17 +437,33 @@ export function applyEnemyVisuals({
   enemyMesh.position.set(finalEnemyX, finalEnemyY, 0.2);
   enemyMesh.renderOrder = getActorRenderOrder(enemy.position.x, enemy.position.y, visual.footOffset);
 
-  const shadow = registry.shadows.get(enemy.id);
-  if (shadow) {
-    shadow.position.set(finalEnemyX, finalEnemyY - visual.footOffset * 0.7, 0.05);
-  }
+  let cache = _enemyRenderCache.get(enemy.id);
+  const posChanged = !cache || cache.x !== finalEnemyX || cache.y !== finalEnemyY
+    || cache.scaleX !== scaleX || cache.scaleY !== scaleY || cache.rot !== rotation;
 
-  const outline = registry.outlines.get(enemy.id);
-  if (outline) {
-    outline.position.set(finalEnemyX, finalEnemyY, 0.19);
-    outline.scale.set(scaleX * outlinePad, scaleY * outlinePad, 1);
-    outline.rotation.z = rotation;
-    outline.renderOrder = enemyMesh.renderOrder - 1;
+  if (posChanged) {
+    if (!cache) {
+      cache = { x: 0, y: 0, scaleX: 0, scaleY: 0, rot: 0, hpBucket: -1 };
+      _enemyRenderCache.set(enemy.id, cache);
+    }
+    cache.x = finalEnemyX;
+    cache.y = finalEnemyY;
+    cache.scaleX = scaleX;
+    cache.scaleY = scaleY;
+    cache.rot = rotation;
+
+    const shadow = registry.shadows.get(enemy.id);
+    if (shadow) {
+      shadow.position.set(finalEnemyX, finalEnemyY - visual.footOffset * 0.7, 0.05);
+    }
+
+    const outline = registry.outlines.get(enemy.id);
+    if (outline) {
+      outline.position.set(finalEnemyX, finalEnemyY, 0.19);
+      outline.scale.set(scaleX * outlinePad, scaleY * outlinePad, 1);
+      outline.rotation.z = rotation;
+      outline.renderOrder = enemyMesh.renderOrder - 1;
+    }
   }
 
   const usesScreenBossBar = enemy.type === 'hollow_guardian';
@@ -424,7 +476,7 @@ export function applyEnemyVisuals({
     return;
   }
 
-  const hpBar = getOrCreateHPBar();
+  const hpBar = registry.getOrCreateHPBar(enemy.id);
   const hpRatio = enemy.health / enemy.maxHealth;
   const barY = finalEnemyY + visual.hpBarOffset;
   hpBar.bg.position.set(finalEnemyX, barY, 0.35);
@@ -434,9 +486,13 @@ export function applyEnemyVisuals({
   hpBar.fill.renderOrder = 10001;
 
   const fillMat = hpBar.fill.material as THREE.MeshBasicMaterial;
-  if (hpRatio > 0.5) fillMat.color.setHex(0x4caf50);
-  else if (hpRatio > 0.25) fillMat.color.setHex(0xffc107);
-  else fillMat.color.setHex(0xf44336);
+  const hpBucket = hpRatio > 0.5 ? 2 : hpRatio > 0.25 ? 1 : 0;
+  if (!cache || cache.hpBucket !== hpBucket) {
+    if (cache) cache.hpBucket = hpBucket;
+    if (hpBucket === 2) fillMat.color.setHex(0x4caf50);
+    else if (hpBucket === 1) fillMat.color.setHex(0xffc107);
+    else fillMat.color.setHex(0xf44336);
+  }
 
   hpBar.bg.visible = true;
   hpBar.fill.visible = true;
@@ -452,9 +508,13 @@ export function updateDeadEnemyVisual(enemy: Enemy, registry: EnemyVisualRegistr
 
     if (deadMat.opacity <= 0) {
       registry.removeEnemy(enemy.id);
+      _enemyRenderCache.delete(enemy.id);
+      _enemySpriteCache.delete(enemy.id);
       return true;
     }
   } else {
+    _enemyRenderCache.delete(enemy.id);
+    _enemySpriteCache.delete(enemy.id);
     return true;
   }
 

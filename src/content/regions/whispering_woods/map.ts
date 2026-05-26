@@ -28,8 +28,8 @@ export const forestDef: MapDefinition = {
     { x: 116, y: 192, width: 48, height: 24, type: 'clearing', fill: 'dirt' },
     { x: 126, y: 180, width: 26, height: 14, type: 'clearing', fill: 'dirt' },
 
-    // === RANGER OUTPOST ===
-    { x: 136, y: 164, width: 10, height: 8, type: 'inn_building', interactionId: 'ranger_cabin', interiorMap: 'interior_ranger_cabin', interiorSpawnX: 7, interiorSpawnY: 5 },
+    // === RANGER OUTPOST (overgrown ruin — real cabin relocated to SE hills) ===
+    { x: 136, y: 164, width: 6, height: 6, type: 'cottage', interactionId: 'ranger_cabin_ruin' },
     // South of cabin: sit below the y=178 east???west artery so the approach stays mostly grass.
     { x: 156, y: 180, width: 12, height: 10, type: 'camp', interactionId: 'ranger_camp' },
 
@@ -331,6 +331,10 @@ export const forestDef: MapDefinition = {
     // guarded by vine plants ? rewards players who wander off the main path east.
     { x: 248, y: 248, width: 14, height: 12, type: 'clearing', fill: 'dirt' },
     { x: 250, y: 250, width: 10, height: 8, type: 'ruins', interactionId: 'forgotten_shrine' },
+
+    // === RELOCATED RANGER CABIN (hidden SE hills, world 86, 77) ===
+    { x: 232, y: 224, width: 12, height: 10, type: 'clearing', fill: 'grass' },
+    { x: 236, y: 227, width: 10, height: 8, type: 'inn_building', interactionId: 'ranger_cabin', interiorMap: 'interior_ranger_cabin', interiorSpawnX: 7, interiorSpawnY: 5 },
 
     // === SOUTH QUADRANT POIs (below y:250 ??? fills the empty stretch before the village portal) ===
     { x: 200, y: 260, width: 16, height: 12, type: 'abandoned_camp', interactionId: 'southern_outpost' },
@@ -885,17 +889,12 @@ export const forestDef: MapDefinition = {
     { x: 80, y: 150, interactionId: 'enchanted_chest_1' },
     { x: 248, y: 250, interactionId: 'enchanted_chest_2' },
     { x: 58, y: 268, interactionId: 'enchanted_chest_3' },
-    { x: 232, y: 161, interactionId: 'fort_chest_1' },
     { x: 208, y: 66, interactionId: 'fort_chest_2' },
     { x: 68, y: 196, interactionId: 'fort_chest_3' },
-    // Hidden chest on the cliff-top plateau ??? reward for finding the north descent.
-    { x: 72, y: 182, interactionId: 'cliff_top_sentinel_chest' },
     { x: 111, y: 220, interactionId: 'forest_river_chest' },
     // Near hunter approach / river shelf ??? player-facing coords ~(8, 66) inside small cemetery.
     { x: 158, y: 216, interactionId: 'forest_cemetery_chest' },
     { x: 218, y: 183, interactionId: 'golem_arena_chest' },
-    // Fort garrison chest ??? inside the gate so entry feels earned
-    { x: 228, y: 161, interactionId: 'fort_garrison_chest' },
     // Hidden chest behind waterfall
     { x: 180, y: 46, interactionId: 'waterfall_hidden_chest' },
     // West grove rim ??? world (-52, 12); reach from inside the cordon, not the river sand pinch.
@@ -972,7 +971,6 @@ export const forestDef: MapDefinition = {
     { x: 140, y: 113, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 100, y: 165, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 148, y: 265, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
-    { x: 230, y: 165, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 172, y: 195, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     // Tucked beside the forgotten shrine ? reward for the SE exploration loop.
     { x: 258, y: 252, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },

@@ -72,6 +72,7 @@ export class WeatherSystem {
   private overlay: THREE.Mesh | null = null;
   private lastParticleMaterialWeather: WeatherType | null = null;
   private renderedParticleCount = 0;
+  private qualityScale = 1;
   /** Seconds until next lightning attempt (storm only). */
   private lightningCooldown = 4 + Math.random() * 5;
   /** Brief flash duration remaining; 0 = no flash. */
@@ -255,6 +256,18 @@ export class WeatherSystem {
     return this.transitionTimer > 0 ? this.targetWeather : this.currentWeather;
   }
 
+  setQualityScale(scale: number): void {
+    this.qualityScale = Math.max(0.25, Math.min(1, scale));
+  }
+
+  getPerformanceStats(): { renderedParticles: number; activeWeather: string; qualityScale: number } {
+    return {
+      renderedParticles: this.renderedParticleCount,
+      activeWeather: this.getActiveWeather(),
+      qualityScale: this.qualityScale,
+    };
+  }
+
   update(deltaTime: number, playerX: number, playerY: number, biome: string) {
     // Weather change timer
     this.weatherTimer += deltaTime;
@@ -319,7 +332,7 @@ export class WeatherSystem {
     }
 
     // Spawn / update particles
-    const targetCount = Math.floor(cfg.count * fadeProgress);
+    const targetCount = Math.floor(cfg.count * fadeProgress * this.qualityScale);
     let activeCount = 0;
 
     for (const p of this.particles) {

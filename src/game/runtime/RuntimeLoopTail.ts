@@ -1,5 +1,18 @@
+import * as THREE from 'three';
 import { updateNpcDialogueProjection } from '@/game/runtime/NpcBehaviorSystem';
 import type { RuntimeLoopTailContext } from '@/game/runtime/RuntimePhaseContexts';
+import type { PerfProfiler } from '@/game/runtime/PerfProfiler';
+
+const CAMP_SMOKE_REFRESH_MS = 900;
+
+let campSmokeCache: {
+  mapId: string;
+  mapRevision: number;
+  tileX: number;
+  tileY: number;
+  refreshedAt: number;
+  sources: Array<{ x: number; y: number }>;
+} | null = null;
 
 export interface RunRuntimeLoopTailOptions extends RuntimeLoopTailContext {
   playerPosition: { x: number; y: number };
@@ -11,6 +24,54 @@ export interface RunRuntimeLoopTailOptions extends RuntimeLoopTailContext {
   lastNpcProjected: { x: number; y: number };
   currentBiome: string;
   lastAutoSaveTime: number;
+  perfProfiler?: PerfProfiler;
+}
+
+function getCachedCampSmokeSources({
+  world,
+  state,
+  playerPosition,
+  currentTime,
+}: Pick<RunRuntimeLoopTailOptions, 'world' | 'state' | 'playerPosition' | 'currentTime'>): Array<{ x: number; y: number }> {
+  const map = world.getCurrentMap();
+  const tileX = Math.floor(playerPosition.x + map.width / 2);
+  const tileY = Math.floor(playerPosition.y + map.height / 2);
+  const mapRevision = world.getMapRevision();
+
+  if (
+    campSmokeCache &&
+    campSmokeCache.mapId === state.currentMap &&
+    campSmokeCache.mapRevision === mapRevision &&
+    campSmokeCache.tileX === tileX &&
+    campSmokeCache.tileY === tileY &&
+    currentTime - campSmokeCache.refreshedAt < CAMP_SMOKE_REFRESH_MS
+  ) {
+    return campSmokeCache.sources;
+  }
+
+  const sources = world.getNearbyTileWorldPositions(
+    'campfire_remains',
+    playerPosition.x,
+    playerPosition.y,
+    18,
+  );
+  campSmokeCache = {
+    mapId: state.currentMap,
+    mapRevision,
+    tileX,
+    tileY,
+    refreshedAt: currentTime,
+    sources,
+  };
+  return sources;
+}
+
+function applyAdaptivePixelRatio(renderer: THREE.WebGLRenderer, cap: number): void {
+  if (typeof window === 'undefined') return;
+  const target = Math.max(1, Math.min(window.devicePixelRatio || 1, cap));
+  if (Math.abs(renderer.getPixelRatio() - target) > 0.05) {
+    renderer.setPixelRatio(target);
+  }
 }
 
 export function runRuntimeLoopTail({
@@ -45,36 +106,75 @@ export function runRuntimeLoopTail({
   startStormLoop,
   stopStormLoop,
   playThunder,
+  perfProfiler,
 }: RunRuntimeLoopTailOptions) {
-  world.updateChunks(playerPosition.x, playerPosition.y);
+  const profilePhases = perfProfiler?.isEnabled() ?? false;
 
-  const nextNpcScreenUpdate = updateNpcDialogueProjection({
-    activeNpcWorldPos,
-    isDialogueActive,
-    playerPosition,
-    currentTime,
-    camera,
-    renderer,
-    getVisualYAt,
-    closeDialogueSession,
-    setNpcScreenPos,
-    lastNpcScreenUpdate,
-    lastNpcProjected,
-    minIntervalMs: npcScreenMinMs,
-    minDeltaPx: npcScreenMinPx,
-  });
+  if (profilePhases) {
+    perfProfiler!.measure('world', () => {
+      world.updateChunks(playerPosition.x, playerPosition.y);
+    });
+  } else {
+    world.updateChunks(playerPosition.x, playerPosition.y);
+  }
 
-  biomeAmbience.setBiome(currentBiome);
-  const campSmokeSources = world.getNearbyTileWorldPositions(
-    'campfire_remains',
-    playerPosition.x,
-    playerPosition.y,
-    18,
-  );
-  biomeAmbience.update(deltaTime, playerPosition.x, playerPosition.y, campSmokeSources);
+  const nextNpcScreenUpdate = profilePhases
+    ? perfProfiler!.measure('npcProjection', () => updateNpcDialogueProjection({
+      activeNpcWorldPos,
+      isDialogueActive,
+      playerPosition,
+      currentTime,
+      camera,
+      renderer,
+      getVisualYAt,
+      closeDialogueSession,
+      setNpcScreenPos,
+      lastNpcScreenUpdate,
+      lastNpcProjected,
+      minIntervalMs: npcScreenMinMs,
+      minDeltaPx: npcScreenMinPx,
+    }))
+    : updateNpcDialogueProjection({
+      activeNpcWorldPos,
+      isDialogueActive,
+      playerPosition,
+      currentTime,
+      camera,
+      renderer,
+      getVisualYAt,
+      closeDialogueSession,
+      setNpcScreenPos,
+      lastNpcScreenUpdate,
+      lastNpcProjected,
+      minIntervalMs: npcScreenMinMs,
+      minDeltaPx: npcScreenMinPx,
+    });
+
+  const adaptiveScale = perfProfiler?.getAdaptiveEffectsScale() ?? 1;
+  biomeAmbience.setQualityScale(adaptiveScale);
+  weatherSystem.setQualityScale(adaptiveScale);
+  applyAdaptivePixelRatio(renderer, perfProfiler?.getAdaptivePixelRatioCap() ?? 2);
+
+  if (profilePhases) {
+    perfProfiler!.measure('ambience', () => {
+      biomeAmbience.setBiome(currentBiome);
+      const campSmokeSources = getCachedCampSmokeSources({ world, state, playerPosition, currentTime });
+      biomeAmbience.update(deltaTime, playerPosition.x, playerPosition.y, campSmokeSources);
+    });
+  } else {
+    biomeAmbience.setBiome(currentBiome);
+    const campSmokeSources = getCachedCampSmokeSources({ world, state, playerPosition, currentTime });
+    biomeAmbience.update(deltaTime, playerPosition.x, playerPosition.y, campSmokeSources);
+  }
 
   if (playThunder) weatherSystem.onLightningFlash = playThunder;
-  weatherSystem.update(deltaTime, playerPosition.x, playerPosition.y, currentBiome);
+  if (profilePhases) {
+    perfProfiler!.measure('weather', () => {
+      weatherSystem.update(deltaTime, playerPosition.x, playerPosition.y, currentBiome);
+    });
+  } else {
+    weatherSystem.update(deltaTime, playerPosition.x, playerPosition.y, currentBiome);
+  }
 
   const isStorm = weatherSystem.getActiveWeather() === 'storm';
   if (isStorm) {
@@ -83,10 +183,25 @@ export function runRuntimeLoopTail({
     stopStormLoop?.();
   }
 
-  dayNightCycle.update(deltaTime, playerPosition.x, playerPosition.y);
-  floatingText.update(deltaTime);
-  particleSystem.update(deltaTime);
-  worldItemRenderer.update(state.worldItems, state.currentMap, assetManager, currentTime, getVisualYAt);
+  if (profilePhases) {
+    perfProfiler!.measure('dayNight', () => {
+      dayNightCycle.update(deltaTime, playerPosition.x, playerPosition.y);
+    });
+    perfProfiler!.measure('floatingText', () => {
+      floatingText.update(deltaTime);
+    });
+    perfProfiler!.measure('particles', () => {
+      particleSystem.update(deltaTime);
+    });
+    perfProfiler!.measure('worldItems', () => {
+      worldItemRenderer.update(state.worldItems, state.currentMap, assetManager, currentTime, getVisualYAt);
+    });
+  } else {
+    dayNightCycle.update(deltaTime, playerPosition.x, playerPosition.y);
+    floatingText.update(deltaTime);
+    particleSystem.update(deltaTime);
+    worldItemRenderer.update(state.worldItems, state.currentMap, assetManager, currentTime, getVisualYAt);
+  }
 
   let nextAutoSaveTime = lastAutoSaveTime;
   if (currentTime - nextAutoSaveTime >= autoSaveInterval) {
@@ -94,7 +209,13 @@ export function runRuntimeLoopTail({
     triggerSave();
   }
 
-  renderer.render(scene, camera);
+  if (profilePhases) {
+    perfProfiler!.measure('render', () => {
+      renderer.render(scene, camera);
+    });
+  } else {
+    renderer.render(scene, camera);
+  }
 
   return {
     lastNpcScreenUpdate: nextNpcScreenUpdate,

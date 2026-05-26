@@ -116,6 +116,8 @@ const RENDER_RADIUS = 32;
 const CULL_RADIUS = 42;
 const MAX_TILES_PER_FRAME = 200; // steady-state budget while moving
 const INITIAL_LOAD_TILES_PER_FRAME = 320; // smoother initial/after-rebuild streaming without one-frame spikes
+const TILE_KEY_STRIDE = 65536;
+const MAX_MESH_POOL_SIZE = 1200;
 const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted', 'stairs', 'ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open']);
 
 /** Tile types enemies treat as solid — mirrors ladder/gate art and vertical traversal the player can use. */
@@ -162,6 +164,29 @@ const OVERWORLD_STRUCTURE_SCALE_MULTIPLIER = 1.18;
 const BLOODSTAIN_VARIANT_COUNT = 16;
 const RUINED_FOREST_COTTAGE_VARIANT_COUNT = 12;
 
+function packTileKey(tileX: number, tileY: number): number {
+  return tileY * TILE_KEY_STRIDE + tileX;
+}
+
+function unpackTileKeyX(key: number): number {
+  return key % TILE_KEY_STRIDE;
+}
+
+function unpackTileKeyY(key: number): number {
+  return Math.floor(key / TILE_KEY_STRIDE);
+}
+
+function createSortedRenderOffsets(radius: number): Array<{ dx: number; dy: number }> {
+  const offsets: Array<{ dx: number; dy: number; dist: number }> = [];
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      offsets.push({ dx, dy, dist: Math.abs(dx) + Math.abs(dy) });
+    }
+  }
+  offsets.sort((a, b) => a.dist - b.dist);
+  return offsets.map(({ dx, dy }) => ({ dx, dy }));
+}
+
 // Seeded hash for deterministic detail placement
 function tileHash(x: number, y: number, seed: number = 0): number {
   let h = (x * 374761393 + y * 668265263 + seed * 1274126177) | 0;
@@ -197,13 +222,15 @@ export class World {
   private scene: THREE.Scene;
   private assetManager: AssetManager;
   
-  private activeMeshes: Map<string, THREE.Object3D> = new Map();
+  private activeMeshes: Map<number, THREE.Object3D> = new Map();
   private overlayPool: THREE.Group[] = [];
+  private meshPool: THREE.Mesh[] = [];
   private lastChunkCenter: { x: number; y: number } = { x: -9999, y: -9999 };
   private lastMoveDir: { x: number; y: number } = { x: 0, y: 0 };
   private readonly CHUNK_UPDATE_THRESHOLD = 2;
   private readonly PRELOAD_EXTRA = 10; // extra tiles in movement direction
-  private pendingTiles: Array<{ x: number; y: number; key: string }> = [];
+  private readonly sortedRenderOffsets = createSortedRenderOffsets(RENDER_RADIUS + this.PRELOAD_EXTRA);
+  private pendingTiles: Array<{ x: number; y: number; key: number }> = [];
   private isInitialLoad: boolean = true;
   private mapRevision: number = 0;
   private interactableCache: {
@@ -379,17 +406,42 @@ export class World {
     return material;
   }
 
+  private acquireMesh(geometry: THREE.BufferGeometry, material: THREE.Material | THREE.Material[]): THREE.Mesh {
+    const mesh = this.meshPool.pop() ?? new THREE.Mesh(geometry, material);
+    mesh.geometry = geometry;
+    mesh.material = material;
+    mesh.visible = true;
+    mesh.frustumCulled = true;
+    mesh.matrixAutoUpdate = true;
+    mesh.position.set(0, 0, 0);
+    mesh.rotation.set(0, 0, 0);
+    mesh.scale.set(1, 1, 1);
+    mesh.renderOrder = 0;
+    mesh.userData = {};
+    return mesh;
+  }
+
+  private releaseMesh(mesh: THREE.Mesh): void {
+    mesh.parent?.remove(mesh);
+    mesh.visible = false;
+    mesh.matrixAutoUpdate = false;
+    mesh.userData = {};
+    if (this.meshPool.length < MAX_MESH_POOL_SIZE) {
+      this.meshPool.push(mesh);
+    }
+  }
+
   private createPlaneMesh(texture: THREE.Texture, z: number, cacheKey: string): THREE.Mesh {
     const material = this.getCachedMaterial(texture, cacheKey);
-    const mesh = new THREE.Mesh(this.sharedTileGeometry, material);
+    const mesh = this.acquireMesh(this.sharedTileGeometry, material);
     mesh.frustumCulled = true;
     mesh.position.z = z;
     mesh.matrixAutoUpdate = false;
     return mesh;
   }
 
-  private tileKey(tileX: number, tileY: number): string {
-    return `${tileX},${tileY}`;
+  private tileKey(tileX: number, tileY: number): number {
+    return packTileKey(tileX, tileY);
   }
 
   private shouldKeepTileActive(tileX: number, tileY: number): boolean {
@@ -398,7 +450,7 @@ export class World {
       Math.abs(tileY - this.lastChunkCenter.y) <= CULL_RADIUS;
   }
 
-  private removeActiveTileObject(key: string): void {
+  private removeActiveTileObject(key: number): void {
     const object = this.activeMeshes.get(key);
     if (!object) return;
     this.scene.remove(object);
@@ -512,7 +564,7 @@ export class World {
       this.materialCache.set(cacheKey, mat);
     }
 
-    const mesh = new THREE.Mesh(this.detailGeometry, mat);
+    const mesh = this.acquireMesh(this.detailGeometry, mat);
     mesh.frustumCulled = true;
     mesh.matrixAutoUpdate = false;
 
@@ -563,7 +615,7 @@ export class World {
         });
         this.materialCache.set(matKey, mat);
       }
-      const mesh = new THREE.Mesh(this.detailGeometry, mat);
+      const mesh = this.acquireMesh(this.detailGeometry, mat);
       mesh.frustumCulled = true;
       mesh.matrixAutoUpdate = false;
       const hx = (tileHash(tileX, tileY, 510 + idx) - 0.5) * 0.48;
@@ -615,7 +667,7 @@ export class World {
 
     // Broad veil underneath — covers the altar base
     const veilMat = makeMat('veil', 0.38);
-    const veil = new THREE.Mesh(this.detailGeometry, veilMat);
+    const veil = this.acquireMesh(this.detailGeometry, veilMat);
     veil.frustumCulled = true;
     veil.matrixAutoUpdate = false;
     veil.position.set(0, 0.05, 0.12);
@@ -633,7 +685,7 @@ export class World {
       const mx = Math.cos(angle) * r;
       const my = Math.sin(angle) * r * 0.6; // flatten for isometric feel
       const moteMat = makeMat('mote', 0.42 + tileHash(tileX, tileY, 830 + i) * 0.18);
-      const mote = new THREE.Mesh(this.detailGeometry, moteMat);
+      const mote = this.acquireMesh(this.detailGeometry, moteMat);
       mote.frustumCulled = true;
       mote.matrixAutoUpdate = false;
       mote.position.set(mx, my + 0.08, 0.14 + i * 0.005);
@@ -671,7 +723,7 @@ export class World {
       this.materialCache.set(cacheKey, mat);
     }
 
-    const mesh = new THREE.Mesh(this.shadowGeometry, mat);
+    const mesh = this.acquireMesh(this.shadowGeometry, mat);
     mesh.frustumCulled = true;
     mesh.matrixAutoUpdate = false;
     mesh.position.set(0, 0, -0.32);
@@ -984,7 +1036,7 @@ export class World {
       const gap = (ne - me) * World.ELEVATION_Y_OFFSET;
       if (gap < 0.02) return;
       const variant = Math.floor(tileHash(tileX, tileY, 201) * 6);
-      const mesh = new THREE.Mesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
+      const mesh = this.acquireMesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
       this.setRenderRole(mesh, 'ground');
       mesh.scale.set(1, gap, 1);
       mesh.position.set(0, this.tileSize * 0.5 + gap * 0.5, 0.04);
@@ -1005,7 +1057,7 @@ export class World {
       const gap = (ne - me) * World.ELEVATION_Y_OFFSET;
       if (gap < 0.02) return;
       const variant = Math.floor(tileHash(tileX, tileY, 307) * 6);
-      const mesh = new THREE.Mesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
+      const mesh = this.acquireMesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
       this.setRenderRole(mesh, 'ground');
       mesh.scale.set(gap, 1, 1);
       mesh.position.set(this.tileSize * 0.5 + gap * 0.5, 0, 0.04);
@@ -1026,7 +1078,7 @@ export class World {
       const gap = (ne - me) * World.ELEVATION_Y_OFFSET;
       if (gap < 0.02) return;
       const variant = Math.floor(tileHash(tileX, tileY, 113) * 6);
-      const mesh = new THREE.Mesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
+      const mesh = this.acquireMesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
       this.setRenderRole(mesh, 'ground');
       mesh.scale.set(1, gap, 1);
       mesh.position.set(0, -(this.tileSize * 0.5 + gap * 0.5), 0.04);
@@ -1047,7 +1099,7 @@ export class World {
       const gap = (ne - me) * World.ELEVATION_Y_OFFSET;
       if (gap < 0.02) return;
       const variant = Math.floor(tileHash(tileX, tileY, 419) * 6);
-      const mesh = new THREE.Mesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
+      const mesh = this.acquireMesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
       this.setRenderRole(mesh, 'ground');
       mesh.scale.set(gap, 1, 1);
       mesh.position.set(-(this.tileSize * 0.5 + gap * 0.5), 0, 0.04);
@@ -1084,7 +1136,7 @@ export class World {
     const mat = this.getCachedMaterial(tex, 'ladder_south_cliff_cue');
     mat.transparent = true;
     mat.depthWrite = false;
-    const mesh = new THREE.Mesh(this.ladderSouthCueGeometry, mat);
+    const mesh = this.acquireMesh(this.ladderSouthCueGeometry, mat);
     this.setRenderRole(mesh, 'overlay');
     mesh.position.set(0, -this.tileSize * 0.5 + 0.1, 0.125);
     mesh.renderOrder = 2;
@@ -1246,9 +1298,19 @@ export class World {
 
   private recycleObject(object: THREE.Object3D) {
     if (object instanceof THREE.Group) {
+      const meshes: THREE.Mesh[] = [];
+      object.traverse(child => {
+        if (child instanceof THREE.Mesh) meshes.push(child);
+      });
+      for (const mesh of meshes) {
+        this.releaseMesh(mesh);
+      }
       object.clear();
       this.overlayPool.push(object);
       return;
+    }
+    if (object instanceof THREE.Mesh) {
+      this.releaseMesh(object);
     }
     // Meshes with shared materials just get removed from scene — no disposal needed
   }
@@ -1395,15 +1457,15 @@ export class World {
     // Extend render radius in movement direction
     const preX = this.lastMoveDir.x * this.PRELOAD_EXTRA;
     const preY = this.lastMoveDir.y * this.PRELOAD_EXTRA;
-    const startX = Math.max(0, centerTileX - RENDER_RADIUS + Math.min(0, preX));
-    const endX = Math.min(this.map.width - 1, centerTileX + RENDER_RADIUS + Math.max(0, preX));
-    const startY = Math.max(0, centerTileY - RENDER_RADIUS + Math.min(0, preY));
-    const endY = Math.min(this.map.height - 1, centerTileY + RENDER_RADIUS + Math.max(0, preY));
+    const minDx = -RENDER_RADIUS + Math.min(0, preX);
+    const maxDx = RENDER_RADIUS + Math.max(0, preX);
+    const minDy = -RENDER_RADIUS + Math.min(0, preY);
+    const maxDy = RENDER_RADIUS + Math.max(0, preY);
 
     // Cull distant tiles (keep anything within cull radius to prevent flicker)
     for (const [key, object] of this.activeMeshes) {
-      const kx = typeof object.userData?.tileX === 'number' ? object.userData.tileX : NaN;
-      const ky = typeof object.userData?.tileY === 'number' ? object.userData.tileY : NaN;
+      const kx = typeof object.userData?.tileX === 'number' ? object.userData.tileX : unpackTileKeyX(key);
+      const ky = typeof object.userData?.tileY === 'number' ? object.userData.tileY : unpackTileKeyY(key);
       if (Math.abs(kx - centerTileX) > CULL_RADIUS || Math.abs(ky - centerTileY) > CULL_RADIUS) {
         this.scene.remove(object);
         this.recycleObject(object);
@@ -1413,21 +1475,16 @@ export class World {
 
     // Collect new tiles to create
     this.pendingTiles = [];
-    for (let y = startY; y <= endY; y++) {
-      for (let x = startX; x <= endX; x++) {
-        const key = this.tileKey(x, y);
-        if (!this.activeMeshes.has(key)) {
-          this.pendingTiles.push({ x, y, key });
-        }
+    for (const { dx: offsetX, dy: offsetY } of this.sortedRenderOffsets) {
+      if (offsetX < minDx || offsetX > maxDx || offsetY < minDy || offsetY > maxDy) continue;
+      const x = centerTileX + offsetX;
+      const y = centerTileY + offsetY;
+      if (x < 0 || y < 0 || x >= this.map.width || y >= this.map.height) continue;
+      const key = this.tileKey(x, y);
+      if (!this.activeMeshes.has(key)) {
+        this.pendingTiles.push({ x, y, key });
       }
     }
-
-    // Sort pending tiles by distance to player (closest first) for better visual loading
-    this.pendingTiles.sort((a, b) => {
-      const da = Math.abs(a.x - centerTileX) + Math.abs(a.y - centerTileY);
-      const db = Math.abs(b.x - centerTileX) + Math.abs(b.y - centerTileY);
-      return da - db;
-    });
 
     // Process first batch immediately (initial load gets all at once)
     const immediateBatch = this.isInitialLoad ? INITIAL_LOAD_TILES_PER_FRAME : MAX_TILES_PER_FRAME;
@@ -1566,10 +1623,10 @@ export class World {
     if (r === 0) {
       return this.isTileWalkable(this.getTile(x, y));
     }
-    return this.isWalkable(x - r, y - r) &&
-           this.isWalkable(x + r, y - r) &&
-           this.isWalkable(x - r, y + r) &&
-           this.isWalkable(x + r, y + r);
+    return this.isTileWalkable(this.getTile(x - r, y - r)) &&
+           this.isTileWalkable(this.getTile(x + r, y - r)) &&
+           this.isTileWalkable(this.getTile(x - r, y + r)) &&
+           this.isTileWalkable(this.getTile(x + r, y + r));
   }
 
   private isEnemyBlockedStandingTile(tile: Tile | null): boolean {
@@ -1583,34 +1640,58 @@ export class World {
     return this.canStepBetween(fromTile, toTile);
   }
 
+  private canEnemyMovePoint(fromX: number, fromY: number, toX: number, toY: number): boolean {
+    const fromTile = this.getTile(fromX, fromY);
+    const toTile = this.getTile(toX, toY);
+    if (!this.canEnemyStepBetween(fromTile, toTile)) return false;
+    if (this.isEnemyBlockedStandingTile(toTile)) return false;
+    return true;
+  }
+
   canEnemyMoveTo(fromX: number, fromY: number, toX: number, toY: number, r: number = 0): boolean {
+    if (
+      !Number.isFinite(fromX) ||
+      !Number.isFinite(fromY) ||
+      !Number.isFinite(toX) ||
+      !Number.isFinite(toY) ||
+      !Number.isFinite(r)
+    ) return false;
     if (r === 0) {
-      if (!this.canEnemyStepBetween(this.getTile(fromX, fromY), this.getTile(toX, toY))) return false;
-      if (this.isEnemyBlockedStandingTile(this.getTile(toX, toY))) return false;
-      return true;
+      return this.canEnemyMovePoint(fromX, fromY, toX, toY);
     }
 
     // 4 corners + 4 edge midpoints = 8-point hull — catches obstacles that straddle
     // the diagonal between two corners and gives tighter clearance from cliff edges.
-    return this.canEnemyMoveTo(fromX - r, fromY - r, toX - r, toY - r) &&
-           this.canEnemyMoveTo(fromX + r, fromY - r, toX + r, toY - r) &&
-           this.canEnemyMoveTo(fromX - r, fromY + r, toX - r, toY + r) &&
-           this.canEnemyMoveTo(fromX + r, fromY + r, toX + r, toY + r) &&
-           this.canEnemyMoveTo(fromX,     fromY - r, toX,     toY - r) &&
-           this.canEnemyMoveTo(fromX,     fromY + r, toX,     toY + r) &&
-           this.canEnemyMoveTo(fromX - r, fromY,     toX - r, toY    ) &&
-           this.canEnemyMoveTo(fromX + r, fromY,     toX + r, toY    );
+    return this.canEnemyMovePoint(fromX - r, fromY - r, toX - r, toY - r) &&
+           this.canEnemyMovePoint(fromX + r, fromY - r, toX + r, toY - r) &&
+           this.canEnemyMovePoint(fromX - r, fromY + r, toX - r, toY + r) &&
+           this.canEnemyMovePoint(fromX + r, fromY + r, toX + r, toY + r) &&
+           this.canEnemyMovePoint(fromX,     fromY - r, toX,     toY - r) &&
+           this.canEnemyMovePoint(fromX,     fromY + r, toX,     toY + r) &&
+           this.canEnemyMovePoint(fromX - r, fromY,     toX - r, toY    ) &&
+           this.canEnemyMovePoint(fromX + r, fromY,     toX + r, toY    );
+  }
+
+  private canMovePoint(fromX: number, fromY: number, toX: number, toY: number): boolean {
+    return this.canStepBetween(this.getTile(fromX, fromY), this.getTile(toX, toY));
   }
 
   canMoveTo(fromX: number, fromY: number, toX: number, toY: number, r: number = 0): boolean {
+    if (
+      !Number.isFinite(fromX) ||
+      !Number.isFinite(fromY) ||
+      !Number.isFinite(toX) ||
+      !Number.isFinite(toY) ||
+      !Number.isFinite(r)
+    ) return false;
     if (r === 0) {
-      return this.canStepBetween(this.getTile(fromX, fromY), this.getTile(toX, toY));
+      return this.canMovePoint(fromX, fromY, toX, toY);
     }
 
-    return this.canMoveTo(fromX - r, fromY - r, toX - r, toY - r) &&
-           this.canMoveTo(fromX + r, fromY - r, toX + r, toY - r) &&
-           this.canMoveTo(fromX - r, fromY + r, toX - r, toY + r) &&
-           this.canMoveTo(fromX + r, fromY + r, toX + r, toY + r);
+    return this.canMovePoint(fromX - r, fromY - r, toX - r, toY - r) &&
+           this.canMovePoint(fromX + r, fromY - r, toX + r, toY - r) &&
+           this.canMovePoint(fromX - r, fromY + r, toX - r, toY + r) &&
+           this.canMovePoint(fromX + r, fromY + r, toX + r, toY + r);
   }
 
   getCollisionDebugSnapshot(x: number, y: number, r: number = 0.2, scanRadius: number = 3): CollisionDebugSnapshot {
@@ -1901,6 +1982,18 @@ export class World {
     return this.map;
   }
 
+  getMapRevision(): number {
+    return this.mapRevision;
+  }
+
+  getPerformanceStats(): { activeObjects: number; pendingTiles: number; mapRevision: number } {
+    return {
+      activeObjects: this.activeMeshes.size,
+      pendingTiles: this.pendingTiles.length,
+      mapRevision: this.mapRevision,
+    };
+  }
+
   dispose() {
     this.disposeSouthCoastBackdrop();
     for (const [, object] of this.activeMeshes) {
@@ -1917,6 +2010,7 @@ export class World {
     }
     this.detailTextures.clear();
     this.overlayPool = [];
+    this.meshPool = [];
     for (const [, m] of this.seamFillMaterialByKey) {
       m.dispose();
     }

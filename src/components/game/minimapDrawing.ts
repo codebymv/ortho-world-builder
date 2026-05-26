@@ -328,6 +328,8 @@ const LANDMARK_ICON_SIZES: Partial<Record<string, number>> = {
 
 const HERESY_ALTAR_DESTROYED_FLAG_PREFIX = 'altar_destroyed_';
 const HERESY_ALTAR_DESTROYED_LANDMARK_TYPE: TileType = 'heresy_altar_cracked';
+let _destroyedAltarCacheKey = '';
+let _destroyedAltarCache: Set<string> = new Set();
 
 /** Tile types that get a downscaled sprite landmark on the minimap / full map. */
 export function isMinimapLandmarkTile(type: string): boolean {
@@ -344,6 +346,9 @@ function collectDestroyedHeresyAltars(
   mapWidth: number,
   mapHeight: number,
 ): Set<string> {
+  const cacheKey = `${currentMapId}:${mapWidth}:${mapHeight}:${state.gameFlagsRevision}`;
+  if (cacheKey === _destroyedAltarCacheKey) return _destroyedAltarCache;
+
   const prefix = `${HERESY_ALTAR_DESTROYED_FLAG_PREFIX}${currentMapId}_`;
   const destroyed = new Set<string>();
 
@@ -359,6 +364,8 @@ function collectDestroyedHeresyAltars(
     destroyed.add(destroyedHeresyAltarKey(tx, ty));
   }
 
+  _destroyedAltarCacheKey = cacheKey;
+  _destroyedAltarCache = destroyed;
   return destroyed;
 }
 
@@ -840,7 +847,11 @@ export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
   for (const marker of markers) {
     const mx = marker.tileX * scale;
     const my = (h - 1 - marker.tileY) * scale;
-    const isPulsing = nowMs < marker.pulseUntil;
+    const isObjectiveMarker = isPrimaryObjectiveMarker(marker, state);
+    const isPulsing = isObjectiveMarker && nowMs < marker.pulseUntil;
+    const markerColor = isObjectiveMarker
+      ? '#FFD700'
+      : (marker.type === 'quest' || marker.type === 'poi') ? '#8FBC8F' : marker.color;
 
     const cx = mx + scale / 2;
     const cy = my + scale / 2;
@@ -858,7 +869,7 @@ export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
 
     ctx.beginPath();
     ctx.arc(cx, cy, haloRadius, 0, Math.PI * 2);
-    ctx.fillStyle = marker.color;
+    ctx.fillStyle = markerColor;
     ctx.globalAlpha = isNpcObjectiveMarker ? 0.3 : 0.42;
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -867,7 +878,7 @@ export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
       const coreRadius = Math.max(scale >= 6 ? 5 : 3.5, scale * 0.7);
       ctx.beginPath();
       ctx.arc(cx, cy, coreRadius, 0, Math.PI * 2);
-      ctx.fillStyle = marker.color;
+      ctx.fillStyle = markerColor;
       ctx.fill();
       ctx.beginPath();
       ctx.arc(cx, cy, coreRadius * 0.45, 0, Math.PI * 2);
@@ -886,7 +897,7 @@ export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
         markerSize + darkPad * 2,
         markerSize + darkPad * 2,
       );
-      ctx.fillStyle = marker.color;
+      ctx.fillStyle = markerColor;
       ctx.fillRect(-markerSize / 2, -markerSize / 2, markerSize, markerSize);
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = Math.max(1, scale >= 6 ? 2 : 1);
@@ -913,7 +924,7 @@ export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
 
         ctx.beginPath();
         ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = marker.color;
+        ctx.strokeStyle = markerColor;
         ctx.globalAlpha = ringAlpha;
         ctx.lineWidth = isNpcObjectiveMarker
           ? (scale >= 6 ? 2 : 1.5)

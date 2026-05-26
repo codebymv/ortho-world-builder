@@ -88,7 +88,7 @@ export interface GameplayPreludeContext {
     hitEnemyIds: Set<string>;
   };
   combatSystem: {
-    getEnemiesInRange: (position: { x: number; y: number }, range: number) => Enemy[];
+    getEnemiesInRange: (position: { x: number; y: number }, range: number, out?: Enemy[]) => Enemy[];
     playerAttack: (enemy: Enemy, damage: number, playerPosition: { x: number; y: number }, playerDirection: string) => { killed: boolean; staggered: boolean; backstab: boolean };
   };
   onLungeHit: (enemy: Enemy, damage: number) => void;

@@ -365,6 +365,9 @@ export function setupRuntimeActionPhase({
           addMarkersFromText('Village Elder', 'village');
           triggerUIUpdate();
         }
+      } else if (itemId === 'cursed_idol') {
+        state.setFlag('cursed_idol_received', true);
+        triggerUIUpdate();
       }
     },
     getAliveEnemyCountNearPlayer: (radius: number) => {

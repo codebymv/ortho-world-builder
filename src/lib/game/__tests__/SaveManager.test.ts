@@ -74,7 +74,7 @@ describe('SaveManager.load — defaults for missing v5 fields', () => {
 
     const loaded = SaveManager.load() as SaveData;
     expect(loaded).not.toBeNull();
-    expect(loaded.version).toBe(5);
+    expect(loaded.version).toBe(6);
     expect(loaded.inventory).toEqual([]);
     expect(loaded.quests).toEqual([]);
     expect(loaded.gameFlags).toEqual({});
@@ -148,7 +148,7 @@ describe('SaveManager.load — defaults for missing v5 fields', () => {
     expect(loaded.droppedEssence).toBeNull();
     expect(loaded.worldItems).toEqual([]);
     expect(loaded.player.essence).toBe(0);
-    expect(loaded.version).toBe(5);
+    expect(loaded.version).toBe(6);
   });
 
   it('coerces malformed inventory (non-array) to []', () => {

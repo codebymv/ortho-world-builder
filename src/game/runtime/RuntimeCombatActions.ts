@@ -15,6 +15,10 @@ const DIR_OFFSETS_4: Record<Direction4, { x: number; y: number }> = {
   left: { x: -1, y: 0 },
   right: { x: 1, y: 0 },
 };
+
+const _scratchEnemies: Enemy[] = [];
+const _scratchArcEnemies: Enemy[] = [];
+const _arcHitIds = new Set<string>();
 type PlayerAnimState =
   | 'idle'
   | 'walk'
@@ -29,7 +33,7 @@ type PlayerAnimState =
   | 'block';
 
 interface CombatSystemLike {
-  getEnemiesInRange: (position: { x: number; y: number }, range: number) => Enemy[];
+  getEnemiesInRange: (position: { x: number; y: number }, range: number, out?: Enemy[]) => Enemy[];
   getAllEnemies: () => Enemy[];
   playerAttack: (
     enemy: Enemy,
@@ -274,7 +278,7 @@ export function createRuntimeCombatActions({
   };
 
   const _applyAttackDamage = (step: number) => {
-    const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, state.player.attackRange);
+    const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, state.player.attackRange, _scratchEnemies);
     if (enemiesInRange.length === 0) {
       const direction = dir8to4(getCurrentDir8()) as Direction4;
       const off = DIR_OFFSETS_4[direction];
@@ -289,12 +293,12 @@ export function createRuntimeCombatActions({
     let target = enemiesInRange[0];
     const direction = dir8to4(getCurrentDir8()) as Direction4;
     const dir = DIR_OFFSETS_4[direction];
-    const facingEnemies = enemiesInRange.filter(enemy => {
+    const facingEnemy = enemiesInRange.find(enemy => {
       const dx = enemy.position.x - state.player.position.x;
       const dy = enemy.position.y - state.player.position.y;
       return (dx * dir.x + dy * dir.y) > 0;
     });
-    if (facingEnemies.length > 0) target = facingEnemies[0];
+    if (facingEnemy) target = facingEnemy;
 
     const parryBonus = state.player.parryBonusTimer > 0 ? 1.25 : 1;
     const stepDamageMult = comboDamageMultipliers[step] ?? 1;
@@ -487,39 +491,45 @@ export function createRuntimeCombatActions({
     const dx = direction === 'right' ? 1 : direction === 'left' ? -1 : 0;
     const dy = direction === 'up' ? 1 : direction === 'down' ? -1 : 0;
 
-    const hitEnemyIds = new Set<string>();
+    // Single range query + perpendicular-distance filter replaces 6 per-step queries.
+    _arcHitIds.clear();
+    const allInArc = combatSystem.getEnemiesInRange(state.player.position, arcRange + arcWidth, _scratchArcEnemies);
+    for (const target of allInArc) {
+      const edx = target.position.x - state.player.position.x;
+      const edy = target.position.y - state.player.position.y;
+      const fwd = edx * dx + edy * dy;
+      if (fwd < 0 || fwd > arcRange) continue;
+      const perpSq = edx * edx + edy * edy - fwd * fwd;
+      if (perpSq > arcWidth * arcWidth) continue;
+      if (_arcHitIds.has(target.id)) continue;
+      _arcHitIds.add(target.id);
+
+      const result = combatSystem.playerAttack(target, arcDamage, state.player.position, state.player.direction);
+      floatingText.spawnDamage(target.position.x, target.position.y, arcDamage, true);
+      screenShake.shake(0.15, 0.15);
+
+      if (result.staggered) {
+        floatingText.spawn(target.position.x, target.position.y + 0.4, 'STAGGER!', '#88AAFF', 20);
+      }
+      particleSystem.emitDamageAt(target.position.x, target.position.y, 0.3);
+    }
+
+    // Visual particles and tile-breaking along the arc path.
     const steps = 6;
     for (let i = 1; i <= steps; i++) {
       const t = (i / steps) * arcRange;
-      const checkPos = {
-        x: state.player.position.x + dx * t,
-        y: state.player.position.y + dy * t,
-      };
-      const enemiesAtStep = combatSystem.getEnemiesInRange(checkPos, arcWidth);
-      for (const target of enemiesAtStep) {
-        if (hitEnemyIds.has(target.id)) continue;
-        hitEnemyIds.add(target.id);
-
-        const result = combatSystem.playerAttack(target, arcDamage, state.player.position, state.player.direction);
-        floatingText.spawnDamage(target.position.x, target.position.y, arcDamage, true);
-        screenShake.shake(0.15, 0.15);
-
-        if (result.staggered) {
-          floatingText.spawn(target.position.x, target.position.y + 0.4, 'STAGGER!', '#88AAFF', 20);
-        }
-        particleSystem.emitDamageAt(target.position.x, target.position.y, 0.3);
-      }
-
-      particleSystem.emitAt(checkPos.x, checkPos.y, 0.3, 3, 0x6A0DAD, 0.2, 0.8, 0.6);
-      breakTilesInRadius(world, world.getCurrentMap(), checkPos.x, checkPos.y, arcWidth, particleSystem, playPropBreak);
+      const checkX = state.player.position.x + dx * t;
+      const checkY = state.player.position.y + dy * t;
+      particleSystem.emitAt(checkX, checkY, 0.3, 3, 0x6A0DAD, 0.2, 0.8, 0.6);
+      breakTilesInRadius(world, world.getCurrentMap(), checkX, checkY, arcWidth, particleSystem, playPropBreak);
     }
 
-    if (hitEnemyIds.size === 0) {
-      const endPos = {
-        x: state.player.position.x + dx * arcRange,
-        y: state.player.position.y + dy * arcRange,
-      };
-      particleSystem.emitAt(endPos.x, endPos.y, 0.3, 6, 0x6A0DAD, 0.3, 1, 0.8);
+    if (_arcHitIds.size === 0) {
+      particleSystem.emitAt(
+        state.player.position.x + dx * arcRange,
+        state.player.position.y + dy * arcRange,
+        0.3, 6, 0x6A0DAD, 0.3, 1, 0.8,
+      );
     }
 
     setSpinSwooshTimer(spinSwooshDuration);
@@ -562,7 +572,7 @@ export function createRuntimeCombatActions({
     const chargeDamage = Math.floor(state.player.attackDamage * damageMultiplier * state.player.berserkerDamageMult);
     const chargeRange = state.player.attackRange * (1 + level * 0.5);
     breakTilesInRadius(world, world.getCurrentMap(), state.player.position.x, state.player.position.y, chargeRange, particleSystem, playPropBreak);
-    const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, chargeRange);
+    const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, chargeRange, _scratchEnemies);
 
     if (enemiesInRange.length === 0) {
       const attackPos = { ...state.player.position };

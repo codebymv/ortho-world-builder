@@ -2150,7 +2150,7 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
 function placeCottage(tiles: Tile[][], f: MapFeature) {
   // witch_cottage is intentionally adjacent to the golem boss arena; hunter_cottage and ranger_cabin
   // share a compound. All three may coexist with nearby structure tiles.
-  const allowNearbyStructureCluster = /hunter_cottage|ranger_cabin|woodcutter_cottage_ruin|hollow_ruin/.test(f.interactionId ?? '');
+  const allowNearbyStructureCluster = /hunter_cottage|ranger_cabin|ranger_cabin_ruin|woodcutter_cottage_ruin|hollow_ruin/.test(f.interactionId ?? '');
   if (!allowNearbyStructureCluster && isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
 
   // Clear a yard around the cottage to prevent blocked doors.
@@ -2184,8 +2184,9 @@ function placeCottage(tiles: Tile[][], f: MapFeature) {
   // Abandoned exterior prop ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ruined facade, vines/tall grass, no door interaction (set dressing).
   const isAbandonedForestShack = f.interactionId === 'forest_hermit'
     || f.interactionId === 'woodcutter_cottage_ruin'
+    || f.interactionId === 'ranger_cabin_ruin'
     || /^hollow_ruin/.test(f.interactionId ?? '');
-  const isRuinedForestCottageFacade = /forest_hermit|woodcutter_cottage_ruin|hollow_ruin/.test(f.interactionId ?? '');
+  const isRuinedForestCottageFacade = /forest_hermit|woodcutter_cottage_ruin|ranger_cabin_ruin|hollow_ruin/.test(f.interactionId ?? '');
   const isNonEnterable = !f.interactionId && !hasInterior;
   const isRangerCabin = f.interactionId === 'ranger_cabin';
   const facadeTile: TileType = isRuinedForestCottageFacade
@@ -3491,6 +3492,18 @@ function scrubWhisperingWoodsSouthEastCorridorBlockers(tiles: Tile[][], def: Map
   }
 }
 
+function enforceWhisperingWoodsEastDirtSpineBreak(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  for (let ty = 118; ty <= 126; ty++) {
+    for (let tx = 231; tx <= 232; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const tile = tiles[ty][tx];
+      if (!tile || tile.transition || tile.interactable) continue;
+      tiles[ty][tx] = createTile('dirt', true, { elevation: tile.elevation ?? 0 });
+    }
+  }
+}
+
 export function generateMap(def: MapDefinition): WorldMap {
   const tiles = generateBaseTerrain(def);
   const isHandCraftedInterior = def.autoRoads === false && def.width <= 24 && def.height <= 24;
@@ -3554,6 +3567,7 @@ export function generateMap(def: MapDefinition): WorldMap {
   scrubWhisperingWoodsNorthFortFrontTree(tiles, def);
   scrubWhisperingWoodsNorthFortWalkwayLog(tiles, def);
   scrubWhisperingWoodsSouthEastCorridorBlockers(tiles, def);
+  enforceWhisperingWoodsEastDirtSpineBreak(tiles, def);
   scrubWhisperingWoodsNorthFortElevationSeam(tiles, def);
   enforceWesternBypassObservatoryApproach(tiles, def);
   enforceRiversideBridgeSpineApproach(tiles, def);

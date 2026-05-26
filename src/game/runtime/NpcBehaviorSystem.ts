@@ -145,7 +145,10 @@ export function updateNpcBehaviors({
         }
       }
     } else {
-      wander.target ??= chooseNpcWanderTarget(npc, wander, world);
+      if (!wander.target && currentTime >= wander.nextRetargetTime) {
+        wander.target = chooseNpcWanderTarget(npc, wander, world);
+        wander.nextRetargetTime = currentTime + 250;
+      }
       if (!wander.target) {
         pauseNpcWander(wander, 0.4, 1.0);
         applyNpcVisuals({

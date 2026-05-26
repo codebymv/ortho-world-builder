@@ -1363,25 +1363,25 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'offer_idol',
-        text: "Strange you should ask. Pull this from a turned grave when I dug it last winter — small thing, black as wet coal, won't warm up no matter how long you hold it. Tried to throw it twice. It was back in my pack by morning, both times. I'm done with it. **Take it.** Maybe it speaks to you instead. Or maybe it just doesn't speak to a tired old hermit.",
+        text: "Strange you should ask. On my way south I passed through a **ranger cottage** — tucked away on the southeast hills, overgrown trail, easy to miss. Inside on the shelf I left a small black figure, no taller than a thumb. Pulled it from a turned grave last winter. Won't warm up no matter how long you hold it. Tried to throw it twice — back in my pack by morning, both times. I left it there because the cottage felt like the kind of place cursed things belong. If you want it, it's yours. I won't be going back.",
         responses: [
-          { text: "[Take the idol]", nextId: 'take_idol' },
-          { text: "Keep it. It sounds like trouble.", nextId: 'refuse_idol' },
+          { text: "I'll find the cottage.", nextId: 'take_idol' },
+          { text: "Sounds like trouble. I'll pass.", nextId: 'refuse_idol' },
         ],
       },
       {
         id: 'take_idol',
-        text: "Good. The weight's already lifted, and I haven't even handed it over yet. Tells you something, that. Don't lose it in a fight — if it wants to come back to me, I'd rather it didn't bother trying.",
-        responses: [{ text: "I'll keep it safe.", nextId: 'end' }],
+        text: "Southeast from here, past the lake and the shrine. The cottage has a **ranger crest** on the door — you'll know it when you see it. Whatever that idol does, it stopped doing it to me the moment I set it down. Maybe it picks its owners. Maybe it just got bored of an old man.",
+        responses: [{ text: "I'll find it.", nextId: 'end' }],
       },
       {
         id: 'refuse_idol',
-        text: "Hmph. Wiser than I was at your age. The offer stands if you change your mind. Cursed things have a way of knowing when they're wanted.",
+        text: "Hmph. Wiser than I was at your age. It'll stay on that shelf until someone braver or more foolish comes along. Cursed things have a way of knowing when they're wanted.",
         responses: [{ text: "Goodbye, Olwen.", nextId: 'end' }],
       },
       {
         id: 'after_idol',
-        text: "The idol sits easier on a young pack than an old one. I sleep through the night again, first time since the grove. Whatever it does — or doesn't — it's your burden now. The dead and I are grateful.",
+        text: "You found the cottage, then. And the idol. I sleep through the night again, first time since the grove. Whatever it does — or doesn't — it's your burden now. The dead and I are grateful.",
         responses: [{ text: "Rest well, Olwen.", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },

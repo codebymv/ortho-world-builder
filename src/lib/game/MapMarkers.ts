@@ -62,7 +62,8 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
 
   // Forest locations
 
-  { keywords: ['ranger', 'ranger outpost'], tileX: 140, tileY: 170, map: 'forest', label: 'Ranger Outpost', type: 'poi', color: '#8FBC8F' },
+  { keywords: ['ranger outpost'], tileX: 140, tileY: 170, map: 'forest', label: 'Ranger Outpost', type: 'poi', color: '#8FBC8F' },
+  { keywords: ['ranger cottage'], tileX: 236, tileY: 227, map: 'forest', label: 'Ranger Cottage', type: 'poi', color: '#9370DB' },
   // Fort gate key — use "chapel ruins" only (not plain "chapel") so village chapel dialogue does not ping the woods
   { keywords: ['chapel ruins'], tileX: 55, tileY: 114, map: 'forest', label: 'Chapel Ruins (ranger remains)', type: 'poi', color: '#A1887F' },
   { keywords: ['disparaged cottage', 'hunter cottage', 'old shack', 'shack', 'run down old shack'], tileX: 137, tileY: 184, map: 'forest', label: 'Disparaged Cottage', type: 'quest', color: '#FFD700' },
@@ -251,6 +252,33 @@ export function getVillagePrimaryObjectiveMarker(state: GameState): MapMarker | 
   // Quest not yet given (beginning of game, elder not spoken to yet) →
   // point to the Elder regardless of whether the quest record exists yet.
   return { ...base, tileX: 124, tileY: 100 };
+}
+
+// ─── Idol hint — dynamic secondary marker ────────────────────────────────────
+
+export const IDOL_HINT_MARKER_ID = 'idol_hint_ranger_cottage';
+
+/**
+ * Returns a map marker pointing the player to the relocated Ranger Cottage
+ * where the Cursed Idol is waiting.  Visible only between Olwen's hint
+ * dialogue and the actual world-item pickup.
+ */
+export function getIdolHintMarker(state: GameState): MapMarker | null {
+  if (!state.getFlag('olwen_ranger_cabin_hint')) return null;
+  if (state.getFlag('cursed_idol_received')) return null;
+
+  return {
+    id: IDOL_HINT_MARKER_ID,
+    label: 'Ranger Cottage',
+    type: 'poi' as const,
+    color: '#9370DB',
+    map: 'forest',
+    tileX: 236,
+    tileY: 227,
+    pulseUntil: 0,
+    createdAt: Date.now(),
+    permanent: true,
+  };
 }
 
 /**

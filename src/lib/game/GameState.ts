@@ -168,6 +168,7 @@ export class GameState {
   dialogueActive: boolean;
   currentDialogue: string | null;
   gameFlags: Record<string, boolean | number>;
+  gameFlagsRevision: number;
   /** Items dropped in the world (persisted across sessions) */
   worldItems: WorldItem[];
   /** Item ids the player has ever picked up. Drives the first-time acquisition overlay. */
@@ -182,6 +183,7 @@ export class GameState {
     this.dialogueActive = false;
     this.currentDialogue = null;
     this.gameFlags = {};
+    this.gameFlagsRevision = 0;
     this.seenItemIds = new Set();
     this.onItemAdded = null;
     this.onCurrencyGained = null;
@@ -379,7 +381,14 @@ export class GameState {
   }
 
   setFlag(flag: GameFlagKey, value: boolean | number) {
+    if (this.gameFlags[flag] === value) return;
     this.gameFlags[flag] = value;
+    this.gameFlagsRevision += 1;
+  }
+
+  replaceGameFlags(flags: Record<string, boolean | number>) {
+    this.gameFlags = flags;
+    this.gameFlagsRevision += 1;
   }
 
   /**

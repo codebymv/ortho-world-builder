@@ -49,7 +49,7 @@ export const interiorRangerCabinDef: MapDefinition = {
     { x: 0, y: 8, width: 5, height: 2, type: 'wall', fill: 'stone' },
     { x: 9, y: 8, width: 5, height: 2, type: 'wall', fill: 'stone' },
   ],
-  portals: [{ x: 7, y: 9, targetMap: 'forest', targetX: 141, targetY: 172 }],
+  portals: [{ x: 7, y: 9, targetMap: 'forest', targetX: 241, targetY: 235 }],
   chests: [{ x: 10, y: 5, interactionId: 'forest_ranger_chest' }],
   interactables: [{ x: 7, y: 4, type: 'sign', walkable: false, interactionId: 'ranger_sign' }],
   props: [

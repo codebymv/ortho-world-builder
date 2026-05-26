@@ -45,6 +45,7 @@ import {
 } from '@/game/runtime/RuntimeWorldAdapters';
 import { buildRuntimePhaseContexts } from '@/game/runtime/RuntimePhaseContextBuilder';
 import { createWorldItemRenderer } from '@/game/runtime/WorldItemRenderer';
+import type { PerfProfiler } from '@/game/runtime/PerfProfiler';
 
 type InteractionPrompt = string | null;
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
@@ -67,6 +68,7 @@ export interface RuntimeHostRefs {
   gameStateRef: MutableRefObject<GameState | null>;
   combatSystemRef: MutableRefObject<CombatSystem | null>;
   textureCacheRef: MutableRefObject<Map<string, THREE.Texture>>;
+  perfProfilerRef: MutableRefObject<PerfProfiler>;
   musicRef: MutableRefObject<HTMLAudioElement | null>;
   musicStarted: MutableRefObject<boolean>;
   bonfireOverlayTimerRef: MutableRefObject<ReturnType<typeof setTimeout> | null>;
@@ -159,6 +161,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       gameStateRef,
       combatSystemRef,
       textureCacheRef,
+      perfProfilerRef,
       musicRef,
       musicStarted,
       lastInteractionPromptRef,
@@ -1117,6 +1120,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           activeNpcWorldPos: activeNpcWorldPos.current,
           lastNpcProjected,
           currentBiome: computeCurrentBiome(),
+          perfProfiler: perfProfilerRef.current,
           onPlayerDied: lostEssence => {
             playerDeadRef.current = true;
             playGameOverSound();

@@ -1322,12 +1322,15 @@ export function createRuntimeMapFlow({
   };
 
   const syncPreplacedWorldItems = () => {
-    const PREPLACED: Array<{ itemId: string; collectedFlag: string; mapId: string; x: number; y: number }> = [
+    const PREPLACED: Array<{ itemId: string; collectedFlag: string; mapId: string; x: number; y: number; prerequisiteFlag?: string }> = [
       { itemId: 'manuscript_fragment', collectedFlag: 'manuscript_fragment_collected', mapId: 'interior_hunter_cottage', x: 0.5, y: -0.5 },
       { itemId: 'hunters_manuscript', collectedFlag: 'hunters_manuscript_collected', mapId: 'forest', x: 63, y: -80 },
+      // Cursed idol inside the relocated ranger cabin — only appears after Olwen's hint.
+      { itemId: 'cursed_idol', collectedFlag: 'cursed_idol_received', mapId: 'interior_ranger_cabin', x: 3, y: -1, prerequisiteFlag: 'olwen_ranger_cabin_hint' },
     ];
     for (const entry of PREPLACED) {
       if (state.getFlag(entry.collectedFlag)) continue;
+      if (entry.prerequisiteFlag && !state.getFlag(entry.prerequisiteFlag)) continue;
       if (state.worldItems.some(wi => wi.itemId === entry.itemId && wi.mapId === entry.mapId)) continue;
       state.worldItems.push({
         instanceId: `preplaced_${entry.itemId}_${entry.mapId}`,

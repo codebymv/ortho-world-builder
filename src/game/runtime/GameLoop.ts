@@ -15,6 +15,8 @@ interface AdvanceGameFrameOptions {
   renderFrame: () => void;
 }
 
+const _frameResult = { shouldContinue: false, deltaTime: 0, lastTime: 0 };
+
 export function advanceGameFrame({
   currentTime,
   lastTime,
@@ -31,38 +33,34 @@ export function advanceGameFrame({
 
   if (isPaused || isMapModalOpen) {
     renderFrame();
-    return {
-      shouldContinue: false,
-      deltaTime,
-      lastTime: currentTime,
-    };
+    _frameResult.shouldContinue = false;
+    _frameResult.deltaTime = deltaTime;
+    _frameResult.lastTime = currentTime;
+    return _frameResult;
   }
 
   if (isPlayerDead) {
     renderFrame();
-    return {
-      shouldContinue: false,
-      deltaTime,
-      lastTime: currentTime,
-    };
+    _frameResult.shouldContinue = false;
+    _frameResult.deltaTime = deltaTime;
+    _frameResult.lastTime = currentTime;
+    return _frameResult;
   }
 
   const frozen = updateScreenShake(deltaTime);
   if (frozen) {
     updateFloatingText(deltaTime);
     renderFrame();
-    return {
-      shouldContinue: false,
-      deltaTime,
-      lastTime: currentTime,
-    };
+    _frameResult.shouldContinue = false;
+    _frameResult.deltaTime = deltaTime;
+    _frameResult.lastTime = currentTime;
+    return _frameResult;
   }
 
-  return {
-    shouldContinue: true,
-    deltaTime,
-    lastTime: currentTime,
-  };
+  _frameResult.shouldContinue = true;
+  _frameResult.deltaTime = deltaTime;
+  _frameResult.lastTime = currentTime;
+  return _frameResult;
 }
 
 export interface RunGameplayPreludeOptions extends GameplayPreludeContext {

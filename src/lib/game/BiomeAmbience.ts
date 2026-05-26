@@ -18,6 +18,7 @@ export class BiomeAmbience {
   private spawnTimer: number = 0;
   private campSmokeTimer: number = 0;
   private readonly MAX_PARTICLES = 90;
+  private qualityScale = 1;
 
   // Shared geometry for all ambient particles (avoids per-particle allocation)
   private readonly sharedGeometry = new THREE.PlaneGeometry(1, 1);
@@ -60,6 +61,18 @@ export class BiomeAmbience {
       p.active = false;
       p.mesh.visible = false;
     }
+  }
+
+  setQualityScale(scale: number): void {
+    this.qualityScale = Math.max(0.25, Math.min(1, scale));
+  }
+
+  getPerformanceStats(): { activeParticles: number; poolSize: number; qualityScale: number } {
+    return {
+      activeParticles: this.particles.reduce((count, particle) => count + (particle.active ? 1 : 0), 0),
+      poolSize: this.MAX_PARTICLES,
+      qualityScale: this.qualityScale,
+    };
   }
 
   private spawnParticle(playerX: number, playerY: number) {
@@ -252,26 +265,33 @@ export class BiomeAmbience {
         : this.currentBiome === 'forest_hollow_deep'
           ? 0.12
           : 0.3;
+    const scaledSpawnInterval = spawnInterval / this.qualityScale;
 
-    if (this.spawnTimer >= spawnInterval) {
+    if (this.spawnTimer >= scaledSpawnInterval) {
       this.spawnParticle(playerX, playerY);
       this.spawnTimer = 0;
     }
 
     this.campSmokeTimer += deltaTime;
     if (this.campSmokeTimer >= 0.26 && campSmokeSources.length > 0) {
-      const nearestSources = campSmokeSources
-        .map(source => {
-          const dx = source.x - playerX;
-          const dy = source.y - playerY;
-          return { source, distSq: dx * dx + dy * dy };
-        })
-        .filter(entry => entry.distSq <= 18 * 18)
-        .sort((a, b) => a.distSq - b.distSq)
-        .slice(0, 4);
+      const maxSmokeSources = this.qualityScale < 0.6 ? 2 : 4;
+      const nearestSources: Array<{ source: { x: number; y: number }; distSq: number }> = [];
+      const maxDistSq = 18 * 18;
+      for (const source of campSmokeSources) {
+        const dx = source.x - playerX;
+        const dy = source.y - playerY;
+        const distSq = dx * dx + dy * dy;
+        if (distSq > maxDistSq) continue;
+
+        let insertAt = nearestSources.length;
+        while (insertAt > 0 && nearestSources[insertAt - 1].distSq > distSq) insertAt--;
+        if (insertAt >= maxSmokeSources) continue;
+        nearestSources.splice(insertAt, 0, { source, distSq });
+        if (nearestSources.length > maxSmokeSources) nearestSources.length = maxSmokeSources;
+      }
 
       for (const { source } of nearestSources) {
-        if (Math.random() < 0.7) {
+        if (Math.random() < 0.7 * this.qualityScale) {
           this.spawnCampSmokeParticle(source.x, source.y);
         }
       }

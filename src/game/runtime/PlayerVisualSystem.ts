@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import type { AssetManager } from '@/lib/game/AssetManager';
 import type { GameState } from '@/lib/game/GameState';
 
+let _lastDamageFlashActive = false;
+let _lastHeldItemSprite = '';
+let _lastBladeVisible = false;
+
 interface PlayerVisualMeshes {
   playerMesh: THREE.Mesh;
   playerMaterial: THREE.MeshBasicMaterial;
@@ -66,12 +70,16 @@ export function applyPlayerVisuals({
   const isBlocking = playerAnimState === 'block';
 
   const outlineMat = playerOutline.material as THREE.MeshBasicMaterial;
-  if (state.player.damageFlashTimer > 0) {
-    playerMaterial.color.setHex(0xffaaaa);
-    outlineMat.color.setHex(0xff0000);
-  } else {
-    playerMaterial.color.setHex(0xffffff);
-    outlineMat.color.setHex(0x000000);
+  const isDamageFlashActive = state.player.damageFlashTimer > 0;
+  if (isDamageFlashActive !== _lastDamageFlashActive) {
+    _lastDamageFlashActive = isDamageFlashActive;
+    if (isDamageFlashActive) {
+      playerMaterial.color.setHex(0xffaaaa);
+      outlineMat.color.setHex(0xff0000);
+    } else {
+      playerMaterial.color.setHex(0xffffff);
+      outlineMat.color.setHex(0x000000);
+    }
   }
 
   // Blade glow: shader-masked overlay only affects bright (sword) pixels.
