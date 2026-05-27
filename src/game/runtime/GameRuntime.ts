@@ -9,6 +9,7 @@ import { CombatSystem } from '@/lib/game/Combat';
 import { DayNightCycle } from '@/lib/game/DayNightCycle';
 import { FloatingTextSystem } from '@/lib/game/FloatingText';
 import { ScreenShake } from '@/lib/game/ScreenShake';
+import { CorruptionFilter } from '@/lib/game/CorruptionFilter';
 import { SaveManager } from '@/lib/game/SaveManager';
 import { allMaps, mapDefinitions } from '@/data/maps';
 import { bootstrapRuntimeState, ensureRespawnPoint } from '@/game/runtime/RuntimeBootstrap';
@@ -44,6 +45,7 @@ export interface GameRuntime {
   dayNightCycle: DayNightCycle;
   floatingText: FloatingTextSystem;
   screenShake: ScreenShake;
+  corruptionFilter: CorruptionFilter;
   savedData: ReturnType<typeof SaveManager.load>;
   startMap: string;
   frustumSize: number;
@@ -103,6 +105,7 @@ export function createGameRuntime({
   const dayNightCycle = new DayNightCycle(scene);
   const floatingText = new FloatingTextSystem(scene);
   const screenShake = new ScreenShake(camera);
+  const corruptionFilter = new CorruptionFilter(scene);
 
   const savedData = SaveManager.load();
   const rawStartMap = savedData?.currentMap || 'village';
@@ -136,6 +139,7 @@ export function createGameRuntime({
     dayNightCycle,
     floatingText,
     screenShake,
+    corruptionFilter,
     savedData,
     startMap,
     frustumSize,

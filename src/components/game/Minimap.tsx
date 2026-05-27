@@ -6,6 +6,7 @@ import {
   getVillagePrimaryObjectiveMarker,
   getIdolHintMarker,
   isPrimaryObjectiveMarker,
+  shouldHideStoredIdolHintMarker,
   MANUSCRIPT_PRIMARY_MARKER_ID,
   VILLAGE_PRIMARY_MARKER_ID,
   IDOL_HINT_MARKER_ID,
@@ -125,6 +126,7 @@ export const Minimap = memo(
             !DYNAMIC_PRIMARY_MARKER_IDS.has(m.id) &&
             m.id !== IDOL_HINT_MARKER_ID &&
             m.type !== 'portal' &&
+            (!state || !shouldHideStoredIdolHintMarker(m, state)) &&
             !(dynamicPrimary && HIDE_MARKER_IDS_WHEN_PRIMARY.has(m.id)),
         );
         const dynamicSecondary = idolMarker?.map === currentMapId ? [idolMarker] : [];
@@ -188,6 +190,7 @@ export const Minimap = memo(
           !DYNAMIC_PRIMARY_MARKER_IDS.has(m.id) &&
           m.id !== IDOL_HINT_MARKER_ID &&
           m.type !== 'portal' &&
+          (!state || !shouldHideStoredIdolHintMarker(m, state)) &&
           !(dynamicPrimary && HIDE_MARKER_IDS_WHEN_PRIMARY.has(m.id)),
       );
       const dynamicSecondary = idolMarker?.map === currentMapId ? [idolMarker] : [];

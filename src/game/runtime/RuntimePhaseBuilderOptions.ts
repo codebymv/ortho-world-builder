@@ -7,6 +7,7 @@ import type { ParticleSystem } from '@/lib/game/ParticleSystem';
 import type { ScreenShake } from '@/lib/game/ScreenShake';
 import type { World } from '@/lib/game/World';
 import type { BiomeAmbience } from '@/lib/game/BiomeAmbience';
+import type { CorruptionFilter } from '@/lib/game/CorruptionFilter';
 import type { WeatherSystem } from '@/lib/game/WeatherSystem';
 import type { DayNightCycle } from '@/lib/game/DayNightCycle';
 import type { Direction8 } from '@/game/runtime/PlayerSimulationSystem';
@@ -24,6 +25,7 @@ export interface BuildRuntimePhaseContextsOptions {
   screenShake: ScreenShake;
   particleSystem: ParticleSystem;
   biomeAmbience: BiomeAmbience;
+  corruptionFilter?: CorruptionFilter;
   weatherSystem: WeatherSystem;
   dayNightCycle: DayNightCycle;
   scene: THREE.Scene;
@@ -138,6 +140,7 @@ export interface BuildRuntimePhaseContextsOptions {
   startStormLoop?: () => void;
   stopStormLoop?: () => void;
   playThunder?: () => void;
+  switchMusicTrack: (mapId: string) => void;
   shadowGeometry: THREE.BufferGeometry;
   shadowMaterial: THREE.MeshBasicMaterial;
   createOutlineMesh: (geometry: THREE.BufferGeometry, texture: THREE.Texture | null) => THREE.Mesh;

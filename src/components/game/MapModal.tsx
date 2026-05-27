@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
-import type { MutableRefObject } from 'react';
+import type { MutableRefObject, PointerEvent, WheelEvent } from 'react';
 import { WorldMap } from '@/lib/game/World';
 import {
   getManuscriptPrimaryObjectiveMarker,
   getVillagePrimaryObjectiveMarker,
   getIdolHintMarker,
   isPrimaryObjectiveMarker,
+  shouldHideStoredIdolHintMarker,
   MANUSCRIPT_PRIMARY_MARKER_ID,
   VILLAGE_PRIMARY_MARKER_ID,
   IDOL_HINT_MARKER_ID,
@@ -14,6 +15,7 @@ import {
 import type { GameState } from '@/lib/game/GameState';
 import type { AssetManager } from '@/lib/game/AssetManager';
 import type { PerfProfiler } from '@/game/runtime/PerfProfiler';
+import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import {
   computeMinimapScaleToFit,
   drawMinimapDynamicOverlay,
@@ -25,6 +27,9 @@ import { PlayerFaceMapIcon } from '@/components/game/PlayerFaceMapIcon';
 
 const DYNAMIC_PRIMARY_MARKER_IDS = new Set([MANUSCRIPT_PRIMARY_MARKER_ID, VILLAGE_PRIMARY_MARKER_ID]);
 const HIDE_MARKER_IDS_WHEN_PRIMARY = new Set(['forest_Disparaged Cottage', 'village_Village Elder']);
+const MIN_MAP_ZOOM = 1;
+const MAX_MAP_ZOOM = 6;
+const MAP_ZOOM_STEP = 1.25;
 
 interface MapModalProps {
   open: boolean;
@@ -57,6 +62,9 @@ export const MapModal = memo(function MapModal({
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ w: 640, h: 480 });
+  const [zoom, setZoom] = useState(MIN_MAP_ZOOM);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
   const animRef = useRef<number>(0);
   const scale = useMemo(
     () => computeMinimapScaleToFit(currentMap.width, currentMap.height, viewport.w, viewport.h, 2, 14),
@@ -64,6 +72,52 @@ export const MapModal = memo(function MapModal({
   );
   const canvasWidth = currentMap.width * scale;
   const canvasHeight = currentMap.height * scale;
+
+  const clampPan = useCallback((nextPan: { x: number; y: number }, nextZoom: number) => {
+    const maxX = Math.max(0, (canvasWidth * nextZoom - viewport.w) / 2);
+    const maxY = Math.max(0, (canvasHeight * nextZoom - viewport.h) / 2);
+    return {
+      x: Math.min(maxX, Math.max(-maxX, nextPan.x)),
+      y: Math.min(maxY, Math.max(-maxY, nextPan.y)),
+    };
+  }, [canvasHeight, canvasWidth, viewport.h, viewport.w]);
+
+  const applyZoom = useCallback((factor: number, anchor?: { clientX: number; clientY: number }) => {
+    const nextZoom = Math.min(MAX_MAP_ZOOM, Math.max(MIN_MAP_ZOOM, zoom * factor));
+    if (Math.abs(nextZoom - zoom) < 0.001) return;
+
+    let nextPan = pan;
+    const wrap = wrapRef.current;
+    if (anchor && wrap) {
+      const rect = wrap.getBoundingClientRect();
+      const anchorFromCenter = {
+        x: anchor.clientX - (rect.left + rect.width / 2),
+        y: anchor.clientY - (rect.top + rect.height / 2),
+      };
+      const zoomRatio = nextZoom / zoom;
+      nextPan = {
+        x: anchorFromCenter.x - (anchorFromCenter.x - pan.x) * zoomRatio,
+        y: anchorFromCenter.y - (anchorFromCenter.y - pan.y) * zoomRatio,
+      };
+    }
+
+    setZoom(nextZoom);
+    setPan(clampPan(nextPan, nextZoom));
+  }, [clampPan, pan, zoom]);
+
+  const resetView = useCallback(() => {
+    setZoom(MIN_MAP_ZOOM);
+    setPan({ x: 0, y: 0 });
+    dragRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    resetView();
+  }, [currentMapId, open, resetView]);
+
+  useEffect(() => {
+    setPan(prev => clampPan(prev, zoom));
+  }, [clampPan, zoom]);
 
   const measure = useCallback(() => {
     const el = wrapRef.current;
@@ -133,23 +187,30 @@ export const MapModal = memo(function MapModal({
 
   useEffect(() => {
     if (!open) return;
-    const canvas = overlayCanvasRef.current;
-    if (!canvas) {
-      // Portal not mounted yet — retry after a frame.
-      const id = requestAnimationFrame(() => {
-        // Re-trigger by bumping a dep is impractical; instead rely on
-        // refreshToken from the game loop to re-fire this effect shortly.
-      });
-      return () => cancelAnimationFrame(id);
-    }
-    const ctx = canvas.getContext('2d', { alpha: true });
-    if (!ctx) return;
-
+    let lastCanvas: HTMLCanvasElement | null = null;
+    let ctx: CanvasRenderingContext2D | null = null;
     let running = true;
     let lastDrawPerf = 0;
 
     const draw = () => {
       if (!running) return;
+      const canvas = overlayCanvasRef.current;
+      if (!canvas) {
+        animRef.current = requestAnimationFrame(draw);
+        return;
+      }
+      if (canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+      }
+      if (canvas !== lastCanvas) {
+        lastCanvas = canvas;
+        ctx = canvas.getContext('2d', { alpha: true });
+      }
+      if (!ctx) {
+        animRef.current = requestAnimationFrame(draw);
+        return;
+      }
       const nowMs = Date.now();
       const nowPerf = performance.now();
       const state = gameStateRef.current;
@@ -167,6 +228,7 @@ export const MapModal = memo(function MapModal({
           !DYNAMIC_PRIMARY_MARKER_IDS.has(m.id) &&
           m.id !== IDOL_HINT_MARKER_ID &&
           m.type !== 'portal' &&
+          !shouldHideStoredIdolHintMarker(m, state) &&
           !(dynamicPrimary && HIDE_MARKER_IDS_WHEN_PRIMARY.has(m.id)),
       );
       const dynamicSecondary = idolMarker?.map === currentMapId ? [idolMarker] : [];
@@ -189,6 +251,7 @@ export const MapModal = memo(function MapModal({
         scale,
         nowMs,
         clear: true,
+        includeFrame: false,
         assetManager,
         visited: visitedTilesRef.current,
       });
@@ -214,6 +277,8 @@ export const MapModal = memo(function MapModal({
     assetManager,
     perfProfiler,
     scale,
+    canvasWidth,
+    canvasHeight,
   ]);
 
   // Legend shows every marker drawn on the map for this region (no recency filter)
@@ -234,6 +299,7 @@ export const MapModal = memo(function MapModal({
         !DYNAMIC_PRIMARY_MARKER_IDS.has(m.id) &&
         m.id !== IDOL_HINT_MARKER_ID &&
         m.type !== 'portal' &&
+        (!state || !shouldHideStoredIdolHintMarker(m, state)) &&
         !(dynamicPrimary && HIDE_MARKER_IDS_WHEN_PRIMARY.has(m.id)),
     );
     const dynamicSecondary = idolMarker?.map === currentMapId ? [idolMarker] : [];
@@ -257,6 +323,45 @@ export const MapModal = memo(function MapModal({
       ...(hasSecondary ? [{ key: 'secondary', label: 'Secondary' }] : []),
     ];
   }, [legendMarkers, gameStateRef]);
+
+  const handleWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    applyZoom(event.deltaY < 0 ? MAP_ZOOM_STEP : 1 / MAP_ZOOM_STEP, {
+      clientX: event.clientX,
+      clientY: event.clientY,
+    });
+  }, [applyZoom]);
+
+  const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startPanX: pan.x,
+      startPanY: pan.y,
+    };
+  }, [pan.x, pan.y]);
+
+  const handlePointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setPan(clampPan({
+      x: drag.startPanX + event.clientX - drag.startX,
+      y: drag.startPanY + event.clientY - drag.startY,
+    }, zoom));
+  }, [clampPan, zoom]);
+
+  const handlePointerEnd = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }, []);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -274,12 +379,48 @@ export const MapModal = memo(function MapModal({
             <span className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-2 py-1 font-mono text-sm text-[#DAA520]">
               X: {Math.round(gameStateRef.current?.player.position.x ?? 0)} Y: {Math.round(gameStateRef.current?.player.position.y ?? 0)}
             </span>
+            <div className="flex items-center gap-1 rounded border border-[#5C3A21] bg-[#1A0F0A] p-1">
+              <button
+                type="button"
+                title="Zoom out"
+                aria-label="Zoom out"
+                onClick={() => applyZoom(1 / MAP_ZOOM_STEP)}
+                className="grid h-8 w-8 place-items-center border border-[#5C3A21]/70 bg-[#2A160F] text-[#F5DEB3] transition-colors hover:bg-[#3A2118] focus:outline-none focus:ring-1 focus:ring-[#DAA520]"
+              >
+                <ZoomOut className="h-4 w-4" aria-hidden />
+              </button>
+              <span className="w-12 text-center font-mono text-xs text-[#DAA520]">{Math.round(zoom * 100)}%</span>
+              <button
+                type="button"
+                title="Zoom in"
+                aria-label="Zoom in"
+                onClick={() => applyZoom(MAP_ZOOM_STEP)}
+                className="grid h-8 w-8 place-items-center border border-[#5C3A21]/70 bg-[#2A160F] text-[#F5DEB3] transition-colors hover:bg-[#3A2118] focus:outline-none focus:ring-1 focus:ring-[#DAA520]"
+              >
+                <ZoomIn className="h-4 w-4" aria-hidden />
+              </button>
+              <button
+                type="button"
+                title="Reset map view"
+                aria-label="Reset map view"
+                onClick={resetView}
+                className="grid h-8 w-8 place-items-center border border-[#5C3A21]/70 bg-[#2A160F] text-[#F5DEB3] transition-colors hover:bg-[#3A2118] focus:outline-none focus:ring-1 focus:ring-[#DAA520]"
+              >
+                <RotateCcw className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
           </div>
         </div>
 
         <div
           ref={wrapRef}
-          className="relative flex min-h-[min(55vh,520px)] flex-1 items-center justify-center overflow-hidden rounded-sm border-2 border-[#3a2812] bg-[#050302] p-2"
+          onWheel={handleWheel}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
+          className="relative flex min-h-[min(55vh,520px)] flex-1 cursor-grab select-none items-center justify-center overflow-hidden rounded-sm border-2 border-[#3a2812] bg-[#050302] p-2 active:cursor-grabbing"
+          style={{ touchAction: 'none' }}
         >
           <div
             className="relative max-h-full max-w-full shadow-inner"
@@ -289,6 +430,8 @@ export const MapModal = memo(function MapModal({
               maxWidth: '100%',
               maxHeight: '100%',
               aspectRatio: `${currentMap.width} / ${currentMap.height}`,
+              transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+              transformOrigin: 'center',
             }}
           >
             <canvas

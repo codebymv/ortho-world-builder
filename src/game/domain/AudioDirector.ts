@@ -112,8 +112,57 @@ interface MusicDirectorContext {
 }
 
 const MAP_MUSIC_VOLUME = 0.08;
+const MUSIC_FADE_MS = 1200;
+const clampVolume = (value: number) => Math.max(0, Math.min(1, value));
 
 export function createMusicDirector(context: MusicDirectorContext) {
+  let fadeFrame: number | null = null;
+
+  const cancelFade = () => {
+    if (fadeFrame === null) return;
+    cancelAnimationFrame(fadeFrame);
+    fadeFrame = null;
+  };
+
+  const equalPowerCrossfade = (fromAudio: HTMLAudioElement, toTrack: string) => {
+    cancelFade();
+    const wasMuted = fromAudio.muted;
+    const toAudio = new Audio(toTrack);
+    toAudio.loop = true;
+    toAudio.volume = 0;
+    toAudio.muted = wasMuted;
+    context.processAudioElement(toAudio);
+
+    toAudio.play().then(() => {
+      context.musicRef.current = toAudio;
+      const startTime = performance.now();
+      const step = (now: number) => {
+        const t = Math.min(1, (now - startTime) / MUSIC_FADE_MS);
+        const theta = t * Math.PI * 0.5;
+        fromAudio.volume = clampVolume(Math.cos(theta) * MAP_MUSIC_VOLUME);
+        toAudio.volume = clampVolume(Math.sin(theta) * MAP_MUSIC_VOLUME);
+        if (t < 1) {
+          fadeFrame = requestAnimationFrame(step);
+          return;
+        }
+        fadeFrame = null;
+        fromAudio.pause();
+        fromAudio.src = '';
+        toAudio.volume = MAP_MUSIC_VOLUME;
+      };
+      fadeFrame = requestAnimationFrame(step);
+    }).catch(() => {
+      fromAudio.pause();
+      fromAudio.src = toTrack;
+      fromAudio.loop = true;
+      fromAudio.volume = MAP_MUSIC_VOLUME;
+      fromAudio.muted = wasMuted;
+      context.processAudioElement(fromAudio);
+      context.musicRef.current = fromAudio;
+      fromAudio.play().catch(() => {});
+    });
+  };
+
   const switchTrack = (mapId: string) => {
     const track = context.resolveTrack(mapId);
     if (context.currentTrackRef.current === track) return;
@@ -122,6 +171,10 @@ export function createMusicDirector(context: MusicDirectorContext) {
     const audio = context.musicRef.current;
     if (!audio) return;
 
+    if (context.musicStartedRef.current && !audio.paused) {
+      equalPowerCrossfade(audio, track);
+      return;
+    }
     const wasMuted = audio.muted;
     audio.pause();
     audio.src = track;
@@ -129,7 +182,6 @@ export function createMusicDirector(context: MusicDirectorContext) {
     audio.volume = MAP_MUSIC_VOLUME;
     audio.muted = wasMuted;
     context.processAudioElement(audio);
-
     if (context.musicStartedRef.current) {
       audio.play().catch(() => {});
     }
@@ -159,6 +211,7 @@ export function createMusicDirector(context: MusicDirectorContext) {
   };
 
   const disposeMusic = () => {
+    cancelFade();
     if (context.musicRef.current) {
       context.musicRef.current.pause();
       context.musicRef.current = null;

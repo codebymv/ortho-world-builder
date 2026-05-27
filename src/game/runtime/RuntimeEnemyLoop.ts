@@ -174,16 +174,87 @@ export function runEnemyLoop({
     playPlayerHit();
   }
 
+  /**
+   * Fire fully immersive parry feedback at a world position. No floating text —
+   * the player reads parries from the camera kick, the freeze-frame, the gold
+   * spark burst on their blade, and the boss's stagger pose.
+   *
+   * Intensity scales with the source so a melee parry has more impact than a
+   * deflected scythe blade, and a parried boss slam is the loudest of all.
+   */
+  const fireParryFeedback = (x: number, y: number, source: 'melee' | 'aoe' | 'projectile' | 'hazard') => {
+    let shakeIntensity = 0.35;
+    let shakeDuration = 0.12;
+    let stopDuration = 0.1;
+    let goldCount = 7;
+    let goldSpeed = 1.4;
+    let ringCount = 0;
+    let ringColor = 0xCCEEFF;
+    switch (source) {
+      case 'aoe':
+        shakeIntensity = 0.5;
+        shakeDuration = 0.18;
+        stopDuration = 0.14;
+        goldCount = 11;
+        goldSpeed = 1.8;
+        ringCount = 14;
+        ringColor = 0xFFF1A8;
+        break;
+      case 'projectile':
+        shakeIntensity = 0.22;
+        shakeDuration = 0.08;
+        stopDuration = 0.06;
+        goldCount = 5;
+        goldSpeed = 1.1;
+        ringCount = 8;
+        ringColor = 0x9CE0FF;
+        break;
+      case 'hazard':
+        shakeIntensity = 0.42;
+        shakeDuration = 0.14;
+        stopDuration = 0.11;
+        goldCount = 9;
+        goldSpeed = 1.6;
+        ringCount = 12;
+        ringColor = 0xEEDDFF;
+        break;
+    }
+    screenShake.shake(shakeIntensity, shakeDuration);
+    screenShake.hitStop(stopDuration);
+    particleSystem.emitSparklesAt(x, y, 0.3);
+    particleSystem.emitAt(x, y, 0.4, goldCount, 0xFFD700, 0.55, goldSpeed, 1.0);
+    if (ringCount > 0) {
+      // Thin ring of bright sparks at the impact point — reads as the deflected
+      // edge of the strike spraying outward.
+      particleSystem.emitAt(x, y, 0.42, ringCount, ringColor, 0.4, goldSpeed * 1.3, 1.6);
+    }
+    // Brief blade kick on the player (parryBonusTimer already drives the next-hit
+    // damage boost; this also makes the blade glow shader read as "primed").
+    if (state.player.parryBonusTimer < 0.95) {
+      state.player.parryBonusTimer = 1.0;
+    }
+  };
+
   if (combatResult.parried && combatResult.parryEnemyId) {
     const parriedEnemy = combatSystem.getEnemies().find(e => e.id === combatResult.parryEnemyId);
     if (parriedEnemy) {
-      floatingText.spawn(parriedEnemy.position.x, parriedEnemy.position.y + 0.5, 'PARRY!', '#00FFCC', 22);
-      screenShake.shake(0.3, 0.1);
-      screenShake.hitStop(0.08);
-      particleSystem.emitSparklesAt(parriedEnemy.position.x, parriedEnemy.position.y, 0.3);
-      particleSystem.emitAt(parriedEnemy.position.x, parriedEnemy.position.y, 0.4, 6, 0xFFD700, 0.5, 1.2, 1.0);
+      // Boss heavy AoE attacks (nova/charge/combo-finisher) use the 'aoe' source
+      // for a heavier reward; routine melee strikes use 'melee'.
+      const isHeavyState = parriedEnemy.state === 'staggered' &&
+        (parriedEnemy.currentAttackType === 'sweep' ||
+         parriedEnemy.currentAttackType === 'combo_finisher' ||
+         parriedEnemy.currentAttackType === 'combo_sweep' ||
+         parriedEnemy.currentAttackType === 'nova');
+      fireParryFeedback(
+        parriedEnemy.position.x,
+        parriedEnemy.position.y + 0.5,
+        isHeavyState ? 'aoe' : 'melee',
+      );
     }
   }
+  // Silence the unused-import: floatingText is still wired through the context
+  // for damage numbers elsewhere; the parry path intentionally no longer uses it.
+  void floatingText;
 
   const enemies = combatSystem.getEnemies();
   const enemyAudioNow = currentTime / 1000;
@@ -217,7 +288,8 @@ export function runEnemyLoop({
     let enemyMesh = existingVisuals;
 
     const isBossType = enemy.type === 'hollow_guardian' || enemy.type === 'golem' ||
-      enemy.type === 'ashen_reaver' || enemy.type === 'corrupted_giant';
+      enemy.type === 'ashen_reaver' || enemy.type === 'corrupted_giant' ||
+      enemy.type === 'stone_sentinel';
     const isBossAttackState = enemy.state === 'telegraphing' || enemy.state === 'charging' ||
       enemy.state === 'slamming';
     if (isBossType && isBossAttackState) {
@@ -242,6 +314,33 @@ export function runEnemyLoop({
         screenShake.shake(0.55, 0.35);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.6, 45, 0x44ffee, 0.18, 2.6, 1.8);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.4, 25, 0xcc44ff, 0.14, 2.2, 1.4);
+      }
+    }
+
+    // Committed-attack lock indicator — paints the impact tile with rising
+    // dust so the player can read where to sidestep. Throttled to ~once per
+    // 4 frames to keep particle count reasonable.
+    if (enemy.state === 'telegraphing' && enemy.attackLockedTarget &&
+        (enemy.currentAttackType === 'sentinel_slab' ||
+         enemy.currentAttackType === 'golem_stomp')) {
+      const t = enemy.attackLockedTarget;
+      // Use the rotation field for a per-enemy phase so the emit fires
+      // asynchronously across multiple sentinels.
+      const phase = Math.floor((currentTime + enemy.position.x * 17) / 60) % 4;
+      if (phase === 0) {
+        const color = enemy.currentAttackType === 'sentinel_slab' ? 0xA68A5A : 0x7C6A52;
+        particleSystem.emitAt(t.x, t.y, 0.1, 4, color, 0.35, 0.9, 0.6);
+      }
+    }
+    // Dash-attack motion trail — leaves a streak behind committed dashes so
+    // the slide reads as kinetic rather than a snap teleport.
+    if (enemy.state === 'telegraphing' &&
+        (enemy.currentAttackType === 'giant_lunge' ||
+         enemy.currentAttackType === 'reaver_rush' ||
+         enemy.currentAttackType === 'golem_grab')) {
+      const phase = Math.floor((currentTime + enemy.position.y * 19) / 50) % 3;
+      if (phase === 0) {
+        particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.2, 3, 0x5C4836, 0.3, 0.7, 0.5);
       }
     }
 
@@ -311,8 +410,9 @@ export function runEnemyLoop({
     combatSystem.removeDeadEnemiesByIds(fullyDeadEnemyIds);
   }
 
-  // Update + render thrown projectiles.
-  combatSystem.updateProjectiles(
+  // Update + render thrown projectiles. A reflected projectile = a parry, so
+  // its return value drives the same immersive feedback as a melee parry.
+  const projectileParry = combatSystem.updateProjectiles(
     deltaTime,
     state.player.position,
     state.player.iFrameTimer > 0,
@@ -320,13 +420,19 @@ export function runEnemyLoop({
     blockStartTime,
     world,
   );
-  combatSystem.updateFallingScytheHazards(
+  if (projectileParry) {
+    fireParryFeedback(projectileParry.x, projectileParry.y, 'projectile');
+  }
+  const hazardParry = combatSystem.updateFallingScytheHazards(
     deltaTime,
     state.player.position,
     state.player.iFrameTimer > 0,
     isBlocking,
     blockStartTime,
   );
+  if (hazardParry) {
+    fireParryFeedback(hazardParry.x, hazardParry.y, 'hazard');
+  }
 
   const projectiles = combatSystem.getProjectiles();
   const liveProjectileIds = liveProjectileIdsScratch;

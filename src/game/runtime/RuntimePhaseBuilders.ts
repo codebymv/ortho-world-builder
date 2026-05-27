@@ -152,6 +152,7 @@ export function buildRuntimeLoopTailContext(options: BuildRuntimePhaseContextsOp
     npcScreenMinMs: options.npcScreenMinMs,
     npcScreenMinPx: options.npcScreenMinPx,
     biomeAmbience: options.biomeAmbience,
+    corruptionFilter: options.corruptionFilter,
     weatherSystem: options.weatherSystem,
     dayNightCycle: options.dayNightCycle,
     floatingText: options.floatingText,
@@ -164,5 +165,6 @@ export function buildRuntimeLoopTailContext(options: BuildRuntimePhaseContextsOp
     startStormLoop: options.startStormLoop,
     stopStormLoop: options.stopStormLoop,
     playThunder: options.playThunder,
+    switchMusicTrack: options.switchMusicTrack,
   };
 }

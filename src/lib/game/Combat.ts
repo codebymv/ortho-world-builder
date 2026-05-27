@@ -101,46 +101,124 @@ function tryEnemyChaseMove(
     return { x: enemy.position.x, y: enemy.position.y, moved: false, vx: 0, vy: 0, usedRecovery: false };
   }
 
+  // Direct toward player is ALWAYS tried first, even mid-recovery. The old
+  // logic deferred direct to last while `pathRecoveryTimer > 0`, which meant
+  // any successful side-step refreshed the timer and locked the enemy into
+  // perpetual sideways drift — visible as fast spiders spazzing along walls.
+  // If the path is genuinely clear we want to take it immediately and exit
+  // recovery mode; if it's blocked, the side candidates below still handle
+  // navigation around the obstacle in the preferred direction.
+  const direct = tryEnemyMoveVector(world, enemy.position.x, enemy.position.y, vx, vy, moveDistance, r, false);
+  if (direct.moved) return direct;
+
   const preferredSide = enemy.pathRecoverySide || (enemy.visualSeed < 0.5 ? -1 : 1);
   const sideOrder: Array<-1 | 1> = [preferredSide, preferredSide === 1 ? -1 : 1];
-  const candidates: Array<{ vx: number; vy: number; usedRecovery: boolean }> = [];
-
-  if (enemy.pathRecoveryTimer <= 0) {
-    candidates.push({ vx, vy, usedRecovery: false });
-  }
 
   for (const side of sideOrder) {
     const sideVx = -vy * side;
     const sideVy = vx * side;
-    candidates.push({
-      ...normalizeMoveVector(vx * ENEMY_PATH_RECOVERY_BLEND + sideVx, vy * ENEMY_PATH_RECOVERY_BLEND + sideVy),
-      usedRecovery: true,
-    });
-    candidates.push({ vx: sideVx, vy: sideVy, usedRecovery: true });
-  }
-
-  if (enemy.pathRecoveryTimer > 0) {
-    candidates.push({ vx, vy, usedRecovery: false });
-  }
-
-  for (const candidate of candidates) {
-    const step = tryEnemyMoveVector(
-      world,
-      enemy.position.x,
-      enemy.position.y,
-      candidate.vx,
-      candidate.vy,
-      moveDistance,
-      r,
-      candidate.usedRecovery,
-    );
-    if (step.moved) return step;
+    // Blended (28% forward + 100% sideways) tried before pure side — gives the
+    // enemy a diagonal slide along the wall that still drifts toward the
+    // player, instead of pure perpendicular movement.
+    const blended = normalizeMoveVector(vx * ENEMY_PATH_RECOVERY_BLEND + sideVx, vy * ENEMY_PATH_RECOVERY_BLEND + sideVy);
+    const blendedStep = tryEnemyMoveVector(world, enemy.position.x, enemy.position.y, blended.x, blended.y, moveDistance, r, true);
+    if (blendedStep.moved) return blendedStep;
+    const pureStep = tryEnemyMoveVector(world, enemy.position.x, enemy.position.y, sideVx, sideVy, moveDistance, r, true);
+    if (pureStep.moved) return pureStep;
   }
 
   return { x: enemy.position.x, y: enemy.position.y, moved: false, vx: 0, vy: 0, usedRecovery: false };
 }
 
 import type { EnemyBehaviorOverrides } from '../../data/enemies';
+
+/**
+ * Set an enemy's telegraph timer with souls-like variance: 10% snap (very fast),
+ * 15% held (held a beat longer for a fake-out feel), 75% standard ±15% jitter.
+ * This breaks the metronome cadence that makes a fight feel rote.
+ */
+function setVariableTelegraph(enemy: Enemy, baseDuration: number): void {
+  const roll = Math.random();
+  if (roll < 0.10) {
+    enemy.telegraphTimer = baseDuration * 0.45; // snap strike
+  } else if (roll < 0.25) {
+    enemy.telegraphTimer = baseDuration * (1.25 + Math.random() * 0.25); // held
+  } else {
+    enemy.telegraphTimer = baseDuration * (0.85 + Math.random() * 0.30);
+  }
+}
+
+/**
+ * Picks a souls-like attack type for big enemies based on player distance and
+ * current state. Mid-range picks bias to committed dash moves (grab / lunge /
+ * slab), close-range biases to fast strikes and AoE sweeps.
+ */
+function pickBigEnemyAttackType(
+  enemy: Enemy,
+  distSq: number,
+  attackRangeSq: number,
+): Enemy['currentAttackType'] {
+  const closeBand = distSq <= attackRangeSq * 1.1;
+  const midBand = !closeBand && distSq <= attackRangeSq * 4;
+  const roll = Math.random();
+  switch (enemy.type) {
+    case 'golem':
+      if (closeBand) {
+        if (roll < 0.18) return 'golem_grab';
+        if (roll < 0.38) return 'golem_stomp';
+        return 'normal';
+      }
+      if (midBand) {
+        if (roll < 0.55) return 'golem_stomp';
+        if (roll < 0.80) return 'golem_grab';
+        return 'normal';
+      }
+      return 'golem_stomp';
+    case 'stone_sentinel':
+      if (closeBand) {
+        if (roll < 0.42) return 'sentinel_slab';
+        return 'normal';
+      }
+      if (midBand) {
+        return roll < 0.75 ? 'sentinel_slab' : 'normal';
+      }
+      return 'sentinel_slab';
+    case 'corrupted_giant':
+      if (closeBand) {
+        if (roll < 0.28) return 'sweep';
+        return 'normal';
+      }
+      if (midBand) {
+        return roll < 0.65 ? 'giant_lunge' : 'normal';
+      }
+      return 'giant_lunge';
+    case 'ashen_reaver':
+      if (closeBand) {
+        if (roll < 0.30) return 'sweep';
+        return 'normal';
+      }
+      if (midBand) {
+        return roll < 0.55 ? 'reaver_rush' : 'normal';
+      }
+      return 'reaver_rush';
+    default:
+      return 'normal';
+  }
+}
+
+/**
+ * Tile/sec advance speed of a committed dash attack mid-telegraph. Bigger
+ * enemies hit harder but also commit further — souls-like spacing tension.
+ */
+function dashTileSpeedFor(enemy: Enemy): number {
+  switch (enemy.type) {
+    case 'golem': return 3.2;
+    case 'stone_sentinel': return 4.4;
+    case 'ashen_reaver': return 6.5;
+    case 'corrupted_giant': return 5.0;
+    default: return 4.0;
+  }
+}
 
 interface SpawnEnemyOptions {
   speed?: number;
@@ -215,8 +293,41 @@ export interface Enemy {
   factionTargetSearchTimer: number;
   /** True once the player has attacked this enemy, permanently overriding faction targeting. */
   playerAggroed: boolean;
-  /** Current attack variant being telegraphed. */
-  currentAttackType: 'normal' | 'sweep' | 'nova' | 'combo_sweep' | 'combo_finisher' | 'hail_mary';
+  /**
+   * Current attack variant being telegraphed.
+   *
+   * Big enemies (golem, sentinel, giant, reaver) pick from extended rosters
+   * for souls-like variety: golems can grab or stomp; sentinels uppercut a
+   * rising rock slab; giants and reavers commit to dash strikes. The basic
+   * 'normal' is the default fast jab kept for trash mobs.
+   */
+  currentAttackType:
+    | 'normal'
+    | 'sweep'
+    | 'nova'
+    | 'combo_sweep'
+    | 'combo_finisher'
+    | 'hail_mary'
+    | 'golem_grab'
+    | 'golem_stomp'
+    | 'sentinel_slab'
+    | 'reaver_rush'
+    | 'giant_lunge';
+  /**
+   * When an attack involves a committed dash/lunge during the telegraph,
+   * this is the world-space target locked in at telegraph start. Used by
+   * giant_lunge / reaver_rush / golem_grab to commit to a strike path the
+   * player can sidestep — the heart of souls-like spacing.
+   */
+  attackLockedTarget: { x: number; y: number } | null;
+  /**
+   * Seconds remaining where the enemy sprints during chase (movement-only;
+   * separate from attack windups). Big enemies trigger short sprint bursts to
+   * close gaps less predictably than constant-speed creep.
+   */
+  sprintBurstTimer: number;
+  /** Cooldown before the next sprint burst can fire. */
+  sprintCooldown: number;
   /** Timer for the dark nova windup (slamming state). */
   novaSlamTimer: number;
   /** Hollow Apparition phase-local timer, used by rare spectacle attacks. */
@@ -272,6 +383,18 @@ export interface AttackResult {
   killed: boolean;
   staggered: boolean;
   backstab: boolean;
+}
+
+/**
+ * Emitted when the player parries any incoming attack (melee, AoE, projectile,
+ * hazard). Carries the world-space position the runtime should anchor immersive
+ * feedback to (screen shake, particles, hit-stop). No text — purely visual/audio.
+ */
+export interface ParryFeedbackEvent {
+  x: number;
+  y: number;
+  source: 'melee' | 'aoe' | 'projectile' | 'hazard';
+  sourceEnemyId: string | null;
 }
 
 /** Enemy-spawned thrown projectile (e.g. Hollow Reaver scythe). Resolves player collision in updateProjectiles. */
@@ -408,6 +531,9 @@ export class CombatSystem {
       stuckFrames: 0,
       pathRecoveryTimer: 0,
       pathRecoverySide: Math.random() < 0.5 ? -1 : 1,
+      attackLockedTarget: null,
+      sprintBurstTimer: 0,
+      sprintCooldown: 0,
     };
 
     this.enemies.push(enemy);
@@ -693,6 +819,33 @@ export class CombatSystem {
             }
           }
 
+          const isBigType = enemy.type === 'golem' || enemy.type === 'stone_sentinel'
+            || enemy.type === 'corrupted_giant' || enemy.type === 'ashen_reaver';
+
+          // Big-enemy mid-range commitment: when not yet in melee range, sometimes
+          // commit to a long-windup attack (lunge/slab/stomp) telegraphed from
+          // outside attack range — locks the strike point so a sidestep beats it.
+          if (isBigType && enemy.attackWindupLockTimer <= 0 && distSq > attackRangeSq
+              && distSq <= attackRangeSq * 4) {
+            // Per-frame chance accumulates over time; ~25% per second at mid range.
+            if (Math.random() < 0.42 * deltaTime) {
+              enemy.currentAttackType = pickBigEnemyAttackType(enemy, distSq, attackRangeSq);
+              if (enemy.currentAttackType === 'giant_lunge' ||
+                  enemy.currentAttackType === 'reaver_rush' ||
+                  enemy.currentAttackType === 'golem_grab' ||
+                  enemy.currentAttackType === 'sentinel_slab' ||
+                  enemy.currentAttackType === 'golem_stomp') {
+                enemy.attackLockedTarget = { x: playerPosition.x, y: playerPosition.y };
+                enemy.state = 'telegraphing';
+                setVariableTelegraph(enemy, enemy.telegraphDuration);
+                updateMovementVisuals(enemy, 0, 0, false, 0);
+                break;
+              }
+              // Fell through to 'normal' — keep chasing.
+              enemy.currentAttackType = 'normal';
+            }
+          }
+
           if (
             distSq <= attackRangeSq &&
             canEnemyMeleeReachPlayer(world, enemy, playerPosition, playerCombatElevation, playerIsClimbing)
@@ -702,16 +855,41 @@ export class CombatSystem {
               break;
             }
             enemy.state = 'telegraphing';
-            enemy.telegraphTimer = enemy.telegraphDuration;
+            // Big enemies pick from their roster; trash mobs stay on 'normal'
+            // (so wolves and bandits aren't doing slab attacks).
+            if (isBigType) {
+              enemy.currentAttackType = pickBigEnemyAttackType(enemy, distSq, attackRangeSq);
+              if (enemy.currentAttackType !== 'normal') {
+                enemy.attackLockedTarget = { x: playerPosition.x, y: playerPosition.y };
+              }
+            }
+            setVariableTelegraph(enemy, enemy.telegraphDuration);
             updateMovementVisuals(enemy, 0, 0, false, 0);
             break;
+          }
+
+          // Sprint-burst reposition — short aggressive dash for big enemies.
+          // Fires occasionally when player is mid-range and the cooldown is
+          // ready, giving the chase a non-uniform "the boss noticed you stepped
+          // back" feel.
+          if (enemy.sprintCooldown > 0) {
+            enemy.sprintCooldown = Math.max(0, enemy.sprintCooldown - deltaTime);
+          }
+          if (enemy.sprintBurstTimer > 0) {
+            enemy.sprintBurstTimer = Math.max(0, enemy.sprintBurstTimer - deltaTime);
+          } else if (isBigType && enemy.sprintCooldown <= 0
+              && distSq > attackRangeSq && distSq <= attackRangeSq * 6
+              && Math.random() < 0.55 * deltaTime) {
+            enemy.sprintBurstTimer = 0.45 + Math.random() * 0.25;
+            enemy.sprintCooldown = 2.2 + Math.random() * 1.8;
           }
 
           if (distSq > 0) {
             _tmpOldPos.x = enemy.position.x;
             _tmpOldPos.y = enemy.position.y;
             const dist = Math.sqrt(distSq);
-            const moveSpeed = enemy.speed * deltaTime * 60;
+            const sprintMult = enemy.sprintBurstTimer > 0 ? 2.4 : 1.0;
+            const moveSpeed = enemy.speed * sprintMult * deltaTime * 60;
             const nvx = dx / dist;
             const nvy = dy / dist;
             const nextX = enemy.position.x + nvx * moveSpeed;
@@ -720,7 +898,7 @@ export class CombatSystem {
               enemy.position.x = nextX;
               enemy.position.y = nextY;
               this.updateEnemyHash(enemy, _tmpOldPos);
-              updateMovementVisuals(enemy, nvx, nvy, true, 10);
+              updateMovementVisuals(enemy, nvx, nvy, true, sprintMult > 1 ? 16 : 10);
             } else {
               const step = tryEnemyChaseMove(world, enemy, nvx, nvy, moveSpeed, ENEMY_MOVE_RADIUS);
               if (step.moved) {
@@ -731,7 +909,7 @@ export class CombatSystem {
                 enemy.position.x = step.x;
                 enemy.position.y = step.y;
                 this.updateEnemyHash(enemy, _tmpOldPos);
-                updateMovementVisuals(enemy, step.vx, step.vy, true, 10);
+                updateMovementVisuals(enemy, step.vx, step.vy, true, sprintMult > 1 ? 16 : 10);
               } else {
                 enemy.stuckFrames++;
                 if (enemy.stuckFrames >= ENEMY_STUCK_FRAME_LIMIT) {
@@ -755,11 +933,58 @@ export class CombatSystem {
 
         case 'telegraphing': {
           enemy.telegraphTimer -= deltaTime;
-          updateMovementVisuals(enemy, 0, 0, false, 0);
+
+          // Mid-telegraph dash for committed attacks — the enemy actually moves
+          // during the windup so a sidestep beats the strike. This is what makes
+          // big enemies READ as souls-like: they're chasing you DURING the wind-up,
+          // and your job is to read the lock point and step off it.
+          const dashType = enemy.currentAttackType;
+          const isCommittedDash =
+            dashType === 'giant_lunge' ||
+            dashType === 'reaver_rush' ||
+            dashType === 'golem_grab';
+          if (isCommittedDash && enemy.attackLockedTarget) {
+            const t = enemy.attackLockedTarget;
+            const ldx = t.x - enemy.position.x;
+            const ldy = t.y - enemy.position.y;
+            const ldist = Math.hypot(ldx, ldy);
+            if (ldist > 0.05) {
+              const dashSpeed = dashTileSpeedFor(enemy) * deltaTime;
+              const stepMag = Math.min(dashSpeed, ldist);
+              const dvx = ldx / ldist;
+              const dvy = ldy / ldist;
+              const dashNextX = enemy.position.x + dvx * stepMag;
+              const dashNextY = enemy.position.y + dvy * stepMag;
+              _tmpOldPos.x = enemy.position.x;
+              _tmpOldPos.y = enemy.position.y;
+              if (!world) {
+                enemy.position.x = dashNextX;
+                enemy.position.y = dashNextY;
+                this.updateEnemyHash(enemy, _tmpOldPos);
+              } else {
+                const step = trySlideEnemyMove(world, enemy.position.x, enemy.position.y, dashNextX, dashNextY, ENEMY_MOVE_RADIUS);
+                if (step.moved) {
+                  enemy.position.x = step.x;
+                  enemy.position.y = step.y;
+                  this.updateEnemyHash(enemy, _tmpOldPos);
+                }
+              }
+              updateMovementVisuals(enemy, dvx, dvy, true, 18);
+            } else {
+              updateMovementVisuals(enemy, 0, 0, false, 0);
+            }
+          } else {
+            updateMovementVisuals(enemy, 0, 0, false, 0);
+          }
 
           if (enemy.telegraphTimer <= 0) {
             const isSweep = enemy.currentAttackType === 'sweep' || enemy.currentAttackType === 'combo_sweep';
             const isComboFinisher = enemy.currentAttackType === 'combo_finisher';
+            const isGolemGrab = enemy.currentAttackType === 'golem_grab';
+            const isGolemStomp = enemy.currentAttackType === 'golem_stomp';
+            const isSentinelSlab = enemy.currentAttackType === 'sentinel_slab';
+            const isGiantLunge = enemy.currentAttackType === 'giant_lunge';
+            const isReaverRush = enemy.currentAttackType === 'reaver_rush';
             const rangeMult = isSweep ? 3.0 : 1.69;
             const extAttackRangeSq = attackRangeSq * rangeMult;
 
@@ -771,7 +996,104 @@ export class CombatSystem {
             // Skip the melee damage check entirely; the projectile resolves its own hit in updateProjectiles.
             const rangedDistSq = distSq;
             const rangedMaxSq = (eBo.rangedRange ?? 3.0) * (eBo.rangedRange ?? 3.0) * 4;
-            if (isComboFinisher) {
+            if (isGolemStomp) {
+              // Stone Golem stomp — wide AoE around the golem's feet. Cracks
+              // tiles like the nova slam, knocks the player back hard, and is
+              // fully parryable via applyAreaHitToPlayer.
+              const stompRadius = 2.6;
+              if (world && particleSystem) {
+                breakTilesInRadius(world, world.getCurrentMap(), enemy.position.x, enemy.position.y, stompRadius, particleSystem, playPropBreak);
+              }
+              const sdx = playerPosition.x - enemy.position.x;
+              const sdy = playerPosition.y - enemy.position.y;
+              if (sdx * sdx + sdy * sdy <= stompRadius * stompRadius && !playerInvulnerable) {
+                const result = this.applyAreaHitToPlayer(
+                  Math.floor(enemy.damage * 1.1),
+                  playerBlocking, blockStartTime, now, enemy,
+                  6.5, // strong outward push
+                );
+                if (result.parried) { parried = true; parryEnemyId = enemy.id; }
+              }
+            } else if (isGolemGrab) {
+              // Stone Golem grab — tighter range than stomp but very high damage,
+              // and the dash during telegraph already closed the gap. On connect:
+              // snare the player AND launch them backward like the grip was
+              // ripped off them.
+              const grabRadius = 1.4;
+              const gdx = playerPosition.x - enemy.position.x;
+              const gdy = playerPosition.y - enemy.position.y;
+              if (gdx * gdx + gdy * gdy <= grabRadius * grabRadius && !playerInvulnerable) {
+                const result = this.applyAreaHitToPlayer(
+                  Math.floor(enemy.damage * 1.6),
+                  playerBlocking, blockStartTime, now, enemy,
+                  5.5,
+                );
+                if (result.parried) {
+                  parried = true; parryEnemyId = enemy.id;
+                } else if (!playerBlocking) {
+                  // Unblocked grab roots you for a moment as the golem releases.
+                  this.gameState.player.snareTimer = Math.max(this.gameState.player.snareTimer, 0.9);
+                  this.gameState.player.snareSpeedMult = 0.45;
+                }
+              }
+            } else if (isSentinelSlab) {
+              // Stone Sentinel slab — the sentinel slams its fist down and a
+              // rising rock pillar erupts at the locked target tile. Lethal if
+              // you don't sidestep the lock point during the windup. Big
+              // outward knockback on connect.
+              const target = enemy.attackLockedTarget ?? playerPosition;
+              const slabRadius = 1.1;
+              if (world && particleSystem) {
+                breakTilesInRadius(world, world.getCurrentMap(), target.x, target.y, slabRadius * 0.9, particleSystem, playPropBreak);
+              }
+              const sldx = playerPosition.x - target.x;
+              const sldy = playerPosition.y - target.y;
+              if (sldx * sldx + sldy * sldy <= slabRadius * slabRadius && !playerInvulnerable) {
+                // Push is from the slab origin (the locked target), not the
+                // enemy, so the player gets shoved off the impact tile.
+                const player = this.gameState.player;
+                const isParry = playerBlocking && (now - blockStartTime) < PARRY_WINDOW;
+                if (isParry) {
+                  enemy.state = 'staggered';
+                  enemy.staggerTimer = enemy.staggerDuration;
+                  enemy.damageFlashTimer = enemy.staggerDuration;
+                  player.parryBonusTimer = 1.0;
+                  player.iFrameTimer = Math.max(player.iFrameTimer, 0.5);
+                  parried = true; parryEnemyId = enemy.id;
+                } else {
+                  let dmg = Math.floor(enemy.damage * 1.35);
+                  if (playerBlocking && player.guardBrokenTimer <= 0) {
+                    player.stamina -= dmg * 0.8;
+                    if (player.stamina <= 0) {
+                      player.stamina = 0;
+                      player.guardBrokenTimer = 1.2;
+                    }
+                    dmg = Math.floor(dmg * (1 - BLOCK_DAMAGE_REDUCTION));
+                  }
+                  player.health = Math.max(0, player.health - dmg);
+                  player.damageFlashTimer = 0.4;
+                  player.iFrameTimer = Math.max(player.iFrameTimer, 0.35);
+                  const kbMag = playerBlocking ? 4.5 : 7.5;
+                  this.applyKnockbackFromSource(target.x, target.y, kbMag);
+                }
+              }
+            } else if (isGiantLunge || isReaverRush) {
+              // Giant lunge + Reaver rush — committed dash strikes that the
+              // mid-telegraph movement already advanced. Resolve a wide front
+              // arc at the enemy's current position with extra reach.
+              const reach = isReaverRush ? 2.0 : 2.2;
+              const reachSq = reach * reach;
+              const ldx = playerPosition.x - enemy.position.x;
+              const ldy = playerPosition.y - enemy.position.y;
+              if (ldx * ldx + ldy * ldy <= reachSq && !playerInvulnerable) {
+                const result = this.applyAreaHitToPlayer(
+                  Math.floor(enemy.damage * (isReaverRush ? 1.45 : 1.3)),
+                  playerBlocking, blockStartTime, now, enemy,
+                  isReaverRush ? 5.0 : 4.5,
+                );
+                if (result.parried) { parried = true; parryEnemyId = enemy.id; }
+              }
+            } else if (isComboFinisher) {
               const finisherRadius = 2.0;
               if (world && particleSystem) {
                 breakTilesInRadius(world, world.getCurrentMap(), enemy.position.x, enemy.position.y, finisherRadius, particleSystem, playPropBreak);
@@ -780,7 +1102,17 @@ export class CombatSystem {
               const finisherDy = playerPosition.y - enemy.position.y;
               const finisherDistSq = finisherDx * finisherDx + finisherDy * finisherDy;
               if (finisherDistSq <= finisherRadius * finisherRadius && !playerInvulnerable) {
-                this.applyAreaHitToPlayer(Math.floor(enemy.damage * 1.25), playerBlocking);
+                const result = this.applyAreaHitToPlayer(
+                  Math.floor(enemy.damage * 1.25),
+                  playerBlocking,
+                  blockStartTime,
+                  now,
+                  enemy,
+                );
+                if (result.parried) {
+                  parried = true;
+                  parryEnemyId = enemy.id;
+                }
               }
             } else if (eBo.rangedAttack && eBo.rangedProjectile && rangedDistSq > attackRangeSq && rangedDistSq <= rangedMaxSq) {
               const dxP = playerPosition.x - enemy.position.x;
@@ -818,9 +1150,16 @@ export class CombatSystem {
 
             enemy.damage = savedDamage;
             enemy.currentAttackType = 'normal';
+            enemy.attackLockedTarget = null;
+            // Committed dash attacks get a longer recover (they overshot or
+            // pulled off a heavy move) so the player has a real punish window.
+            const dashOvercommit = isGolemGrab || isGolemStomp || isSentinelSlab
+              || isGiantLunge || isReaverRush;
             enemy.state = 'recovering';
-            enemy.recoverTimer = enemy.recoverDuration;
-            enemy.attackAnimationTimer = 0.3;
+            enemy.recoverTimer = dashOvercommit
+              ? enemy.recoverDuration * 1.6
+              : enemy.recoverDuration;
+            enemy.attackAnimationTimer = dashOvercommit ? 0.45 : 0.3;
           }
           break;
         }
@@ -954,18 +1293,11 @@ export class CombatSystem {
             const novaDistSq = novaDx * novaDx + novaDy * novaDy;
             if (novaDistSq <= novaRadius * novaRadius && !playerInvulnerable) {
               const novaDamage = Math.floor(enemy.damage * 1.5);
-              if (playerBlocking && this.gameState.player.guardBrokenTimer <= 0) {
-                this.gameState.player.stamina -= novaDamage * 0.8;
-                if (this.gameState.player.stamina <= 0) {
-                  this.gameState.player.stamina = 0;
-                  this.gameState.player.guardBrokenTimer = 1.2;
-                }
-                const reduced = Math.floor(novaDamage * (1 - BLOCK_DAMAGE_REDUCTION));
-                this.gameState.player.health = Math.max(0, this.gameState.player.health - reduced);
-              } else {
-                this.gameState.player.health = Math.max(0, this.gameState.player.health - novaDamage);
+              const novaResult = this.applyAreaHitToPlayer(novaDamage, playerBlocking, blockStartTime, now, enemy);
+              if (novaResult.parried) {
+                parried = true;
+                parryEnemyId = enemy.id;
               }
-              this.gameState.player.damageFlashTimer = 0.4;
             }
             enemy.currentAttackType = 'normal';
             enemy.state = 'recovering';
@@ -1022,18 +1354,11 @@ export class CombatSystem {
             const slamDistSq = slamDx * slamDx + slamDy * slamDy;
             if (slamDistSq <= slamRange * slamRange && !playerInvulnerable) {
               const slamDamage = Math.floor(enemy.damage * 1.5);
-              if (playerBlocking && this.gameState.player.guardBrokenTimer <= 0) {
-                this.gameState.player.stamina -= slamDamage * 0.8;
-                if (this.gameState.player.stamina <= 0) {
-                  this.gameState.player.stamina = 0;
-                  this.gameState.player.guardBrokenTimer = 1.2;
-                }
-                const reduced = Math.floor(slamDamage * (1 - BLOCK_DAMAGE_REDUCTION));
-                this.gameState.player.health = Math.max(0, this.gameState.player.health - reduced);
-              } else {
-                this.gameState.player.health = Math.max(0, this.gameState.player.health - slamDamage);
+              const slamResult = this.applyAreaHitToPlayer(slamDamage, playerBlocking, blockStartTime, now, enemy);
+              if (slamResult.parried) {
+                parried = true;
+                parryEnemyId = enemy.id;
               }
-              this.gameState.player.damageFlashTimer = 0.4;
             }
             enemy.chargeSlamTarget = null;
             enemy.state = 'recovering';
@@ -1111,8 +1436,66 @@ export class CombatSystem {
     }
   }
 
-  private applyAreaHitToPlayer(damage: number, isBlocking: boolean): void {
+  /**
+   * Push the player away from a world-space source with the given magnitude
+   * (tiles/second). Composes additively with any existing knockback so a
+   * second hit during the slide chains the impulse instead of replacing it.
+   * Skipped on a successful parry (parried hits never knock back).
+   */
+  private applyKnockbackFromSource(sourceX: number, sourceY: number, magnitude: number): void {
+    if (magnitude <= 0) return;
     const player = this.gameState.player;
+    const dx = player.position.x - sourceX;
+    const dy = player.position.y - sourceY;
+    const len = Math.hypot(dx, dy);
+    if (len < 0.001) {
+      // Source is on top of the player — push in the player's facing direction
+      // so they don't stay glued in place.
+      const facing = player.direction;
+      const fx = facing === 'left' ? -1 : facing === 'right' ? 1 : 0;
+      const fy = facing === 'up' ? 1 : facing === 'down' ? -1 : 0;
+      player.knockbackVelX += fx * magnitude;
+      player.knockbackVelY += fy * magnitude;
+      return;
+    }
+    player.knockbackVelX += (dx / len) * magnitude;
+    player.knockbackVelY += (dy / len) * magnitude;
+  }
+
+  /**
+   * Apply an AoE/area hit to the player, honouring the parry window when blocking.
+   *
+   * Returns `parried` so callers can stagger the source enemy and trigger the
+   * shared immersive feedback (shake / hit-stop / sparks). Heavy boss attacks
+   * (nova slam, charge slam, combo finisher AoE, eclipse hazards) all funnel
+   * through here so they can be parried like any melee strike — there is no
+   * "unparryable" attack outside of pure environmental hazards with no source.
+   *
+   * `knockbackMagnitude` shoves the player away from `sourceEnemy` (or the
+   * given fallback position) on a non-parried connect — purely physical impact.
+   */
+  private applyAreaHitToPlayer(
+    damage: number,
+    isBlocking: boolean,
+    blockStartTime: number = 0,
+    now: number = 0,
+    sourceEnemy: Enemy | null = null,
+    knockbackMagnitude: number = 0,
+  ): { parried: boolean } {
+    const player = this.gameState.player;
+    const isParry = isBlocking && (now - blockStartTime) < PARRY_WINDOW;
+
+    if (isParry) {
+      if (sourceEnemy && sourceEnemy.state !== 'dead') {
+        sourceEnemy.state = 'staggered';
+        sourceEnemy.staggerTimer = sourceEnemy.staggerDuration;
+        sourceEnemy.damageFlashTimer = sourceEnemy.staggerDuration;
+      }
+      player.parryBonusTimer = 1.0;
+      player.iFrameTimer = Math.max(player.iFrameTimer, 0.5);
+      return { parried: true };
+    }
+
     let finalDamage = damage;
     if (isBlocking && player.guardBrokenTimer <= 0) {
       player.stamina -= damage * 0.8;
@@ -1126,6 +1509,13 @@ export class CombatSystem {
     player.health = Math.max(0, player.health - finalDamage);
     player.damageFlashTimer = 0.4;
     player.iFrameTimer = Math.max(player.iFrameTimer, 0.35);
+
+    if (knockbackMagnitude > 0 && sourceEnemy) {
+      // Blocking softens the shove (you brace against it); unblocked = full impulse.
+      const mult = isBlocking ? 0.55 : 1.0;
+      this.applyKnockbackFromSource(sourceEnemy.position.x, sourceEnemy.position.y, knockbackMagnitude * mult);
+    }
+    return { parried: false };
   }
 
   private attackPlayer(
@@ -1318,19 +1708,20 @@ export class CombatSystem {
     playerInvulnerable: boolean = false,
     playerBlocking: boolean = false,
     blockStartTime: number = 0,
-  ): void {
+  ): ParryFeedbackEvent | null {
     const guardian = this.enemies.find(e => e.type === 'hollow_guardian' && e.state !== 'dead');
     if (!guardian) {
       this.fallingScytheHazards = [];
       this.hollowStillnessTimer = 0;
       this.hollowStillnessCooldown = 0;
       this.hollowLastPlayerPosition = null;
-      return;
+      return null;
     }
 
     this.updateHollowStillnessScythes(deltaTime, playerPosition, guardian.phase);
 
     const now = performance.now() / 1000;
+    let parryEvent: ParryFeedbackEvent | null = null;
     for (const hazard of this.fallingScytheHazards) {
       if (!hazard.alive) continue;
 
@@ -1350,12 +1741,11 @@ export class CombatSystem {
         const dy = playerPosition.y - hazard.position.y;
         if (dx * dx + dy * dy <= hazard.radius * hazard.radius) {
           hazard.hitPlayer = true;
-          const isPerfectBlock = playerBlocking && (now - blockStartTime) < PARRY_WINDOW;
-          if (isPerfectBlock) {
-            this.gameState.player.parryBonusTimer = Math.max(this.gameState.player.parryBonusTimer, 0.6);
-            this.gameState.player.iFrameTimer = Math.max(this.gameState.player.iFrameTimer, 0.35);
-          } else {
-            this.applyAreaHitToPlayer(hazard.damage, playerBlocking);
+          // Hazards have a remote source (guardian) — parry staggers the boss
+          // so the player is rewarded for nailing scythe timing in their face.
+          const result = this.applyAreaHitToPlayer(hazard.damage, playerBlocking, blockStartTime, now, guardian);
+          if (result.parried && !parryEvent) {
+            parryEvent = { x: hazard.position.x, y: hazard.position.y, source: 'hazard', sourceEnemyId: guardian.id };
           }
         }
       }
@@ -1366,6 +1756,7 @@ export class CombatSystem {
     }
 
     removeDeadInPlace(this.fallingScytheHazards);
+    return parryEvent;
   }
 
   getFallingScytheHazards(): FallingScytheHazard[] {
@@ -1505,9 +1896,10 @@ export class CombatSystem {
     playerBlocking: boolean = false,
     blockStartTime: number = 0,
     world?: World,
-  ): void {
+  ): ParryFeedbackEvent | null {
     const now = performance.now() / 1000;
     const playerHitRadius = 0.4;
+    let parryEvent: ParryFeedbackEvent | null = null;
 
     for (const p of this.projectiles) {
       if (!p.alive) continue;
@@ -1549,7 +1941,10 @@ export class CombatSystem {
       if (distSq <= reach * reach) {
         if (!playerInvulnerable) {
           const result = this.applyProjectileHit(p, playerBlocking, blockStartTime, now);
-          if (result === 'reflected') {
+          if (result.parried && !parryEvent) {
+            parryEvent = { x: p.position.x, y: p.position.y, source: 'projectile', sourceEnemyId: p.sourceEnemyId };
+          }
+          if (result.outcome === 'reflected') {
             continue;
           }
         }
@@ -1558,6 +1953,7 @@ export class CombatSystem {
     }
 
     removeDeadInPlace(this.projectiles);
+    return parryEvent;
   }
 
   private applyProjectileHit(
@@ -1565,7 +1961,7 @@ export class CombatSystem {
     isBlocking: boolean,
     blockStartTime: number,
     now: number,
-  ): 'hit' | 'blocked' | 'reflected' {
+  ): { outcome: 'hit' | 'blocked' | 'reflected'; parried: boolean } {
     const player = this.gameState.player;
     const isParry = isBlocking && (now - blockStartTime) < PARRY_WINDOW;
     const suppressBlockFlash = projectile.sprite === 'projectile_scythe';
@@ -1574,7 +1970,7 @@ export class CombatSystem {
       // Parry deflects the projectile cleanly — short i-frames, no damage.
       player.parryBonusTimer = 1.0;
       player.iFrameTimer = Math.max(player.iFrameTimer, 0.4);
-      return this.reflectProjectile(projectile) ? 'reflected' : 'blocked';
+      return { outcome: this.reflectProjectile(projectile) ? 'reflected' : 'blocked', parried: true };
     }
 
     let damage = projectile.damage;
@@ -1586,16 +1982,16 @@ export class CombatSystem {
         if (!suppressBlockFlash) {
           player.damageFlashTimer = 0.6;
         }
-        return 'blocked';
+        return { outcome: 'blocked', parried: false };
       }
       if (!suppressBlockFlash) {
         player.damageFlashTimer = 0.18;
       }
-      return 'blocked';
+      return { outcome: 'blocked', parried: false };
     }
     player.health = Math.max(0, player.health - damage);
     player.damageFlashTimer = 0.3;
-    return 'hit';
+    return { outcome: 'hit', parried: false };
   }
 
   private reflectProjectile(projectile: Projectile): boolean {

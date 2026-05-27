@@ -7,6 +7,7 @@ import type { ParticleSystem } from '@/lib/game/ParticleSystem';
 import type { ScreenShake } from '@/lib/game/ScreenShake';
 import type { World } from '@/lib/game/World';
 import type { BiomeAmbience } from '@/lib/game/BiomeAmbience';
+import type { CorruptionFilter } from '@/lib/game/CorruptionFilter';
 import type { WeatherSystem } from '@/lib/game/WeatherSystem';
 import type { DayNightCycle } from '@/lib/game/DayNightCycle';
 import type { WorldItemRendererInstance } from '@/game/runtime/WorldItemRenderer';
@@ -213,6 +214,12 @@ export interface RuntimeLoopTailContext {
   npcScreenMinMs: number;
   npcScreenMinPx: number;
   biomeAmbience: BiomeAmbience;
+  /**
+   * Optional full-screen corruption tint driven by biome proximity. The loop
+   * tail nudges its target strength each frame so the filter eases in/out
+   * synchronously with the music crossfade on hollow-side entry/exit.
+   */
+  corruptionFilter?: CorruptionFilter;
   weatherSystem: WeatherSystem;
   dayNightCycle: DayNightCycle;
   floatingText: FloatingTextSystem;
@@ -225,6 +232,7 @@ export interface RuntimeLoopTailContext {
   startStormLoop?: () => void;
   stopStormLoop?: () => void;
   playThunder?: () => void;
+  switchMusicTrack: (mapId: string) => void;
 }
 
 interface CreateRuntimePhaseContextsOptions {

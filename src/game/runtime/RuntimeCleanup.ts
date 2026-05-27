@@ -27,6 +27,7 @@ interface RuntimeCleanupOptions {
   criticalItemVisuals: CleanupVisualLike;
   particleSystem: CleanupSystemLike;
   biomeAmbience: CleanupSystemLike;
+  corruptionFilter?: CleanupSystemLike;
   weatherSystem: CleanupSystemLike;
   dayNightCycle: CleanupSystemLike;
   floatingText: CleanupSystemLike;
@@ -58,6 +59,7 @@ export function cleanupRuntimeResources({
   criticalItemVisuals,
   particleSystem,
   biomeAmbience,
+  corruptionFilter,
   weatherSystem,
   dayNightCycle,
   floatingText,
@@ -101,6 +103,7 @@ export function cleanupRuntimeResources({
   disposeNpcVisuals();
   particleSystem.cleanup();
   biomeAmbience.cleanup();
+  corruptionFilter?.cleanup();
   weatherSystem.cleanup();
   dayNightCycle.cleanup();
   floatingText.cleanup();

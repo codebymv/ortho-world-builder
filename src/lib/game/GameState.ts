@@ -73,8 +73,24 @@ export interface PlayerState {
   lastStaminaUseTime: number;
   guardBrokenTimer: number;
   parryBonusTimer: number;
+  /**
+   * Counts down from PARRY_WINDOW (0.25s) the instant the player starts blocking.
+   * While > 0, the parry window is open and the blade renders a primed shimmer —
+   * a purely visual cue with no text. Decremented each frame in the gameplay
+   * prelude; cleared if the player stops blocking.
+   */
+  parryWindowTimer: number;
   snareTimer: number;
   snareSpeedMult: number;
+  /**
+   * Knockback velocity applied to the player position each frame in addition
+   * to input-driven movement. Decays exponentially (knockbackDecayRate per
+   * second). Set by heavy enemy hits (Sentinel rock slab, Golem stomp/grab,
+   * Giant lunge). Honours world collision so the player can't be shoved
+   * through walls. Souls-like impact without text or hard cinematic stops.
+   */
+  knockbackVelX: number;
+  knockbackVelY: number;
   stealthTimer: number;
   stealthDetectionMult: number;
   berserkerTimer: number;
@@ -222,8 +238,11 @@ export class GameState {
       lastStaminaUseTime: 0,
       guardBrokenTimer: 0,
       parryBonusTimer: 0,
+      parryWindowTimer: 0,
       snareTimer: 0,
       snareSpeedMult: 1.0,
+      knockbackVelX: 0,
+      knockbackVelY: 0,
       stealthTimer: 0,
       stealthDetectionMult: 1.0,
       berserkerTimer: 0,

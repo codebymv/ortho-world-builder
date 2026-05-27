@@ -976,7 +976,10 @@ export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
   const playerY = Math.floor(playerPosition.y + h / 2);
   const px = playerX * scale + scale / 2;
   const py = (h - 1 - playerY) * scale + scale / 2;
-  const playerMarkerSize = Math.max(scale * 4.4, scale >= 6 ? 18 : 11);
+  // Player marker on the minimap / full map — sized to read at roughly the
+  // same prominence as bonfire landmark sprites (~9 × scale) so the player's
+  // dot doesn't get lost next to discovered landmarks on busy maps.
+  const playerMarkerSize = Math.max(scale * 7.5, scale >= 6 ? 26 : 18);
   drawPlayerFaceMapMarker(ctx, px, py, playerMarkerSize, assetManager, state.equippedWeaponId);
 
   if (includeFrame) {

@@ -4,6 +4,21 @@ import type { RuntimeLoopTailContext } from '@/game/runtime/RuntimePhaseContexts
 import type { PerfProfiler } from '@/game/runtime/PerfProfiler';
 
 const CAMP_SMOKE_REFRESH_MS = 900;
+// Y thresholds for the forest hollow-region music + corruption-filter
+// transition. Exported so `useGameMusic` can pick the correct initial track
+// on page load — without that, refreshing in the hollow starts wood_theme and
+// immediately crossfades to gilrhym_theme, briefly playing both songs at once.
+//
+// The ENTER point is the midpoint of the bridge crossing into the hollow side
+// (world y = -61). EXIT sits a few tiles north to provide hysteresis so a
+// player skirting the boundary doesn't flicker the filter / music.
+export const HOLLOW_MUSIC_ENTER_Y = -61;
+export const HOLLOW_MUSIC_EXIT_Y = -55;
+
+// `null` until the first frame establishes the region from the actual player
+// position. Avoids the spurious "switch from woods → hollow" crossfade on
+// refresh-into-hollow when the track was already initialized correctly.
+let forestMusicRegion: 'woods' | 'hollow' | null = null;
 
 let campSmokeCache: {
   mapId: string;
@@ -93,6 +108,7 @@ export function runRuntimeLoopTail({
   npcScreenMinPx = 3,
   currentBiome,
   biomeAmbience,
+  corruptionFilter,
   weatherSystem,
   dayNightCycle,
   floatingText,
@@ -106,6 +122,7 @@ export function runRuntimeLoopTail({
   startStormLoop,
   stopStormLoop,
   playThunder,
+  switchMusicTrack,
   perfProfiler,
 }: RunRuntimeLoopTailOptions) {
   const profilePhases = perfProfiler?.isEnabled() ?? false;
@@ -181,6 +198,38 @@ export function runRuntimeLoopTail({
     startStormLoop?.();
   } else {
     stopStormLoop?.();
+  }
+
+  if (state.currentMap !== 'forest') {
+    forestMusicRegion = 'woods';
+  } else if (forestMusicRegion === null) {
+    // First frame in the forest map — sync the tracked region to the actual
+    // player position AND self-heal the music track. The `switchMusicTrack`
+    // call is a no-op if the right track is already loaded, but it acts as a
+    // safety net if `useGameMusic`'s initial resolve missed (e.g. SaveManager
+    // was empty on a brand-new game that happens to start near the boundary).
+    forestMusicRegion = playerPosition.y <= HOLLOW_MUSIC_ENTER_Y ? 'hollow' : 'woods';
+    switchMusicTrack(forestMusicRegion === 'hollow' ? 'forest_hollow' : 'forest');
+  } else if (forestMusicRegion === 'woods' && playerPosition.y <= HOLLOW_MUSIC_ENTER_Y) {
+    forestMusicRegion = 'hollow';
+    switchMusicTrack('forest_hollow');
+  } else if (forestMusicRegion === 'hollow' && playerPosition.y >= HOLLOW_MUSIC_EXIT_Y) {
+    forestMusicRegion = 'woods';
+    switchMusicTrack('forest');
+  }
+
+  // Hollow-side corruption filter — full-screen violet grade. Tied to the
+  // same hysteresis state (`forestMusicRegion`) that drives the music
+  // crossfade so the visual and audio transitions happen at the exact same
+  // boundary crossing. Single binary target (on/off) — once the player is
+  // past the ENTER threshold the filter holds at full strength; no biome-
+  // depth gradient that could fluctuate as the player wanders the hollow.
+  // Runs AFTER the music block so it reads the freshly-updated region this
+  // frame (no 1-frame visual lag behind the audio).
+  if (corruptionFilter) {
+    const target = forestMusicRegion === 'hollow' ? 1.0 : 0.0;
+    corruptionFilter.setTargetStrength(target);
+    corruptionFilter.update(deltaTime, currentTime / 1000);
   }
 
   if (profilePhases) {

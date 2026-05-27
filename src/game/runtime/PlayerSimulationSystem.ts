@@ -472,6 +472,37 @@ export function updatePlayerSimulation({
 
   revealVisibleTiles();
 
+  // Knockback integration — runs before input movement so the player gets shoved
+  // and can recover with WASD in the same frame. Slide stops on wall collision
+  // (no clipping through cliffs); decays exponentially so impacts feel weighty
+  // for ~0.3s then ease out.
+  const kbMagSq = state.player.knockbackVelX * state.player.knockbackVelX
+    + state.player.knockbackVelY * state.player.knockbackVelY;
+  if (kbMagSq > 0.0004) {
+    const kbX = state.player.position.x + state.player.knockbackVelX * deltaTime;
+    const kbY = state.player.position.y + state.player.knockbackVelY * deltaTime;
+    if (world.canMoveTo(state.player.position.x, state.player.position.y, kbX, kbY, 0.2)) {
+      state.player.position.x = kbX;
+      state.player.position.y = kbY;
+    } else if (world.canMoveTo(state.player.position.x, state.player.position.y, kbX, state.player.position.y, 0.2)) {
+      state.player.position.x = kbX;
+      state.player.knockbackVelY = 0;
+    } else if (world.canMoveTo(state.player.position.x, state.player.position.y, state.player.position.x, kbY, 0.2)) {
+      state.player.position.y = kbY;
+      state.player.knockbackVelX = 0;
+    } else {
+      // Wall-stop — bleed the impulse so we don't stay stuck pushing.
+      state.player.knockbackVelX = 0;
+      state.player.knockbackVelY = 0;
+    }
+    const decay = Math.exp(-7 * deltaTime); // ~0.3s half-life feel
+    state.player.knockbackVelX *= decay;
+    state.player.knockbackVelY *= decay;
+  } else if (kbMagSq > 0) {
+    state.player.knockbackVelX = 0;
+    state.player.knockbackVelY = 0;
+  }
+
   const playerTile = world.getTile(state.player.position.x, state.player.position.y);
   state.player.isClimbing = playerTile?.type === 'ladder';
 

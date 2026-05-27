@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { GameState } from '@/lib/game/GameState';
 import { createMusicDirector } from '@/game/domain/AudioDirector';
+import { HOLLOW_MUSIC_ENTER_Y } from '@/game/runtime/RuntimeLoopTail';
+import { SaveManager } from '@/lib/game/SaveManager';
 
 interface UseGameMusicOptions {
   gameStateRef: MutableRefObject<GameState | null>;
@@ -13,6 +15,7 @@ interface UseGameMusicOptions {
 const MAP_MUSIC_MAP: Record<string, string> = {
   village: './audio/ortho_loop2.mp3',
   forest: './audio/wood_theme.mp3',
+  forest_hollow: './audio/gilrhym_theme.mp3',
   gilrhym: './audio/gilrhym_theme.mp3',
   victory: './audio/victory_theme.mp3',
 };
@@ -34,6 +37,35 @@ export function useGameMusic({
     (mapId: string) => MAP_MUSIC_MAP[mapId] || DEFAULT_MUSIC_TRACK,
     [],
   );
+
+  /**
+   * Resolve the *initial* music key for a fresh load, accounting for the
+   * hollow sub-region inside the forest map. Without this, refreshing in the
+   * hollow loads wood_theme first and the loop tail immediately crossfades to
+   * gilrhym_theme — you hear both songs overlap for the fade duration.
+   *
+   * Critically: this hook's mount effect fires BEFORE `setupGameRuntime`
+   * populates `gameStateRef.current`, so on first load the ref is null. We
+   * fall back to reading {@link SaveManager.load} directly to recover the
+   * saved player position + map. Once the runtime is up and `gameStateRef`
+   * is populated, that takes precedence (e.g. for the post-gesture autoplay
+   * sync path which can fire much later).
+   */
+  const resolveInitialMapKey = useCallback((state: GameState | null): string => {
+    let mapId = state?.currentMap;
+    let playerY = state?.player.position.y;
+
+    if (mapId == null || playerY == null) {
+      const saved = SaveManager.load();
+      mapId = saved?.currentMap ?? 'village';
+      playerY = saved?.player.position.y ?? 0;
+    }
+
+    if (mapId === 'forest' && playerY <= HOLLOW_MUSIC_ENTER_Y) {
+      return 'forest_hollow';
+    }
+    return mapId;
+  }, []);
 
   const musicDirectorRef = useRef<ReturnType<typeof createMusicDirector> | null>(null);
   if (!musicDirectorRef.current) {
@@ -63,8 +95,8 @@ export function useGameMusic({
   }, []);
 
   useEffect(() => {
-    const currentMap = gameStateRef.current?.currentMap || 'village';
-    const audio = musicDirector.initializeMusic(currentMap);
+    const initialKey = resolveInitialMapKey(gameStateRef.current);
+    const audio = musicDirector.initializeMusic(initialKey);
 
     const tryPlay = () => {
       void resumeAudioProcessor();
@@ -74,10 +106,10 @@ export function useGameMusic({
     const startMusic = () => {
       void resumeAudioProcessor();
       musicStarted.current = true;
-      const map = gameStateRef.current?.currentMap || 'village';
-      const correctTrack = resolveMusicTrack(map);
+      const correctKey = resolveInitialMapKey(gameStateRef.current);
+      const correctTrack = resolveMusicTrack(correctKey);
       if (currentTrackRef.current !== correctTrack) {
-        musicDirector.switchTrack(map);
+        musicDirector.switchTrack(correctKey);
       }
       tryPlay();
     };
@@ -125,7 +157,7 @@ export function useGameMusic({
       window.removeEventListener('keydown', startMusic);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [cleanupAudioProcessor, gameStateRef, musicDirector, resolveMusicTrack, resumeAudioProcessor]);
+  }, [cleanupAudioProcessor, gameStateRef, musicDirector, resolveMusicTrack, resolveInitialMapKey, resumeAudioProcessor]);
 
   return {
     musicRef,

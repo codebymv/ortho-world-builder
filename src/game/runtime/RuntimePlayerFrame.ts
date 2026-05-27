@@ -300,6 +300,8 @@ export function runPlayerFramePhase({
       heldItemMesh: meshes.heldItemMesh,
       heldItemMaterial: meshes.potionMaterial,
     },
+    particleSystem,
+    screenShake,
   });
 
   if (swooshTimer > 0) {

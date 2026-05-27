@@ -85,13 +85,13 @@ const COTTAGE_SHED_FOUNDATION: TileMetadata['foundation'] = {
 const WINDMILL_BODY_FOUNDATION: TileMetadata['foundation'] = {
   walkable: false,
   rows: [
-    // Mask the tower and base, not the full spinning blade silhouette.
-    { y: -4, xMin: -1, xMax: 1 },
-    { y: -3, xMin: -1, xMax: 1 },
-    { y: -2, xMin: -2, xMax: 2 },
-    { y: -1, xMin: -2, xMax: 2 },
-    { y: 0, xMin: -2, xMax: 2 },
-    { y: 1, xMin: -2, xMax: 2 },
+    // Match the lower tower/body footprint after the windmill sprite's yOffset.
+    // The sails and surrounding air stay passable, and the mask avoids invisible
+    // grass collision spilling south of the visible stone base.
+    { y: -2, xMin: -2, xMax: 1 },
+    { y: -1, xMin: -1, xMax: 1 },
+    { y: 0, xMin: -1, xMax: 1 },
+    { y: 1, xMin: -1, xMax: 1 },
   ],
 };
 

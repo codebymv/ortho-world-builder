@@ -175,6 +175,9 @@ export function runGameplayPrelude({
   if (state.player.parryBonusTimer > 0) {
     state.player.parryBonusTimer = Math.max(0, state.player.parryBonusTimer - deltaTime);
   }
+  if (state.player.parryWindowTimer > 0) {
+    state.player.parryWindowTimer = Math.max(0, state.player.parryWindowTimer - deltaTime);
+  }
   if (state.player.snareTimer > 0) {
     state.player.snareTimer = Math.max(0, state.player.snareTimer - deltaTime);
     if (state.player.snareTimer <= 0) {
@@ -206,6 +209,7 @@ export function runGameplayPrelude({
   if (isBlocking) {
     if (state.player.stamina <= 0 || state.player.guardBrokenTimer > 0) {
       isBlocking = false;
+      state.player.parryWindowTimer = 0;
       if (playerAnimState === 'block') {
         playerAnimState = 'idle';
       }
@@ -213,6 +217,10 @@ export function runGameplayPrelude({
       state.player.stamina = Math.max(0, state.player.stamina - blockStaminaCost * deltaTime);
       state.player.lastStaminaUseTime = nowSec;
     }
+  } else if (state.player.parryWindowTimer > 0) {
+    // Not blocking anymore — close the window immediately so the shimmer doesn't
+    // linger on an idle blade.
+    state.player.parryWindowTimer = 0;
   }
 
   triggerUIUpdateThrottled(currentTime);

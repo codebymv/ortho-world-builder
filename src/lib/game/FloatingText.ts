@@ -91,11 +91,11 @@ export class FloatingTextSystem {
       this.renderToCell(idx, String(n), '#FF4444', 22);
       this.glyphMap.set(this.cacheKey(String(n), '#FF4444', 22), idx);
     }
-    // Common labels
+    // Common labels — parries are intentionally NOT pre-rendered: parry
+    // feedback is purely immersive (camera kick, freeze-frame, sparks).
     const labels: Array<[string, string, number]> = [
       ['STAGGER!', '#88AAFF', 20],
       ['BACKSTAB!', '#FFD700', 24],
-      ['PARRY!', '#00FFCC', 22],
       ['ENRAGED!', '#CC44FF', 24],
       ['LAST BREATH!', '#FF5252', 28],
       ['HOLLOW ECLIPSE', '#44FFEE', 24],

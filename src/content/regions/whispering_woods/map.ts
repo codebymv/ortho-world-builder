@@ -217,8 +217,14 @@ export const forestDef: MapDefinition = {
 
     // === BRIDGES ===
     // Lake overlook crossing at world (~96,33): north-south bridge flush with cliff lips.
-    { x: 246, y: 176, width: 8, height: 4, type: 'cliff_face' },
+    // Side shoulders run up to the water edge; the stair throat is carved separately
+    // so the bridge remains usable instead of being sealed by the cliff face.
+    { x: 246, y: 176, width: 2, height: 6, type: 'cliff_face' },
+    { x: 252, y: 176, width: 2, height: 6, type: 'cliff_face' },
     { x: 246, y: 196, width: 8, height: 4, type: 'cliff_face' },
+    // Seal the lower-left lake overlook approach so the intended entry is the upper
+    // grass landing at world (~102,25), not the bridge shoulder near world (90,42).
+    { x: 240, y: 192, width: 7, height: 4, type: 'cliff_face' },
     { x: 239, y: 197, width: 8, height: 5, type: 'cliff_face' },
     { x: 248, y: 180, width: 4, height: 16, type: 'bridge' },
 
@@ -1858,7 +1864,7 @@ export const forestDef: MapDefinition = {
     { x: 176, y: 183, width: 3, height: 7, elevation: 0 },
     // Lake overlook north lip at world (~100,30): replace the cliff block with stairs
     // so the north-south bridge connects flush through the raised bank.
-    { x: 248, y: 176, width: 4, height: 5, elevation: 1 },
+    { x: 248, y: 176, width: 4, height: 6, elevation: 1 },
     // === CLIFF-TOP WALKWAY STAIRWAYS ===
     // South entry: el0 (north-bank corridor) ??' el1 (cliff-top walkway).
     // stampCliffs stamps cliff_edge at y=121 + cliff wall at y=122-124 (drop el1??'el0).

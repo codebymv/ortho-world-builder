@@ -138,6 +138,9 @@ export function createPointerInputController({
       if (!getIsBlocking() && !state.player.isDodging && !state.player.isClimbing && state.player.stamina > 0) {
         setIsBlocking(true);
         setBlockStartTime(performance.now() / 1000);
+        // Open the parry window — visualized by the blade-overlay shimmer.
+        // Decremented in the gameplay prelude; matches PARRY_WINDOW in Combat.ts.
+        state.player.parryWindowTimer = 0.25;
         playBlock();
         if (
           currentAnim !== 'attack' &&

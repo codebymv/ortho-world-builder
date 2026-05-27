@@ -11,29 +11,73 @@ interface CreateRuntimeSfxOptions {
   musicStarted: MutableRefObject<boolean>;
 }
 
+const clampVolume = (value: number) => Math.max(0, Math.min(1, value));
+
 export function createRuntimeSfx({
   processAudioElement,
   musicRef,
   musicStarted,
 }: CreateRuntimeSfxOptions) {
-  const createLoopingAudio = (src: string, volume: number, playbackRate: number = 1) => {
+  const createLoopingAudio = (src: string, volume: number, playbackRate: number = 1, fadeMs: number = 900) => {
     const audio = new Audio(src);
     audio.loop = true;
-    audio.volume = volume;
+    audio.volume = 0;
     audio.playbackRate = playbackRate;
     processAudioElement(audio);
+    let targetVolume = 0;
+    let fadeFrame: number | null = null;
+    let stopAfterFade = false;
+
+    const cancelFade = () => {
+      if (fadeFrame === null) return;
+      cancelAnimationFrame(fadeFrame);
+      fadeFrame = null;
+    };
+
+    const rampTo = (nextVolume: number, shouldStopAfterFade: boolean) => {
+      if (targetVolume === nextVolume && stopAfterFade === shouldStopAfterFade) return;
+      cancelFade();
+      targetVolume = nextVolume;
+      stopAfterFade = shouldStopAfterFade;
+      const startVolume = audio.volume;
+      const startTime = performance.now();
+      const duration = Math.max(1, fadeMs);
+
+      const step = (now: number) => {
+        const t = Math.min(1, (now - startTime) / duration);
+        audio.volume = clampVolume(startVolume + (targetVolume - startVolume) * t);
+        if (t < 1) {
+          fadeFrame = requestAnimationFrame(step);
+          return;
+        }
+        fadeFrame = null;
+        audio.volume = clampVolume(targetVolume);
+        if (stopAfterFade) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+      };
+
+      fadeFrame = requestAnimationFrame(step);
+    };
 
     const play = () => {
-      if (!audio.paused) return;
       audio.playbackRate = playbackRate;
-      audio.currentTime = 0;
-      audio.play().catch(() => {});
+      stopAfterFade = false;
+      if (audio.paused) {
+        audio.currentTime = 0;
+        audio.volume = 0;
+        audio.play().then(() => {
+          rampTo(volume, false);
+        }).catch(() => {});
+        return;
+      }
+      rampTo(volume, false);
     };
 
     const stop = () => {
       if (audio.paused && audio.currentTime === 0) return;
-      audio.pause();
-      audio.currentTime = 0;
+      rampTo(0, true);
     };
 
     return {

@@ -257,6 +257,33 @@ export function getVillagePrimaryObjectiveMarker(state: GameState): MapMarker | 
 // ─── Idol hint — dynamic secondary marker ────────────────────────────────────
 
 export const IDOL_HINT_MARKER_ID = 'idol_hint_ranger_cottage';
+const STORED_IDOL_HINT_MARKER_IDS = new Set(['forest_Ranger Cottage', 'forest_Ranger Outpost']);
+
+export function shouldHideStoredIdolHintMarker(
+  marker: Pick<MapMarker, 'id' | 'label' | 'map' | 'tileX' | 'tileY'>,
+  state: GameState,
+): boolean {
+  const isStoredRangerObjectiveMarker =
+    STORED_IDOL_HINT_MARKER_IDS.has(marker.id) ||
+    (
+      marker.map === 'forest' &&
+      marker.label === 'Ranger Cottage' &&
+      marker.tileX === 236 &&
+      marker.tileY === 227
+    ) ||
+    (
+      marker.map === 'forest' &&
+      marker.label === 'Ranger Outpost' &&
+      marker.tileX === 140 &&
+      marker.tileY === 170
+    );
+
+  // The live idol hint marker owns this map pin while the hint is active, and
+  // getIdolHintMarker removes it after the idol is picked up. Hide any older
+  // text-discovered ranger copy so saves cannot keep stale secondary pins over
+  // either the old cabin/outpost or the relocated cottage.
+  return isStoredRangerObjectiveMarker && state.getFlag('olwen_ranger_cabin_hint');
+}
 
 /**
  * Returns a map marker pointing the player to the relocated Ranger Cottage

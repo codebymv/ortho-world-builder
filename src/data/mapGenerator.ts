@@ -947,6 +947,13 @@ function enforceWesternBypassObservatoryApproach(tiles: Tile[][], def: MapDefini
     if (PROTECTED_INTERACTIVE_TILES.has(existing.type)) return;
     tiles[ty][tx] = createTile(type, walkable, { elevation: existing.elevation ?? 0 });
   };
+  const reopenInvisibleTerrain = (tx: number, ty: number) => {
+    if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) return;
+    const existing = tiles[ty][tx];
+    if (existing.transition || existing.interactable) return;
+    if (existing.type !== 'grass' && existing.type !== 'dirt') return;
+    tiles[ty][tx] = { ...existing, walkable: true };
+  };
 
   // East-west bypass in front of the tower (UI y ~ 64–67).
   for (let ty = 214; ty <= 217; ty++) {
@@ -956,8 +963,68 @@ function enforceWesternBypassObservatoryApproach(tiles: Tile[][], def: MapDefini
   for (let ty = 212; ty <= 213; ty++) {
     for (let tx = 110; tx <= 121; tx++) setTile(tx, ty, 'grass', true);
   }
+  // The observatory footprint preserves the underlying grass/dirt while making it solid.
+  // At the western-bypass tower, that invisible mask spills into the authored connector
+  // north/east of the structure. Reopen only grass/dirt route cells; the observatory
+  // anchor, real cliff, props, and the lower tower body remain blocked.
+  for (let ty = 212; ty <= 218; ty++) {
+    for (let tx = 127; tx <= 136; tx++) reopenInvisibleTerrain(tx, ty);
+  }
+  // Keep the player from hitting an invisible wall before reaching the visible base.
+  // These two rows sit just below the rendered observatory footprint at this placement.
+  for (let ty = 219; ty <= 220; ty++) {
+    for (let tx = 128; tx <= 135; tx++) reopenInvisibleTerrain(tx, ty);
+  }
   // The observatory's shared foundation mask now preserves underlying terrain while blocking
   // the sprite footprint, so do not stamp a separate visible stone rectangle here.
+}
+
+function enforceWhisperingWoodsCliffLedgeLookoutApproach(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // The fourth overlook shelf is authored as grass, but the tall cliff sprite buffer below
+  // the final altar pocket turns the first two shelf rows into grass-looking collision.
+  // Reopen only those grass buffer tiles; real cliff, props, and interactables stay solid.
+  for (let ty = 187; ty <= 188; ty++) {
+    for (let tx = 177; tx <= 204; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'grass' && !t.walkable) {
+        tiles[ty][tx] = { ...t, walkable: true };
+      }
+    }
+  }
+}
+
+function enforceLakeOverlookBridgeLanding(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // Lake overlook bridge east landing (world ~102,25): cliff buffering marks the top
+  // grass row solid, which makes the bridge feel one tile too short when stepping off.
+  // Reopen only the grass landing cells; nearby log/rubble decorations stay as authored.
+  const ty = 175;
+  for (let tx = 252; tx <= 257; tx++) {
+    if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+    const t = tiles[ty][tx];
+    if (!t || t.transition || t.interactable) continue;
+    if (t.type === 'grass' && !t.walkable) {
+      tiles[ty][tx] = { ...t, walkable: true };
+    }
+  }
+
+  // Lake overlook stair mouth (world ~100,25): procedural tree scatter can land
+  // directly in front of the stairs. Keep the central 4-wide stair channel clear.
+  for (let clearY = 174; clearY <= 175; clearY++) {
+    for (let clearX = 248; clearX <= 251; clearX++) {
+      if (clearY < 0 || clearY >= tiles.length || clearX < 0 || clearX >= tiles[0].length) continue;
+      const t = tiles[clearY][clearX];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'grass' || t.type === 'tree') {
+        tiles[clearY][clearX] = createTile('grass', true, { elevation: t.elevation ?? 1 });
+      }
+    }
+  }
 }
 
 function resolveInvisibleFoundationTileType(tiles: Tile[][], tx: number, ty: number): TileType {
@@ -3570,6 +3637,8 @@ export function generateMap(def: MapDefinition): WorldMap {
   enforceWhisperingWoodsEastDirtSpineBreak(tiles, def);
   scrubWhisperingWoodsNorthFortElevationSeam(tiles, def);
   enforceWesternBypassObservatoryApproach(tiles, def);
+  enforceWhisperingWoodsCliffLedgeLookoutApproach(tiles, def);
+  enforceLakeOverlookBridgeLanding(tiles, def);
   enforceRiversideBridgeSpineApproach(tiles, def);
   enforceCliffCorridorTraditionalApproach(tiles, def);
   enforceHollowApproachOverlookShelf(tiles, def);
