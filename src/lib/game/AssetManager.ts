@@ -3760,6 +3760,8 @@ export class AssetManager {
     // Bleached / ash-sick forest floor (Deep Hollow, tile y < 59 â‰ˆ world y â‰¤ -91)
     registerColorTexture('hollow_blight', 0xC9B896, 32, 32, 'noise');
     registerColorTexture('mossy_stone', 0x6B7B5A, 32, 32, 'checker');
+    registerColorTexture('ruined_fort_wall', 0x777066, 32, 32, 'cobblestone_grid');
+    registerColorTexture('ruined_fort_wall_mossy', 0x65705C, 32, 32, 'cobblestone_grid');
     registerColorTexture('wooden_path', 0x8D6E63, 32, 32, 'gradient');
     registerColorTexture('wood_floor', 0xA1887F, 32, 32, 'gradient');
 
@@ -5002,6 +5004,24 @@ export class AssetManager {
     ]);
 
     // Blighted stump â€” corrupted wood with dark thorny tendrils and green/purple glow
+    const RLY_BARK = 0x5D4037;
+    const RLY_BARK_D = 0x3E2723;
+    const RLY_CUT = 0xBCAAA4;
+    const RLY_CUT_H = 0xD7CCC8;
+    const RLY_PLANK = 0x8D6E63;
+    const RLY_MOSS = 0x558B2F;
+    registerSpriteTexture('ridge_lumberyard', [
+      [C,          C,          C,          C,          RLY_BARK_D, C,          C,          C,          RLY_PLANK,  C,          C,          C,          C],
+      [C,          RLY_MOSS,   C,          RLY_PLANK,  RLY_BARK,   RLY_PLANK,  C,          C,          RLY_BARK_D, C,          RLY_MOSS,   C,          C],
+      [RLY_CUT,    RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_CUT,    C],
+      [RLY_CUT_H,  RLY_BARK_D, RLY_BARK,   RLY_PLANK,  RLY_BARK,   RLY_BARK_D, RLY_BARK,   RLY_PLANK,  RLY_BARK,   RLY_BARK_D, RLY_BARK,   RLY_CUT_H,  C],
+      [C,          RLY_CUT,    RLY_BARK,   RLY_BARK,   RLY_BARK_D, RLY_BARK,   RLY_BARK,   RLY_BARK_D, RLY_BARK,   RLY_BARK,   RLY_CUT,    C,          C],
+      [C,          RLY_PLANK,  RLY_BARK_D, RLY_PLANK,  RLY_BARK,   RLY_PLANK,  RLY_BARK_D, RLY_PLANK,  RLY_BARK,   RLY_PLANK,  RLY_BARK_D, C,          C],
+      [C,          C,          RLY_BARK_D, C,          C,          C,          RLY_BARK_D, C,          C,          C,          RLY_BARK_D, C,          C],
+      [C,          RLY_MOSS,   C,          RLY_BARK_D, C,          RLY_PLANK,  C,          RLY_BARK_D, C,          RLY_MOSS,   C,          RLY_PLANK,  C],
+      [C,          C,          RLY_PLANK,  RLY_BARK_D, C,          C,          RLY_PLANK,  C,          RLY_BARK_D, C,          C,          C,          C],
+    ]);
+
     const BV = 0x1B5E20; // dark blight vine
     const BG = 0x69F0AE; // bright green glow
     const BP = 0xB388FF; // purple glow highlight

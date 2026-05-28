@@ -50,6 +50,8 @@ interface InteractionSystemContext {
   hasDialogue: (interactionId: string) => boolean;
   onWorldItemPickup?: (itemId: string) => void;
   getAliveEnemyCountNearPlayer?: (radius: number) => number;
+  /** Briefly pan the camera to a world position (e.g. a shortcut gate just opened). */
+  startCameraPan?: (worldX: number, worldY: number, durationMs: number) => void;
 }
 
 export function createInteractionSystem(context: InteractionSystemContext) {
@@ -274,8 +276,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       interactionId !== 'ancient_well' &&
       interactionId !== 'gilrhym_fountain' &&
       interactionId !== 'gilrhym_market_well' &&
-      interactionId !== 'gilrhym_cathedral_well' &&
-      interactionId !== 'healing_mushroom'
+      interactionId !== 'gilrhym_cathedral_well'
     ) {
       return false;
     }
@@ -297,12 +298,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.state.player.health = Math.min(context.state.player.maxHealth, context.state.player.health + 25);
     context.emitHeal(new THREE.Vector3(checkX, checkY, 0.3));
 
-    const label =
-      interactionId === 'healing_mushroom'
-          ? 'Mushroom Energy!'
-          : 'Refreshing Water!';
-
-    context.notify(label, {
+    context.notify('Refreshing Water!', {
       id: 'heal-source',
       type: 'success',
       description: 'Restored 25 health.',
@@ -326,10 +322,12 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
+    // Pan camera to the gate that just opened so the player sees the effect.
+    context.startCameraPan?.(-5, 45, 750);
     context.notify('Shortcut unlocked', {
       id: 'forest-shortcut-unlocked',
       type: 'success',
-      description: 'The barred gate below groans open â€” a path back to the Ranger Outpost is now clear.',
+      description: 'The barred gate below groans open — a path back to the Ranger Outpost is now clear.',
       duration: 3200,
     });
     context.triggerSave();
@@ -351,10 +349,11 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
+    context.startCameraPan?.(-93, 13, 750);
     context.notify('Shortcut unlocked', {
       id: 'grove-shelf-shortcut-unlocked',
       type: 'success',
-      description: 'The iron gate at the trail head groans open â€” the path back through the Whispering Woods is clear.',
+      description: 'The iron gate at the trail head groans open — the path back through the Whispering Woods is clear.',
       duration: 3200,
     });
     context.triggerSave();
@@ -376,6 +375,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
+    context.startCameraPan?.(-1, 7, 750);
     context.notify('Shortcut unlocked', {
       id: 'riverside-bridge-shortcut-unlocked',
       type: 'success',
@@ -457,6 +457,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.syncCliffCorridorLadderState();
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
+    // Pan to the ladder's lower east landing so the player sees where it dropped.
+    // Tile (269, 128) → world (119, -22).
+    context.startCameraPan?.(119, -22, 750);
     context.showHeroOverlay('Shortcut Unlocked');
     context.notify('Passage opened', {
       id: 'cliff-corridor-ladder-extended',
@@ -728,6 +731,31 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     }
   };
 
+  // Small searchable containers at the abandoned homestead (barrels + crate).
+  // One-time interaction: press E to rummage and find a handful of coins.
+  const tryHandleHomesteadContainer = (interactionId: string): boolean => {
+    if (!interactionId.startsWith('homestead_container_')) return false;
+
+    const flagKey = `opened_${interactionId}`;
+    if (context.state.getFlag(flagKey)) {
+      context.notify('Nothing left inside.', { id: `${interactionId}-empty`, duration: 1400 });
+      return true;
+    }
+
+    context.state.setFlag(flagKey, true);
+    context.state.addGold(10);
+    context.playChestUnlock();
+    context.notify('Rummaged through the container', {
+      id: `${interactionId}-found`,
+      type: 'success',
+      description: '+10 gold',
+      duration: 2000,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
   return {
     tryInteractWithNearbyNpc,
     tryReclaimDroppedEssence,
@@ -751,6 +779,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleHollowFogGate,
     tryHandleGilrhymShortcutLever,
     tryHandleBlightedRoot,
+    tryHandleHomesteadContainer,
     tryHandleDialogueInteraction,
     tryPickupWorldItems,
   };

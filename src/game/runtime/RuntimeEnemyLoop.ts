@@ -107,11 +107,16 @@ export function runEnemyLoop({
           },
         );
       };
-      const REAVER_CORNERS = [
-        { x: -7, y: -7 },
-        { x:  6, y: -7 },
-        { x: -7, y:  6 },
-        { x:  6, y:  6 },
+      // Two Reavers per wave, corners vary by phase so each summon creates a different
+      // crossfire angle. Phase 2 flanks the player's entry side (south corners); phase 3
+      // creates a diagonal from NW → SE to force repositioning.
+      const REAVER_CORNERS_PHASE2 = [
+        { x: -7, y:  6 }, // SW
+        { x:  6, y:  6 }, // SE
+      ];
+      const REAVER_CORNERS_PHASE3 = [
+        { x: -7, y: -7 }, // NW
+        { x:  6, y:  6 }, // SE (diagonal crossfire)
       ];
 
       if (enemy.type === 'golem' && phase === 2) {
@@ -140,8 +145,9 @@ export function runEnemyLoop({
         for (const off of [{ x: -2.5, y: -1.5 }, { x: 2.5, y: 1.5 }]) {
           spawnShade(off);
         }
-        // Reavers respawn in the 4 arena corners alongside the shades.
-        for (const corner of REAVER_CORNERS) {
+        // Two Reavers spawn at the south (player-entry) corners — flanks the player's
+        // retreat line and forces them to fight toward the boss to clear the pressure.
+        for (const corner of REAVER_CORNERS_PHASE2) {
           particleSystem.emitAt(corner.x, corner.y, 0.4, 10, 0xCC44FF, 0.1, 1.4, 1.0);
           spawnReaverAt(corner);
         }
@@ -156,8 +162,9 @@ export function runEnemyLoop({
         for (const off of [{ x: -3.0, y: 0.0 }, { x: 1.5, y: -2.5 }, { x: 1.5, y: 2.5 }]) {
           spawnShade(off);
         }
-        // Reavers respawn in the 4 arena corners alongside the shades.
-        for (const corner of REAVER_CORNERS) {
+        // Two Reavers at NW + SE — diagonal crossfire that forces the player off any
+        // safe axis they've been using, raising stakes for the final phase.
+        for (const corner of REAVER_CORNERS_PHASE3) {
           particleSystem.emitAt(corner.x, corner.y, 0.4, 14, 0xCC44FF, 0.12, 1.6, 1.2);
           spawnReaverAt(corner);
         }

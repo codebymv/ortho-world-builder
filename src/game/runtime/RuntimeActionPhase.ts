@@ -13,6 +13,7 @@ import type { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { createRuntimeSfx } from '@/game/runtime/RuntimeSfx';
 import { createBonfireRestAction } from '@/game/runtime/RuntimeRestFlow';
 import { createPerformDodgeAction } from '@/game/runtime/RuntimePlayerActions';
+import { scheduleCameraPan } from '@/game/runtime/RuntimePlayerFrame';
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
 import { createRuntimeCombatActions } from '@/game/runtime/RuntimeCombatActions';
 import { createRuntimeDialogueFlow } from '@/game/runtime/RuntimeDialogueFlow';
@@ -344,6 +345,7 @@ export function setupRuntimeActionPhase({
     syncManuscriptCheckpointGateState,
     syncGilrhymBossState,
     showHeroOverlay,
+    startCameraPan: scheduleCameraPan,
     hasDialogue,
     onWorldItemPickup: (itemId: string) => {
       if (itemId === 'manuscript_fragment') {

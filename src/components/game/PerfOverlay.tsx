@@ -20,7 +20,7 @@ export function PerfOverlay({ snapshot }: PerfOverlayProps) {
 
   return (
     <div className="fixed left-4 top-16 z-[90] w-[22rem] border border-[#3B5B72] bg-[#061018]/92 p-2 font-mono text-[11px] text-[#D8F3FF] shadow-lg pointer-events-none">
-      <div className="mb-1 flex items-center justify-between gap-2 font-sans text-[11px] font-bold uppercase tracking-wider text-[#8DD8FF]">
+      <div className="mb-1 flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-wider text-[#8DD8FF]">
         <span>Perf profiler (F8)</span>
         <span>{snapshot.frames.fps.toFixed(0)} fps</span>
       </div>

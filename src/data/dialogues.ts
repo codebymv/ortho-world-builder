@@ -570,11 +570,6 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'campfire',
     nodes: [{ id: 'start', text: "The campfire crackles warmly. You feel your wounds __healing__ in its gentle light.", responses: [{ text: "[Rest by the fire]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
-  healing_mushroom: {
-    id: 'healing_mushroom',
-    nodes: [{ id: 'start', text: "A ring of __glowing mushrooms__ pulses with **healing energy**. You feel revitalized!", responses: [{ text: "[Absorb the energy]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
-  },
-
   // ========== NEW NPC DIALOGUES ==========
   blacksmith: {
     id: 'blacksmith',
@@ -1371,7 +1366,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'take_idol',
-        text: "Southeast from here, past the lake and the shrine. The cottage has a **ranger crest** on the door — you'll know it when you see it. Whatever that idol does, it stopped doing it to me the moment I set it down. Maybe it picks its owners. Maybe it just got bored of an old man.",
+        text: "Southeast from here, past the lake, the shrine, and the old ridge lumberyard. The cottage has a **ranger crest** on the door — you'll know it when you see it. Whatever that idol does, it stopped doing it to me the moment I set it down. Maybe it picks its owners. Maybe it just got bored of an old man.",
         responses: [{ text: "I'll find it.", nextId: 'end' }],
       },
       {

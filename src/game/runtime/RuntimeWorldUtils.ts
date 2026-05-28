@@ -72,7 +72,6 @@ export function getInteractionPromptLabel(
   if (interactionId === 'lantern') return null;
   if (interactionId === 'ancient_well') return 'Drink from Well';
   if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'ancient_well' || interactionId === 'gilrhym_fountain' || interactionId === 'gilrhym_market_well' || interactionId === 'gilrhym_cathedral_well') return 'Drink from Fountain';
-  if (interactionId === 'healing_mushroom') return 'Gather Mushroom';
   if (interactionId === 'hunter_clue') return "Read Hunter's Manuscript";
   if (interactionId === 'wolf_den_bones') return 'Inspect Remains';
   if (interactionId === 'chapel_dead_ranger') return 'Inspect Fallen Ranger';

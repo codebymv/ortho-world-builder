@@ -1025,6 +1025,95 @@ function enforceLakeOverlookBridgeLanding(tiles: Tile[][], def: MapDefinition) {
       }
     }
   }
+
+  // The grass shoulders beside the stair mouth are entry aprons, not bypasses.
+  // Keep enough of the apron walkable for the player's corner probes to clear
+  // when entering from either side, then block farther out from the funnel.
+  for (let shoulderY = 174; shoulderY <= 175; shoulderY++) {
+    for (let shoulderX = 245; shoulderX <= 255; shoulderX++) {
+      if (shoulderY < 0 || shoulderY >= tiles.length || shoulderX < 0 || shoulderX >= tiles[0].length) continue;
+      const t = tiles[shoulderY][shoulderX];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'grass') {
+        tiles[shoulderY][shoulderX] = { ...t, walkable: true };
+      }
+    }
+  }
+  for (let blockY = 174; blockY <= 175; blockY++) {
+    for (const blockX of [244, 256]) {
+      if (blockY < 0 || blockY >= tiles.length || blockX < 0 || blockX >= tiles[0].length) continue;
+      const t = tiles[blockY][blockX];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'grass') {
+        tiles[blockY][blockX] = { ...t, walkable: false };
+      }
+    }
+  }
+
+  // Southeast of the overlook bridge, close the little lake-edge gap between
+  // the flanking cliffs so this reads as one continuous sealed ledge.
+  for (let ledgeY = 193; ledgeY <= 197; ledgeY++) {
+    for (let ledgeX = 254; ledgeX <= 258; ledgeX++) {
+      if (ledgeY < 0 || ledgeY >= tiles.length || ledgeX < 0 || ledgeX >= tiles[0].length) continue;
+      const t = tiles[ledgeY][ledgeX];
+      if (!t || t.transition || t.interactable) continue;
+      tiles[ledgeY][ledgeX] = createTile(ledgeY === 193 ? 'cliff_edge' : 'cliff', false, {
+        elevation: t.elevation ?? 1,
+      });
+    }
+  }
+  for (let ledgeY = 193; ledgeY <= 198; ledgeY++) {
+    for (let ledgeX = 292; ledgeX <= 294; ledgeX++) {
+      if (ledgeY < 0 || ledgeY >= tiles.length || ledgeX < 0 || ledgeX >= tiles[0].length) continue;
+      const t = tiles[ledgeY][ledgeX];
+      if (!t || t.transition || t.interactable) continue;
+      tiles[ledgeY][ledgeX] = createTile(ledgeY === 193 ? 'cliff_edge' : 'cliff', false, {
+        elevation: t.elevation ?? 1,
+      });
+    }
+  }
+  for (let waterY = 184; waterY <= 192; waterY++) {
+    for (let waterX = 259; waterX <= 294; waterX++) {
+      if (waterY < 0 || waterY >= tiles.length || waterX < 0 || waterX >= tiles[0].length) continue;
+      const t = tiles[waterY][waterX];
+      if (!t || t.transition || t.interactable) continue;
+      tiles[waterY][waterX] = createTile('water', false, { elevation: t.elevation ?? 0 });
+    }
+  }
+  // Remove the skinny sand spit left in the middle of the connected lake
+  // at world x ~= 108, while leaving the bridge/stair landings intact.
+  for (let waterY = 184; waterY <= 189; waterY++) {
+    const waterX = 258;
+    if (waterY < 0 || waterY >= tiles.length || waterX < 0 || waterX >= tiles[0].length) continue;
+    const t = tiles[waterY][waterX];
+    if (!t || t.transition || t.interactable) continue;
+    if (t.type === 'sand' || t.type === 'grass') {
+      tiles[waterY][waterX] = createTile('water', false, { elevation: t.elevation ?? 0 });
+    }
+  }
+
+  // South/lower exit of the same crossing: the authored lower cliff lip and
+  // cliff-sprite buffer leave a grass-looking landing that is still sealed.
+  // Continue the central stair channel through the lip, then clear one taller
+  // grass landing below it so players can enter/exit cleanly.
+  for (let stairY = 197; stairY <= 199; stairY++) {
+    for (let stairX = 247; stairX <= 252; stairX++) {
+      if (stairY < 0 || stairY >= tiles.length || stairX < 0 || stairX >= tiles[0].length) continue;
+      const t = tiles[stairY][stairX];
+      if (!t || t.transition || t.interactable) continue;
+      tiles[stairY][stairX] = createTile('stairs', true, { elevation: t.elevation ?? 1 });
+    }
+  }
+  for (let landingY = 200; landingY <= 204; landingY++) {
+    for (let landingX = 247; landingX <= 252; landingX++) {
+      if (landingY < 0 || landingY >= tiles.length || landingX < 0 || landingX >= tiles[0].length) continue;
+      const t = tiles[landingY][landingX];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'grass' || t.type === 'cliff' || t.type === 'cliff_edge' || t.type === 'fallen_log_v' || t.type === 'fallen_log_h') {
+        tiles[landingY][landingX] = createTile('grass', true, { elevation: t.elevation ?? 1 });
+      }
+    }
+  }
 }
 
 function resolveInvisibleFoundationTileType(tiles: Tile[][], tx: number, ty: number): TileType {
@@ -2082,7 +2171,7 @@ function placeEnchantedGrove(tiles: Tile[][], f: MapFeature) {
         } else if (dist < 0.4) {
           // Mushroom ring - scattered naturally, not grid-aligned
           if (rng < 0.2) {
-            tiles[ty][tx] = createTile('mushroom', true, { interactable: true, interactionId: 'healing_mushroom' });
+            tiles[ty][tx] = createTile('mushroom', true);
           } else if (rng < 0.4) {
             tiles[ty][tx] = createTile('flower', true);
           } else {
@@ -2150,6 +2239,7 @@ function placeChurch(tiles: Tile[][], f: MapFeature) {
 function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
   if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
   const isHunterGateRuin = f.interactionId === 'hunter_gate_ruin';
+  const isRuinedEastFort = f.interactionId === 'ruined_east_fort';
 
   const midX = Math.floor(f.width / 2);
   const midY = Math.floor(f.height / 2);
@@ -2159,6 +2249,32 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
     !isHunterGateRuin && dy === f.height - 1 && dx >= midX - breachHalf && dx <= midX + breachHalf;
   const isWestBreach = (dx: number, dy: number) =>
     !isHunterGateRuin && dx === 0 && dy >= midY - breachHalf && dy <= midY + breachHalf;
+  const isEastBreach = (dx: number, dy: number) =>
+    isRuinedEastFort && dx === f.width - 1 && dy >= midY - breachHalf && dy <= midY + breachHalf;
+
+  const isCornerBastion = (dx: number, dy: number) =>
+    (dx <= 1 && dy <= 1) || (dx >= f.width - 2 && dy <= 1) ||
+    (dx <= 1 && dy >= f.height - 2) || (dx >= f.width - 2 && dy >= f.height - 2);
+
+  const wallTile = (dx: number, dy: number): TileType => {
+    if (isCornerBastion(dx, dy)) return 'stone';
+    return (dx * 5 + dy * 3 + (isRuinedEastFort ? 1 : 0)) % 4 === 0 ? 'ruined_fort_wall' : 'ruined_fort_wall_mossy';
+  };
+
+  const innerWallWalk = (dx: number, dy: number) =>
+    dx === 1 || dx === f.width - 2 || dy === 1 || dy === f.height - 2;
+
+  const interiorTile = (dx: number, dy: number): Tile => {
+    if (isHunterGateRuin) return createTile('ruins_floor', true);
+    const n = (dx * 17 + dy * 29 + f.x * 3 + f.y * 5) % 97;
+    if (n === 0 || n === 39) return createTile('destroyed_house_rubble', false);
+    if (n % 23 === 0) return createTile('crate', false);
+    if (n % 29 === 0) return createTile('barrel', false);
+    if (n % 13 === 0) return createTile('bones', true);
+    if (n % 11 === 0) return createTile('rubble', true);
+    if (n % 7 === 0) return createTile('tall_grass', true);
+    return createTile((dx + dy) % 5 === 0 ? 'cobblestone' : 'ruins_floor', true);
+  };
 
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
@@ -2169,42 +2285,62 @@ function placeRuinedFort(tiles: Tile[][], f: MapFeature) {
       const isBorder = dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1;
 
       if (isBorder) {
-        if (isSouthBreach(dx, dy) || isWestBreach(dx, dy)) {
-          tiles[ty][tx] = createTile('rubble', true);
+        if (isSouthBreach(dx, dy) || isWestBreach(dx, dy) || isEastBreach(dx, dy)) {
+          tiles[ty][tx] = createTile((dx + dy) % 2 === 0 ? 'rubble' : 'ruins_floor', true);
         } else {
-          tiles[ty][tx] = createTile('mossy_stone', false);
+          tiles[ty][tx] = createTile(wallTile(dx, dy), false);
         }
-      } else if ((dx <= 1 && dy <= 1) || (dx >= f.width - 2 && dy <= 1) ||
-                 (dx <= 1 && dy >= f.height - 2) || (dx >= f.width - 2 && dy >= f.height - 2)) {
+      } else if (isCornerBastion(dx, dy)) {
         tiles[ty][tx] = createTile('stone', false);
-      } else if (!isHunterGateRuin && (dx * 3 + dy * 7) % 11 === 0) {
-        tiles[ty][tx] = createTile('bones', true);
-      } else if (!isHunterGateRuin && (dx + dy * 5) % 13 === 0) {
-        tiles[ty][tx] = createTile('destroyed_house', false);
-      } else if (!isHunterGateRuin && (dx * 2 + dy) % 9 === 0) {
-        tiles[ty][tx] = createTile('tall_grass', true);
+      } else if (innerWallWalk(dx, dy)) {
+        tiles[ty][tx] = createTile((dx + dy) % 6 === 0 ? 'rubble' : 'cobblestone', true);
       } else {
-        tiles[ty][tx] = createTile('ruins_floor', true);
+        tiles[ty][tx] = interiorTile(dx, dy);
       }
     }
   }
 
-  // Rubble scatter just outside the breaches to make them read as collapsed wall
+  const canReplaceForBreach = (tile: Tile) =>
+    !tile.transition && !tile.interactable &&
+    tile.type !== 'water' && tile.type !== 'water_corrupted' &&
+    tile.type !== 'bridge' && tile.type !== 'cliff_face' && tile.type !== 'cliff_edge' &&
+    tile.type !== 'stairs' && tile.type !== 'ladder';
+
+  // Rubble scatter just outside the breaches to make them read as collapsed wall.
   const scatterBreach = (bx: number, by: number, outDx: number, outDy: number) => {
     for (let i = -breachHalf; i <= breachHalf; i++) {
       const sx = f.x + bx + (outDy !== 0 ? i : 0) + outDx;
       const sy = f.y + by + (outDx !== 0 ? i : 0) + outDy;
       if (sy >= 0 && sy < tiles.length && sx >= 0 && sx < tiles[0].length) {
         const existing = tiles[sy][sx];
-        if (!existing.transition && !existing.interactable && existing.type !== 'mossy_stone') {
+        if (canReplaceForBreach(existing) && existing.type !== 'mossy_stone' && existing.type !== 'ruined_fort_wall_mossy') {
           tiles[sy][sx] = createTile('rubble', true);
         }
       }
     }
   };
+
+  const clearBreachApron = (bx: number, by: number, outDx: number, outDy: number) => {
+    for (let step = 1; step <= 3; step++) {
+      for (let i = -breachHalf; i <= breachHalf; i++) {
+        const sx = f.x + bx + (outDy !== 0 ? i : outDx * step);
+        const sy = f.y + by + (outDx !== 0 ? i : outDy * step);
+        if (sy >= 0 && sy < tiles.length && sx >= 0 && sx < tiles[0].length && canReplaceForBreach(tiles[sy][sx])) {
+          tiles[sy][sx] = createTile(step === 1 ? 'rubble' : 'grass', true);
+        }
+      }
+    }
+  };
+
   if (!isHunterGateRuin) {
     scatterBreach(midX, f.height - 1, 0, 1);
     scatterBreach(0, midY, -1, 0);
+    clearBreachApron(midX, f.height - 1, 0, 1);
+    clearBreachApron(0, midY, -1, 0);
+    if (isRuinedEastFort) {
+      scatterBreach(f.width - 1, midY, 1, 0);
+      clearBreachApron(f.width - 1, midY, 1, 0);
+    }
   }
 
   const cx = f.x + midX;

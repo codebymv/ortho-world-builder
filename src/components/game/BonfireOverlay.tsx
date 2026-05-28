@@ -48,7 +48,7 @@ export const BonfireOverlay = ({ active, title = 'Flame Kindled', subtitle }: Bo
                   ? 'bonfire-title-hold'
                   : 'bonfire-title-exit'
             }`}
-            style={{ fontFamily: '"Times New Roman", Georgia, serif', letterSpacing: '0.38em' }}
+            style={{ letterSpacing: '0.38em' }}
           >
             {title}
           </h2>

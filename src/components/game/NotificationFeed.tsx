@@ -34,7 +34,7 @@ export const NotificationFeed = () => {
   if (visible.length === 0) return null;
 
   return (
-    <div className="bg-[#1A0F0A]/90 backdrop-blur-sm p-2 rounded-sm border-2 border-[#5C3A21] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] font-sans pointer-events-none transition-all"
+    <div className="bg-[#1A0F0A]/90 backdrop-blur-sm p-2 rounded-sm border-2 border-[#5C3A21] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] pointer-events-none transition-all"
       style={{ maxWidth: '220px' }}
     >
       <div className="space-y-1.5">

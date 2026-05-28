@@ -5,6 +5,16 @@ import type { PlayerFrameContext } from '@/game/runtime/RuntimePhaseContexts';
 import { getClimbVisualElevation } from '@/game/runtime/PlayerSimulationSystem';
 import { items } from '@/data/items';
 
+// ─── Camera pan override ──────────────────────────────────────────────────────
+// When a shortcut lever is pulled, the camera briefly pans to the gate that
+// opened so the player sees the effect before control returns to player-follow.
+let _cameraPan: { x: number; y: number; expiresAt: number } | null = null;
+
+/** Schedule a camera pan to world position (worldX, worldY) for durationMs. */
+export function scheduleCameraPan(worldX: number, worldY: number, durationMs: number): void {
+  _cameraPan = { x: worldX, y: worldY, expiresAt: performance.now() + durationMs };
+}
+
 export interface RunPlayerFramePhaseOptions extends PlayerFrameContext {
   currentTime: number;
   deltaTime: number;
@@ -366,8 +376,14 @@ export function runPlayerFramePhase({
     screenShake.shake(0.18, 0.12);
   }
 
-  cameraTarget.x = state.player.position.x;
-  cameraTarget.y = getPlayerVisualY(state.player.position.x, state.player.position.y);
+  if (_cameraPan && currentTime < _cameraPan.expiresAt) {
+    cameraTarget.x = _cameraPan.x;
+    cameraTarget.y = _cameraPan.y;
+  } else {
+    _cameraPan = null;
+    cameraTarget.x = state.player.position.x;
+    cameraTarget.y = getPlayerVisualY(state.player.position.x, state.player.position.y);
+  }
 
   const nextInteractionPrompt = updateInteractionIndicator({
     state,

@@ -1482,17 +1482,17 @@ export function createRuntimeMapFlow({
         });
       }
 
-      // Four Hollow Reavers at the corners of the central arena area — they pelt the player
-      // with thrown scythe-blades while the boss controls the center.
+      // Two Hollow Reavers at the far (north) corners on arena entry — they anchor to the
+      // boss side so the player faces ranged pressure from the same direction as the boss.
+      // A second pair spawns via the phase-2 summon in RuntimeEnemyLoop when the boss
+      // crosses 50% HP, giving the player a moment to read the fight before full crossfire.
       const reaverBp = ENEMY_BLUEPRINTS.hollow_reaver;
       if (reaverBp) {
-        const reaverCorners = [
-          { x: -7, y: -7 }, // NW corner, inset from statue at tile (10,10)
-          { x:  6, y: -7 }, // NE corner, inset from statue at tile (25,10)
-          { x: -7, y:  6 }, // SW corner, inset from statue at tile (10,25)
-          { x:  6, y:  6 }, // SE corner, inset from statue at tile (25,25)
+        const initialReaverCorners = [
+          { x: -7, y: -7 }, // NW corner
+          { x:  6, y: -7 }, // NE corner
         ];
-        for (const corner of reaverCorners) {
+        for (const corner of initialReaverCorners) {
           combatSystem.spawnEnemy(reaverBp.name, corner, reaverBp.hp, reaverBp.damage, reaverBp.sprite, {
             speed: reaverBp.speed,
             attackRange: reaverBp.attackRange,

@@ -178,7 +178,6 @@ export const WeaponAcquiredOverlay = ({
         {/* Header */}
         <p
           className="text-xs uppercase tracking-[0.4em] text-[#DAA520] mb-4 drop-shadow-[0_0_6px_rgba(218,165,32,0.3)]"
-          style={{ fontFamily: '"Times New Roman", Georgia, serif' }}
         >
           {isEquipped ? 'Weapon Equipped' : chrome.acquiredHeader}
         </p>

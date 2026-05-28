@@ -13,7 +13,7 @@ export type TileType =
   | 'dead_tree' | 'destroyed_house' | 'destroyed_house_rubble' | 'destroyed_house_overgrown' | 'broken_sign' | 'statue'
   | 'cliff' | 'cliff_edge' | 'cliff_corrupted' | 'cliff_edge_corrupted' | 'cobblestone' | 'farmland' | 'wheat'
   | 'iron_fence' | 'hedge' | 'scarecrow' | 'windmill' | 'hay_bale' | 'lantern'
-  | 'dark_grass' | 'hollow_blight' | 'mossy_stone' | 'wooden_path' | 'stairs' | 'ladder' | 'curled_ladder' | 'gate_ladder' | 'gate_ladder_open'
+  | 'dark_grass' | 'hollow_blight' | 'mossy_stone' | 'ruined_fort_wall' | 'ruined_fort_wall_mossy' | 'wooden_path' | 'stairs' | 'ladder' | 'curled_ladder' | 'gate_ladder' | 'gate_ladder_open'
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
   | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter'
   | 'bed' | 'wardrobe' | 'fireplace' | 'weapon_rack' | 'alchemy_table' | 'cauldron'
@@ -29,7 +29,8 @@ export type TileType =
   | 'blighted_stump'
   | 'observatory'
   | 'fallen_log'
-  | 'fallen_log_v';
+  | 'fallen_log_v'
+  | 'ridge_lumberyard';
 
 /** Pass as `getInteractableNear` radius from gameplay so gates / chunky facades stay in scan + reach.
  * Must be >= every `getInteractableReach` value so the min() cap does not shrink large reaches. */
@@ -910,7 +911,8 @@ export class World {
     if (base === 'swamp') return 'swamp';
     if (base === 'snow' || base === 'ice') return 'snow';
     if (base === 'ruins_floor') return 'ruins';
-    if (base === 'mossy_stone' || base === 'cobblestone' || base === 'stone' || base === 'wooden_path') return 'stone';
+    if (base === 'mossy_stone' || base === 'ruined_fort_wall' || base === 'ruined_fort_wall_mossy' ||
+        base === 'cobblestone' || base === 'stone' || base === 'wooden_path') return 'stone';
     if (base === 'dirt' || base === 'sand' || base === 'wood' || base === 'wood_floor' || base === 'farmland' || base === 'ash') return 'dirt';
     if (base === 'hollow_blight') return 'hollow_blight';
     if (base === 'dark_grass' || base === 'tall_grass') return 'forest_floor';

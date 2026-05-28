@@ -285,7 +285,7 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
           <PixelFlame />
           <h2
             className="text-xl font-bold text-[#DAA520] uppercase"
-            style={{ fontFamily: '"Times New Roman", Georgia, serif', letterSpacing: '0.35em' }}
+            style={{ letterSpacing: '0.35em' }}
           >
             Bonfire
           </h2>

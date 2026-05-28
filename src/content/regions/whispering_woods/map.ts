@@ -226,6 +226,12 @@ export const forestDef: MapDefinition = {
     // grass landing at world (~102,25), not the bridge shoulder near world (90,42).
     { x: 240, y: 192, width: 7, height: 4, type: 'cliff_face' },
     { x: 239, y: 197, width: 8, height: 5, type: 'cliff_face' },
+    // Close the southeast lake-overlook gap so the cliff reads as one sealed ledge.
+    { x: 254, y: 193, width: 5, height: 5, type: 'cliff_face' },
+    // Connect the far-east cliff seam and clear the tree at world (~143,45).
+    { x: 292, y: 193, width: 3, height: 6, type: 'cliff_face' },
+    // Water channel under the overlook cliff, joining the west lake to the east water.
+    { x: 259, y: 184, width: 36, height: 9, type: 'lake' },
     { x: 248, y: 180, width: 4, height: 16, type: 'bridge' },
 
     // === ANCIENT RUINS ===
@@ -868,6 +874,9 @@ export const forestDef: MapDefinition = {
   portals: [
     { x: 150, y: 291, targetMap: 'village', targetX: 120, targetY: 8 },
     { x: 3, y: 150, targetMap: 'village', targetX: 235, targetY: 80 },
+    // East Ridge Overlook return portal — gives players a way back after exploring
+    // the eastern arc (forts, cliff cemetery, ridge) without a full cross-map walk.
+    { x: 264, y: 107, targetMap: 'village', targetX: 120, targetY: 8 },
   ],
   chests: [
     // Shifted east: Hollow river west seal (x???28???91, y???64???79) covers old spot.
@@ -950,10 +959,9 @@ export const forestDef: MapDefinition = {
     { x: 146, y: 240, type: 'stump', walkable: false },
     { x: 100, y: 100, type: 'stump', walkable: false },
     { x: 200, y: 90, type: 'stump', walkable: false },
-    { x: 87, y: 228, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
-    { x: 250, y: 190, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
-    { x: 45, y: 145, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
-    { x: 170, y: 182, type: 'mushroom', walkable: true, interactionId: 'healing_mushroom' },
+    { x: 87, y: 228, type: 'mushroom', walkable: true },
+    { x: 45, y: 145, type: 'mushroom', walkable: true },
+    { x: 170, y: 182, type: 'mushroom', walkable: true },
     { x: 35, y: 250, type: 'campfire_remains', walkable: false },
     { x: 275, y: 270, type: 'well', walkable: false, interactionId: 'well' },
     { x: 140, y: 95, type: 'well', walkable: false, interactionId: 'ancient_well' },
@@ -1000,13 +1008,15 @@ export const forestDef: MapDefinition = {
     { x: 157, y: 283, type: 'stump', walkable: false },
 
     // === ABANDONED HOMESTEAD SURROUNDS ===
-    { x: 224, y: 127, type: 'windmill', walkable: false, interactionId: '' },
-    { x: 234, y: 131, type: 'barrel', walkable: false, interactionId: '' },
-    { x: 235, y: 132, type: 'crate', walkable: false, interactionId: '' },
-    { x: 234, y: 134, type: 'stump', walkable: false, interactionId: '' },
-    { x: 223, y: 128, type: 'hay_bale', walkable: false, interactionId: '' },
-    { x: 225, y: 128, type: 'hay_bale', walkable: false, interactionId: '' },
-    { x: 227, y: 134, type: 'barrel', walkable: false, interactionId: '' },
+    // Windmill, hay bales and stump are pure decoration.
+    // The barrels and crate are searchable (Press E) — small coin finds.
+    { x: 224, y: 127, type: 'windmill', walkable: false },
+    { x: 234, y: 131, type: 'barrel', walkable: false, interactionId: 'homestead_container_1' },
+    { x: 235, y: 132, type: 'crate', walkable: false, interactionId: 'homestead_container_2' },
+    { x: 234, y: 134, type: 'stump', walkable: false },
+    { x: 223, y: 128, type: 'hay_bale', walkable: false },
+    { x: 225, y: 128, type: 'hay_bale', walkable: false },
+    { x: 227, y: 134, type: 'barrel', walkable: false, interactionId: 'homestead_container_3' },
 
     // === SHORTCUT LEVER HINTS ===
     // Bloodstain on the SOUTH face of the gate ??? environmental hint that someone fell here.
@@ -1026,6 +1036,7 @@ export const forestDef: MapDefinition = {
     { x: 177, y: 182, type: 'heresy_altar', walkable: false }, // world (27, 32) ? final cliff lookout
     { x: 107, y: 54, type: 'heresy_altar', walkable: false }, // world (-43, -96) ? corrupted west-cliff stair shelf
     { x: 279, y: 72, type: 'heresy_altar', walkable: false }, // world (129, -78) ? eastern Hollow edge grove
+    { x: 263, y: 231, type: 'ridge_lumberyard', walkable: false }, // world (113, 81) ? old ridge lumberyard waypoint
     // Watch tower south-east of the west fort ? world (-117, 9)
     { x: 33, y: 159, type: 'observatory', walkable: false },
     // Watch tower on the western bypass, east of the south-fort cliff shelf ? world (-19, 72)
@@ -2006,6 +2017,8 @@ export const forestDef: MapDefinition = {
     { x: 116, y: 33, width: 10, height: 8, enemyType: 'plant', count: 1 },
     // Hollow approach west shelf ? stone golem at world (-122, -40).
     { x: 28, y: 110, width: 1, height: 1, enemyType: 'golem', count: 1 },
+    // Lake overlook east shelf ? lone stone golem watching the high-water bridge approach.
+    { x: 289, y: 180, width: 1, height: 1, enemyType: 'golem', count: 1 },
     // Hollow Shades - staged along the bonfire-to-gate corridor (y:72 -> y:18)
     { x: 118, y: 62, width: 10, height: 8, enemyType: 'shadow_lurker', count: 2 },
     { x: 116, y: 50, width: 12, height: 8, enemyType: 'shadow_lurker', count: 2 },

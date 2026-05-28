@@ -31,6 +31,7 @@ interface InteractionSystemLike {
   tryHandleGolemFortGate: (interactionId: string) => boolean;
   tryHandleManuscriptCheckpointGate: (interactionId: string) => boolean;
   tryHandleBlightedRoot: (interactionId: string) => boolean;
+  tryHandleHomesteadContainer: (interactionId: string) => boolean;
   tryHandleDialogueInteraction: (interactionId: string) => boolean;
   tryPickupWorldItems: (x: number, y: number) => void;
 }
@@ -282,6 +283,7 @@ export function runInteractionCheck({
     if (interactionSystem.tryHandleManuscriptCheckpointGate(interactionId)) return;
     if (interactionSystem.tryHandleHollowFogGate(interactionId)) return;
     if (interactionSystem.tryHandleBlightedRoot(interactionId)) return;
+    if (interactionSystem.tryHandleHomesteadContainer(interactionId)) return;
     if (interactionSystem.tryHandleDialogueInteraction(interactionId)) return;
   }
 

@@ -1,7 +1,25 @@
 import { GameState, type CurrencyGain, type Item } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { Button } from '@/components/ui/button';
-import { Heart, Coins, Package, Target, Zap, Volume2, VolumeX, Shield, Sword, Map as MapIcon, Key, Sparkles, ChevronRight, ChevronDown, Gem } from 'lucide-react';
+// The remaining lucide icons are fallbacks for inventory item sprites and
+// generic UI affordances (chevrons). The navigation bar itself now uses the
+// hand-authored pixel HUD sprites defined in ./HudSprite.tsx.
+import {
+  Heart, Zap, Sword, Key, Package,
+  Map as MapIcon,
+  ChevronRight, ChevronDown,
+} from 'lucide-react';
+import {
+  HudSprite,
+  SPRITE_COIN,
+  SPRITE_ESSENCE,
+  SPRITE_CURSED_SHARD,
+  SPRITE_VOLUME_ON,
+  SPRITE_VOLUME_MUTE,
+  SPRITE_INVENTORY,
+  SPRITE_MAP,
+  SPRITE_OBJECTIVES,
+} from '@/components/game/HudSprite';
 import React, { useState, useMemo } from 'react';
 import { CONTROL_GROUPS } from './controlBindings';
 
@@ -47,13 +65,14 @@ const getItemIcon = (item: Item | null | undefined, className: string, assetMana
 
 // --- Memoized Sub-components ---
 
-const CombatBars = React.memo(({ health, maxHealth, stamina, maxStamina }: { 
+const CombatBars = React.memo(({ health, maxHealth, stamina, maxStamina }: {
   health: number, maxHealth: number, stamina: number, maxStamina: number
 }) => (
+  // Bars-only treatment — the heart / shield iconography was removed in favour
+  // of the bar color itself doing the categorical work (red = HP, green =
+  // stamina). Reads as a cleaner, more diegetic HUD.
   <div className="flex items-center gap-5">
-    {/* Health */}
     <div className="flex items-center gap-2">
-      <Heart className="w-4 h-4 text-red-500 drop-shadow" />
       <div className="w-28 h-2.5 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
         <div
           className="h-full bg-gradient-to-r from-red-600 to-red-400"
@@ -65,9 +84,7 @@ const CombatBars = React.memo(({ health, maxHealth, stamina, maxStamina }: {
       </span>
     </div>
 
-    {/* Stamina */}
     <div className="flex items-center gap-2">
-      <Shield className="w-3.5 h-3.5 text-emerald-400 drop-shadow" />
       <div className="w-20 h-2 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
         <div
           className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-[width] duration-75 ease-out"
@@ -124,7 +141,7 @@ const CurrencyCountersWithGains = React.memo(({
 }) => (
   <div className="flex items-center gap-4">
     <div className="flex items-center gap-1.5 relative min-w-[42px]">
-      <Coins className="w-4 h-4 text-yellow-400 drop-shadow" />
+      <HudSprite spec={SPRITE_COIN} size={16} title="Gold" className="drop-shadow" />
       <span className="text-xs font-bold text-[#F5DEB3] tracking-wide">{gold}</span>
       {justGainedCurrency?.kind === 'gold' && (
         <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 text-[10px] font-bold text-yellow-300 tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,1)] animate-in fade-in slide-in-from-top-1">
@@ -134,7 +151,7 @@ const CurrencyCountersWithGains = React.memo(({
     </div>
 
     <div className="flex items-center gap-1.5 relative min-w-[42px]">
-      <Sparkles className="w-4 h-4 text-violet-300 drop-shadow" />
+      <HudSprite spec={SPRITE_ESSENCE} size={16} title="Essence" className="drop-shadow" />
       <span className="text-xs font-bold text-violet-200 tracking-wide">{essence}</span>
       {justGainedCurrency?.kind === 'essence' && (
         <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 text-[10px] font-bold text-violet-200 tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,1)] animate-in fade-in slide-in-from-top-1">
@@ -145,7 +162,7 @@ const CurrencyCountersWithGains = React.memo(({
 
     {cursedSediment > 0 && (
       <div className="flex items-center gap-1.5 relative min-w-[42px]" title="Cursed Sediment">
-        <Gem className="w-4 h-4 text-fuchsia-400 drop-shadow" />
+        <HudSprite spec={SPRITE_CURSED_SHARD} size={16} title="Cursed Sediment" className="drop-shadow" />
         <span className="text-xs font-bold text-fuchsia-200 tracking-wide">{cursedSediment}</span>
         {justGainedCurrency?.kind === 'cursed_sediment' && (
           <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 text-[10px] font-bold text-fuchsia-200 tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,1)] animate-in fade-in slide-in-from-top-1">
@@ -226,7 +243,7 @@ const SelectionWheel = React.memo(({
             <span className="absolute top-1 right-1.5 text-[10px] font-bold text-[#F5DEB3] drop-shadow-[0_1px_1px_rgba(0,0,0,1)] bg-[#1A0F0A]/60 px-1 rounded-sm border border-[#5C3A21]/50">x{activeEntry.count}</span>
           )}
         </div>
-        <span className="text-[9px] text-[#DAA520]/60 mt-1.5 font-mono uppercase tracking-widest drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">
+        <span className="text-[9px] text-[#DAA520]/60 mt-1.5 uppercase tracking-widest drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">
           {badgeLabel}
         </span>
       </div>
@@ -268,7 +285,7 @@ const JustPickedUpDisplay = React.memo(({
         <div className="w-16 h-16 bg-[#1A0F0A] border-[1.5px] border-[#DAA520] rounded-lg flex items-center justify-center shadow-xl relative overflow-hidden">
           {getItemIcon(item, "w-12 h-12", assetManager)}
         </div>
-        <span className="text-[9px] text-[#F5DEB3] mt-2 font-mono bg-[#1A0F0A] border border-[#5C3A21] px-2.5 py-0.5 rounded-md uppercase tracking-widest shadow-lg drop-shadow-md">
+        <span className="text-[9px] text-[#F5DEB3] mt-2 bg-[#1A0F0A] border border-[#5C3A21] px-2.5 py-0.5 rounded-md uppercase tracking-widest shadow-lg drop-shadow-md">
           Acquired
         </span>
       </div>
@@ -393,7 +410,7 @@ export const GameUI = ({
             className="h-8 w-8 p-0 text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent rounded-sm transition-colors"
             title={isMuted ? 'Unmute' : 'Mute'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            <HudSprite spec={isMuted ? SPRITE_VOLUME_MUTE : SPRITE_VOLUME_ON} size={16} />
           </Button>
 
           <Button
@@ -402,7 +419,7 @@ export const GameUI = ({
             size="sm"
             className="h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent"
           >
-            <Package className="w-4 h-4 mr-1" />
+            <HudSprite spec={SPRITE_INVENTORY} size={16} className="mr-1" />
             INVENTORY
           </Button>
 
@@ -412,7 +429,7 @@ export const GameUI = ({
             size="sm"
             className="h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent"
           >
-            <MapIcon className="w-4 h-4 mr-1" />
+            <HudSprite spec={SPRITE_MAP} size={16} className="mr-1" />
             MAP
           </Button>
 
@@ -422,7 +439,7 @@ export const GameUI = ({
             size="sm"
             className="h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent relative"
           >
-            <Target className="w-4 h-4 mr-1" />
+            <HudSprite spec={SPRITE_OBJECTIVES} size={16} className="mr-1" />
             OBJECTIVES
             {activeQuestCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border border-[#1A0F0A]">

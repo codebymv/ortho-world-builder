@@ -216,7 +216,7 @@ export const Minimap = memo(
 
     return (
       <div
-        className="bg-[#1A0F0A]/90 backdrop-blur-sm p-2 rounded-sm border-2 border-[#5C3A21] shadow-lg font-sans pointer-events-auto"
+        className="bg-[#1A0F0A]/90 backdrop-blur-sm p-2 rounded-sm border-2 border-[#5C3A21] shadow-lg pointer-events-auto"
         style={{ width: '220px' }}
       >
         <div className="text-[#DAA520] text-xs mb-1 text-center font-bold uppercase tracking-wider">

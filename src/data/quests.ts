@@ -104,4 +104,18 @@ export const quests: Record<string, Quest> = {
       items: ['ranger_badge'],
     },
   },
+
+  shattered_altars: {
+    id: 'shattered_altars',
+    title: 'Shatter the Shrines',
+    description: 'Heresy altars are scattered throughout the Whispering Woods, feeding the corruption that consumed the Hollow. Seek them out and destroy every last one.',
+    objectives: [
+      'Destroy the heresy altars (0/8)',
+    ],
+    completed: false,
+    active: false,
+    reward: {
+      gold: 120,
+    },
+  },
 };

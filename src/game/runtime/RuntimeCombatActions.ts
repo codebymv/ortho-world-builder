@@ -277,6 +277,36 @@ export function createRuntimeCombatActions({
     triggerUIUpdate();
   };
 
+  // Total altars in the Whispering Woods forest map.
+  const FOREST_ALTAR_TOTAL = 8;
+
+  const _trackAltarQuestProgress = (destroyedThisSwing: number) => {
+    const prev = (state.getFlag('altars_destroyed_total') as number) || 0;
+    const newTotal = prev + destroyedThisSwing;
+    state.setFlag('altars_destroyed_total', newTotal);
+
+    const q = state.quests.find(q => q.id === 'shattered_altars');
+    if (!q) return;
+
+    // Auto-start the quest on first altar destruction.
+    if (!q.active) q.active = true;
+
+    const count = Math.min(newTotal, FOREST_ALTAR_TOTAL);
+    q.objectives[0] = `Destroy the heresy altars (${count}/${FOREST_ALTAR_TOTAL})`;
+
+    if (!q.completed && newTotal >= FOREST_ALTAR_TOTAL) {
+      markObjectiveDone(q, 0, q.objectives[0]);
+      state.addGold(q.reward?.gold ?? 0);
+      notify('All shrines shattered', {
+        id: 'shattered-altars-complete',
+        type: 'success',
+        description: 'The Hollow\'s tether to these woods weakens.',
+        duration: 4000,
+      });
+    }
+    triggerUIUpdate();
+  };
+
   const _applyAttackDamage = (step: number) => {
     const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, state.player.attackRange, _scratchEnemies);
     if (enemiesInRange.length === 0) {
@@ -286,7 +316,10 @@ export function createRuntimeCombatActions({
       const attackY = state.player.position.y + off.y;
       particleSystem.emitAt(attackX, attackY, 0.3, 4, 0xffffff, 0.3, 1, 1);
       breakTilesInRadius(world, world.getCurrentMap(), attackX, attackY, state.player.attackRange, particleSystem, playPropBreak);
-      damageHeresyAltarsInRadius(state, world, world.getCurrentMap(), attackX, attackY, state.player.attackRange, particleSystem, playPropBreak, notify);
+      const altarsDestroyed = damageHeresyAltarsInRadius(state, world, world.getCurrentMap(), attackX, attackY, state.player.attackRange, particleSystem, playPropBreak, notify);
+      if (altarsDestroyed > 0 && state.currentMap === 'forest') {
+        _trackAltarQuestProgress(altarsDestroyed);
+      }
       return;
     }
 

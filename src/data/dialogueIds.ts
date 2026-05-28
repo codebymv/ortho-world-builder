@@ -45,7 +45,6 @@ export const dialogueIds = new Set<string>([
   'gilrhym_cathedral_inscription',
   'gilrhym_reaver_plaque',
   'campfire',
-  'healing_mushroom',
   'blacksmith',
   'healer',
   'apothecary',
