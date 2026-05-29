@@ -76,30 +76,27 @@ const getItemIcon = (item: Item | null | undefined, className: string, assetMana
 const CombatBars = React.memo(({ health, maxHealth, stamina, maxStamina }: {
   health: number, maxHealth: number, stamina: number, maxStamina: number
 }) => (
-  // Bars-only treatment — the heart / shield iconography was removed in favour
-  // of the bar color itself doing the categorical work (red = HP, green =
-  // stamina). Reads as a cleaner, more diegetic HUD.
-  <div className="flex items-center gap-5">
-    <div className="flex items-center gap-2">
-      <div className="w-28 h-2.5 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
+  <div className="flex items-center gap-3 min-[1100px]:gap-5 shrink-0">
+    <div className="flex items-center gap-1.5 min-[1100px]:gap-2">
+      <div className="w-16 min-[900px]:w-20 min-[1100px]:w-28 h-2.5 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
         <div
           className="h-full bg-gradient-to-r from-red-600 to-red-400"
           style={{ width: `${(health / maxHealth) * 100}%` }}
         />
       </div>
-      <span className="text-[10px] font-bold text-[#F5DEB3] tracking-wide">
+      <span className="hidden min-[900px]:inline text-[10px] font-bold text-[#F5DEB3] tracking-wide whitespace-nowrap">
         {health}/{maxHealth}
       </span>
     </div>
 
-    <div className="flex items-center gap-2">
-      <div className="w-20 h-2 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
+    <div className="flex items-center gap-1.5 min-[1100px]:gap-2">
+      <div className="w-12 min-[900px]:w-16 min-[1100px]:w-20 h-2 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
         <div
           className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-[width] duration-75 ease-out"
           style={{ width: `${(stamina / maxStamina) * 100}%` }}
         />
       </div>
-      <span className="text-[10px] font-bold text-emerald-200 tracking-wide">
+      <span className="hidden min-[1100px]:inline text-[10px] font-bold text-emerald-200 tracking-wide whitespace-nowrap">
         {Math.round(stamina)}/{maxStamina}
       </span>
     </div>
@@ -147,7 +144,7 @@ const CurrencyCountersWithGains = React.memo(({
   cursedSediment: number;
   justGainedCurrency?: CurrencyGain | null;
 }) => (
-  <div className="flex items-center gap-4">
+  <div className="flex items-center gap-2 min-[900px]:gap-4 shrink-0">
     <div className="flex items-center gap-1.5 relative min-w-[42px]">
       <HudSprite spec={SPRITE_COIN} size={16} title="Gold" className="drop-shadow" />
       <span className="text-xs font-bold text-[#F5DEB3] tracking-wide">{gold}</span>
@@ -189,14 +186,44 @@ const CurrentObjective = React.memo(({ title, onObjectiveClick }: { title: strin
       type="button"
       onClick={onObjectiveClick}
       disabled={!interactive}
-      title={interactive ? 'Click to open objectives' : undefined}
-      className={`flex items-center gap-2 bg-[#2D1B11]/50 px-3 py-1 rounded-full border border-[#5C3A21] transition-colors animate-pulse ${interactive ? 'cursor-pointer hover:bg-[#3D2B21]/50' : 'cursor-default'}`}
+      title={interactive ? `${title} — click to open objectives` : title}
+      className={`hidden min-[1050px]:flex min-w-0 max-w-[min(12rem,28vw)] items-center gap-1.5 bg-[#2D1B11]/50 px-2.5 py-1 rounded-full border border-[#5C3A21] transition-colors animate-pulse ${interactive ? 'cursor-pointer hover:bg-[#3D2B21]/50' : 'cursor-default'}`}
     >
-      <span className="text-[#DAA520] text-xs font-bold uppercase tracking-wider">Objective:</span>
-      <span className="text-[#F5DEB3] text-xs truncate max-w-[200px]">{title}</span>
+      <span className="hidden min-[1280px]:inline text-[#DAA520] text-xs font-bold uppercase tracking-wider shrink-0">Objective:</span>
+      <span className="text-[#F5DEB3] text-xs truncate min-w-0">{title}</span>
     </button>
   );
 });
+
+const HudNavButton = React.memo(({
+  label,
+  title,
+  onClick,
+  sprite,
+  badge,
+}: {
+  label: string;
+  title: string;
+  onClick?: () => void;
+  sprite: React.ComponentProps<typeof HudSprite>['spec'];
+  badge?: number;
+}) => (
+  <Button
+    onClick={onClick}
+    variant="ghost"
+    size="sm"
+    title={title}
+    className="relative h-8 px-1.5 min-[1280px]:px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent"
+  >
+    <HudSprite spec={sprite} size={16} className="min-[1280px]:mr-1" />
+    <span className="hidden min-[1280px]:inline">{label}</span>
+    {badge != null && badge > 0 && (
+      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border border-[#1A0F0A]">
+        {badge}
+      </span>
+    )}
+  </Button>
+));
 
 const SelectionWheel = React.memo(({
   entries,
@@ -397,11 +424,10 @@ export const GameUI = ({
 
   return (
     <>
-      {/* Minimal Top Bar */}
-      <div className="fixed top-0 left-0 right-0 h-12 bg-[#1A0F0A]/85 backdrop-blur-sm border-b border-[#5C3A21] z-50 px-4 pointer-events-auto shadow-md">
-        <div className="relative flex h-full items-center">
-          {/* Left Side: Currency */}
-          <div className="flex min-w-[140px] items-center">
+      {/* Top bar — flex layout (no absolute center) so FlashCore's ~16:9 iframe doesn't overlap */}
+      <div className="fixed top-0 left-0 right-0 h-12 bg-[#1A0F0A]/85 backdrop-blur-sm border-b border-[#5C3A21] z-50 px-2 min-[900px]:px-3 min-[1280px]:px-4 pointer-events-auto shadow-md">
+        <div className="flex h-full items-center gap-2 min-w-0">
+          <div className="flex shrink-0 items-center min-w-0">
             <CurrencyCountersWithGains
               gold={gameState.player.gold}
               essence={gameState.player.essence}
@@ -410,8 +436,7 @@ export const GameUI = ({
             />
           </div>
 
-          {/* Center: Combat bars + stealth badge + objective */}
-          <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-6">
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-2 min-[1050px]:gap-4 overflow-hidden">
             <CombatBars
               health={gameState.player.health}
               maxHealth={gameState.player.maxHealth}
@@ -419,13 +444,13 @@ export const GameUI = ({
               maxStamina={gameState.player.maxStamina}
             />
             {gameState.player.stealthTimer > 0 && (
-              <div className="flex items-center gap-1.5 bg-emerald-900/70 border border-emerald-500/60 rounded-full px-2.5 py-0.5 animate-pulse">
+              <div className="hidden min-[900px]:flex items-center gap-1.5 bg-emerald-900/70 border border-emerald-500/60 rounded-full px-2.5 py-0.5 animate-pulse shrink-0">
                 <span className="text-[10px] font-bold text-emerald-300 tracking-widest uppercase">Cloaked</span>
                 <span className="text-[10px] font-bold text-emerald-200">{Math.ceil(gameState.player.stealthTimer)}s</span>
               </div>
             )}
             {gameState.player.berserkerTimer > 0 && (
-              <div className="flex items-center gap-1.5 bg-red-900/70 border border-red-500/60 rounded-full px-2.5 py-0.5 animate-pulse">
+              <div className="hidden min-[900px]:flex items-center gap-1.5 bg-red-900/70 border border-red-500/60 rounded-full px-2.5 py-0.5 animate-pulse shrink-0">
                 <span className="text-[10px] font-bold text-red-300 tracking-widest uppercase">Berserker</span>
                 <span className="text-[10px] font-bold text-red-200">{Math.ceil(gameState.player.berserkerTimer)}s</span>
               </div>
@@ -438,63 +463,29 @@ export const GameUI = ({
             })()}
           </div>
 
-          {/* Right Side: Toggles - pushed left more to avoid fullscreen button */}
-          <div className="ml-auto flex items-center gap-1 mr-8">
-          <Button
-            onClick={toggleMute}
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent rounded-sm transition-colors"
-            title={isMuted ? 'Unmute' : 'Mute'}
-          >
-            <HudSprite spec={isMuted ? SPRITE_VOLUME_MUTE : SPRITE_VOLUME_ON} size={16} />
-          </Button>
+          {/* Right nav — icon-only below 1280px; extra right margin clears FlashCore fullscreen control */}
+          <div className="ml-auto flex shrink-0 items-center gap-0.5 mr-10 min-[1280px]:mr-8">
+            <Button
+              onClick={toggleMute}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent rounded-sm transition-colors"
+              title={isMuted ? 'Unmute' : 'Mute'}
+            >
+              <HudSprite spec={isMuted ? SPRITE_VOLUME_MUTE : SPRITE_VOLUME_ON} size={16} />
+            </Button>
 
-          <Button
-            onClick={() => onOpenPlayer?.()}
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent"
-          >
-            <HudSprite spec={SPRITE_PLAYER} size={16} className="mr-1" />
-            PLAYER
-          </Button>
-
-          <Button
-            onClick={() => onOpenInventory?.()}
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent"
-          >
-            <HudSprite spec={SPRITE_INVENTORY} size={16} className="mr-1" />
-            INVENTORY
-          </Button>
-
-          <Button
-            onClick={() => onOpenMap?.()}
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent"
-          >
-            <HudSprite spec={SPRITE_MAP} size={16} className="mr-1" />
-            MAP
-          </Button>
-
-          <Button
-            onClick={() => onOpenObjectives?.()}
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent relative"
-          >
-            <HudSprite spec={SPRITE_OBJECTIVES} size={16} className="mr-1" />
-            OBJECTIVES
-            {activeQuestCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border border-[#1A0F0A]">
-                {activeQuestCount}
-              </span>
-            )}
-          </Button>
-        </div>
+            <HudNavButton label="PLAYER" title="Player" onClick={onOpenPlayer} sprite={SPRITE_PLAYER} />
+            <HudNavButton label="INVENTORY" title="Inventory" onClick={onOpenInventory} sprite={SPRITE_INVENTORY} />
+            <HudNavButton label="MAP" title="Map" onClick={onOpenMap} sprite={SPRITE_MAP} />
+            <HudNavButton
+              label="OBJECTIVES"
+              title="Objectives"
+              onClick={onOpenObjectives}
+              sprite={SPRITE_OBJECTIVES}
+              badge={activeQuestCount}
+            />
+          </div>
         </div>
       </div>
 
