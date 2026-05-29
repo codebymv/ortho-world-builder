@@ -55,6 +55,8 @@ export interface Tile {
   stairAxis?: 'ns' | 'ew';
   /** Optional fixed backing drawn beneath overlay/height art when neighbor sampling would show seams. */
   baseTile?: TileType;
+  /** When true, this tile is part of an authored dirt-spine route and may cross ±1 elevation without stairs. */
+  spinePath?: boolean;
   /** When true, enemies cannot stand on or path onto this tile (e.g. ladder landings). */
   enemyBlocked?: boolean;
 }
@@ -87,6 +89,7 @@ export interface CollisionDebugTile {
   elevation: number;
   interactable: boolean;
   transition: boolean;
+  enemyBlocked: boolean;
 }
 
 export interface CollisionDebugSample extends CollisionDebugTile {
@@ -98,6 +101,11 @@ export interface CollisionDebugSample extends CollisionDebugTile {
 export interface CollisionDebugProbe {
   label: 'left' | 'right' | 'up' | 'down';
   allowed: boolean;
+  reason: string;
+  tileX: number;
+  tileY: number;
+  type: TileType | null;
+  elevation: number | null;
 }
 
 export interface CollisionDebugSnapshot {
@@ -113,6 +121,25 @@ export interface CollisionDebugSnapshot {
   scanRadius: number;
 }
 
+export interface CollisionAuditPoint {
+  label: string;
+  x: number;
+  y: number;
+  radius?: number;
+}
+
+export interface CollisionAuditResult {
+  label: string;
+  worldX: number;
+  worldY: number;
+  tileX: number;
+  tileY: number;
+  currentType: TileType | null;
+  currentElevation: number | null;
+  walkable: boolean;
+  probes: CollisionDebugProbe[];
+}
+
 const RENDER_RADIUS = 32;
 const CULL_RADIUS = 42;
 const MAX_TILES_PER_FRAME = 200; // steady-state budget while moving
@@ -120,6 +147,27 @@ const INITIAL_LOAD_TILES_PER_FRAME = 320; // smoother initial/after-rebuild stre
 const TILE_KEY_STRIDE = 65536;
 const MAX_MESH_POOL_SIZE = 1200;
 const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted', 'stairs', 'ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open']);
+const ELEVATION_CONNECTOR_TILE_TYPES: ReadonlySet<TileType> = new Set([
+  'stairs',
+  'ladder',
+  'gate_ladder',
+  'gate_ladder_open',
+  'bridge',
+  'bridge_corrupted',
+  'wooden_path',
+]);
+
+export const SPINE_ELEVATION_TILE_TYPES: ReadonlySet<TileType> = new Set(['dirt', 'grass', 'sand', 'hollow_blight', 'cobblestone']);
+
+export function isSpinePathElevationTile(tile: Tile | null): boolean {
+  if (!tile?.walkable || !tile.spinePath) return false;
+  return SPINE_ELEVATION_TILE_TYPES.has(tile.type);
+}
+
+/** Authored dirt/grass spine tiles may step ±1 elevation without stair/ladder connectors. */
+export function canCrossSpinePathElevation(fromTile: Tile | null, toTile: Tile | null): boolean {
+  return isSpinePathElevationTile(fromTile) && isSpinePathElevationTile(toTile);
+}
 
 /** Tile types enemies treat as solid — mirrors ladder/gate art and vertical traversal the player can use. */
 const ENEMY_BLOCKED_TILE_TYPES: ReadonlySet<TileType> = new Set(['ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open', 'stairs']);
@@ -884,6 +932,9 @@ export class World {
     this.setRenderRole(overlayMesh, 'overlay');
     overlayMesh.scale.set(1, scale, 1);
     overlayMesh.position.y = yOffset;
+    if (tile.type === 'ladder' || tile.type === 'gate_ladder' || tile.type === 'gate_ladder_open') {
+      overlayMesh.position.x = 0.06; // Visually shift ladder slightly east to center in oblique cliff gaps
+    }
     if (tile.type === 'stairs' && tile.stairAxis === 'ew') {
       overlayMesh.rotation.z = Math.PI / 2;
     }
@@ -1590,35 +1641,54 @@ export class World {
     return tile.walkable;
   }
 
-  private canStepBetween(fromTile: Tile | null, toTile: Tile | null): boolean {
-    if (!toTile || !this.isTileWalkable(toTile)) return false;
+  private canStepBetween(
+    fromTile: Tile | null,
+    toTile: Tile | null,
+    fromTileX?: number,
+    fromTileY?: number,
+    toTileX?: number,
+    toTileY?: number,
+  ): boolean {
+    return this.getStepDecision(fromTile, toTile, fromTileX, fromTileY, toTileX, toTileY).allowed;
+  }
+
+  private isElevationConnector(tile: Tile | null): boolean {
+    if (!tile) return false;
+    if (tile.transition) return true;
+    return ELEVATION_CONNECTOR_TILE_TYPES.has(tile.type);
+  }
+
+  private getStepDecision(
+    fromTile: Tile | null,
+    toTile: Tile | null,
+    fromTileX?: number,
+    fromTileY?: number,
+    toTileX?: number,
+    toTileY?: number,
+  ): { allowed: boolean; reason: string } {
+    if (!toTile) return { allowed: false, reason: 'no target tile' };
+    if (!this.isTileWalkable(toTile)) return { allowed: false, reason: `${toTile.type} blocked` };
 
     const fromElevation = fromTile?.elevation ?? 0;
     const toElevation = toTile.elevation ?? 0;
-    if (fromElevation === toElevation) return true;
+    if (fromElevation === toElevation) return { allowed: true, reason: 'same elevation' };
 
     // Map transitions / portals must stay reachable even if elevation metadata is inconsistent.
-    if (fromTile?.transition || toTile.transition) return true;
+    if (fromTile?.transition || toTile.transition) return { allowed: true, reason: 'map transition' };
 
-    const connectsLevels =
-      fromTile?.type === 'stairs' ||
-      toTile.type === 'stairs' ||
-      fromTile?.type === 'ladder' ||
-      toTile.type === 'ladder';
-    if (connectsLevels) {
-      return Math.abs(toElevation - fromElevation) <= 1;
+    const delta = Math.abs(toElevation - fromElevation);
+    if (delta > 1) return { allowed: false, reason: `elevation jump ${fromElevation}->${toElevation}` };
+
+    if (this.isElevationConnector(fromTile) || this.isElevationConnector(toTile)) {
+      return { allowed: true, reason: `connector ${fromElevation}->${toElevation}` };
     }
 
-    // stampCliffs only generates blocking art at north→south elevation drops.
-    // East-west and south→north transitions have no cliff tiles, so any walkable-to-walkable
-    // single elevation step is safe to cross — the non-walkable cliff tiles themselves are
-    // the actual barriers, not the elevation number alone.
-    if (Math.abs(toElevation - fromElevation) <= 1) {
-      return true;
+    if (canCrossSpinePathElevation(fromTile, toTile)) {
+      return { allowed: true, reason: `spine path ${fromElevation}->${toElevation}` };
     }
 
-    // Block multi-step elevation jumps (missed buffers, edge cases).
-    return false;
+    // Raised shelves require authored connectors instead of arbitrary one-level steps.
+    return { allowed: false, reason: `needs connector ${fromElevation}->${toElevation}` };
   }
 
   isWalkable(x: number, y: number, r: number = 0): boolean {
@@ -1637,15 +1707,26 @@ export class World {
     return ENEMY_BLOCKED_TILE_TYPES.has(tile.type);
   }
 
-  private canEnemyStepBetween(fromTile: Tile | null, toTile: Tile | null): boolean {
+  private canEnemyStepBetween(
+    fromTile: Tile | null,
+    toTile: Tile | null,
+    fromTileX: number,
+    fromTileY: number,
+    toTileX: number,
+    toTileY: number,
+  ): boolean {
     if (toTile && ENEMY_BLOCKED_TILE_TYPES.has(toTile.type)) return false;
-    return this.canStepBetween(fromTile, toTile);
+    return this.canStepBetween(fromTile, toTile, fromTileX, fromTileY, toTileX, toTileY);
   }
 
   private canEnemyMovePoint(fromX: number, fromY: number, toX: number, toY: number): boolean {
     const fromTile = this.getTile(fromX, fromY);
     const toTile = this.getTile(toX, toY);
-    if (!this.canEnemyStepBetween(fromTile, toTile)) return false;
+    const fromTileX = Math.floor(fromX + this.map.width / 2);
+    const fromTileY = Math.floor(fromY + this.map.height / 2);
+    const toTileX = Math.floor(toX + this.map.width / 2);
+    const toTileY = Math.floor(toY + this.map.height / 2);
+    if (!this.canEnemyStepBetween(fromTile, toTile, fromTileX, fromTileY, toTileX, toTileY)) return false;
     if (this.isEnemyBlockedStandingTile(toTile)) return false;
     return true;
   }
@@ -1675,7 +1756,33 @@ export class World {
   }
 
   private canMovePoint(fromX: number, fromY: number, toX: number, toY: number): boolean {
-    return this.canStepBetween(this.getTile(fromX, fromY), this.getTile(toX, toY));
+    const fromTileX = Math.floor(fromX + this.map.width / 2);
+    const fromTileY = Math.floor(fromY + this.map.height / 2);
+    const toTileX = Math.floor(toX + this.map.width / 2);
+    const toTileY = Math.floor(toY + this.map.height / 2);
+    return this.canStepBetween(
+      this.getTile(fromX, fromY),
+      this.getTile(toX, toY),
+      fromTileX,
+      fromTileY,
+      toTileX,
+      toTileY,
+    );
+  }
+
+  private getMovePointDecision(fromX: number, fromY: number, toX: number, toY: number): { allowed: boolean; reason: string } {
+    const fromTileX = Math.floor(fromX + this.map.width / 2);
+    const fromTileY = Math.floor(fromY + this.map.height / 2);
+    const toTileX = Math.floor(toX + this.map.width / 2);
+    const toTileY = Math.floor(toY + this.map.height / 2);
+    return this.getStepDecision(
+      this.getTile(fromX, fromY),
+      this.getTile(toX, toY),
+      fromTileX,
+      fromTileY,
+      toTileX,
+      toTileY,
+    );
   }
 
   canMoveTo(fromX: number, fromY: number, toX: number, toY: number, r: number = 0): boolean {
@@ -1709,6 +1816,7 @@ export class World {
         elevation: tile.elevation ?? 0,
         interactable: !!tile.interactable,
         transition: !!tile.transition,
+        enemyBlocked: !!tile.enemyBlocked || this.isEnemyBlockedStandingTile(tile),
       };
     };
 
@@ -1745,15 +1853,42 @@ export class World {
         elevation: base?.elevation ?? 0,
         interactable: base?.interactable ?? false,
         transition: base?.transition ?? false,
+        enemyBlocked: base?.enemyBlocked ?? false,
       };
     });
 
     const step = 0.35;
+    const getMoveDecision = (label: CollisionDebugProbe['label'], toX: number, toY: number): CollisionDebugProbe => {
+      const checks = r === 0
+        ? [{ fromX: x, fromY: y, toX, toY }]
+        : [
+            { fromX: x - r, fromY: y - r, toX: toX - r, toY: toY - r },
+            { fromX: x + r, fromY: y - r, toX: toX + r, toY: toY - r },
+            { fromX: x - r, fromY: y + r, toX: toX - r, toY: toY + r },
+            { fromX: x + r, fromY: y + r, toX: toX + r, toY: toY + r },
+          ];
+      const blocked = checks
+        .map(check => this.getMovePointDecision(check.fromX, check.fromY, check.toX, check.toY))
+        .find(decision => !decision.allowed);
+      const allowed = !blocked;
+      const targetTile = this.getTile(toX, toY);
+      const targetTileX = Math.floor(toX + this.map.width / 2);
+      const targetTileY = Math.floor(toY + this.map.height / 2);
+      return {
+        label,
+        allowed,
+        reason: blocked?.reason ?? 'clear',
+        tileX: targetTileX,
+        tileY: targetTileY,
+        type: targetTile?.type ?? null,
+        elevation: targetTile?.elevation ?? null,
+      };
+    };
     const probes: CollisionDebugProbe[] = [
-      { label: 'left', allowed: this.canMoveTo(x, y, x - step, y, r) },
-      { label: 'right', allowed: this.canMoveTo(x, y, x + step, y, r) },
-      { label: 'up', allowed: this.canMoveTo(x, y, x, y - step, r) },
-      { label: 'down', allowed: this.canMoveTo(x, y, x, y + step, r) },
+      getMoveDecision('left', x - step, y),
+      getMoveDecision('right', x + step, y),
+      getMoveDecision('up', x, y - step),
+      getMoveDecision('down', x, y + step),
     ];
 
     return {
@@ -1768,6 +1903,23 @@ export class World {
       probes,
       scanRadius,
     };
+  }
+
+  auditCollisionPoints(points: CollisionAuditPoint[]): CollisionAuditResult[] {
+    return points.map(point => {
+      const snapshot = this.getCollisionDebugSnapshot(point.x, point.y, point.radius ?? 0.2, 1);
+      return {
+        label: point.label,
+        worldX: point.x,
+        worldY: point.y,
+        tileX: snapshot.tileX,
+        tileY: snapshot.tileY,
+        currentType: snapshot.currentTile?.type ?? null,
+        currentElevation: snapshot.currentTile?.elevation ?? null,
+        walkable: snapshot.currentTile?.walkable ?? false,
+        probes: snapshot.probes,
+      };
+    });
   }
 
 

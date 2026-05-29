@@ -57,6 +57,8 @@ export function createDeathRespawnHandler({
       state.player.stamina = state.player.maxStamina;
       state.player.isDodging = false;
       state.player.iFrameTimer = 0;
+      state.player.hurtTimer = 0;
+      state.player.attackRecoveryTimer = 0;
       state.player.lastBreathUsedThisLife = false;
 
       const potionCount = state.inventory.filter(i => i.id === 'health_potion').length;
@@ -100,6 +102,7 @@ export function createDeathRespawnHandler({
         camera.position.y = playerVisualY;
       }
 
+      state.killedEnemyIds.clear();
       respawnEnemiesForMap(targetMap, newMap);
 
       world.rebuildChunks();

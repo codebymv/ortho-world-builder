@@ -4,10 +4,10 @@ export const items: Record<string, Item> = {
   health_potion: {
     id: 'health_potion',
     name: 'Ephemeral Extract',
-    description: 'A bright alchemical draught that briefly steadies body and breath. Restores 100 health when consumed.',
+    description: 'A bright alchemical draught that briefly steadies body and breath. Restores 55 health when consumed.',
     type: 'consumable',
     sprite: 'potion',
-    healAmount: 100,
+    healAmount: 55,
   },
 
   tempest_grass: {
@@ -74,7 +74,7 @@ export const items: Record<string, Item> = {
     type: 'equipment',
     sprite: 'broadsword',
     stats: {
-      damage: 26,
+      damage: 22,
       range: 2.15,
     },
   },
@@ -122,7 +122,7 @@ export const items: Record<string, Item> = {
     type: 'equipment',
     sprite: 'scythe',
     stats: {
-      damage: 40,
+      damage: 34,
       range: 2.6,
     },
   },
@@ -184,6 +184,14 @@ export const items: Record<string, Item> = {
     sprite: 'golem_heart',
   },
 
+  tempered_core: {
+    id: 'tempered_core',
+    name: 'Tempered Core',
+    description: 'A fist-sized ingot prised from the Ridge Revenant, its surface folded a thousand times and still glowing at the seams. A smith who knows how to work bound steel could fold its strength into a blade.',
+    type: 'quest',
+    sprite: 'tempered_core',
+  },
+
   ranger_badge: {
     id: 'ranger_badge',
     name: 'Ranger Badge',
@@ -192,12 +200,26 @@ export const items: Record<string, Item> = {
     sprite: 'map',
   },
 
-  cursed_idol: {
-    id: 'cursed_idol',
-    name: 'Cursed Idol',
-    description: 'A blackened figurine no taller than a thumb, carved from a stone that absorbs warmth and gives back none. The hermit who gave it to you said it was worthless — and yet you cannot quite bring yourself to drop it.',
-    type: 'quest',
-    sprite: 'cursed_idol',
+  gravebound_ring: {
+    id: 'gravebound_ring',
+    name: 'Gravebound Ring',
+    description: 'A band of black stone that absorbs warmth and gives back none. It was tucked inside a hunter cache on the cliff shelf — and it fits like it was waiting.',
+    type: 'ring',
+    sprite: 'gravebound_ring',
+    stats: {
+      staminaRegenMult: 1.22,
+    },
+  },
+
+  wolf_ring: {
+    id: 'wolf_ring',
+    name: 'Wolf Ring',
+    description: 'A battered iron band stamped with a wolf\'s head. Olwen swore it crawled back onto his finger every time he threw it away — yet your wounds seem to loosen their grip a little faster while you wear it.',
+    type: 'ring',
+    sprite: 'wolf_ring',
+    stats: {
+      recoverySpeedMult: 1.22,
+    },
   },
 
   heretical_essence_apparition: {

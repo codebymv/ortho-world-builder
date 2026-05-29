@@ -76,17 +76,17 @@ export const BONFIRE_REGISTRY: BonfireEntry[] = [
   { id: 'bonfire_hollow',            name: 'Riverside Grove',     mapId: 'forest',        tileX: 156, tileY: 154 },
   { id: 'bonfire_eastern_fort_passage', name: 'Eastern Fort Passage', mapId: 'forest',     tileX: 228, tileY: 158 },
   { id: 'bonfire_forest_fort',       name: 'Corrupted Bridge',    mapId: 'forest',        tileX: 124, tileY: 77  },
-  { id: 'bonfire_forest_clearing',   name: 'Forest Clearing',     mapId: 'forest',        tileX: 148, tileY: 286 },
+  { id: 'bonfire_forest_clearing',   name: 'Forest Clearing',     mapId: 'forest',        tileX: 150, tileY: 250 },
   // World ~(-15.5, 58.5) — slightly NE of old (130,206); legacy 130_206 still unlocks (see getKindledBonfiresForMap)
   { id: 'bonfire_forest_south',      name: 'Iron Gate',           mapId: 'forest',        tileX: 134, tileY: 208 },
   { id: 'bonfire_cliff_ledge_approach', name: 'Cliff Ledge Approach', mapId: 'forest',     tileX: 193, tileY: 192 },
-  { id: 'bonfire_cliff_cemetery',    name: 'Cliff Cemetery',      mapId: 'forest',        tileX: 281, tileY: 145 },
+  { id: 'bonfire_cliff_cemetery',    name: 'Cliff Cemetery',      mapId: 'forest',        tileX: 291, tileY: 145 },
   { id: 'bonfire_east_ridge_overlook', name: 'East Ridge Overlook', mapId: 'forest',       tileX: 261, tileY: 107 },
   { id: 'bonfire_deep_hollow',       name: 'Deep Hollow',         mapId: 'forest',        tileX: 126, tileY: 46  },
-  { id: 'bonfire_gilrhym_gate',       name: 'City Gate',           mapId: 'gilrhym',       tileX: 150, tileY: 268 },
-  { id: 'bonfire_gilrhym_market',     name: 'Market Square',       mapId: 'gilrhym',       tileX: 150, tileY: 155 },
-  { id: 'bonfire_gilrhym_heights',    name: 'The Heights',         mapId: 'gilrhym',       tileX: 140, tileY: 85  },
-  { id: 'bonfire_gilrhym_cathedral',  name: 'Cathedral Steps',     mapId: 'gilrhym',       tileX: 150, tileY: 50  },
+  { id: 'bonfire_guilrhym_gate',       name: 'City Gate',           mapId: 'guilrhym',       tileX: 150, tileY: 268 },
+  { id: 'bonfire_guilrhym_market',     name: 'Market Square',       mapId: 'guilrhym',       tileX: 150, tileY: 155 },
+  { id: 'bonfire_guilrhym_heights',    name: 'The Heights',         mapId: 'guilrhym',       tileX: 140, tileY: 85  },
+  { id: 'bonfire_guilrhym_cathedral',  name: 'Cathedral Steps',     mapId: 'guilrhym',       tileX: 150, tileY: 50  },
   { id: 'bonfire_hollow_arena',      name: 'The Hollow',          mapId: 'interior_hollow_arena', tileX: 18, tileY: 28 },
 ];
 
@@ -103,6 +103,14 @@ export function getKindledBonfiresForMap(
     getBonfiresForMap(mapId).filter(b => {
       const key = `bonfire_first_${b.mapId}_${b.tileX}_${b.tileY}`;
       if (gameFlags[key]) return true;
+      // Legacy tile for Forest Clearing before reposition deeper into the south spine.
+      if (b.id === 'bonfire_forest_clearing' && gameFlags[`bonfire_first_${b.mapId}_148_286`]) {
+        return true;
+      }
+      // Legacy tile for Cliff Cemetery before the cemetery cluster shifted east.
+      if (b.id === 'bonfire_cliff_cemetery' && gameFlags[`bonfire_first_${b.mapId}_281_145`]) {
+        return true;
+      }
       // Legacy tile for Iron Gate bonfire before reposition to ~(world -15, 58)
       if (b.id === 'bonfire_forest_south' && gameFlags[`bonfire_first_${b.mapId}_130_206`]) {
         return true;

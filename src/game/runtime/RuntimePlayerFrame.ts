@@ -107,6 +107,7 @@ export function runPlayerFramePhase({
   isPlayerDead,
   particleSystem,
   lungeState,
+  arcWave,
   notify,
   handlePortalTransition,
 }: RunPlayerFramePhaseOptions) {
@@ -230,6 +231,8 @@ export function runPlayerFramePhase({
     // Up/down walk frames used for climbing read slightly east of the ladder center.
     if (facing4 === 'up' || facing4 === 'down') {
       attackOffsetX -= 0.07;
+    } else if (facing4 === 'left') {
+      attackOffsetX -= 0.02;
     }
     const climbWave = Math.sin(currentTime / 180);
     if (facing4 === 'left') attackOffsetX -= climbWave * 0.015;
@@ -360,14 +363,67 @@ export function runPlayerFramePhase({
 
   if (spinSwooshTimer > 0) {
     spinSwooshTimer -= deltaTime;
-    const progress = 1 - spinSwooshTimer / spinSwooshDuration;
-    meshes.spinSwooshMesh.visible = true;
-    meshes.spinSwooshMaterial.opacity = (1 - progress) * 0.35;
-    const chargeRange = state.player.attackRange * 1.5;
-    const spinScale = chargeRange * (0.3 + progress * 0.7);
-    meshes.spinSwooshMesh.scale.set(spinScale, spinScale, 1);
-    meshes.spinSwooshMesh.rotation.z = progress * Math.PI * 2;
-    meshes.spinSwooshMesh.position.set(playerVisualX, playerVisualY, 0.3);
+    const isScytheWave = state.equippedWeaponId === 'terminus_scythe';
+
+    if (isScytheWave) {
+      // ─── Corruption wave — travels outward in the attack direction over 0.65 s ──
+      // Duration must match SCYTHE_WAVE_DURATION in RuntimeCombatActions.ts.
+      const SCYTHE_WAVE_DURATION = 0.65;
+      const progress = Math.max(0, Math.min(1, 1 - spinSwooshTimer / SCYTHE_WAVE_DURATION));
+
+      // Use the direction locked at fire time so turning mid-wave doesn't redirect it.
+      const wDx = arcWave.dirX;
+      const wDy = arcWave.dirY;
+
+      // The wave front drifts up to ~2.5 tiles ahead.  easeOut so it launches
+      // quickly and decelerates toward max range (reads as "heavy" energy).
+      const eased = 1 - Math.pow(1 - progress, 2);
+      const VISUAL_RANGE = state.player.attackRange * 0.9;
+      const waveX = playerVisualX + wDx * eased * VISUAL_RANGE;
+      const waveY = playerVisualY + wDy * eased * VISUAL_RANGE;
+
+      // Fade: quick ramp in, slow roll out from ~65% progress.
+      const fadeIn  = Math.min(1, progress / 0.12);
+      const fadeOut = progress > 0.65 ? 1 - (progress - 0.65) / 0.35 : 1;
+      const opacity = fadeIn * fadeOut * 0.62;
+
+      meshes.spinSwooshMesh.visible = true;
+      meshes.spinSwooshMaterial.color.setHex(0x5500AA);
+      meshes.spinSwooshMaterial.opacity = opacity;
+
+      // Shape: crescent/wall — thin along travel axis, expanding perpendicular.
+      // The ring geometry looks like a thin vertical bar when scaled (thinFactor, wideFactor).
+      const thinFactor = 0.12;
+      const wideFactor = 0.65 + eased * 0.55;   // 0.65 → 1.2 as wave travels
+      const scaleX = wDx !== 0 ? thinFactor : wideFactor;
+      const scaleY = wDy !== 0 ? thinFactor : wideFactor;
+      meshes.spinSwooshMesh.scale.set(scaleX, scaleY, 1);
+      meshes.spinSwooshMesh.rotation.z = 0; // no spin — static crescent shape
+      meshes.spinSwooshMesh.position.set(waveX, waveY, 0.3);
+
+      // Per-frame corruption tendrils trailing behind the wave front.
+      if (opacity > 0.06 && particleSystem) {
+        const perpX = wDx !== 0 ? 0 : (Math.random() - 0.5) * wideFactor * 0.7;
+        const perpY = wDy !== 0 ? 0 : (Math.random() - 0.5) * wideFactor * 0.7;
+        if (Math.random() < 0.75) {
+          particleSystem.emitAt(waveX + perpX, waveY + perpY, 0.3, 2, 0x6A0DAD, 0.35, 0.22, 0.55);
+        }
+        if (Math.random() < 0.40) {
+          particleSystem.emitAt(waveX + perpX * 0.5, waveY + perpY * 0.5, 0.3, 1, 0x1A0E2E, 0.5, 0.12, 0.40);
+        }
+      }
+    } else {
+      // ─── Default sword: spinning ring expanding from the player ──────────────
+      const progress = 1 - spinSwooshTimer / spinSwooshDuration;
+      meshes.spinSwooshMesh.visible = true;
+      meshes.spinSwooshMaterial.color.setHex(0xccddff);
+      meshes.spinSwooshMaterial.opacity = (1 - progress) * 0.35;
+      const chargeRange = state.player.attackRange * 1.5;
+      const spinScale = chargeRange * (0.3 + progress * 0.7);
+      meshes.spinSwooshMesh.scale.set(spinScale, spinScale, 1);
+      meshes.spinSwooshMesh.rotation.z = progress * Math.PI * 2;
+      meshes.spinSwooshMesh.position.set(playerVisualX, playerVisualY, 0.3);
+    }
   } else {
     meshes.spinSwooshMesh.visible = false;
   }

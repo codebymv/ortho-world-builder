@@ -47,7 +47,7 @@ const PixelFlame = () => (
 const STAT_INFO: Record<string, { label: string; description: string }> = {
   vitality:  { label: 'Vigor',      description: 'Max HP +20'      },
   endurance: { label: 'Endurance',  description: 'Max Stamina +15' },
-  strength:  { label: 'Strength',   description: 'Attack +3'       },
+  strength:  { label: 'Strength',   description: 'Attack +2'       },
 };
 
 const BONFIRE_NPC_RADIUS = 30;
@@ -163,7 +163,7 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
                     className={`ml-4 w-8 h-7 shrink-0 text-xs font-bold border transition-colors ${
                       canAfford
                         ? 'border-[#5C3A21] text-[#DAA520] hover:bg-[#3D2B21] hover:border-[#DAA520]'
-                        : 'border-[#2A1A0F] text-[#3D2B21] cursor-not-allowed'
+                        : 'border-[#2A1A0F] text-[#6B5344] cursor-not-allowed'
                     }`}
                   >
                     +1
@@ -182,7 +182,7 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
             ].map((item, i, arr) => (
               <div key={item.label} className="flex items-center gap-3">
                 <div className="text-center">
-                  <div className="text-[9px] uppercase tracking-wider text-[#8B7355]">{item.label}</div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#A1887F]">{item.label}</div>
                   <div className="text-sm font-bold text-[#F5DEB3]">{item.value}</div>
                 </div>
                 {i < arr.length - 1 && <div className="w-px h-6 bg-[#3A2215]" />}
@@ -213,7 +213,7 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
 
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 pointer-events-auto">
-        <div className="bg-[#1A0F0A]/95 border-2 border-[#8B5A2B] rounded-lg p-8 max-w-sm w-full mx-4 shadow-2xl animate-scale-in">
+        <div className="bg-[#1A0F0A]/95 border-2 border-[#8B5A2B] rounded-lg p-8 max-w-xl w-full mx-4 shadow-2xl animate-scale-in">
 
           <div className="flex items-baseline justify-between mb-5">
             <h2 className="text-base font-bold text-[#DAA520] uppercase tracking-[0.25em]">
@@ -226,7 +226,7 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
 
           <div className="border-t border-[#3A2215] mb-4" />
 
-          <div className="space-y-[2px] mb-5 max-h-64 overflow-y-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[3px] mb-5">
             {kindled.map(entry => {
               const isCurrent = isCurrentBonfire(entry);
               const nearbyNpcCount = countNearbyNpcs(gameState, entry);
@@ -235,22 +235,22 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
                   key={entry.id}
                   disabled={isCurrent}
                   onClick={() => { onTravel(entry); }}
-                  className={`flex w-full items-center justify-between gap-3 px-4 py-3 border text-left text-sm font-bold uppercase tracking-wider transition-colors ${
+                  className={`flex items-center justify-between gap-3 px-4 py-3 border text-left text-sm font-bold uppercase tracking-wider transition-colors ${
                     isCurrent
-                      ? 'border-[#2A1A0F] text-[#3D2B21] cursor-not-allowed bg-[#120806]/40'
+                      ? 'border-[#5C3A21] text-[#C9A36B] cursor-not-allowed bg-[#2D1B11]/60'
                       : 'border-[#3A2215] text-[#F5DEB3] hover:bg-[#2D1B11] hover:border-[#8B5A2B] hover:text-[#FFD98A]'
                   }`}
                 >
-                  <span className="min-w-0">
+                  <span className="min-w-0 truncate">
                     {entry.name}
                     {isCurrent && (
-                      <span className="ml-2 text-[10px] normal-case tracking-normal text-[#5C4033]">
+                      <span className="ml-2 text-[10px] normal-case tracking-normal text-[#8B7355]">
                         (here)
                       </span>
                     )}
                   </span>
                   {nearbyNpcCount > 0 && (
-                    <span className={isCurrent ? 'text-[#5C4033]' : ''}>
+                    <span className={`shrink-0 ${isCurrent ? 'text-[#8B7355]' : ''}`}>
                       <NearbyNpcBadge count={nearbyNpcCount} />
                     </span>
                   )}
@@ -258,7 +258,7 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
               );
             })}
             {others.length === 0 && (
-              <p className="px-4 py-3 text-xs text-[#5C4033] italic">
+              <p className="px-4 py-3 text-xs text-[#5C4033] italic sm:col-span-2">
                 No other bonfires discovered in this area.
               </p>
             )}

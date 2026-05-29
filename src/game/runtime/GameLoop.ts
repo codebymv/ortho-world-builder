@@ -154,6 +154,8 @@ export function runGameplayPrelude({
   combatSystem,
   onLungeHit,
   onLungeEnd,
+  arcWave,
+  onArcWaveHit,
   particleSystem,
   playPropBreak,
   dodgeIFrameDuration,
@@ -200,9 +202,10 @@ export function runGameplayPrelude({
     }
   }
   if (nowSec - state.player.lastStaminaUseTime > state.player.staminaRegenDelay) {
+    const regenRate = state.player.staminaRegenRate * state.getStaminaRegenMultiplier();
     state.player.stamina = Math.min(
       state.player.maxStamina,
-      state.player.stamina + state.player.staminaRegenRate * deltaTime,
+      state.player.stamina + regenRate * deltaTime,
     );
   }
 
@@ -325,6 +328,8 @@ export function runGameplayPrelude({
     combatSystem,
     onLungeHit,
     onLungeEnd,
+    arcWave,
+    onArcWaveHit,
     particleSystem,
     playPropBreak,
     dodgeIFrameDuration,

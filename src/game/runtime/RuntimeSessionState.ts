@@ -1,4 +1,4 @@
-import type { Direction8, PlayerAnimState } from '@/game/runtime/PlayerSimulationSystem';
+import type { Direction8, PlayerAnimState, ArcWaveState } from '@/game/runtime/PlayerSimulationSystem';
 
 interface CreateRuntimeSessionStateOptions {
   initialPlayerSmoothedElevation: number;
@@ -53,6 +53,16 @@ export function createRuntimeSessionState({
       blockStartTime: 0,
       isRmbHeld: false,
       blockAngle: 0,
+      arcWave: {
+        active: false,
+        dirX: 0,
+        dirY: 0,
+        currentDist: 0,
+        maxDist: 0,
+        arcWidth: 0,
+        damage: 0,
+        hitIds: new Set<string>(),
+      } as ArcWaveState,
     },
     input: {
       isLmbHeld: false,

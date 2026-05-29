@@ -5,6 +5,17 @@ import type { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { makeVisitedTileKey } from '@/lib/game/visitedTiles';
 import { breakTileAt, breakTilesInRadius } from '@/game/runtime/BreakableProps';
 
+export interface ArcWaveState {
+  active: boolean;
+  dirX: number;
+  dirY: number;
+  currentDist: number;
+  maxDist: number;
+  arcWidth: number;
+  damage: number;
+  hitIds: Set<string>;
+}
+
 const CLIMB_SPEED_MULT = 0.55;
 /** Narrow collision while on a 1-tile ladder column surrounded by cliff. */
 const CLIMB_MOVE_RADIUS = 0;
@@ -70,6 +81,12 @@ function resolveVerticalLadderColumnX(
   }
 
   // 0.15 / 0.85 hug the rail against the dominant structural wall across the full span.
+  if (map.name === 'Whispering Woods' && tileX === 239) {
+    // A tile sprite renders centered at world-x (tileX - hw); the ladder overlay adds a +0.06
+    // east mesh shift and the climb pose draws the sprite 0.07 west. Net flush position lands at
+    // ~0.13 — matching the generic west-hug value the other (flush) vertical ladders use.
+    return tileX - hw + 0.13;
+  }
   if (westWalls >= eastWalls) return tileX - hw + 0.15;
   return tileX - hw + 0.85;
 }
@@ -257,6 +274,25 @@ export type Direction8 =
 
 export type CardinalDirection = 'up' | 'down' | 'left' | 'right';
 
+/** Attack locomotion timer can expire before frame state clears — snap to walk/idle so movement isn't a frozen attack pose. */
+export function resolveStaleAttackAnimState(
+  playerAnimState: PlayerAnimState,
+  attackAnimationTimer: number,
+  moved: boolean,
+): PlayerAnimState | null {
+  if (playerAnimState === 'attack' && attackAnimationTimer <= 0) {
+    return moved ? 'walk' : 'idle';
+  }
+  return null;
+}
+
+export function attackBlocksLocomotion(
+  playerAnimState: PlayerAnimState,
+  attackAnimationTimer: number,
+): boolean {
+  return playerAnimState === 'attack' && attackAnimationTimer > 0;
+}
+
 interface UpdatePlayerSimulationOptions {
   state: GameState;
   world: World;
@@ -314,6 +350,8 @@ interface UpdatePlayerSimulationOptions {
   };
   onLungeHit: (enemy: Enemy, damage: number) => void;
   onLungeEnd: () => void;
+  arcWave: ArcWaveState;
+  onArcWaveHit: (enemy: Enemy, damage: number) => void;
   particleSystem: ParticleSystem;
   playPropBreak?: () => void;
   dodgeIFrameDuration: number;
@@ -388,6 +426,8 @@ export function updatePlayerSimulation({
   combatSystem,
   onLungeHit,
   onLungeEnd,
+  arcWave,
+  onArcWaveHit,
   particleSystem,
   playPropBreak,
   dodgeIFrameDuration,
@@ -503,6 +543,15 @@ export function updatePlayerSimulation({
     state.player.knockbackVelY = 0;
   }
 
+  // Tick hit-stun and recovery timers every frame before any movement/animation logic.
+  const recoverySpeed = state.getRecoverySpeedMultiplier();
+  if (state.player.hurtTimer > 0) {
+    state.player.hurtTimer = Math.max(0, state.player.hurtTimer - deltaTime * recoverySpeed);
+  }
+  if (state.player.attackRecoveryTimer > 0) {
+    state.player.attackRecoveryTimer = Math.max(0, state.player.attackRecoveryTimer - deltaTime * recoverySpeed);
+  }
+
   const playerTile = world.getTile(state.player.position.x, state.player.position.y);
   state.player.isClimbing = playerTile?.type === 'ladder';
 
@@ -567,6 +616,17 @@ export function updatePlayerSimulation({
     moveY /= length;
   }
 
+  const staleAttackState = resolveStaleAttackAnimState(
+    playerAnimState,
+    state.player.attackAnimationTimer,
+    moved,
+  );
+  if (staleAttackState) {
+    playerAnimState = staleAttackState;
+    attackFrame = 0;
+    attackFrameTimer = 0;
+  }
+
   let climbingDismount = false;
   let climbingDismountTarget: { x: number; y: number } | undefined;
   let climbingSideDismount = false;
@@ -597,6 +657,8 @@ export function updatePlayerSimulation({
   }
 
   if (state.player.isDodging) {
+    // Dodge-cancel: rolling out of recovery clears the attack-lockout timer (Souls-style).
+    state.player.attackRecoveryTimer = 0;
     state.player.dodgeTimer -= deltaTime;
     const dodgeFrameSpeed = state.player.dodgeSpeed * deltaTime * 60;
     const newDodgeX = state.player.position.x + state.player.dodgeDirection.x * dodgeFrameSpeed;
@@ -630,7 +692,15 @@ export function updatePlayerSimulation({
     }
   } else if (handledLadderDismount) {
     footstepTimer = 0;
-  } else if (moved && !isBlocking && !isChargingAttack && playerAnimState !== 'spin_attack' && playerAnimState !== 'lunge' && playerAnimState !== 'lunge_recovery' && state.player.attackAnimationTimer <= 0) {
+  } else if (
+    moved &&
+    !attackBlocksLocomotion(playerAnimState, state.player.attackAnimationTimer) &&
+    !isBlocking &&
+    !isChargingAttack &&
+    playerAnimState !== 'spin_attack' &&
+    playerAnimState !== 'lunge' &&
+    playerAnimState !== 'lunge_recovery'
+  ) {
     const rawDir = state.player.isClimbing
       ? resolveClimbFacingDirection(world, state.player.position.x, state.player.position.y, moveX, moveY)
       : getDirection8(moveX > 0 ? 1 : moveX < 0 ? -1 : 0, moveY > 0 ? 1 : moveY < 0 ? -1 : 0);
@@ -746,6 +816,7 @@ export function updatePlayerSimulation({
         // Swing complete — open the combo chain window
         playerAnimState = moved ? 'walk' : 'idle';
         attackFrame = 0;
+        state.player.attackAnimationTimer = 0;
         comboWindowTimer = comboWindowDuration;
 
         // If input was buffered during the swing, chain immediately.
@@ -760,7 +831,13 @@ export function updatePlayerSimulation({
             attackFrameTimer = chainResult.frameDuration;
             playerAnimState = 'attack';
             comboWindowTimer = 0;
+          } else {
+            // Chain failed (hurt/no stamina) — enforce post-swing recovery lockout.
+            state.player.attackRecoveryTimer = comboStep >= 2 ? 0.50 : 0.35;
           }
+        } else {
+          // No input buffered — enforce recovery so rapid-fire mashing is blocked.
+          state.player.attackRecoveryTimer = comboStep >= 2 ? 0.50 : 0.35;
         }
       } else {
         attackFrameTimer = getComboFrameDuration(comboStep);
@@ -878,6 +955,30 @@ export function updatePlayerSimulation({
     state.player.attackAnimationTimer = Math.max(0, state.player.attackAnimationTimer - deltaTime);
   }
 
+  // ─── Arc wave per-frame: advance the wave front, hit enemies as it sweeps through ──
+  // Speed is calibrated to reach maxDist in exactly SCYTHE_WAVE_DURATION (0.65 s),
+  // matching the spinSwooshMesh visual in RuntimePlayerFrame.ts.
+  if (arcWave.active) {
+    const WAVE_SPEED = arcWave.maxDist / 0.65;
+    arcWave.currentDist = Math.min(arcWave.maxDist, arcWave.currentDist + WAVE_SPEED * deltaTime);
+    const allNearby = combatSystem.getEnemiesInRange(state.player.position, arcWave.maxDist + arcWave.arcWidth, _scratchLungeEnemies);
+    for (const enemy of allNearby) {
+      if (arcWave.hitIds.has(enemy.id)) continue;
+      const edx = enemy.position.x - state.player.position.x;
+      const edy = enemy.position.y - state.player.position.y;
+      const fwd = edx * arcWave.dirX + edy * arcWave.dirY;
+      if (fwd < 0 || fwd > arcWave.currentDist) continue;
+      const perpSq = edx * edx + edy * edy - fwd * fwd;
+      if (perpSq > arcWave.arcWidth * arcWave.arcWidth) continue;
+      arcWave.hitIds.add(enemy.id);
+      onArcWaveHit(enemy, arcWave.damage);
+    }
+    if (arcWave.currentDist >= arcWave.maxDist) {
+      arcWave.active = false;
+      arcWave.hitIds.clear();
+    }
+  }
+
   if (playerAnimState === 'drinking') {
     drinkTimer -= deltaTime;
     if (Math.random() < 0.3) {
@@ -892,6 +993,7 @@ export function updatePlayerSimulation({
     playerAnimState !== 'attack' &&
     playerAnimState !== 'dodge' &&
     playerAnimState !== 'charge' &&
+    playerAnimState !== 'hurt' &&
     playerAnimState !== 'spin_attack' &&
     playerAnimState !== 'lunge' &&
     playerAnimState !== 'lunge_recovery' &&
@@ -907,6 +1009,16 @@ export function updatePlayerSimulation({
       animFrame = (animFrame + 1) % 2;
       animTimer = 0;
     }
+  }
+
+  // Hurt-state override: when hit-stun is active and no priority animation is running,
+  // force 'hurt' so the player's sprite visually reacts to taking damage.
+  if (
+    state.player.hurtTimer > 0 &&
+    !state.player.isDodging &&
+    (playerAnimState === 'idle' || playerAnimState === 'walk')
+  ) {
+    playerAnimState = 'hurt';
   }
 
   if (playerAnimState === 'charge') {

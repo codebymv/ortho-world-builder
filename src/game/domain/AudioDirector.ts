@@ -1,5 +1,9 @@
 import type { MutableRefObject } from 'react';
 import type { Enemy } from '@/lib/game/Combat';
+import {
+  applyElementMute,
+  applyMasterGainMute,
+} from '@/game/domain/audioMutePreference';
 
 interface AudioProcessorRefs {
   audioContextRef: MutableRefObject<AudioContext | null>;
@@ -25,7 +29,7 @@ export function createAudioProcessor(refs: AudioProcessorRefs) {
       refs.gainNodeRef.current.gain.value = 1.4;
 
       refs.masterGainRef.current = refs.audioContextRef.current.createGain();
-      refs.masterGainRef.current.gain.value = 0.85;
+      applyMasterGainMute(refs.masterGainRef.current);
 
       refs.compressorRef.current.connect(refs.gainNodeRef.current);
       refs.gainNodeRef.current.connect(refs.masterGainRef.current);
@@ -68,6 +72,7 @@ export function createAudioProcessor(refs: AudioProcessorRefs) {
         // Ignore autoplay-policy resume failures and try again on the next user gesture.
       }
     }
+    applyMasterGainMute(refs.masterGainRef.current);
     prewarmRegistered();
     return context;
   };
@@ -192,6 +197,7 @@ export function createMusicDirector(context: MusicDirectorContext) {
     const audio = new Audio(startTrack);
     audio.loop = true;
     audio.volume = MAP_MUSIC_VOLUME;
+    applyElementMute(audio);
     context.processAudioElement(audio);
     context.musicRef.current = audio;
     context.currentTrackRef.current = startTrack;

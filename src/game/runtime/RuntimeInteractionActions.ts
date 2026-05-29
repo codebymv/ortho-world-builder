@@ -20,10 +20,13 @@ interface InteractionSystemLike {
   ) => boolean;
   tryHandleForestShortcutLever: (interactionId: string) => boolean;
   tryHandleGroveShelfShortcutLever: (interactionId: string) => boolean;
+  tryHandleWestCliffGateLever: (interactionId: string) => boolean;
   tryHandleRiversideBridgeShortcutLever: (interactionId: string) => boolean;
   tryHandleHollowShortcutLever: (interactionId: string) => boolean;
+  tryHandleEastHollowRouteGateLever: (interactionId: string) => boolean;
   tryHandleHollowApproachLadder: (interactionId: string, ladderX: number, ladderY: number) => boolean;
   tryHandleCliffCorridorLadder: (interactionId: string, ladderX: number, ladderY: number) => boolean;
+  tryHandleFortRidgeLadder: (interactionId: string, ladderX: number, ladderY: number) => boolean;
   tryHandleHollowFogGate: (interactionId: string) => boolean;
   tryHandleForestFortGate: (interactionId: string) => boolean;
   tryHandleNorthFortGate: (interactionId: string) => boolean;
@@ -272,10 +275,13 @@ export function runInteractionCheck({
     )) return;
     if (interactionSystem.tryHandleForestShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleGroveShelfShortcutLever(interactionId)) return;
+    if (interactionSystem.tryHandleWestCliffGateLever(interactionId)) return;
     if (interactionSystem.tryHandleRiversideBridgeShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleHollowShortcutLever(interactionId)) return;
+    if (interactionSystem.tryHandleEastHollowRouteGateLever(interactionId)) return;
     if (interactionSystem.tryHandleHollowApproachLadder(interactionId, px, py)) return;
     if (interactionSystem.tryHandleCliffCorridorLadder(interactionId, px, py)) return;
+    if (interactionSystem.tryHandleFortRidgeLadder(interactionId, px, py)) return;
     if (interactionSystem.tryHandleForestFortGate(interactionId)) return;
     if (interactionSystem.tryHandleNorthFortGate(interactionId)) return;
     if (interactionSystem.tryHandleWestFortGate(interactionId)) return;

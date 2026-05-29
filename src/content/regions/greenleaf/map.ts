@@ -702,7 +702,6 @@ export const villageDef: MapDefinition = {
     // N grove edges
     { x: 84, y: 26, type: 'stump', walkable: false },
     { x: 104, y: 14, type: 'stump', walkable: false },
-    { x: 86, y: 24, type: 'rock', walkable: false },
     { x: 100, y: 18, type: 'mushroom', walkable: true },
     { x: 95, y: 22, type: 'flower', walkable: true },
 

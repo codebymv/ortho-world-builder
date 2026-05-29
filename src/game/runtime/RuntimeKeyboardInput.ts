@@ -14,6 +14,8 @@ interface RuntimeKeyboardInputOptions {
   setObjectivesModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   vendorModalOpenRef: MutableRefObject<boolean>;
   setVendorModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
+  playerModalOpenRef: MutableRefObject<boolean>;
+  setPlayerModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   setIsPaused: Dispatch<SetStateAction<boolean>>;
   closeDialogueSession: () => void;
   notify: (title: string, options?: { id?: string; type?: 'success' | 'info' | 'error'; description?: string; duration?: number }) => void;
@@ -47,6 +49,8 @@ export function createKeyboardInputController({
   setObjectivesModalOpenRef,
   vendorModalOpenRef,
   setVendorModalOpenRef,
+  playerModalOpenRef,
+  setPlayerModalOpenRef,
   setIsPaused,
   closeDialogueSession,
   notify,
@@ -97,12 +101,7 @@ export function createKeyboardInputController({
 
   const cycleWeapon = (direction: -1 | 1) => {
     if (state.dialogueActive) return;
-    const weaponIds: string[] = [];
-    state.inventory.forEach(item => {
-      if (item.type === 'equipment' && !weaponIds.includes(item.id)) {
-        weaponIds.push(item.id);
-      }
-    });
+    const weaponIds = state.getLoadoutWeaponIds();
     if (weaponIds.length === 0) return;
 
     const currentIndex = Math.max(0, weaponIds.indexOf(state.equippedWeaponId ?? weaponIds[0]));
@@ -135,6 +134,10 @@ export function createKeyboardInputController({
         setVendorModalOpenRef.current(false);
         return;
       }
+      if (playerModalOpenRef.current) {
+        setPlayerModalOpenRef.current(false);
+        return;
+      }
       if (mapModalOpenRef.current) {
         setMapModalOpenRef.current(false);
         return;
@@ -148,6 +151,10 @@ export function createKeyboardInputController({
       return;
     }
 
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      return;
+    }
+
     if (e.key.toLowerCase() === 'm' && !e.repeat) {
       if (pausedRef.current || state.dialogueActive || playerDeadRef.current) return;
       e.preventDefault();
@@ -155,6 +162,7 @@ export function createKeyboardInputController({
       setInventoryModalOpenRef.current(false);
       setObjectivesModalOpenRef.current(false);
       setVendorModalOpenRef.current(false);
+      setPlayerModalOpenRef.current(false);
       setMapModalOpenRef.current(v => !v);
       return;
     }
@@ -166,6 +174,7 @@ export function createKeyboardInputController({
       setMapModalOpenRef.current(false);
       setObjectivesModalOpenRef.current(false);
       setVendorModalOpenRef.current(false);
+      setPlayerModalOpenRef.current(false);
       setInventoryModalOpenRef.current(v => !v);
       return;
     }
@@ -177,7 +186,19 @@ export function createKeyboardInputController({
       setMapModalOpenRef.current(false);
       setInventoryModalOpenRef.current(false);
       setVendorModalOpenRef.current(false);
+      setPlayerModalOpenRef.current(false);
       setObjectivesModalOpenRef.current(v => !v);
+      return;
+    }
+
+    if (e.key.toLowerCase() === 'p' && !e.repeat) {
+      if (pausedRef.current || state.dialogueActive || playerDeadRef.current) return;
+      e.preventDefault();
+      setMapModalOpenRef.current(false);
+      setInventoryModalOpenRef.current(false);
+      setObjectivesModalOpenRef.current(false);
+      setVendorModalOpenRef.current(false);
+      setPlayerModalOpenRef.current(v => !v);
       return;
     }
 

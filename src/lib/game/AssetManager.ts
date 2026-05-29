@@ -414,6 +414,12 @@ export class AssetManager {
     weaponScale: number = 1.0,
     // Combo step: 0=default swing, 1=backhand return, 2=overhead finisher
     comboStep: number = 0,
+    // Extra downward pixel shift applied only to non-attack hold poses (idle/walk/block/charge).
+    // Use for long weapons (e.g. scythe) whose blade tip clips the character's face at cy=default.
+    weaponRestYShift: number = 0,
+    // When 'scythe', applies a completely separate WPose table designed around scythe mechanics
+    // (trailing low carry, ground-skim combo 0, hook pull combo 1, diagonal finisher combo 2).
+    weaponType: 'default' | 'scythe' = 'default',
   ): THREE.Texture {
     // Grid-based pixel art: 16 cols x 20 rows, 4px per cell = 64x80
     const G = 4; // grid cell size
@@ -1028,27 +1034,78 @@ export class AssetManager {
 
       if (isSide) {
         const cy0 = bobPx;
-        if (atkFrame >= 0 && comboStep === 0) {
-          if (atkFrame === 0)      pose = { cx: 34, cy: 16 + cy0, angleDeg: -46, scale: 1.0 };
-          else if (atkFrame === 1) pose = { cx: 50, cy: 26 + cy0, angleDeg: -16, scale: 1.0 };
-          else                     pose = { cx: 54, cy: 46 + cy0, angleDeg: -16, scale: 1.0 };
-        } else if (atkFrame >= 0 && comboStep === 1) {
-          // Backhand return: blade starts low, sweeps high on opposite side
-          if (atkFrame === 0)      pose = { cx: 12, cy: 46 + cy0, angleDeg: 16, scale: 1.0 };
-          else if (atkFrame === 1) pose = { cx: 42, cy: 32 + cy0, angleDeg: 40, scale: 1.0 };
-          else                     pose = { cx: 50, cy: 14 + cy0, angleDeg: 50, scale: 1.0 };
-        } else if (atkFrame >= 0 && comboStep === 2) {
-          // Overhead slam: vertical trajectory
-          if (atkFrame === 0)      pose = { cx: 32, cy:  8 + cy0, angleDeg: -90, scale: 1.0 };
-          else if (atkFrame === 1) pose = { cx: 24, cy: 28 + cy0, angleDeg: -80, scale: 1.0 };
-          else                     pose = { cx: 20, cy: 52 + cy0, angleDeg: -75, scale: 1.0 };
-        } else if (isBlock) {
-          pose = { cx: 42, cy: 26 + cy0, angleDeg: -21, scale: 1.0 };
-        } else if (state === 'charge') {
-          if (frame === 0)       pose = { cx: 42, cy: 32 + cy0, angleDeg: -30, scale: 1.0 };
-          else                   pose = { cx: 46, cy: 32 + cy0, angleDeg: -17, scale: 1.0 };
+        if (weaponType === 'scythe') {
+          // ═══════════════════════════════════════════════════════════════════
+          // SCYTHE-SPECIFIC POSE TABLE
+          // All positions tuned for weaponScale=1.3 (icon 41.6×41.6 px on canvas).
+          // At S=1.3: A=10.4, B=33.8 — blade tip: cx+(-10.4cosθ+33.8sinθ), cy+(-10.4sinθ−33.8cosθ)
+          // Canvas 64×80 px.  Every pose verified: tip AND handle-tail stay inside bounds.
+          //
+          //  Combo 0 — Rising arc (forward-sweep right to upper-left follow-through)
+          //    f0 blade (40,14) → f1 blade (14,13) → f2 blade (3,30)
+          //  Combo 1 — Hook pull-through (blade pulled left, scoops upward-right)
+          //    f0 blade (4,74) → f1 blade (2,54) → f2 blade (2,20)
+          //  Combo 2 — Overhead slam (blade upper-right, crushes diagonally down)
+          //    f0 blade (5,2) → f1 blade (6,18) → f2 blade (30,21)
+          //  Carry: blade at (11,48) trailing behind; Charge: raised overhead in 3 steps
+          // ═══════════════════════════════════════════════════════════════════
+          if (atkFrame >= 0 && comboStep === 0) {
+            // Rising arc — blade forward at body-right, sweeps through to upper-left
+            if (atkFrame === 0)      pose = { cx: 32, cy: 52 + cy0, angleDeg:  30, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 30, cy: 42 + cy0, angleDeg: -10, scale: 1.0 };
+            else                     pose = { cx: 38, cy: 32 + cy0, angleDeg: -70, scale: 1.0 };
+          } else if (atkFrame >= 0 && comboStep === 1) {
+            // Hook pull-through — blade yanked left/behind, hooks up to the right
+            if (atkFrame === 0)      pose = { cx: 28, cy: 48 + cy0, angleDeg: -120, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 36, cy: 44 + cy0, angleDeg:  -90, scale: 1.0 };
+            else                     pose = { cx: 36, cy: 28 + cy0, angleDeg:  -60, scale: 1.0 };
+          } else if (atkFrame >= 0 && comboStep === 2) {
+            // Overhead slam — scythe loaded upper-right, crashes diagonally down
+            if (atkFrame === 0)      pose = { cx: 36, cy: 18 + cy0, angleDeg: -45, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 30, cy: 44 + cy0, angleDeg: -25, scale: 1.0 };
+            else                     pose = { cx: 34, cy: 56 + cy0, angleDeg:  10, scale: 1.0 };
+          } else if (isBlock) {
+            // Horizontal guard: scythe held parallel to body, blade to the left
+            pose = { cx: 40, cy: 38 + cy0, angleDeg: -75, scale: 1.0 };
+          } else if (state === 'charge') {
+            // Three-frame overhead wind-up (verified in-bounds at S=1.3):
+            //  f0 — ready:    blade (9,46) mid-body trailing
+            //  f1 — rising:   blade (6,20) at head level
+            //  f2 — overhead: blade (5,6)  fully raised
+            if (frame === 0)      pose = { cx: 44, cy: 44 + cy0, angleDeg: -75, scale: 1.0 };
+            else if (frame === 1) pose = { cx: 40, cy: 28 + cy0, angleDeg: -60, scale: 1.0 };
+            else                  pose = { cx: 38, cy: 24 + cy0, angleDeg: -50, scale: 1.0 };
+          } else {
+            // Idle / walk carry — blade trails behind at hip level (cx=40 keeps
+            // the blade tip at x≈11 right-facing, well within the left canvas edge at S=1.3)
+            pose = { cx: 40, cy: 52 + cy0, angleDeg: -65, scale: 1.0 };
+          }
         } else {
-          pose = { cx: 46, cy: 36 + cy0, angleDeg: -20, scale: 1.0 };
+          // ── DEFAULT (sword / broadsword) pose table ──────────────────────
+          if (atkFrame >= 0 && comboStep === 0) {
+            if (atkFrame === 0)      pose = { cx: 34, cy: 16 + cy0, angleDeg: -46, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 50, cy: 26 + cy0, angleDeg: -16, scale: 1.0 };
+            else                     pose = { cx: 54, cy: 46 + cy0, angleDeg: -16, scale: 1.0 };
+          } else if (atkFrame >= 0 && comboStep === 1) {
+            // Backhand return: blade starts low, sweeps high on opposite side
+            if (atkFrame === 0)      pose = { cx: 12, cy: 46 + cy0, angleDeg: 16, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 42, cy: 32 + cy0, angleDeg: 40, scale: 1.0 };
+            else                     pose = { cx: 50, cy: 14 + cy0, angleDeg: 50, scale: 1.0 };
+          } else if (atkFrame >= 0 && comboStep === 2) {
+            // Overhead slam: vertical trajectory
+            if (atkFrame === 0)      pose = { cx: 32, cy:  8 + cy0, angleDeg: -90, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 24, cy: 28 + cy0, angleDeg: -80, scale: 1.0 };
+            else                     pose = { cx: 20, cy: 52 + cy0, angleDeg: -75, scale: 1.0 };
+          } else if (isBlock) {
+            pose = { cx: 42, cy: 26 + cy0 + weaponRestYShift, angleDeg: -21, scale: 1.0 };
+          } else if (state === 'charge') {
+            if (frame === 0)       pose = { cx: 42, cy: 32 + cy0 + weaponRestYShift, angleDeg: -30, scale: 1.0 };
+            else                   pose = { cx: 46, cy: 32 + cy0 + weaponRestYShift, angleDeg: -17, scale: 1.0 };
+          } else {
+            // Idle / walk rest pose. weaponRestYShift pushes the grip anchor down so long-bladed
+            // weapons (e.g. scythe) don't overlap the character's face when held at the side.
+            pose = { cx: 46, cy: 36 + cy0 + weaponRestYShift, angleDeg: -20, scale: 1.0 };
+          }
         }
       } else if (!isUp) {
         const cy0 = bobPx;
@@ -1067,12 +1124,111 @@ export class AssetManager {
           else if (atkFrame === 1) pose = { cx: 32, cy: 28 + cy0, angleDeg: -90, scale: 1.0 };
           else                     pose = { cx: 32, cy: 56 + cy0, angleDeg: -90, scale: 1.0 };
         } else if (isBlock) {
-          pose = { cx: 18, cy: 30 + cy0, angleDeg: -39, scale: 1.0 };
+          pose = { cx: 18, cy: 30 + cy0 + weaponRestYShift, angleDeg: -39, scale: 1.0 };
         } else if (state === 'charge') {
-          if (frame === 0)       pose = { cx: 14, cy: 40 + cy0, angleDeg: -40, scale: 1.0 };
-          else                   pose = { cx: 14, cy: 32 + cy0, angleDeg: -40, scale: 1.0 };
+          if (weaponType === 'scythe') {
+            // Front-facing overhead wind-up — verified in-bounds at S=1.3:
+            //  f0: cx=30 (was 52) prevents tail_x from clipping right edge
+            //  f1: cx=38 (was 44) same reason; cy stays mid-canvas
+            //  f2: cx=36, cy=24 (was cy=16) prevents tail_y clipping top
+            if (frame === 0)      pose = { cx: 30, cy: 48 + cy0, angleDeg: -30, scale: 1.0 };
+            else if (frame === 1) pose = { cx: 38, cy: 28 + cy0, angleDeg: -50, scale: 1.0 };
+            else                  pose = { cx: 36, cy: 24 + cy0, angleDeg: -60, scale: 1.0 };
+          } else {
+            if (frame === 0)       pose = { cx: 14, cy: 40 + cy0 + weaponRestYShift, angleDeg: -40, scale: 1.0 };
+            else                   pose = { cx: 14, cy: 32 + cy0 + weaponRestYShift, angleDeg: -40, scale: 1.0 };
+          }
         } else {
-          pose = { cx: 14, cy: 40 + cy0, angleDeg: -40, scale: 1.0 };
+          pose = { cx: 14, cy: 40 + cy0 + weaponRestYShift, angleDeg: -40, scale: 1.0 };
+        }
+      }
+
+      // Front-facing (!isUp) scythe override — default sword table uses cx=14 which puts the
+      // S=1.3 blade tip at x≈-21 (off canvas left). Override every non-charge state here.
+      // Charge is already handled by the scythe-specific branch inside the !isUp block above.
+      if (!isUp && weaponType === 'scythe' && state !== 'charge') {
+        const cy0 = bobPx;
+        if (atkFrame >= 0 && comboStep === 0) {
+          // Rising arc — blade forward-right → horizontal sweep → upper-left follow-through
+          if (atkFrame === 0)      pose = { cx: 40, cy: 52 + cy0, angleDeg:  30, scale: 1.0 };
+          else if (atkFrame === 1) pose = { cx: 28, cy: 44 + cy0, angleDeg: -20, scale: 1.0 };
+          else                     pose = { cx: 38, cy: 36 + cy0, angleDeg: -65, scale: 1.0 };
+        } else if (atkFrame >= 0 && comboStep === 1) {
+          // Hook pull-through
+          if (atkFrame === 0)      pose = { cx: 28, cy: 52 + cy0, angleDeg: -120, scale: 1.0 };
+          else if (atkFrame === 1) pose = { cx: 36, cy: 44 + cy0, angleDeg:  -90, scale: 1.0 };
+          else                     pose = { cx: 36, cy: 32 + cy0, angleDeg:  -60, scale: 1.0 };
+        } else if (atkFrame >= 0 && comboStep === 2) {
+          // Overhead slam
+          if (atkFrame === 0)      pose = { cx: 32, cy: 16 + cy0, angleDeg: -45, scale: 1.0 };
+          else if (atkFrame === 1) pose = { cx: 30, cy: 44 + cy0, angleDeg: -25, scale: 1.0 };
+          else                     pose = { cx: 34, cy: 56 + cy0, angleDeg:  10, scale: 1.0 };
+        } else if (isBlock) {
+          // Steep angle — at face-level (y≈20) the shaft is at x≈67, off-canvas right → face clear
+          pose = { cx: 44, cy: 38 + cy0, angleDeg: -75, scale: 1.0 };
+        } else {
+          // Idle / walk — scythe held down-right at hip, blade hanging to lower-left.
+          // At θ=-75°, cx=44: shaft exits the right edge before reaching face height,
+          // so the blade trails below the body and the face is fully unobstructed.
+          pose = { cx: 44, cy: 52 + cy0, angleDeg: -75, scale: 1.0 };
+        }
+      }
+
+      // Up-facing (back of head) — full pose table for all weapon types
+      if (isUp) {
+        const cy0 = bobPx;
+        if (weaponType === 'scythe') {
+          // ── SCYTHE up-facing ──────────────────────────────────────────────
+          if (atkFrame >= 0 && comboStep === 0) {
+            // Rising arc (mirrors isSide combo 0, verified in-bounds at S=1.3)
+            if (atkFrame === 0)      pose = { cx: 32, cy: 52 + cy0, angleDeg:  30, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 30, cy: 42 + cy0, angleDeg: -10, scale: 1.0 };
+            else                     pose = { cx: 38, cy: 32 + cy0, angleDeg: -70, scale: 1.0 };
+          } else if (atkFrame >= 0 && comboStep === 1) {
+            // Hook pull-through (mirrors isSide combo 1)
+            if (atkFrame === 0)      pose = { cx: 28, cy: 48 + cy0, angleDeg: -120, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 36, cy: 44 + cy0, angleDeg:  -90, scale: 1.0 };
+            else                     pose = { cx: 36, cy: 28 + cy0, angleDeg:  -60, scale: 1.0 };
+          } else if (atkFrame >= 0 && comboStep === 2) {
+            // Overhead slam (mirrors isSide combo 2)
+            if (atkFrame === 0)      pose = { cx: 36, cy: 18 + cy0, angleDeg: -45, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 30, cy: 44 + cy0, angleDeg: -25, scale: 1.0 };
+            else                     pose = { cx: 34, cy: 56 + cy0, angleDeg:  10, scale: 1.0 };
+          } else if (isBlock) {
+            pose = { cx: 40, cy: 38 + cy0, angleDeg: -75, scale: 1.0 };
+          } else if (state === 'charge') {
+            // Overhead wind-up above the back of the head (verified in-bounds at S=1.3)
+            if (frame === 0)      pose = { cx: 44, cy: 44 + cy0, angleDeg: -75, scale: 1.0 };
+            else if (frame === 1) pose = { cx: 40, cy: 28 + cy0, angleDeg: -60, scale: 1.0 };
+            else                  pose = { cx: 38, cy: 24 + cy0, angleDeg: -50, scale: 1.0 };
+          } else {
+            // Idle/walk carry — cx=40 keeps blade tip inside left edge at S=1.3
+            pose = { cx: 40, cy: 52 + cy0, angleDeg: -65, scale: 1.0 };
+          }
+        } else {
+          // ── DEFAULT (sword / broadsword) up-facing ────────────────────────
+          // Mirrors the front-facing (!isUp) table; the back-of-head body layout
+          // shares the same canvas geometry so the same coordinates read correctly.
+          if (atkFrame >= 0 && comboStep === 0) {
+            if (atkFrame === 0)      pose = { cx: 30, cy:  6 + cy0, angleDeg: -93, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 14, cy: 30 + cy0, angleDeg: -57, scale: 1.0 };
+            else                     pose = { cx: 14, cy: 54 + cy0, angleDeg: -57, scale: 1.0 };
+          } else if (atkFrame >= 0 && comboStep === 1) {
+            if (atkFrame === 0)      pose = { cx: 14, cy: 54 + cy0, angleDeg: -57, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 50, cy: 30 + cy0, angleDeg: -123, scale: 1.0 };
+            else                     pose = { cx: 44, cy:  8 + cy0, angleDeg: -110, scale: 1.0 };
+          } else if (atkFrame >= 0 && comboStep === 2) {
+            if (atkFrame === 0)      pose = { cx: 32, cy:  4 + cy0, angleDeg: -90, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 32, cy: 28 + cy0, angleDeg: -90, scale: 1.0 };
+            else                     pose = { cx: 32, cy: 56 + cy0, angleDeg: -90, scale: 1.0 };
+          } else if (isBlock) {
+            pose = { cx: 18, cy: 30 + cy0 + weaponRestYShift, angleDeg: -39, scale: 1.0 };
+          } else if (state === 'charge') {
+            if (frame === 0)       pose = { cx: 14, cy: 40 + cy0 + weaponRestYShift, angleDeg: -40, scale: 1.0 };
+            else                   pose = { cx: 14, cy: 32 + cy0 + weaponRestYShift, angleDeg: -40, scale: 1.0 };
+          } else {
+            pose = { cx: 14, cy: 40 + cy0 + weaponRestYShift, angleDeg: -40, scale: 1.0 };
+          }
         }
       }
 
@@ -3304,6 +3460,86 @@ export class AssetManager {
       [AR_CAPE, C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       AR_CAPE, C      ],
     ], 4, 'enemy_ashen_reaver_attack'));
 
+    // --- Ridge Revenant: heretically bound reaper (evolved Hollow Reaver) ---
+    // Grim reaper read — hood, skull, tattered cloak, heavy scythe. Dual ember eyes and iron
+    // stitch-marks sell "death dragged back wrong"; no tripod legs or wing-like blade arms.
+    const RR_CK  = 0x100A08; // ash-black cloak
+    const RR_CKH = 0x2A1E18; // cloak fold highlight
+    const RR_CKS = 0x060404; // deepest shadow
+    const RR_HD  = 0x080404; // hood void
+    const RR_SK  = 0xD4C4B0; // exposed bone
+    const RR_SKH = 0xEEE0CC; // bone highlight
+    const RR_SKS = 0x8A7868; // bone shadow
+    const RR_EYE = 0xFF6F00; // ember eye — heretical false life
+    const RR_EYH = 0xFFB347; // ember highlight
+    const RR_BL  = 0xD8D0C8; // scythe blade
+    const RR_BLS = 0x6A5A48; // blade shadow
+    const RR_HN  = 0x1A1208; // scythe haft
+    const RR_WSP = 0x241810; // ash wisps beneath robe
+    const RR_IRN = 0x3E3428; // binding iron plates
+    const RR_IRH = 0x5A4E40; // iron highlight
+    const RR_STC = 0x7A5030; // rust stitch / heretical suture
+    const RR_RST = 0x5A3820; // dried blood rust on blade
+    const RR_CHG = 0xFF3B00; // charge outline (telegraph)
+    const RR_SLH = 0xFFE8C0; // slash flash
+
+    this.registerTexture('enemy_ridge_revenant', () => this.createSpriteTexture([
+      [C,       C,       C,       C,       C,       C,       C,       RR_CKH,  RR_CKH,  C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       RR_CKS,  RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CKS,  C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_CKS,  RR_CKH,  RR_CK,   RR_HD,   RR_HD,   RR_CK,   RR_CKH,  RR_CKS,  C,       C,       C,       C      ],
+      [C,       C,       C,       RR_CKS,  RR_CK,   RR_SKH,  RR_EYE,  RR_SK,   RR_SK,   RR_EYE,  RR_SKH,  RR_CK,   RR_CKS,  C,       C,       C      ],
+      [C,       C,       RR_CKS,  RR_CK,   RR_SKS,  RR_SK,   RR_STC,  RR_SK,   RR_SK,   RR_STC,  RR_SK,   RR_SKS,  RR_CK,   RR_CKS,  C,       C      ],
+      [C,       RR_BLS,  RR_BL,   RR_HN,   RR_IRN,  RR_IRH,  RR_CK,   RR_STC,  RR_STC,  RR_CK,   RR_IRH,  RR_IRN,  C,       C,       C,       C      ],
+      [RR_BL,   RR_BLS,  C,       C,       RR_IRN,  RR_CK,   RR_RST,  RR_CK,   RR_CK,   RR_CK,   RR_IRN,  C,       C,       C,       C,       C      ],
+      [C,       RR_BLS,  C,       C,       RR_CKS,  RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CKS,  C,       C,       C,       C      ],
+      [C,       C,       RR_WSP,  RR_CKS,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKS,  RR_WSP,  C,       C      ],
+      [C,       C,       C,       RR_CKS,  RR_CK,   RR_CK,   RR_SK,   RR_CK,   RR_CK,   RR_SK,   RR_CK,   RR_CK,   RR_CKS,  C,       C,       C      ],
+      [C,       C,       C,       C,       RR_CKS,  RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CKS,  C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_WSP,  RR_CKS,  RR_CK,   RR_CKS,  RR_CKS,  RR_CK,   RR_CKS,  RR_WSP,  C,       C,       C,       C      ],
+      [C,       C,       RR_WSP,  C,       RR_WSP,  RR_CKS,  RR_WSP,  C,       C,       RR_WSP,  RR_CKS,  RR_WSP,  C,       RR_WSP,  C,       C      ],
+      [C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C      ],
+      [C,       C,       C,       C,       C,       RR_WSP,  C,       RR_WSP,  C,       RR_WSP,  C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+    ], 4, 'enemy_ridge_revenant'));
+
+    this.registerTexture('enemy_ridge_revenant_telegraph', () => this.createSpriteTexture([
+      [C,       C,       C,       RR_BLS,  RR_BL,   RR_BL,   RR_HN,   C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       RR_BLS,  RR_BL,   RR_BL,   RR_HN,   C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_CHG,  RR_CKH,  RR_CKH,  RR_CHG,  C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       RR_CHG,  RR_CKH,  RR_CK,   RR_HD,   RR_HD,   RR_CK,   RR_CKH,  RR_CHG,  C,       C,       C,       C,       C      ],
+      [C,       C,       RR_CKS,  RR_CK,   RR_SKH,  RR_EYH,  RR_EYE,  RR_SK,   RR_EYE,  RR_EYH,  RR_SKH,  RR_CK,   RR_CKS,  C,       C,       C      ],
+      [C,       RR_BLS,  RR_BL,   RR_HN,   RR_IRN,  RR_IRH,  RR_CK,   RR_STC,  RR_STC,  RR_CK,   RR_IRH,  RR_IRN,  C,       C,       C,       C      ],
+      [RR_BL,   RR_BLS,  RR_HN,   C,       RR_CHG,  RR_CK,   RR_RST,  RR_CK,   RR_CK,   RR_CK,   RR_CHG,  C,       C,       C,       C,       C      ],
+      [C,       RR_CHG,  C,       C,       RR_CKS,  RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CKS,  C,       C,       C,       C      ],
+      [C,       C,       RR_CHG,  RR_CKS,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKS,  RR_CHG,  C,       C      ],
+      [C,       C,       C,       RR_CKS,  RR_CK,   RR_CK,   RR_SK,   RR_CK,   RR_CK,   RR_SK,   RR_CK,   RR_CK,   RR_CKS,  C,       C,       C      ],
+      [C,       C,       C,       C,       RR_CKS,  RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CKS,  C,       C,       C,       C      ],
+      [C,       C,       C,       RR_WSP,  RR_CKS,  RR_CK,   RR_CKS,  RR_CKS,  RR_CK,   RR_CKS,  RR_CKS,  RR_WSP,  C,       C,       C,       C      ],
+      [C,       RR_WSP,  RR_WSP,  C,       RR_WSP,  RR_CKS,  RR_WSP,  C,       C,       RR_WSP,  RR_CKS,  RR_WSP,  C,       RR_WSP,  RR_WSP,  C      ],
+      [RR_WSP,  C,       RR_WSP,  C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C      ],
+      [C,       C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+    ], 4, 'enemy_ridge_revenant_telegraph'));
+
+    this.registerTexture('enemy_ridge_revenant_attack', () => this.createSpriteTexture([
+      [C,       C,       C,       C,       C,       C,       C,       RR_CKH,  RR_CKH,  C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       RR_CKS,  RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CKS,  C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_CKS,  RR_CKH,  RR_CK,   RR_HD,   RR_HD,   RR_CK,   RR_CKH,  RR_CKS,  C,       C,       C,       C      ],
+      [C,       C,       C,       RR_CKS,  RR_CK,   RR_SKH,  RR_EYH,  RR_SK,   RR_SK,   RR_EYH,  RR_SKH,  RR_CK,   RR_CKS,  C,       C,       C      ],
+      [C,       C,       RR_CKS,  RR_CK,   RR_SKS,  RR_SK,   RR_STC,  RR_SK,   RR_SK,   RR_STC,  RR_SK,   RR_SKS,  RR_CK,   RR_CKS,  C,       C      ],
+      [C,       C,       RR_IRN,  RR_IRH,  RR_CK,   RR_CK,   RR_STC,  RR_STC,  RR_CK,   RR_IRH,  RR_IRN,  RR_HN,   RR_BLS,  RR_BL,   C,       C      ],
+      [C,       C,       RR_IRN,  RR_CK,   RR_RST,  RR_CK,   RR_CK,   RR_CK,   RR_HN,   RR_BL,   RR_BLS,  RR_SLH,  C,       C,       C,       C      ],
+      [C,       C,       C,       RR_CKS,  RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_BLS,  RR_SLH,  C,       C,       C,       C,       C,       C      ],
+      [C,       C,       RR_WSP,  RR_CKS,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKS,  RR_WSP,  C,       C      ],
+      [C,       C,       C,       RR_CKS,  RR_CK,   RR_CK,   RR_SK,   RR_CK,   RR_CK,   RR_SK,   RR_CK,   RR_CK,   RR_CKS,  C,       C,       C      ],
+      [C,       C,       C,       C,       RR_CKS,  RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CKS,  C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_WSP,  RR_CKS,  RR_CK,   RR_CKS,  RR_CKS,  RR_CK,   RR_CKS,  RR_WSP,  C,       C,       C,       C      ],
+      [C,       C,       RR_WSP,  C,       RR_WSP,  RR_CKS,  RR_WSP,  C,       C,       RR_WSP,  RR_CKS,  RR_WSP,  C,       RR_WSP,  C,       C      ],
+      [C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C      ],
+      [C,       C,       C,       C,       C,       RR_WSP,  C,       RR_WSP,  C,       RR_WSP,  C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+    ], 4, 'enemy_ridge_revenant_attack'));
+
     const registerWalkAliasCycle = (prefix: string, frames: readonly string[]) => {
       for (let frame = 0; frame < frames.length; frame++) {
         const source = frames[frame];
@@ -3352,6 +3588,12 @@ export class AssetManager {
       'enemy_ashen_reaver_attack',
       'enemy_ashen_reaver',
       'enemy_ashen_reaver_telegraph',
+    ]);
+    registerWalkAliasCycle('enemy_ridge_revenant', [
+      'enemy_ridge_revenant',
+      'enemy_ridge_revenant_attack',
+      'enemy_ridge_revenant',
+      'enemy_ridge_revenant_telegraph',
     ]);
 
     this.registerTexture('enemy_golem_walk_2', () => this.createSpriteTexture([
@@ -4786,32 +5028,60 @@ export class AssetManager {
       [C,         C,         GH_STONE_D,GH_STONE,  GH_STONE,  GH_STONE_D,C,         C        ],
     ], 4);
 
+    // Tempered Core â€” folded steel ingot with molten seams glowing along the folds.
+    const TC_STEEL  = 0x5C6470;  // cool steel
+    const TC_STEELH = 0x8A95A3;  // steel highlight
+    const TC_STEELD = 0x343A42;  // steel shadow
+    const TC_SEAM   = 0xFF6F00;  // glowing fold seam
+    const TC_SEAMH  = 0xFFC04D;  // hot seam highlight
+    const TC_CORE   = 0xFFE08A;  // hottest core
+    registerSpriteTexture('tempered_core', [
+      [C,         C,         TC_STEELH, TC_STEEL,  TC_STEEL,  TC_STEELH, C,         C        ],
+      [C,         TC_STEELH, TC_STEEL,  TC_SEAM,   TC_STEEL,  TC_STEEL,  TC_STEELH, C        ],
+      [TC_STEELH, TC_STEEL,  TC_SEAM,   TC_SEAMH,  TC_SEAM,   TC_STEEL,  TC_STEEL,  TC_STEELH],
+      [TC_STEEL,  TC_SEAM,   TC_SEAMH,  TC_CORE,   TC_SEAMH,  TC_SEAM,   TC_STEEL,  TC_STEEL ],
+      [TC_STEEL,  TC_STEEL,  TC_SEAM,   TC_SEAMH,  TC_CORE,   TC_SEAMH,  TC_SEAM,   TC_STEEL ],
+      [TC_STEELH, TC_STEELD, TC_STEEL,  TC_SEAM,   TC_SEAMH,  TC_SEAM,   TC_STEELD, TC_STEELD],
+      [C,         TC_STEEL,  TC_STEELD, TC_STEEL,  TC_SEAM,   TC_STEELD, TC_STEEL,  C        ],
+      [C,         C,         TC_STEELD, TC_STEEL,  TC_STEEL,  TC_STEELD, C,         C        ],
+    ], 4);
+
     const HE_DP = 0x4A148C;
     const HE_P  = 0x7C4DFF;
     const HE_LP = 0xB388FF;
     const HE_BC = 0xEA80FC;
     const HE_WC = 0xF3E5F5;
     const HE_SH = 0x311B92;
-    // Cursed Idol — squat humanoid figurine carved from a black absorbent stone.
-    // Faint violet seep in the eye sockets — same hue as the Hollow corruption.
-    const CI_K  = 0x1A1418;  // deepest black-stone
-    const CI_KH = 0x2C2429;  // stone highlight
-    const CI_KS = 0x0E0A0C;  // stone shadow
-    const CI_E  = 0x4A148C;  // violet eye seep (matches HE_DP)
-    const CI_EH = 0x7C4DFF;  // eye gleam
-    const CI_BS = 0x6B4226;  // small wooden base
-    const CI_BH = 0x8B5A33;  // base highlight
+    // Gravebound Ring — black stone band with faint violet corruption seep.
+    const GR_K  = 0x1A1418;
+    const GR_KH = 0x2C2429;
+    const GR_KS = 0x0E0A0C;
+    const GR_E  = 0x4A148C;
+    const GR_EH = 0x7C4DFF;
 
-    registerSpriteTexture('cursed_idol', [
-      //       0      1      2      3      4      5      6      7
-      /* 0 */ [C,     C,     CI_KH, CI_K,  CI_K,  CI_KH, C,     C    ],
-      /* 1 */ [C,     CI_KH, CI_K,  CI_K,  CI_K,  CI_K,  CI_KH, C    ],
-      /* 2 */ [C,     CI_K,  CI_KS, CI_E,  CI_E,  CI_KS, CI_K,  C    ],
-      /* 3 */ [C,     CI_KH, CI_K,  CI_EH, CI_EH, CI_K,  CI_KH, C    ],
-      /* 4 */ [CI_KH, CI_K,  CI_K,  CI_KS, CI_KS, CI_K,  CI_K,  CI_KH],
-      /* 5 */ [CI_K,  CI_K,  CI_KH, CI_K,  CI_K,  CI_KH, CI_K,  CI_K ],
-      /* 6 */ [CI_KS, CI_K,  CI_K,  CI_K,  CI_K,  CI_K,  CI_K,  CI_KS],
-      /* 7 */ [C,     CI_BH, CI_BS, CI_BS, CI_BS, CI_BS, CI_BH, C    ],
+    registerSpriteTexture('gravebound_ring', [
+      [C,     C,     GR_KH, GR_K,  GR_K,  GR_KH, C,     C    ],
+      [C,     GR_KH, GR_K,  GR_E,  GR_E,  GR_K,  GR_KH, C    ],
+      [C,     GR_K,  GR_KS, GR_EH, GR_EH, GR_KS, GR_K,  C    ],
+      [GR_KH, GR_K,  GR_K,  GR_KS, GR_KS, GR_K,  GR_K,  GR_KH],
+      [C,     GR_KH, GR_K,  GR_K,  GR_K,  GR_KH, C,     C    ],
+      [C,     C,     GR_KH, GR_K,  GR_K,  GR_KH, C,     C    ],
+    ], 4);
+
+    // Wolf Ring — battered iron band with a stamped wolf head crest.
+    const WR_I  = 0x5D4037;
+    const WR_IH = 0x8D6E63;
+    const WR_IS = 0x3E2723;
+    const WR_E  = 0xBCAAA4;
+    const WR_W  = 0xD7CCC8;
+
+    registerSpriteTexture('wolf_ring', [
+      [C,     C,     WR_IH, WR_I,  WR_I,  WR_IH, C,     C    ],
+      [C,     WR_IH, WR_I,  WR_W,  WR_W,  WR_I,  WR_IH, C    ],
+      [C,     WR_I,  WR_IS, WR_E,  WR_E,  WR_IS, WR_I,  C    ],
+      [WR_IH, WR_I,  WR_I,  WR_IS, WR_IS, WR_I,  WR_I,  WR_IH],
+      [C,     WR_IH, WR_I,  WR_I,  WR_I,  WR_IH, C,     C    ],
+      [C,     C,     WR_IH, WR_I,  WR_I,  WR_IH, C,     C    ],
     ], 4);
 
     registerSpriteTexture('heretical_essence_apparition', [
@@ -5394,22 +5664,24 @@ export class AssetManager {
       }
     }
 
-    // Terminus Scythe inventory icon
-    const SC_B  = 0x2A1B3D;  // dark-matter blade
+    // Terminus Scythe inventory icon — oversized crescent blade, long ash shaft
+    const SC_B  = 0x2A1B3D;  // dark-matter blade core
     const SC_BH = 0x6A0DAD;  // purple edge highlight
+    const SC_BM = 0x4A2A7D;  // blade midtone (depth shading)
     const SC_BS = 0x1A0E2E;  // deep shadow
     const SC_SH = 0x8B8B8B;  // shaft gray
     const SC_SD = 0x5C5C5C;  // shaft shadow
     const SC_G  = 0x4E342E;  // grip leather
     registerSpriteTexture('scythe', [
-      /* 0 */ [C,     SC_BH, SC_B,  SC_B,  SC_BS, C,     C,     C    ],
-      /* 1 */ [SC_BH, SC_B,  SC_B,  SC_BS, C,     C,     C,     C    ],
-      /* 2 */ [C,     SC_BS, SC_B,  SC_SH, C,     C,     C,     C    ],
-      /* 3 */ [C,     C,     SC_SH, SC_SH, C,     C,     C,     C    ],
-      /* 4 */ [C,     C,     C,     SC_SH, SC_SD, C,     C,     C    ],
-      /* 5 */ [C,     C,     C,     C,     SC_SH, SC_SD, C,     C    ],
-      /* 6 */ [C,     C,     C,     C,     C,     SC_G,  SC_SD, C    ],
-      /* 7 */ [C,     C,     C,     C,     C,     C,     SC_G,  SC_SD],
+      //       0       1       2       3       4       5       6       7
+      /* 0 */ [C,     SC_BH, SC_B,  SC_B,  SC_B,  SC_BS, C,     C    ],  // wide tip (5 cols)
+      /* 1 */ [SC_BH, SC_B,  SC_BM, SC_BM, SC_BS, C,     C,     C    ],  // blade midtone shading
+      /* 2 */ [SC_B,  SC_BM, SC_BS, SC_SH, C,     C,     C,     C    ],  // blade base → shaft
+      /* 3 */ [C,     C,     SC_SH, SC_SH, C,     C,     C,     C    ],  // shaft
+      /* 4 */ [C,     C,     C,     SC_SH, SC_SD, C,     C,     C    ],  // shaft
+      /* 5 */ [C,     C,     C,     C,     SC_SH, SC_SD, C,     C    ],  // shaft
+      /* 6 */ [C,     C,     C,     C,     C,     SC_G,  SC_SD, C    ],  // grip
+      /* 7 */ [C,     C,     C,     C,     C,     C,     SC_G,  SC_SD],  // grip end
     ]);
 
     // Scythe player sprites â€” same chibi silhouette with dark-matter purple tones
@@ -5432,7 +5704,11 @@ export class AssetManager {
           this.registerTexture(spriteId, () => {
             const tex = this.getTexture('scythe');
             const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
-            return this.createChibiCharacter(d, s, fr, heroScythePalette, spriteId, false, true, wc, 1.0);
+            // weaponType='scythe' activates the scythe-specific WPose table (trailing carry,
+            // ground-skim combos, horizontal block, overhead-loading charge).
+            // weaponRestYShift=12 is a fallback for any down/up-view poses that share the
+            // default table — keeps the blade below the face there too.
+            return this.createChibiCharacter(d, s, fr, heroScythePalette, spriteId, false, true, wc, 1.3, 0, 12, 'scythe');
           });
         }
       }
@@ -5447,7 +5723,7 @@ export class AssetManager {
           this.registerTexture(spriteId, () => {
             const tex = this.getTexture('scythe');
             const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
-            return this.createChibiCharacter(d, 'attack', fr, heroScythePalette, spriteId, false, true, wc, 1.0, cs);
+            return this.createChibiCharacter(d, 'attack', fr, heroScythePalette, spriteId, false, true, wc, 1.3, cs, 12, 'scythe');
           });
         }
       }

@@ -36,16 +36,19 @@ interface InteractionSystemContext {
   updateWorldChunksAtPlayer: () => void;
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
+  syncWestCliffGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
+  syncEastHollowRouteGateState: () => void;
   syncHollowApproachLadderState: () => void;
   syncCliffCorridorLadderState: () => void;
+  syncFortRidgeLadderState: () => void;
   syncForestFortGateState: () => void;
   syncNorthFortGateState: () => void;
   syncWestFortGateState: () => void;
   syncGolemFortGateState: () => void;
   syncManuscriptCheckpointGateState: () => void;
-  syncGilrhymBossState: () => void;
+  syncGuilrhymBossState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
   hasDialogue: (interactionId: string) => boolean;
   onWorldItemPickup?: (itemId: string) => void;
@@ -149,7 +152,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
     const goldAmount = interactionId.includes('ancient')
       ? 100
-      : interactionId.includes('gilrhym')
+      : interactionId.includes('guilrhym')
       ? 85
       : interactionId.includes('ruins')
       ? 75
@@ -164,8 +167,8 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       : interactionId.includes('temple') || interactionId.includes('volcano') || interactionId.includes('spider')
       ? 45
       : interactionId.includes('forest')
-      ? 40
-      : 20;
+      ? 28
+      : 15;
 
     context.state.addGold(goldAmount);
 
@@ -210,7 +213,18 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     } else if (interactionId === 'forest_river_chest' && context.items.ornamental_broadsword) {
       context.state.addItem({ ...context.items.ornamental_broadsword });
       bonusDescription = ' and an Ornamental Broadsword';
-    } else if (interactionId === 'gilrhym_scythe_chest' && context.items.terminus_scythe) {
+    } else if (interactionId === 'hunter_cliff_shelf_chest' && context.items.gravebound_ring) {
+      context.state.addItem({ ...context.items.gravebound_ring });
+      context.state.setFlag('gravebound_ring_received', true);
+      if (context.state.tryAutoEquipRing('gravebound_ring')) {
+        bonusDescription = ' and a Gravebound Ring (equipped — +22% stamina recovery)';
+      } else {
+        bonusDescription = ' and a Gravebound Ring';
+      }
+    } else if (
+      interactionId === 'hollow_terminus_chest' &&
+      context.items.terminus_scythe
+    ) {
       context.state.addItem({ ...context.items.terminus_scythe });
       bonusDescription = ' and the Terminus Scythe';
     }
@@ -274,9 +288,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       interactionId !== 'fountain' &&
       interactionId !== 'ancient_fountain' &&
       interactionId !== 'ancient_well' &&
-      interactionId !== 'gilrhym_fountain' &&
-      interactionId !== 'gilrhym_market_well' &&
-      interactionId !== 'gilrhym_cathedral_well'
+      interactionId !== 'guilrhym_fountain' &&
+      interactionId !== 'guilrhym_market_well' &&
+      interactionId !== 'guilrhym_cathedral_well'
     ) {
       return false;
     }
@@ -328,6 +342,36 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       id: 'forest-shortcut-unlocked',
       type: 'success',
       description: 'The barred gate below groans open — a path back to the Ranger Outpost is now clear.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
+  const tryHandleWestCliffGateLever = (interactionId: string): boolean => {
+    // Right-side sealed face — player bumped into it from the wrong side.
+    if (interactionId === 'west_cliff_gate_sealed') {
+      context.notify('No mechanism on this side.', { id: 'west-cliff-gate-sealed', duration: 2000 });
+      return true;
+    }
+    if (interactionId !== 'west_cliff_gate_lever') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('west_cliff_gate_open')) {
+      context.notify('The gate is already open.', { id: 'west-cliff-gate-open', duration: 1800 });
+      return true;
+    }
+
+    context.state.setFlag('west_cliff_gate_open', true);
+    context.syncWestCliffGateState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Gate Unbarred');
+    context.notify('Gate unbarred', {
+      id: 'west-cliff-gate-unlocked',
+      type: 'success',
+      description: 'The iron bar falls away — the passage through the west cliff fence is open.',
       duration: 3200,
     });
     context.triggerSave();
@@ -387,7 +431,41 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  const tryHandleEastHollowRouteGateLever = (interactionId: string): boolean => {
+    if (interactionId === 'east_hollow_route_gate_sealed') {
+      context.notify('No lever on this side.', { id: 'east-hollow-route-gate-sealed', duration: 2000 });
+      return true;
+    }
+    if (interactionId !== 'east_hollow_route_gate_lever') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('east_hollow_route_gate_open')) {
+      context.notify('The route gate is already open.', { id: 'east-hollow-route-gate-open', duration: 1800 });
+      return true;
+    }
+
+    context.state.setFlag('east_hollow_route_gate_open', true);
+    context.syncEastHollowRouteGateState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Shortcut Unlocked');
+    context.startCameraPan?.(89, -93, 750);
+    context.notify('Shortcut unlocked', {
+      id: 'east-hollow-route-gate-unlocked',
+      type: 'success',
+      description: 'The iron pickets groan aside — the east hollow route is open.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
   const tryHandleHollowShortcutLever = (interactionId: string): boolean => {
+    if (interactionId === 'hollow_gate_sealed') {
+      context.notify('No lever on this side.', { id: 'hollow-gate-sealed', duration: 2000 });
+      return true;
+    }
     if (interactionId !== 'hollow_shortcut_lever') return false;
     if (context.state.currentMap !== 'forest') return true;
 
@@ -401,10 +479,11 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
+    context.startCameraPan?.(-28, -100, 750);
     context.notify('Shortcut unlocked', {
       id: 'hollow-shortcut-unlocked',
       type: 'success',
-      description: 'A twisted gate of roots and iron groans open, revealing a path back to the Hollow bonfire.',
+      description: 'The iron gate groans open — a path back toward the Hollow bonfire is clear.',
       duration: 3200,
     });
     context.triggerSave();
@@ -465,6 +544,40 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       id: 'cliff-corridor-ladder-extended',
       type: 'success',
       description: 'You kick the coiled ladder over the edge. It drops to the lower east landing.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
+  const tryHandleFortRidgeLadder = (interactionId: string, ladderWorldX: number, _ladderWorldY: number): boolean => {
+    if (interactionId !== 'fort_ridge_ladder') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('fort_ridge_ladder_extended')) {
+      context.notify('The ladder is already extended.', { id: 'fort-ridge-ladder-extended', duration: 1800 });
+      return true;
+    }
+
+    // The latch is released only from the el1 overlook EAST of the gate. A fort-side player
+    // (west of the gate, down on the fort grass) cannot kick it loose.
+    if (context.state.player.position.x < ladderWorldX) {
+      context.startDialogue('fort_ridge_ladder_wrong_side');
+      return true;
+    }
+
+    context.state.setFlag('fort_ridge_ladder_extended', true);
+    context.syncFortRidgeLadderState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    // Pan to the west-side landing below the drop (tile 238,171 → world 88, 21).
+    context.startCameraPan?.(88, 21, 750);
+    context.showHeroOverlay('Shortcut Unlocked');
+    context.notify('Ridge ladder extended', {
+      id: 'fort-ridge-ladder-unlocked',
+      type: 'success',
+      description: 'You kick the ladder off the cliff edge. It drops to the landing below.',
       duration: 3200,
     });
     context.triggerSave();
@@ -604,7 +717,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
   };
 
   const tryHandleHollowFogGate = (interactionId: string): boolean => {
-    if (interactionId === 'gilrhym_fog_gate') {
+    if (interactionId === 'guilrhym_fog_gate') {
       if (context.state.getFlag('ashen_reaver_defeated')) {
         context.notify('The ashen fog has lifted.', { id: 'fog-gate-clear', duration: 1800 });
         return true;
@@ -625,9 +738,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
-  const tryHandleGilrhymShortcutLever = (interactionId: string): boolean => {
-    if (interactionId !== 'gilrhym_shortcut_lever_1' && interactionId !== 'gilrhym_shortcut_lever_2') return false;
-    if (context.state.currentMap !== 'gilrhym') return true;
+  const tryHandleGuilrhymShortcutLever = (interactionId: string): boolean => {
+    if (interactionId !== 'guilrhym_shortcut_lever_1' && interactionId !== 'guilrhym_shortcut_lever_2') return false;
+    if (context.state.currentMap !== 'guilrhym') return true;
 
     const flagKey = `${interactionId}_open`;
     if (context.state.getFlag(flagKey)) {
@@ -636,7 +749,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     }
 
     context.state.setFlag(flagKey, true);
-    context.syncGilrhymBossState();
+    context.syncGuilrhymBossState();
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
@@ -767,17 +880,20 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleHealingSource,
     tryHandleForestShortcutLever,
     tryHandleGroveShelfShortcutLever,
+    tryHandleWestCliffGateLever,
     tryHandleRiversideBridgeShortcutLever,
     tryHandleHollowShortcutLever,
+    tryHandleEastHollowRouteGateLever,
     tryHandleHollowApproachLadder,
     tryHandleCliffCorridorLadder,
+    tryHandleFortRidgeLadder,
     tryHandleForestFortGate,
     tryHandleNorthFortGate,
     tryHandleWestFortGate,
     tryHandleGolemFortGate,
     tryHandleManuscriptCheckpointGate,
     tryHandleHollowFogGate,
-    tryHandleGilrhymShortcutLever,
+    tryHandleGuilrhymShortcutLever,
     tryHandleBlightedRoot,
     tryHandleHomesteadContainer,
     tryHandleDialogueInteraction,

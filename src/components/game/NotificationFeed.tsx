@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { NOTIF_MIN_OPACITY } from '@/components/game/gameUiTokens';
 import { CheckCircle2, Info, AlertCircle } from 'lucide-react';
 import { getEntries, subscribe, type NotifEntry } from '@/lib/game/notificationBus';
 
@@ -41,7 +42,7 @@ export const NotificationFeed = () => {
         {visible.map((e) => {
           const ageSec = (now - e.createdAt) / 1000;
           const fadeRatio = Math.max(0, 1 - ageSec / (e.ttl / 1000));
-          const opacity = 0.4 + fadeRatio * 0.6;
+          const opacity = NOTIF_MIN_OPACITY + fadeRatio * (1 - NOTIF_MIN_OPACITY);
           return (
             <div
               key={e.uid}
@@ -55,16 +56,16 @@ export const NotificationFeed = () => {
                 {TYPE_ICON[e.type]}
               </span>
               <div className="flex-1 min-w-0">
-                <span className="text-[#DAA520] text-[10px] font-bold leading-tight truncate block">
+                <span className="text-[#DAA520] text-[11px] font-bold leading-tight truncate block">
                   {e.title}
                 </span>
                 {e.description && (
-                  <span className="text-[#F5DEB3] text-[9px] leading-tight truncate block">
+                  <span className="text-[#F5DEB3] text-[10px] leading-snug truncate block">
                     {e.description}
                   </span>
                 )}
               </div>
-              <span className="text-[9px] text-[#5C3A21] flex-shrink-0 tabular-nums leading-tight mt-[1px]">
+              <span className="text-[10px] text-[#8B7355] flex-shrink-0 tabular-nums leading-tight mt-[1px]">
                 {relativeTime(now - e.createdAt)}
               </span>
             </div>

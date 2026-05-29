@@ -17,10 +17,17 @@ import {
   SPRITE_VOLUME_ON,
   SPRITE_VOLUME_MUTE,
   SPRITE_INVENTORY,
+  SPRITE_PLAYER,
   SPRITE_MAP,
   SPRITE_OBJECTIVES,
 } from '@/components/game/HudSprite';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  applyElementMute,
+  applyMasterGainMute,
+  isAudioMuted,
+  setAudioMuted,
+} from '@/game/domain/audioMutePreference';
 import { CONTROL_GROUPS } from './controlBindings';
 
 interface GameUIProps {
@@ -36,6 +43,7 @@ interface GameUIProps {
   justPickedUpItem?: Item | null;
   justGainedCurrency?: CurrencyGain | null;
   onOpenInventory?: () => void;
+  onOpenPlayer?: () => void;
   onOpenMap?: () => void;
   onOpenObjectives?: () => void;
   musicRef: React.RefObject<HTMLAudioElement | null>;
@@ -91,7 +99,7 @@ const CombatBars = React.memo(({ health, maxHealth, stamina, maxStamina }: {
           style={{ width: `${(stamina / maxStamina) * 100}%` }}
         />
       </div>
-      <span className="text-[10px] font-bold text-emerald-300/70 tracking-wide">
+      <span className="text-[10px] font-bold text-emerald-200 tracking-wide">
         {Math.round(stamina)}/{maxStamina}
       </span>
     </div>
@@ -197,6 +205,8 @@ const SelectionWheel = React.memo(({
   prevLabel,
   nextLabel,
   badgeLabel,
+  badgeKey,
+  fullWidthTitle = false,
 }: {
   entries: Array<{ item: Item; count: number }>;
   activeItemId: string | null | undefined;
@@ -204,6 +214,10 @@ const SelectionWheel = React.memo(({
   prevLabel: string;
   nextLabel: string;
   badgeLabel: string;
+  /** Keybind hint shown in parens after the label, e.g. "Z" → "(Z)" */
+  badgeKey?: string;
+  /** Span title across the full wheel width (weapon names need more room). */
+  fullWidthTitle?: boolean;
 }) => {
   if (entries.length === 0) return null;
 
@@ -215,18 +229,27 @@ const SelectionWheel = React.memo(({
   const nextEntry = hasMultipleDistinct ? entries[(activeIndex + 1) % entries.length] : null;
   const sideCardClass = hasTwoEntries ? 'w-12 h-12' : 'w-11 h-11';
   const sideIconClass = hasTwoEntries ? 'w-7 h-7 mb-1' : 'w-6 h-6 mb-1';
+  const titleClass =
+    'text-[11px] text-[#F5DEB3] font-bold uppercase tracking-wider text-center drop-shadow-[0_2px_2px_rgba(0,0,0,1)] truncate';
+  const activeName = activeEntry?.item?.name || 'Empty';
 
   return (
-    <div className="w-full flex items-end justify-between">
+    <div className="w-full">
+      {fullWidthTitle && (
+        <span className={`${titleClass} block mb-1.5 max-w-full px-0.5`}>
+          {activeName}
+        </span>
+      )}
+      <div className="w-full flex items-end justify-between">
       <div className={`flex flex-col items-center transition-opacity ${hasMultipleDistinct ? 'opacity-80 hover:opacity-100' : 'opacity-[0.85]'}`}>
         <kbd className="bg-[#2D1B11] px-2 py-0.5 rounded border border-[#5C3A21] text-[#DAA520] text-xs font-bold leading-none mb-1.5 shadow-sm">{prevLabel}</kbd>
         {prevEntry ? (
           <div className={`${sideCardClass} bg-[#2D1B11]/70 border border-[#5C3A21] rounded-md shadow-lg flex flex-col items-center justify-center p-1 relative overflow-hidden`}>
             {getItemIcon(prevEntry.item, sideIconClass, assetManager)}
             {prevEntry.count > 1 && (
-              <span className="absolute top-0 right-0.5 text-[8px] font-bold text-[#F5DEB3] drop-shadow-md">x{prevEntry.count}</span>
+              <span className="absolute top-0 right-0.5 text-[10px] font-bold text-[#F5DEB3] drop-shadow-md">x{prevEntry.count}</span>
             )}
-            <span className="text-[7px] text-[#D3D3D3] text-center w-full truncate absolute bottom-0.5 leading-none">{prevEntry.item.name.split(' ')[0]}</span>
+            <span className="text-[10px] text-[#D3D3D3] text-center w-full truncate absolute bottom-0.5 leading-none">{prevEntry.item.name.split(' ')[0]}</span>
           </div>
         ) : (
           <div className={`${sideCardClass} bg-[#2D1B11]/40 rounded-lg shadow-inner pointer-events-none`} />
@@ -234,17 +257,24 @@ const SelectionWheel = React.memo(({
       </div>
 
       <div className="flex flex-col items-center transform scale-100 translate-y-[-4px]">
-        <span className="text-[11px] text-[#F5DEB3] font-bold mb-1.5 uppercase tracking-wider text-center drop-shadow-[0_2px_2px_rgba(0,0,0,1)] max-w-[170px] truncate">
-          {activeEntry?.item?.name || 'Empty'}
-        </span>
+        {!fullWidthTitle && (
+          <span className={`${titleClass} mb-1.5 max-w-[170px]`}>
+            {activeName}
+          </span>
+        )}
         <div className="w-16 h-16 bg-[#2D1B11]/80 border-[1.5px] border-[#DAA520] rounded-lg flex items-center justify-center shadow-xl relative overflow-hidden group">
           {activeEntry && getItemIcon(activeEntry.item, "w-12 h-12 transform group-hover:scale-110 transition-transform", assetManager)}
           {activeEntry && activeEntry.count > 1 && (
             <span className="absolute top-1 right-1.5 text-[10px] font-bold text-[#F5DEB3] drop-shadow-[0_1px_1px_rgba(0,0,0,1)] bg-[#1A0F0A]/60 px-1 rounded-sm border border-[#5C3A21]/50">x{activeEntry.count}</span>
           )}
         </div>
-        <span className="text-[9px] text-[#DAA520]/60 mt-1.5 uppercase tracking-widest drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">
+        <span className="text-[10px] text-[#DAA520] mt-1.5 uppercase tracking-widest font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,1)] flex items-baseline gap-1">
           {badgeLabel}
+          {badgeKey && (
+            <span className="text-[10px] text-[#DAA520]/90 normal-case tracking-normal font-normal">
+              ({badgeKey})
+            </span>
+          )}
         </span>
       </div>
 
@@ -254,14 +284,15 @@ const SelectionWheel = React.memo(({
           <div className={`${sideCardClass} bg-[#2D1B11]/70 border border-[#5C3A21] rounded-md shadow-lg flex flex-col items-center justify-center p-1 relative overflow-hidden`}>
             {getItemIcon(nextEntry.item, sideIconClass, assetManager)}
             {nextEntry.count > 1 && (
-              <span className="absolute top-0 right-0.5 text-[8px] font-bold text-[#F5DEB3] drop-shadow-md">x{nextEntry.count}</span>
+              <span className="absolute top-0 right-0.5 text-[10px] font-bold text-[#F5DEB3] drop-shadow-md">x{nextEntry.count}</span>
             )}
-            <span className="text-[7px] text-[#D3D3D3] text-center w-full truncate absolute bottom-0.5 leading-none">{nextEntry.item.name.split(' ')[0]}</span>
+            <span className="text-[10px] text-[#D3D3D3] text-center w-full truncate absolute bottom-0.5 leading-none">{nextEntry.item.name.split(' ')[0]}</span>
           </div>
         ) : (
           <div className={`${sideCardClass} bg-[#2D1B11]/40 rounded-lg shadow-inner pointer-events-none`} />
         )}
       </div>
+    </div>
     </div>
   );
 });
@@ -285,7 +316,7 @@ const JustPickedUpDisplay = React.memo(({
         <div className="w-16 h-16 bg-[#1A0F0A] border-[1.5px] border-[#DAA520] rounded-lg flex items-center justify-center shadow-xl relative overflow-hidden">
           {getItemIcon(item, "w-12 h-12", assetManager)}
         </div>
-        <span className="text-[9px] text-[#F5DEB3] mt-2 bg-[#1A0F0A] border border-[#5C3A21] px-2.5 py-0.5 rounded-md uppercase tracking-widest shadow-lg drop-shadow-md">
+        <span className="text-[10px] text-[#F5DEB3] mt-2 bg-[#1A0F0A] border border-[#5C3A21] px-2.5 py-0.5 rounded-md uppercase tracking-widest shadow-lg drop-shadow-md">
           Acquired
         </span>
       </div>
@@ -301,6 +332,7 @@ export const GameUI = ({
   justPickedUpItem = null,
   justGainedCurrency = null,
   onOpenInventory,
+  onOpenPlayer,
   onOpenMap,
   onOpenObjectives,
   musicRef,
@@ -309,7 +341,7 @@ export const GameUI = ({
   interactionPrompt = null,
   activeQuestCount = 0,
 }: GameUIProps) => {
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => isAudioMuted());
   /** Compact controls help: closed by default so HUD stays minimal; click to expand rectangular panel. */
   const [controlsHelpOpen, setControlsHelpOpen] = useState(false);
 
@@ -334,28 +366,33 @@ export const GameUI = ({
   );
 
   const groupedWeapons = useMemo(
-    () => groupedInventory.filter(({ item }) => item.type === 'equipment'),
-    [groupedInventory],
+    () => gameState.getLoadoutWeaponIds()
+      .map(id => {
+        const item = gameState.inventory.find(i => i.id === id && i.type === 'equipment');
+        return item ? { item, count: 1 } : null;
+      })
+      .filter((entry): entry is { item: Item; count: number } => entry !== null),
+    [gameState.inventory, gameState.weaponLoadout, refreshToken],
   );
 
   const activeConsumable = gameState.inventory[gameState.activeItemIndex];
   const activeConsumableId = activeConsumable?.type === 'consumable' ? activeConsumable.id : groupedConsumables[0]?.item.id;
   const activeWeaponId = gameState.equippedWeaponId ?? groupedWeapons[0]?.item.id;
 
+  // Belt-and-suspenders: re-apply persisted mute once HUD mounts (audio may have
+  // started before gameState was ready).
+  useEffect(() => {
+    if (!isMuted) return;
+    applyMasterGainMute(masterGainRef?.current);
+    applyElementMute(musicRef.current);
+  }, [isMuted, masterGainRef, musicRef]);
+
   const toggleMute = () => {
     const nextMuted = !isMuted;
     setIsMuted(nextMuted);
-    // Mute via the Web Audio master gain node so ALL audio (music, SFX, loops,
-    // enemy sounds) is silenced in one shot.
-    const gain = masterGainRef?.current;
-    if (gain) {
-      gain.gain.value = nextMuted ? 0 : 0.85;
-    }
-    // Also set the music element muted flag so it doesn't auto-resume audio
-    // on track switches while the player has muted.
-    if (musicRef.current) {
-      musicRef.current.muted = nextMuted;
-    }
+    setAudioMuted(nextMuted);
+    applyMasterGainMute(masterGainRef?.current);
+    applyElementMute(musicRef.current);
   };
 
   return (
@@ -383,14 +420,14 @@ export const GameUI = ({
             />
             {gameState.player.stealthTimer > 0 && (
               <div className="flex items-center gap-1.5 bg-emerald-900/70 border border-emerald-500/60 rounded-full px-2.5 py-0.5 animate-pulse">
-                <span className="text-[9px] font-bold text-emerald-300 tracking-widest uppercase">Cloaked</span>
-                <span className="text-[9px] font-bold text-emerald-200">{Math.ceil(gameState.player.stealthTimer)}s</span>
+                <span className="text-[10px] font-bold text-emerald-300 tracking-widest uppercase">Cloaked</span>
+                <span className="text-[10px] font-bold text-emerald-200">{Math.ceil(gameState.player.stealthTimer)}s</span>
               </div>
             )}
             {gameState.player.berserkerTimer > 0 && (
               <div className="flex items-center gap-1.5 bg-red-900/70 border border-red-500/60 rounded-full px-2.5 py-0.5 animate-pulse">
-                <span className="text-[9px] font-bold text-red-300 tracking-widest uppercase">Berserker</span>
-                <span className="text-[9px] font-bold text-red-200">{Math.ceil(gameState.player.berserkerTimer)}s</span>
+                <span className="text-[10px] font-bold text-red-300 tracking-widest uppercase">Berserker</span>
+                <span className="text-[10px] font-bold text-red-200">{Math.ceil(gameState.player.berserkerTimer)}s</span>
               </div>
             )}
             {(() => {
@@ -411,6 +448,16 @@ export const GameUI = ({
             title={isMuted ? 'Unmute' : 'Mute'}
           >
             <HudSprite spec={isMuted ? SPRITE_VOLUME_MUTE : SPRITE_VOLUME_ON} size={16} />
+          </Button>
+
+          <Button
+            onClick={() => onOpenPlayer?.()}
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent"
+          >
+            <HudSprite spec={SPRITE_PLAYER} size={16} className="mr-1" />
+            PLAYER
           </Button>
 
           <Button
@@ -489,7 +536,7 @@ export const GameUI = ({
             >
               {CONTROL_GROUPS.map(group => (
                 <div key={group.title}>
-                  <p className="text-[9px] font-bold text-[#DAA520]/70 uppercase tracking-[0.2em] mb-1">{group.title}</p>
+                  <p className="text-[10px] font-bold text-[#DAA520]/90 uppercase tracking-[0.2em] mb-1">{group.title}</p>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                     {group.bindings.map(b => {
                       const action = b.keys === 'F' ? (interactionPrompt || b.action) : b.action;
@@ -520,6 +567,7 @@ export const GameUI = ({
             prevLabel="Q"
             nextLabel="E"
             badgeLabel="Item"
+            badgeKey="Z"
           />
           {groupedConsumables.length > 0 && groupedWeapons.length > 0 && (
             <div className="w-full border-t border-[#5C3A21]/50" />
@@ -531,6 +579,8 @@ export const GameUI = ({
             prevLabel="←"
             nextLabel="→"
             badgeLabel="Weapon"
+            badgeKey="LMB"
+            fullWidthTitle
           />
         </div>
       </div>

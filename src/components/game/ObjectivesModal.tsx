@@ -33,9 +33,9 @@ const QuestCard = memo(({ quest, defaultExpanded }: { quest: Quest; defaultExpan
     : 'border-[#5C3A21]/50 bg-[#1A0F0A]/60';
 
   const statusBadge = quest.completed
-    ? <span className="text-[9px] uppercase font-bold text-[#8FBC8F] border border-[#2e5e2e] px-1.5 py-0.5 rounded-sm flex-shrink-0">Completed</span>
+    ? <span className="text-[10px] uppercase font-bold text-[#8FBC8F] border border-[#2e5e2e] px-1.5 py-0.5 rounded-sm flex-shrink-0">Completed</span>
     : quest.active
-    ? <span className="text-[9px] uppercase font-bold text-[#DAA520] border border-[#DAA520]/50 px-1.5 py-0.5 rounded-sm flex-shrink-0">Active</span>
+    ? <span className="text-[10px] uppercase font-bold text-[#DAA520] border border-[#DAA520]/50 px-1.5 py-0.5 rounded-sm flex-shrink-0">Active</span>
     : null;
 
   return (
@@ -48,8 +48,8 @@ const QuestCard = memo(({ quest, defaultExpanded }: { quest: Quest; defaultExpan
       >
         <div className="flex items-center gap-2 min-w-0">
           {expanded
-            ? <ChevronDown className="w-3.5 h-3.5 text-[#8D6E63] flex-shrink-0" />
-            : <ChevronRight className="w-3.5 h-3.5 text-[#8D6E63] flex-shrink-0" />
+            ? <ChevronDown className="w-3.5 h-3.5 text-[#A1887F] flex-shrink-0" />
+            : <ChevronRight className="w-3.5 h-3.5 text-[#A1887F] flex-shrink-0" />
           }
           <h4 className={cn(
             'font-bold text-sm truncate',
@@ -66,7 +66,7 @@ const QuestCard = memo(({ quest, defaultExpanded }: { quest: Quest; defaultExpan
         <div className="px-3 pb-3 space-y-2.5">
           <p className={cn(
             'text-xs leading-relaxed',
-            quest.completed ? 'text-[#8FBC8F]/50' : 'text-[#C9B8A8]',
+            quest.completed ? 'text-[#8FBC8F]/75' : 'text-[#C9B8A8]',
           )}>
             {quest.description}
           </p>
@@ -87,7 +87,7 @@ const QuestCard = memo(({ quest, defaultExpanded }: { quest: Quest; defaultExpan
                   <div className="flex-1 min-w-0">
                     <p className={cn(
                       'text-xs leading-snug',
-                      quest.completed ? 'text-[#8FBC8F]/60 line-through' : 'text-[#F5DEB3]/90',
+                      quest.completed ? 'text-[#8FBC8F]/75 line-through' : 'text-[#F5DEB3]',
                     )}>
                       {obj}
                     </p>
@@ -100,7 +100,7 @@ const QuestCard = memo(({ quest, defaultExpanded }: { quest: Quest; defaultExpan
                             style={{ width: `${Math.min(100, (prog.current / prog.total) * 100)}%` }}
                           />
                         </div>
-                        <span className="text-[9px] font-bold text-[#8D6E63]">{prog.current}/{prog.total}</span>
+                        <span className="text-[10px] font-bold text-[#A1887F]">{prog.current}/{prog.total}</span>
                       </div>
                     )}
                   </div>
@@ -171,7 +171,7 @@ export const ObjectivesModal = memo(function ObjectivesModal({
                 : `${activeCount} active${completedCount > 0 ? `, ${completedCount} completed` : ''}`}
             </p>
           </div>
-          <p className="text-[11px] text-[#8D6E63] flex-shrink-0">
+          <p className="text-[11px] text-[#A1887F] flex-shrink-0">
             <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">O</kbd>{' '}
             or <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">Esc</kbd>{' '}
             to close
@@ -184,7 +184,7 @@ export const ObjectivesModal = memo(function ObjectivesModal({
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <ScrollText className="w-10 h-10 text-[#5C3A21] mb-3" />
               <p className="text-[#A0522D] text-sm font-semibold">No objectives yet</p>
-              <p className="text-[11px] text-[#8D6E63] mt-1">Speak with villagers to discover quests</p>
+              <p className="text-[11px] text-[#A1887F] mt-1">Speak with villagers to discover quests</p>
             </div>
           ) : (
             <div className="space-y-2">

@@ -82,6 +82,7 @@ export function createBonfireRestAction({
     state.player.lastBreathUsedThisLife = false;
     playBonfireRestore();
     const map = world.getCurrentMap();
+    state.killedEnemyIds.clear();
     respawnEnemiesForCurrentMap(state.currentMap, map);
     notify('Rested at bonfire', {
       id: 'bonfire',
@@ -117,6 +118,7 @@ export function createBonfireRestAction({
     state.player.stamina = state.player.maxStamina;
     state.lastBonfire = { mapId: entry.mapId, x: worldX, y: worldY };
 
+    state.killedEnemyIds.clear();
     respawnEnemiesForCurrentMap(state.currentMap, map);
     showTransitionOverlay(map.name, map.subtitle);
     playBonfireRestore();

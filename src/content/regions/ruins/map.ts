@@ -1,7 +1,7 @@
 import type { MapDefinition } from '@/data/mapGenerator';
 
-export const gilrhymDef: MapDefinition = {
-  name: 'Gilrhym',
+export const guilrhymDef: MapDefinition = {
+  name: 'Guilrhym',
   subtitle: 'A city consumed by what it buried',
   width: 300,
   height: 300,
@@ -136,7 +136,7 @@ export const gilrhymDef: MapDefinition = {
     // North walkway to gardens
     { x: 100, y: 248, width: 30, height: 5, type: 'clearing', fill: 'cobblestone' },
     // Estate manor (Oliver leans against this)
-    { x: 96, y: 262, width: 14, height: 10, type: 'building', interactionId: 'gilrhym_oliver_manor' },
+    { x: 96, y: 262, width: 14, height: 10, type: 'building', interactionId: 'guilrhym_oliver_manor' },
     // Garden atrium behind the manor
     { x: 94, y: 248, width: 18, height: 10, type: 'garden' },
     // Brick foundation around the manor
@@ -148,9 +148,9 @@ export const gilrhymDef: MapDefinition = {
     // Iron fence border along south edge of estate
     { x: 92, y: 280, width: 44, height: 2, type: 'iron_fence_border' },
     // Guard house (east wing of estate)
-    { x: 124, y: 270, width: 8, height: 6, type: 'building', interactionId: 'gilrhym_guard_house' },
+    { x: 124, y: 270, width: 8, height: 6, type: 'building', interactionId: 'guilrhym_guard_house' },
     // Servant quarters (south wing)
-    { x: 94, y: 274, width: 10, height: 6, type: 'cottage', interactionId: 'gilrhym_servant_quarters' },
+    { x: 94, y: 274, width: 10, height: 6, type: 'cottage', interactionId: 'guilrhym_servant_quarters' },
     // Brick courtyard cross-paths
     { x: 110, y: 262, width: 2, height: 14, type: 'clearing', fill: 'brick' },
     { x: 96, y: 272, width: 38, height: 2, type: 'clearing', fill: 'brick' },
@@ -175,7 +175,7 @@ export const gilrhymDef: MapDefinition = {
     // North walkway to gardens
     { x: 170, y: 248, width: 30, height: 5, type: 'clearing', fill: 'cobblestone' },
     // Estate manor
-    { x: 190, y: 262, width: 14, height: 10, type: 'building', interactionId: 'gilrhym_east_manor' },
+    { x: 190, y: 262, width: 14, height: 10, type: 'building', interactionId: 'guilrhym_east_manor' },
     // Garden atrium
     { x: 188, y: 248, width: 18, height: 10, type: 'garden' },
     // Brick foundation
@@ -187,9 +187,9 @@ export const gilrhymDef: MapDefinition = {
     // Iron fence border along south edge
     { x: 164, y: 280, width: 44, height: 2, type: 'iron_fence_border' },
     // Guard house (west wing)
-    { x: 168, y: 270, width: 8, height: 6, type: 'building', interactionId: 'gilrhym_east_guard_house' },
+    { x: 168, y: 270, width: 8, height: 6, type: 'building', interactionId: 'guilrhym_east_guard_house' },
     // Stable building (south wing)
-    { x: 196, y: 274, width: 10, height: 6, type: 'cottage', interactionId: 'gilrhym_east_stable' },
+    { x: 196, y: 274, width: 10, height: 6, type: 'cottage', interactionId: 'guilrhym_east_stable' },
     // Brick courtyard cross-paths
     { x: 188, y: 262, width: 2, height: 14, type: 'clearing', fill: 'brick' },
     { x: 164, y: 272, width: 38, height: 2, type: 'clearing', fill: 'brick' },
@@ -212,8 +212,8 @@ export const gilrhymDef: MapDefinition = {
     { x: 92, y: 253, width: 116, height: 4, type: 'clearing', fill: 'cobblestone' },
 
     // === OUTSKIRTS EDGE (flanking the estates) ===
-    { x: 72, y: 275, width: 12, height: 8, type: 'cottage', interactionId: 'gilrhym_ruin_cottage_1' },
-    { x: 210, y: 272, width: 12, height: 8, type: 'cottage', interactionId: 'gilrhym_ruin_cottage_2' },
+    { x: 72, y: 275, width: 12, height: 8, type: 'cottage', interactionId: 'guilrhym_ruin_cottage_1' },
+    { x: 210, y: 272, width: 12, height: 8, type: 'cottage', interactionId: 'guilrhym_ruin_cottage_2' },
     { x: 60, y: 258, width: 16, height: 10, type: 'destroyed_town' },
     { x: 222, y: 260, width: 14, height: 10, type: 'destroyed_town' },
     { x: 40, y: 248, width: 20, height: 14, type: 'clearing', fill: 'dirt' },
@@ -247,19 +247,19 @@ export const gilrhymDef: MapDefinition = {
 
     // --- ZONE B — OUTER DISTRICTS (y: 180–240) ---
 
-    { x: 55, y: 215, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_w1' },
-    { x: 70, y: 218, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_w2' },
-    { x: 55, y: 198, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_w3' },
-    { x: 72, y: 195, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_w4' },
-    { x: 58, y: 232, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_w5' },
-    { x: 85, y: 215, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_w6' },
-    { x: 90, y: 195, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_w7' },
-    { x: 195, y: 215, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_e1' },
-    { x: 210, y: 218, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_e2' },
-    { x: 195, y: 198, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_e3' },
-    { x: 212, y: 195, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_e4' },
-    { x: 198, y: 232, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_e5' },
-    { x: 228, y: 212, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_manor_e6' },
+    { x: 55, y: 215, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_w1' },
+    { x: 70, y: 218, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_w2' },
+    { x: 55, y: 198, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_w3' },
+    { x: 72, y: 195, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_w4' },
+    { x: 58, y: 232, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_w5' },
+    { x: 85, y: 215, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_w6' },
+    { x: 90, y: 195, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_w7' },
+    { x: 195, y: 215, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_e1' },
+    { x: 210, y: 218, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_e2' },
+    { x: 195, y: 198, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_e3' },
+    { x: 212, y: 195, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_e4' },
+    { x: 198, y: 232, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_e5' },
+    { x: 228, y: 212, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_manor_e6' },
     { x: 120, y: 210, width: 24, height: 18, type: 'cobble_plaza' },
     { x: 128, y: 214, width: 8, height: 6, type: 'garden' },
     { x: 230, y: 185, width: 30, height: 22, type: 'cemetery' },
@@ -270,8 +270,8 @@ export const gilrhymDef: MapDefinition = {
     { x: 35, y: 230, width: 14, height: 10, type: 'clearing', fill: 'dirt' },
     { x: 50, y: 210, width: 4, height: 2, type: 'clearing', fill: 'cobblestone' },
     { x: 48, y: 226, width: 6, height: 4, type: 'clearing', fill: 'cobblestone' },
-    { x: 108, y: 235, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_outer_1' },
-    { x: 162, y: 230, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_outer_2' },
+    { x: 108, y: 235, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_outer_1' },
+    { x: 162, y: 230, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_outer_2' },
     { x: 100, y: 195, width: 20, height: 14, type: 'clearing', fill: 'cobblestone' },
     { x: 170, y: 198, width: 18, height: 12, type: 'clearing', fill: 'cobblestone' },
 
@@ -280,25 +280,25 @@ export const gilrhymDef: MapDefinition = {
     { x: 110, y: 140, width: 80, height: 30, type: 'cobble_plaza' },
     { x: 125, y: 148, width: 50, height: 12, type: 'market_stall_row' },
     { x: 130, y: 170, width: 16, height: 12, type: 'church' },
-    { x: 70, y: 142, width: 14, height: 10, type: 'inn_building', interactionId: 'gilrhym_inn' },
-    { x: 45, y: 145, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_w1' },
-    { x: 45, y: 130, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_w2' },
-    { x: 30, y: 140, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_w3' },
-    { x: 55, y: 160, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_w4' },
-    { x: 35, y: 158, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_w5' },
-    { x: 60, y: 120, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_w6' },
-    { x: 210, y: 145, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_e1' },
-    { x: 225, y: 142, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_e2' },
-    { x: 210, y: 128, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_e3' },
-    { x: 240, y: 135, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_e4' },
-    { x: 228, y: 160, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_e5' },
-    { x: 245, y: 152, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_e6' },
+    { x: 70, y: 142, width: 14, height: 10, type: 'inn_building', interactionId: 'guilrhym_inn' },
+    { x: 45, y: 145, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_w1' },
+    { x: 45, y: 130, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_w2' },
+    { x: 30, y: 140, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_w3' },
+    { x: 55, y: 160, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_w4' },
+    { x: 35, y: 158, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_w5' },
+    { x: 60, y: 120, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_w6' },
+    { x: 210, y: 145, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_e1' },
+    { x: 225, y: 142, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_e2' },
+    { x: 210, y: 128, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_e3' },
+    { x: 240, y: 135, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_e4' },
+    { x: 228, y: 160, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_e5' },
+    { x: 245, y: 152, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_e6' },
     { x: 255, y: 130, width: 8, height: 8, type: 'watchtower' },
     { x: 25, y: 125, width: 16, height: 12, type: 'garden' },
     { x: 95, y: 162, width: 12, height: 10, type: 'cobble_plaza' },
     { x: 196, y: 160, width: 14, height: 10, type: 'cobble_plaza' },
-    { x: 130, y: 108, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_c1' },
-    { x: 160, y: 108, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_c2' },
+    { x: 130, y: 108, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_c1' },
+    { x: 160, y: 108, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_c2' },
     { x: 120, y: 115, width: 20, height: 10, type: 'clearing', fill: 'cobblestone' },
     { x: 170, y: 115, width: 18, height: 10, type: 'clearing', fill: 'cobblestone' },
     { x: 25, y: 172, width: 20, height: 14, type: 'ruined_fort' },
@@ -308,38 +308,38 @@ export const gilrhymDef: MapDefinition = {
 
     // --- ZONE D — UPPER CITY / ROOFTOPS (y: 60–120) ---
 
-    { x: 40, y: 100, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w1' },
-    { x: 55, y: 102, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w2' },
-    { x: 40, y: 85, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w3' },
-    { x: 58, y: 88, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w4' },
-    { x: 42, y: 68, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w5' },
-    { x: 60, y: 72, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w6' },
-    { x: 75, y: 98, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w7' },
-    { x: 78, y: 80, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w8' },
-    { x: 75, y: 65, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w9' },
-    { x: 95, y: 105, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w10' },
-    { x: 95, y: 90, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w11' },
-    { x: 95, y: 72, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w12' },
-    { x: 115, y: 100, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w13' },
-    { x: 115, y: 82, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w14' },
-    { x: 115, y: 66, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w15' },
-    { x: 130, y: 95, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w16' },
-    { x: 130, y: 76, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_w17' },
-    { x: 165, y: 100, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e1' },
-    { x: 165, y: 82, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e2' },
-    { x: 165, y: 66, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e3' },
-    { x: 182, y: 98, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e4' },
-    { x: 182, y: 80, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e5' },
-    { x: 182, y: 64, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e6' },
-    { x: 200, y: 102, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e7' },
-    { x: 200, y: 85, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e8' },
-    { x: 200, y: 68, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e9' },
-    { x: 218, y: 100, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e10' },
-    { x: 218, y: 82, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e11' },
-    { x: 218, y: 66, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e12' },
-    { x: 238, y: 95, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e13' },
-    { x: 240, y: 75, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e14' },
-    { x: 255, y: 90, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_upper_e15' },
+    { x: 40, y: 100, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w1' },
+    { x: 55, y: 102, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w2' },
+    { x: 40, y: 85, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w3' },
+    { x: 58, y: 88, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w4' },
+    { x: 42, y: 68, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w5' },
+    { x: 60, y: 72, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w6' },
+    { x: 75, y: 98, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w7' },
+    { x: 78, y: 80, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w8' },
+    { x: 75, y: 65, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w9' },
+    { x: 95, y: 105, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w10' },
+    { x: 95, y: 90, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w11' },
+    { x: 95, y: 72, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w12' },
+    { x: 115, y: 100, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w13' },
+    { x: 115, y: 82, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w14' },
+    { x: 115, y: 66, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w15' },
+    { x: 130, y: 95, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w16' },
+    { x: 130, y: 76, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_w17' },
+    { x: 165, y: 100, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e1' },
+    { x: 165, y: 82, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e2' },
+    { x: 165, y: 66, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e3' },
+    { x: 182, y: 98, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e4' },
+    { x: 182, y: 80, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e5' },
+    { x: 182, y: 64, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e6' },
+    { x: 200, y: 102, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e7' },
+    { x: 200, y: 85, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e8' },
+    { x: 200, y: 68, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e9' },
+    { x: 218, y: 100, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e10' },
+    { x: 218, y: 82, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e11' },
+    { x: 218, y: 66, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e12' },
+    { x: 238, y: 95, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e13' },
+    { x: 240, y: 75, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e14' },
+    { x: 255, y: 90, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_upper_e15' },
     { x: 45, y: 70, width: 18, height: 6, type: 'clearing', fill: 'roof_tile' },
     { x: 80, y: 68, width: 16, height: 6, type: 'clearing', fill: 'roof_tile' },
     { x: 100, y: 74, width: 14, height: 6, type: 'clearing', fill: 'roof_tile' },
@@ -366,10 +366,10 @@ export const gilrhymDef: MapDefinition = {
     { x: 200, y: 20, width: 18, height: 14, type: 'ruins' },
     { x: 80, y: 38, width: 14, height: 10, type: 'destroyed_town' },
     { x: 210, y: 38, width: 14, height: 10, type: 'destroyed_town' },
-    { x: 70, y: 40, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_cathedral_bldg_1' },
-    { x: 225, y: 40, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_cathedral_bldg_2' },
-    { x: 60, y: 25, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_cathedral_bldg_3' },
-    { x: 235, y: 25, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_cathedral_bldg_4' },
+    { x: 70, y: 40, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_cathedral_bldg_1' },
+    { x: 225, y: 40, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_cathedral_bldg_2' },
+    { x: 60, y: 25, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_cathedral_bldg_3' },
+    { x: 235, y: 25, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_cathedral_bldg_4' },
     { x: 45, y: 15, width: 14, height: 12, type: 'graveyard' },
     { x: 245, y: 15, width: 14, height: 12, type: 'graveyard' },
     { x: 20, y: 8, width: 260, height: 3, type: 'wall', fill: 'stone' },
@@ -409,14 +409,14 @@ export const gilrhymDef: MapDefinition = {
 
     // --- Zone A additions ---
     // West outskirts: cottages and walkways within edge wall
-    { x: 35, y: 260, width: 10, height: 8, type: 'cottage', interactionId: 'gilrhym_outskirt_cottage_w1' },
-    { x: 50, y: 265, width: 10, height: 8, type: 'cottage', interactionId: 'gilrhym_outskirt_cottage_w2' },
+    { x: 35, y: 260, width: 10, height: 8, type: 'cottage', interactionId: 'guilrhym_outskirt_cottage_w1' },
+    { x: 50, y: 265, width: 10, height: 8, type: 'cottage', interactionId: 'guilrhym_outskirt_cottage_w2' },
     { x: 35, y: 272, width: 14, height: 8, type: 'destroyed_town' },
     { x: 55, y: 275, width: 12, height: 6, type: 'clearing', fill: 'cobblestone' },
     { x: 65, y: 265, width: 8, height: 6, type: 'clearing', fill: 'brick' },
     // East outskirts: cottages and walkways within edge wall
-    { x: 240, y: 260, width: 10, height: 8, type: 'cottage', interactionId: 'gilrhym_outskirt_cottage_e1' },
-    { x: 255, y: 265, width: 10, height: 8, type: 'cottage', interactionId: 'gilrhym_outskirt_cottage_e2' },
+    { x: 240, y: 260, width: 10, height: 8, type: 'cottage', interactionId: 'guilrhym_outskirt_cottage_e1' },
+    { x: 255, y: 265, width: 10, height: 8, type: 'cottage', interactionId: 'guilrhym_outskirt_cottage_e2' },
     { x: 240, y: 272, width: 14, height: 8, type: 'destroyed_town' },
     { x: 228, y: 275, width: 12, height: 6, type: 'clearing', fill: 'cobblestone' },
     { x: 222, y: 265, width: 8, height: 6, type: 'clearing', fill: 'brick' },
@@ -426,14 +426,14 @@ export const gilrhymDef: MapDefinition = {
 
     // --- Zone B additions ---
     // More buildings along the y:228 cross street
-    { x: 40, y: 230, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_res_b1' },
-    { x: 240, y: 230, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_res_b2' },
+    { x: 40, y: 230, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_res_b1' },
+    { x: 240, y: 230, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_res_b2' },
     // More buildings along the y:205 cross street
-    { x: 40, y: 200, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_res_b3' },
-    { x: 240, y: 200, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_res_b4' },
+    { x: 40, y: 200, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_res_b3' },
+    { x: 240, y: 200, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_res_b4' },
     // Buildings along the y:188 cross street
-    { x: 40, y: 186, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_res_b5' },
-    { x: 240, y: 186, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_res_b6' },
+    { x: 40, y: 186, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_res_b5' },
+    { x: 240, y: 186, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_res_b6' },
     // Plazas at cross-street intersections
     { x: 100, y: 226, width: 10, height: 8, type: 'cobble_plaza' },
     { x: 168, y: 226, width: 10, height: 8, type: 'cobble_plaza' },
@@ -444,10 +444,10 @@ export const gilrhymDef: MapDefinition = {
     { x: 122, y: 192, width: 10, height: 8, type: 'garden' },
     { x: 168, y: 192, width: 10, height: 8, type: 'garden' },
     // More buildings in central blocks
-    { x: 112, y: 215, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_res_b7' },
-    { x: 112, y: 195, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_res_b8' },
-    { x: 175, y: 215, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_res_b9' },
-    { x: 175, y: 195, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_res_b10' },
+    { x: 112, y: 215, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_res_b7' },
+    { x: 112, y: 195, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_res_b8' },
+    { x: 175, y: 215, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_res_b9' },
+    { x: 175, y: 195, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_res_b10' },
     // Brick clearings near buildings
     { x: 52, y: 218, width: 6, height: 4, type: 'clearing', fill: 'brick' },
     { x: 200, y: 218, width: 6, height: 4, type: 'clearing', fill: 'brick' },
@@ -459,14 +459,14 @@ export const gilrhymDef: MapDefinition = {
 
     // --- Zone C additions ---
     // More buildings filling the wall edges
-    { x: 30, y: 125, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_extra_w1' },
-    { x: 55, y: 148, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_extra_w2' },
-    { x: 30, y: 155, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_extra_w3' },
-    { x: 60, y: 135, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_extra_w4' },
-    { x: 225, y: 125, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_extra_e1' },
-    { x: 210, y: 158, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_extra_e2' },
-    { x: 240, y: 148, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_extra_e3' },
-    { x: 255, y: 145, width: 10, height: 8, type: 'building', interactionId: 'gilrhym_shop_extra_e4' },
+    { x: 30, y: 125, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_extra_w1' },
+    { x: 55, y: 148, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_extra_w2' },
+    { x: 30, y: 155, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_extra_w3' },
+    { x: 60, y: 135, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_extra_w4' },
+    { x: 225, y: 125, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_extra_e1' },
+    { x: 210, y: 158, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_extra_e2' },
+    { x: 240, y: 148, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_extra_e3' },
+    { x: 255, y: 145, width: 10, height: 8, type: 'building', interactionId: 'guilrhym_shop_extra_e4' },
     // Extra market plazas at intersections
     { x: 82, y: 133, width: 10, height: 8, type: 'cobble_plaza' },
     { x: 196, y: 133, width: 10, height: 8, type: 'cobble_plaza' },
@@ -550,8 +550,8 @@ export const gilrhymDef: MapDefinition = {
     { x: 22, y: 236, width: 40, height: 3, type: 'wall', fill: 'stone' },
     { x: 238, y: 236, width: 40, height: 3, type: 'wall', fill: 'stone' },
     // Gatehouse buildings flanking the gate gap
-    { x: 125, y: 240, width: 10, height: 6, type: 'building', interactionId: 'gilrhym_gatehouse_w' },
-    { x: 165, y: 240, width: 10, height: 6, type: 'building', interactionId: 'gilrhym_gatehouse_e' },
+    { x: 125, y: 240, width: 10, height: 6, type: 'building', interactionId: 'guilrhym_gatehouse_w' },
+    { x: 165, y: 240, width: 10, height: 6, type: 'building', interactionId: 'guilrhym_gatehouse_e' },
     // Small plazas inside the gate
     { x: 128, y: 234, width: 14, height: 4, type: 'cobble_plaza' },
     { x: 158, y: 234, width: 14, height: 4, type: 'cobble_plaza' },
@@ -655,70 +655,68 @@ export const gilrhymDef: MapDefinition = {
   ],
   chests: [
     // Zone A — Outskirts (4)
-    { x: 105, y: 265, interactionId: 'gilrhym_gate_chest' },
-    { x: 190, y: 258, interactionId: 'gilrhym_courtyard_chest' },
-    { x: 68, y: 270, interactionId: 'gilrhym_rubble_chest' },
-    { x: 220, y: 265, interactionId: 'gilrhym_outskirt_chest' },
+    { x: 105, y: 265, interactionId: 'guilrhym_gate_chest' },
+    { x: 190, y: 258, interactionId: 'guilrhym_courtyard_chest' },
+    { x: 68, y: 270, interactionId: 'guilrhym_rubble_chest' },
+    { x: 220, y: 265, interactionId: 'guilrhym_outskirt_chest' },
 
     // Zone B — Outer Districts (8)
-    { x: 60, y: 220, interactionId: 'gilrhym_manor_chest_1' },
-    { x: 215, y: 220, interactionId: 'gilrhym_manor_chest_2' },
-    { x: 125, y: 215, interactionId: 'gilrhym_courtyard_chest_2' },
-    { x: 235, y: 190, interactionId: 'gilrhym_cemetery_chest' },
-    { x: 32, y: 200, interactionId: 'gilrhym_rubble_chest_2' },
-    { x: 95, y: 202, interactionId: 'gilrhym_district_chest_1' },
-    { x: 170, y: 208, interactionId: 'gilrhym_district_chest_2' },
-    { x: 248, y: 215, interactionId: 'gilrhym_graveyard_chest' },
+    { x: 60, y: 220, interactionId: 'guilrhym_manor_chest_1' },
+    { x: 215, y: 220, interactionId: 'guilrhym_manor_chest_2' },
+    { x: 125, y: 215, interactionId: 'guilrhym_courtyard_chest_2' },
+    { x: 235, y: 190, interactionId: 'guilrhym_cemetery_chest' },
+    { x: 32, y: 200, interactionId: 'guilrhym_rubble_chest_2' },
+    { x: 95, y: 202, interactionId: 'guilrhym_district_chest_1' },
+    { x: 170, y: 208, interactionId: 'guilrhym_district_chest_2' },
+    { x: 248, y: 215, interactionId: 'guilrhym_graveyard_chest' },
 
     // Zone C — Market District (8)
-    { x: 118, y: 150, interactionId: 'gilrhym_market_chest_1' },
-    { x: 175, y: 148, interactionId: 'gilrhym_market_chest_2' },
-    { x: 75, y: 145, interactionId: 'gilrhym_inn_chest' },
-    { x: 220, y: 140, interactionId: 'gilrhym_shop_chest_1' },
-    { x: 135, y: 175, interactionId: 'gilrhym_church_chest' },
-    { x: 258, y: 132, interactionId: 'gilrhym_tower_chest' },
-    { x: 48, y: 132, interactionId: 'gilrhym_garden_chest' },
-    { x: 98, y: 165, interactionId: 'gilrhym_plaza_chest' },
+    { x: 118, y: 150, interactionId: 'guilrhym_market_chest_1' },
+    { x: 175, y: 148, interactionId: 'guilrhym_market_chest_2' },
+    { x: 75, y: 145, interactionId: 'guilrhym_inn_chest' },
+    { x: 220, y: 140, interactionId: 'guilrhym_shop_chest_1' },
+    { x: 135, y: 175, interactionId: 'guilrhym_church_chest' },
+    { x: 258, y: 132, interactionId: 'guilrhym_tower_chest' },
+    { x: 48, y: 132, interactionId: 'guilrhym_garden_chest' },
+    { x: 98, y: 165, interactionId: 'guilrhym_plaza_chest' },
 
-    // Zone D — Upper City (10)
-    { x: 48, y: 102, interactionId: 'gilrhym_alley_chest_1' },
-    { x: 82, y: 85, interactionId: 'gilrhym_alley_chest_2' },
-    { x: 118, y: 95, interactionId: 'gilrhym_alley_chest_3' },
-    { x: 148, y: 92, interactionId: 'gilrhym_scythe_chest' },
-    { x: 170, y: 98, interactionId: 'gilrhym_alley_chest_4' },
-    { x: 205, y: 88, interactionId: 'gilrhym_alley_chest_5' },
-    { x: 242, y: 95, interactionId: 'gilrhym_alley_chest_6' },
-    { x: 50, y: 72, interactionId: 'gilrhym_rooftop_chest_1' },
-    { x: 210, y: 70, interactionId: 'gilrhym_rooftop_chest_2' },
-    { x: 130, y: 70, interactionId: 'gilrhym_rooftop_chest_3' },
+    // Zone D — Upper City (9)
+    { x: 48, y: 102, interactionId: 'guilrhym_alley_chest_1' },
+    { x: 82, y: 85, interactionId: 'guilrhym_alley_chest_2' },
+    { x: 118, y: 95, interactionId: 'guilrhym_alley_chest_3' },
+    { x: 170, y: 98, interactionId: 'guilrhym_alley_chest_4' },
+    { x: 205, y: 88, interactionId: 'guilrhym_alley_chest_5' },
+    { x: 242, y: 95, interactionId: 'guilrhym_alley_chest_6' },
+    { x: 50, y: 72, interactionId: 'guilrhym_rooftop_chest_1' },
+    { x: 210, y: 70, interactionId: 'guilrhym_rooftop_chest_2' },
+    { x: 130, y: 70, interactionId: 'guilrhym_rooftop_chest_3' },
 
     // Zone E — City Center (3)
-    { x: 148, y: 20, interactionId: 'gilrhym_cathedral_chest' },
-    { x: 90, y: 25, interactionId: 'gilrhym_ruin_chest_1' },
-    { x: 210, y: 25, interactionId: 'gilrhym_ruin_chest_2' },
+    { x: 148, y: 20, interactionId: 'guilrhym_cathedral_chest' },
+    { x: 90, y: 25, interactionId: 'guilrhym_ruin_chest_1' },
+    { x: 210, y: 25, interactionId: 'guilrhym_ruin_chest_2' },
   ],
   interactables: [
     // Bonfires (4)
-    { x: 150, y: 268, type: 'bonfire', walkable: false, interactionId: 'bonfire_gilrhym_gate' },
-    { x: 150, y: 155, type: 'bonfire', walkable: false, interactionId: 'bonfire_gilrhym_market' },
-    { x: 140, y: 85, type: 'bonfire', walkable: false, interactionId: 'bonfire_gilrhym_heights' },
-    { x: 150, y: 50, type: 'bonfire', walkable: false, interactionId: 'bonfire_gilrhym_cathedral' },
+    { x: 150, y: 268, type: 'bonfire', walkable: false, interactionId: 'bonfire_guilrhym_gate' },
+    { x: 150, y: 155, type: 'bonfire', walkable: false, interactionId: 'bonfire_guilrhym_market' },
+    { x: 140, y: 85, type: 'bonfire', walkable: false, interactionId: 'bonfire_guilrhym_heights' },
+    { x: 150, y: 50, type: 'bonfire', walkable: false, interactionId: 'bonfire_guilrhym_cathedral' },
 
     // Wells (3)
-    { x: 145, y: 265, type: 'well', walkable: false, interactionId: 'gilrhym_fountain' },
-    { x: 140, y: 152, type: 'well', walkable: false, interactionId: 'gilrhym_market_well' },
-    { x: 145, y: 45, type: 'well', walkable: false, interactionId: 'gilrhym_cathedral_well' },
+    { x: 145, y: 265, type: 'well', walkable: false, interactionId: 'guilrhym_fountain' },
+    { x: 140, y: 152, type: 'well', walkable: false, interactionId: 'guilrhym_market_well' },
+    { x: 145, y: 45, type: 'well', walkable: false, interactionId: 'guilrhym_cathedral_well' },
 
     // Key narrative signs only
-    { x: 148, y: 278, type: 'sign', walkable: false, interactionId: 'gilrhym_gate_sign' },
-    { x: 130, y: 220, type: 'sign', walkable: false, interactionId: 'gilrhym_fallen_guard' },
-    { x: 148, y: 90, type: 'sign', walkable: false, interactionId: 'gilrhym_scythe_inscription' },
-    { x: 120, y: 30, type: 'sign', walkable: false, interactionId: 'gilrhym_cathedral_inscription' },
-    { x: 180, y: 30, type: 'sign', walkable: false, interactionId: 'gilrhym_reaver_plaque' },
+    { x: 148, y: 278, type: 'sign', walkable: false, interactionId: 'guilrhym_gate_sign' },
+    { x: 130, y: 220, type: 'sign', walkable: false, interactionId: 'guilrhym_fallen_guard' },
+    { x: 120, y: 30, type: 'sign', walkable: false, interactionId: 'guilrhym_cathedral_inscription' },
+    { x: 180, y: 30, type: 'sign', walkable: false, interactionId: 'guilrhym_reaver_plaque' },
 
     // Shortcut levers (2)
-    { x: 55, y: 240, type: 'shortcut_lever', walkable: false, interactionId: 'gilrhym_shortcut_lever_1' },
-    { x: 200, y: 118, type: 'shortcut_lever', walkable: false, interactionId: 'gilrhym_shortcut_lever_2' },
+    { x: 55, y: 240, type: 'shortcut_lever', walkable: false, interactionId: 'guilrhym_shortcut_lever_1' },
+    { x: 200, y: 118, type: 'shortcut_lever', walkable: false, interactionId: 'guilrhym_shortcut_lever_2' },
 
     // Stomped-out campfire remains (atmosphere only)
     { x: 65, y: 260, type: 'campfire_remains', walkable: false },
@@ -954,7 +952,7 @@ export const gilrhymDef: MapDefinition = {
     { x: 154, y: 276, type: 'wall_torch', walkable: false },
     { x: 136, y: 276, type: 'wall_torch', walkable: false },
     { x: 162, y: 276, type: 'wall_torch', walkable: false },
-    // Hanging sign (the Gilrhym plaque)
+    // Hanging sign (the Guilrhym plaque)
     { x: 148, y: 280, type: 'hanging_sign', walkable: false },
 
     // === BOULEVARD — Zone A section (y:244-280) ===

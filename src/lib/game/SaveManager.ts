@@ -1,8 +1,9 @@
-import { GameState, Item, Quest, LastBonfire, DroppedEssence, WorldItem } from './GameState';
-import { MapMarker } from './MapMarkers';
+import { GameState, Item, Quest, LastBonfire, DroppedEssence, WorldItem, EMPTY_EQUIPPED_RING_IDS, EMPTY_WEAPON_LOADOUT, type EquippedRingIds, type WeaponLoadout } from './GameState';
+import { MapMarker, KNOWN_LOCATIONS } from './MapMarkers';
+import { items } from '../../data/items';
 
 const SAVE_KEY = 'rpg_save_data';
-const SAVE_VERSION = 6;
+const SAVE_VERSION = 8;
 
 export interface SaveData {
   version: number;
@@ -27,6 +28,8 @@ export interface SaveData {
   currentMap: string;
   inventory: Item[];
   equippedWeaponId?: string | null;
+  equippedRingIds?: EquippedRingIds;
+  weaponLoadout?: WeaponLoadout;
   lastBonfire: LastBonfire | null;
   droppedEssence: DroppedEssence | null;
   worldItems: WorldItem[];
@@ -35,6 +38,7 @@ export interface SaveData {
   mapMarkers: MapMarker[];
   visitedTiles: string[];
   seenItemIds: string[];
+  killedEnemyIds?: string[];
 }
 
 // Loose shape used during migration — every field optional so we can defensively
@@ -49,9 +53,143 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-/** Fill every v5 field. Safe to call on any version's payload. */
+// Discovered location markers persist with the tileX/tileY/colour they had when first
+// added (id format: `${map}_${label}`). If a location's canonical coords are later
+// corrected in KNOWN_LOCATIONS, old saves would keep drawing the marker at the stale
+// spot. Re-sync position/colour/type from KNOWN_LOCATIONS by id so corrections apply
+// retroactively. Dynamic/non-location markers (no id match) pass through unchanged.
+const KNOWN_LOCATION_BY_ID = new Map(
+  KNOWN_LOCATIONS.map(loc => [`${loc.map}_${loc.label}`, loc] as const),
+);
+
+function reconcileMarkerWithKnownLocation(marker: MapMarker): MapMarker {
+  const loc = KNOWN_LOCATION_BY_ID.get(marker.id);
+  if (!loc) return marker;
+  if (marker.tileX === loc.tileX && marker.tileY === loc.tileY) return marker;
+  return { ...marker, tileX: loc.tileX, tileY: loc.tileY, color: loc.color, type: loc.type };
+}
+
+function migrateInventoryItem(item: Item): Item {
+  if (item.id === 'cursed_idol') return { ...items.wolf_ring };
+  return item;
+}
+
+function migrateGameFlags(flags: Record<string, boolean | number>): Record<string, boolean | number> {
+  const next = { ...flags };
+  if (next.cursed_idol_received && !next.wolf_ring_received) {
+    next.wolf_ring_received = next.cursed_idol_received;
+  }
+  delete next.cursed_idol_received;
+
+  if (next.gravebound_ring_received && !next.hunter_cliff_shelf_chest_opened && !next.wolf_ring_received) {
+    next.wolf_ring_received = next.gravebound_ring_received;
+    delete next.gravebound_ring_received;
+  }
+  return next;
+}
+
+function migrateSeenItemIds(seenItemIds: string[]): string[] {
+  return seenItemIds.map(id => (id === 'cursed_idol' ? 'wolf_ring' : id));
+}
+
+function migrateWorldItems(worldItems: WorldItem[]): WorldItem[] {
+  return worldItems.map(entry => (
+    entry.itemId === 'cursed_idol' || entry.itemId === 'gravebound_ring'
+      ? { ...entry, itemId: 'wolf_ring' }
+      : entry
+  ));
+}
+
+function migrateInventoryForRingSwap(
+  inventory: Item[],
+  gameFlags: Record<string, boolean | number>,
+): Item[] {
+  const olwenWolfClaimed = Boolean(gameFlags.wolf_ring_received) && !Boolean(gameFlags.gravebound_ring_received);
+  return inventory.map(item => {
+    if (item.id === 'cursed_idol') return { ...items.wolf_ring };
+    if (item.id === 'gravebound_ring' && olwenWolfClaimed) return { ...items.wolf_ring };
+    return item;
+  });
+}
+
+function finalizeEquippedRingIds(
+  equippedRingIds: EquippedRingIds,
+  gameFlags: Record<string, boolean | number>,
+): EquippedRingIds {
+  const olwenWolfClaimed = Boolean(gameFlags.wolf_ring_received) && !Boolean(gameFlags.gravebound_ring_received);
+  return equippedRingIds.map(id => {
+    if (id === 'cursed_idol') return 'wolf_ring';
+    if (id === 'gravebound_ring' && olwenWolfClaimed) return 'wolf_ring';
+    return id;
+  }) as EquippedRingIds;
+}
+
+function migrateWeaponLoadout(raw: RawSave, inventory: Item[]): WeaponLoadout {
+  if (Array.isArray(raw.weaponLoadout) && raw.weaponLoadout.length === 3) {
+    return [
+      typeof raw.weaponLoadout[0] === 'string' ? raw.weaponLoadout[0] : null,
+      typeof raw.weaponLoadout[1] === 'string' ? raw.weaponLoadout[1] : null,
+      typeof raw.weaponLoadout[2] === 'string' ? raw.weaponLoadout[2] : null,
+    ];
+  }
+
+  const weaponIds: string[] = [];
+  const preferred = raw.equippedWeaponId;
+  if (typeof preferred === 'string' && inventory.some(item => item.id === preferred && item.type === 'equipment')) {
+    weaponIds.push(preferred);
+  }
+  inventory.forEach(item => {
+    if (item.type === 'equipment' && !weaponIds.includes(item.id)) {
+      weaponIds.push(item.id);
+    }
+  });
+
+  const loadout: WeaponLoadout = [...EMPTY_WEAPON_LOADOUT];
+  for (let i = 0; i < Math.min(WEAPON_LOADOUT_SIZE, weaponIds.length); i++) {
+    loadout[i] = weaponIds[i];
+  }
+  return loadout;
+}
+
+const WEAPON_LOADOUT_SIZE = 3;
+
+function migrateEquippedRingIds(
+  raw: RawSave,
+  inventory: Item[],
+  gameFlags: Record<string, boolean | number>,
+): EquippedRingIds {
+  let equippedRingIds: EquippedRingIds;
+  if (Array.isArray(raw.equippedRingIds) && raw.equippedRingIds.length === 2) {
+    equippedRingIds = [
+      typeof raw.equippedRingIds[0] === 'string' ? raw.equippedRingIds[0] : null,
+      typeof raw.equippedRingIds[1] === 'string' ? raw.equippedRingIds[1] : null,
+    ];
+  } else {
+    const hadLegacyOlwenRing =
+      gameFlags.wolf_ring_received ||
+      inventory.some(item => item.id === 'wolf_ring' || item.id === 'gravebound_ring' || item.id === 'cursed_idol');
+    equippedRingIds = hadLegacyOlwenRing ? ['wolf_ring', null] : [...EMPTY_EQUIPPED_RING_IDS];
+  }
+  return finalizeEquippedRingIds(equippedRingIds, gameFlags);
+}
+
+/** Fill every field. Safe to call on any version's payload. */
 function normalizeSave(raw: RawSave): SaveData {
   const player = raw.player ?? {};
+  const gameFlags = migrateGameFlags(isObject(raw.gameFlags) ? (raw.gameFlags as Record<string, boolean | number>) : {});
+  const inventory = migrateInventoryForRingSwap(
+    Array.isArray(raw.inventory)
+      ? (raw.inventory as Item[]).map(migrateInventoryItem)
+      : [],
+    gameFlags,
+  );
+  const seenItemIds = Array.isArray(raw.seenItemIds)
+    ? migrateSeenItemIds(raw.seenItemIds as string[])
+    : inventory.map(i => i.id);
+  const worldItems = migrateWorldItems(Array.isArray(raw.worldItems) ? (raw.worldItems as WorldItem[]) : []);
+  const equippedRingIds = migrateEquippedRingIds(raw, inventory, gameFlags);
+  const weaponLoadout = migrateWeaponLoadout(raw, inventory);
+
   return {
     version: SAVE_VERSION,
     timestamp: typeof raw.timestamp === 'number' ? raw.timestamp : Date.now(),
@@ -73,31 +211,29 @@ function normalizeSave(raw: RawSave): SaveData {
       strength: player.strength,
     },
     currentMap: raw.currentMap ?? 'village',
-    inventory: Array.isArray(raw.inventory) ? raw.inventory : [],
+    inventory,
     equippedWeaponId: raw.equippedWeaponId ?? null,
+    equippedRingIds,
+    weaponLoadout,
     lastBonfire: raw.lastBonfire ?? null,
     droppedEssence: raw.droppedEssence ?? null,
-    worldItems: Array.isArray(raw.worldItems) ? raw.worldItems : [],
+    worldItems,
     quests: Array.isArray(raw.quests) ? raw.quests : [],
-    gameFlags: isObject(raw.gameFlags) ? (raw.gameFlags as Record<string, boolean | number>) : {},
+    gameFlags,
     // Strip portal-type markers on load — they are always regenerated fresh
     // from the current objective, so persisting them causes stale labels/colours.
     // Also drop any removed legend entries (e.g. Whispering Woods) from old saves.
+    // Finally, reconcile each discovered location marker's position/colour/type
+    // against the current KNOWN_LOCATIONS so saves made before a marker's canonical
+    // coords were corrected (e.g. Chapel Ruins) don't keep rendering it in the wrong place.
     mapMarkers: Array.isArray(raw.mapMarkers)
-      ? (raw.mapMarkers as MapMarker[]).filter(
-          m => m.type !== 'portal' && m.label !== 'Whispering Woods'
-        )
+      ? (raw.mapMarkers as MapMarker[])
+          .filter(m => m.type !== 'portal' && m.label !== 'Whispering Woods')
+          .map(reconcileMarkerWithKnownLocation)
       : [],
     visitedTiles: Array.isArray(raw.visitedTiles) ? raw.visitedTiles : [],
-    // Pre-v6 saves had no seen-item tracking. Seed from current inventory so the
-    // first-time overlay doesn't blast every loaded item; this is an intentional
-    // backfill — players upgrading mid-game won't see overlays for items they
-    // were already carrying, which is the right call.
-    seenItemIds: Array.isArray(raw.seenItemIds)
-      ? (raw.seenItemIds as string[])
-      : Array.isArray(raw.inventory)
-        ? (raw.inventory as Item[]).map(i => i.id)
-        : [],
+    seenItemIds,
+    killedEnemyIds: Array.isArray(raw.killedEnemyIds) ? (raw.killedEnemyIds as string[]) : [],
   };
 }
 
@@ -126,6 +262,8 @@ export class SaveManager {
       currentMap: state.currentMap,
       inventory: state.inventory.map(i => ({ ...i })),
       equippedWeaponId: state.equippedWeaponId,
+      equippedRingIds: [...state.equippedRingIds],
+      weaponLoadout: [...state.weaponLoadout],
       lastBonfire: state.lastBonfire ? { ...state.lastBonfire } : null,
       droppedEssence: state.droppedEssence ? { ...state.droppedEssence } : null,
       worldItems: state.worldItems.map(wi => ({ ...wi })),
@@ -134,6 +272,7 @@ export class SaveManager {
       mapMarkers: mapMarkers.map(m => ({ ...m })),
       visitedTiles: Array.from(visitedTiles),
       seenItemIds: Array.from(state.seenItemIds),
+      killedEnemyIds: Array.from(state.killedEnemyIds),
     };
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));

@@ -242,8 +242,8 @@ export const Minimap = memo(
         </div>
         <div className="mt-2 space-y-1 border-t border-[#5C3A21]/50 pt-2">
           <div className="mb-1 flex items-center justify-between gap-2">
-            <p className="text-[9px] text-[#DAA520]/80 uppercase tracking-wider font-bold">Map key</p>
-            <span className="rounded border border-[#5C3A21]/40 bg-[#120907]/55 px-1.5 py-0.5 text-[9px] font-mono text-[#DAA520]">
+            <p className="text-[10px] text-[#DAA520]/90 uppercase tracking-wider font-bold">Map key</p>
+            <span className="rounded border border-[#5C3A21]/40 bg-[#120907]/55 px-1.5 py-0.5 text-[10px] font-mono text-[#DAA520]">
               {Math.round(playerX)}, {Math.round(playerY)}
             </span>
           </div>

@@ -49,8 +49,26 @@ export function getInteractionPromptLabel(
   if (interactionId === 'grove_shelf_shortcut_lever') {
     return state.getFlag('grove_shelf_shortcut_open') ? 'Shortcut Unlocked' : 'Unbar Trail Gate';
   }
+  if (interactionId === 'west_cliff_gate_lever') {
+    return state.getFlag('west_cliff_gate_open') ? 'Gate Opened' : 'Lift Bar';
+  }
+  if (interactionId === 'west_cliff_gate_sealed') {
+    return 'No mechanism on this side';
+  }
   if (interactionId === 'riverside_bridge_shortcut_lever') {
     return state.getFlag('riverside_bridge_shortcut_open') ? 'Shortcut Unlocked' : 'Lower Bridge';
+  }
+  if (interactionId === 'hollow_shortcut_lever') {
+    return state.getFlag('hollow_shortcut_open') ? 'Shortcut Unlocked' : 'Unbar Hollow Gate';
+  }
+  if (interactionId === 'hollow_gate_sealed') {
+    return 'No lever on this side';
+  }
+  if (interactionId === 'east_hollow_route_gate_lever') {
+    return state.getFlag('east_hollow_route_gate_open') ? 'Shortcut Unlocked' : 'Unbar Route Gate';
+  }
+  if (interactionId === 'east_hollow_route_gate_sealed') {
+    return 'No lever on this side';
   }
 
   if (criticalItemInteractionIds.has(interactionId)) {
@@ -71,7 +89,7 @@ export function getInteractionPromptLabel(
   if (interactionId === 'tombstone') return 'Read Epitaph';
   if (interactionId === 'lantern') return null;
   if (interactionId === 'ancient_well') return 'Drink from Well';
-  if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'ancient_well' || interactionId === 'gilrhym_fountain' || interactionId === 'gilrhym_market_well' || interactionId === 'gilrhym_cathedral_well') return 'Drink from Fountain';
+  if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'ancient_well' || interactionId === 'guilrhym_fountain' || interactionId === 'guilrhym_market_well' || interactionId === 'guilrhym_cathedral_well') return 'Drink from Fountain';
   if (interactionId === 'hunter_clue') return "Read Hunter's Manuscript";
   if (interactionId === 'wolf_den_bones') return 'Inspect Remains';
   if (interactionId === 'chapel_dead_ranger') return 'Inspect Fallen Ranger';
@@ -89,7 +107,7 @@ export function getInteractionPromptLabel(
   if (interactionId === 'hollow_fog_gate') {
     return state.getFlag('hollow_guardian_defeated') ? 'The Fog Has Lifted' : 'Enter the Fog';
   }
-  if (interactionId === 'gilrhym_fog_gate') {
+  if (interactionId === 'guilrhym_fog_gate') {
     return state.getFlag('ashen_reaver_defeated') ? 'The Fog Has Lifted' : 'Approach the Fog';
   }
   if (interactionId === 'old_chapel_altar') return 'Inspect Altar';
@@ -167,12 +185,21 @@ export function resolveSafeTransitionPosition(
   return { x: baseX, y: baseY };
 }
 
-export function spawnEnemiesFromMapZones(mapKey: string, mapWorld: WorldMap, combatSystem: CombatSystem, world: World) {
+export function spawnEnemiesFromMapZones(
+  mapKey: string,
+  mapWorld: WorldMap,
+  combatSystem: CombatSystem,
+  world: World,
+  killedIds: ReadonlySet<string> = new Set(),
+) {
   const mapDef = mapDefinitions[mapKey];
   if (!mapDef?.enemyZones?.length) return;
-  for (const zone of mapDef.enemyZones) {
+  for (let zoneIdx = 0; zoneIdx < mapDef.enemyZones.length; zoneIdx++) {
+    const zone = mapDef.enemyZones[zoneIdx];
     const blueprint = ENEMY_BLUEPRINTS[zone.enemyType] || DEFAULT_ENEMY;
     for (let i = 0; i < zone.count; i++) {
+      const zoneId = `${mapKey}:z${zoneIdx}:${i}`;
+      if (killedIds.has(zoneId)) continue;
       const pos = pickEnemySpawnInZone(zone, mapWorld, world, i, zone.count);
       if (!pos) continue;
       combatSystem.spawnEnemy(
@@ -193,6 +220,7 @@ export function spawnEnemiesFromMapZones(mapKey: string, mapWorld: WorldMap, com
           behaviorOverrides: blueprint.behaviorOverrides,
           faction: zone.faction ?? blueprint.faction,
           patrolRadius: zone.patrolRadius,
+          zoneId,
         },
       );
     }

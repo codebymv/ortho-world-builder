@@ -4,6 +4,7 @@ import { applyEnemyVisuals, updateDeadEnemyVisual } from '@/game/runtime/EnemyVi
 import type { EnemyLoopContext } from '@/game/runtime/RuntimePhaseContexts';
 import { ENEMY_BLUEPRINTS } from '@/data/enemies';
 import { getClimbVisualElevation } from '@/game/runtime/PlayerSimulationSystem';
+import { updateEastRidgeBoulder } from '@/game/runtime/EastRidgeBoulder';
 
 const announcedHollowEclipses = new Set<number>();
 type BossSfxState = { state: string; type: string | undefined; phase: number | undefined; combo: number | undefined };
@@ -127,7 +128,6 @@ export function runEnemyLoop({
       }
 
       if (enemy.type === 'corrupted_giant' && phase === 2) {
-        floatingText.spawn(enemy.position.x, enemy.position.y + 1.6, 'ENRAGED!', '#CC44FF', 24);
         screenShake.shake(1.0, 0.55);
         screenShake.hitStop(0.4);
         // Violet corruption burst — veins rupture outward
@@ -137,7 +137,6 @@ export function runEnemyLoop({
       }
 
       if (phase === 2) {
-        floatingText.spawn(enemy.position.x, enemy.position.y + 1.2, 'Rise, my shades...', '#44FFEE', 20);
         screenShake.shake(0.6, 0.3);
         screenShake.hitStop(0.3);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 20, 0x44FFEE, 0.1, 1.8, 1.2);
@@ -154,7 +153,6 @@ export function runEnemyLoop({
       }
 
       if (phase === 3) {
-        floatingText.spawn(enemy.position.x, enemy.position.y + 1.2, 'Darkness consumes all...', '#44FFEE', 20);
         screenShake.shake(0.8, 0.4);
         screenShake.hitStop(0.4);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 35, 0x44FFEE, 0.12, 2.2, 1.5);
@@ -317,7 +315,6 @@ export function runEnemyLoop({
       const eclipsePhase = enemy.phase ?? 1;
       if (!announcedHollowEclipses.has(eclipsePhase)) {
         announcedHollowEclipses.add(eclipsePhase);
-        floatingText.spawn(enemy.position.x, enemy.position.y + 1.5, 'HOLLOW ECLIPSE', '#44FFEE', 24);
         screenShake.shake(0.55, 0.35);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.6, 45, 0x44ffee, 0.18, 2.6, 1.8);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.4, 25, 0xcc44ff, 0.14, 2.2, 1.4);
@@ -415,6 +412,13 @@ export function runEnemyLoop({
 
   if (fullyDeadEnemyIds.length > 0) {
     combatSystem.removeDeadEnemiesByIds(fullyDeadEnemyIds);
+  }
+
+  // One-shot scripted boulder on the East Ridge Ascent (spawns a projectile that rolls down the
+  // climb the first time the player crosses it). Runs before updateProjectiles so it animates
+  // and resolves collision this same frame.
+  if (!isPlayerDead) {
+    updateEastRidgeBoulder({ state, combatSystem, screenShake, particleSystem, playPropBreak });
   }
 
   // Update + render thrown projectiles. A reflected projectile = a parry, so
@@ -568,7 +572,6 @@ export function runEnemyLoop({
       state.player.lastBreathUsedThisLife = true;
       state.player.health = 1;
       state.player.iFrameTimer = 1.5;
-      floatingText.spawn(state.player.position.x, state.player.position.y + 0.8, 'LAST BREATH!', '#FF5252', 28);
       particleSystem.emitHeal(new THREE.Vector3(state.player.position.x, state.player.position.y, 0.3));
       screenShake.shake(0.3, 0.25);
       return {

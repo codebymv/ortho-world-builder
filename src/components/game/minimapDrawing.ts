@@ -538,8 +538,10 @@ export function computeMinimapScale(
   maxScale = 16
 ): number {
   const dim = Math.max(mapWidth, mapHeight);
+  // For small maps (interiors, arenas), allow higher scale to fill the space better
+  const adaptiveMaxScale = dim < 50 ? Math.max(maxScale, 8) : maxScale;
   const s = Math.floor(maxAxisPixels / dim);
-  return Math.max(minScale, Math.min(maxScale, s));
+  return Math.max(minScale, Math.min(adaptiveMaxScale, s));
 }
 
 /** Pick largest integer scale so the full map fits inside maxWidth x maxHeight (HUD / modal). */
@@ -552,9 +554,12 @@ export function computeMinimapScaleToFit(
   maxScale = 16
 ): number {
   if (maxWidth < 8 || maxHeight < 8) return minScale;
+  const dim = Math.max(mapWidth, mapHeight);
+  // For small maps (interiors, arenas), allow higher scale to fill the space better
+  const adaptiveMaxScale = dim < 50 ? Math.max(maxScale, 14) : maxScale;
   const sx = Math.floor(maxWidth / mapWidth);
   const sy = Math.floor(maxHeight / mapHeight);
-  const s = Math.min(sx, sy, maxScale);
+  const s = Math.min(sx, sy, adaptiveMaxScale);
   return Math.max(minScale, s);
 }
 

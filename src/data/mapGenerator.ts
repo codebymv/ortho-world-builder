@@ -88,6 +88,9 @@ export interface MapFeature {
   tiles?: Partial<Record<string, Tile>>; // specific tile overrides by "dx,dy"
   fill?: TileType;
   border?: TileType;
+  /** For cemetery features: opens an additional gap on the east wall centred at this dy offset (±eastOpenHalf tiles). */
+  eastOpenDY?: number;
+  eastOpenHalf?: number;
   interactionId?: string;
   /** Door becomes a portal into this map (inn_building / optional cottage) */
   interiorMap?: string;
@@ -932,8 +935,20 @@ function enforceRiversideBridgeSpineApproach(tiles: Tile[][], def: MapDefinition
     }
   };
 
-  stampStairs(152, 154);
   stampStairs(162, 164);
+
+  // Riverside Grove bonfire corridor: lanterns on the spine column must not block the dirt path.
+  for (let ty = 149; ty <= 156; ty++) {
+    for (let tx = 146; tx <= 153; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const existing = tiles[ty][tx];
+      if (existing.type !== 'lantern') continue;
+      if (existing.transition || existing.interactable) continue;
+      tiles[ty][tx] = createTile('dirt', true, { elevation: existing.elevation ?? 1, spinePath: true });
+    }
+  }
+
+  stampStairs(152, 154);
 }
 
 /** Western bypass observatory (131,222): restore bypass path + front meadow after foundation/cliff passes. */
@@ -1798,7 +1813,10 @@ function placeCemetery(tiles: Tile[][], f: MapFeature) {
       if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === southRow) {
         const isWestOpen  = dx === 0 && Math.abs(dy - westOpenDY) <= halfOpen;
         const isNorthOpen = dy === 0 && Math.abs(dx - northOpenDX) <= halfOpen;
-        if (isWestOpen || isNorthOpen) {
+        const isEastOpen  = f.eastOpenDY !== undefined
+          && dx === f.width - 1
+          && Math.abs(dy - f.eastOpenDY) <= (f.eastOpenHalf ?? 1);
+        if (isWestOpen || isNorthOpen || isEastOpen) {
           tiles[ty][tx] = createTile('dirt', true);
         } else {
           tiles[ty][tx] = createTile('fence', false);
@@ -3390,7 +3408,7 @@ function scrubWhisperingWoodsNorthFortElevationSeam(tiles: Tile[][], def: MapDef
 
   // The northern fort spans a procedural elevation break around world x=54.
   // Keep the authored fort pieces, but flatten their elevation so the seam does not render through it.
-  for (let ty = 60; ty <= 75; ty++) {
+  for (let ty = 60; ty <= 77; ty++) {
     for (let tx = 200; tx <= 217; tx++) {
       if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
       tiles[ty][tx] = { ...tiles[ty][tx], elevation: 1 };
@@ -3398,9 +3416,97 @@ function scrubWhisperingWoodsNorthFortElevationSeam(tiles: Tile[][], def: MapDef
   }
 
   const seamX = 204;
-  for (let ty = 59; ty <= 76; ty++) {
+  for (let ty = 38; ty <= 78; ty++) {
     if (ty < 0 || ty >= tiles.length || seamX < 0 || seamX >= tiles[0].length) continue;
     tiles[ty][seamX] = { ...tiles[ty][seamX], elevation: 1 };
+  }
+
+  // South-east gate approach around world (59,-73) / tile (209,77). The center-summit el=2
+  // zone (y=38-79) stops at the fort apron while the interior scrub stays at el=1, leaving
+  // a blocked el=1↔el=2 seam on the south mouth unless both sides carry spinePath.
+  const apronTypes: Set<string> = new Set(['grass', 'dirt', 'sand', 'hollow_blight']);
+  for (let ty = 74; ty <= 78; ty++) {
+    for (let tx = 195; tx <= 222; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (apronTypes.has(t.type)) {
+        tiles[ty][tx] = { ...t, walkable: true, elevation: 1, spinePath: true };
+      }
+    }
+  }
+
+  // North apron around the fort's north side and the consumed-camp dirt shelf at
+  // world (54,-95)–(68,-96) / tiles y=52–59. Summit el=2 still sat on row y=54 north
+  // of the landing row, which kept both collision and the visible north seam filler.
+  const northApronBlocked: Set<string> = new Set([
+    'stone', 'cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted',
+    'gate', 'iron_fence', 'dead_tree', 'tree', 'fallen_tree', 'stump',
+    'lantern', 'barrel', 'crate', 'wagon', 'cart', 'rock',
+  ]);
+  // Walkable hollow corridor east of the west cliff column (tiles x=94-99). Flatten el=1 +
+  // spinePath on floor tiles only — skip cliff/dead-tree corridor walls via northApronBlocked.
+  for (let ty = 38; ty <= 59; ty++) {
+    for (let tx = 100; tx <= 222; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable || !t.walkable || northApronBlocked.has(t.type)) continue;
+      if (apronTypes.has(t.type)) {
+        tiles[ty][tx] = { ...t, walkable: true, elevation: 1, spinePath: true };
+      } else {
+        // Decor overlays (bones, etc.) are walkable but not spine-eligible types — rebake to floor.
+        tiles[ty][tx] = createTile('hollow_blight', true, { elevation: 1, spinePath: true });
+      }
+    }
+  }
+
+  // Consumed-camp dirt shelf (tiles x=204-217): stamp dirt only on walkable floor tiles so
+  // scatter blockers clear without converting cliff_face / iron_fence corridor walls to dirt.
+  for (let ty = 38; ty <= 55; ty++) {
+    for (let tx = 204; tx <= 217; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable || northApronBlocked.has(t.type)) continue;
+      if (!t.walkable) continue;
+      tiles[ty][tx] = createTile('dirt', true, { elevation: 1, spinePath: true });
+    }
+  }
+
+  // Scatter can land on the camp shelf after the apron pass; reopen the spine column only.
+  const shelfScatter: Set<string> = new Set([
+    'fallen_log', 'fallen_log_v', 'tree', 'dead_tree', 'fallen_tree', 'stump', 'rock',
+  ]);
+  for (let ty = 38; ty <= 55; ty++) {
+    for (let tx = 204; tx <= 217; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (shelfScatter.has(t.type)) {
+        tiles[ty][tx] = createTile('dirt', true, { elevation: 1, spinePath: true });
+      }
+    }
+  }
+
+  // East center-summit picket (world x=100 / tile x=250): el=2 summit vs el=1 NE ridge for
+  // world y=-92..-73 (ty=58-77). South rows already had spine; extend north so travel along
+  // the boundary is not blocked by the visible seam filler / el±1 step.
+  const eastSeamFloorTypes: Set<string> = new Set([...apronTypes, 'dark_grass']);
+  for (let ty = 58; ty <= 77; ty++) {
+    for (let tx = 249; tx <= 252; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable || northApronBlocked.has(t.type)) continue;
+      const el = tx <= 250 ? 2 : 1;
+      if (eastSeamFloorTypes.has(t.type)) {
+        const floorType = (t.type === 'dark_grass' ? 'grass' : t.type) as TileType;
+        tiles[ty][tx] = { ...t, type: floorType, walkable: true, elevation: el, spinePath: true };
+      } else if (
+        !t.walkable &&
+        (t.type === 'hollow_blight' || t.type === 'dark_grass' || t.type === 'grass')
+      ) {
+        tiles[ty][tx] = createTile(t.type, true, { elevation: el, spinePath: true });
+      }
+    }
   }
 }
 
@@ -3463,6 +3569,293 @@ function enforceCliffCorridorTraditionalApproach(tiles: Tile[][], def: MapDefini
         tiles[ty][tx] = createTile(ty === gateY ? 'cliff_edge' : 'cliff', false, {
           elevation: ty === gateY ? 1 : 0,
         });
+      }
+    }
+  }
+}
+
+// Carves the East Ridge Ascent: a winding descent SOUTH (larger tile-Y, which renders screen-up)
+// from the cliff-corridor ladder overlook into the empty cliff void between the homestead (west)
+// and the terrace/corridor (east), ending in a sealed arena. stampCliffs seals this whole block
+// as cliff art; this pass (run after stampCliffs) re-asserts the path tiles as walkable el1 grass
+// so it matches the el1 overlook with no seams, while the surrounding void stays cliff so the
+// route reads as a narrow ledge threading the rock. The 3-tile cliff buffers on each side keep it
+// isolated from the homestead/skeleton story route.
+function enforceEastRidgeAscent(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  // [x, y, width, height, elevation?] switchback segments, matching the authored clearings.
+  // The first half (C1-C7) is el1, level with the ladder overlook; the extension wraps east and
+  // climbs north, ending on an el2 summit field (E3) one cliff layer above the ladder shortcut.
+  const segments: [number, number, number, number, number?][] = [
+    [248, 129, 14, 2],  // C1 connector ledge from the ladder overlook
+    [248, 131, 4, 6],   // C2 throat dropping south
+    [241, 134, 11, 3],  // C3 switchback turning west
+    [241, 136, 4, 15],  // C4 long west leg
+    [241, 148, 11, 3],  // C5 switchback turning east (stops short of the summit field)
+    [248, 150, 4, 10],  // C6 corridor south to the mid-point landing (held west, world ~99)
+    [243, 157, 13, 7],  // C7 mid-point landing bowl
+    [255, 159, 8, 3],   // E1 right leg east off the landing (full elbow x255-262, y159-161)
+    [259, 147, 4, 15],  // E2 lengthened north leg climbing back toward the ladder (y147-161)
+    [256, 139, 10, 8, 2], // E3 el2 summit field (pushed north, SW corner shaved off)
+  ];
+  for (const [sx, sy, sw, sh, sel] of segments) {
+    const elevation = sel ?? 1;
+    for (let ty = sy; ty < sy + sh; ty++) {
+      for (let tx = sx; tx < sx + sw; tx++) {
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        const t = tiles[ty][tx];
+        // Preserve chests, ladders, signs, and transitions placed on the path.
+        if (t && (t.transition || t.interactable)) continue;
+        tiles[ty][tx] = createTile('grass', true, { elevation });
+      }
+    }
+  }
+
+  const stamp = (tx: number, ty: number, type: TileType, walkable: boolean, elevation: number) => {
+    if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) return;
+    const t = tiles[ty][tx];
+    if (t && (t.transition || t.interactable)) return;
+    tiles[ty][tx] = createTile(type, walkable, { elevation });
+  };
+
+  // --- Environmental storytelling: dress the climb like a treacherous, failed ascent. Stamped
+  // AFTER the grass carve so they survive (enforceEastRidgeAscent runs late in generateMap, past
+  // placeProps). createTile leaves baseTile unset, so these overlays render over the resolved
+  // neighbour terrain (grass). Ground overlays (bones/bloodstain/rubble) stay walkable; blockers
+  // (dead_tree/tombstone/sign/campfire) sit only on dead corners of WIDE segments so they never
+  // choke the single-file corridor. [tx, ty, type, walkable, elevation]
+  const decor: [number, number, TileType, boolean, number][] = [
+    // Trailhead off the ladder overlook — a lone lantern and the bones of the first to try.
+    [259, 129, 'lantern', true, 1],
+    [256, 130, 'bones', true, 1],
+    [252, 130, 'bones', true, 1],
+    // Upper switchback (C3) — a dead tree clinging to the rock at the NW dead corner.
+    [241, 134, 'dead_tree', false, 1],
+    // Long west descent (C4), the boulder lane — rockfall debris and old bloodstains.
+    [242, 143, 'bloodstain', true, 1],
+    [243, 145, 'rubble', true, 1],
+    [242, 147, 'bones', true, 1],
+    // Lower switchback (C5) — a broken grave at the far-east dead corner.
+    [251, 148, 'tombstone_broken', false, 1],
+    [249, 149, 'bones', true, 1],
+    // Mid-point landing (C7): dressed like the FINAL camp where climbers gave up — the fake end.
+    [247, 160, 'campfire_remains', false, 1],
+    [245, 159, 'bones_pile', true, 1],
+    [250, 162, 'bloodstain', true, 1],
+    [244, 162, 'broken_sign', false, 1],
+    // One loose crate at the far dead corner — a stray supply left by the last climber.
+    [253, 162, 'crate', false, 1],
+    // Hidden climb (E2) past the barricade — sparse remains the player only sees if they break through.
+    [261, 150, 'bones', true, 1],
+    [260, 155, 'bloodstain', true, 1],
+    // Summit arena (E3, el2): a boneyard of challengers ringing the Ridge Revenant.
+    [257, 140, 'tombstone_broken', false, 2],
+    [264, 145, 'tombstone_broken', false, 2],
+    [263, 141, 'bones_pile', true, 2],
+    [258, 144, 'bones', true, 2],
+    [262, 143, 'bloodstain', true, 2],
+  ];
+  for (const [tx, ty, type, walkable, elevation] of decor) stamp(tx, ty, type, walkable, elevation);
+
+  // --- Fake-end barricade: a wrecked wagon braced by a barrel row. This reads as an
+  // abandoned-climber blockade, not a tile puzzle, while still hiding the climb to the Ridge
+  // Revenant + Tempered Core. Smashing these breakables resolves back to el1 grass.
+  //
+  // The E1 throat (segment [255,159,8,3]) is the ONLY land link between the C7 landing (west)
+  // and the hidden E2 climb (east, x>=257), bounded by cliff void on the y158/y162 rows. The
+  // barricade therefore fills the full corridor cross-section — all three rows (y159-161) at
+  // x255-256 — so the player cannot slip past it on the y159/y161 rows the way the old
+  // single-row blockade allowed. Past x256 the E1 elbow stays open (x257-262) so smashing
+  // through opens straight onto the climb.
+  // Row 0 (front seal, x255-256): barrels flanking the lead wagon — full 3-row cross-section.
+  // Rows 1-2 (world ~108 and ~110, x258 and x260): two wagons staggered along the corridor
+  // giving the blockade depth and making the "this is a real barricade" read stronger.
+  const barricade: [number, number, TileType][] = [
+    [255, 159, 'barrel'], [256, 159, 'barrel'],
+    [255, 160, 'barrel'], [256, 160, 'wagon'],
+    [255, 161, 'barrel'], [256, 161, 'barrel'],
+    // Second wagon — world (~108, 11), staggered slightly off-centre
+    [258, 160, 'wagon'], [258, 161, 'barrel'],
+    // Third wagon — world (~110, 11)
+    [260, 159, 'barrel'], [260, 160, 'wagon'],
+  ];
+  for (const [tx, ty, type] of barricade) {
+    stamp(tx, ty, type, false, 1);
+    const t = tiles[ty]?.[tx];
+    if (t && !t.transition && !t.interactable) {
+      tiles[ty][tx] = { ...t, baseTile: 'grass' };
+    }
+  }
+}
+
+// Carves the cliff shortcut linking C7 (world ~90, ~13) to the fort-side grass pocket.
+// Layout (all tile coords):
+//   • Approach ledge   el1  y=163, x=240-242  — C7 west ledge
+//   • Cliff fill            y=164-168, x=238-242 — seals world (88-92, 14-18)
+//   • Descent corridor el1→el0  x=243-244, y=164-171 — east-of-fill outlet C7 → platform
+//   • Grass platform   el0  y=170-173, x=239-242 — sealed cliff pocket
+//   • Gate ladder at x=239, y=172 (world 89,22) on the el1 shelf where the corridor walk ends
+//     (~90,22 east); drops screen-DOWN (north) to fort landing west at (238,168 / world 88,18).
+function enforceFortRidgeLadderGate(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  const stamp = (tx: number, ty: number, type: TileType, walkable: boolean, elevation: number, extra?: Partial<Tile>) => {
+    if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) return;
+    const t = tiles[ty][tx];
+    if (t && (t.transition || t.interactable)) return;
+    tiles[ty][tx] = createTile(type, walkable, { elevation, ...extra });
+  };
+
+  // Approach ledge (el1): west extension of C7.
+  for (let tx = 240; tx <= 242; tx++) {
+    stamp(tx, 163, 'grass', true, 1);
+  }
+
+  // Cliff fill: seal world (88-92, 14-18) = tile (238-242, 164-168).
+  for (let ty = 164; ty <= 168; ty++) {
+    for (let tx = 238; tx <= 242; tx++) {
+      tiles[ty][tx] = createTile('cliff', false, { elevation: 0 });
+    }
+  }
+
+  // Descent corridor (el1): x=243-244, y=164-171 — continuous high ground from C7 to the overlook.
+  for (let ty = 164; ty <= 171; ty++) {
+    for (let tx = 243; tx <= 244; tx++) {
+      stamp(tx, ty, 'grass', true, 1);
+    }
+  }
+  stamp(243, 172, 'cliff', false, 1);
+  stamp(244, 172, 'cliff', false, 1);
+
+  const gateX = 239;
+  const gateY = 172;
+  const bottomY = gateY - 1; // bottomY = 171 (Only 1 tile down from gate to prevent going too far)
+
+  // El1 shelf east of the gate column (x=239 stays cliff-edge mounted, not walkable path).
+  for (let ty = 170; ty <= gateY; ty++) {
+    for (let tx = 240; tx <= 242; tx++) {
+      stamp(tx, ty, 'grass', true, 1);
+    }
+  }
+  for (let tx = 240; tx <= 242; tx++) {
+    stamp(tx, 169, 'cliff', false, 0);
+  }
+
+  // Mirrored cliff-corridor ladder pocket: high landing east, low landing west, cliffs on the right.
+  for (let ty = bottomY; ty <= gateY; ty++) {
+    for (const tx of [gateX - 1, gateX, gateX + 1]) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const existing = tiles[ty][tx];
+      if (existing?.transition || existing?.interactable) continue;
+      if (tx === gateX + 1 && ty === gateY) {
+        tiles[ty][tx] = createTile('grass', true, { elevation: 1, enemyBlocked: true });
+      } else if (tx === gateX - 1 && ty === bottomY) {
+        tiles[ty][tx] = createTile('grass', true, { elevation: 0, enemyBlocked: true });
+      } else if (tx === gateX && ty === gateY) {
+        tiles[ty][tx] = createTile('cliff_edge', false, { elevation: 1 });
+      } else if (tx === gateX - 1 && ty > bottomY && ty <= gateY) {
+        // Clear out any cliff/obstruction tiles in front of the ladder columns on the west side
+        tiles[ty][tx] = createTile('grass', true, { elevation: 0 });
+      } else {
+        tiles[ty][tx] = createTile(ty === gateY ? 'cliff_edge' : 'cliff', false, {
+          elevation: ty === gateY ? 1 : 0,
+        });
+      }
+    }
+  }
+
+  // Seal the cliff face above the landing: world (87, 18)-(89, 18) (tiles 237-239, 168) are unwalkable cliffs.
+  for (let tx = 237; tx <= 239; tx++) {
+    stamp(tx, 168, 'cliff', false, 0);
+  }
+
+  // Cliff-sprite bleed buffer (engine convention: CLIFF_SPRITE_BUFFER_ROWS=2). The tall cliff
+  // sprite at row 168 visually covers the two rows below it (169-170 / world y=19-20). Keep these
+  // grass-typed (so they do NOT emit cliff art and propagate the bleed further) but NON-walkable,
+  // so the player never stands on a tile that visually reads as cliff. The clean landing is row 171.
+  for (let tx = 237; tx <= 239; tx++) {
+    stamp(tx, 169, 'grass', false, 0);
+    stamp(tx, 170, 'grass', false, 0);
+  }
+
+  // Clean walkable landing at the ladder foot: world (87-89, 21) = tiles (237-239, 171).
+  stamp(237, 171, 'grass', true, 0);
+  stamp(238, 171, 'grass', true, 0);
+
+  // North cap above the ladder column (world y=23-26): seal bypass so the only exits are the
+  // west landing (238,171) and the el1 shelf east of the gate (240+,172).
+  for (let ty = 173; ty <= 176; ty++) {
+    for (let tx = 237; tx <= 239; tx++) {
+      stamp(tx, ty, 'cliff', false, 1);
+    }
+  }
+
+  // Shelf-mouth plug (world 92,23 / tile 242,173): closes the gap between the north cap and
+  // the east cliff wall so the pocket cannot be bypassed from the shelf.
+  stamp(242, 173, 'cliff', false, 1);
+
+  // Replace the procedural rock blocking the shelf mouth (world ~93,25 / tile 243,175).
+  stamp(243, 175, 'cliff', false, 1);
+
+  // East cliff face fill (world x=91-94, y=23-27 / tiles 241-244, 173-177): patch procedural grass
+  // gaps in the east wall for a continuous cliff face. Preserve the el0/el=1 spine corridor at
+  // tx 239-240, ty 175-183 (handled later by enforceWhisperingWoodsEastDirtSpineBreak).
+  for (let ty = 173; ty <= 177; ty++) {
+    for (let tx = 241; tx <= 244; tx++) {
+      stamp(tx, ty, 'cliff', false, 1);
+    }
+  }
+  // Row 174 column 240 sits outside the spine corridor (ty 175+) but still reads as east wall.
+  stamp(240, 174, 'cliff', false, 1);
+
+  stamp(239, 177, 'grass', true, 0); // el0 plateau-crossing spine (world 89,27)
+}
+
+// Clears procedural logs/trees from the fort-ridge ladder mouth (world ~87-91, 18-23 /
+// tiles x=237-241, y=168-173) and converts stray rocks above the pocket into cliff.
+function scrubFortRidgeLadderScatter(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const scatterTypes: Set<string> = new Set([
+    'fallen_log',
+    'fallen_log_v',
+    'tree',
+    'dead_tree',
+    'fallen_tree',
+    'stump',
+    'tall_grass',
+    'rock',
+    'mossy_stone',
+  ]);
+  for (let ty = 168; ty <= 177; ty++) {
+    for (let tx = 237; tx <= 244; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (tx === 239 && ty === 172) continue; // gate top
+      if (tx === 239 && ty === 171) continue; // bottom rung / west landing column
+      if (tx === 238 && ty === 171) continue; // west landing
+      if (ty >= 173 && tx >= 237 && tx <= 239) continue; // north cap (enforceFortRidgeLadderGate)
+      if (tx === 242 && ty === 173) continue; // shelf-mouth plug (enforceFortRidgeLadderGate)
+      if (tx >= 241 && tx <= 244 && ty >= 173 && ty <= 177) continue; // east cliff face fill
+      if (tx === 240 && ty === 174) continue; // east cliff face fill (row 174 only)
+      if (tx === 243 && ty === 175) continue; // rock→cliff handled in enforceFortRidgeLadderGate
+      if (scatterTypes.has(t.type)) {
+        tiles[ty][tx] = createTile(
+          ty >= 173 && tx >= 240 ? 'cliff' : 'grass',
+          ty >= 173 && tx >= 240 ? false : true,
+          { elevation: ty <= 172 && tx >= 240 ? 1 : ty >= 173 ? 1 : 0 },
+        );
+      }
+    }
+  }
+  // Legacy gate columns west of the corrected drop — restore fort-approach grass.
+  for (const ty of [171, 172, 173, 174, 175, 176, 177]) {
+    for (const tx of [235, 236]) {
+      const t = tiles[ty]?.[tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'gate_ladder' || t.type === 'ladder' || t.type === 'cliff_edge'
+          || scatterTypes.has(t.type)) {
+        tiles[ty][tx] = createTile('grass', true, { elevation: 0 });
       }
     }
   }
@@ -3543,6 +3936,98 @@ function enforceHollowApproachSpineCorridor(tiles: Tile[][], def: MapDefinition)
     }
     if (scatterTypes.has(t.type)) {
       tiles[ty][tx] = createTile('grass', true, { elevation: t.elevation ?? 0 });
+    }
+  }
+}
+
+// Reopens the east-west ridge corridor between the dirt spine (x=146–153) and the cliff-top
+// walkway entry (x=198) at y=111–112 (world ~-38). The cliff_face buffer (stampCliffs south-face
+// buffer from the y=114 cliff band) marks x=154–193 non-walkable and leaves them at el=0 while
+// the cliff-top walkway starts at el=1 (x=194+). Both issues block leftward movement from
+// world (44,−38). Marking these tiles spinePath lets the el=0↔el=1 seam be crossed freely.
+// Also reopens apron rows y=104–105 near the north-fort walkway mouth (x=186–197) whose cliff
+// buffer blocks the north corner probe when moving west from world (43,−44).
+function enforceNorthFortRidgeCorridor(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const scatterTypes: Set<string> = new Set([
+    'tall_grass', 'fallen_log', 'fallen_log_v', 'tree', 'fallen_tree', 'stump',
+  ]);
+  // Ridge corridor y=111–112, x=154–197 (between dirt-spine end and cliff-top walkway).
+  for (let ty = 111; ty <= 112; ty++) {
+    for (let tx = 154; tx <= 197; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'grass' || t.type === 'dirt') {
+        tiles[ty][tx] = { ...t, walkable: true, spinePath: true };
+      } else if (scatterTypes.has(t.type)) {
+        tiles[ty][tx] = createTile('grass', true, { elevation: t.elevation ?? 0, spinePath: true });
+      }
+    }
+  }
+  // Single isolated el=0 tile at (190,106) is surrounded by el=1 neighbours on all four
+  // sides; the seam filler generates fillers in all four directions producing a sunken-pit
+  // multi-direction seam. Raise it to el=1 to match its neighbours.
+  {
+    const t = tiles[106][190];
+    if (t && !t.transition && !t.interactable && (t.type === 'grass' || t.type === 'dirt')) {
+      tiles[106][190] = { ...t, elevation: 1 };
+    }
+  }
+
+  // Cliff-corridor east exit pocket: x=269–271, y=130–133 (world ~119–121, -17 to -20).
+  // The el=0 corridor at y=130–131 exits north into el=1 grass at y=132–133. Neither
+  // side has spinePath so the ±1 elevation step is blocked. No type/walkability changes —
+  // all tiles here are already walkable grass at the correct elevation.
+  for (let ty = 130; ty <= 133; ty++) {
+    for (let tx = 269; tx <= 271; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if ((t.type === 'grass' || t.type === 'dirt') && t.walkable) {
+        tiles[ty][tx] = { ...t, spinePath: true };
+      }
+    }
+  }
+
+  // Apron rows y=104–105 near north-fort walkway mouth (x=186–197).
+  for (let ty = 104; ty <= 105; ty++) {
+    for (let tx = 186; tx <= 197; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'grass' || t.type === 'dirt') {
+        tiles[ty][tx] = { ...t, walkable: true };
+      } else if (scatterTypes.has(t.type)) {
+        tiles[ty][tx] = createTile('grass', true, { elevation: t.elevation ?? 0 });
+      }
+    }
+  }
+
+  // East-west grass path crossing at world ~(89–90, 25–33) / tile x=239–240, y=175–183.
+  // The ranger plateau (el=1) begins at x=240; the open forest floor (el=0) ends at x=239.
+  // Both columns are walkable grass but lack spinePath, blocking horizontal movement.
+  for (let ty = 175; ty <= 183; ty++) {
+    for (const tx of [239, 240]) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if ((t.type === 'grass' || t.type === 'dirt') && t.walkable) {
+        tiles[ty][tx] = { ...t, spinePath: true };
+      }
+    }
+  }
+
+  // East-west grass path beside ranger cottage at world ~(79–80, 72–80) / tile x=229–230, y=222–230.
+  // Same el=0↔el=1 seam as the plateau boundary west of the inn (x=236, y=227); no spinePath yet.
+  for (let ty = 222; ty <= 230; ty++) {
+    for (const tx of [229, 230]) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if ((t.type === 'grass' || t.type === 'dirt') && t.walkable) {
+        tiles[ty][tx] = { ...t, spinePath: true };
+      }
     }
   }
 }
@@ -3648,6 +4133,40 @@ function enforceHollowApproachLadderLanding(tiles: Tile[][], def: MapDefinition)
   }
 }
 
+// Clears procedural dead_tree scatter around the east hollow route gate (world ~89,-92 /
+// tile y=57) and a tight pocket by the lever (~86,-95). World Y grows more negative south;
+// keep the north (ty>=58) open, only strip trees near the lever on the south side.
+function scrubWhisperingWoodsEastHollowRouteGateScatter(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  const clearDeadTree = (tx: number, ty: number) => {
+    if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) return;
+    const t = tiles[ty][tx];
+    if (!t || t.transition || t.interactable) return;
+    if (t.type !== 'dead_tree') return;
+    tiles[ty][tx] = createTile('hollow_blight', true, { elevation: t.elevation ?? 1 });
+  };
+
+  // North of the gate row (less negative world Y): keep the full approach readable.
+  for (let ty = 58; ty <= 60; ty++) {
+    for (let tx = 222; tx <= 254; tx++) {
+      clearDeadTree(tx, ty);
+    }
+  }
+
+  // Gate row band (runtime gate x=233-246).
+  for (let tx = 228; tx <= 251; tx++) {
+    clearDeadTree(tx, 57);
+  }
+
+  // South / lever side (more negative world Y): small pocket so the switch stays visible.
+  for (let ty = 54; ty <= 56; ty++) {
+    for (let tx = 232; tx <= 240; tx++) {
+      clearDeadTree(tx, ty);
+    }
+  }
+}
+
 // Keeps the north-fort grass walkway mouth open around world (41,-44) / tile (191,106).
 // Tree/log scatter can land directly on the choke point after the fort apron is stamped.
 function scrubWhisperingWoodsNorthFortWalkwayLog(tiles: Tile[][], def: MapDefinition) {
@@ -3693,6 +4212,19 @@ function scrubWhisperingWoodsSouthEastCorridorBlockers(tiles: Tile[][], def: Map
       }
     }
   }
+
+  // South-east bluff stair exit apron (world ~63,106): stampCliffs marks the row south of the
+  // stair band (y=256, x=209–216) non-walkable. Reopen so players can step off the stairs.
+  for (let tx = 209; tx <= 216; tx++) {
+    if (256 < 0 || 256 >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+    const t = tiles[256][tx];
+    if (!t || t.transition || t.interactable) continue;
+    if (t.type === 'grass' || t.type === 'dirt') {
+      tiles[256][tx] = { ...t, walkable: true };
+    } else if (blockerTypes.has(t.type)) {
+      tiles[256][tx] = createTile('grass', true, { elevation: t.elevation ?? 0 });
+    }
+  }
 }
 
 function enforceWhisperingWoodsEastDirtSpineBreak(tiles: Tile[][], def: MapDefinition) {
@@ -3702,7 +4234,57 @@ function enforceWhisperingWoodsEastDirtSpineBreak(tiles: Tile[][], def: MapDefin
       if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
       const tile = tiles[ty][tx];
       if (!tile || tile.transition || tile.interactable) continue;
-      tiles[ty][tx] = createTile('dirt', true, { elevation: tile.elevation ?? 0 });
+      tiles[ty][tx] = createTile('dirt', true, { elevation: tile.elevation ?? 0, spinePath: true });
+    }
+  }
+}
+
+/** Auto-mark spinePath on walkable grass/dirt tiles bordering a ±1 elevation neighbour of the same type. */
+function enforceWalkableElevationSeamCrossings(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const seamTypes: Set<string> = new Set(['grass', 'dirt', 'sand']);
+  const isSeamTile = (t: Tile | undefined) =>
+    !!t && t.walkable && seamTypes.has(t.type) && !t.transition && !t.interactable;
+
+  for (let ty = 0; ty < tiles.length; ty++) {
+    for (let tx = 0; tx < tiles[0].length; tx++) {
+      const t = tiles[ty][tx];
+      if (!isSeamTile(t)) continue;
+      const el = t.elevation ?? 0;
+      const cardinals: [number, number][] = [[tx - 1, ty], [tx + 1, ty], [tx, ty - 1], [tx, ty + 1]];
+      for (const [nx, ny] of cardinals) {
+        if (ny < 0 || ny >= tiles.length || nx < 0 || nx >= tiles[0].length) continue;
+        const n = tiles[ny][nx];
+        if (!isSeamTile(n)) continue;
+        if (Math.abs(el - (n.elevation ?? 0)) !== 1) continue;
+        tiles[ty][tx] = { ...tiles[ty][tx], spinePath: true };
+        tiles[ny][nx] = { ...n, spinePath: true };
+      }
+    }
+  }
+}
+
+function applyAuthoredSpinePathFlags(tiles: Tile[][], def: MapDefinition) {
+  const markSpineCell = (tx: number, ty: number) => {
+    if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) return;
+    const tile = tiles[ty][tx];
+    if (!tile?.walkable || tile.interactable || tile.transition) return;
+    if (tile.type !== 'dirt' && tile.type !== 'grass') return;
+    tiles[ty][tx] = { ...tile, spinePath: true };
+  };
+
+  for (const feature of def.features ?? []) {
+    if (feature.type !== 'path') continue;
+    if (feature.fill && feature.fill !== 'dirt') continue;
+    for (let dy = 0; dy < feature.height; dy++) {
+      for (let dx = 0; dx < feature.width; dx++) {
+        const tx = feature.x + dx;
+        const ty = feature.y + dy;
+        markSpineCell(tx, ty);
+        // Grass aprons north + south of path rows — elevation seam filler on either side of spines.
+        markSpineCell(tx, ty - 1);
+        markSpineCell(tx, ty + 1);
+      }
     }
   }
 }
@@ -3770,6 +4352,7 @@ export function generateMap(def: MapDefinition): WorldMap {
   scrubWhisperingWoodsNorthFortFrontTree(tiles, def);
   scrubWhisperingWoodsNorthFortWalkwayLog(tiles, def);
   scrubWhisperingWoodsSouthEastCorridorBlockers(tiles, def);
+  scrubWhisperingWoodsEastHollowRouteGateScatter(tiles, def);
   enforceWhisperingWoodsEastDirtSpineBreak(tiles, def);
   scrubWhisperingWoodsNorthFortElevationSeam(tiles, def);
   enforceWesternBypassObservatoryApproach(tiles, def);
@@ -3777,12 +4360,18 @@ export function generateMap(def: MapDefinition): WorldMap {
   enforceLakeOverlookBridgeLanding(tiles, def);
   enforceRiversideBridgeSpineApproach(tiles, def);
   enforceCliffCorridorTraditionalApproach(tiles, def);
+  enforceEastRidgeAscent(tiles, def);
+  enforceFortRidgeLadderGate(tiles, def);
+  scrubFortRidgeLadderScatter(tiles, def);
   enforceHollowApproachOverlookShelf(tiles, def);
   enforceHollowApproachSpineCorridor(tiles, def);
+  enforceNorthFortRidgeCorridor(tiles, def);
   enforceHollowApproachLadderLanding(tiles, def);
   enforceHollowApproachLadderSouthExit(tiles, def);
   enforceHighlandPassageCanyonWalls(tiles, def);
   enforceHighlandPassageCorridor(tiles, def);
+  applyAuthoredSpinePathFlags(tiles, def);
+  enforceWalkableElevationSeamCrossings(tiles, def);
 
   validateMapTransitions(tiles, def);
   validateAuthoredPlacements(tiles, def);

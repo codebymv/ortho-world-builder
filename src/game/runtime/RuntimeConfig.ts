@@ -66,6 +66,7 @@ export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
   hollow_guardian: { baseScale: 2.6, footOffset: 0.22, strideAmp: 0.012, bobAmp: 0.04, squashAmp: 0.03, leanAmp: 0.02, hpBarOffset: 1.35 },
   ashen_reaver: { baseScale: 2.8, footOffset: 0.24, strideAmp: 0.015, bobAmp: 0.035, squashAmp: 0.025, leanAmp: 0.02, hpBarOffset: 1.45 },
   corrupted_giant: { baseScale: 2.6, footOffset: 0.42, strideAmp: 0.026, bobAmp: 0.04, squashAmp: 0.05, leanAmp: 0.025, hpBarOffset: 1.35 },
+  ridge_revenant: { baseScale: 2.2, footOffset: 0.22, strideAmp: 0.014, bobAmp: 0.03, squashAmp: 0.025, leanAmp: 0.018, hpBarOffset: 1.2 },
 };
 
 export function createDefaultNpcData(): NPC[] {
@@ -87,11 +88,11 @@ export function createDefaultNpcData(): NPC[] {
     { id: 'petra_ashveil', name: 'Petra the Researcher', mapId: 'forest', position: { x: 12, y: -37 }, dialogueId: 'petra_ashveil', sprite: 'npc_petra' },
     // Olwen — displaced grove hermit now tending the eastern cliff cemetery near Bonfire 5.
     // Hands the player the Cursed Idol once, then settles into a quiet reflective state.
-    { id: 'mountain_hermit', name: 'Olwen, Mountain Hermit', mapId: 'forest', position: { x: 133, y: -8 }, dialogueId: 'mountain_hermit', sprite: 'npc_olwen' },
+    { id: 'mountain_hermit', name: 'Olwen, Mountain Hermit', mapId: 'forest', position: { x: 143, y: -8 }, dialogueId: 'mountain_hermit', sprite: 'npc_olwen' },
     // Unnamed Hollow figure on the north bank of the corrupted river. Dismissive until
     // the player kills the Hollow Apparition (flag: hollow_guardian_defeated).
     { id: 'mysterious_man', name: 'A Hooded Figure', mapId: 'forest', position: { x: -55, y: -73 }, dialogueId: 'mysterious_man', sprite: 'npc_mysterious_man', facing: 'left' },
-    { id: 'oliver', name: 'Oliver', mapId: 'gilrhym', position: { x: -2, y: 123 }, dialogueId: 'oliver', sprite: 'npc_oliver_injured' },
+    { id: 'oliver', name: 'Oliver', mapId: 'guilrhym', position: { x: -2, y: 123 }, dialogueId: 'oliver', sprite: 'npc_oliver_injured' },
   ];
 }
 

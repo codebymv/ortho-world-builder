@@ -94,6 +94,8 @@ export interface GameplayPreludeContext {
   };
   onLungeHit: (enemy: Enemy, damage: number) => void;
   onLungeEnd: () => void;
+  arcWave: import('@/game/runtime/PlayerSimulationSystem').ArcWaveState;
+  onArcWaveHit: (enemy: Enemy, damage: number) => void;
   particleSystem: ParticleSystem;
   playPropBreak?: () => void;
   dodgeIFrameDuration: number;
@@ -169,6 +171,7 @@ export interface PlayerFrameContext {
     speed: number;
     distanceRemaining: number;
   };
+  arcWave: import('@/game/runtime/PlayerSimulationSystem').ArcWaveState;
 }
 
 export interface EnemyAudioContext {

@@ -8,6 +8,7 @@ import type { RuntimePhaseContexts } from '@/game/runtime/RuntimePhaseContexts';
 import { getPrimaryObjectiveText, MapMarker, isNpcObjectiveTarget } from '@/lib/game/MapMarkers';
 import { SaveManager } from '@/lib/game/SaveManager';
 import { preloadMap, subscribeMapHotReload } from '@/data/maps';
+import { getStaggerDamageMultiplier } from '@/data/balance';
 import type { DialogueNode } from '@/data/dialogues';
 import { hasDialogueId } from '@/data/dialogueIds';
 import { notify } from '@/lib/game/notificationBus';
@@ -87,6 +88,8 @@ export interface RuntimeHostRefs {
   setObjectivesModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   vendorModalOpenRef: MutableRefObject<boolean>;
   setVendorModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
+  playerModalOpenRef: MutableRefObject<boolean>;
+  setPlayerModalOpenRef: MutableRefObject<Dispatch<SetStateAction<boolean>>>;
   activeNpcWorldPos: MutableRefObject<{ x: number; y: number } | null>;
   syncVillageReactivityRef: MutableRefObject<(() => void) | null>;
   syncBlightedRootStateRef: MutableRefObject<(() => void) | null>;
@@ -179,6 +182,8 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       setObjectivesModalOpenRef,
       vendorModalOpenRef,
       setVendorModalOpenRef,
+      playerModalOpenRef,
+      setPlayerModalOpenRef,
       activeNpcWorldPos,
       syncVillageReactivityRef,
       syncBlightedRootStateRef,
@@ -403,19 +408,19 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     const IDLE_FRAME_DURATION = 0.8;
     const WALK_FRAME_DURATION = 0.18;
     const DRINK_DURATION = 0.8; // seconds to drink potion
-    const ATTACK_FRAME_DURATION = 0.1;
+    const ATTACK_FRAME_DURATION = 0.15;
 
     // Combo chain constants
     // Each element corresponds to combo step 0 (light), 1 (follow-up), 2 (finisher).
     const COMBO_FRAME_MULTIPLIERS: [number, number, number] = [1.0, 0.85, 0.72];
-    const COMBO_DAMAGE_MULTIPLIERS: [number, number, number] = [1.0, 1.0, 1.4];
+    const COMBO_DAMAGE_MULTIPLIERS: [number, number, number] = [1.0, 1.0, 1.2];
     const COMBO_WINDOW_DURATION = 0.30; // seconds after a swing completes to chain the next hit
 
     // Charge attack state
     const CHARGE_TIME_MIN = 0.4;
     const CHARGE_TIME_MAX = 1.2;
     const CHARGE_DAMAGE_MULT = 2.5;
-    const ATTACK_STAMINA_COST = 15;
+    const ATTACK_STAMINA_COST = 20;
     const CHARGE_ATTACK_STAMINA_COST = 32;
 
     // Spin attack animation state
@@ -589,10 +594,13 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     const {
       syncWhisperingWoodsShortcutState,
       syncGroveShelfShortcutState,
+      syncWestCliffGateState,
       syncRiversideBridgeShortcutState,
       syncHollowShortcutState,
+      syncEastHollowRouteGateState,
       syncHollowApproachLadderState,
       syncCliffCorridorLadderState,
+      syncFortRidgeLadderState,
       syncForestFortGateState,
       syncNorthFortGateState,
       syncWestFortGateState,
@@ -600,7 +608,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       syncManuscriptCheckpointGateState,
       syncHollowFogGateState,
       syncHollowArenaVictoryPortalState,
-      syncGilrhymBossState,
+      syncGuilrhymBossState,
       syncVillageReactivityState,
       syncOpenedChestState,
       syncBlightedRootState,
@@ -736,16 +744,20 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           notify,
           triggerSave,
           triggerUIUpdate,
+          triggerMinimapUpdate,
           respawnEnemiesForCurrentMap,
           syncOpenedChestState,
           syncHarvestedTempestGrassState,
           syncHarvestedMoonbloomState,
           syncWhisperingWoodsShortcutState,
           syncGroveShelfShortcutState,
+          syncWestCliffGateState,
           syncRiversideBridgeShortcutState,
           syncHollowShortcutState,
+          syncEastHollowRouteGateState,
           syncHollowApproachLadderState,
           syncCliffCorridorLadderState,
+          syncFortRidgeLadderState,
           syncForestFortGateState,
           syncNorthFortGateState,
           syncWestFortGateState,
@@ -754,9 +766,10 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncHollowFogGateState,
           syncHollowArenaVictoryPortalState,
           switchMusicTrack,
-          syncGilrhymBossState,
+          syncGuilrhymBossState,
           handleMapTransition,
           healCooldowns,
+          visitedTilesRef,
           hasDialogue: hasDialogueId,
           dir8to4: direction8ToCardinal,
           getKillCount: () => killCount,
@@ -853,6 +866,8 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           setObjectivesModalOpenRef,
           vendorModalOpenRef,
           setVendorModalOpenRef,
+          playerModalOpenRef,
+          setPlayerModalOpenRef,
           setIsPaused,
           closeDialogueSession: () => closeDialogueSession(state),
           notify,
@@ -959,6 +974,21 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           chargeTimeMin: CHARGE_TIME_MIN,
           chargeTimeMax: CHARGE_TIME_MAX,
           lungeState: runtimeSession.lunge,
+          arcWave: runtimeSession.combat.arcWave,
+          onArcWaveHit: (enemy: Enemy, damage: number) => {
+            const result = combatSystem.playerAttack(enemy, damage, state.player.position, state.player.direction);
+            const actualDamage = enemy.state === 'staggered'
+              ? Math.floor(damage * getStaggerDamageMultiplier(enemy.type))
+              : damage;
+            floatingText.spawnDamage(enemy.position.x, enemy.position.y, actualDamage, true);
+            screenShake.shake(0.12, 0.12);
+            particleSystem.emitDamageAt(enemy.position.x, enemy.position.y, 0.3);
+            // Corruption hit spark — dark void burst at point of contact
+            particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.3, 3, 0x6A0DAD, 0.3, 0.8, 0.6);
+            if (result.killed) {
+              onEnemyKilled(enemy);
+            }
+          },
           onLungeHit: (enemy: Enemy, damage: number) => {
             const result = combatSystem.playerAttack(
               enemy,
@@ -966,16 +996,12 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
               state.player.position,
               state.player.direction,
             );
-            const actualDamage = enemy.state === 'staggered' ? Math.floor(damage * 2) : damage;
+            const actualDamage = enemy.state === 'staggered'
+              ? Math.floor(damage * getStaggerDamageMultiplier(enemy.type))
+              : damage;
             floatingText.spawnDamage(enemy.position.x, enemy.position.y, actualDamage, true);
             screenShake.shake(0.2, 0.15);
             screenShake.hitStop(0.04);
-            if (result.backstab) {
-              floatingText.spawn(enemy.position.x, enemy.position.y + 0.6, 'BACKSTAB!', '#FFD700', 24);
-            }
-            if (result.staggered) {
-              floatingText.spawn(enemy.position.x, enemy.position.y + 0.4, 'STAGGER!', '#88AAFF', 20);
-            }
             particleSystem.emitDamage(new THREE.Vector3(enemy.position.x, enemy.position.y, 0.3));
             particleSystem.emitSparkles(new THREE.Vector3(enemy.position.x, enemy.position.y + 0.3, 0.5));
             if (result.killed) {

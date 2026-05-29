@@ -68,7 +68,7 @@ const VendorItemCard = memo(({
         <div className="flex items-center gap-2 mb-0.5">
           <h4 className="font-bold text-[#F5DEB3] text-sm truncate">{item.name}</h4>
           {isWeapon && (
-            <span className="text-[8px] uppercase font-bold tracking-wider text-[#DAA520] border border-[#DAA520]/40 bg-[#DAA520]/10 px-1.5 py-0.5 rounded-sm flex-shrink-0">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#DAA520] border border-[#DAA520]/40 bg-[#DAA520]/10 px-1.5 py-0.5 rounded-sm flex-shrink-0">
               Weapon
             </span>
           )}
@@ -120,7 +120,7 @@ const VendorItemCard = memo(({
               'px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-sm transition-colors border',
               canAfford
                 ? 'text-[#DAA520] border-[#DAA520]/40 hover:bg-[#DAA520]/15 hover:border-[#DAA520]/70'
-                : 'text-[#5C3A21] border-[#5C3A21]/30 cursor-not-allowed opacity-50',
+                : 'text-[#6B5344] border-[#5C3A21]/30 cursor-not-allowed opacity-70',
             )}
           >
             Buy
@@ -216,7 +216,7 @@ export const VendorModal = memo(function VendorModal({
 
         {/* ── Footer ── */}
         <div className="flex-shrink-0 border-t border-[#5C3A21]/30 px-5 py-2 flex justify-end">
-          <p className="text-[10px] text-[#8D6E63]">
+          <p className="text-[10px] text-[#C9B8A8]">
             <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">Esc</kbd>{' '}
             to close
           </p>

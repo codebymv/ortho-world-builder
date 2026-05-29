@@ -1,9 +1,13 @@
 import * as THREE from 'three';
+import type { MutableRefObject } from 'react';
 import type { Enemy } from '@/lib/game/Combat';
 import type { GameState } from '@/lib/game/GameState';
+import type { ArcWaveState } from '@/game/runtime/PlayerSimulationSystem';
 import { breakTilesInRadius, type BreakableWorld } from '@/game/runtime/BreakableProps';
 import { damageHeresyAltarsInRadius } from '@/game/runtime/HeresyAltars';
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
+import { revealAllTilesForMap } from '@/lib/game/visitedTiles';
+import { getStaggerDamageMultiplier } from '@/data/balance';
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
 type Direction4 = 'up' | 'down' | 'left' | 'right';
@@ -16,9 +20,47 @@ const DIR_OFFSETS_4: Record<Direction4, { x: number; y: number }> = {
   right: { x: 1, y: 0 },
 };
 
+const PLAYER_MELEE_CONE_DOT = 0.5; // 120-degree front arc.
+
+const getEnemyForwardDot = (
+  enemy: Enemy,
+  playerPosition: { x: number; y: number },
+  direction: Direction4,
+): number => {
+  const dir = DIR_OFFSETS_4[direction];
+  const dx = enemy.position.x - playerPosition.x;
+  const dy = enemy.position.y - playerPosition.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len < 0.0001) return 1;
+  return (dx / len) * dir.x + (dy / len) * dir.y;
+};
+
+const getForwardMeleeTarget = (
+  enemies: Enemy[],
+  playerPosition: { x: number; y: number },
+  direction: Direction4,
+): Enemy | null => {
+  let target: Enemy | null = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (const enemy of enemies) {
+    const dot = getEnemyForwardDot(enemy, playerPosition, direction);
+    if (dot < PLAYER_MELEE_CONE_DOT) continue;
+    const dx = enemy.position.x - playerPosition.x;
+    const dy = enemy.position.y - playerPosition.y;
+    const distSq = dx * dx + dy * dy;
+    const score = distSq - dot * 0.25;
+    if (score < bestScore) {
+      bestScore = score;
+      target = enemy;
+    }
+  }
+
+  return target;
+};
+
 const _scratchEnemies: Enemy[] = [];
 const _scratchArcEnemies: Enemy[] = [];
-const _arcHitIds = new Set<string>();
 type PlayerAnimState =
   | 'idle'
   | 'walk'
@@ -67,6 +109,7 @@ interface EnemyAudioLike {
 interface RuntimeCombatActionOptions {
   state: GameState;
   world: BreakableWorld;
+  visitedTilesRef?: MutableRefObject<Set<string>>;
   combatSystem: CombatSystemLike;
   floatingText: FloatingTextLike;
   screenShake: ScreenShakeLike;
@@ -91,6 +134,7 @@ interface RuntimeCombatActionOptions {
   chargeDamageMult: number;
   spinSwooshDuration: number;
   setSpinSwooshTimer: (value: number) => void;
+  arcWave: ArcWaveState;
   setPlayerAnimState: (value: PlayerAnimState) => void;
   setAttackFrame: (value: number) => void;
   setAttackFrameTimer: (value: number) => void;
@@ -120,11 +164,13 @@ interface RuntimeCombatActionOptions {
   startLunge: (dirX: number, dirY: number, speed: number, distance: number, recovery: number, damage: number) => void;
   onBossDefeated?: () => void;
   playPropBreak?: () => void;
+  triggerSave: () => void;
 }
 
 export function createRuntimeCombatActions({
   state,
   world,
+  visitedTilesRef,
   combatSystem,
   floatingText,
   screenShake,
@@ -149,6 +195,7 @@ export function createRuntimeCombatActions({
   chargeDamageMult,
   spinSwooshDuration,
   setSpinSwooshTimer,
+  arcWave,
   setPlayerAnimState,
   setAttackFrame,
   setAttackFrameTimer,
@@ -175,6 +222,7 @@ export function createRuntimeCombatActions({
   startLunge,
   onBossDefeated,
   playPropBreak,
+  triggerSave,
 }: RuntimeCombatActionOptions) {
   const onEnemyKilled = (enemy: Enemy) => {
     const nextKillCount = getKillCount() + 1;
@@ -182,6 +230,11 @@ export function createRuntimeCombatActions({
     enemyAudio.playDefeat(enemy);
     enemyAudio.clearEnemy(enemy.id);
     if (enemy.essenceReward > 0) playItemGrab();
+
+    if (enemy.zoneId) {
+      state.killedEnemyIds.add(enemy.zoneId);
+      triggerSave();
+    }
 
     if (state.currentMap === 'forest' || state.currentMap === 'interior_hollow_arena') {
       if (state.currentMap === 'forest') {
@@ -222,6 +275,11 @@ export function createRuntimeCombatActions({
         screenShake.shake(0.6, 0.5);
         screenShake.hitStop(0.3);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 40, 0x7C4DFF, 0.12, 2.0, 1.5);
+        // Reveal entire arena map when boss is defeated
+        const map = world.getCurrentMap();
+        if (visitedTilesRef?.current) {
+          revealAllTilesForMap(visitedTilesRef.current, state.currentMap, map.width, map.height);
+        }
         if (onBossDefeated) onBossDefeated();
         for (const e of combatSystem.getAllEnemies()) {
           if (e.id !== enemy.id && e.state !== 'dead') {
@@ -235,12 +293,34 @@ export function createRuntimeCombatActions({
         screenShake.shake(0.7, 0.6);
         screenShake.hitStop(0.35);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 50, 0xFF4400, 0.14, 2.5, 1.8);
+        // Reveal entire Guilrhym cathedral area when Reaver is defeated
+        const map = world.getCurrentMap();
+        if (visitedTilesRef?.current) {
+          revealAllTilesForMap(visitedTilesRef.current, state.currentMap, map.width, map.height);
+        }
         if (onBossDefeated) onBossDefeated();
         for (const e of combatSystem.getAllEnemies()) {
           if (e.id !== enemy.id && e.state !== 'dead') {
             e.health = 0;
             e.state = 'dead';
           }
+        }
+      }
+      if (enemy.type === 'ridge_revenant') {
+        const remaining = combatSystem.getAllEnemies().filter(
+          e => e.type === 'ridge_revenant' && e.state !== 'dead' && e.id !== enemy.id,
+        ).length;
+        if (remaining === 0) {
+          state.setFlag('ridge_revenant_defeated', true);
+          state.worldItems.push({
+            instanceId: `tempered_core_${state.currentMap}_${Math.round(enemy.position.x)}_${Math.round(enemy.position.y)}`,
+            itemId: 'tempered_core',
+            mapId: state.currentMap,
+            x: enemy.position.x + 0.5,
+            y: enemy.position.y - 0.5,
+          });
+          screenShake.shake(0.55, 0.45);
+          particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.45, 35, 0xFF6F00, 0.12, 2.0, 1.4);
         }
       }
     }
@@ -309,8 +389,9 @@ export function createRuntimeCombatActions({
 
   const _applyAttackDamage = (step: number) => {
     const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, state.player.attackRange, _scratchEnemies);
-    if (enemiesInRange.length === 0) {
-      const direction = dir8to4(getCurrentDir8()) as Direction4;
+    const direction = dir8to4(getCurrentDir8()) as Direction4;
+    const target = getForwardMeleeTarget(enemiesInRange, state.player.position, direction);
+    if (!target) {
       const off = DIR_OFFSETS_4[direction];
       const attackX = state.player.position.x + off.x;
       const attackY = state.player.position.y + off.y;
@@ -322,16 +403,6 @@ export function createRuntimeCombatActions({
       }
       return;
     }
-
-    let target = enemiesInRange[0];
-    const direction = dir8to4(getCurrentDir8()) as Direction4;
-    const dir = DIR_OFFSETS_4[direction];
-    const facingEnemy = enemiesInRange.find(enemy => {
-      const dx = enemy.position.x - state.player.position.x;
-      const dy = enemy.position.y - state.player.position.y;
-      return (dx * dir.x + dy * dir.y) > 0;
-    });
-    if (facingEnemy) target = facingEnemy;
 
     const parryBonus = state.player.parryBonusTimer > 0 ? 1.25 : 1;
     const stepDamageMult = comboDamageMultipliers[step] ?? 1;
@@ -347,7 +418,7 @@ export function createRuntimeCombatActions({
 
     let actualDamage = baseDamage;
     if (isBackstab) actualDamage = Math.floor(baseDamage * 2.5);
-    else if (target.state === 'staggered') actualDamage = Math.floor(baseDamage * 2);
+    else if (target.state === 'staggered') actualDamage = Math.floor(baseDamage * getStaggerDamageMultiplier(target.type));
     else if (isCrit) actualDamage = Math.floor(baseDamage * 1.5);
 
     floatingText.spawnDamage(target.position.x, target.position.y, actualDamage, isCrit || isBackstab);
@@ -355,17 +426,12 @@ export function createRuntimeCombatActions({
     if (isBackstab) {
       screenShake.shake(0.35, 0.2);
       screenShake.hitStop(0.1);
-      floatingText.spawn(target.position.x, target.position.y + 0.8, 'BACKSTAB!', '#FFD700', 24);
     } else {
       const shakeIntensity = step === 2 ? 0.25 : (isCrit ? 0.2 : 0.1);
       const shakeDuration = step === 2 ? 0.18 : (isCrit ? 0.15 : 0.08);
       const hitStopDuration = step === 2 ? 0.13 : (isCrit ? 0.1 : 0.07);
       screenShake.shake(shakeIntensity, shakeDuration);
       screenShake.hitStop(hitStopDuration);
-    }
-
-    if (isStaggered) {
-      floatingText.spawn(target.position.x, target.position.y + 0.6, 'STAGGER!', '#88AAFF', 20);
     }
 
     // Finisher: emit extra sparkles on step 2
@@ -409,6 +475,9 @@ export function createRuntimeCombatActions({
   };
 
   const performAttack = () => {
+    // Hurt lockout: can't attack (or buffer a next hit) while recoiling from damage.
+    if (state.player.hurtTimer > 0) return;
+
     const animState = getPlayerAnimState();
     const step = getComboStep();
 
@@ -420,6 +489,10 @@ export function createRuntimeCombatActions({
       setComboInputBuffered(true);
       return;
     }
+
+    // Attack recovery lockout: brief window after a swing ends (Souls-style recovery frames).
+    // Combo-window chains bypass this so natural chaining still feels fluid.
+    if (state.player.attackRecoveryTimer > 0 && getComboWindowTimer() <= 0) return;
 
     if (state.player.isDodging || state.player.isClimbing) return;
     if (state.player.stamina < attackStaminaCost) return;
@@ -445,6 +518,8 @@ export function createRuntimeCombatActions({
   // Returns the new frameDuration so the simulation can update its local timer variables.
   const triggerComboChain = (): { frameDuration: number } | null => {
     const step = getComboStep();
+    // Hurt lockout: an interrupted swing can't chain.
+    if (state.player.hurtTimer > 0) return null;
     if (state.player.isDodging || state.player.isClimbing) return null;
     if (state.player.stamina < attackStaminaCost) return null;
 
@@ -515,57 +590,49 @@ export function createRuntimeCombatActions({
     state.player.attackAnimationTimer = 0.6;
     clearChargeState();
 
-    const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
+    // Softer than the default spin charge (2.5×) — the traveling wave already hits many targets.
+    const SCYTHE_CHARGE_DAMAGE_MULT = 1.85;
+    const damageMultiplier = 1 + (SCYTHE_CHARGE_DAMAGE_MULT - 1) * level;
     const arcDamage = Math.floor(state.player.attackDamage * damageMultiplier * state.player.berserkerDamageMult);
-    const arcRange = 5 + level * 3;
+    const arcRange = 4 + level * 2;
     const arcWidth = 2.0;
 
     const direction = dir8to4(getCurrentDir8());
     const dx = direction === 'right' ? 1 : direction === 'left' ? -1 : 0;
     const dy = direction === 'up' ? 1 : direction === 'down' ? -1 : 0;
 
-    // Single range query + perpendicular-distance filter replaces 6 per-step queries.
-    _arcHitIds.clear();
-    const allInArc = combatSystem.getEnemiesInRange(state.player.position, arcRange + arcWidth, _scratchArcEnemies);
-    for (const target of allInArc) {
-      const edx = target.position.x - state.player.position.x;
-      const edy = target.position.y - state.player.position.y;
-      const fwd = edx * dx + edy * dy;
-      if (fwd < 0 || fwd > arcRange) continue;
-      const perpSq = edx * edx + edy * edy - fwd * fwd;
-      if (perpSq > arcWidth * arcWidth) continue;
-      if (_arcHitIds.has(target.id)) continue;
-      _arcHitIds.add(target.id);
+    // Launch the traveling wave — damage is deferred to per-frame hit detection in
+    // PlayerSimulationSystem.ts (arcWave update), so enemies take damage as the wave
+    // actually reaches them instead of all dying on the release frame.
+    arcWave.active = true;
+    arcWave.dirX = dx;
+    arcWave.dirY = dy;
+    arcWave.currentDist = 0;
+    arcWave.maxDist = arcRange;
+    arcWave.arcWidth = arcWidth;
+    arcWave.damage = arcDamage;
+    arcWave.hitIds.clear();
 
-      const result = combatSystem.playerAttack(target, arcDamage, state.player.position, state.player.direction);
-      floatingText.spawnDamage(target.position.x, target.position.y, arcDamage, true);
-      screenShake.shake(0.15, 0.15);
-
-      if (result.staggered) {
-        floatingText.spawn(target.position.x, target.position.y + 0.4, 'STAGGER!', '#88AAFF', 20);
-      }
-      particleSystem.emitDamageAt(target.position.x, target.position.y, 0.3);
-    }
-
-    // Visual particles and tile-breaking along the arc path.
+    // Tile-breaking along the arc path — stays instant (environmental, not combat).
+    // Visual wave is handled by the traveling spinSwooshMesh in RuntimePlayerFrame.ts.
     const steps = 6;
     for (let i = 1; i <= steps; i++) {
       const t = (i / steps) * arcRange;
       const checkX = state.player.position.x + dx * t;
       const checkY = state.player.position.y + dy * t;
-      particleSystem.emitAt(checkX, checkY, 0.3, 3, 0x6A0DAD, 0.2, 0.8, 0.6);
       breakTilesInRadius(world, world.getCurrentMap(), checkX, checkY, arcWidth, particleSystem, playPropBreak);
     }
 
-    if (_arcHitIds.size === 0) {
-      particleSystem.emitAt(
-        state.player.position.x + dx * arcRange,
-        state.player.position.y + dy * arcRange,
-        0.3, 6, 0x6A0DAD, 0.3, 1, 0.8,
-      );
-    }
+    // Corruption wave release burst — dark void erupts at the scythe's release point.
+    // The traveling wave front is rendered by the spinSwooshMesh over the next 0.65 s.
+    const bx = state.player.position.x + dx * 0.55;
+    const by = state.player.position.y + dy * 0.55;
+    particleSystem.emitAt(bx, by, 0.3, 6, 0x2A1B3D, 0.45, 0.9, 0.7);   // dark void core
+    particleSystem.emitAt(bx, by, 0.3, 4, 0x6A0DAD, 0.30, 1.1, 0.9);   // purple burst
+    particleSystem.emitAt(state.player.position.x, state.player.position.y, 0.3, 3, 0x1A0E2E, 0.55, 0.5, 0.5); // black wisps
 
-    setSpinSwooshTimer(spinSwooshDuration);
+    // SCYTHE_WAVE_DURATION = 0.65 — must match the constant in RuntimePlayerFrame.ts
+    setSpinSwooshTimer(0.65);
   };
 
   const performChargeAttack = (level: number) => {
@@ -634,13 +701,6 @@ export function createRuntimeCombatActions({
       floatingText.spawnDamage(target.position.x, target.position.y, actualDamage, true);
       screenShake.shake(0.25, 0.2);
       screenShake.hitStop(0.1);
-
-      if (result.backstab) {
-        floatingText.spawn(target.position.x, target.position.y + 0.6, 'BACKSTAB!', '#FFD700', 24);
-      }
-      if (result.staggered) {
-        floatingText.spawn(target.position.x, target.position.y + 0.4, 'STAGGER!', '#88AAFF', 20);
-      }
 
       particleSystem.emitDamageAt(target.position.x, target.position.y, 0.3);
       particleSystem.emitSparklesAt(target.position.x, target.position.y + 0.3, 0.5);

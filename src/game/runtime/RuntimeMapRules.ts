@@ -4,7 +4,7 @@ import { markObjectiveDone } from '@/lib/game/progressionToasts';
 export const MAP_BIOMES: Record<string, string> = {
   village: 'grassland',
   forest: 'forest',
-  gilrhym: 'city',
+  guilrhym: 'city',
 };
 
 export function isPortalDestinationUnlocked(_state: GameState, _targetMap: string): boolean {

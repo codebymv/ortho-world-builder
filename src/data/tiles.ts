@@ -95,6 +95,15 @@ const WINDMILL_BODY_FOUNDATION: TileMetadata['foundation'] = {
   ],
 };
 
+const RIDGE_LUMBERYARD_FOUNDATION: TileMetadata['foundation'] = {
+  walkable: false,
+  rows: [
+    { y: -1, xMin: -2, xMax: 2 },
+    { y: 0, xMin: -2, xMax: 2 },
+    { y: 1, xMin: -1, xMax: 1 },
+  ],
+};
+
 export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   tree: { isOverlay: true, baseTile: 'grass', scale: 2.25, sortTrim: 0.12 },
   house: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1, foundation: HOUSE_BODY_FOUNDATION },
@@ -135,7 +144,7 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   stump: { isOverlay: true, baseTile: 'grass', scale: 0.75, sortTrim: 0.16 },
   fallen_log: { isOverlay: true, baseTile: 'grass', scale: 1.6, sortTrim: 0.18 },
   fallen_log_v: { isOverlay: true, baseTile: 'grass', scale: 1.6, sortTrim: 0.18 },
-  ridge_lumberyard: { isOverlay: true, baseTile: 'grass', scale: 1.85, sortTrim: 0.16, yOffset: 0.05 },
+  ridge_lumberyard: { isOverlay: true, baseTile: 'grass', scale: 1.85, sortTrim: 0.16, yOffset: 0.05, foundation: RIDGE_LUMBERYARD_FOUNDATION },
   blighted_stump: { isOverlay: true, baseTile: 'grass', scale: 0.95, sortTrim: 0.16 },
   fence: { isOverlay: true, baseTile: 'grass', scale: 1.0, sortTrim: 0.22 },
   gate: { isOverlay: true, baseTile: 'stone', scale: 1.15, sortTrim: 0.22 },

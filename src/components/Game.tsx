@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GameState } from '@/lib/game/GameState';
 import { AssetManager } from '@/lib/game/AssetManager';
 import { World, type CollisionDebugSnapshot } from '@/lib/game/World';
-import type { CombatSystem } from '@/lib/game/Combat';
+import type { CombatSystem, Enemy } from '@/lib/game/Combat';
 import { MapMarker, extractMarkersFromText } from '@/lib/game/MapMarkers';
 import { SaveManager } from '@/lib/game/SaveManager';
 import { preloadMap } from '@/data/maps';
@@ -43,6 +43,27 @@ type BossHudSnapshot = {
   maxHealth: number;
   phase: number;
 } | null;
+type CombatDebugEnemy = {
+  id: string;
+  type: string;
+  distance: number;
+  forwardDot: number;
+  inCone: boolean;
+  attackRange: number;
+  state: string;
+  elevation: number;
+  /** Absolute elevation difference between this enemy and the player. */
+  elevDelta: number;
+  /** False when elevDelta > MELEE_ELEVATION_TOLERANCE (0.55) — enemy cannot reach player. */
+  elevOk: boolean;
+};
+type CombatDebugSnapshot = {
+  direction: string;
+  attackRange: number;
+  coneDegrees: number;
+  playerElevation: number;
+  candidates: CombatDebugEnemy[];
+};
 type LoadedRuntimeContent = {
   items: typeof import('@/data/items').items;
   criticalPathItems: typeof import('@/data/criticalPathItems').criticalPathItems;
@@ -56,6 +77,7 @@ type LoadedInteractionContent = {
 
 const loadMapModal = () => import('./game/MapModal');
 const loadInventoryModal = () => import('./game/InventoryModal');
+const loadPlayerModal = () => import('./game/PlayerModal');
 const loadObjectivesModal = () => import('./game/ObjectivesModal');
 const loadVendorModal = () => import('./game/VendorModal');
 const runtimeSetupPromise = import('@/game/runtime/setupGameRuntime');
@@ -89,8 +111,33 @@ const loadInteractionContent = () => {
 
 const LazyMapModal = lazy(async () => ({ default: (await loadMapModal()).MapModal }));
 const LazyInventoryModal = lazy(async () => ({ default: (await loadInventoryModal()).InventoryModal }));
+const LazyPlayerModal = lazy(async () => ({ default: (await loadPlayerModal()).PlayerModal }));
 const LazyObjectivesModal = lazy(async () => ({ default: (await loadObjectivesModal()).ObjectivesModal }));
 const LazyVendorModal = lazy(async () => ({ default: (await loadVendorModal()).VendorModal }));
+const DEBUG_MELEE_CONE_DOT = 0.5;
+
+const getDebugDirectionVector = (direction: string): { x: number; y: number } => {
+  switch (direction) {
+    case 'up': return { x: 0, y: 1 };
+    case 'down': return { x: 0, y: -1 };
+    case 'left': return { x: -1, y: 0 };
+    case 'right': return { x: 1, y: 0 };
+    default: return { x: 0, y: 0 };
+  }
+};
+
+const getDebugForwardDot = (
+  enemy: Enemy,
+  playerPosition: { x: number; y: number },
+  direction: string,
+): number => {
+  const dir = getDebugDirectionVector(direction);
+  const dx = enemy.position.x - playerPosition.x;
+  const dy = enemy.position.y - playerPosition.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.0001) return 1;
+  return (dx / len) * dir.x + (dy / len) * dir.y;
+};
 
 const Game = () => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -170,11 +217,13 @@ const Game = () => {
   const [inventoryModalOpen, setInventoryModalOpen] = useState(false);
   const [objectivesModalOpen, setObjectivesModalOpen] = useState(false);
   const [vendorModalOpen, setVendorModalOpen] = useState(false);
+  const [playerModalOpen, setPlayerModalOpen] = useState(false);
   const [activeVendorId, setActiveVendorId] = useState<string | null>(null);
   const [transitionDebugEnabled, setTransitionDebugEnabled] = useState(false);
   const [transitionDebugLines, setTransitionDebugLines] = useState<string[]>([]);
   const [collisionDebugEnabled, setCollisionDebugEnabled] = useState(false);
   const [collisionDebugSnapshot, setCollisionDebugSnapshot] = useState<CollisionDebugSnapshot | null>(null);
+  const [combatDebugSnapshot, setCombatDebugSnapshot] = useState<CombatDebugSnapshot | null>(null);
   const [interactionPrompt, setInteractionPrompt] = useState<InteractionPrompt>(null);
   const [bonfireOverlayActive, setBonfireOverlayActive] = useState(false);
   const [bonfireOverlayTitle, setBonfireOverlayTitle] = useState('Flame Kindled');
@@ -222,6 +271,14 @@ const Game = () => {
       // sequentially instead of having one swallow the other.
       if (isFirstTime) {
         setAcquiredItemQueue(q => [...q, { ...item }]);
+        if (item.type === 'equipment' && gameState.isWeaponLoadoutFull() && !gameState.isWeaponInLoadout(item.id)) {
+          notify('Weapon stored', {
+            id: 'weapon-loadout-full',
+            type: 'info',
+            description: 'Loadout full — open Player (P) to swap a weapon in.',
+            duration: 4000,
+          });
+        }
         return;
       }
       // Repeat pickups fall through to the existing brief notification flow.
@@ -294,11 +351,13 @@ const Game = () => {
   setObjectivesModalOpenRef.current = setObjectivesModalOpen;
   const setVendorModalOpenRef = useRef(setVendorModalOpen);
   setVendorModalOpenRef.current = setVendorModalOpen;
+  const setPlayerModalOpenRef = useRef(setPlayerModalOpen);
+  setPlayerModalOpenRef.current = setPlayerModalOpen;
 
   // mapModalOpenRef is checked throughout the runtime to pause player input.
   // We sync it to true when ANY menu modal is open so all runtime guards work.
   const mapModalOpenRef = useRef(false);
-  mapModalOpenRef.current = mapModalOpen || inventoryModalOpen || objectivesModalOpen || vendorModalOpen;
+  mapModalOpenRef.current = mapModalOpen || inventoryModalOpen || objectivesModalOpen || vendorModalOpen || playerModalOpen;
 
   // Individual refs so the keyboard handler can check which specific modal is open for Escape
   const inventoryModalOpenRef = useRef(false);
@@ -307,6 +366,8 @@ const Game = () => {
   objectivesModalOpenRef.current = objectivesModalOpen;
   const vendorModalOpenRef = useRef(false);
   vendorModalOpenRef.current = vendorModalOpen;
+  const playerModalOpenRef = useRef(false);
+  playerModalOpenRef.current = playerModalOpen;
 
   const triggerUIUpdate = () => setUiVersion(prev => prev + 1);
   const lastUIUpdateRef = useRef(0);
@@ -384,6 +445,39 @@ const Game = () => {
     setCollisionDebugSnapshot(
       world.getCollisionDebugSnapshot(state.player.position.x, state.player.position.y, 0.2, 3),
     );
+    const combatSystem = combatSystemRef.current;
+    if (!combatSystem) {
+      setCombatDebugSnapshot(null);
+      return;
+    }
+    const nearbyEnemies = combatSystem.getEnemiesInRange(state.player.position, state.player.attackRange);
+    const playerElevation = world.getElevationAt(state.player.position.x, state.player.position.y);
+    setCombatDebugSnapshot({
+      direction: state.player.direction,
+      attackRange: state.player.attackRange,
+      coneDegrees: 120,
+      playerElevation,
+      candidates: nearbyEnemies.slice(0, 8).map(enemy => {
+        const dx = enemy.position.x - state.player.position.x;
+        const dy = enemy.position.y - state.player.position.y;
+        const forwardDot = getDebugForwardDot(enemy, state.player.position, state.player.direction);
+        const enemyElevation = world.getElevationAt(enemy.position.x, enemy.position.y);
+        const elevDelta = Math.abs(enemyElevation - playerElevation);
+        return {
+          id: enemy.id,
+          type: enemy.type,
+          distance: Math.hypot(dx, dy),
+          forwardDot,
+          inCone: forwardDot >= DEBUG_MELEE_CONE_DOT,
+          attackRange: enemy.attackRange,
+          state: enemy.state,
+          elevation: enemyElevation,
+          elevDelta,
+          // MELEE_ELEVATION_TOLERANCE from Combat.ts is 0.55
+          elevOk: elevDelta <= 0.55,
+        };
+      }),
+    });
   }, []);
   const showHeroOverlay = useCallback((title: string, subtitle?: string) => {
     playHeroEventRef.current?.();
@@ -476,6 +570,7 @@ const Game = () => {
     const preloadMenuChunks = () => {
       void loadMapModal();
       void loadInventoryModal();
+      void loadPlayerModal();
       void loadObjectivesModal();
       void loadVendorModal();
       const startMap = SaveManager.load()?.currentMap ?? 'village';
@@ -495,7 +590,7 @@ const Game = () => {
   }, []);
 
   // Unified menu modal sound effect — plays open/close for map, inventory, or objectives.
-  const anyMenuModalOpen = mapModalOpen || inventoryModalOpen || objectivesModalOpen;
+  const anyMenuModalOpen = mapModalOpen || inventoryModalOpen || objectivesModalOpen || playerModalOpen;
   useEffect(() => {
     if (previousMenuModalOpenRef.current !== anyMenuModalOpen) {
       (anyMenuModalOpen ? playMenuOpenRef.current : playMenuCloseRef.current)?.();
@@ -512,11 +607,12 @@ const Game = () => {
           refreshCollisionDebug();
           notify('Collision debug ON', {
             id: 'collision-debug-on',
-            description: 'Shows nearby tiles, player corner samples, and movement probes.',
+            description: 'Shows collision probes, block reasons, and melee cone candidates.',
             duration: 2400,
           });
         } else {
           setCollisionDebugSnapshot(null);
+          setCombatDebugSnapshot(null);
           notify('Collision debug OFF', { id: 'collision-debug-off', duration: 1600 });
         }
         return next;
@@ -673,6 +769,8 @@ const Game = () => {
     setObjectivesModalOpenRef,
     vendorModalOpenRef,
     setVendorModalOpenRef,
+    playerModalOpenRef,
+    setPlayerModalOpenRef,
     activeNpcWorldPos,
     syncVillageReactivityRef,
     syncBlightedRootStateRef,
@@ -781,17 +879,26 @@ const Game = () => {
   const openInventoryModal = useCallback(() => {
     setMapModalOpen(false);
     setObjectivesModalOpen(false);
+    setPlayerModalOpen(false);
     setInventoryModalOpen(true);
   }, []);
   const openObjectivesModal = useCallback(() => {
     setMapModalOpen(false);
     setInventoryModalOpen(false);
+    setPlayerModalOpen(false);
     setObjectivesModalOpen(true);
   }, []);
   const openMapModal = useCallback(() => {
     setInventoryModalOpen(false);
     setObjectivesModalOpen(false);
+    setPlayerModalOpen(false);
     setMapModalOpen(true);
+  }, []);
+  const openPlayerModal = useCallback(() => {
+    setMapModalOpen(false);
+    setInventoryModalOpen(false);
+    setObjectivesModalOpen(false);
+    setPlayerModalOpen(true);
   }, []);
 
   return (
@@ -808,6 +915,7 @@ const Game = () => {
             justPickedUpItem={justPickedUpItem}
             justGainedCurrency={justGainedCurrency}
             onOpenInventory={openInventoryModal}
+            onOpenPlayer={openPlayerModal}
             onOpenMap={openMapModal}
             onOpenObjectives={openObjectivesModal}
             musicRef={musicRef}
@@ -829,18 +937,21 @@ const Game = () => {
             </div>
           )}
           {collisionDebugEnabled && collisionDebugSnapshot && (
-            <div className="fixed left-4 top-56 z-[80] w-[22rem] border border-[#2A4A2A] bg-[#081208]/92 p-2 text-[11px] text-[#D7F7D7] shadow-lg pointer-events-none">
+            <div className="fixed left-4 top-56 z-[80] w-[25rem] border border-[#2A4A2A] bg-[#081208]/92 p-2 text-[11px] text-[#D7F7D7] shadow-lg pointer-events-none">
               <div className="font-bold text-[#9CFF9C]">COLLISION DEBUG (B)</div>
               <div className="font-mono leading-4">
                 pos {collisionDebugSnapshot.worldX.toFixed(2)},{collisionDebugSnapshot.worldY.toFixed(2)} | tile {collisionDebugSnapshot.tileX},{collisionDebugSnapshot.tileY}
               </div>
               {collisionDebugSnapshot.currentTile && (
                 <div className="font-mono leading-4">
-                  current {collisionDebugSnapshot.currentTile.type} | walk {collisionDebugSnapshot.currentTile.walkable ? 'Y' : 'N'} | elev {collisionDebugSnapshot.currentTile.elevation}
+                  current {collisionDebugSnapshot.currentTile.type} | walk {collisionDebugSnapshot.currentTile.walkable ? 'Y' : 'N'} | elev {collisionDebugSnapshot.currentTile.elevation} | enemyBlock {collisionDebugSnapshot.currentTile.enemyBlocked ? 'Y' : 'N'}
                 </div>
               )}
               <div className="mt-1 font-mono leading-4">
                 probes {collisionDebugSnapshot.probes.map(p => `${p.label[0]}:${p.allowed ? 'Y' : 'N'}`).join('  ')}
+              </div>
+              <div className="font-mono leading-4 text-[#CFEFCF]">
+                {collisionDebugSnapshot.probes.map(p => `${p.label[0]} ${p.tileX},${p.tileY} ${p.type ?? 'void'} e${p.elevation ?? '-'}: ${p.reason}`).join(' | ')}
               </div>
               <div
                 className="mt-2 grid gap-[2px]"
@@ -852,8 +963,10 @@ const Game = () => {
                     ? '#0EA5E9'
                     : tile.interactable
                       ? '#F59E0B'
-                      : tile.walkable
-                        ? '#166534'
+                      : tile.enemyBlocked
+                        ? '#5B21B6'
+                        : tile.walkable
+                          ? '#166534'
                         : '#991B1B';
                   return (
                     <div
@@ -871,7 +984,7 @@ const Game = () => {
                   );
                 })}
               </div>
-              <div className="mt-2 text-[10px] text-[#B6DDB6]">green walkable, red blocked, amber interactable, blue transition, white border player tile</div>
+              <div className="mt-2 text-[10px] text-[#B6DDB6]">green walkable, red blocked, purple enemy-blocked, amber interactable, blue transition, white border player tile</div>
               <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-1">
                 {collisionDebugSnapshot.samples.map(sample => (
                   <div key={`sample-${sample.label}`} className="font-mono leading-4">
@@ -879,6 +992,27 @@ const Game = () => {
                   </div>
                 ))}
               </div>
+              {combatDebugSnapshot && (
+                <div className="mt-2 border-t border-[#2A4A2A] pt-1">
+                  <div className="font-bold text-[#FFD27A]">COMBAT DEBUG</div>
+                  <div className="font-mono leading-4">
+                    facing {combatDebugSnapshot.direction} | range {combatDebugSnapshot.attackRange.toFixed(2)} | cone {combatDebugSnapshot.coneDegrees}deg | pe{combatDebugSnapshot.playerElevation}
+                  </div>
+                  {combatDebugSnapshot.candidates.length > 0 ? (
+                    combatDebugSnapshot.candidates.map(enemy => (
+                      <div
+                        key={`combat-debug-${enemy.id}`}
+                        className="font-mono leading-4"
+                        style={{ color: !enemy.elevOk ? '#F87171' : undefined }}
+                      >
+                        {enemy.type.slice(0, 14)} d{enemy.distance.toFixed(2)} er{enemy.attackRange.toFixed(2)} dot{enemy.forwardDot.toFixed(2)} {enemy.inCone ? 'HIT' : 'MISS'} e{enemy.elevation} Δ{enemy.elevDelta.toFixed(2)}{!enemy.elevOk ? ' ELEV_MISS' : ''} {enemy.state}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="font-mono leading-4 text-[#C8B18A]">No enemies inside normal attack radius.</div>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {perfOverlaySnapshot && <PerfOverlay snapshot={perfOverlaySnapshot} />}
@@ -927,6 +1061,17 @@ const Game = () => {
                 triggerUIUpdate={triggerUIUpdate}
                 playPotionDrink={handlePlayPotionDrink}
                 playGrassChew={handlePlayGrassChew}
+              />
+            </Suspense>
+          )}
+          {playerModalOpen && (
+            <Suspense fallback={null}>
+              <LazyPlayerModal
+                open={playerModalOpen}
+                onOpenChange={setPlayerModalOpen}
+                gameState={gameState}
+                assetManager={assetManagerRef.current}
+                triggerUIUpdate={triggerUIUpdate}
               />
             </Suspense>
           )}
@@ -1017,10 +1162,18 @@ const Game = () => {
                 : gameState.inventory.find(i => i.type === 'equipment') ?? null)
             : null
         }
+        canEquipActive={
+          !!gameState &&
+          !!acquiredItemQueue[0] &&
+          acquiredItemQueue[0].type === 'equipment' &&
+          gameState.isWeaponInLoadout(acquiredItemQueue[0].id)
+        }
         assetManager={assetManagerRef.current}
         onEquip={(weaponId) => {
-          gameState?.setEquippedWeapon(weaponId);
-          triggerUIUpdate();
+          if (gameState?.isWeaponInLoadout(weaponId)) {
+            gameState.setEquippedWeapon(weaponId);
+            triggerUIUpdate();
+          }
         }}
         onDismiss={() => setAcquiredItemQueue(q => q.slice(1))}
       />

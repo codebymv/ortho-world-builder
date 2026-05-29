@@ -43,16 +43,20 @@ interface RuntimeActionPhaseOptions {
   notify: (title: string, options?: { id?: string; type?: 'success' | 'info' | 'error'; description?: string; duration?: number }) => void;
   triggerSave: () => void;
   triggerUIUpdate: () => void;
+  triggerMinimapUpdate: (force?: boolean, now?: number) => void;
   respawnEnemiesForCurrentMap: (targetMap: string, map: WorldMap) => void;
   syncOpenedChestState: () => void;
   syncHarvestedTempestGrassState: () => void;
   syncHarvestedMoonbloomState: () => void;
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
+  syncWestCliffGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
+  syncEastHollowRouteGateState: () => void;
   syncHollowApproachLadderState: () => void;
   syncCliffCorridorLadderState: () => void;
+  syncFortRidgeLadderState: () => void;
   syncForestFortGateState: () => void;
   syncNorthFortGateState: () => void;
   syncWestFortGateState: () => void;
@@ -61,9 +65,10 @@ interface RuntimeActionPhaseOptions {
   syncHollowFogGateState: () => void;
   syncHollowArenaVictoryPortalState: () => void;
   switchMusicTrack: (mapId: string) => void;
-  syncGilrhymBossState: () => void;
+  syncGuilrhymBossState: () => void;
   handleMapTransition: (targetMap: string, targetX: number, targetY: number) => void;
   healCooldowns: MutableRefObject<Map<string, number>>;
+  visitedTilesRef: MutableRefObject<Set<string>>;
   hasDialogue: (interactionId: string) => boolean;
   dir8to4: (direction: Direction8) => 'up' | 'down' | 'left' | 'right';
   getKillCount: () => number;
@@ -115,16 +120,20 @@ export function setupRuntimeActionPhase({
   notify,
   triggerSave,
   triggerUIUpdate,
+  triggerMinimapUpdate,
   respawnEnemiesForCurrentMap,
   syncOpenedChestState,
   syncHarvestedTempestGrassState,
   syncHarvestedMoonbloomState,
   syncWhisperingWoodsShortcutState,
   syncGroveShelfShortcutState,
+  syncWestCliffGateState,
   syncRiversideBridgeShortcutState,
   syncHollowShortcutState,
+  syncEastHollowRouteGateState,
   syncHollowApproachLadderState,
   syncCliffCorridorLadderState,
+  syncFortRidgeLadderState,
   syncForestFortGateState,
   syncNorthFortGateState,
   syncWestFortGateState,
@@ -133,9 +142,10 @@ export function setupRuntimeActionPhase({
   syncHollowFogGateState,
   syncHollowArenaVictoryPortalState,
   switchMusicTrack,
-  syncGilrhymBossState,
+  syncGuilrhymBossState,
   handleMapTransition,
   healCooldowns,
+  visitedTilesRef,
   hasDialogue,
   dir8to4,
   getKillCount,
@@ -207,6 +217,7 @@ export function setupRuntimeActionPhase({
   const { onEnemyKilled, performAttack, performChargeAttack, triggerComboChain } = createRuntimeCombatActions({
     state,
     world,
+    visitedTilesRef,
     combatSystem,
     floatingText,
     screenShake,
@@ -240,6 +251,7 @@ export function setupRuntimeActionPhase({
     setSpinSwooshTimer: value => {
       runtimeSession.visual.spinSwooshTimer = value;
     },
+    arcWave: runtimeSession.combat.arcWave,
     setPlayerAnimState: value => {
       runtimeSession.animation.playerAnimState = value;
     },
@@ -291,6 +303,7 @@ export function setupRuntimeActionPhase({
       runtimeSession.lunge.damage = damage;
       runtimeSession.lunge.hitEnemyIds.clear();
     },
+    triggerSave,
     onBossDefeated: () => {
       syncHollowArenaVictoryPortalState();
       syncHollowFogGateState();
@@ -334,16 +347,19 @@ export function setupRuntimeActionPhase({
     },
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
+    syncWestCliffGateState,
     syncRiversideBridgeShortcutState,
     syncHollowShortcutState,
+    syncEastHollowRouteGateState,
     syncHollowApproachLadderState,
     syncCliffCorridorLadderState,
+    syncFortRidgeLadderState,
     syncForestFortGateState,
     syncNorthFortGateState,
     syncWestFortGateState,
     syncGolemFortGateState,
     syncManuscriptCheckpointGateState,
-    syncGilrhymBossState,
+    syncGuilrhymBossState,
     showHeroOverlay,
     startCameraPan: scheduleCameraPan,
     hasDialogue,
@@ -367,9 +383,25 @@ export function setupRuntimeActionPhase({
           addMarkersFromText('Village Elder', 'village');
           triggerUIUpdate();
         }
-      } else if (itemId === 'cursed_idol') {
-        state.setFlag('cursed_idol_received', true);
+      } else if (itemId === 'wolf_ring') {
+        state.setFlag('wolf_ring_received', true);
+        if (state.tryAutoEquipRing('wolf_ring')) {
+          notify('Wolf Ring Equipped', {
+            id: 'wolf-ring-equipped',
+            type: 'success',
+            description: 'Hit-stun and attack recovery slightly improved.',
+            duration: 3200,
+          });
+        }
         triggerUIUpdate();
+        // The ring-hint secondary marker is removed once the ring is received
+        // (see getRingHintMarker). Force a minimap refresh so the legend recomputes
+        // and drops the now-stale "Secondary" entry without waiting for the player to move.
+        triggerMinimapUpdate(true);
+      } else if (itemId === 'gravebound_ring') {
+        state.setFlag('gravebound_ring_received', true);
+        triggerUIUpdate();
+        triggerMinimapUpdate(true);
       }
     },
     getAliveEnemyCountNearPlayer: (radius: number) => {

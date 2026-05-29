@@ -42,7 +42,7 @@ export const PauseMenu = ({ onResume, questTitle, questObjective }: PauseMenuPro
           <p className="text-[10px] text-[#DAA520] uppercase tracking-wider font-bold">Controls</p>
           {CONTROL_GROUPS.map(group => (
             <div key={group.title} className="space-y-1.5">
-              <p className="text-[9px] font-bold text-[#DAA520]/70 uppercase tracking-[0.2em]">{group.title}</p>
+              <p className="text-[10px] font-bold text-[#DAA520]/90 uppercase tracking-[0.2em]">{group.title}</p>
               <div className="grid grid-cols-2 gap-2">
                 {group.bindings.map(b => (
                   <div

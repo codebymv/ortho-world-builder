@@ -29,9 +29,20 @@ const PLAYER_LADDER_SAFE_TILE_TYPES = new Set(['ladder', 'curled_ladder', 'gate_
 const ENEMY_STUCK_FRAME_LIMIT = 6;
 const ENEMY_PATH_RECOVERY_DURATION = 0.85;
 const ENEMY_PATH_RECOVERY_BLEND = 0.28;
+const BACKSTAB_FACING_DOT = 0.5;
 
 type EnemyMoveStep = { x: number; y: number; moved: boolean; vx: number; vy: number };
 type EnemyChaseMoveStep = EnemyMoveStep & { usedRecovery: boolean };
+
+function cardinalDirectionToVector(direction: string): { x: number; y: number } {
+  switch (direction) {
+    case 'up': return { x: 0, y: 1 };
+    case 'down': return { x: 0, y: -1 };
+    case 'left': return { x: -1, y: 0 };
+    case 'right': return { x: 1, y: 0 };
+    default: return { x: 0, y: 0 };
+  }
+}
 
 function trySlideEnemyMove(
   world: World,
@@ -201,6 +212,18 @@ function pickBigEnemyAttackType(
         return roll < 0.55 ? 'reaver_rush' : 'normal';
       }
       return 'reaver_rush';
+    case 'ridge_revenant':
+      if (closeBand) {
+        if (roll < 0.35) return 'revenant_flurry';
+        if (roll < 0.70) return 'revenant_crusher';
+        return 'revenant_rush';
+      }
+      if (midBand) {
+        if (roll < 0.45) return 'revenant_rush';
+        if (roll < 0.75) return 'revenant_crusher';
+        return 'revenant_flurry';
+      }
+      return 'revenant_rush';
     default:
       return 'normal';
   }
@@ -216,6 +239,7 @@ function dashTileSpeedFor(enemy: Enemy): number {
     case 'stone_sentinel': return 4.4;
     case 'ashen_reaver': return 6.5;
     case 'corrupted_giant': return 5.0;
+    case 'ridge_revenant': return 5.8;
     default: return 4.0;
   }
 }
@@ -233,6 +257,8 @@ interface SpawnEnemyOptions {
   /** Faction key. Enemies with different (non-empty) factions will attack each other. */
   faction?: string;
   patrolRadius?: number;
+  /** Stable cross-session ID for persistence (format: `mapKey:z{zoneIdx}:{spawnIdx}` or `mapKey:fixed:{x}_{y}`). */
+  zoneId?: string;
 }
 
 export interface Enemy {
@@ -280,6 +306,8 @@ export interface Enemy {
   behaviorOverrides: EnemyBehaviorOverrides;
   /** Set once when first poise break is absorbed by poiseImmunityFirstHit. */
   poiseImmunityUsed: boolean;
+  /** Stable cross-session ID set at spawn. Present on zone/fixed enemies; absent on arena phase-summons. */
+  zoneId?: string;
   /** Retreat timer for retreatAfterHit behavior. */
   retreatTimer: number;
   /** Charge-slam timer for Guardian Phase 2. */
@@ -312,7 +340,10 @@ export interface Enemy {
     | 'golem_stomp'
     | 'sentinel_slab'
     | 'reaver_rush'
-    | 'giant_lunge';
+    | 'giant_lunge'
+    | 'revenant_crusher'
+    | 'revenant_rush'
+    | 'revenant_flurry';
   /**
    * When an attack involves a committed dash/lunge during the telegraph,
    * this is the world-space target locked in at telegraph start. Used by
@@ -534,6 +565,7 @@ export class CombatSystem {
       attackLockedTarget: null,
       sprintBurstTimer: 0,
       sprintCooldown: 0,
+      zoneId: options.zoneId,
     };
 
     this.enemies.push(enemy);
@@ -820,7 +852,8 @@ export class CombatSystem {
           }
 
           const isBigType = enemy.type === 'golem' || enemy.type === 'stone_sentinel'
-            || enemy.type === 'corrupted_giant' || enemy.type === 'ashen_reaver';
+            || enemy.type === 'corrupted_giant' || enemy.type === 'ashen_reaver'
+            || enemy.type === 'ridge_revenant';
 
           // Big-enemy mid-range commitment: when not yet in melee range, sometimes
           // commit to a long-windup attack (lunge/slab/stomp) telegraphed from
@@ -834,10 +867,15 @@ export class CombatSystem {
                   enemy.currentAttackType === 'reaver_rush' ||
                   enemy.currentAttackType === 'golem_grab' ||
                   enemy.currentAttackType === 'sentinel_slab' ||
-                  enemy.currentAttackType === 'golem_stomp') {
+                  enemy.currentAttackType === 'golem_stomp' ||
+                  enemy.currentAttackType === 'revenant_crusher' ||
+                  enemy.currentAttackType === 'revenant_rush') {
                 enemy.attackLockedTarget = { x: playerPosition.x, y: playerPosition.y };
                 enemy.state = 'telegraphing';
                 setVariableTelegraph(enemy, enemy.telegraphDuration);
+                if (enemy.currentAttackType === 'revenant_crusher') {
+                  enemy.telegraphTimer *= 1.5;
+                }
                 updateMovementVisuals(enemy, 0, 0, false, 0);
                 break;
               }
@@ -862,8 +900,16 @@ export class CombatSystem {
               if (enemy.currentAttackType !== 'normal') {
                 enemy.attackLockedTarget = { x: playerPosition.x, y: playerPosition.y };
               }
+              if (enemy.currentAttackType === 'revenant_flurry') {
+                enemy.comboHitsRemaining = 2;
+              }
             }
             setVariableTelegraph(enemy, enemy.telegraphDuration);
+            if (enemy.currentAttackType === 'revenant_crusher') {
+              enemy.telegraphTimer *= 1.5;
+            } else if (enemy.currentAttackType === 'revenant_flurry') {
+              enemy.telegraphTimer *= 0.6;
+            }
             updateMovementVisuals(enemy, 0, 0, false, 0);
             break;
           }
@@ -942,7 +988,8 @@ export class CombatSystem {
           const isCommittedDash =
             dashType === 'giant_lunge' ||
             dashType === 'reaver_rush' ||
-            dashType === 'golem_grab';
+            dashType === 'golem_grab' ||
+            dashType === 'revenant_rush';
           if (isCommittedDash && enemy.attackLockedTarget) {
             const t = enemy.attackLockedTarget;
             const ldx = t.x - enemy.position.x;
@@ -985,6 +1032,9 @@ export class CombatSystem {
             const isSentinelSlab = enemy.currentAttackType === 'sentinel_slab';
             const isGiantLunge = enemy.currentAttackType === 'giant_lunge';
             const isReaverRush = enemy.currentAttackType === 'reaver_rush';
+            const isRevenantCrusher = enemy.currentAttackType === 'revenant_crusher';
+            const isRevenantRush = enemy.currentAttackType === 'revenant_rush';
+            const isRevenantFlurry = enemy.currentAttackType === 'revenant_flurry';
             const rangeMult = isSweep ? 3.0 : 1.69;
             const extAttackRangeSq = attackRangeSq * rangeMult;
 
@@ -1072,6 +1122,7 @@ export class CombatSystem {
                   }
                   player.health = Math.max(0, player.health - dmg);
                   player.damageFlashTimer = 0.4;
+                  player.hurtTimer = Math.max(player.hurtTimer, 0.35);
                   player.iFrameTimer = Math.max(player.iFrameTimer, 0.35);
                   const kbMag = playerBlocking ? 4.5 : 7.5;
                   this.applyKnockbackFromSource(target.x, target.y, kbMag);
@@ -1092,6 +1143,64 @@ export class CombatSystem {
                   isReaverRush ? 5.0 : 4.5,
                 );
                 if (result.parried) { parried = true; parryEnemyId = enemy.id; }
+              }
+            } else if (isRevenantCrusher) {
+              // Ridge Revenant overhead crusher — wide shockwave, unblockable.
+              // Must out-space; short swords cannot poke safely from inside the radius.
+              const crushRadius = 3.0;
+              const crushCenter = enemy.attackLockedTarget ?? enemy.position;
+              if (world && particleSystem) {
+                breakTilesInRadius(world, world.getCurrentMap(), crushCenter.x, crushCenter.y, crushRadius * 0.85, particleSystem, playPropBreak);
+              }
+              const cdx = playerPosition.x - crushCenter.x;
+              const cdy = playerPosition.y - crushCenter.y;
+              if (cdx * cdx + cdy * cdy <= crushRadius * crushRadius && !playerInvulnerable) {
+                const player = this.gameState.player;
+                const crushDmg = Math.floor(enemy.damage * 1.45);
+                player.health = Math.max(0, player.health - crushDmg);
+                player.damageFlashTimer = 0.5;
+                player.hurtTimer = Math.max(player.hurtTimer, 0.45);
+                player.iFrameTimer = Math.max(player.iFrameTimer, 0.4);
+                player.stamina = Math.max(0, player.stamina - 35);
+                if (player.stamina <= 0) player.guardBrokenTimer = 1.2;
+                this.applyKnockbackFromSource(crushCenter.x, crushCenter.y, 8.0);
+              }
+            } else if (isRevenantRush) {
+              // Ridge Revenant gap-closer — snaring grab after the dash commits.
+              const rushRadius = 1.6;
+              const rdx = playerPosition.x - enemy.position.x;
+              const rdy = playerPosition.y - enemy.position.y;
+              if (rdx * rdx + rdy * rdy <= rushRadius * rushRadius && !playerInvulnerable) {
+                const result = this.applyAreaHitToPlayer(
+                  Math.floor(enemy.damage * 1.25),
+                  playerBlocking, blockStartTime, now, enemy,
+                  6.0,
+                );
+                if (result.parried) {
+                  parried = true; parryEnemyId = enemy.id;
+                } else if (!playerBlocking) {
+                  this.gameState.player.snareTimer = Math.max(this.gameState.player.snareTimer, 1.1);
+                  this.gameState.player.snareSpeedMult = 0.3;
+                }
+              }
+            } else if (isRevenantFlurry) {
+              const flurryReach = enemy.attackRange * 1.35;
+              const flurryReachSq = flurryReach * flurryReach;
+              const fdx = playerPosition.x - enemy.position.x;
+              const fdy = playerPosition.y - enemy.position.y;
+              if (fdx * fdx + fdy * fdy <= flurryReachSq && !playerInvulnerable
+                && canEnemyMeleeReachPlayer(world, enemy, playerPosition, playerCombatElevation, playerIsClimbing)) {
+                const result = this.attackPlayer(enemy, playerBlocking, blockStartTime, now);
+                if (result.parried) {
+                  parried = true;
+                  parryEnemyId = enemy.id;
+                } else if (!playerBlocking) {
+                  // Extra guard-break pressure on the flurry line.
+                  this.gameState.player.stamina = Math.max(0, this.gameState.player.stamina - 18);
+                  if (this.gameState.player.stamina <= 0) {
+                    this.gameState.player.guardBrokenTimer = 1.3;
+                  }
+                }
               }
             } else if (isComboFinisher) {
               const finisherRadius = 2.0;
@@ -1154,7 +1263,7 @@ export class CombatSystem {
             // Committed dash attacks get a longer recover (they overshot or
             // pulled off a heavy move) so the player has a real punish window.
             const dashOvercommit = isGolemGrab || isGolemStomp || isSentinelSlab
-              || isGiantLunge || isReaverRush;
+              || isGiantLunge || isReaverRush || isRevenantCrusher || isRevenantRush;
             enemy.state = 'recovering';
             enemy.recoverTimer = dashOvercommit
               ? enemy.recoverDuration * 1.6
@@ -1253,6 +1362,16 @@ export class CombatSystem {
 
               enemy.state = 'chasing';
               break;
+            }
+
+            if (enemy.type === 'ridge_revenant') {
+              if (enemy.comboHitsRemaining > 0 && distSq <= attackRangeSq * 2.75) {
+                enemy.state = 'telegraphing';
+                enemy.currentAttackType = 'revenant_flurry';
+                enemy.telegraphTimer = 0.32;
+                enemy.comboHitsRemaining--;
+                break;
+              }
             }
 
             if (bo.retreatAfterHit && enemy.attackAnimationTimer > 0) {
@@ -1508,6 +1627,7 @@ export class CombatSystem {
 
     player.health = Math.max(0, player.health - finalDamage);
     player.damageFlashTimer = 0.4;
+    player.hurtTimer = Math.max(player.hurtTimer, 0.35);
     player.iFrameTimer = Math.max(player.iFrameTimer, 0.35);
 
     if (knockbackMagnitude > 0 && sourceEnemy) {
@@ -1550,6 +1670,7 @@ export class CombatSystem {
     }
     player.health = Math.max(0, player.health - damage);
     player.damageFlashTimer = 0.3;
+    player.hurtTimer = Math.max(player.hurtTimer, 0.35);
     enemy.attackAnimationTimer = 0.3;
 
     const bo = enemy.behaviorOverrides;
@@ -1593,7 +1714,11 @@ export class CombatSystem {
       }
 
       const dot = -(enemyForwardX * toPlayerX + enemyForwardY * toPlayerY);
-      if (dot > 0.7) {
+      const playerForward = cardinalDirectionToVector(playerDirection);
+      const toEnemyX = -toPlayerX;
+      const toEnemyY = -toPlayerY;
+      const playerFacingTarget = playerForward.x * toEnemyX + playerForward.y * toEnemyY;
+      if (dot > 0.7 && playerFacingTarget >= BACKSTAB_FACING_DOT) {
         isBackstab = true;
         finalDamage = Math.floor(damage * 2.5);
       }
@@ -1991,6 +2116,7 @@ export class CombatSystem {
     }
     player.health = Math.max(0, player.health - damage);
     player.damageFlashTimer = 0.3;
+    player.hurtTimer = Math.max(player.hurtTimer, 0.35);
     return { outcome: 'hit', parried: false };
   }
 

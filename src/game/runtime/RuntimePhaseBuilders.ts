@@ -49,6 +49,8 @@ export function buildGameplayPreludeContext(options: BuildRuntimePhaseContextsOp
     combatSystem: options.combatSystem,
     onLungeHit: options.onLungeHit,
     onLungeEnd: options.onLungeEnd,
+    arcWave: options.arcWave,
+    onArcWaveHit: options.onArcWaveHit,
     particleSystem: options.particleSystem,
     playPropBreak: options.playPropBreak,
     dodgeIFrameDuration: options.dodgeIFrameDuration,
@@ -112,6 +114,7 @@ export function buildPlayerFrameContext(options: BuildRuntimePhaseContextsOption
     handleMapTransition: options.handleMapTransition,
     handlePortalTransition: options.handlePortalTransition,
     lungeState: options.lungeState,
+    arcWave: options.arcWave,
   };
 }
 

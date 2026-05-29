@@ -92,6 +92,13 @@ const C = {
   shardHi:   0xFF80E0,
   shard:     0xC2185B,
   shardDk:   0x6A0F38,
+  // traveler / player bust (character sheet nav icon)
+  skinHi:    0xFFE0B2,
+  skin:      0xFFCC80,
+  hoodHi:    0x8D6E63,
+  hood:      0x5D4037,
+  hoodDk:    0x2D1B11,
+  eye:       0x1A0F0A,
   // satchel / inventory pouch
   leatherHi: 0x8D6E63,
   leather:   0x5D4037,
@@ -198,6 +205,23 @@ export const SPRITE_VOLUME_MUTE: HudSpriteSpec = {
     [_, C.speakerDk, C.speaker, C.speakerDk, _, _, C.mute, _],
     [_, _, C.speakerDk, C.speakerDk, _, _, _, C.mute],
     [_, _, C.speakerDk, C.speakerDk, _, _, _, _],
+  ],
+};
+
+/**
+ * Hooded traveler bust — character sheet / loadout nav icon. Matches the
+ * in-world chibi silhouette without pulling a live sprite texture into the HUD.
+ */
+export const SPRITE_PLAYER: HudSpriteSpec = {
+  grid: [
+    [_, C.hoodDk, C.hood, C.hood, C.hood, C.hood, C.hoodDk, _],
+    [_, C.hood, C.hoodHi, C.hood, C.hood, C.hoodHi, C.hood, _],
+    [_, C.hood, C.skin, C.skin, C.skin, C.skin, C.hood, _],
+    [C.hood, C.hood, C.skin, C.eye, C.skin, C.eye, C.skin, C.hood],
+    [C.hood, C.hood, C.skin, C.skin, C.skin, C.skin, C.skin, C.hood],
+    [_, C.hood, C.hood, C.skinHi, C.skinHi, C.hood, C.hood, _],
+    [_, C.hoodDk, C.hood, C.hood, C.hood, C.hood, C.hoodDk, _],
+    [_, _, C.hoodDk, C.hoodDk, C.hoodDk, C.hoodDk, _, _],
   ],
 };
 

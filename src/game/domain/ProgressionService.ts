@@ -163,13 +163,13 @@ export function createProgressionService(context: ProgressionServiceContext) {
     }
 
     if (dialogueId === 'mountain_hermit') {
-      // Once the idol has been picked up from the ranger cottage, Olwen
+      // Once the ring has been picked up from the ranger cottage, Olwen
       // acknowledges it and settles into his post-gift reflection.
-      if (state.getFlag('cursed_idol_received')) {
-        startNode = dialogue.nodes.find(node => node.id === 'after_idol') ?? startNode;
+      if (state.getFlag('wolf_ring_received')) {
+        startNode = dialogue.nodes.find(node => node.id === 'after_ring') ?? startNode;
       } else if (state.getFlag('olwen_ranger_cabin_hint')) {
-        // Player heard the hint but hasn't found the idol yet — remind them.
-        startNode = dialogue.nodes.find(node => node.id === 'take_idol') ?? startNode;
+        // Player heard the hint but hasn't found the ring yet — remind them.
+        startNode = dialogue.nodes.find(node => node.id === 'take_ring') ?? startNode;
       }
     }
 
@@ -271,7 +271,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
       shouldSave = acceptQuest(state, givesQuest) || shouldSave;
     }
 
-    if (state.currentDialogue === 'mountain_hermit' && currentDialogue.node.id === 'offer_idol' && nextId === 'take_idol') {
+    if (state.currentDialogue === 'mountain_hermit' && currentDialogue.node.id === 'offer_ring' && nextId === 'take_ring') {
       if (!state.getFlag('olwen_ranger_cabin_hint')) {
         state.setFlag('olwen_ranger_cabin_hint', true);
         context.notify('Location Revealed', {
@@ -354,7 +354,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
     if (state.currentDialogue === 'oliver' && nextId === 'end' && currentDialogue.node.id === 'warning') {
       const pursuitQuest = state.quests.find(q => q.id === 'heretical_pursuit' && q.active && !q.completed);
       if (pursuitQuest) {
-        markObjectiveDone(pursuitQuest, 0, 'Find a survivor in Gilrhym');
+        markObjectiveDone(pursuitQuest, 0, 'Find a survivor in Guilrhym');
         markObjectiveDone(pursuitQuest, 1, 'Learn about the Ashen Court');
         context.triggerUIUpdate();
       }

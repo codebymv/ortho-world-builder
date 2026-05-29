@@ -64,19 +64,20 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
 
   { keywords: ['ranger outpost'], tileX: 140, tileY: 170, map: 'forest', label: 'Ranger Outpost', type: 'poi', color: '#8FBC8F' },
   { keywords: ['ranger cottage'], tileX: 236, tileY: 227, map: 'forest', label: 'Ranger Cottage', type: 'poi', color: '#9370DB' },
-  // Fort gate key — use "chapel ruins" only (not plain "chapel") so village chapel dialogue does not ping the woods
-  { keywords: ['chapel ruins'], tileX: 55, tileY: 114, map: 'forest', label: 'Chapel Ruins (ranger remains)', type: 'poi', color: '#A1887F' },
+  // Fort gate key — use "chapel ruins" only (not plain "chapel") so village chapel dialogue does not ping the woods.
+  // Points at the actual chapel_dead_ranger remains (forest map x:65,y:183); the old (55,114) was ~70 tiles off.
+  { keywords: ['chapel ruins'], tileX: 65, tileY: 183, map: 'forest', label: 'Chapel Ruins (ranger remains)', type: 'poi', color: '#A1887F' },
   { keywords: ['disparaged cottage', 'hunter cottage', 'old shack', 'shack', 'run down old shack'], tileX: 137, tileY: 184, map: 'forest', label: 'Disparaged Cottage', type: 'quest', color: '#FFD700' },
   
   // Whispering Woods quests
   { keywords: ['hunter', 'missing hunter', 'hunter manuscript', 'manuscript', 'find signs'], tileX: 137, tileY: 184, map: 'forest', label: 'Disparaged Cottage', type: 'quest', color: '#FFD700' },
   { keywords: ['return to the elder', 'findings'], tileX: 102, tileY: 70, map: 'village', label: 'Report to Elder', type: 'quest', color: '#FFD700' },
 
-  // Gilrhym
-  { keywords: ['gilrhym', 'city', 'victorian', 'urban'], tileX: 150, tileY: 150, map: 'gilrhym', label: 'Gilrhym', type: 'danger', color: '#696969' },
-  { keywords: ['oliver', 'injured warrior'], tileX: 148, tileY: 273, map: 'gilrhym', label: 'Oliver', type: 'npc', color: '#CD853F' },
-  { keywords: ['cathedral', 'reaver', 'ashen reaver'], tileX: 150, tileY: 30, map: 'gilrhym', label: 'Cathedral Plaza', type: 'danger', color: '#8B0000' },
-  { keywords: ['terminus scythe', 'scythe'], tileX: 150, tileY: 90, map: 'gilrhym', label: 'Terminus Scythe', type: 'quest', color: '#4B0082' },
+  // Guilrhym
+  { keywords: ['guilrhym', 'city', 'victorian', 'urban'], tileX: 150, tileY: 150, map: 'guilrhym', label: 'Guilrhym', type: 'danger', color: '#696969' },
+  { keywords: ['oliver', 'injured warrior'], tileX: 148, tileY: 273, map: 'guilrhym', label: 'Oliver', type: 'npc', color: '#CD853F' },
+  { keywords: ['cathedral', 'reaver', 'ashen reaver'], tileX: 150, tileY: 30, map: 'guilrhym', label: 'Cathedral Plaza', type: 'danger', color: '#8B0000' },
+  { keywords: ['terminus scythe', 'scythe'], tileX: 18, tileY: 21, map: 'guilrhym', label: 'Terminus Scythe', type: 'quest', color: '#4B0082' },
 
   // Enemies
   { keywords: ['wolf', 'wolves'], tileX: 85, tileY: 15, map: 'village', label: 'Wolf Territory', type: 'danger', color: '#808080' },
@@ -85,6 +86,7 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   { keywords: ['skeleton', 'undead'], tileX: 15, tileY: 25, map: 'village', label: 'Undead', type: 'danger', color: '#D3D3D3' },
   { keywords: ['spider', 'spiders'], tileX: 214, tileY: 123, map: 'village', label: 'Spider Nest', type: 'danger', color: '#800080' },
   { keywords: ['golem', 'stone golem'], tileX: 225, tileY: 155, map: 'forest', label: 'Stone Golem', type: 'danger', color: '#696969' },
+  { keywords: ['ridge revenant', 'east ridge', 'ridge ascent', 'tempered core'], tileX: 260, tileY: 142, map: 'forest', label: 'East Ridge Ascent', type: 'danger', color: '#FF6F00' },
 ];
 
 function normalizeMarkerText(value: string): string {
@@ -254,17 +256,17 @@ export function getVillagePrimaryObjectiveMarker(state: GameState): MapMarker | 
   return { ...base, tileX: 124, tileY: 100 };
 }
 
-// ─── Idol hint — dynamic secondary marker ────────────────────────────────────
+// ─── Ring hint — dynamic secondary marker ────────────────────────────────────
 
-export const IDOL_HINT_MARKER_ID = 'idol_hint_ranger_cottage';
-const STORED_IDOL_HINT_MARKER_IDS = new Set(['forest_Ranger Cottage', 'forest_Ranger Outpost']);
+export const RING_HINT_MARKER_ID = 'ring_hint_ranger_cottage';
+const STORED_RING_HINT_MARKER_IDS = new Set(['forest_Ranger Cottage', 'forest_Ranger Outpost']);
 
-export function shouldHideStoredIdolHintMarker(
+export function shouldHideStoredRingHintMarker(
   marker: Pick<MapMarker, 'id' | 'label' | 'map' | 'tileX' | 'tileY'>,
   state: GameState,
 ): boolean {
   const isStoredRangerObjectiveMarker =
-    STORED_IDOL_HINT_MARKER_IDS.has(marker.id) ||
+    STORED_RING_HINT_MARKER_IDS.has(marker.id) ||
     (
       marker.map === 'forest' &&
       marker.label === 'Ranger Cottage' &&
@@ -278,24 +280,68 @@ export function shouldHideStoredIdolHintMarker(
       marker.tileY === 170
     );
 
-  // The live idol hint marker owns this map pin while the hint is active, and
-  // getIdolHintMarker removes it after the idol is picked up. Hide any older
+  // The live ring hint marker owns this map pin while the hint is active, and
+  // getRingHintMarker removes it after the ring is picked up. Hide any older
   // text-discovered ranger copy so saves cannot keep stale secondary pins over
   // either the old cabin/outpost or the relocated cottage.
-  return isStoredRangerObjectiveMarker && state.getFlag('olwen_ranger_cabin_hint');
+  //
+  // We hide on EITHER flag: `olwen_ranger_cabin_hint` covers the live quest path,
+  // while `wolf_ring_received` covers migrated/loaded saves (see SaveManager) that
+  // can set the ring flag without ever setting the hint flag — otherwise a stale
+  // "Secondary" ranger pin would survive on those saves.
+  return Boolean(
+    isStoredRangerObjectiveMarker &&
+    (state.getFlag('olwen_ranger_cabin_hint') || state.getFlag('wolf_ring_received'))
+  );
+}
+
+// Discovered quest/POI markers are never removed from the save once added, and are
+// only suppressed while their objective is the active primary (HIDE_MARKER_IDS_WHEN_PRIMARY
+// in the map components). Once the related quest completes the dynamic primary disappears,
+// so without this these markers resurface as permanent stray "Secondary" pins.
+const STORED_DONE_MARKER_IDS = new Set(['forest_Disparaged Cottage']);
+
+export function shouldHideCompletedObjectiveMarker(
+  marker: Pick<MapMarker, 'id'>,
+  state: GameState,
+): boolean {
+  // The Disparaged Cottage is the manuscript quest's Stage 1 POI. Once the first
+  // fragment is collected (the cottage has been looted) it is no longer a relevant
+  // destination — the later stages point elsewhere and never return here.
+  return Boolean(
+    STORED_DONE_MARKER_IDS.has(marker.id) && state.getFlag('manuscript_fragment_collected'),
+  );
 }
 
 /**
+ * Single predicate the minimap / map components use to decide whether a stored
+ * marker should be suppressed. Combines the ranger-ring hide logic with the
+ * completed-objective hide logic so neither stale pin lingers as a "Secondary".
+ */
+export function shouldHideStoredMarker(
+  marker: Pick<MapMarker, 'id' | 'label' | 'map' | 'tileX' | 'tileY'>,
+  state: GameState,
+): boolean {
+  return (
+    shouldHideStoredRingHintMarker(marker, state) ||
+    shouldHideCompletedObjectiveMarker(marker, state)
+  );
+}
+
+/** @deprecated Use {@link shouldHideStoredMarker} */
+export const shouldHideStoredIdolHintMarker = shouldHideStoredMarker;
+
+/**
  * Returns a map marker pointing the player to the relocated Ranger Cottage
- * where the Cursed Idol is waiting.  Visible only between Olwen's hint
+ * where the Wolf Ring is waiting. Visible only between Olwen's hint
  * dialogue and the actual world-item pickup.
  */
-export function getIdolHintMarker(state: GameState): MapMarker | null {
+export function getRingHintMarker(state: GameState): MapMarker | null {
   if (!state.getFlag('olwen_ranger_cabin_hint')) return null;
-  if (state.getFlag('cursed_idol_received')) return null;
+  if (state.getFlag('wolf_ring_received')) return null;
 
   return {
-    id: IDOL_HINT_MARKER_ID,
+    id: RING_HINT_MARKER_ID,
     label: 'Ranger Cottage',
     type: 'poi' as const,
     color: '#9370DB',
@@ -307,6 +353,12 @@ export function getIdolHintMarker(state: GameState): MapMarker | null {
     permanent: true,
   };
 }
+
+/** @deprecated Use {@link getRingHintMarker} */
+export const getIdolHintMarker = getRingHintMarker;
+
+/** @deprecated Use {@link RING_HINT_MARKER_ID} */
+export const IDOL_HINT_MARKER_ID = RING_HINT_MARKER_ID;
 
 /**
  * Scan dialogue text for keyword matches and return relevant markers.

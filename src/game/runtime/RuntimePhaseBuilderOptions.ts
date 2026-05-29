@@ -78,6 +78,8 @@ export interface BuildRuntimePhaseContextsOptions {
   };
   onLungeHit: (enemy: Enemy, damage: number) => void;
   onLungeEnd: () => void;
+  arcWave: import('@/game/runtime/PlayerSimulationSystem').ArcWaveState;
+  onArcWaveHit: (enemy: Enemy, damage: number) => void;
   dodgeIFrameDuration: number;
   triggerComboChain: () => { frameDuration: number } | null;
   comboWindowDuration: number;

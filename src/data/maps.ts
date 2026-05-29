@@ -54,14 +54,14 @@ const staticMapDefinitions: Record<string, MapDefinition> = {
 };
 
 const deferredMapLoaders: Record<string, DeferredMapDefinitionLoader> = {
-  gilrhym: {
+  guilrhym: {
     summary: {
-      name: 'Gilrhym',
+      name: 'Guilrhym',
       subtitle: 'A city consumed by what it buried',
       width: 300,
       height: 300,
     },
-    load: async () => (await import('@/content/regions/ruins/map')).gilrhymDef,
+    load: async () => (await import('@/content/regions/ruins/map')).guilrhymDef,
   },
 };
 
@@ -71,7 +71,7 @@ const deferredMapDefinitionLoads: Record<string, Promise<MapDefinition>> = {};
 const mapDefinitionSummaries: Record<string, MapDefinitionSummary> = {
   village: summarizeMapDefinition(villageDef),
   forest: summarizeMapDefinition(forestDef),
-  gilrhym: deferredMapLoaders.gilrhym.summary,
+  guilrhym: deferredMapLoaders.guilrhym.summary,
   interior_inn: summarizeMapDefinition(interiorInnDef),
   interior_blacksmith: summarizeMapDefinition(interiorBlacksmithDef),
   interior_merchant: summarizeMapDefinition(interiorMerchantDef),

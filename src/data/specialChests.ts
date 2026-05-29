@@ -4,7 +4,7 @@ const SPECIAL_CHEST_INTERACTION_IDS = new Set<string>([
   'ancient_chest',
   'boss_arena_chest',
   'forest_river_chest',
-  'gilrhym_scythe_chest',
+  'hollow_terminus_chest',
 ]);
 
 export function isSpecialChestInteractionId(interactionId: string): boolean {

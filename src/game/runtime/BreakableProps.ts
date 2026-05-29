@@ -80,7 +80,7 @@ export function breakTileAt(
 
   const color = DEBRIS_COLORS[tile.type] ?? 0x8B6914;
   const fallback = TILE_METADATA[tile.type]?.baseTile ?? 'grass';
-  const baseType = resolveBaseTile(map, tileX, tileY, fallback as TileType);
+  const baseType = tile.baseTile ?? resolveBaseTile(map, tileX, tileY, fallback as TileType);
 
   map.tiles[tileY][tileX] = {
     type: baseType,

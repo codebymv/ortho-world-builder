@@ -69,7 +69,7 @@ export const DeathOverlay = ({ active, essenceLost, onComplete }: DeathOverlayPr
         <p className="text-sm text-[#A1887F]">You carried no essence to lose.</p>
       )}
       {skippable && (
-        <p className="mt-6 text-xs text-[#D7CCC8]/50 uppercase tracking-widest animate-pulse">
+        <p className="mt-6 text-xs text-[#D7CCC8]/80 uppercase tracking-widest animate-pulse">
           Click to continue
         </p>
       )}

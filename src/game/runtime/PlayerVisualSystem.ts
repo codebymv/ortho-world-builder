@@ -410,8 +410,18 @@ export function resolvePlayerTexture({
   if (state.player.damageFlashTimer > 0) {
     textureKey = getPlayerTextureName(currentDir8, 'hurt', 0);
   } else if (playerAnimState === 'spin_attack') {
-    const spinDir = spinDirections[Math.min(spinDirIndex, spinDirections.length - 1)];
-    textureKey = getPlayerTextureName(spinDir, 'attack', 1);
+    if (state.equippedWeaponId === 'terminus_scythe') {
+      // Full arm-swing rotation: cycle through all four facing directions (same cadence as
+      // the broadsword spin) while also stepping through the attack_0 arc frames so the
+      // scythe visibly sweeps around the player rather than floating on a fixed frame.
+      // spinDirIndex % 3 steps frames 0→1→2 per direction slot, looping for a smooth arc.
+      const spinDir = spinDirections[Math.min(spinDirIndex, spinDirections.length - 1)];
+      const spinFrame = Math.min(spinDirIndex % 3, 2);
+      textureKey = getPlayerTextureName(spinDir, 'attack_0', spinFrame);
+    } else {
+      const spinDir = spinDirections[Math.min(spinDirIndex, spinDirections.length - 1)];
+      textureKey = getPlayerTextureName(spinDir, 'attack', 1);
+    }
   } else if (playerAnimState === 'charge') {
     textureKey = getPlayerTextureName(currentDir8, 'charge', Math.min(animFrame, 2));
   } else if (playerAnimState === 'attack') {
@@ -443,6 +453,7 @@ export function resolvePlayerTexture({
 
   let texture = getCachedTexture(textureKey);
   if (!texture) {
+    // For spin_attack both weapons now use the current spin direction for their fallback.
     const fallbackDir = dir8to4(
       playerAnimState === 'spin_attack'
         ? spinDirections[Math.min(spinDirIndex, spinDirections.length - 1)]
@@ -454,7 +465,7 @@ export function resolvePlayerTexture({
         : playerAnimState === 'charge'
           ? 'charge'
           : playerAnimState === 'spin_attack'
-            ? 'attack'
+            ? (state.equippedWeaponId === 'terminus_scythe' ? 'attack_0' : 'attack')
             : playerAnimState === 'hurt'
               ? 'hurt'
               : playerAnimState;
@@ -462,7 +473,7 @@ export function resolvePlayerTexture({
       playerAnimState === 'attack'
         ? Math.min(attackFrame, 2)
         : playerAnimState === 'spin_attack'
-          ? 1
+          ? (state.equippedWeaponId === 'terminus_scythe' ? Math.min(spinDirIndex % 3, 2) : 1)
           : playerAnimState === 'charge'
             ? Math.min(animFrame, 2)
             : animFrame;

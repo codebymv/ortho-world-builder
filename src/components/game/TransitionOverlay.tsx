@@ -44,7 +44,7 @@ export const TransitionOverlay = ({ active, mapName, mapSubtitle }: TransitionOv
             {mapName}
           </h2>
           {mapSubtitle && (
-            <p className="text-sm text-[#D3D3D3]/70 uppercase tracking-[0.2em]">
+            <p className="text-sm text-[#C9B8A8] uppercase tracking-[0.2em]">
               {mapSubtitle}
             </p>
           )}

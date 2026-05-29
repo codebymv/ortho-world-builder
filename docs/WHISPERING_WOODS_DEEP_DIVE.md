@@ -24,7 +24,7 @@ The map is a 300×300 South-to-North progression:
 
 ### What's Not Fun (Friction)
 
-- **Off-screen sniper snare.** Hollow flats use heavy `hollow_reaver` ranged scythe-thrower density (`@whispering_woods/map.ts:2014`). In a fixed-viewport orthographic game, projectiles from off-screen enemies are extremely frustrating.
+- **Off-screen sniper snare.** Hollow flats previously used heavy `hollow_reaver` ranged scythe-thrower density; this has been reduced from 8 open-flat Reavers to 5. In a fixed-viewport orthographic game, projectile reach can still be frustrating if playtests show off-screen hits.
 - **Collision boundary disconnects.** Cliff sprite buffers create invisible walls below visually-walkable grass tiles (`@mapGenerator.ts:3319`).
 - **Severe backtracking fatigue.** With 9 bonfires across 300×300, missing intermediate kindles like `bonfire_cliff_ledge_approach` turns death runs into empty walks.
 
@@ -44,7 +44,7 @@ There are 9 bonfires on this map (`@bonfires.ts:73-91`). Verified straight-line 
 
 | Bonfire | Position | Distance to Next |
 |---|---|---|
-| Forest Clearing | `(148, 286)` | ~79 tiles to Iron Gate |
+| Forest Clearing | `(150, 250)` | ~45 tiles to Iron Gate |
 | Iron Gate | `(134, 208)` | ~61 tiles to Cliff Ledge |
 | Cliff Ledge Approach | `(193, 192)` | ~53 tiles to Riverside Grove |
 | Riverside Grove | `(156, 154)` | ~72 tiles to Eastern Fort Passage |
@@ -58,7 +58,7 @@ There are 9 bonfires on this map (`@bonfires.ts:73-91`). Verified straight-line 
 
 **Verdict:** do not treat the ~140-tile East Ridge Overlook → Corrupted Bridge straight-line distance as a bonfire pacing bug. The real concern is documentation/registry interpretation: the fast-travel list order is south-to-north/story-flavored, but it can imply connectivity that does not exist. The actionable item is to annotate East Ridge Overlook as an optional/dead-end branch, not add a bonfire or shortcut there.
 
-**Bigger problem:** the **Forest Clearing bonfire at `(148, 286)` is only ~5.4 tiles from the village portal**. Functionally it's a "spawn safety net" rather than a real first checkpoint. There is no early checkpoint between spawn and Iron Gate at `y=208` — that's an ~84.5-tile straight-line run from the portal to Iron Gate, with the first bridge wolf encounter at `y=270` (`@whispering_woods/map.ts:1946`). A first-time player who dies in the bridge ambush before kindling Iron Gate has to redo the south corridor.
+**Post-audit update:** the Forest Clearing bonfire moved from `(148, 286)` to `(150, 250)`. It now functions as the first real woods checkpoint instead of a spawn safety net, reducing the portal-to-Iron-Gate death run without adding another bonfire.
 
 ### 2. Reward Economy — Volume Without Curation
 
@@ -176,10 +176,10 @@ This isn't a Whispering Woods item; it's a forward-looking design principle that
 ### 10. Key Risk Items (Prioritized)
 
 1. **Stone Sentinel at `(93, 192)`** (P1) — Difficulty cliff for first-time players. Either move it deeper or add a clear "danger" tell on the approach.
-2. **South spine has no early bonfire between portal and Iron Gate** (P1) — ~84.5-tile straight-line run from portal to Iron Gate after first death if the player misses the Iron Gate kindle. Add a kindled-by-default checkpoint near `y: 245` or relocate Forest Clearing northward.
+2. **South spine has no early bonfire between portal and Iron Gate** (P1) — **fixed** by relocating Forest Clearing to `(150,250)`.
 3. **East Ridge Overlook registry false positive** (P2) — Not a real pacing gap. East Ridge Overlook is intentionally a wrong-direction/dead-end branch from Iron Gate routing, with cliff/hill termination, heresy altar payoff, and fencing/water/gates forcing return. Update documentation/mental model rather than adding a shortcut.
 4. **Triple-stacked enemy zone at `(142, 90)`** (P2) — Audit intent; if intentional, telegraph it; if not, prune.
-5. **Off-screen Hollow Reaver projectiles** (P2) — Cap projectile range to ~camera-radius minus 1 tile, or have them only fire when player is on-screen of *them*.
+5. **Off-screen Hollow Reaver projectiles** (P2) — Placement density reduced first; if still needed, cap projectile range to ~camera-radius minus 1 tile, or have them only fire when player is on-screen of *them*.
 6. **Chest count dilution** (P3) — Trim to ~25 curated chests; tier visually.
 7. **Heresy Altars without quest hook** (P3) — Wire into a hidden objective.
 8. **Camera pan on shortcut activation** (P3) — Implement globally in interaction system.

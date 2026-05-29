@@ -1,8 +1,8 @@
 import React, { memo, useMemo, useState } from 'react';
-import { Heart, Coins, Package, Sword, Zap, Key, Map as MapIcon, Sparkles, Check } from 'lucide-react';
+import { Heart, Coins, Package, Sword, Zap, Key, Map as MapIcon, Sparkles, Circle } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import type { GameState, Item } from '@/lib/game/GameState';
+import type { GameState, Item, RingSlotIndex } from '@/lib/game/GameState';
 import type { AssetManager } from '@/lib/game/AssetManager';
 import { notify } from '@/lib/game/notificationBus';
 
@@ -16,7 +16,22 @@ interface InventoryModalProps {
   playGrassChew?: () => void;
 }
 
-type TabId = 'weapons' | 'consumables' | 'key_items';
+type TabId = 'weapons' | 'rings' | 'consumables' | 'key_items';
+
+function formatStaminaRegenBonus(mult?: number): string | null {
+  if (!mult || mult <= 1) return null;
+  return `+${Math.round((mult - 1) * 100)}% stamina recovery`;
+}
+
+function formatRecoverySpeedBonus(mult?: number): string | null {
+  if (!mult || mult <= 1) return null;
+  return `+${Math.round((mult - 1) * 100)}% recovery speed`;
+}
+
+function formatRingBonus(item: Item): string | null {
+  return formatStaminaRegenBonus(item.stats?.staminaRegenMult)
+    ?? formatRecoverySpeedBonus(item.stats?.recoverySpeedMult);
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -38,66 +53,116 @@ const getItemIcon = (item: Item, className: string, assetManager?: AssetManager 
 
 const TAB_CONFIG: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'weapons', label: 'Weapons', icon: <Sword className="w-3.5 h-3.5" /> },
+  { id: 'rings', label: 'Rings', icon: <Circle className="w-3.5 h-3.5" /> },
   { id: 'consumables', label: 'Consumables', icon: <Heart className="w-3.5 h-3.5" /> },
   { id: 'key_items', label: 'Key Items', icon: <Key className="w-3.5 h-3.5" /> },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+const BADGE_BASE = 'text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-sm flex-shrink-0';
+const BADGE_SLOT = cn(BADGE_BASE, 'text-[#DAA520] border border-[#DAA520]/40 bg-[#DAA520]/10');
+const BADGE_RESERVE = cn(BADGE_BASE, 'text-[#A1887F] border border-[#5C3A21]/50');
+const ITEM_DESC = 'text-[11px] text-[#C9B8A8] leading-relaxed mt-1';
+const ITEM_TITLE = 'font-bold text-[#F5DEB3] text-sm leading-tight uppercase tracking-wide';
+
+const ItemRowHeader = memo(({ name, badge }: { name: string; badge?: React.ReactNode }) => (
+  <div className="flex items-start justify-between gap-3 mb-0.5">
+    <h4 className={cn(ITEM_TITLE, 'min-w-0')}>{name}</h4>
+    {badge}
+  </div>
+));
+
 const WeaponCard = memo(({
   weapon,
-  isEquipped,
+  loadoutSlot,
+  isActive,
   assetManager,
-  onEquip,
 }: {
   weapon: Item;
-  isEquipped: boolean;
+  loadoutSlot: number | null;
+  isActive: boolean;
   assetManager: AssetManager | null;
-  onEquip: (id: string) => void;
+}) => {
+  const badge = loadoutSlot !== null ? (
+    <span className={BADGE_SLOT}>Slot {loadoutSlot + 1}</span>
+  ) : (
+    <span className={BADGE_RESERVE}>Reserve</span>
+  );
+
+  return (
+    <div
+      className={cn(
+        'flex items-start gap-3 p-3 border rounded-sm transition-all',
+        isActive
+          ? 'border-emerald-600/35 bg-emerald-950/20 shadow-[inset_0_0_0_1px_rgba(52,211,153,0.12)]'
+          : loadoutSlot !== null
+            ? 'border-[#DAA520]/50 bg-[#2D1B11]/70'
+            : 'border-[#5C3A21]/50 bg-[#2D1B11]/30',
+      )}
+    >
+      <div className="w-14 h-14 flex-shrink-0 bg-[#1A0F0A]/60 rounded border border-[#5C3A21]/50 flex items-center justify-center shadow-inner overflow-hidden">
+        {getItemIcon(weapon, 'w-10 h-10', assetManager)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <ItemRowHeader name={weapon.name} badge={badge} />
+        <div className="flex items-center gap-3 text-[11px] text-[#A1887F]">
+          {weapon.stats?.damage != null && (
+            <span className="flex items-center gap-1">
+              <Sword className="w-3 h-3 text-[#DAA520]" />
+              <span className="text-[#F5DEB3] font-bold">{weapon.stats.damage}</span> ATK
+            </span>
+          )}
+          {weapon.stats?.range != null && (
+            <span className="flex items-center gap-1">
+              <span className="text-[#F5DEB3] font-bold">{weapon.stats.range.toFixed(2)}</span> Range
+            </span>
+          )}
+        </div>
+        <p className={ITEM_DESC}>{weapon.description}</p>
+        {loadoutSlot === null && (
+          <p className="text-[10px] text-[#A1887F] mt-1.5">Assign in Player (<kbd className="font-mono text-[#DAA520]">P</kbd>)</p>
+        )}
+      </div>
+    </div>
+  );
+});
+
+const RingCard = memo(({
+  ring,
+  equippedSlot,
+  assetManager,
+}: {
+  ring: Item;
+  equippedSlot: RingSlotIndex | null;
+  assetManager: AssetManager | null;
 }) => (
   <div
     className={cn(
-      'flex items-center gap-3 p-3 border rounded-sm transition-all',
-      isEquipped
+      'flex items-start gap-3 p-3 border rounded-sm transition-all',
+      equippedSlot !== null
         ? 'border-[#DAA520]/50 bg-[#2D1B11]/70'
-        : 'border-[#5C3A21]/50 bg-[#2D1B11]/30 hover:border-[#5C3A21] hover:bg-[#2D1B11]/50',
+        : 'border-[#5C3A21]/50 bg-[#2D1B11]/30',
     )}
   >
-    <div className="w-14 h-14 flex-shrink-0 bg-[#1A0F0A]/60 rounded border border-[#5C3A21]/50 flex items-center justify-center shadow-inner overflow-hidden">
-      {getItemIcon(weapon, 'w-10 h-10', assetManager)}
+    <div className="w-14 h-14 flex-shrink-0 bg-[#1A0F0A]/60 rounded-full border border-[#5C3A21]/50 flex items-center justify-center shadow-inner overflow-hidden">
+      {getItemIcon(ring, 'w-10 h-10', assetManager)}
     </div>
     <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-2 mb-0.5">
-        <h4 className="font-bold text-[#F5DEB3] text-sm truncate">{weapon.name}</h4>
-        {isEquipped && (
-          <span className="text-[8px] uppercase font-bold tracking-wider text-[#DAA520] border border-[#DAA520]/40 bg-[#DAA520]/10 px-1.5 py-0.5 rounded-sm flex-shrink-0 flex items-center gap-0.5">
-            <Check className="w-2.5 h-2.5" /> Equipped
-          </span>
-        )}
-      </div>
-      <div className="flex items-center gap-3 text-[11px] text-[#A1887F]">
-        {weapon.stats?.damage != null && (
-          <span className="flex items-center gap-1">
-            <Sword className="w-3 h-3 text-[#DAA520]" />
-            <span className="text-[#F5DEB3] font-bold">{weapon.stats.damage}</span> ATK
-          </span>
-        )}
-        {weapon.stats?.range != null && (
-          <span className="flex items-center gap-1">
-            <span className="text-[#F5DEB3] font-bold">{weapon.stats.range.toFixed(2)}</span> Range
-          </span>
-        )}
-      </div>
-      <p className="text-[10px] text-[#8D6E63] leading-snug mt-0.5 line-clamp-1">{weapon.description}</p>
+      <ItemRowHeader
+        name={ring.name}
+        badge={equippedSlot !== null ? (
+          <span className={BADGE_SLOT}>Slot {equippedSlot + 1}</span>
+        ) : undefined}
+      />
+      {formatRingBonus(ring) && (
+        <p className="text-[11px] text-violet-300">{formatRingBonus(ring)}</p>
+      )}
+      <p className={ITEM_DESC}>{ring.description}</p>
+      {equippedSlot === null && (
+        <p className="text-[10px] text-[#A1887F] mt-1.5">Equip in Player (<kbd className="font-mono text-[#DAA520]">P</kbd>)</p>
+      )}
     </div>
-    {!isEquipped && (
-      <button
-        onClick={() => onEquip(weapon.id)}
-        className="flex-shrink-0 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#DAA520] border border-[#DAA520]/40 rounded-sm hover:bg-[#DAA520]/15 hover:border-[#DAA520]/70 transition-colors"
-      >
-        Equip
-      </button>
-    )}
   </div>
 ));
 
@@ -118,18 +183,18 @@ const ConsumableCard = memo(({
   const isLastBreath = item.buffType === 'last_breath';
   const isDimmed = isLastBreath && lastBreathSpent;
   return (
-    <div className={`flex items-center gap-3 p-2.5 border border-[#5C3A21]/50 bg-[#2D1B11]/40 rounded-sm hover:border-[#DAA520]/40 transition-colors ${isDimmed ? 'opacity-50' : ''}`}>
+    <div className={`flex items-start gap-3 p-2.5 border border-[#5C3A21]/50 bg-[#2D1B11]/40 rounded-sm hover:border-[#DAA520]/40 transition-colors ${isDimmed ? 'opacity-70' : ''}`}>
       <div className="w-12 h-12 flex-shrink-0 bg-[#1A0F0A]/60 rounded border border-[#5C3A21]/50 flex items-center justify-center shadow-inner relative overflow-hidden">
         {getItemIcon(item, 'w-9 h-9', assetManager)}
         {count > 1 && (
           <div className="absolute -top-0.5 -right-0.5 bg-[#1A0F0A] border border-[#DAA520]/50 rounded-full min-w-[14px] h-3.5 px-0.5 flex items-center justify-center z-10">
-            <span className="text-[7px] font-bold text-[#DAA520]">x{count}</span>
+            <span className="text-[10px] font-bold text-[#DAA520]">x{count}</span>
           </div>
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="font-bold text-[#F5DEB3] text-sm truncate leading-tight">{item.name}</h4>
-        <p className="text-[10px] text-[#C9B8A8] leading-snug line-clamp-1 mt-0.5">{item.description}</p>
+        <h4 className={ITEM_TITLE}>{item.name}</h4>
+        <p className={ITEM_DESC}>{item.description}</p>
       </div>
       {isLastBreath ? (
         <div
@@ -165,28 +230,31 @@ const KeyItemCard = memo(({
   count: number;
   assetManager: AssetManager | null;
 }) => (
-  <div className="flex items-center gap-3 p-2.5 border border-[#5C3A21]/40 bg-[#2D1B11]/30 rounded-sm">
+  <div className="flex items-start gap-3 p-2.5 border border-[#5C3A21]/40 bg-[#2D1B11]/30 rounded-sm">
     <div className="w-12 h-12 flex-shrink-0 bg-[#1A0F0A]/60 rounded border border-[#5C3A21]/50 flex items-center justify-center shadow-inner relative overflow-hidden">
       {getItemIcon(item, 'w-9 h-9', assetManager)}
       {count > 1 && (
         <div className="absolute -top-0.5 -right-0.5 bg-[#1A0F0A] border border-sky-400/50 rounded-full min-w-[14px] h-3.5 px-0.5 flex items-center justify-center z-10">
-          <span className="text-[7px] font-bold text-sky-300">x{count}</span>
+          <span className="text-[10px] font-bold text-sky-300">x{count}</span>
         </div>
       )}
     </div>
     <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-2 mb-0.5">
-        <h4 className="font-bold text-[#F5DEB3] text-sm truncate leading-tight">{item.name}</h4>
-        <span className={cn(
-          'text-[8px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-sm border flex-shrink-0',
-          item.type === 'key'
-            ? 'text-amber-400 border-amber-500/40 bg-amber-900/20'
-            : 'text-sky-400 border-sky-500/40 bg-sky-900/20',
-        )}>
-          {item.type}
-        </span>
-      </div>
-      <p className="text-[10px] text-[#C9B8A8] leading-snug line-clamp-2">{item.description}</p>
+      <ItemRowHeader
+        name={item.name}
+        badge={(
+          <span className={cn(
+            BADGE_BASE,
+            'border',
+            item.type === 'key'
+              ? 'text-amber-400 border-amber-500/40 bg-amber-900/20'
+              : 'text-sky-400 border-sky-500/40 bg-sky-900/20',
+          )}>
+            {item.type}
+          </span>
+        )}
+      />
+      <p className={ITEM_DESC}>{item.description}</p>
     </div>
   </div>
 ));
@@ -197,7 +265,7 @@ const EmptyTab = ({ icon: Icon, message, hint }: { icon: React.ElementType; mess
   <div className="flex flex-col items-center justify-center py-10 text-center">
     <Icon className="w-8 h-8 text-[#5C3A21] mb-2.5" />
     <p className="text-[#A0522D] text-sm font-semibold">{message}</p>
-    <p className="text-[10px] text-[#8D6E63] mt-1">{hint}</p>
+    <p className="text-[10px] text-[#C9B8A8] mt-1">{hint}</p>
   </div>
 );
 
@@ -226,11 +294,13 @@ export const InventoryModal = memo(function InventoryModal({
   }, [gameState.inventory]);
 
   const weapons = useMemo(() => groupedInventory.filter(({ item }) => item.type === 'equipment'), [groupedInventory]);
+  const rings = useMemo(() => groupedInventory.filter(({ item }) => item.type === 'ring'), [groupedInventory]);
   const consumables = useMemo(() => groupedInventory.filter(({ item }) => item.type === 'consumable'), [groupedInventory]);
   const keyItems = useMemo(() => groupedInventory.filter(({ item }) => item.type === 'quest' || item.type === 'key'), [groupedInventory]);
 
   const tabCounts: Record<TabId, number> = {
     weapons: weapons.reduce((s, w) => s + w.count, 0),
+    rings: rings.reduce((s, r) => s + r.count, 0),
     consumables: consumables.reduce((s, c) => s + c.count, 0),
     key_items: keyItems.reduce((s, k) => s + k.count, 0),
   };
@@ -303,9 +373,9 @@ export const InventoryModal = memo(function InventoryModal({
     }
   };
 
-  const equipWeapon = (weaponId: string) => {
-    gameState.setEquippedWeapon(weaponId);
-    triggerUIUpdate();
+  const getRingEquippedSlot = (ringId: string): RingSlotIndex | null => {
+    const slot = gameState.equippedRingIds.findIndex(id => id === ringId);
+    return slot >= 0 ? (slot as RingSlotIndex) : null;
   };
 
   const totalItems = groupedInventory.reduce((sum, { count }) => sum + count, 0);
@@ -315,7 +385,7 @@ export const InventoryModal = memo(function InventoryModal({
       <DialogContent
         onOpenAutoFocus={e => e.preventDefault()}
         className={cn(
-          'z-[85] flex max-h-[min(92vh,680px)] w-[min(96vw,540px)] max-w-[min(96vw,540px)] flex-col gap-0 border-2 border-[#5C3A21] bg-[#120A08]/97 p-0 text-left shadow-2xl backdrop-blur-md sm:rounded-sm',
+          'z-[85] flex max-h-[min(92vh,680px)] w-[min(96vw,600px)] max-w-[min(96vw,600px)] flex-col gap-0 border-2 border-[#5C3A21] bg-[#120A08]/97 p-0 text-left shadow-2xl backdrop-blur-md sm:rounded-sm',
         )}
       >
         <DialogTitle className="sr-only">Inventory</DialogTitle>
@@ -353,18 +423,18 @@ export const InventoryModal = memo(function InventoryModal({
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'flex items-center gap-1.5 px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors border-b-2 -mb-px',
+                  'flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors border-b-2 -mb-px',
                   isActive
                     ? 'border-[#DAA520] text-[#DAA520]'
-                    : 'border-transparent text-[#8D6E63] hover:text-[#C9B8A8] hover:border-[#5C3A21]/50',
+                    : 'border-transparent text-[#C9B8A8] hover:text-[#C9B8A8] hover:border-[#5C3A21]/50',
                 )}
               >
                 {tab.icon}
                 {tab.label}
                 {count > 0 && (
                   <span className={cn(
-                    'text-[9px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center',
-                    isActive ? 'bg-[#DAA520]/20 text-[#DAA520]' : 'bg-[#5C3A21]/30 text-[#8D6E63]',
+                    'text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center',
+                    isActive ? 'bg-[#DAA520]/20 text-[#DAA520]' : 'bg-[#5C3A21]/30 text-[#C9B8A8]',
                   )}>
                     {count}
                   </span>
@@ -375,29 +445,50 @@ export const InventoryModal = memo(function InventoryModal({
         </div>
 
         {/* ── Tab content ── */}
-        <div className="flex-1 px-5 py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
           {/* Weapons tab */}
           {activeTab === 'weapons' && (
             weapons.length === 0 ? (
               <EmptyTab icon={Sword} message="No weapons found" hint="Defeat enemies or find them in the world" />
             ) : (
               <div className="space-y-2">
-                {/* Equipped first, then others */}
                 {[...weapons].sort((a, b) => {
-                  const aEq = a.item.id === gameState.equippedWeaponId ? 0 : 1;
-                  const bEq = b.item.id === gameState.equippedWeaponId ? 0 : 1;
-                  return aEq - bEq;
+                  const aSlot = gameState.getWeaponLoadoutSlot(a.item.id);
+                  const bSlot = gameState.getWeaponLoadoutSlot(b.item.id);
+                  const aRank = aSlot ?? 99;
+                  const bRank = bSlot ?? 99;
+                  return aRank - bRank;
                 }).map(({ item }, idx) => (
                   <WeaponCard
                     key={`${item.id}_${idx}`}
                     weapon={item}
-                    isEquipped={item.id === gameState.equippedWeaponId}
+                    loadoutSlot={gameState.getWeaponLoadoutSlot(item.id)}
+                    isActive={item.id === gameState.equippedWeaponId}
                     assetManager={assetManager}
-                    onEquip={equipWeapon}
                   />
                 ))}
               </div>
             )
+          )}
+
+          {/* Rings tab */}
+          {activeTab === 'rings' && (
+            <div className="space-y-4">
+              {rings.length === 0 ? (
+                <EmptyTab icon={Circle} message="No rings found" hint="Rings grant passive bonuses when equipped in Player (P)" />
+              ) : (
+                <div className="space-y-2">
+                  {rings.map(({ item }, idx) => (
+                    <RingCard
+                      key={`${item.id}_${idx}`}
+                      ring={item}
+                      equippedSlot={getRingEquippedSlot(item.id)}
+                      assetManager={assetManager}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Consumables tab */}
@@ -441,7 +532,7 @@ export const InventoryModal = memo(function InventoryModal({
 
         {/* ── Footer hint ── */}
         <div className="flex-shrink-0 border-t border-[#5C3A21]/30 px-5 py-2 flex justify-end">
-          <p className="text-[10px] text-[#8D6E63]">
+          <p className="text-[10px] text-[#C9B8A8]">
             <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">I</kbd>{' '}
             or <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">Esc</kbd>{' '}
             to close

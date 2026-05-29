@@ -51,6 +51,7 @@ export const CONTROL_GROUPS: ControlGroup[] = [
     bindings: [
       { keys: 'F', action: 'Interact', wide: true },
       { keys: 'M', action: 'Map' },
+      { keys: 'P', action: 'Player' },
       { keys: 'I', action: 'Inventory' },
       { keys: 'O', action: 'Objectives' },
       { keys: 'ESC', action: 'Pause', wide: true },

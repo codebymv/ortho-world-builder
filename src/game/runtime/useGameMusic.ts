@@ -15,8 +15,8 @@ interface UseGameMusicOptions {
 const MAP_MUSIC_MAP: Record<string, string> = {
   village: './audio/ortho_loop2.mp3',
   forest: './audio/wood_theme.mp3',
-  forest_hollow: './audio/gilrhym_theme.mp3',
-  gilrhym: './audio/gilrhym_theme.mp3',
+  forest_hollow: './audio/guilrhym_theme.mp3',
+  guilrhym: './audio/guilrhym_theme.mp3',
   victory: './audio/victory_theme.mp3',
 };
 
@@ -42,7 +42,7 @@ export function useGameMusic({
    * Resolve the *initial* music key for a fresh load, accounting for the
    * hollow sub-region inside the forest map. Without this, refreshing in the
    * hollow loads wood_theme first and the loop tail immediately crossfades to
-   * gilrhym_theme — you hear both songs overlap for the fade duration.
+   * guilrhym_theme — you hear both songs overlap for the fade duration.
    *
    * Critically: this hook's mount effect fires BEFORE `setupGameRuntime`
    * populates `gameStateRef.current`, so on first load the ref is null. We

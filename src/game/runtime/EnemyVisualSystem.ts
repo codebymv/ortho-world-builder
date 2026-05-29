@@ -47,6 +47,7 @@ const ENEMY_WALK_ANIMATIONS: Record<string, EnemyWalkAnimationConfig> = {
   hollow_guardian: { frameCount: 4, frameRate: 0.8 },
   ashen_reaver: { frameCount: 4, frameRate: 0.75 },
   void_wisp: { frameCount: 4, frameRate: 1.3 },
+  ridge_revenant: { frameCount: 4, frameRate: 0.85 },
 };
 
 type EnemyRenderCache = { x: number; y: number; scaleX: number; scaleY: number; rot: number; hpBucket: number };
@@ -106,6 +107,12 @@ function resolveSpriteKey(enemy: Enemy, enemyType: string, walkFrame: number, ch
     if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return 'enemy_stone_sentinel_attack';
     if (enemy.moveBlend > 0.25) return `enemy_stone_sentinel_walk_${walkFrame}`;
     return 'enemy_stone_sentinel';
+  }
+  if (enemyType === 'ridge_revenant') {
+    if (enemy.state === 'telegraphing') return 'enemy_ridge_revenant_telegraph';
+    if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return 'enemy_ridge_revenant_attack';
+    if (enemy.moveBlend > 0.25) return `enemy_ridge_revenant_walk_${walkFrame}`;
+    return 'enemy_ridge_revenant';
   }
   if (enemy.state === 'telegraphing') return `${enemy.sprite}_telegraph`;
   if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return `${enemy.sprite}_attack`;

@@ -38,16 +38,19 @@ interface CreateRuntimeDialogueFlowOptions {
   updateWorldChunksAtPlayer: () => void;
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
+  syncWestCliffGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
+  syncEastHollowRouteGateState: () => void;
   syncHollowApproachLadderState: () => void;
   syncCliffCorridorLadderState: () => void;
+  syncFortRidgeLadderState: () => void;
   syncForestFortGateState: () => void;
   syncNorthFortGateState: () => void;
   syncWestFortGateState: () => void;
   syncGolemFortGateState: () => void;
   syncManuscriptCheckpointGateState: () => void;
-  syncGilrhymBossState: () => void;
+  syncGuilrhymBossState: () => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
   hasDialogue: (interactionId: string) => boolean;
   onWorldItemPickup?: (itemId: string) => void;
@@ -81,16 +84,19 @@ export function createRuntimeDialogueFlow({
   updateWorldChunksAtPlayer,
   syncWhisperingWoodsShortcutState,
   syncGroveShelfShortcutState,
+  syncWestCliffGateState,
   syncRiversideBridgeShortcutState,
   syncHollowShortcutState,
+  syncEastHollowRouteGateState,
   syncHollowApproachLadderState,
   syncCliffCorridorLadderState,
+  syncFortRidgeLadderState,
   syncForestFortGateState,
   syncNorthFortGateState,
   syncWestFortGateState,
   syncGolemFortGateState,
   syncManuscriptCheckpointGateState,
-  syncGilrhymBossState,
+  syncGuilrhymBossState,
   showHeroOverlay,
   hasDialogue,
   onWorldItemPickup,
@@ -155,16 +161,19 @@ export function createRuntimeDialogueFlow({
     updateWorldChunksAtPlayer,
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
+    syncWestCliffGateState,
     syncRiversideBridgeShortcutState,
     syncHollowShortcutState,
+  syncEastHollowRouteGateState,
     syncHollowApproachLadderState,
     syncCliffCorridorLadderState,
+    syncFortRidgeLadderState,
     syncForestFortGateState,
     syncNorthFortGateState,
     syncWestFortGateState,
     syncGolemFortGateState,
     syncManuscriptCheckpointGateState,
-    syncGilrhymBossState,
+    syncGuilrhymBossState,
     showHeroOverlay,
     hasDialogue,
     onWorldItemPickup,

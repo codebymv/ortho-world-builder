@@ -14,15 +14,20 @@ export type KnownGameFlag =
   | 'blighted_root_destroyed'
   | 'chapel_key_collected'
   | 'cliff_corridor_ladder_extended'
+  | 'fort_ridge_ladder_extended'
   | 'forest_fort_gate_open'
   | 'forest_golem_defeated'
   | 'forest_kill_count'
   | 'grove_shelf_shortcut_open'
+  | 'west_cliff_gate_open'
   | 'guard_duty_kill_baseline'
   | 'hollow_approach_ladder_extended'
   | 'hollow_entered'
   | 'hollow_guardian_defeated'
+  | 'ridge_revenant_defeated'
+  | 'east_ridge_boulder_seen'
   | 'hollow_shortcut_open'
+  | 'east_hollow_route_gate_open'
   | 'hunter_clue_dialogue_seen'
   | 'hunters_manuscript_collected'
   | 'manuscript_fragment_collected'
@@ -30,7 +35,10 @@ export type KnownGameFlag =
   | 'petra_heart_delivered'
   | 'village_after_manuscript'
   | 'village_after_reaver'
-  | 'whispering_woods_shortcut_open';
+  | 'whispering_woods_shortcut_open'
+  | 'olwen_ranger_cabin_hint'
+  | 'gravebound_ring_received'
+  | 'wolf_ring_received';
 
 /**
  * Accepts a known flag (autocomplete-friendly) or any other string
@@ -102,6 +110,18 @@ export interface PlayerState {
   vitality: number;
   endurance: number;
   strength: number;
+  /**
+   * Seconds remaining in hit-stun lockout after taking unblocked health damage.
+   * While > 0: playerAnimState is forced to 'hurt' and attacks are blocked.
+   * Cleared on death respawn / bonfire rest.
+   */
+  hurtTimer: number;
+  /**
+   * Seconds remaining in post-swing recovery lockout (Souls-style attack recovery frames).
+   * While > 0: fresh attacks are blocked. Does NOT block natural combo chains.
+   * Dodge-cancelable — cleared the moment isDodging becomes true.
+   */
+  attackRecoveryTimer: number;
 }
 
 export interface NPC {
@@ -119,7 +139,7 @@ export interface Item {
   id: string;
   name: string;
   description: string;
-  type: 'consumable' | 'key' | 'quest' | 'equipment';
+  type: 'consumable' | 'key' | 'quest' | 'equipment' | 'ring';
   sprite: string;
   healAmount?: number;
   buffType?: 'stealth' | 'berserker' | 'last_breath';
@@ -127,8 +147,22 @@ export interface Item {
   stats?: {
     damage?: number;
     range?: number;
+    staminaRegenMult?: number;
+    recoverySpeedMult?: number;
   };
 }
+
+export const RING_SLOT_COUNT = 2;
+export type RingSlotIndex = 0 | 1;
+export type EquippedRingIds = [string | null, string | null];
+
+export const EMPTY_EQUIPPED_RING_IDS: EquippedRingIds = [null, null];
+
+export const WEAPON_LOADOUT_SIZE = 3;
+export type WeaponLoadoutSlotIndex = 0 | 1 | 2;
+export type WeaponLoadout = [string | null, string | null, string | null];
+
+export const EMPTY_WEAPON_LOADOUT: WeaponLoadout = [null, null, null];
 
 export interface Quest {
   id: string;
@@ -167,11 +201,15 @@ export interface WorldItem {
   y: number;
 }
 
+const STRENGTH_DAMAGE_PER_LEVEL = 2;
+
 export class GameState {
   player: PlayerState;
   inventory: Item[];
   activeItemIndex: number;
   equippedWeaponId: string | null;
+  equippedRingIds: EquippedRingIds;
+  weaponLoadout: WeaponLoadout;
   /** Last rested bonfire — respawn point */
   lastBonfire: LastBonfire | null;
   /** Bloodstain left on death */
@@ -189,6 +227,8 @@ export class GameState {
   worldItems: WorldItem[];
   /** Item ids the player has ever picked up. Drives the first-time acquisition overlay. */
   seenItemIds: Set<string>;
+  /** Zone-based IDs of enemies killed this life. Cleared on bonfire rest / death. Persisted so refresh preserves kills until rest. */
+  killedEnemyIds: Set<string>;
   onItemAdded: ((item: Item, isFirstTime: boolean) => void) | null;
   onCurrencyGained: ((gain: CurrencyGain) => void) | null;
 
@@ -201,6 +241,7 @@ export class GameState {
     this.gameFlags = {};
     this.gameFlagsRevision = 0;
     this.seenItemIds = new Set();
+    this.killedEnemyIds = new Set();
     this.onItemAdded = null;
     this.onCurrencyGained = null;
     
@@ -253,11 +294,15 @@ export class GameState {
       vitality: 1,
       endurance: 1,
       strength: 1,
+      hurtTimer: 0,
+      attackRecoveryTimer: 0,
     };
 
     this.inventory = [{ ...items.meek_short_sword }];
     this.activeItemIndex = 0;
     this.equippedWeaponId = items.meek_short_sword.id;
+    this.equippedRingIds = [...EMPTY_EQUIPPED_RING_IDS];
+    this.weaponLoadout = [items.meek_short_sword.id, null, null];
     this.lastBonfire = null;
     this.droppedEssence = null;
     this.worldItems = [];
@@ -288,8 +333,12 @@ export class GameState {
     const isFirstTime = !this.seenItemIds.has(item.id);
     if (isFirstTime) this.seenItemIds.add(item.id);
     this.onItemAdded?.(item, isFirstTime);
-    if (item.type === 'equipment' && !this.equippedWeaponId) {
-      this.setEquippedWeapon(item.id);
+    if (item.type === 'equipment') {
+      this.tryAddWeaponToLoadout(item.id);
+      if (!this.equippedWeaponId) {
+        const firstLoadout = this.getLoadoutWeaponIds()[0];
+        if (firstLoadout) this.setEquippedWeapon(firstLoadout);
+      }
     }
   }
 
@@ -334,7 +383,18 @@ export class GameState {
         ...this.inventory.slice(index + 1)
       ];
       if (this.equippedWeaponId === itemId) {
-        this.setEquippedWeapon(null);
+        const nextLoadout = this.getLoadoutWeaponIds()[0] ?? null;
+        this.setEquippedWeapon(nextLoadout);
+      }
+      for (let i = 0; i < WEAPON_LOADOUT_SIZE; i++) {
+        if (this.weaponLoadout[i] === itemId) {
+          this.weaponLoadout[i] = null;
+        }
+      }
+      for (let i = 0; i < RING_SLOT_COUNT; i++) {
+        if (this.equippedRingIds[i] === itemId) {
+          this.equippedRingIds[i] = null;
+        }
       }
     }
   }
@@ -363,14 +423,127 @@ export class GameState {
   }
 
   setEquippedWeapon(itemId: string | null) {
+    let targetId = itemId;
+    if (targetId && !this.isWeaponInLoadout(targetId)) {
+      targetId = this.getLoadoutWeaponIds()[0] ?? null;
+    }
+
     const equipped =
-      (itemId ? this.inventory.find(item => item.id === itemId && item.type === 'equipment') : undefined) ??
-      this.inventory.find(item => item.type === 'equipment');
+      (targetId ? this.inventory.find(item => item.id === targetId && item.type === 'equipment') : undefined) ??
+      this.inventory.find(item => item.type === 'equipment' && this.isWeaponInLoadout(item.id));
 
     this.equippedWeaponId = equipped?.id ?? null;
     const baseDamage = equipped?.stats?.damage ?? 20;
-    this.player.attackDamage = baseDamage + (this.player.strength - 1) * 3;
+    this.player.attackDamage = baseDamage + (this.player.strength - 1) * STRENGTH_DAMAGE_PER_LEVEL;
     this.player.attackRange = equipped?.stats?.range ?? 2;
+  }
+
+  isWeaponInLoadout(itemId: string): boolean {
+    return this.weaponLoadout.includes(itemId);
+  }
+
+  getLoadoutWeaponIds(): string[] {
+    return this.weaponLoadout.filter((id): id is string => id !== null);
+  }
+
+  findEmptyWeaponLoadoutSlot(): WeaponLoadoutSlotIndex | null {
+    const index = this.weaponLoadout.findIndex(id => id === null);
+    return index >= 0 ? (index as WeaponLoadoutSlotIndex) : null;
+  }
+
+  getWeaponLoadoutSlot(itemId: string): WeaponLoadoutSlotIndex | null {
+    const index = this.weaponLoadout.indexOf(itemId);
+    return index >= 0 ? (index as WeaponLoadoutSlotIndex) : null;
+  }
+
+  assignWeaponToLoadout(itemId: string, slotIndex: WeaponLoadoutSlotIndex): boolean {
+    const weapon = this.inventory.find(item => item.id === itemId && item.type === 'equipment');
+    if (!weapon) return false;
+
+    for (let i = 0; i < WEAPON_LOADOUT_SIZE; i++) {
+      if (this.weaponLoadout[i] === itemId) {
+        this.weaponLoadout[i] = null;
+      }
+    }
+
+    this.weaponLoadout[slotIndex] = itemId;
+
+    if (!this.equippedWeaponId || !this.isWeaponInLoadout(this.equippedWeaponId)) {
+      this.setEquippedWeapon(itemId);
+    }
+    return true;
+  }
+
+  clearWeaponLoadoutSlot(slotIndex: WeaponLoadoutSlotIndex): void {
+    const removed = this.weaponLoadout[slotIndex];
+    this.weaponLoadout[slotIndex] = null;
+    if (removed && this.equippedWeaponId === removed) {
+      this.setEquippedWeapon(this.getLoadoutWeaponIds()[0] ?? null);
+    }
+  }
+
+  tryAddWeaponToLoadout(itemId: string): boolean {
+    if (this.isWeaponInLoadout(itemId)) return true;
+    const slot = this.findEmptyWeaponLoadoutSlot();
+    if (slot === null) return false;
+    return this.assignWeaponToLoadout(itemId, slot);
+  }
+
+  isWeaponLoadoutFull(): boolean {
+    return this.findEmptyWeaponLoadoutSlot() === null;
+  }
+
+  findEmptyRingSlot(): RingSlotIndex | null {
+    const index = this.equippedRingIds.findIndex(id => id === null);
+    return index >= 0 ? (index as RingSlotIndex) : null;
+  }
+
+  equipRing(itemId: string, slotIndex: RingSlotIndex): boolean {
+    const ring = this.inventory.find(item => item.id === itemId && item.type === 'ring');
+    if (!ring) return false;
+
+    for (let i = 0; i < RING_SLOT_COUNT; i++) {
+      if (this.equippedRingIds[i] === itemId) {
+        this.equippedRingIds[i] = null;
+      }
+    }
+
+    this.equippedRingIds[slotIndex] = itemId;
+    return true;
+  }
+
+  unequipRing(slotIndex: RingSlotIndex): void {
+    this.equippedRingIds[slotIndex] = null;
+  }
+
+  tryAutoEquipRing(itemId: string): boolean {
+    const slot = this.findEmptyRingSlot();
+    if (slot === null) return false;
+    return this.equipRing(itemId, slot);
+  }
+
+  getStaminaRegenMultiplier(): number {
+    let mult = 1;
+    for (const ringId of this.equippedRingIds) {
+      if (!ringId) continue;
+      const ring = this.inventory.find(item => item.id === ringId && item.type === 'ring');
+      if (ring?.stats?.staminaRegenMult) {
+        mult *= ring.stats.staminaRegenMult;
+      }
+    }
+    return mult;
+  }
+
+  getRecoverySpeedMultiplier(): number {
+    let mult = 1;
+    for (const ringId of this.equippedRingIds) {
+      if (!ringId) continue;
+      const ring = this.inventory.find(item => item.id === ringId && item.type === 'ring');
+      if (ring?.stats?.recoverySpeedMult) {
+        mult *= ring.stats.recoverySpeedMult;
+      }
+    }
+    return mult;
   }
 
   getLevelUpCost(): number {
@@ -394,7 +567,7 @@ export class GameState {
       ? this.inventory.find(i => i.id === this.equippedWeaponId)
       : undefined;
     const baseWeaponDamage = weapon?.stats?.damage ?? 20;
-    this.player.attackDamage = baseWeaponDamage + (this.player.strength - 1) * 3;
+    this.player.attackDamage = baseWeaponDamage + (this.player.strength - 1) * STRENGTH_DAMAGE_PER_LEVEL;
 
     return true;
   }

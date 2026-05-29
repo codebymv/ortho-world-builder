@@ -1,5 +1,6 @@
 import type { SaveData } from '@/lib/game/SaveManager';
 import type { GameState, Item } from '@/lib/game/GameState';
+import { EMPTY_EQUIPPED_RING_IDS, EMPTY_WEAPON_LOADOUT } from '@/lib/game/GameState';
 import type { World } from '@/lib/game/World';
 import { mapDefinitions } from '@/data/maps';
 
@@ -96,11 +97,18 @@ export function bootstrapRuntimeState(context: BootstrapContext) {
 
     state.activeItemIndex = 0;
     state.equippedWeaponId = savedData.equippedWeaponId ?? null;
+    state.equippedRingIds = savedData.equippedRingIds
+      ? [...savedData.equippedRingIds]
+      : [...EMPTY_EQUIPPED_RING_IDS];
+    state.weaponLoadout = savedData.weaponLoadout
+      ? [...savedData.weaponLoadout]
+      : [...EMPTY_WEAPON_LOADOUT];
     syncEquippedWeapon(state, savedData.equippedWeaponId);
 
     state.quests = savedData.quests;
     state.replaceGameFlags(savedData.gameFlags);
     state.seenItemIds = new Set(savedData.seenItemIds);
+    state.killedEnemyIds = new Set(savedData.killedEnemyIds ?? []);
     // Always keep the starter weapon flagged as seen even on legacy saves.
     state.seenItemIds.add(STARTING_WEAPON_ID);
     reconcileCriticalQuestItems(state, items, criticalPathItems);

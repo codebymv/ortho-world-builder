@@ -24,9 +24,9 @@ export const quests: Record<string, Quest> = {
   heretical_pursuit: {
     id: 'heretical_pursuit',
     title: 'The Heretical Pursuit',
-    description: 'The corruption that consumed the Whispering Woods radiates from Gilrhym. Find out who unleashed this forbidden magic and put an end to it.',
+    description: 'The corruption that consumed the Whispering Woods radiates from Guilrhym. Find out who unleashed this forbidden magic and put an end to it.',
     objectives: [
-      'Find a survivor in Gilrhym',
+      'Find a survivor in Guilrhym',
       'Learn about the Ashen Court',
       'Reach the Cathedral Plaza',
       'Defeat the Ashen Reaver',

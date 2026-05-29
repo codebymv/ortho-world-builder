@@ -222,7 +222,7 @@ export const DialogueBox = ({
               {isTyping && <span className="animate-pulse text-[#DAA520] ml-1">▌</span>}
             </p>
             {isTyping && (
-              <p className="text-[#8B6914] text-xs mt-1">[Space] to skip</p>
+              <p className="text-[#DAA520]/90 text-xs mt-1">[Space] to skip</p>
             )}
           </div>
 
@@ -278,7 +278,7 @@ export const DialogueBox = ({
                 >
                   Leave
                 </button>
-                <span className="text-[#8B6914] text-xs">[Space] / [Enter]</span>
+                <span className="text-[#DAA520]/90 text-xs">[Space] / [Enter]</span>
               </div>
             )}
           </div>

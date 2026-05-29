@@ -22,9 +22,9 @@ export const regionContentRegistry: RegionContentEntry[] = [
     interiorIds: ['interior_cottage_forest', 'interior_ranger_cabin', 'interior_woodcutter_cottage', 'interior_hunter_cottage', 'interior_hollow_arena'],
   },
   {
-    id: 'gilrhym',
-    label: 'Gilrhym',
+    id: 'guilrhym',
+    label: 'Guilrhym',
     summary: 'A sprawling Victorian city overrun by reanimated dead and corruption, reached after the Hollow boss.',
-    mapIds: ['gilrhym'],
+    mapIds: ['guilrhym'],
   },
 ];

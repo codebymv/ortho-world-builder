@@ -7,7 +7,7 @@ const CAMP_SMOKE_REFRESH_MS = 900;
 // Y thresholds for the forest hollow-region music + corruption-filter
 // transition. Exported so `useGameMusic` can pick the correct initial track
 // on page load — without that, refreshing in the hollow starts wood_theme and
-// immediately crossfades to gilrhym_theme, briefly playing both songs at once.
+// immediately crossfades to guilrhym_theme, briefly playing both songs at once.
 //
 // The ENTER point is the midpoint of the bridge crossing into the hollow side
 // (world y = -61). EXIT sits a few tiles north to provide hysteresis so a

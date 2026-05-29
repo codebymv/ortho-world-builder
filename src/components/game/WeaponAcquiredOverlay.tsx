@@ -10,6 +10,8 @@ interface ItemAcquiredOverlayProps {
   /** Equip handler for weapons. Ignored for non-equipment items. */
   onEquip: (weaponId: string) => void;
   onDismiss: () => void;
+  /** When false, weapon is in inventory reserve — prompt Player (P) instead of equip. */
+  canEquipActive?: boolean;
 }
 
 const EQUIP_DELAY_MS = 350;
@@ -76,6 +78,7 @@ export const WeaponAcquiredOverlay = ({
   assetManager,
   onEquip,
   onDismiss,
+  canEquipActive = true,
 }: ItemAcquiredOverlayProps) => {
   const [phase, setPhase] = useState<'hidden' | 'fadein' | 'ready' | 'equipped' | 'fadeout'>('hidden');
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -133,10 +136,16 @@ export const WeaponAcquiredOverlay = ({
     if (phase !== 'ready') return;
     const isEquipment = itemRef.current?.type === 'equipment';
     const onKeyDown = (e: KeyboardEvent) => {
-      if ((isEquipment && e.code === 'KeyF') || e.code === 'Enter' || e.code === 'Space') {
+      if (isEquipment && canEquipActive && e.code === 'KeyF') {
         e.preventDefault();
         e.stopPropagation();
-        if (isEquipment) handleEquip();
+        handleEquip();
+        return;
+      }
+      if (e.code === 'Enter' || e.code === 'Space') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isEquipment && canEquipActive) handleEquip();
         else dismiss();
       }
       if (e.code === 'Escape') {
@@ -146,7 +155,7 @@ export const WeaponAcquiredOverlay = ({
     };
     window.addEventListener('keydown', onKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
-  }, [phase, handleEquip, dismiss]);
+  }, [phase, handleEquip, dismiss, canEquipActive]);
 
   if (phase === 'hidden' || !item) return null;
 
@@ -216,7 +225,7 @@ export const WeaponAcquiredOverlay = ({
         )}
 
         {/* Description */}
-        <p className="text-xs text-[#D3D3D3]/70 max-w-xs text-center leading-relaxed mb-5 px-4">
+        <p className="text-xs text-[#C9B8A8] max-w-xs text-center leading-relaxed mb-5 px-4">
           {item.description}
         </p>
 
@@ -225,13 +234,13 @@ export const WeaponAcquiredOverlay = ({
           <div className="flex items-stretch gap-6 mb-6">
             {/* Current weapon */}
             <div className="flex flex-col items-center min-w-[100px]">
-              <span className="text-[9px] uppercase tracking-wider text-[#A0522D] mb-2">Current</span>
-              <span className="text-xs text-[#D3D3D3]/60 font-semibold mb-1">{currentWeapon?.name ?? 'None'}</span>
+              <span className="text-[10px] uppercase tracking-wider text-[#A1887F] mb-2">Current</span>
+              <span className="text-xs text-[#F5DEB3] font-semibold mb-1">{currentWeapon?.name ?? 'None'}</span>
               <div className="flex flex-col gap-1 items-center">
-                <span className="text-[11px] text-[#F5DEB3]/60">
+                <span className="text-[11px] text-[#C9B8A8]">
                   ATK <span className="font-bold">{oldDmg}</span>
                 </span>
-                <span className="text-[11px] text-[#F5DEB3]/60">
+                <span className="text-[11px] text-[#C9B8A8]">
                   RNG <span className="font-bold">{oldRange.toFixed(2)}</span>
                 </span>
               </div>
@@ -244,7 +253,7 @@ export const WeaponAcquiredOverlay = ({
 
             {/* New weapon */}
             <div className="flex flex-col items-center min-w-[100px]">
-              <span className="text-[9px] uppercase tracking-wider text-[#DAA520] mb-2">New</span>
+              <span className="text-[10px] uppercase tracking-wider text-[#DAA520] mb-2">New</span>
               <span className="text-xs text-[#F5DEB3] font-semibold mb-1">{item.name}</span>
               <div className="flex flex-col gap-1 items-center">
                 <span className="text-[11px] text-[#F5DEB3]">
@@ -269,17 +278,25 @@ export const WeaponAcquiredOverlay = ({
         )}
 
         {/* Prompt button */}
-        {phase === 'ready' && isEquipment && (
+        {phase === 'ready' && isEquipment && canEquipActive && (
           <button
             className="flex items-center gap-2 bg-[#2D1B11]/80 border border-[#DAA520]/60 rounded-md px-5 py-2 cursor-pointer hover:bg-[#3D2B21] transition-colors group"
             onClick={(e) => { e.stopPropagation(); handleEquip(); }}
           >
-            <span className="text-xs text-[#D3D3D3]/70 uppercase tracking-wider">Press</span>
+            <span className="text-xs text-[#C9B8A8] uppercase tracking-wider">Press</span>
             <kbd className="bg-[#1A0F0A] px-2 py-0.5 rounded border border-[#5C3A21] text-[#DAA520] text-sm font-bold shadow-inner group-hover:border-[#DAA520]">
               F
             </kbd>
-            <span className="text-xs text-[#D3D3D3]/70 uppercase tracking-wider">to equip</span>
+            <span className="text-xs text-[#C9B8A8] uppercase tracking-wider">to equip</span>
           </button>
+        )}
+
+        {phase === 'ready' && isEquipment && !canEquipActive && (
+          <p className="text-xs text-[#C9B8A8] text-center max-w-xs leading-relaxed">
+            Loadout full — open{' '}
+            <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">P</kbd>{' '}
+            to swap a weapon into your active set.
+          </p>
         )}
 
         {phase === 'ready' && !isEquipment && (
@@ -287,11 +304,11 @@ export const WeaponAcquiredOverlay = ({
             className="flex items-center gap-2 bg-[#2D1B11]/80 border border-[#DAA520]/60 rounded-md px-5 py-2 cursor-pointer hover:bg-[#3D2B21] transition-colors group"
             onClick={(e) => { e.stopPropagation(); dismiss(); }}
           >
-            <span className="text-xs text-[#D3D3D3]/70 uppercase tracking-wider">Press</span>
+            <span className="text-xs text-[#C9B8A8] uppercase tracking-wider">Press</span>
             <kbd className="bg-[#1A0F0A] px-2 py-0.5 rounded border border-[#5C3A21] text-[#DAA520] text-sm font-bold shadow-inner group-hover:border-[#DAA520]">
               Space
             </kbd>
-            <span className="text-xs text-[#D3D3D3]/70 uppercase tracking-wider">to continue</span>
+            <span className="text-xs text-[#C9B8A8] uppercase tracking-wider">to continue</span>
           </button>
         )}
 
