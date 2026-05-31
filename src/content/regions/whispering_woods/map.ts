@@ -1111,6 +1111,8 @@ export const forestDef: MapDefinition = {
     { x: 242, y: 172, type: 'grass', walkable: true },
     { x: 243, y: 172, type: 'grass', walkable: true },
     { x: 244, y: 172, type: 'grass', walkable: true },
+    // Clear a procedural tree on the NE fortress ridge plateau at world (83,-33).
+    { x: 233, y: 117, type: 'grass', walkable: true },
     // Hollow approach and shortcut hints are atmosphere, not direct interactables.
     { x: 120, y: 26, type: 'campfire_remains', walkable: false },
     { x: 124, y: 28, type: 'bloodstain', walkable: true },

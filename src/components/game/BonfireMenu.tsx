@@ -220,7 +220,7 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
               Fast Travel
             </h2>
             <span className="text-xs text-[#8B7355] uppercase tracking-wider">
-              {gameState.currentMap.replace(/_/g, ' ')}
+              {gameState.currentMap === 'forest' ? 'Whispering Woods' : gameState.currentMap.replace(/_/g, ' ')}
             </span>
           </div>
 
@@ -235,7 +235,7 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
                   key={entry.id}
                   disabled={isCurrent}
                   onClick={() => { onTravel(entry); }}
-                  className={`flex items-center justify-between gap-3 px-4 py-3 border text-left text-sm font-bold uppercase tracking-wider transition-colors ${
+                  className={`flex items-center justify-between gap-2 px-3 py-3 border text-left text-xs font-bold uppercase tracking-wide transition-colors ${
                     isCurrent
                       ? 'border-[#5C3A21] text-[#C9A36B] cursor-not-allowed bg-[#2D1B11]/60'
                       : 'border-[#3A2215] text-[#F5DEB3] hover:bg-[#2D1B11] hover:border-[#8B5A2B] hover:text-[#FFD98A]'
