@@ -28,6 +28,8 @@ interface CreateRuntimeDialogueFlowOptions {
   triggerUIUpdate: () => void;
   performBonfireRest: (tileX: number, tileY: number) => void;
   syncOpenedChestState: () => void;
+  syncRangerWolfRingChestState: () => void;
+  triggerMinimapUpdate: (reset: boolean) => void;
   syncHarvestedTempestGrassState: () => void;
   syncHarvestedMoonbloomState: () => void;
   getInteractionCooldown: (interactionId: string) => number;
@@ -74,6 +76,8 @@ export function createRuntimeDialogueFlow({
   triggerUIUpdate,
   performBonfireRest,
   syncOpenedChestState,
+  syncRangerWolfRingChestState,
+  triggerMinimapUpdate,
   syncHarvestedTempestGrassState,
   syncHarvestedMoonbloomState,
   getInteractionCooldown,
@@ -151,6 +155,8 @@ export function createRuntimeDialogueFlow({
     triggerUIUpdate,
     performBonfireRest,
     syncOpenedChestState,
+    syncRangerWolfRingChestState,
+    triggerMinimapUpdate,
     syncHarvestedTempestGrassState,
     syncHarvestedMoonbloomState,
     getInteractionCooldown,

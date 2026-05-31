@@ -162,7 +162,7 @@ export const VendorModal = memo(function VendorModal({
         <DialogTitle className="sr-only">{vendor.name} — Shop</DialogTitle>
 
         {/* ── Header ── */}
-        <div className="flex flex-shrink-0 items-end justify-between gap-2 border-b border-[#5C3A21]/60 px-5 py-3">
+        <div className="flex flex-shrink-0 items-end justify-between gap-2 border-b border-[#5C3A21]/60 px-5 py-3 pr-12">
           <div>
             <h2 className="font-bold uppercase tracking-[0.2em] text-[#DAA520] flex items-center gap-2">
               <Shield className="w-5 h-5" />

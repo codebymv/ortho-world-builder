@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { GameState, Quest } from '@/lib/game/GameState';
 import type { AssetManager } from '@/lib/game/AssetManager';
+import { items } from '@/data/items';
+import { CHECKMARK } from '@/lib/game/progressionToasts';
 
 interface ObjectivesModalProps {
   open: boolean;
@@ -21,9 +23,25 @@ function parseProgress(text: string): { current: number; total: number } | null 
   return { current: Number(m[1]), total: Number(m[2]) };
 }
 
+function isObjectiveStepDone(text: string): boolean {
+  return text.includes(CHECKMARK);
+}
+
+function objectiveDisplayText(text: string): string {
+  return text.replace(new RegExp(`\\s*${CHECKMARK}\\s*$`), '').trim();
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const QuestCard = memo(({ quest, defaultExpanded }: { quest: Quest; defaultExpanded: boolean }) => {
+const QuestCard = memo(({
+  quest,
+  defaultExpanded,
+  assetManager,
+}: {
+  quest: Quest;
+  defaultExpanded: boolean;
+  assetManager: AssetManager | null;
+}) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   const statusColor = quest.completed
@@ -53,7 +71,7 @@ const QuestCard = memo(({ quest, defaultExpanded }: { quest: Quest; defaultExpan
           }
           <h4 className={cn(
             'font-bold text-sm truncate',
-            quest.completed ? 'text-[#8FBC8F]/80' : 'text-[#F5DEB3]',
+            quest.completed ? 'text-[#8FBC8F]/80 line-through' : 'text-[#F5DEB3]',
           )}>
             {quest.title}
           </h4>
@@ -76,23 +94,25 @@ const QuestCard = memo(({ quest, defaultExpanded }: { quest: Quest; defaultExpan
             <p className="text-[10px] font-bold text-[#DAA520] uppercase tracking-wider">Objectives</p>
             {quest.objectives.map((obj, i) => {
               const prog = parseProgress(obj);
+              const stepDone = quest.completed || isObjectiveStepDone(obj);
+              const label = objectiveDisplayText(obj);
               return (
                 <div key={i} className="flex items-start gap-2">
                   <span className={cn(
                     'text-xs mt-0.5 flex-shrink-0',
-                    quest.completed ? 'text-[#8FBC8F]' : 'text-[#DAA520]',
+                    stepDone ? 'text-[#8FBC8F]' : 'text-[#DAA520]',
                   )}>
-                    {quest.completed ? '✓' : '▶'}
+                    {stepDone ? '✓' : '▶'}
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className={cn(
                       'text-xs leading-snug',
-                      quest.completed ? 'text-[#8FBC8F]/75 line-through' : 'text-[#F5DEB3]',
+                      stepDone ? 'text-[#8FBC8F]/85 line-through' : 'text-[#F5DEB3]',
                     )}>
-                      {obj}
+                      {label}
                     </p>
                     {/* Progress bar for trackable objectives */}
-                    {prog && !quest.completed && (
+                    {prog && !stepDone && (
                       <div className="flex items-center gap-2 mt-1">
                         <div className="flex-1 h-1.5 bg-[#1A0F0A] rounded-full overflow-hidden border border-[#5C3A21]/30">
                           <div
@@ -110,15 +130,34 @@ const QuestCard = memo(({ quest, defaultExpanded }: { quest: Quest; defaultExpan
           </div>
 
           {/* Reward */}
-          {quest.reward && (
-            <div className="pt-2 border-t border-[#5C3A21]/30 flex items-center gap-2.5">
+          {quest.reward && (quest.reward.gold || (quest.reward.items?.length ?? 0) > 0) && (
+            <div className="pt-2 border-t border-[#5C3A21]/30 space-y-1.5">
               <p className="text-[10px] font-bold text-[#DAA520] uppercase">Reward</p>
-              {quest.reward.gold != null && quest.reward.gold > 0 && (
-                <div className="flex items-center gap-1">
-                  <Coins className="w-3 h-3 text-yellow-400" />
-                  <span className="text-xs text-[#F5DEB3] font-bold">{quest.reward.gold}</span>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2.5">
+                {quest.reward.gold != null && quest.reward.gold > 0 && (
+                  <div className="flex items-center gap-1">
+                    <Coins className="w-3 h-3 text-yellow-400" />
+                    <span className="text-xs text-[#F5DEB3] font-bold">{quest.reward.gold} gold</span>
+                  </div>
+                )}
+                {quest.reward.items?.map(itemId => {
+                  const item = items[itemId];
+                  if (!item) return null;
+                  const spriteUrl = assetManager?.getTextureURL(item.sprite);
+                  return (
+                    <div key={itemId} className="flex items-center gap-1.5">
+                      {spriteUrl ? (
+                        <img
+                          src={spriteUrl}
+                          alt={item.name}
+                          className="w-4 h-4 [image-rendering:pixelated] object-contain"
+                        />
+                      ) : null}
+                      <span className="text-xs text-[#F5DEB3] font-semibold">{item.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -133,6 +172,7 @@ export const ObjectivesModal = memo(function ObjectivesModal({
   open,
   onOpenChange,
   gameState,
+  assetManager,
 }: ObjectivesModalProps) {
   // Sort: active first, then incomplete, then completed
   const sortedQuests = useMemo(() => {
@@ -159,7 +199,7 @@ export const ObjectivesModal = memo(function ObjectivesModal({
         <DialogTitle className="sr-only">Objectives</DialogTitle>
 
         {/* Header */}
-        <div className="flex flex-shrink-0 items-end justify-between gap-2 border-b border-[#5C3A21]/60 px-5 py-3">
+        <div className="flex flex-shrink-0 items-end justify-between gap-2 border-b border-[#5C3A21]/60 px-5 py-3 pr-12">
           <div>
             <h2 className="font-bold uppercase tracking-[0.2em] text-[#DAA520] flex items-center gap-2">
               <Target className="w-5 h-5" />
@@ -193,6 +233,7 @@ export const ObjectivesModal = memo(function ObjectivesModal({
                   key={quest.id}
                   quest={quest}
                   defaultExpanded={quest.active && !quest.completed}
+                  assetManager={assetManager}
                 />
               ))}
             </div>

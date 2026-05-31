@@ -93,6 +93,7 @@ export interface RuntimeHostRefs {
   activeNpcWorldPos: MutableRefObject<{ x: number; y: number } | null>;
   syncVillageReactivityRef: MutableRefObject<(() => void) | null>;
   syncBlightedRootStateRef: MutableRefObject<(() => void) | null>;
+  syncRangerWolfRingChestStateRef: MutableRefObject<(() => void) | null>;
   syncManuscriptCheckpointGateStateRef: MutableRefObject<(() => void) | null>;
   playPotionDrinkRef: MutableRefObject<(() => void) | null>;
   playGrassChewRef: MutableRefObject<(() => void) | null>;
@@ -187,6 +188,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       activeNpcWorldPos,
       syncVillageReactivityRef,
       syncBlightedRootStateRef,
+      syncRangerWolfRingChestStateRef,
       syncManuscriptCheckpointGateStateRef,
       playPotionDrinkRef,
       playGrassChewRef,
@@ -611,6 +613,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       syncGuilrhymBossState,
       syncVillageReactivityState,
       syncOpenedChestState,
+      syncRangerWolfRingChestState,
       syncBlightedRootState,
       syncHarvestedTempestGrassState,
       syncHarvestedMoonbloomState,
@@ -664,6 +667,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       syncVillageReactivityState();
     };
     syncBlightedRootStateRef.current = syncBlightedRootState;
+    syncRangerWolfRingChestStateRef.current = syncRangerWolfRingChestState;
     syncManuscriptCheckpointGateStateRef.current = syncManuscriptCheckpointGateState;
 
     syncPersistentMapState();
@@ -747,6 +751,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           triggerMinimapUpdate,
           respawnEnemiesForCurrentMap,
           syncOpenedChestState,
+          syncRangerWolfRingChestState,
           syncHarvestedTempestGrassState,
           syncHarvestedMoonbloomState,
           syncWhisperingWoodsShortcutState,
@@ -976,7 +981,10 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           lungeState: runtimeSession.lunge,
           arcWave: runtimeSession.combat.arcWave,
           onArcWaveHit: (enemy: Enemy, damage: number) => {
-            const result = combatSystem.playerAttack(enemy, damage, state.player.position, state.player.direction);
+            // Arc wave deals full HP damage but only grazes poise (0.3×) so it doesn't
+            // CC-lock everything in its path. Staggering from the wave is reserved for
+            // a future weapon whose kit is built around that effect.
+            const result = combatSystem.playerAttack(enemy, damage, state.player.position, state.player.direction, 0.3);
             const actualDamage = enemy.state === 'staggered'
               ? Math.floor(damage * getStaggerDamageMultiplier(enemy.type))
               : damage;
@@ -1212,6 +1220,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           stopPortalChargeLoopRef.current?.();
           syncVillageReactivityRef.current = null;
           syncBlightedRootStateRef.current = null;
+          syncRangerWolfRingChestStateRef.current = null;
           syncManuscriptCheckpointGateStateRef.current = null;
           playPotionDrinkRef.current = null;
           playGrassChewRef.current = null;

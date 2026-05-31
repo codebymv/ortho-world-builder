@@ -50,6 +50,9 @@ function formatRingBonus(item: Item): string | null {
   if (item.stats?.recoverySpeedMult && item.stats.recoverySpeedMult > 1) {
     return `+${Math.round((item.stats.recoverySpeedMult - 1) * 100)}% recovery speed`;
   }
+  if (item.stats?.moveSpeedMult && item.stats.moveSpeedMult > 1) {
+    return `+${Math.round((item.stats.moveSpeedMult - 1) * 100)}% movement speed`;
+  }
   return null;
 }
 
@@ -207,7 +210,7 @@ export const PlayerModal = memo(({
       >
         <DialogTitle className="sr-only">Player</DialogTitle>
 
-        <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-[#5C3A21]/60 px-5 py-3">
+        <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-[#5C3A21]/60 px-5 py-3 pr-12">
           <div>
             <h2 className="font-bold uppercase tracking-[0.2em] text-[#DAA520] flex items-center gap-2">
               <HudSprite spec={SPRITE_PLAYER} size={20} />

@@ -7,8 +7,8 @@ interface ItemAcquiredOverlayProps {
   /** Currently equipped weapon — only used when the acquired item is equipment, for the stat compare. */
   currentWeapon: Item | null;
   assetManager?: AssetManager | null;
-  /** Equip handler for weapons. Ignored for non-equipment items. */
-  onEquip: (weaponId: string) => void;
+  /** Equip handler for weapons and rings. Ignored for other item types. */
+  onEquip: (itemId: string) => void;
   onDismiss: () => void;
   /** When false, weapon is in inventory reserve — prompt Player (P) instead of equip. */
   canEquipActive?: boolean;
@@ -64,7 +64,29 @@ const TYPE_CHROME: Record<Item['type'], TypeChrome> = {
     ringActive: 'border-cyan-400',
     ringEquipped: 'border-cyan-300',
   },
+  ring: {
+    header: 'Ring',
+    acquiredHeader: 'Ring Acquired',
+    chip: 'Ring',
+    border: 'border-violet-400',
+    shadow: 'shadow-violet-400/15',
+    ringActive: 'border-violet-400',
+    ringEquipped: 'border-emerald-400',
+  },
 };
+
+function formatRingBonus(item: Item): string | null {
+  if (item.stats?.staminaRegenMult && item.stats.staminaRegenMult > 1) {
+    return `+${Math.round((item.stats.staminaRegenMult - 1) * 100)}% stamina recovery`;
+  }
+  if (item.stats?.recoverySpeedMult && item.stats.recoverySpeedMult > 1) {
+    return `+${Math.round((item.stats.recoverySpeedMult - 1) * 100)}% recovery speed`;
+  }
+  if (item.stats?.moveSpeedMult && item.stats.moveSpeedMult > 1) {
+    return `+${Math.round((item.stats.moveSpeedMult - 1) * 100)}% movement speed`;
+  }
+  return null;
+}
 
 /**
  * Renamed from WeaponAcquiredOverlay — now fires for any first-time pickup so the
@@ -105,7 +127,7 @@ export const WeaponAcquiredOverlay = ({
 
   const handleEquip = useCallback(() => {
     if (phase !== 'ready' || !itemRef.current) return;
-    if (itemRef.current.type !== 'equipment') {
+    if (itemRef.current.type !== 'equipment' && itemRef.current.type !== 'ring') {
       dismiss();
       return;
     }
@@ -134,9 +156,9 @@ export const WeaponAcquiredOverlay = ({
 
   useEffect(() => {
     if (phase !== 'ready') return;
-    const isEquipment = itemRef.current?.type === 'equipment';
+    const canEquip = itemRef.current?.type === 'equipment' || itemRef.current?.type === 'ring';
     const onKeyDown = (e: KeyboardEvent) => {
-      if (isEquipment && canEquipActive && e.code === 'KeyF') {
+      if (canEquip && canEquipActive && e.code === 'KeyF') {
         e.preventDefault();
         e.stopPropagation();
         handleEquip();
@@ -145,7 +167,7 @@ export const WeaponAcquiredOverlay = ({
       if (e.code === 'Enter' || e.code === 'Space') {
         e.preventDefault();
         e.stopPropagation();
-        if (isEquipment && canEquipActive) handleEquip();
+        if (canEquip && canEquipActive) handleEquip();
         else dismiss();
       }
       if (e.code === 'Escape') {
@@ -159,9 +181,11 @@ export const WeaponAcquiredOverlay = ({
 
   if (phase === 'hidden' || !item) return null;
 
-  const chrome = TYPE_CHROME[item.type];
+  const chrome = TYPE_CHROME[item.type] ?? TYPE_CHROME.quest;
   const isEquipment = item.type === 'equipment';
+  const isRing = item.type === 'ring';
   const isEquipped = phase === 'equipped';
+  const ringBonus = formatRingBonus(item);
   const spriteUrl = assetManager?.getTextureURL(item.sprite) ?? null;
 
   const newDmg = item.stats?.damage ?? 0;
@@ -188,7 +212,9 @@ export const WeaponAcquiredOverlay = ({
         <p
           className="text-xs uppercase tracking-[0.4em] text-[#DAA520] mb-4 drop-shadow-[0_0_6px_rgba(218,165,32,0.3)]"
         >
-          {isEquipped ? 'Weapon Equipped' : chrome.acquiredHeader}
+          {isEquipped
+            ? (isRing ? 'Ring Equipped' : 'Weapon Equipped')
+            : chrome.acquiredHeader}
         </p>
 
         {/* Item icon */}
@@ -228,6 +254,10 @@ export const WeaponAcquiredOverlay = ({
         <p className="text-xs text-[#C9B8A8] max-w-xs text-center leading-relaxed mb-5 px-4">
           {item.description}
         </p>
+
+        {isRing && ringBonus && (
+          <p className="text-sm font-bold text-violet-300 mb-5 tabular-nums">{ringBonus}</p>
+        )}
 
         {/* Stat comparison — equipment only */}
         {isEquipment && (
@@ -278,7 +308,7 @@ export const WeaponAcquiredOverlay = ({
         )}
 
         {/* Prompt button */}
-        {phase === 'ready' && isEquipment && canEquipActive && (
+        {phase === 'ready' && (isEquipment || isRing) && canEquipActive && (
           <button
             className="flex items-center gap-2 bg-[#2D1B11]/80 border border-[#DAA520]/60 rounded-md px-5 py-2 cursor-pointer hover:bg-[#3D2B21] transition-colors group"
             onClick={(e) => { e.stopPropagation(); handleEquip(); }}
@@ -296,6 +326,14 @@ export const WeaponAcquiredOverlay = ({
             Loadout full — open{' '}
             <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">P</kbd>{' '}
             to swap a weapon into your active set.
+          </p>
+        )}
+
+        {phase === 'ready' && isRing && !canEquipActive && (
+          <p className="text-xs text-[#C9B8A8] text-center max-w-xs leading-relaxed">
+            Ring slots full — open{' '}
+            <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">P</kbd>{' '}
+            to swap rings.
           </p>
         )}
 

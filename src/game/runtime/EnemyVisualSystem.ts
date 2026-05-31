@@ -40,6 +40,7 @@ const ENEMY_WALK_ANIMATIONS: Record<string, EnemyWalkAnimationConfig> = {
   stone_sentinel: { frameCount: 4, frameRate: 0.9 },
   corrupted_giant: { frameCount: 4, frameRate: 0.72 },
   slime: { frameCount: 4, frameRate: 2.0 },
+  water_slime: { frameCount: 4, frameRate: 1.75 },
   plant: { frameCount: 4, frameRate: 1.4 },
   shadow: { frameCount: 4, frameRate: 1.2 },
   shadow_lurker: { frameCount: 4, frameRate: 1.0 },
@@ -49,6 +50,8 @@ const ENEMY_WALK_ANIMATIONS: Record<string, EnemyWalkAnimationConfig> = {
   void_wisp: { frameCount: 4, frameRate: 1.3 },
   ridge_revenant: { frameCount: 4, frameRate: 0.85 },
 };
+
+const WATER_SLIME_SURFACE_VISUAL_DURATION = 0.45;
 
 type EnemyRenderCache = { x: number; y: number; scaleX: number; scaleY: number; rot: number; hpBucket: number };
 const _enemyRenderCache = new Map<string, EnemyRenderCache>();
@@ -139,6 +142,20 @@ export function applyEnemyVisuals({
 
   const mat = enemyMesh.material as THREE.MeshBasicMaterial;
   const enemyType = enemy.sprite.replace('enemy_', '');
+  if (enemyType === 'water_slime' && enemy.waterDiveTimer > 0) {
+    enemyMesh.visible = false;
+    const shadow = registry.shadows.get(enemy.id);
+    if (shadow) shadow.visible = false;
+    const outline = registry.outlines.get(enemy.id);
+    if (outline) outline.visible = false;
+    const hpBar = registry.hpBars.get(enemy.id);
+    if (hpBar) {
+      hpBar.bg.visible = false;
+      hpBar.fill.visible = false;
+    }
+    return;
+  }
+
   const visual = enemyVisualProfiles[enemyType] ?? enemyVisualProfiles.wolf;
   // Stable per-enemy jitter seed; matches the historical scale of the previous
   // `parseFloat(id.split('_')[1]) * 0.001` formula so visuals don't change shape.
@@ -192,6 +209,7 @@ export function applyEnemyVisuals({
   const isPhase3 = bossPhase === 3;
   const isGolem = enemyType === 'golem';
   const isStoneSentinel = enemyType === 'stone_sentinel';
+  const isRevenant = enemyType === 'ridge_revenant';
 
   if (isGolem || isStoneSentinel) {
     // Distinct sprite frames handle all state cues — no color tinting
@@ -205,7 +223,22 @@ export function applyEnemyVisuals({
   } else if (enemy.damageFlashTimer > 0) {
     enemy.damageFlashTimer -= deltaTime;
     mat.color.setHex(0xff0000);
+  } else if (isRevenant && enemy.state === 'telegraphing') {
+    // Spectral wraith telegraph — a smooth teal→violet swell rather than the
+    // generic reddish strobe. The bladestorm cast glows brighter and cooler.
+    const flashPhase = enemy.telegraphTimer / enemy.telegraphDuration;
+    const isStorm = enemy.currentAttackType === 'revenant_bladestorm';
+    const pulse = fastSin((1 - flashPhase) * Math.PI * (isStorm ? 7 : 5)) * 0.5 + 0.5;
+    if (isStorm) {
+      // Cool teal-cyan gather as the blade array materializes.
+      mat.color.setRGB(0.45 + pulse * 0.25, 0.85 + pulse * 0.15, 0.95);
+    } else {
+      // Violet menace for melee windups (crusher / rush / flurry).
+      mat.color.setRGB(0.7 + pulse * 0.3, 0.45 + pulse * 0.2, 0.95);
+    }
+    mat.opacity = 1.0;
   } else if (enemy.state === 'telegraphing') {
+    mat.opacity = 1.0;
     const flashPhase = enemy.telegraphTimer / enemy.telegraphDuration;
     if (isPhase3) {
       const flash = fastSin(flashPhase * Math.PI * 10) * 0.45 + 0.55;
@@ -275,6 +308,7 @@ export function applyEnemyVisuals({
         rotation *= 0.4;
         break;
       case 'slime':
+      case 'water_slime':
         finalEnemyY += stride * 0.02;
         scaleX *= 1 + stride * 0.08;
         scaleY *= 1 - stride * 0.08;
@@ -313,6 +347,16 @@ export function applyEnemyVisuals({
         scaleX *= 1 + stride * 0.02;
         scaleY *= 1 - stride * 0.02;
         rotation *= 0.3;
+        break;
+      case 'ridge_revenant':
+        // Bound wraith — drifts on a gentle hover with a slow figure-eight sway
+        // and a faint robe billow, NOT a side-to-side PNG rock. Kill the lateral
+        // lean entirely so it reads as gliding, not tipping.
+        finalEnemyY += fastSin(currentTime / 190 + seed) * 0.07;
+        finalEnemyX += fastCos(currentTime / 330 + seed) * 0.035;
+        scaleX *= 1 + fastSin(currentTime / 240 + seed) * 0.012;
+        scaleY *= 1 - fastSin(currentTime / 240 + seed) * 0.012;
+        rotation = fastSin(currentTime / 420 + seed) * 0.012;
         break;
       case 'plant':
         finalEnemyX += fastSin(enemy.moveCycle * 0.7 + seed) * 0.008;
@@ -413,7 +457,14 @@ export function applyEnemyVisuals({
       scaleX *= 1 + breathe * 0.014;
       scaleY *= 1 - breathe * 0.018;
       rotation = fastSin(currentTime / 850 + seed) * 0.014;
-    } else if (enemyType === 'slime') {
+    } else if (enemyType === 'ridge_revenant') {
+      // Suspended hover at rest — slow vertical bob and a faint robe billow.
+      finalEnemyY += breathe * 0.07;
+      finalEnemyX += fastCos(currentTime / 760 + seed) * 0.03;
+      scaleX *= 1 + breathe * 0.012;
+      scaleY *= 1 - breathe * 0.016;
+      rotation = fastSin(currentTime / 900 + seed) * 0.01;
+    } else if (enemyType === 'slime' || enemyType === 'water_slime') {
       finalEnemyY += Math.abs(breathe) * 0.025;
       scaleX *= 1 + Math.abs(breathe) * 0.04;
       scaleY *= 1 - Math.abs(breathe) * 0.04;
@@ -437,6 +488,16 @@ export function applyEnemyVisuals({
       scaleX *= 1 + breathe * 0.015;
       scaleY *= 1 - breathe * 0.015;
     }
+  }
+
+  if (enemyType === 'water_slime' && enemy.waterSurfaceTimer > 0) {
+    const progress = 1 - Math.min(1, enemy.waterSurfaceTimer / WATER_SLIME_SURFACE_VISUAL_DURATION);
+    const easeOut = 1 - Math.pow(1 - progress, 2);
+    scaleX *= 0.5 + easeOut * 0.5;
+    scaleY *= 0.18 + easeOut * 0.82;
+    finalEnemyY -= (1 - easeOut) * 0.16;
+    mat.transparent = true;
+    mat.opacity = Math.max(mat.opacity, 0.35 + easeOut * 0.65);
   }
 
   enemyMesh.rotation.z = rotation;

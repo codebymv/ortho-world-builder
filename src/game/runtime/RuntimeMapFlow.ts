@@ -1473,7 +1473,11 @@ export function createRuntimeMapFlow({
           continue;
         }
 
-        // ── Interior — always cobblestone (overwrites trees/grass from map) ────
+        // ── Interior — cobblestone, but keep authored chests (e.g. Wayfarer Ring) ────
+        const interiorTile = row[tx];
+        if (isChestTileType(interiorTile.type)) {
+          continue;
+        }
         row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
       }
     }
@@ -1670,12 +1674,72 @@ export function createRuntimeMapFlow({
     }
   };
 
+  const RANGER_WOLF_RING_CHEST_ID = 'ranger_wolf_ring_chest';
+  const RANGER_WOLF_RING_CHEST_X = 11;
+  const RANGER_WOLF_RING_CHEST_Y = 7;
+
+  const purgeLegacyRangerWolfRingPickups = () => {
+    const before = state.worldItems.length;
+    state.worldItems = state.worldItems.filter(
+      wi => !(wi.itemId === 'wolf_ring' && wi.mapId === 'interior_ranger_cabin'),
+    );
+    return before !== state.worldItems.length;
+  };
+
+  const syncRangerWolfRingChestState = () => {
+    purgeLegacyRangerWolfRingPickups();
+
+    if (state.currentMap !== 'interior_ranger_cabin') return;
+    const map = world.getCurrentMap();
+    const row = map.tiles[RANGER_WOLF_RING_CHEST_Y];
+    if (!row) return;
+
+    const el = row[RANGER_WOLF_RING_CHEST_X]?.elevation ?? 0;
+    const floorTile: Tile = {
+      type: 'wood_floor' as TileType,
+      walkable: true,
+      elevation: el,
+    };
+
+    const showOpened =
+      state.getFlag('wolf_ring_received') || state.getFlag(`${RANGER_WOLF_RING_CHEST_ID}_opened`);
+    const showClosed =
+      state.getFlag('olwen_ranger_cabin_hint') && !showOpened;
+
+    if (showOpened) {
+      row[RANGER_WOLF_RING_CHEST_X] = {
+        type: getOpenedChestTileType(RANGER_WOLF_RING_CHEST_ID),
+        walkable: true,
+        elevation: el,
+        interactable: true,
+        interactionId: RANGER_WOLF_RING_CHEST_ID,
+      };
+    } else if (showClosed) {
+      row[RANGER_WOLF_RING_CHEST_X] = {
+        type: getClosedChestTileType(RANGER_WOLF_RING_CHEST_ID),
+        walkable: true,
+        elevation: el,
+        interactable: true,
+        interactionId: RANGER_WOLF_RING_CHEST_ID,
+      };
+    } else {
+      row[RANGER_WOLF_RING_CHEST_X] = floorTile;
+    }
+
+    world.refreshMapTileRegion(
+      RANGER_WOLF_RING_CHEST_X - 1,
+      RANGER_WOLF_RING_CHEST_Y - 1,
+      RANGER_WOLF_RING_CHEST_X + 1,
+      RANGER_WOLF_RING_CHEST_Y + 1,
+    );
+  };
+
   const syncPreplacedWorldItems = () => {
+    purgeLegacyRangerWolfRingPickups();
+
     const PREPLACED: Array<{ itemId: string; collectedFlag: string; mapId: string; x: number; y: number; prerequisiteFlag?: string }> = [
       { itemId: 'manuscript_fragment', collectedFlag: 'manuscript_fragment_collected', mapId: 'interior_hunter_cottage', x: 0.5, y: -0.5 },
       { itemId: 'hunters_manuscript', collectedFlag: 'hunters_manuscript_collected', mapId: 'forest', x: 63, y: -80 },
-      // Wolf ring inside the relocated ranger cabin — only appears after Olwen's hint.
-      { itemId: 'wolf_ring', collectedFlag: 'wolf_ring_received', mapId: 'interior_ranger_cabin', x: 3, y: -1, prerequisiteFlag: 'olwen_ranger_cabin_hint' },
     ];
     for (const entry of PREPLACED) {
       if (state.getFlag(entry.collectedFlag)) continue;
@@ -1760,6 +1824,7 @@ export function createRuntimeMapFlow({
     syncHarvestedTempestGrassState();
     syncHarvestedMoonbloomState();
     syncBonfireKindledState();
+    syncRangerWolfRingChestState();
     syncPreplacedWorldItems();
     syncHollowApproachLadderState();
     syncCliffCorridorLadderState();
@@ -1918,6 +1983,7 @@ export function createRuntimeMapFlow({
     syncVillageReactivityState,
     syncVillageInteriorReactivityState,
     syncOpenedChestState,
+    syncRangerWolfRingChestState,
     syncBlightedRootState,
     syncHarvestedTempestGrassState,
     syncHarvestedMoonbloomState,

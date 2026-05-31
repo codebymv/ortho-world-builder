@@ -2392,6 +2392,39 @@ export class AssetManager {
     this.registerTexture('enemy_slime_telegraph', () => this.getTexture('enemy_slime')!);
     this.registerTexture('enemy_slime_attack', () => this.getTexture('enemy_slime')!);
 
+    const WSLIME_BODY = 0x46B8D8;
+    const WSLIME_H = 0x7EDCFF;
+    const WSLIME_S = 0x1F6FA0;
+    const WSLIME_DEEP = 0x134B78;
+    const WSLIME_FOAM = 0xE9FFFF;
+    const WSLIME_SHELL = 0xF4D6A2;
+    const WSLIME_SHELL_S = 0xB98455;
+
+    this.registerTexture('enemy_water_slime', () => this.createSpriteTexture([
+      [C,           C,           WSLIME_H,    WSLIME_H,    WSLIME_H,    C,           C,           C],
+      [C,           WSLIME_H,    WSLIME_FOAM, WSLIME_BODY, WSLIME_BODY, WSLIME_H,    C,           C],
+      [WSLIME_S,    WSLIME_BODY, SLIME_EYE,   WSLIME_BODY, SLIME_EYE,   WSLIME_BODY, WSLIME_S,    C],
+      [WSLIME_S,    WSLIME_BODY, SLIME_PUPIL, WSLIME_BODY, SLIME_PUPIL, WSLIME_BODY, WSLIME_S,    C],
+      [C,           WSLIME_BODY, WSLIME_BODY, WSLIME_H,    WSLIME_BODY, WSLIME_BODY, C,           C],
+      [C,           WSLIME_DEEP, WSLIME_S,    WSLIME_FOAM, WSLIME_S,    WSLIME_DEEP, C,           C],
+    ], 4, 'enemy_water_slime'));
+    this.registerTexture('enemy_water_slime_telegraph', () => this.createSpriteTexture([
+      [C,           C,           WSLIME_FOAM, WSLIME_H,    WSLIME_H,    C,           C,           C],
+      [C,           WSLIME_H,    WSLIME_BODY, WSLIME_BODY, WSLIME_BODY, WSLIME_H,    C,           C],
+      [WSLIME_S,    WSLIME_BODY, SLIME_EYE,   WSLIME_BODY, SLIME_EYE,   WSLIME_BODY, WSLIME_S,    C],
+      [WSLIME_S,    WSLIME_BODY, SLIME_PUPIL, WSLIME_BODY, SLIME_PUPIL, WSLIME_BODY, WSLIME_S,    C],
+      [C,           WSLIME_BODY, WSLIME_SHELL, WSLIME_SHELL, WSLIME_BODY, WSLIME_BODY, C,          C],
+      [C,           WSLIME_DEEP, WSLIME_FOAM, WSLIME_S,     WSLIME_FOAM, WSLIME_DEEP, C,          C],
+    ], 4, 'enemy_water_slime_telegraph'));
+    this.registerTexture('enemy_water_slime_attack', () => this.createSpriteTexture([
+      [C,           C,           WSLIME_H,    WSLIME_H,    WSLIME_H,     C,          C,           C],
+      [C,           WSLIME_H,    WSLIME_BODY, WSLIME_BODY, WSLIME_BODY,  WSLIME_H,   C,           C],
+      [WSLIME_S,    WSLIME_BODY, SLIME_EYE,   WSLIME_BODY, SLIME_EYE,    WSLIME_BODY,WSLIME_S,    C],
+      [C,           WSLIME_S,    SLIME_PUPIL, WSLIME_SHELL,WSLIME_SHELL, WSLIME_S,  WSLIME_SHELL_S,C],
+      [C,           WSLIME_BODY, WSLIME_BODY, WSLIME_SHELL,WSLIME_BODY,  WSLIME_BODY,C,           C],
+      [C,           WSLIME_DEEP, WSLIME_FOAM, WSLIME_DEEP, WSLIME_FOAM,  WSLIME_DEEP,C,           C],
+    ], 4, 'enemy_water_slime_attack'));
+
     // ========== CORRUPTED GIANT ==========
     this.registerTexture('enemy_corrupted_giant', () => this.createCorruptedGiant('enemy_corrupted_giant'));
     this.registerTexture('enemy_corrupted_giant_telegraph', () => this.createCorruptedGiant('enemy_corrupted_giant_telegraph', true));
@@ -2931,6 +2964,41 @@ export class AssetManager {
       [C,       C,       C,       PB_GLW,  PB_BLS,  PB_BL,   PB_BLM,  C      ],
     ], 4, 'projectile_scythe_falling'));
 
+    const SH_HI = 0xFFF0C8;
+    const SH_MID = 0xD9A66F;
+    const SH_EDGE = 0x8B5A3C;
+    const SH_WET = 0x8EDCFF;
+    this.registerTexture('projectile_shell', () => this.createSpriteTexture([
+      [C,       C,       SH_WET,  C,       C,       C,       C,       C      ],
+      [C,       SH_HI,   SH_HI,   SH_MID,  C,       C,       C,       C      ],
+      [SH_WET,  SH_HI,   SH_MID,  SH_MID,  SH_EDGE, C,       C,       C      ],
+      [C,       SH_MID,  SH_MID,  SH_EDGE, SH_EDGE, C,       C,       C      ],
+      [C,       C,       SH_EDGE, SH_EDGE, C,       SH_WET,  C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C      ],
+    ], 4, 'projectile_shell'));
+
+    // Ridge Revenant spectral blade — a summoned dagger pointing RIGHT (+X). The
+    // bladestorm sets each projectile's rotation to its travel angle (spinRate 0),
+    // so the tip always leads. Teal-core, purple-bodied to match the wraith.
+    const SB_CORE = 0xE0FFFA; // bright spectral edge
+    const SB_BL   = 0xC890F0; // purple light blade
+    const SB_MID  = 0x8248C8; // purple body
+    const SB_GLW  = 0x40FFEE; // teal aura
+    const SB_HN   = 0x220E40; // dark hilt
+    this.registerTexture('projectile_spectral_blade', () => this.createSpriteTexture([
+      //        0        1        2        3        4        5        6        7
+      [C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       SB_GLW,  C,       C      ],
+      [C,       C,       C,       SB_GLW,  SB_BL,   SB_CORE, SB_GLW,  C      ],
+      [SB_GLW,  SB_HN,   SB_MID,  SB_BL,   SB_CORE, SB_CORE, SB_CORE, SB_CORE],
+      [SB_GLW,  SB_HN,   SB_MID,  SB_BL,   SB_BL,   SB_CORE, SB_GLW,  C      ],
+      [C,       C,       C,       SB_GLW,  SB_MID,  SB_BL,   C,       C      ],
+      [C,       C,       C,       C,       SB_GLW,  C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C      ],
+    ], 4, 'projectile_spectral_blade'));
+
     this.registerTexture('hazard_scythe_marker', () => this.createSpriteTexture([
       [C,       C,       PB_DIM,  C,       C,       PB_DIM,  C,       C      ],
       [C,       PB_DIM,  C,       PB_GLW,  PB_GLW,  C,       PB_DIM,  C      ],
@@ -3460,84 +3528,89 @@ export class AssetManager {
       [AR_CAPE, C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       AR_CAPE, C      ],
     ], 4, 'enemy_ashen_reaver_attack'));
 
-    // --- Ridge Revenant: heretically bound reaper (evolved Hollow Reaver) ---
-    // Grim reaper read — hood, skull, tattered cloak, heavy scythe. Dual ember eyes and iron
-    // stitch-marks sell "death dragged back wrong"; no tripod legs or wing-like blade arms.
-    const RR_CK  = 0x100A08; // ash-black cloak
-    const RR_CKH = 0x2A1E18; // cloak fold highlight
-    const RR_CKS = 0x060404; // deepest shadow
-    const RR_HD  = 0x080404; // hood void
-    const RR_SK  = 0xD4C4B0; // exposed bone
-    const RR_SKH = 0xEEE0CC; // bone highlight
-    const RR_SKS = 0x8A7868; // bone shadow
-    const RR_EYE = 0xFF6F00; // ember eye — heretical false life
-    const RR_EYH = 0xFFB347; // ember highlight
-    const RR_BL  = 0xD8D0C8; // scythe blade
-    const RR_BLS = 0x6A5A48; // blade shadow
-    const RR_HN  = 0x1A1208; // scythe haft
-    const RR_WSP = 0x241810; // ash wisps beneath robe
-    const RR_IRN = 0x3E3428; // binding iron plates
-    const RR_IRH = 0x5A4E40; // iron highlight
-    const RR_STC = 0x7A5030; // rust stitch / heretical suture
-    const RR_RST = 0x5A3820; // dried blood rust on blade
-    const RR_CHG = 0xFF3B00; // charge outline (telegraph)
-    const RR_SLH = 0xFFE8C0; // slash flash
+    // --- Ridge Revenant: hooded void reaper — humanoid wraith matching the game thumbnail ---
+    // Clear humanoid silhouette: pointed hood, two glowing teal eyes in a void face, hunched
+    // broad shoulders, two draping arms ending in pale claws, a glowing teal rune-orb on the
+    // chest, and a tattered robe fading to wisps. Deep purples with teal accents.
+    const RR_VD  = 0x080412; // void core / face void (darkest black-purple)
+    const RR_VH  = 0x140A24; // void dark highlight
+    const RR_PD  = 0x220E40; // dark purple robe
+    const RR_PM  = 0x3E1C6E; // mid purple
+    const RR_PH  = 0x5E30A0; // purple highlight
+    const RR_PL  = 0x8248C8; // purple light
+    const RR_PA  = 0xA868E0; // purple accent
+    const RR_PE  = 0xC890F0; // purple edge / brightest
+    const RR_TL  = 0x00BBA0; // teal orb core
+    const RR_TH  = 0x40FFEE; // teal orb highlight
+    const RR_TS  = 0x008070; // teal shadow
+    const RR_EYE = 0x90FFE8; // glowing eye (bright cyan)
+    const RR_CLW = 0xC8A8E8; // pale purple claw
+    const RR_WSP = 0x0E061E; // robe wisps
+    const RR_SLH = 0xE0FFFA; // claw slash glint (attack)
+    const RR_GLP = 0xFF50FF; // glow pulse (telegraph)
 
+    // Idle — hooded reaper: pointed hood, deep void face with two glowing eyes, defined
+    // shoulders, a small hollow teal rune-sigil high on the chest (NOT a belly orb), shaded
+    // robe folds, and a tapered tattered hem fading to wisps. Light biases upper-left.
     this.registerTexture('enemy_ridge_revenant', () => this.createSpriteTexture([
-      [C,       C,       C,       C,       C,       C,       C,       RR_CKH,  RR_CKH,  C,       C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       RR_CKS,  RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CKS,  C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_CKS,  RR_CKH,  RR_CK,   RR_HD,   RR_HD,   RR_CK,   RR_CKH,  RR_CKS,  C,       C,       C,       C      ],
-      [C,       C,       C,       RR_CKS,  RR_CK,   RR_SKH,  RR_EYE,  RR_SK,   RR_SK,   RR_EYE,  RR_SKH,  RR_CK,   RR_CKS,  C,       C,       C      ],
-      [C,       C,       RR_CKS,  RR_CK,   RR_SKS,  RR_SK,   RR_STC,  RR_SK,   RR_SK,   RR_STC,  RR_SK,   RR_SKS,  RR_CK,   RR_CKS,  C,       C      ],
-      [C,       RR_BLS,  RR_BL,   RR_HN,   RR_IRN,  RR_IRH,  RR_CK,   RR_STC,  RR_STC,  RR_CK,   RR_IRH,  RR_IRN,  C,       C,       C,       C      ],
-      [RR_BL,   RR_BLS,  C,       C,       RR_IRN,  RR_CK,   RR_RST,  RR_CK,   RR_CK,   RR_CK,   RR_IRN,  C,       C,       C,       C,       C      ],
-      [C,       RR_BLS,  C,       C,       RR_CKS,  RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CKS,  C,       C,       C,       C      ],
-      [C,       C,       RR_WSP,  RR_CKS,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKS,  RR_WSP,  C,       C      ],
-      [C,       C,       C,       RR_CKS,  RR_CK,   RR_CK,   RR_SK,   RR_CK,   RR_CK,   RR_SK,   RR_CK,   RR_CK,   RR_CKS,  C,       C,       C      ],
-      [C,       C,       C,       C,       RR_CKS,  RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CKS,  C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_WSP,  RR_CKS,  RR_CK,   RR_CKS,  RR_CKS,  RR_CK,   RR_CKS,  RR_WSP,  C,       C,       C,       C      ],
-      [C,       C,       RR_WSP,  C,       RR_WSP,  RR_CKS,  RR_WSP,  C,       C,       RR_WSP,  RR_CKS,  RR_WSP,  C,       RR_WSP,  C,       C      ],
-      [C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C      ],
-      [C,       C,       C,       C,       C,       RR_WSP,  C,       RR_WSP,  C,       RR_WSP,  C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       RR_PM,   RR_PD,   C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       RR_PM,   RR_PH,   RR_PM,   RR_PD,   C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       RR_PH,   RR_PL,   RR_PH,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       RR_PH,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_PL,   RR_PM,   RR_EYE,  RR_VD,   RR_VD,   RR_EYE,  RR_PM,   RR_PD,   C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_PH,   RR_PM,   RR_VD,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C,       C      ],
+      [C,       C,       C,       RR_PL,   RR_PH,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TS,   RR_TL,   RR_TL,   RR_TS,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TL,   RR_VD,   RR_VD,   RR_TL,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TH,   RR_TL,   RR_TL,   RR_TH,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_PL,   RR_PA,   RR_PM,   RR_PD,   RR_PD,   RR_PD,   RR_PD,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_PH,   RR_PE,   RR_PM,   RR_PH,   RR_PD,   RR_PD,   RR_PH,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       RR_CLW,  RR_PH,   RR_PM,   RR_PD,   RR_PM,   RR_PH,   RR_PM,   RR_PD,   RR_PM,   RR_PM,   RR_CLW,  C,       C,       C      ],
+      [C,       C,       C,       RR_CLW,  RR_PM,   RR_PD,   RR_PM,   RR_PD,   RR_PD,   RR_PM,   RR_PD,   RR_CLW,  C,       C,       C,       C      ],
+      [C,       C,       C,       RR_VH,   RR_PD,   RR_WSP,  RR_PD,   RR_PM,   RR_PD,   RR_WSP,  RR_PD,   RR_VH,   C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_WSP,  RR_VH,   RR_WSP,  RR_PD,   RR_PD,   RR_WSP,  RR_VH,   RR_WSP,  C,       C,       C,       C      ],
     ], 4, 'enemy_ridge_revenant'));
 
+    // Telegraph — eyes flare, chest rune-sigil blazes, purple energy crackles along the hood,
+    // shoulders, and tattered hem.
     this.registerTexture('enemy_ridge_revenant_telegraph', () => this.createSpriteTexture([
-      [C,       C,       C,       RR_BLS,  RR_BL,   RR_BL,   RR_HN,   C,       C,       C,       C,       C,       C,       C,       C,       C      ],
-      [C,       C,       RR_BLS,  RR_BL,   RR_BL,   RR_HN,   C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_CHG,  RR_CKH,  RR_CKH,  RR_CHG,  C,       C,       C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       RR_CHG,  RR_CKH,  RR_CK,   RR_HD,   RR_HD,   RR_CK,   RR_CKH,  RR_CHG,  C,       C,       C,       C,       C      ],
-      [C,       C,       RR_CKS,  RR_CK,   RR_SKH,  RR_EYH,  RR_EYE,  RR_SK,   RR_EYE,  RR_EYH,  RR_SKH,  RR_CK,   RR_CKS,  C,       C,       C      ],
-      [C,       RR_BLS,  RR_BL,   RR_HN,   RR_IRN,  RR_IRH,  RR_CK,   RR_STC,  RR_STC,  RR_CK,   RR_IRH,  RR_IRN,  C,       C,       C,       C      ],
-      [RR_BL,   RR_BLS,  RR_HN,   C,       RR_CHG,  RR_CK,   RR_RST,  RR_CK,   RR_CK,   RR_CK,   RR_CHG,  C,       C,       C,       C,       C      ],
-      [C,       RR_CHG,  C,       C,       RR_CKS,  RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CKS,  C,       C,       C,       C      ],
-      [C,       C,       RR_CHG,  RR_CKS,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKS,  RR_CHG,  C,       C      ],
-      [C,       C,       C,       RR_CKS,  RR_CK,   RR_CK,   RR_SK,   RR_CK,   RR_CK,   RR_SK,   RR_CK,   RR_CK,   RR_CKS,  C,       C,       C      ],
-      [C,       C,       C,       C,       RR_CKS,  RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CKS,  C,       C,       C,       C      ],
-      [C,       C,       C,       RR_WSP,  RR_CKS,  RR_CK,   RR_CKS,  RR_CKS,  RR_CK,   RR_CKS,  RR_CKS,  RR_WSP,  C,       C,       C,       C      ],
-      [C,       RR_WSP,  RR_WSP,  C,       RR_WSP,  RR_CKS,  RR_WSP,  C,       C,       RR_WSP,  RR_CKS,  RR_WSP,  C,       RR_WSP,  RR_WSP,  C      ],
-      [RR_WSP,  C,       RR_WSP,  C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C      ],
-      [C,       C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C,       C,       C      ],
-      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       RR_GLP,  RR_PM,   RR_PD,   RR_GLP,  C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       RR_PM,   RR_PH,   RR_PM,   RR_PD,   C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_GLP,  RR_PH,   RR_PE,   RR_PH,   RR_PM,   RR_PM,   RR_PD,   RR_GLP,  C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       RR_PE,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_PE,   RR_PM,   RR_EYE,  RR_VH,   RR_VH,   RR_EYE,  RR_PM,   RR_PD,   C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_PH,   RR_PM,   RR_VD,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C,       C      ],
+      [C,       C,       RR_GLP,  RR_PL,   RR_PH,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PD,   RR_GLP,  C,       C      ],
+      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TL,   RR_TH,   RR_TH,   RR_TL,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TH,   RR_TL,   RR_TL,   RR_TH,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TH,   RR_TH,   RR_TH,   RR_TH,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       RR_GLP,  RR_PL,   RR_PA,   RR_PM,   RR_PD,   RR_PD,   RR_PD,   RR_PD,   RR_PM,   RR_PM,   RR_PD,   RR_GLP,  C,       C      ],
+      [C,       C,       C,       RR_PH,   RR_PE,   RR_PM,   RR_PH,   RR_PD,   RR_PD,   RR_PH,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       RR_CLW,  RR_PH,   RR_PM,   RR_PD,   RR_PM,   RR_PH,   RR_PM,   RR_PD,   RR_PM,   RR_PM,   RR_CLW,  C,       C,       C      ],
+      [C,       C,       C,       RR_CLW,  RR_PM,   RR_PD,   RR_PM,   RR_GLP,  RR_GLP,  RR_PM,   RR_PD,   RR_CLW,  C,       C,       C,       C      ],
+      [C,       C,       RR_GLP,  RR_VH,   RR_PD,   RR_WSP,  RR_PD,   RR_GLP,  RR_GLP,  RR_WSP,  RR_PD,   RR_VH,   RR_GLP,  C,       C,       C      ],
+      [C,       C,       C,       C,       RR_WSP,  RR_VH,   RR_GLP,  RR_PD,   RR_PD,   RR_GLP,  RR_VH,   RR_WSP,  C,       C,       C,       C      ],
     ], 4, 'enemy_ridge_revenant_telegraph'));
 
+    // Attack — claws rake DOWNWARD past the robe hem with slash glints (a descending swipe,
+    // not a sideways flap); the chest rune discharges and dims to core teal.
     this.registerTexture('enemy_ridge_revenant_attack', () => this.createSpriteTexture([
-      [C,       C,       C,       C,       C,       C,       C,       RR_CKH,  RR_CKH,  C,       C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       RR_CKS,  RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CKS,  C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_CKS,  RR_CKH,  RR_CK,   RR_HD,   RR_HD,   RR_CK,   RR_CKH,  RR_CKS,  C,       C,       C,       C      ],
-      [C,       C,       C,       RR_CKS,  RR_CK,   RR_SKH,  RR_EYH,  RR_SK,   RR_SK,   RR_EYH,  RR_SKH,  RR_CK,   RR_CKS,  C,       C,       C      ],
-      [C,       C,       RR_CKS,  RR_CK,   RR_SKS,  RR_SK,   RR_STC,  RR_SK,   RR_SK,   RR_STC,  RR_SK,   RR_SKS,  RR_CK,   RR_CKS,  C,       C      ],
-      [C,       C,       RR_IRN,  RR_IRH,  RR_CK,   RR_CK,   RR_STC,  RR_STC,  RR_CK,   RR_IRH,  RR_IRN,  RR_HN,   RR_BLS,  RR_BL,   C,       C      ],
-      [C,       C,       RR_IRN,  RR_CK,   RR_RST,  RR_CK,   RR_CK,   RR_CK,   RR_HN,   RR_BL,   RR_BLS,  RR_SLH,  C,       C,       C,       C      ],
-      [C,       C,       C,       RR_CKS,  RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_BLS,  RR_SLH,  C,       C,       C,       C,       C,       C      ],
-      [C,       C,       RR_WSP,  RR_CKS,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKH,  RR_CK,   RR_CK,   RR_CKS,  RR_WSP,  C,       C      ],
-      [C,       C,       C,       RR_CKS,  RR_CK,   RR_CK,   RR_SK,   RR_CK,   RR_CK,   RR_SK,   RR_CK,   RR_CK,   RR_CKS,  C,       C,       C      ],
-      [C,       C,       C,       C,       RR_CKS,  RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CK,   RR_CKS,  C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_WSP,  RR_CKS,  RR_CK,   RR_CKS,  RR_CKS,  RR_CK,   RR_CKS,  RR_WSP,  C,       C,       C,       C      ],
-      [C,       C,       RR_WSP,  C,       RR_WSP,  RR_CKS,  RR_WSP,  C,       C,       RR_WSP,  RR_CKS,  RR_WSP,  C,       RR_WSP,  C,       C      ],
-      [C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C      ],
-      [C,       C,       C,       C,       C,       RR_WSP,  C,       RR_WSP,  C,       RR_WSP,  C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       RR_PM,   RR_PD,   C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       RR_PM,   RR_PH,   RR_PM,   RR_PD,   C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       RR_PH,   RR_PL,   RR_PH,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       RR_PH,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_PL,   RR_PM,   RR_EYE,  RR_VD,   RR_VD,   RR_EYE,  RR_PM,   RR_PD,   C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_PH,   RR_PM,   RR_VD,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C,       C      ],
+      [C,       C,       C,       RR_PL,   RR_PH,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TS,   RR_TL,   RR_TL,   RR_TS,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TL,   RR_VD,   RR_VD,   RR_TL,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TL,   RR_TS,   RR_TS,   RR_TL,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_PL,   RR_PM,   RR_PD,   RR_PD,   RR_PD,   RR_PD,   RR_PD,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_PH,   RR_PM,   RR_PM,   RR_PH,   RR_PD,   RR_PD,   RR_PH,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       C,       C,       RR_CLW,  RR_PM,   RR_PD,   RR_PM,   RR_PH,   RR_PM,   RR_PD,   RR_PM,   RR_CLW,  C,       C,       C,       C      ],
+      [C,       C,       RR_CLW,  RR_SLH,  RR_PD,   RR_PM,   RR_PD,   RR_PM,   RR_PD,   RR_PM,   RR_SLH,  RR_CLW,  C,       C,       C,       C      ],
+      [C,       RR_SLH,  RR_CLW,  RR_VH,   RR_WSP,  RR_PD,   RR_WSP,  RR_PD,   RR_WSP,  RR_PD,   RR_VH,   RR_CLW,  RR_SLH,  C,       C,       C      ],
+      [RR_SLH,  C,       C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C,       C,       RR_SLH,  C,       C,       C      ],
     ], 4, 'enemy_ridge_revenant_attack'));
 
     const registerWalkAliasCycle = (prefix: string, frames: readonly string[]) => {
@@ -3552,6 +3625,12 @@ export class AssetManager {
       'enemy_slime_attack',
       'enemy_slime',
       'enemy_slime_telegraph',
+    ]);
+    registerWalkAliasCycle('enemy_water_slime', [
+      'enemy_water_slime',
+      'enemy_water_slime_attack',
+      'enemy_water_slime',
+      'enemy_water_slime_telegraph',
     ]);
     registerWalkAliasCycle('enemy_corrupted_giant', [
       'enemy_corrupted_giant',
@@ -3589,11 +3668,14 @@ export class AssetManager {
       'enemy_ashen_reaver',
       'enemy_ashen_reaver_telegraph',
     ]);
+    // Neutral hover: the wraith keeps its idle pose while moving (the float bob comes from the
+    // animation config), instead of pumping the arms through the attack/telegraph frames which
+    // read as flapping wings. Telegraph/attack frames are still used by the combat states.
     registerWalkAliasCycle('enemy_ridge_revenant', [
       'enemy_ridge_revenant',
-      'enemy_ridge_revenant_attack',
       'enemy_ridge_revenant',
-      'enemy_ridge_revenant_telegraph',
+      'enemy_ridge_revenant',
+      'enemy_ridge_revenant',
     ]);
 
     this.registerTexture('enemy_golem_walk_2', () => this.createSpriteTexture([
@@ -5082,6 +5164,22 @@ export class AssetManager {
       [WR_IH, WR_I,  WR_I,  WR_IS, WR_IS, WR_I,  WR_I,  WR_IH],
       [C,     WR_IH, WR_I,  WR_I,  WR_I,  WR_IH, C,     C    ],
       [C,     C,     WR_IH, WR_I,  WR_I,  WR_IH, C,     C    ],
+    ], 4);
+
+    // Wayfarer Ring — light bronze band with faint teal march chevrons.
+    const WF_B  = 0x8D6E63;
+    const WF_BH = 0xBCAAA4;
+    const WF_BS = 0x5D4037;
+    const WF_T  = 0x4DB6AC;
+    const WF_TH = 0x80CBC4;
+
+    registerSpriteTexture('wayfarer_ring', [
+      [C,     C,     WF_BH, WF_B,  WF_B,  WF_BH, C,     C    ],
+      [C,     WF_BH, WF_B,  WF_TH, WF_TH, WF_B,  WF_BH, C    ],
+      [C,     WF_B,  WF_BS, WF_T,  WF_T,  WF_BS, WF_B,  C    ],
+      [WF_BH, WF_B,  WF_B,  WF_BS, WF_BS, WF_B,  WF_B,  WF_BH],
+      [C,     WF_BH, WF_B,  WF_B,  WF_B,  WF_BH, C,     C    ],
+      [C,     C,     WF_BH, WF_B,  WF_B,  WF_BH, C,     C    ],
     ], 4);
 
     registerSpriteTexture('heretical_essence_apparition', [

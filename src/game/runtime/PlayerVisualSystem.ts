@@ -289,9 +289,13 @@ export function applyPlayerVisuals({
   bladeOverlayMesh.rotation.z = visualRotation;
 
   const activeItem = state.inventory[state.activeItemIndex];
+  const activeHeldConsumableSprite =
+    activeItem?.type === 'consumable' && activeItem.buffType !== 'last_breath'
+      ? activeItem.sprite
+      : null;
   const heldSpriteId =
     playerAnimState === 'drinking'
-      ? heldConsumableSpriteId ?? (activeItem?.type === 'consumable' ? activeItem.sprite : null)
+      ? heldConsumableSpriteId ?? activeHeldConsumableSprite
       : null;
   const isHoldingConsumable = Boolean(heldSpriteId);
 

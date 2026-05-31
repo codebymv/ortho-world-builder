@@ -25,14 +25,20 @@ const HOLLOW_ECLIPSE_CHANCE = 0.08;
 const MELEE_ELEVATION_TOLERANCE = 0.55;
 const MELEE_TRACE_STEP = 0.25;
 const PLAYER_LADDER_SAFE_TILE_TYPES = new Set(['ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open']);
+const WATER_SLIME_WATER_TILE_TYPES = new Set(['water', 'water_corrupted', 'waterfall']);
+const SHELL_PROJECTILE_PASSABLE_TILE_TYPES = new Set(['water', 'water_corrupted', 'waterfall']);
+const WATER_SLIME_DIVE_DURATION = 0.55;
+const WATER_SLIME_SURFACE_DURATION = 0.45;
 // Number of consecutive blocked frames before an enemy is forced into a brief recover pause.
 const ENEMY_STUCK_FRAME_LIMIT = 6;
 const ENEMY_PATH_RECOVERY_DURATION = 0.85;
 const ENEMY_PATH_RECOVERY_BLEND = 0.28;
 const BACKSTAB_FACING_DOT = 0.5;
 
+type EnemyMovePredicate = (fromX: number, fromY: number, toX: number, toY: number, r: number) => boolean;
 type EnemyMoveStep = { x: number; y: number; moved: boolean; vx: number; vy: number };
 type EnemyChaseMoveStep = EnemyMoveStep & { usedRecovery: boolean };
+type CombatParticleEmitter = { emit(position: THREE.Vector3, count: number, color: number, lifetime: number, speed: number, spread: number): void };
 
 function cardinalDirectionToVector(direction: string): { x: number; y: number } {
   switch (direction) {
@@ -50,27 +56,137 @@ function trySlideEnemyMove(
   oy: number,
   nx: number,
   ny: number,
-  r: number
+  r: number,
+  canMove: EnemyMovePredicate = (fromX, fromY, toX, toY, radius) => world.canEnemyMoveTo(fromX, fromY, toX, toY, radius),
 ): EnemyMoveStep {
   if (![ox, oy, nx, ny, r].every(Number.isFinite)) {
     return { x: ox, y: oy, moved: false, vx: 0, vy: 0 };
   }
 
-  if (world.canEnemyMoveTo(ox, oy, nx, ny, r)) {
+  if (canMove(ox, oy, nx, ny, r)) {
     const dx = nx - ox;
     const dy = ny - oy;
     const len = Math.hypot(dx, dy) || 1;
     return { x: nx, y: ny, moved: true, vx: dx / len, vy: dy / len };
   }
-  if (world.canEnemyMoveTo(ox, oy, nx, oy, r)) {
+  if (canMove(ox, oy, nx, oy, r)) {
     const sx = nx - ox;
     return { x: nx, y: oy, moved: true, vx: sx >= 0 ? 1 : -1, vy: 0 };
   }
-  if (world.canEnemyMoveTo(ox, oy, ox, ny, r)) {
+  if (canMove(ox, oy, ox, ny, r)) {
     const sy = ny - oy;
     return { x: ox, y: ny, moved: true, vx: 0, vy: sy >= 0 ? 1 : -1 };
   }
   return { x: ox, y: oy, moved: false, vx: 0, vy: 0 };
+}
+
+function isWaterSlimeWaterTile(world: World, x: number, y: number): boolean {
+  const tile = world.getTile(x, y);
+  return !!tile && WATER_SLIME_WATER_TILE_TYPES.has(tile.type);
+}
+
+function canWaterSlimeStandAt(world: World, enemy: Enemy, x: number, y: number): boolean {
+  const tile = world.getTile(x, y);
+  if (!tile) return false;
+
+  const homeDx = x - enemy.patrolOrigin.x;
+  const homeDy = y - enemy.patrolOrigin.y;
+  const leash = enemy.behaviorOverrides.waterLeashRadius ?? 10;
+  if (homeDx * homeDx + homeDy * homeDy > leash * leash) return false;
+
+  const homeElevation = world.getElevationAt(enemy.patrolOrigin.x, enemy.patrolOrigin.y);
+  const targetElevation = tile.elevation ?? 0;
+  if (Math.abs(homeElevation - targetElevation) > MELEE_ELEVATION_TOLERANCE) return false;
+
+  if (WATER_SLIME_WATER_TILE_TYPES.has(tile.type)) return true;
+
+  if (!tile.walkable || tile.enemyBlocked || tile.transition) return false;
+  const shore = enemy.behaviorOverrides.waterShoreRadius ?? 8;
+  return homeDx * homeDx + homeDy * homeDy <= shore * shore;
+}
+
+function canWaterSlimeMovePoint(world: World, enemy: Enemy, fromX: number, fromY: number, toX: number, toY: number): boolean {
+  if (!canWaterSlimeStandAt(world, enemy, toX, toY)) return false;
+  const fromWater = isWaterSlimeWaterTile(world, fromX, fromY);
+  const toWater = isWaterSlimeWaterTile(world, toX, toY);
+  if (!fromWater && !toWater) return world.canEnemyMoveTo(fromX, fromY, toX, toY, 0);
+
+  const fromElevation = world.getElevationAt(fromX, fromY);
+  const toElevation = world.getElevationAt(toX, toY);
+  return Math.abs(fromElevation - toElevation) <= MELEE_ELEVATION_TOLERANCE;
+}
+
+function canWaterSlimeMoveTo(world: World, enemy: Enemy, fromX: number, fromY: number, toX: number, toY: number, r: number = 0): boolean {
+  if (![fromX, fromY, toX, toY, r].every(Number.isFinite)) return false;
+  if (!enemy.behaviorOverrides.amphibiousWaterLeash) {
+    return world.canEnemyMoveTo(fromX, fromY, toX, toY, r);
+  }
+  if (r === 0) return canWaterSlimeMovePoint(world, enemy, fromX, fromY, toX, toY);
+
+  return canWaterSlimeMovePoint(world, enemy, fromX - r, fromY - r, toX - r, toY - r) &&
+         canWaterSlimeMovePoint(world, enemy, fromX + r, fromY - r, toX + r, toY - r) &&
+         canWaterSlimeMovePoint(world, enemy, fromX - r, fromY + r, toX - r, toY + r) &&
+         canWaterSlimeMovePoint(world, enemy, fromX + r, fromY + r, toX + r, toY + r) &&
+         canWaterSlimeMovePoint(world, enemy, fromX,     fromY - r, toX,     toY - r) &&
+         canWaterSlimeMovePoint(world, enemy, fromX,     fromY + r, toX,     toY + r) &&
+         canWaterSlimeMovePoint(world, enemy, fromX - r, fromY,     toX - r, toY    ) &&
+         canWaterSlimeMovePoint(world, enemy, fromX + r, fromY,     toX + r, toY    );
+}
+
+function emitWaterSlimeSplash(
+  world: World,
+  enemy: Enemy,
+  particleSystem: CombatParticleEmitter | undefined,
+  countMult: number = 1,
+): void {
+  if (!particleSystem || enemy.waterSplashCooldown > 0) return;
+  const y = world.getVisualY(enemy.position.x, enemy.position.y) + 0.08;
+  particleSystem.emit(new THREE.Vector3(enemy.position.x, y, 0.22), Math.round(8 * countMult), 0x9DEBFF, 0.38, 1.25, 0.48);
+  particleSystem.emit(new THREE.Vector3(enemy.position.x, y, 0.24), Math.round(4 * countMult), 0xF2FFFF, 0.26, 0.85, 0.3);
+  enemy.waterSplashCooldown = 0.32;
+}
+
+function pickWaterSlimeDiveTarget(world: World, enemy: Enemy): { x: number; y: number } | null {
+  const leash = Math.max(2, enemy.behaviorOverrides.waterLeashRadius ?? 10);
+  const shore = Math.max(1.5, enemy.behaviorOverrides.waterShoreRadius ?? 8);
+  const maxRadius = Math.min(leash - 0.5, Math.max(2.5, shore * 0.75));
+
+  for (let i = 0; i < 28; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 1.25 + Math.random() * maxRadius;
+    const x = enemy.patrolOrigin.x + Math.cos(angle) * distance;
+    const y = enemy.patrolOrigin.y + Math.sin(angle) * distance;
+    if (isWaterSlimeWaterTile(world, x, y) && canWaterSlimeStandAt(world, enemy, x, y)) {
+      return { x, y };
+    }
+  }
+
+  return isWaterSlimeWaterTile(world, enemy.patrolOrigin.x, enemy.patrolOrigin.y)
+    ? { x: enemy.patrolOrigin.x, y: enemy.patrolOrigin.y }
+    : null;
+}
+
+function triggerWaterSlimeSurface(
+  world: World | undefined,
+  enemy: Enemy,
+  particleSystem: CombatParticleEmitter | undefined,
+): void {
+  if (enemy.type !== 'water_slime' || !world || !isWaterSlimeWaterTile(world, enemy.position.x, enemy.position.y)) return;
+  enemy.waterSurfaceTimer = WATER_SLIME_SURFACE_DURATION;
+  emitWaterSlimeSplash(world, enemy, particleSystem, 1.0);
+}
+
+function beginWaterSlimeDive(
+  world: World | undefined,
+  enemy: Enemy,
+  particleSystem: CombatParticleEmitter | undefined,
+): boolean {
+  if (enemy.type !== 'water_slime' || !world || !isWaterSlimeWaterTile(world, enemy.position.x, enemy.position.y)) return false;
+  enemy.waterDiveTimer = WATER_SLIME_DIVE_DURATION;
+  enemy.waterSurfaceTimer = 0;
+  enemy.waterDiveCooldown = 1.1 + Math.random() * 0.8;
+  emitWaterSlimeSplash(world, enemy, particleSystem, 1.15);
+  return true;
 }
 
 function normalizeMoveVector(x: number, y: number): { x: number; y: number } {
@@ -88,6 +204,7 @@ function tryEnemyMoveVector(
   moveDistance: number,
   r: number,
   usedRecovery: boolean,
+  canMove?: EnemyMovePredicate,
 ): EnemyChaseMoveStep {
   const step = trySlideEnemyMove(
     world,
@@ -96,6 +213,7 @@ function tryEnemyMoveVector(
     ox + vx * moveDistance,
     oy + vy * moveDistance,
     r,
+    canMove,
   );
   return { ...step, usedRecovery: step.moved && usedRecovery };
 }
@@ -111,6 +229,8 @@ function tryEnemyChaseMove(
   if (![vx, vy, moveDistance, r].every(Number.isFinite)) {
     return { x: enemy.position.x, y: enemy.position.y, moved: false, vx: 0, vy: 0, usedRecovery: false };
   }
+  const canMove: EnemyMovePredicate = (fromX, fromY, toX, toY, radius) =>
+    canWaterSlimeMoveTo(world, enemy, fromX, fromY, toX, toY, radius);
 
   // Direct toward player is ALWAYS tried first, even mid-recovery. The old
   // logic deferred direct to last while `pathRecoveryTimer > 0`, which meant
@@ -119,7 +239,7 @@ function tryEnemyChaseMove(
   // If the path is genuinely clear we want to take it immediately and exit
   // recovery mode; if it's blocked, the side candidates below still handle
   // navigation around the obstacle in the preferred direction.
-  const direct = tryEnemyMoveVector(world, enemy.position.x, enemy.position.y, vx, vy, moveDistance, r, false);
+  const direct = tryEnemyMoveVector(world, enemy.position.x, enemy.position.y, vx, vy, moveDistance, r, false, canMove);
   if (direct.moved) return direct;
 
   const preferredSide = enemy.pathRecoverySide || (enemy.visualSeed < 0.5 ? -1 : 1);
@@ -132,9 +252,9 @@ function tryEnemyChaseMove(
     // enemy a diagonal slide along the wall that still drifts toward the
     // player, instead of pure perpendicular movement.
     const blended = normalizeMoveVector(vx * ENEMY_PATH_RECOVERY_BLEND + sideVx, vy * ENEMY_PATH_RECOVERY_BLEND + sideVy);
-    const blendedStep = tryEnemyMoveVector(world, enemy.position.x, enemy.position.y, blended.x, blended.y, moveDistance, r, true);
+    const blendedStep = tryEnemyMoveVector(world, enemy.position.x, enemy.position.y, blended.x, blended.y, moveDistance, r, true, canMove);
     if (blendedStep.moved) return blendedStep;
-    const pureStep = tryEnemyMoveVector(world, enemy.position.x, enemy.position.y, sideVx, sideVy, moveDistance, r, true);
+    const pureStep = tryEnemyMoveVector(world, enemy.position.x, enemy.position.y, sideVx, sideVy, moveDistance, r, true, canMove);
     if (pureStep.moved) return pureStep;
   }
 
@@ -214,16 +334,20 @@ function pickBigEnemyAttackType(
       return 'reaver_rush';
     case 'ridge_revenant':
       if (closeBand) {
-        if (roll < 0.35) return 'revenant_flurry';
-        if (roll < 0.70) return 'revenant_crusher';
-        return 'revenant_rush';
+        if (roll < 0.32) return 'revenant_flurry';
+        if (roll < 0.62) return 'revenant_crusher';
+        if (roll < 0.82) return 'revenant_rush';
+        return 'revenant_bladestorm';
       }
       if (midBand) {
-        if (roll < 0.45) return 'revenant_rush';
-        if (roll < 0.75) return 'revenant_crusher';
-        return 'revenant_flurry';
+        // At mid range the Revenant favors its summoned blade array — you cannot
+        // simply back off to safety; the storm punishes spacing.
+        if (roll < 0.40) return 'revenant_bladestorm';
+        if (roll < 0.70) return 'revenant_rush';
+        return 'revenant_crusher';
       }
-      return 'revenant_rush';
+      // Far band: close the gap with a rush or open with the blade storm.
+      return roll < 0.55 ? 'revenant_bladestorm' : 'revenant_rush';
     default:
       return 'normal';
   }
@@ -343,7 +467,8 @@ export interface Enemy {
     | 'giant_lunge'
     | 'revenant_crusher'
     | 'revenant_rush'
-    | 'revenant_flurry';
+    | 'revenant_flurry'
+    | 'revenant_bladestorm';
   /**
    * When an attack involves a committed dash/lunge during the telegraph,
    * this is the world-space target locked in at telegraph start. Used by
@@ -375,6 +500,16 @@ export interface Enemy {
   pathRecoveryTimer: number;
   /** Preferred side for temporary obstacle recovery. Flips when the chosen side is also hard blocked. */
   pathRecoverySide: -1 | 1;
+  /** Cooldown for amphibious splash particles when crossing water/shore. */
+  waterSplashCooldown: number;
+  /** Last sampled water/shore state for amphibious transition effects. */
+  lastWaterState: boolean | null;
+  /** Seconds remaining while a water slime is hidden below the water surface. */
+  waterDiveTimer: number;
+  /** Seconds remaining in the water-slime pop-out surfacing animation. */
+  waterSurfaceTimer: number;
+  /** Cooldown before the next water-slime dive/reposition cycle. */
+  waterDiveCooldown: number;
 }
 
 function canEnemyMeleeReachPlayer(
@@ -562,6 +697,11 @@ export class CombatSystem {
       stuckFrames: 0,
       pathRecoveryTimer: 0,
       pathRecoverySide: Math.random() < 0.5 ? -1 : 1,
+      waterSplashCooldown: 0,
+      lastWaterState: null,
+      waterDiveTimer: 0,
+      waterSurfaceTimer: 0,
+      waterDiveCooldown: Math.random() * 0.8,
       attackLockedTarget: null,
       sprintBurstTimer: 0,
       sprintCooldown: 0,
@@ -604,12 +744,24 @@ export class CombatSystem {
     world?: World,
     onPhaseChange?: (enemy: Enemy, phase: number) => void,
     stealthDetectionMult: number = 1.0,
-    particleSystem?: { emit(position: THREE.Vector3, count: number, color: number, lifetime: number, speed: number, spread: number): void },
+    particleSystem?: CombatParticleEmitter,
     playPropBreak?: () => void,
     playerIsClimbing: boolean = false,
     playerCombatElevation: number | undefined = undefined,
   ): { parried: boolean; parryEnemyId: string | null } {
     const updateMovementVisuals = (enemy: Enemy, vx: number, vy: number, moving: boolean, cadence: number) => {
+      if (enemy.waterSplashCooldown > 0) {
+        enemy.waterSplashCooldown = Math.max(0, enemy.waterSplashCooldown - deltaTime);
+      }
+      if (world && enemy.behaviorOverrides.splashOnWaterTransition) {
+        const nowWater = isWaterSlimeWaterTile(world, enemy.position.x, enemy.position.y);
+        if (enemy.lastWaterState === null) {
+          enemy.lastWaterState = nowWater;
+        } else if (nowWater !== enemy.lastWaterState) {
+          enemy.lastWaterState = nowWater;
+          emitWaterSlimeSplash(world, enemy, particleSystem, 1.0);
+        }
+      }
       if (moving) {
         enemy.velocity.x = vx;
         enemy.velocity.y = vy;
@@ -638,6 +790,30 @@ export class CombatSystem {
 
       if (enemy.attackWindupLockTimer > 0) {
         enemy.attackWindupLockTimer = Math.max(0, enemy.attackWindupLockTimer - deltaTime);
+      }
+      if (enemy.waterSurfaceTimer > 0) {
+        enemy.waterSurfaceTimer = Math.max(0, enemy.waterSurfaceTimer - deltaTime);
+      }
+      if (enemy.waterDiveCooldown > 0) {
+        enemy.waterDiveCooldown = Math.max(0, enemy.waterDiveCooldown - deltaTime);
+      }
+      if (enemy.type === 'water_slime' && enemy.waterDiveTimer > 0) {
+        enemy.waterDiveTimer = Math.max(0, enemy.waterDiveTimer - deltaTime);
+        updateMovementVisuals(enemy, 0, 0, false, 0);
+        if (enemy.waterDiveTimer <= 0 && world) {
+          const diveTarget = pickWaterSlimeDiveTarget(world, enemy);
+          if (diveTarget) {
+            _tmpOldPos.x = enemy.position.x;
+            _tmpOldPos.y = enemy.position.y;
+            enemy.position.x = diveTarget.x;
+            enemy.position.y = diveTarget.y;
+            this.updateEnemyHash(enemy, _tmpOldPos);
+          }
+          enemy.waterSurfaceTimer = WATER_SLIME_SURFACE_DURATION;
+          enemy.lastWaterState = true;
+          emitWaterSlimeSplash(world, enemy, particleSystem, 1.25);
+        }
+        continue;
       }
       if (enemy.pathRecoveryTimer > 0) {
         enemy.pathRecoveryTimer = Math.max(0, enemy.pathRecoveryTimer - deltaTime);
@@ -786,7 +962,7 @@ export class CombatSystem {
           let py = enemy.patrolOrigin.y + Math.sin(enemy.patrolAngle) * enemy.patrolRadius;
           // Skip patrol targets that land on unwalkable tiles so enemies don't hug cliffs
           // or drift off their authored grass pockets.
-          if (world && !world.canEnemyMoveTo(px, py, px, py, 0.15)) {
+          if (world && !canWaterSlimeMoveTo(world, enemy, px, py, px, py, 0.15)) {
             px = enemy.patrolOrigin.x;
             py = enemy.patrolOrigin.y;
           }
@@ -809,7 +985,15 @@ export class CombatSystem {
               this.updateEnemyHash(enemy, _tmpOldPos);
               updateMovementVisuals(enemy, nvx, nvy, true, 7);
             } else {
-              const step = trySlideEnemyMove(world, enemy.position.x, enemy.position.y, nextX, nextY, 0.15);
+              const step = trySlideEnemyMove(
+                world,
+                enemy.position.x,
+                enemy.position.y,
+                nextX,
+                nextY,
+                0.15,
+                (fromX, fromY, toX, toY, radius) => canWaterSlimeMoveTo(world, enemy, fromX, fromY, toX, toY, radius),
+              );
               if (step.moved) {
                 enemy.position.x = step.x;
                 enemy.position.y = step.y;
@@ -840,12 +1024,23 @@ export class CombatSystem {
           }
 
           const bo = enemy.behaviorOverrides;
+          if (bo.amphibiousWaterLeash) {
+            const shoreLimit = (bo.waterShoreRadius ?? 8) + 2;
+            const hdx = playerPosition.x - enemy.patrolOrigin.x;
+            const hdy = playerPosition.y - enemy.patrolOrigin.y;
+            if (hdx * hdx + hdy * hdy > shoreLimit * shoreLimit) {
+              enemy.state = 'idle';
+              updateMovementVisuals(enemy, 0, 0, false, 0);
+              break;
+            }
+          }
           if (bo.rangedAttack && enemy.attackWindupLockTimer <= 0) {
             const rangedRange = bo.rangedRange ?? 3.0;
             if (distSq > attackRangeSq && distSq <= rangedRange * rangedRange * 4 &&
                 Math.random() < (bo.rangedChance ?? 0.5) * deltaTime * 2) {
               enemy.state = 'telegraphing';
               enemy.telegraphTimer = enemy.telegraphDuration * 0.8;
+              triggerWaterSlimeSurface(world, enemy, particleSystem);
               updateMovementVisuals(enemy, 0, 0, false, 0);
               break;
             }
@@ -869,12 +1064,17 @@ export class CombatSystem {
                   enemy.currentAttackType === 'sentinel_slab' ||
                   enemy.currentAttackType === 'golem_stomp' ||
                   enemy.currentAttackType === 'revenant_crusher' ||
-                  enemy.currentAttackType === 'revenant_rush') {
+                  enemy.currentAttackType === 'revenant_rush' ||
+                  enemy.currentAttackType === 'revenant_bladestorm') {
                 enemy.attackLockedTarget = { x: playerPosition.x, y: playerPosition.y };
                 enemy.state = 'telegraphing';
                 setVariableTelegraph(enemy, enemy.telegraphDuration);
                 if (enemy.currentAttackType === 'revenant_crusher') {
                   enemy.telegraphTimer *= 1.5;
+                } else if (enemy.currentAttackType === 'revenant_bladestorm') {
+                  // A deliberate cast: the array materializes behind the wraith
+                  // before it sweeps its hand to release the storm.
+                  enemy.telegraphTimer *= 1.35;
                 }
                 updateMovementVisuals(enemy, 0, 0, false, 0);
                 break;
@@ -909,6 +1109,8 @@ export class CombatSystem {
               enemy.telegraphTimer *= 1.5;
             } else if (enemy.currentAttackType === 'revenant_flurry') {
               enemy.telegraphTimer *= 0.6;
+            } else if (enemy.currentAttackType === 'revenant_bladestorm') {
+              enemy.telegraphTimer *= 1.35;
             }
             updateMovementVisuals(enemy, 0, 0, false, 0);
             break;
@@ -1035,6 +1237,7 @@ export class CombatSystem {
             const isRevenantCrusher = enemy.currentAttackType === 'revenant_crusher';
             const isRevenantRush = enemy.currentAttackType === 'revenant_rush';
             const isRevenantFlurry = enemy.currentAttackType === 'revenant_flurry';
+            const isRevenantBladestorm = enemy.currentAttackType === 'revenant_bladestorm';
             const rangeMult = isSweep ? 3.0 : 1.69;
             const extAttackRangeSq = attackRangeSq * rangeMult;
 
@@ -1183,6 +1386,39 @@ export class CombatSystem {
                   this.gameState.player.snareSpeedMult = 0.3;
                 }
               }
+            } else if (isRevenantBladestorm) {
+              // Spectral Blade Array — the wraith sweeps its hand and the summoned
+              // blades behind it launch as a wide fan aimed at the player. Each blade
+              // does modest damage; the threat is the spread, which forces a clean
+              // dodge or a parry of an individual blade. Parried blades reflect.
+              const aimOrigin = enemy.attackLockedTarget ?? playerPosition;
+              const bdx = aimOrigin.x - enemy.position.x;
+              const bdy = aimOrigin.y - enemy.position.y;
+              const baseAngle = Math.atan2(bdy, bdx);
+              const bladeCount = 7;
+              const fanSpread = (70 * Math.PI) / 180;
+              const bladeSpeed = 7.5;
+              const bladeDamage = Math.max(8, Math.floor(enemy.damage * 0.5));
+              for (let b = 0; b < bladeCount; b++) {
+                const offset = -fanSpread / 2 + (fanSpread * b) / (bladeCount - 1);
+                const angle = baseAngle + offset;
+                // Slight per-blade speed variance so the fan arrives as a ripple
+                // rather than a single flat wall.
+                const speed = bladeSpeed * (0.9 + 0.06 * (b % 3));
+                const blade = this.spawnProjectile({
+                  position: { x: enemy.position.x, y: enemy.position.y },
+                  velocity: { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
+                  damage: bladeDamage,
+                  sprite: 'projectile_spectral_blade',
+                  lifetime: 1.7,
+                  sourceEnemyId: enemy.id,
+                  hitRadius: 0.34,
+                  spinRate: 0,
+                });
+                // The blade sprite points along +X; lock its rotation to the travel
+                // angle so the tip always leads (spinRate 0 keeps it fixed).
+                blade.rotation = angle;
+              }
             } else if (isRevenantFlurry) {
               const flurryReach = enemy.attackRange * 1.35;
               const flurryReachSq = flurryReach * flurryReach;
@@ -1228,14 +1464,31 @@ export class CombatSystem {
               const dyP = playerPosition.y - enemy.position.y;
               const lenP = Math.hypot(dxP, dyP) || 1;
               const speed = eBo.rangedProjectileSpeed ?? 6.0;
-              this.spawnProjectile({
-                position: { x: enemy.position.x, y: enemy.position.y },
-                velocity: { x: (dxP / lenP) * speed, y: (dyP / lenP) * speed },
-                damage: enemy.damage,
-                sprite: eBo.rangedProjectileSprite ?? 'projectile_scythe',
-                lifetime: eBo.rangedProjectileLifetime ?? 1.4,
-                sourceEnemyId: enemy.id,
-              });
+              const projectileSprite = eBo.rangedProjectileSprite ?? 'projectile_scythe';
+              // Fan a volley of N blades centered on the aim direction (Bladestorm). A single
+              // shot (count<=1) keeps the original straight-line behavior.
+              const volleyCount = Math.max(1, eBo.rangedVolleyCount ?? 1);
+              const baseAngle = Math.atan2(dyP, dxP);
+              const spread = ((eBo.rangedVolleySpreadDeg ?? 0) * Math.PI) / 180;
+              for (let v = 0; v < volleyCount; v++) {
+                const offset = volleyCount > 1
+                  ? -spread / 2 + (spread * v) / (volleyCount - 1)
+                  : 0;
+                const angle = baseAngle + offset;
+                this.spawnProjectile({
+                  position: { x: enemy.position.x, y: enemy.position.y },
+                  velocity: { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
+                  damage: enemy.damage,
+                  sprite: projectileSprite,
+                  lifetime: eBo.rangedProjectileLifetime ?? 1.4,
+                  sourceEnemyId: enemy.id,
+                  hitRadius: projectileSprite === 'projectile_shell' ? 0.32 : undefined,
+                  spinRate: projectileSprite === 'projectile_shell' ? 8 : undefined,
+                });
+              }
+              if (enemy.type === 'water_slime' && world && isWaterSlimeWaterTile(world, enemy.position.x, enemy.position.y)) {
+                enemy.waterDiveCooldown = Math.min(enemy.waterDiveCooldown, 0.05);
+              }
             } else if (enemy.factionTarget && enemy.factionTarget.state !== 'dead') {
               const ftDx = enemy.factionTarget.position.x - enemy.position.x;
               const ftDy = enemy.factionTarget.position.y - enemy.position.y;
@@ -1285,6 +1538,10 @@ export class CombatSystem {
           updateMovementVisuals(enemy, 0, 0, false, 0);
           if (enemy.recoverTimer <= 0) {
             const bo = enemy.behaviorOverrides;
+
+            if (enemy.type === 'water_slime' && enemy.waterDiveCooldown <= 0 && beginWaterSlimeDive(world, enemy, particleSystem)) {
+              break;
+            }
 
             if (enemy.type === 'hollow_guardian') {
               if (enemy.comboHitsRemaining > 0 && distSq <= attackRangeSq * 2.75) {
@@ -1686,7 +1943,11 @@ export class CombatSystem {
     targetEnemy: Enemy,
     damage: number,
     playerPosition?: { x: number; y: number },
-    playerDirection?: string
+    playerDirection?: string,
+    /** Fraction of damage applied to poise (default 1.0). Pass <1 for hits that should
+     *  deal full HP damage but only graze poise — e.g. the scythe arc wave, which should
+     *  wound enemies without CC-locking everything it touches. */
+    poiseMult: number = 1.0,
   ): AttackResult {
     if (targetEnemy.state === 'dead') {
       return { killed: false, staggered: false, backstab: false };
@@ -1732,7 +1993,7 @@ export class CombatSystem {
       finalDamage = Math.floor(damage * 2);
     }
 
-    targetEnemy.poise -= finalDamage;
+    targetEnemy.poise -= Math.floor(finalDamage * poiseMult);
     if (targetEnemy.poise <= 0 && targetEnemy.state !== 'staggered') {
       if (targetEnemy.behaviorOverrides.poiseImmunityFirstHit && !targetEnemy.poiseImmunityUsed) {
         targetEnemy.poiseImmunityUsed = true;
@@ -2035,8 +2296,8 @@ export class CombatSystem {
       const nextX = p.position.x + p.velocity.x * deltaTime;
       const nextY = p.position.y + p.velocity.y * deltaTime;
 
-      // Wall collision — fizzle if the tile is not walkable.
-      if (world && !world.canMoveTo(p.position.x, p.position.y, nextX, nextY, 0.05)) {
+      // Wall collision — fizzle if the terrain cannot carry this projectile.
+      if (world && !this.canProjectileMoveTo(world, p, nextX, nextY)) {
         p.alive = false;
         continue;
       }
@@ -2081,6 +2342,17 @@ export class CombatSystem {
     return parryEvent;
   }
 
+  private canProjectileMoveTo(world: World, projectile: Projectile, nextX: number, nextY: number): boolean {
+    if (projectile.sprite !== 'projectile_shell') {
+      return world.canMoveTo(projectile.position.x, projectile.position.y, nextX, nextY, 0.05);
+    }
+
+    const tile = world.getTile(nextX, nextY);
+    if (!tile) return false;
+    if (tile.transition) return true;
+    return tile.walkable || SHELL_PROJECTILE_PASSABLE_TILE_TYPES.has(tile.type);
+  }
+
   private applyProjectileHit(
     projectile: Projectile,
     isBlocking: boolean,
@@ -2089,7 +2361,6 @@ export class CombatSystem {
   ): { outcome: 'hit' | 'blocked' | 'reflected'; parried: boolean } {
     const player = this.gameState.player;
     const isParry = isBlocking && (now - blockStartTime) < PARRY_WINDOW;
-    const suppressBlockFlash = projectile.sprite === 'projectile_scythe';
 
     if (isParry) {
       // Parry deflects the projectile cleanly — short i-frames, no damage.
@@ -2104,13 +2375,7 @@ export class CombatSystem {
       if (player.stamina <= 0) {
         player.stamina = 0;
         player.guardBrokenTimer = 1.2;
-        if (!suppressBlockFlash) {
-          player.damageFlashTimer = 0.6;
-        }
         return { outcome: 'blocked', parried: false };
-      }
-      if (!suppressBlockFlash) {
-        player.damageFlashTimer = 0.18;
       }
       return { outcome: 'blocked', parried: false };
     }
@@ -2153,15 +2418,23 @@ export class CombatSystem {
     return dx * dx + dy * dy <= reach * reach ? target : undefined;
   }
 
+  private getReflectedProjectileDamage(projectile: Projectile): number {
+    if (projectile.sprite === 'projectile_shell') {
+      return Math.max(Math.round(projectile.damage * 4), 32);
+    }
+    return Math.max(Math.round(projectile.damage * 3), 40);
+  }
+
   private applyReflectedProjectileHit(projectile: Projectile, target: Enemy): void {
-    target.poise -= projectile.damage;
+    const reflectedDamage = this.getReflectedProjectileDamage(projectile);
+    target.poise -= reflectedDamage;
     if (target.poise <= 0 && target.state !== 'staggered') {
       target.state = 'staggered';
       target.staggerTimer = target.staggerDuration;
       target.damageFlashTimer = target.staggerDuration;
     }
 
-    target.health = Math.max(0, target.health - projectile.damage);
+    target.health = Math.max(0, target.health - reflectedDamage);
     target.damageFlashTimer = Math.max(target.damageFlashTimer, 0.3);
     target.poiseRegenTimer = 0;
     target.playerAggroed = true;

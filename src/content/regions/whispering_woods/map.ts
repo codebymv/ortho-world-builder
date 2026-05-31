@@ -916,7 +916,6 @@ export const forestDef: MapDefinition = {
   ],
   portals: [
     { x: 150, y: 291, targetMap: 'village', targetX: 120, targetY: 8 },
-    { x: 3, y: 150, targetMap: 'village', targetX: 235, targetY: 80 },
   ],
   chests: [
     // Shifted east: Hollow river west seal (x???28???91, y???64???79) covers old spot.
@@ -946,6 +945,8 @@ export const forestDef: MapDefinition = {
     { x: 58, y: 268, interactionId: 'enchanted_chest_3' },
     { x: 208, y: 66, interactionId: 'fort_chest_2' },
     { x: 68, y: 196, interactionId: 'fort_chest_3' },
+    // West Fort boss reward — inside the dual-gated fort, guarding by the Ridge Revenant.
+    { x: 19, y: 147, interactionId: 'west_fort_chest' },
     { x: 111, y: 220, interactionId: 'forest_river_chest' },
     { x: 218, y: 183, interactionId: 'golem_arena_chest' },
     // Hidden chest behind waterfall
@@ -970,6 +971,8 @@ export const forestDef: MapDefinition = {
     { x: 123, y: 285, interactionId: 'forest_south_entry_chest' },
     // Rocky-shore sand divide ? west of fence at world (-45, 97).
     { x: 105, y: 247, interactionId: 'forest_shore_divide_chest' },
+    // North fort approach ??? Wayfarer Ring (special chest) at world (-63, 99).
+    { x: 87, y: 249, interactionId: 'north_fort_wayfarer_ring_chest' },
     // Broken west lake bridge reward at world (46,109), default Ephemeral Extract.
     { x: 196, y: 259, interactionId: 'broken_west_lake_bridge_chest' },
   ],
@@ -1113,6 +1116,10 @@ export const forestDef: MapDefinition = {
     { x: 244, y: 172, type: 'grass', walkable: true },
     // Clear a procedural tree on the NE fortress ridge plateau at world (83,-33).
     { x: 233, y: 117, type: 'grass', walkable: true },
+    // Clear the procedural trees pinching the east-side detour lane around the observatory
+    // tower (x:222,y:91) so the player can skirt its east edge down to the compound entrance.
+    { x: 226, y: 86, type: 'grass', walkable: true },
+    { x: 226, y: 89, type: 'grass', walkable: true },
     // Hollow approach and shortcut hints are atmosphere, not direct interactables.
     { x: 120, y: 26, type: 'campfire_remains', walkable: false },
     { x: 124, y: 28, type: 'bloodstain', walkable: true },
@@ -2016,6 +2023,11 @@ export const forestDef: MapDefinition = {
     // East Ridge Ascent summit — lone Ridge Revenant (bound reaper, evolved Hollow Reaver)
     // guarding the Tempered Core on the highest cliff tier (world ~110,-8).
     { x: 260, y: 142, width: 1, height: 1, enemyType: 'ridge_revenant', count: 1 },
+    // West Fort interior — a second Ridge Revenant mirrors the east-side challenge at this
+    // latitude, turning the dual-gated fort into a real boss room. NOTE: the Tempered Core
+    // is scoped to east-side revenants only (see RuntimeCombatActions), so this one is a
+    // tough fight + chest reward, not a duplicate Core source.
+    { x: 16, y: 145, width: 6, height: 6, enemyType: 'ridge_revenant', count: 1 },
 
     // West ??? hidden grove plants
     { x: 18, y: 124, width: 22, height: 18, enemyType: 'plant', count: 5 },
@@ -2109,8 +2121,12 @@ export const forestDef: MapDefinition = {
     // Logging camp ??? wolves prowl the cleared area
     { x: 162, y: 234, width: 18, height: 12, enemyType: 'wolf', count: 3 },
     // Collapsed cottage spiders removed — east void consolidated into Consumed Ridge Camp POI.
-    // South creek crossing ??? slimes in the water margin
-    { x: 110, y: 270, width: 30, height: 6, enemyType: 'slime', count: 3 },
+    // Hollow-side bridge water stretch around world (-51,64): first water-slime test pocket,
+    // safely below the y=105 cutoff and away from the start portal river.
+    { x: 88, y: 208, width: 30, height: 18, enemyType: 'water_slime', count: 2 },
+    // Southern lake connector just below world y=105. Spawns prefer water, with shore fallback
+    // only if the local generated water shape leaves no valid water tile in the zone.
+    { x: 180, y: 244, width: 24, height: 12, enemyType: 'water_slime', count: 2 },
     // Ruined shrine ??? shadows guard the ancient stones
     { x: 76, y: 276, width: 14, height: 12, enemyType: 'shadow', count: 2 },
     // SW corner golem den ? punishes players who stray deep into the south-west forest early.

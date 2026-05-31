@@ -16,6 +16,18 @@ export interface EnemyBehaviorOverrides {
   rangedProjectileSprite?: string;
   /** Maximum lifetime (seconds) before the projectile fizzles out. */
   rangedProjectileLifetime?: number;
+  /** Number of projectiles released per ranged attack (a fanned volley). Default 1. */
+  rangedVolleyCount?: number;
+  /** Total angular spread (degrees) of the volley fan, centered on the player. Default 0. */
+  rangedVolleySpreadDeg?: number;
+  /** Allows this enemy to stand in water and make short shore hops around its patrol origin. */
+  amphibiousWaterLeash?: boolean;
+  /** Maximum distance from patrol origin while in water or on nearby shore. */
+  waterLeashRadius?: number;
+  /** Maximum distance from patrol origin for walkable shore tiles. */
+  waterShoreRadius?: number;
+  /** Runtime visuals may emit small splashes when crossing water/shore boundaries. */
+  splashOnWaterTransition?: boolean;
   snareOnHit?: boolean;
   snareDuration?: number;
   snareSpeedMult?: number;
@@ -354,6 +366,34 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 38,
     staggerDuration: 1.0,
     essenceReward: 30,
+  },
+  water_slime: {
+    type: 'water_slime',
+    name: 'Water Slime',
+    hp: 60,
+    damage: 8,
+    sprite: 'enemy_water_slime',
+    speed: 0.028,
+    attackRange: 1.1,
+    chaseRange: 5.5,
+    telegraphDuration: 1.05,
+    recoverDuration: 0.85,
+    poise: 38,
+    staggerDuration: 1.0,
+    essenceReward: 32,
+    behaviorOverrides: {
+      rangedAttack: true,
+      rangedRange: 3.25,
+      rangedChance: 0.65,
+      rangedProjectile: true,
+      rangedProjectileSpeed: 4.8,
+      rangedProjectileSprite: 'projectile_shell',
+      rangedProjectileLifetime: 1.5,
+      amphibiousWaterLeash: true,
+      waterLeashRadius: 10,
+      waterShoreRadius: 8,
+      splashOnWaterTransition: true,
+    },
   },
   corrupted_giant: {
     type: 'corrupted_giant',

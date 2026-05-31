@@ -63,10 +63,12 @@ export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
   armored_wolf: { baseScale: 1.34, footOffset: 0.2, strideAmp: 0.045, bobAmp: 0.04, squashAmp: 0.06, leanAmp: 0.07, hpBarOffset: 0.68 },
   stone_sentinel: { baseScale: 2.0, footOffset: 0.3, strideAmp: 0.026, bobAmp: 0.038, squashAmp: 0.045, leanAmp: 0.026, hpBarOffset: 1.0 },
   slime: { baseScale: 1.18, footOffset: 0.12, strideAmp: 0.02, bobAmp: 0.035, squashAmp: 0.12, leanAmp: 0.02, hpBarOffset: 0.58 },
+  water_slime: { baseScale: 1.14, footOffset: 0.1, strideAmp: 0.018, bobAmp: 0.03, squashAmp: 0.14, leanAmp: 0.018, hpBarOffset: 0.56 },
   hollow_guardian: { baseScale: 2.6, footOffset: 0.22, strideAmp: 0.012, bobAmp: 0.04, squashAmp: 0.03, leanAmp: 0.02, hpBarOffset: 1.35 },
   ashen_reaver: { baseScale: 2.8, footOffset: 0.24, strideAmp: 0.015, bobAmp: 0.035, squashAmp: 0.025, leanAmp: 0.02, hpBarOffset: 1.45 },
   corrupted_giant: { baseScale: 2.6, footOffset: 0.42, strideAmp: 0.026, bobAmp: 0.04, squashAmp: 0.05, leanAmp: 0.025, hpBarOffset: 1.35 },
-  ridge_revenant: { baseScale: 2.2, footOffset: 0.22, strideAmp: 0.014, bobAmp: 0.03, squashAmp: 0.025, leanAmp: 0.018, hpBarOffset: 1.2 },
+  // Floating wraith: minimal stride/squash (no footsteps), a gentle hover bob, slight lean.
+  ridge_revenant: { baseScale: 2.2, footOffset: 0.22, strideAmp: 0.004, bobAmp: 0.05, squashAmp: 0, leanAmp: 0.01, hpBarOffset: 1.2 },
 };
 
 export function createDefaultNpcData(): NPC[] {

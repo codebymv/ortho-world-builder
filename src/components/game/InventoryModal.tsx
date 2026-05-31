@@ -28,9 +28,15 @@ function formatRecoverySpeedBonus(mult?: number): string | null {
   return `+${Math.round((mult - 1) * 100)}% recovery speed`;
 }
 
+function formatMovementSpeedBonus(mult?: number): string | null {
+  if (!mult || mult <= 1) return null;
+  return `+${Math.round((mult - 1) * 100)}% movement speed`;
+}
+
 function formatRingBonus(item: Item): string | null {
   return formatStaminaRegenBonus(item.stats?.staminaRegenMult)
-    ?? formatRecoverySpeedBonus(item.stats?.recoverySpeedMult);
+    ?? formatRecoverySpeedBonus(item.stats?.recoverySpeedMult)
+    ?? formatMovementSpeedBonus(item.stats?.moveSpeedMult);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -391,7 +397,7 @@ export const InventoryModal = memo(function InventoryModal({
         <DialogTitle className="sr-only">Inventory</DialogTitle>
 
         {/* ── Header ── */}
-        <div className="flex flex-shrink-0 items-end justify-between gap-2 border-b border-[#5C3A21]/60 px-5 py-3">
+        <div className="flex flex-shrink-0 items-end justify-between gap-2 border-b border-[#5C3A21]/60 px-5 py-3 pr-12">
           <div>
             <h2 className="font-bold uppercase tracking-[0.2em] text-[#DAA520] flex items-center gap-2">
               <Package className="w-5 h-5" />

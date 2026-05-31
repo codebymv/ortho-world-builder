@@ -14,6 +14,11 @@ import { createRuntimeSfx } from '@/game/runtime/RuntimeSfx';
 import { createBonfireRestAction } from '@/game/runtime/RuntimeRestFlow';
 import { createPerformDodgeAction } from '@/game/runtime/RuntimePlayerActions';
 import { scheduleCameraPan } from '@/game/runtime/RuntimePlayerFrame';
+import {
+  FIND_HUNTER_INDEX,
+  FIND_HUNTER_MANUSCRIPT_OBJECTIVE,
+  tryCompleteFindHunterQuest,
+} from '@/lib/game/findHunterProgression';
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
 import { createRuntimeCombatActions } from '@/game/runtime/RuntimeCombatActions';
 import { createRuntimeDialogueFlow } from '@/game/runtime/RuntimeDialogueFlow';
@@ -379,8 +384,9 @@ export function setupRuntimeActionPhase({
         state.setFlag('hunters_manuscript_collected', true);
         const q = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
         if (q) {
-          markObjectiveDone(q, 5, 'Recover the complete manuscript');
+          markObjectiveDone(q, FIND_HUNTER_INDEX.manuscript, FIND_HUNTER_MANUSCRIPT_OBJECTIVE);
           addMarkersFromText('Village Elder', 'village');
+          tryCompleteFindHunterQuest(state, notify);
           triggerUIUpdate();
         }
       } else if (itemId === 'wolf_ring') {

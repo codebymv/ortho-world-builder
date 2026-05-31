@@ -5,10 +5,13 @@ import type { WorldMap } from '@/lib/game/World';
 import { dialogues } from '@/data/dialogues';
 import { mapDefinitions } from '@/data/maps';
 import { ENEMY_BLUEPRINTS, DEFAULT_ENEMY } from '@/data/enemies';
+import type { EnemyBlueprint } from '@/data/enemies';
 import type { Item } from '@/lib/game/GameState';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
 
 export const SPAWN_BODY_R = 0.3;
+const WATER_SLIME_MAX_TILE_Y = 255;
+const WATER_SLIME_SPAWN_TILES = new Set(['water', 'water_corrupted', 'waterfall']);
 
 export function getMapDisplayName(mapId: string): string {
   return mapDefinitions[mapId]?.name ?? mapId.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
@@ -133,7 +136,12 @@ function pickEnemySpawnInZone(
   world: World,
   index: number,
   total: number,
+  blueprint?: EnemyBlueprint,
 ): { x: number; y: number } | null {
+  if (blueprint?.behaviorOverrides?.amphibiousWaterLeash) {
+    return pickWaterSlimeSpawnInZone(zone, mapWorld, world);
+  }
+
   const cols = Math.max(1, Math.min(Math.floor(zone.width), Math.ceil(Math.sqrt(total))));
   const rows = Math.max(1, Math.ceil(total / cols));
   const subW = zone.width / cols;
@@ -153,6 +161,47 @@ function pickEnemySpawnInZone(
     if (world.canEnemyMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)) return { x: ex, y: ey };
   }
   return null;
+}
+
+function tileToWorldCenter(mapWorld: WorldMap, tileX: number, tileY: number): { x: number; y: number } {
+  return {
+    x: tileX - mapWorld.width / 2 + 0.5,
+    y: tileY - mapWorld.height / 2 + 0.5,
+  };
+}
+
+function pickWaterSlimeSpawnInZone(
+  zone: { x: number; y: number; width: number; height: number },
+  mapWorld: WorldMap,
+  world: World,
+): { x: number; y: number } | null {
+  if (zone.y > WATER_SLIME_MAX_TILE_Y) return null;
+
+  const minX = Math.max(0, Math.floor(zone.x));
+  const maxX = Math.min(mapWorld.width - 1, Math.ceil(zone.x + zone.width) - 1);
+  const minY = Math.max(0, Math.floor(zone.y));
+  const maxY = Math.min(WATER_SLIME_MAX_TILE_Y, mapWorld.height - 1, Math.ceil(zone.y + zone.height) - 1);
+  const waterCandidates: Array<{ x: number; y: number }> = [];
+  const shoreCandidates: Array<{ x: number; y: number }> = [];
+
+  for (let ty = minY; ty <= maxY; ty++) {
+    const row = mapWorld.tiles[ty];
+    if (!row) continue;
+    for (let tx = minX; tx <= maxX; tx++) {
+      const tile = row[tx];
+      if (!tile) continue;
+      const pos = tileToWorldCenter(mapWorld, tx, ty);
+      if (WATER_SLIME_SPAWN_TILES.has(tile.type)) {
+        waterCandidates.push(pos);
+      } else if (world.canEnemyMoveTo(pos.x, pos.y, pos.x, pos.y, SPAWN_BODY_R)) {
+        shoreCandidates.push(pos);
+      }
+    }
+  }
+
+  const candidates = waterCandidates.length > 0 ? waterCandidates : shoreCandidates;
+  if (candidates.length === 0) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 export function resolveSafeTransitionPosition(
@@ -200,7 +249,7 @@ export function spawnEnemiesFromMapZones(
     for (let i = 0; i < zone.count; i++) {
       const zoneId = `${mapKey}:z${zoneIdx}:${i}`;
       if (killedIds.has(zoneId)) continue;
-      const pos = pickEnemySpawnInZone(zone, mapWorld, world, i, zone.count);
+      const pos = pickEnemySpawnInZone(zone, mapWorld, world, i, zone.count, blueprint);
       if (!pos) continue;
       combatSystem.spawnEnemy(
         blueprint.name,

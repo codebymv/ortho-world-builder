@@ -27,6 +27,12 @@ describe('GameState ring equipment', () => {
     expect(state.getRecoverySpeedMultiplier()).toBeCloseTo(1.22);
   });
 
+  it('applies movement speed multiplier from equipped wayfarer ring', () => {
+    state.addItem({ ...items.wayfarer_ring });
+    state.equipRing('wayfarer_ring', 0);
+    expect(state.getMovementSpeedMultiplier()).toBeCloseTo(1.15);
+  });
+
   it('combines stamina and recovery bonuses from two different rings', () => {
     state.addItem({ ...items.gravebound_ring });
     state.addItem({ ...items.wolf_ring });

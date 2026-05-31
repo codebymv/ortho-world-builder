@@ -712,7 +712,7 @@ export function updatePlayerSimulation({
     const baseSpeed = wantsSprint ? state.player.sprintSpeed : state.player.speed;
     const climbAdjusted = state.player.isClimbing ? baseSpeed * CLIMB_SPEED_MULT : baseSpeed;
     const snareAdjusted = state.player.snareTimer > 0 ? climbAdjusted * state.player.snareSpeedMult : climbAdjusted;
-    const currentSpeed = snareAdjusted * state.player.berserkerSpeedMult;
+    const currentSpeed = snareAdjusted * state.player.berserkerSpeedMult * state.getMovementSpeedMultiplier();
 
     if (wantsSprint) {
       state.player.stamina = Math.max(0, state.player.stamina - 16 * deltaTime);

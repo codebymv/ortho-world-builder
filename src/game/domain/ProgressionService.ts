@@ -38,6 +38,7 @@ interface ProgressionServiceContext {
   triggerMinimapUpdate: (reset: boolean) => void;
   syncVillageReactivity?: () => void;
   syncBlightedRootState?: () => void;
+  syncRangerWolfRingChestState?: () => void;
   syncManuscriptCheckpointGateState?: () => void;
 }
 
@@ -283,6 +284,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
         shouldSave = true;
         context.triggerUIUpdate();
         context.triggerMinimapUpdate(true);
+        context.syncRangerWolfRingChestState?.();
       }
     }
 

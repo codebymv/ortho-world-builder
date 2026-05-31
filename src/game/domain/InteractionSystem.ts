@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { isRingRewardChestInteractionId } from '@/data/specialChests';
 import type { GameState, Item } from '@/lib/game/GameState';
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
 
@@ -26,6 +27,8 @@ interface InteractionSystemContext {
   triggerUIUpdate: () => void;
   performBonfireRest: (tileX: number, tileY: number) => void;
   syncOpenedChestState: () => void;
+  syncRangerWolfRingChestState?: () => void;
+  triggerMinimapUpdate?: (reset: boolean) => void;
   syncHarvestedTempestGrassState: () => void;
   syncHarvestedMoonbloomState: () => void;
   getInteractionCooldown: (interactionId: string) => number;
@@ -144,9 +147,66 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  const tryHandleRingRewardChest = (interactionId: string, px: number, py: number): boolean => {
+    if (!isRingRewardChestInteractionId(interactionId)) return false;
+    if (interactionId === 'ranger_wolf_ring_chest' && !context.state.getFlag('olwen_ranger_cabin_hint')) {
+      return false;
+    }
+    if (context.state.getFlag(`${interactionId}_opened`)) return false;
+
+    const ringItem =
+      interactionId === 'hunter_cliff_shelf_chest'
+        ? context.items.gravebound_ring
+        : interactionId === 'ranger_wolf_ring_chest'
+          ? context.items.wolf_ring
+          : interactionId === 'north_fort_wayfarer_ring_chest'
+            ? context.items.wayfarer_ring
+            : undefined;
+    if (!ringItem) return false;
+
+    context.playChestUnlock();
+    context.state.addItem({ ...ringItem });
+
+    if (interactionId === 'hunter_cliff_shelf_chest') {
+      context.state.setFlag('gravebound_ring_received', true);
+    } else if (interactionId === 'ranger_wolf_ring_chest') {
+      context.state.setFlag('wolf_ring_received', true);
+    } else {
+      context.state.setFlag('wayfarer_ring_received', true);
+    }
+
+    let description = `Found ${ringItem.name}.`;
+    if (context.state.tryAutoEquipRing(ringItem.id)) {
+      description =
+        interactionId === 'hunter_cliff_shelf_chest'
+          ? 'Gravebound Ring equipped (+22% stamina recovery).'
+          : interactionId === 'ranger_wolf_ring_chest'
+            ? 'Wolf Ring equipped (faster hit recovery).'
+            : 'Wayfarer Ring equipped (+15% movement speed).';
+    }
+
+    context.state.setFlag(`${interactionId}_opened`, true);
+    context.syncOpenedChestState();
+    context.syncRangerWolfRingChestState?.();
+    context.emitSparkles(new THREE.Vector3(px, py, 0.3));
+    context.notify('Special Chest Opened!', {
+      id: 'ring-chest-open',
+      type: 'success',
+      description,
+      duration: 3200,
+    });
+    context.triggerUIUpdate();
+    if (interactionId === 'ranger_wolf_ring_chest') {
+      context.triggerMinimapUpdate?.(true);
+      context.triggerSave();
+    }
+    return true;
+  };
+
   const tryHandleChestOpen = (interactionId: string, px: number, py: number): boolean => {
     if (!interactionId.includes('chest')) return false;
     if (context.state.getFlag(`${interactionId}_opened`)) return false;
+    if (tryHandleRingRewardChest(interactionId, px, py)) return true;
 
     context.playChestUnlock();
 
@@ -183,6 +243,8 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       // In front of the hollow corridor gate — "you'll need this" before the Hollow proper.
       hollow_gate_chest: 'last_breath_charm',
       cliff_corridor_chest: 'last_breath_charm',
+      // Reward for besting the western fort's Ridge Revenant.
+      west_fort_chest: 'last_breath_charm',
     };
     // Chests that yield multiple Ephemeral Extracts instead of the usual single one.
     const TRIPLE_EXTRACT_CHESTS = new Set(['start_extract_chest']);
@@ -213,14 +275,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     } else if (interactionId === 'forest_river_chest' && context.items.ornamental_broadsword) {
       context.state.addItem({ ...context.items.ornamental_broadsword });
       bonusDescription = ' and an Ornamental Broadsword';
-    } else if (interactionId === 'hunter_cliff_shelf_chest' && context.items.gravebound_ring) {
-      context.state.addItem({ ...context.items.gravebound_ring });
-      context.state.setFlag('gravebound_ring_received', true);
-      if (context.state.tryAutoEquipRing('gravebound_ring')) {
-        bonusDescription = ' and a Gravebound Ring (equipped — +22% stamina recovery)';
-      } else {
-        bonusDescription = ' and a Gravebound Ring';
-      }
     } else if (
       interactionId === 'hollow_terminus_chest' &&
       context.items.terminus_scythe

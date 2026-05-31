@@ -5,6 +5,11 @@ import type { GameState } from '@/lib/game/GameState';
 import type { ArcWaveState } from '@/game/runtime/PlayerSimulationSystem';
 import { breakTilesInRadius, type BreakableWorld } from '@/game/runtime/BreakableProps';
 import { damageHeresyAltarsInRadius } from '@/game/runtime/HeresyAltars';
+import {
+  FIND_HUNTER_BOSS_OBJECTIVE,
+  FIND_HUNTER_INDEX,
+  tryCompleteFindHunterQuest,
+} from '@/lib/game/findHunterProgression';
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
 import { revealAllTilesForMap } from '@/lib/game/visitedTiles';
 import { getStaggerDamageMultiplier } from '@/data/balance';
@@ -263,7 +268,8 @@ export function createRuntimeCombatActions({
         state.setFlag('hollow_guardian_defeated', true);
         const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
         if (hunterQuest) {
-          markObjectiveDone(hunterQuest, 4, 'Defeat the Hollow Apparition');
+          markObjectiveDone(hunterQuest, FIND_HUNTER_INDEX.boss, FIND_HUNTER_BOSS_OBJECTIVE);
+          tryCompleteFindHunterQuest(state, notify);
         }
         state.worldItems.push({
           instanceId: `heretical_essence_apparition_${state.currentMap}_${Math.round(enemy.position.x)}_${Math.round(enemy.position.y)}`,
@@ -307,20 +313,27 @@ export function createRuntimeCombatActions({
         }
       }
       if (enemy.type === 'ridge_revenant') {
-        const remaining = combatSystem.getAllEnemies().filter(
-          e => e.type === 'ridge_revenant' && e.state !== 'dead' && e.id !== enemy.id,
-        ).length;
-        if (remaining === 0) {
-          state.setFlag('ridge_revenant_defeated', true);
-          state.worldItems.push({
-            instanceId: `tempered_core_${state.currentMap}_${Math.round(enemy.position.x)}_${Math.round(enemy.position.y)}`,
-            itemId: 'tempered_core',
-            mapId: state.currentMap,
-            x: enemy.position.x + 0.5,
-            y: enemy.position.y - 0.5,
-          });
-          screenShake.shake(0.55, 0.45);
-          particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.45, 35, 0xFF6F00, 0.12, 2.0, 1.4);
+        // The Tempered Core is the EAST RIDGE encounter's exclusive reward. Scope the drop and
+        // the completion flag to east-half revenants (world x > 0; the forest map is 300 wide so
+        // world x = tileX - 150). Other ridge revenants on the map — e.g. the one guarding the
+        // western fort — are tough fights that neither gate nor duplicate the Core.
+        const isEastRidgeRevenant = enemy.position.x > 0;
+        if (isEastRidgeRevenant) {
+          const remaining = combatSystem.getAllEnemies().filter(
+            e => e.type === 'ridge_revenant' && e.state !== 'dead' && e.id !== enemy.id && e.position.x > 0,
+          ).length;
+          if (remaining === 0) {
+            state.setFlag('ridge_revenant_defeated', true);
+            state.worldItems.push({
+              instanceId: `tempered_core_${state.currentMap}_${Math.round(enemy.position.x)}_${Math.round(enemy.position.y)}`,
+              itemId: 'tempered_core',
+              mapId: state.currentMap,
+              x: enemy.position.x + 0.5,
+              y: enemy.position.y - 0.5,
+            });
+            screenShake.shake(0.55, 0.45);
+            particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.45, 35, 0xFF6F00, 0.12, 2.0, 1.4);
+          }
         }
       }
     }

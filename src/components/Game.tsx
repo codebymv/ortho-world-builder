@@ -164,6 +164,7 @@ const Game = () => {
   const interactionContentRef = useRef<LoadedInteractionContent | null>(null);
   const syncVillageReactivityRef = useRef<(() => void) | null>(null);
   const syncBlightedRootStateRef = useRef<(() => void) | null>(null);
+  const syncRangerWolfRingChestStateRef = useRef<(() => void) | null>(null);
   const syncManuscriptCheckpointGateStateRef = useRef<(() => void) | null>(null);
   const playPotionDrinkRef = useRef<(() => void) | null>(null);
   const playGrassChewRef = useRef<(() => void) | null>(null);
@@ -534,6 +535,9 @@ const Game = () => {
       syncBlightedRootState: () => {
         syncBlightedRootStateRef.current?.();
       },
+      syncRangerWolfRingChestState: () => {
+        syncRangerWolfRingChestStateRef.current?.();
+      },
       syncManuscriptCheckpointGateState: () => {
         syncManuscriptCheckpointGateStateRef.current?.();
       },
@@ -774,6 +778,7 @@ const Game = () => {
     activeNpcWorldPos,
     syncVillageReactivityRef,
     syncBlightedRootStateRef,
+    syncRangerWolfRingChestStateRef,
     syncManuscriptCheckpointGateStateRef,
     playPotionDrinkRef,
     playGrassChewRef,
@@ -1165,13 +1170,24 @@ const Game = () => {
         canEquipActive={
           !!gameState &&
           !!acquiredItemQueue[0] &&
-          acquiredItemQueue[0].type === 'equipment' &&
-          gameState.isWeaponInLoadout(acquiredItemQueue[0].id)
+          (acquiredItemQueue[0].type === 'equipment'
+            ? gameState.isWeaponInLoadout(acquiredItemQueue[0].id)
+            : acquiredItemQueue[0].type === 'ring'
+              ? gameState.findEmptyRingSlot() !== null
+              : false)
         }
         assetManager={assetManagerRef.current}
-        onEquip={(weaponId) => {
-          if (gameState?.isWeaponInLoadout(weaponId)) {
-            gameState.setEquippedWeapon(weaponId);
+        onEquip={(itemId) => {
+          if (!gameState) return;
+          const acquired = acquiredItemQueue[0];
+          if (acquired?.type === 'ring') {
+            if (gameState.tryAutoEquipRing(itemId)) {
+              triggerUIUpdate();
+            }
+            return;
+          }
+          if (gameState.isWeaponInLoadout(itemId)) {
+            gameState.setEquippedWeapon(itemId);
             triggerUIUpdate();
           }
         }}

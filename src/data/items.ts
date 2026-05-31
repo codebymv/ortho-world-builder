@@ -222,6 +222,17 @@ export const items: Record<string, Item> = {
     },
   },
 
+  wayfarer_ring: {
+    id: 'wayfarer_ring',
+    name: 'Wayfarer Ring',
+    description: 'A light bronze band etched with marching chevrons, found in a ranger cache near the southern fort road. Your stride feels noticeably lighter — though stronger march-rings are rumored deeper in the woods.',
+    type: 'ring',
+    sprite: 'wayfarer_ring',
+    stats: {
+      moveSpeedMult: 1.15,
+    },
+  },
+
   heretical_essence_apparition: {
     id: 'heretical_essence_apparition',
     name: 'Heretical Essence of the Apparition',

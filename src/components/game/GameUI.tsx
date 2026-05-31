@@ -29,6 +29,7 @@ import {
   setAudioMuted,
 } from '@/game/domain/audioMutePreference';
 import { CONTROL_GROUPS } from './controlBindings';
+import { cn } from '@/lib/utils';
 
 interface GameUIProps {
   gameState: GameState;
@@ -71,10 +72,35 @@ const getItemIcon = (item: Item | null | undefined, className: string, assetMana
   return <Package className={className} />;
 };
 
+const isQuickUseConsumable = (item: Item | null | undefined): item is Item =>
+  item?.type === 'consumable' &&
+  item.buffType !== 'last_breath' &&
+  (
+    (typeof item.healAmount === 'number' && item.healAmount > 0) ||
+    item.buffType === 'stealth' ||
+    item.buffType === 'berserker'
+  );
+
 // --- Memoized Sub-components ---
 
-const CombatBars = React.memo(({ health, maxHealth, stamina, maxStamina }: {
-  health: number, maxHealth: number, stamina: number, maxStamina: number
+const CombatBars = React.memo(({
+  health,
+  maxHealth,
+  stamina,
+  maxStamina,
+  lastBreathItem,
+  lastBreathCount,
+  lastBreathArmed,
+  assetManager,
+}: {
+  health: number;
+  maxHealth: number;
+  stamina: number;
+  maxStamina: number;
+  lastBreathItem?: Item | null;
+  lastBreathCount?: number;
+  lastBreathArmed?: boolean;
+  assetManager?: AssetManager | null;
 }) => (
   <div className="flex items-center gap-3 min-[1100px]:gap-5 shrink-0">
     <div className="flex items-center gap-1.5 min-[1100px]:gap-2">
@@ -87,6 +113,21 @@ const CombatBars = React.memo(({ health, maxHealth, stamina, maxStamina }: {
       <span className="hidden min-[900px]:inline text-[10px] font-bold text-[#F5DEB3] tracking-wide whitespace-nowrap">
         {health}/{maxHealth}
       </span>
+      {lastBreathArmed && lastBreathItem && (
+        <div
+          className="relative flex h-7 w-7 items-center justify-center rounded-full border border-[#83B6FF]/70 bg-[#102040]/85 shadow-[0_0_10px_rgba(96,165,250,0.55)]"
+          title="Last Breath armed: the next killing blow will crack the charm and revive you at 1 HP."
+          aria-label="Last Breath armed"
+        >
+          <span className="absolute inset-0 rounded-full border border-white/20" />
+          {getItemIcon(lastBreathItem, 'w-5 h-5', assetManager)}
+          {lastBreathCount != null && lastBreathCount > 1 && (
+            <span className="absolute -right-1 -bottom-1 min-w-3.5 rounded-full border border-[#1A0F0A] bg-[#DAA520] px-0.5 text-center text-[8px] font-black leading-3 text-[#1A0F0A]">
+              {lastBreathCount}
+            </span>
+          )}
+        </div>
+      )}
     </div>
 
     <div className="flex items-center gap-1.5 min-[1100px]:gap-2">
@@ -179,46 +220,41 @@ const CurrencyCountersWithGains = React.memo(({
   </div>
 ));
 
-const CurrentObjective = React.memo(({ title, onObjectiveClick }: { title: string, onObjectiveClick?: () => void }) => {
-  const interactive = typeof onObjectiveClick === 'function';
-  return (
-    <button
-      type="button"
-      onClick={onObjectiveClick}
-      disabled={!interactive}
-      title={interactive ? `${title} — click to open objectives` : title}
-      className={`hidden min-[1050px]:flex min-w-0 max-w-[min(12rem,28vw)] items-center gap-1.5 bg-[#2D1B11]/50 px-2.5 py-1 rounded-full border border-[#5C3A21] transition-colors animate-pulse ${interactive ? 'cursor-pointer hover:bg-[#3D2B21]/50' : 'cursor-default'}`}
-    >
-      <span className="hidden min-[1280px]:inline text-[#DAA520] text-xs font-bold uppercase tracking-wider shrink-0">Objective:</span>
-      <span className="text-[#F5DEB3] text-xs truncate min-w-0">{title}</span>
-    </button>
-  );
-});
-
 const HudNavButton = React.memo(({
   label,
   title,
   onClick,
   sprite,
   badge,
+  badgePulse,
 }: {
   label: string;
   title: string;
   onClick?: () => void;
   sprite: React.ComponentProps<typeof HudSprite>['spec'];
   badge?: number;
+  /** Subtle pulse on the count badge when there is something to check (e.g. active quests). */
+  badgePulse?: boolean;
 }) => (
   <Button
     onClick={onClick}
     variant="ghost"
     size="sm"
     title={title}
-    className="relative h-8 px-1.5 min-[1280px]:px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent"
+    className={cn(
+      'relative h-8 px-1.5 min-[1280px]:px-2 text-xs font-bold tracking-wider rounded-sm transition-colors text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent',
+      badgePulse && badge != null && badge > 0 && 'text-[#F5DEB3]',
+    )}
   >
     <HudSprite spec={sprite} size={16} className="min-[1280px]:mr-1" />
     <span className="hidden min-[1280px]:inline">{label}</span>
     {badge != null && badge > 0 && (
-      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border border-[#1A0F0A]">
+      <span
+        className={cn(
+          'absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border border-[#1A0F0A]',
+          badgePulse && 'animate-pulse',
+        )}
+      >
         {badge}
       </span>
     )}
@@ -372,8 +408,6 @@ export const GameUI = ({
   /** Compact controls help: closed by default so HUD stays minimal; click to expand rectangular panel. */
   const [controlsHelpOpen, setControlsHelpOpen] = useState(false);
 
-  void refreshToken;
-
   const groupedInventory = useMemo(() => {
     const groups = new Map<string, { item: Item; count: number }>();
     gameState.inventory.forEach(item => {
@@ -385,12 +419,18 @@ export const GameUI = ({
       }
     });
     return Array.from(groups.values());
-  }, [gameState.inventory]);
+  }, [gameState.inventory, refreshToken]);
 
   const groupedConsumables = useMemo(
-    () => groupedInventory.filter(({ item }) => item.type === 'consumable'),
+    () => groupedInventory.filter(({ item }) => isQuickUseConsumable(item)),
     [groupedInventory],
   );
+
+  const lastBreathEntry = useMemo(
+    () => groupedInventory.find(({ item }) => item.id === 'last_breath_charm') ?? null,
+    [groupedInventory],
+  );
+  const lastBreathArmed = Boolean(lastBreathEntry && !gameState.player.lastBreathUsedThisLife);
 
   const groupedWeapons = useMemo(
     () => gameState.getLoadoutWeaponIds()
@@ -403,8 +443,14 @@ export const GameUI = ({
   );
 
   const activeConsumable = gameState.inventory[gameState.activeItemIndex];
-  const activeConsumableId = activeConsumable?.type === 'consumable' ? activeConsumable.id : groupedConsumables[0]?.item.id;
+  const activeConsumableId = isQuickUseConsumable(activeConsumable) ? activeConsumable.id : groupedConsumables[0]?.item.id;
   const activeWeaponId = gameState.equippedWeaponId ?? groupedWeapons[0]?.item.id;
+
+  const activeObjectiveHint = useMemo(() => {
+    const quest = gameState.quests.find(q => q.active && !q.completed);
+    if (!quest) return null;
+    return quest.objectives.find(o => !o.includes('\u2713')) ?? quest.title;
+  }, [gameState.quests, refreshToken]);
 
   // Belt-and-suspenders: re-apply persisted mute once HUD mounts (audio may have
   // started before gameState was ready).
@@ -442,6 +488,10 @@ export const GameUI = ({
               maxHealth={gameState.player.maxHealth}
               stamina={gameState.player.stamina}
               maxStamina={gameState.player.maxStamina}
+              lastBreathItem={lastBreathEntry?.item}
+              lastBreathCount={lastBreathEntry?.count}
+              lastBreathArmed={lastBreathArmed}
+              assetManager={assetManager}
             />
             {gameState.player.stealthTimer > 0 && (
               <div className="hidden min-[900px]:flex items-center gap-1.5 bg-emerald-900/70 border border-emerald-500/60 rounded-full px-2.5 py-0.5 animate-pulse shrink-0">
@@ -455,12 +505,6 @@ export const GameUI = ({
                 <span className="text-[10px] font-bold text-red-200">{Math.ceil(gameState.player.berserkerTimer)}s</span>
               </div>
             )}
-            {(() => {
-              const firstActiveQuest = gameState.quests.find(q => q.active && !q.completed);
-              if (!firstActiveQuest) return null;
-              const activeStep = firstActiveQuest.objectives.find(o => !o.includes('\u2713')) ?? firstActiveQuest.title;
-              return <CurrentObjective title={activeStep} onObjectiveClick={onOpenObjectives} />;
-            })()}
           </div>
 
           {/* Right nav — icon-only below 1280px; extra right margin clears FlashCore fullscreen control */}
@@ -475,15 +519,22 @@ export const GameUI = ({
               <HudSprite spec={isMuted ? SPRITE_VOLUME_MUTE : SPRITE_VOLUME_ON} size={16} />
             </Button>
 
-            <HudNavButton label="PLAYER" title="Player" onClick={onOpenPlayer} sprite={SPRITE_PLAYER} />
-            <HudNavButton label="INVENTORY" title="Inventory" onClick={onOpenInventory} sprite={SPRITE_INVENTORY} />
-            <HudNavButton label="MAP" title="Map" onClick={onOpenMap} sprite={SPRITE_MAP} />
+            <HudNavButton label="Player (P)" title="Player (P)" onClick={onOpenPlayer} sprite={SPRITE_PLAYER} />
+            <HudNavButton label="Inventory (I)" title="Inventory (I)" onClick={onOpenInventory} sprite={SPRITE_INVENTORY} />
+            <HudNavButton label="Map (M)" title="Map (M)" onClick={onOpenMap} sprite={SPRITE_MAP} />
             <HudNavButton
-              label="OBJECTIVES"
-              title="Objectives"
+              label="Objectives (O)"
+              title={
+                activeObjectiveHint
+                  ? `Objectives (O) — ${activeObjectiveHint}`
+                  : activeQuestCount > 0
+                    ? `Objectives (O) — ${activeQuestCount} active`
+                    : 'Objectives (O)'
+              }
               onClick={onOpenObjectives}
               sprite={SPRITE_OBJECTIVES}
               badge={activeQuestCount}
+              badgePulse={activeQuestCount > 0}
             />
           </div>
         </div>

@@ -400,6 +400,65 @@ export function runEnemyLoop({
       getActorRenderOrder,
       getTexture,
     });
+
+    // Ridge Revenant summoned blade array — during the bladestorm cast an arc of
+    // spectral blades materializes behind the wraith, lifts overhead, points at
+    // the player, and converges into firing position as the telegraph completes.
+    // The aura is torn down the instant the cast resolves (the real projectiles
+    // spawned in Combat take over).
+    if (enemy.type === 'ridge_revenant'
+        && enemy.state === 'telegraphing'
+        && enemy.currentAttackType === 'revenant_bladestorm') {
+      const BLADE_AURA_COUNT = 7;
+      let aura = registry.auxMeshes.get(enemy.id);
+      if (!aura) {
+        aura = [];
+        const bladeTex = assetManager.getTexture('projectile_spectral_blade');
+        for (let i = 0; i < BLADE_AURA_COUNT; i++) {
+          const bladeMesh = new THREE.Mesh(SharedGeometry.enemy, new THREE.MeshBasicMaterial({
+            map: bladeTex,
+            transparent: true,
+            depthWrite: false,
+            color: 0x9be8ff,
+          }));
+          bladeMesh.position.z = 0.22;
+          scene.add(bladeMesh);
+          aura.push(bladeMesh);
+        }
+        registry.auxMeshes.set(enemy.id, aura);
+      }
+      const progress = enemy.telegraphDuration > 0
+        ? 1 - enemy.telegraphTimer / enemy.telegraphDuration
+        : 0;
+      const aim = enemy.attackLockedTarget ?? state.player.position;
+      const baseAngle = Math.atan2(aim.y - enemy.position.y, aim.x - enemy.position.x);
+      const ex = enemy.position.x;
+      const ey = getVisualYAt(enemy.position.x, enemy.position.y) + 0.4;
+      const fan = (70 * Math.PI) / 180;
+      const ringRadius = 1.5 - progress * 0.55;
+      const auraRenderOrder = getActorRenderOrder(enemy.position.x, enemy.position.y, 0.5) + 2;
+      for (let i = 0; i < BLADE_AURA_COUNT; i++) {
+        const bladeMesh = aura[i];
+        const fanOffset = -fan / 2 + (fan * i) / (BLADE_AURA_COUNT - 1);
+        // Hover behind the wraith (opposite the aim), curving overhead.
+        const orbitAngle = baseAngle + Math.PI + fanOffset * 0.7
+          + Math.sin(currentTime / 200 + i) * 0.05;
+        const r = ringRadius + Math.sin(currentTime / 160 + i * 1.3) * 0.08;
+        bladeMesh.position.x = ex + Math.cos(orbitAngle) * r;
+        bladeMesh.position.y = ey + Math.sin(orbitAngle) * r * 0.6 + 0.5;
+        bladeMesh.position.z = 0.22;
+        // Each blade already aims where it will launch.
+        bladeMesh.rotation.z = baseAngle + fanOffset;
+        const bladeScale = 0.5 + progress * 0.15;
+        bladeMesh.scale.set(bladeScale, bladeScale, 1);
+        const bladeMat = bladeMesh.material as THREE.MeshBasicMaterial;
+        bladeMat.opacity = Math.min(1, progress * 1.6) * (0.7 + Math.sin(currentTime / 90 + i) * 0.3);
+        bladeMesh.renderOrder = auraRenderOrder;
+        bladeMesh.visible = true;
+      }
+    } else if (registry.auxMeshes.has(enemy.id)) {
+      registry.removeAux(enemy.id);
+    }
   }
 
   const fullyDeadEnemyIds: string[] = [];

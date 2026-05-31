@@ -3,6 +3,7 @@ import type { GameState, Item } from '@/lib/game/GameState';
 import { EMPTY_EQUIPPED_RING_IDS, EMPTY_WEAPON_LOADOUT } from '@/lib/game/GameState';
 import type { World } from '@/lib/game/World';
 import { mapDefinitions } from '@/data/maps';
+import { tryCompleteFindHunterQuest } from '@/lib/game/findHunterProgression';
 
 interface CriticalPathItemConfig {
   itemId: string;
@@ -107,6 +108,7 @@ export function bootstrapRuntimeState(context: BootstrapContext) {
 
     state.quests = savedData.quests;
     state.replaceGameFlags(savedData.gameFlags);
+    tryCompleteFindHunterQuest(state);
     state.seenItemIds = new Set(savedData.seenItemIds);
     state.killedEnemyIds = new Set(savedData.killedEnemyIds ?? []);
     // Always keep the starter weapon flagged as seen even on legacy saves.

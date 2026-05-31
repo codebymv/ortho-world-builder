@@ -38,7 +38,8 @@ export type KnownGameFlag =
   | 'whispering_woods_shortcut_open'
   | 'olwen_ranger_cabin_hint'
   | 'gravebound_ring_received'
-  | 'wolf_ring_received';
+  | 'wolf_ring_received'
+  | 'wayfarer_ring_received';
 
 /**
  * Accepts a known flag (autocomplete-friendly) or any other string
@@ -149,6 +150,7 @@ export interface Item {
     range?: number;
     staminaRegenMult?: number;
     recoverySpeedMult?: number;
+    moveSpeedMult?: number;
   };
 }
 
@@ -541,6 +543,18 @@ export class GameState {
       const ring = this.inventory.find(item => item.id === ringId && item.type === 'ring');
       if (ring?.stats?.recoverySpeedMult) {
         mult *= ring.stats.recoverySpeedMult;
+      }
+    }
+    return mult;
+  }
+
+  getMovementSpeedMultiplier(): number {
+    let mult = 1;
+    for (const ringId of this.equippedRingIds) {
+      if (!ringId) continue;
+      const ring = this.inventory.find(item => item.id === ringId && item.type === 'ring');
+      if (ring?.stats?.moveSpeedMult) {
+        mult *= ring.stats.moveSpeedMult;
       }
     }
     return mult;

@@ -371,7 +371,7 @@ export const MapModal = memo(function MapModal({
         )}
       >
         <DialogTitle className="sr-only">Region map — {currentMap.name}</DialogTitle>
-        <div className="flex flex-shrink-0 flex-wrap items-end justify-between gap-2 border-b border-[#5C3A21]/60 pb-2">
+        <div className="flex flex-shrink-0 flex-wrap items-end justify-between gap-2 border-b border-[#5C3A21]/60 pb-2 pr-12">
           <div>
             <h2 className="font-bold uppercase tracking-[0.2em] text-[#DAA520]">{currentMap.name}</h2>
           </div>

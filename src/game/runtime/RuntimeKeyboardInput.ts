@@ -1,5 +1,5 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import type { GameState } from '@/lib/game/GameState';
+import type { GameState, Item } from '@/lib/game/GameState';
 import type { PlayerAnimState } from '@/game/runtime/PlayerSimulationSystem';
 
 interface RuntimeKeyboardInputOptions {
@@ -69,11 +69,20 @@ export function createKeyboardInputController({
   bonfireMenuOpenRef,
   closeBonfireMenu,
 }: RuntimeKeyboardInputOptions) {
+  const isQuickUseConsumable = (item: Item | null | undefined): item is Item =>
+    item?.type === 'consumable' &&
+    item.buffType !== 'last_breath' &&
+    (
+      (typeof item.healAmount === 'number' && item.healAmount > 0) ||
+      item.buffType === 'stealth' ||
+      item.buffType === 'berserker'
+    );
+
   const cycleConsumable = (direction: -1 | 1) => {
     if (state.dialogueActive) return;
     const consumableIndexesById = new Map<string, number>();
     state.inventory.forEach((item, index) => {
-      if (item.type === 'consumable' && !consumableIndexesById.has(item.id)) {
+      if (isQuickUseConsumable(item) && !consumableIndexesById.has(item.id)) {
         consumableIndexesById.set(item.id, index);
       }
     });
@@ -82,7 +91,7 @@ export function createKeyboardInputController({
 
     const activeItem = state.inventory[state.activeItemIndex];
     const currentIndex =
-      activeItem?.type === 'consumable' && consumableIndexesById.has(activeItem.id)
+      isQuickUseConsumable(activeItem) && consumableIndexesById.has(activeItem.id)
         ? consumableIndexesById.get(activeItem.id)!
         : state.activeItemIndex;
     const currentPosition = consumableIndexes.indexOf(currentIndex);

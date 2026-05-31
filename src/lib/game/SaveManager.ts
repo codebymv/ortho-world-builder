@@ -1,6 +1,7 @@
 import { GameState, Item, Quest, LastBonfire, DroppedEssence, WorldItem, EMPTY_EQUIPPED_RING_IDS, EMPTY_WEAPON_LOADOUT, type EquippedRingIds, type WeaponLoadout } from './GameState';
 import { MapMarker, KNOWN_LOCATIONS } from './MapMarkers';
 import { items } from '../../data/items';
+import { migrateFindHunterObjectiveOrder } from './findHunterProgression';
 
 const SAVE_KEY = 'rpg_save_data';
 const SAVE_VERSION = 8;
@@ -69,8 +70,16 @@ function reconcileMarkerWithKnownLocation(marker: MapMarker): MapMarker {
   return { ...marker, tileX: loc.tileX, tileY: loc.tileY, color: loc.color, type: loc.type };
 }
 
+function migrateQuests(quests: Quest[]): Quest[] {
+  return quests.map(quest => {
+    if (quest.id !== 'find_hunter') return quest;
+    return { ...quest, objectives: migrateFindHunterObjectiveOrder(quest.objectives) };
+  });
+}
+
 function migrateInventoryItem(item: Item): Item {
   if (item.id === 'cursed_idol') return { ...items.wolf_ring };
+  if (item.id === 'wayfarer_ring') return { ...items.wayfarer_ring };
   return item;
 }
 
@@ -85,6 +94,16 @@ function migrateGameFlags(flags: Record<string, boolean | number>): Record<strin
     next.wolf_ring_received = next.gravebound_ring_received;
     delete next.gravebound_ring_received;
   }
+
+  if (next.gravebound_ring_received) {
+    next.hunter_cliff_shelf_chest_opened = true;
+  }
+  if (next.wolf_ring_received) {
+    next.ranger_wolf_ring_chest_opened = true;
+  }
+  if (next.wayfarer_ring_received) {
+    next.north_fort_wayfarer_ring_chest_opened = true;
+  }
   return next;
 }
 
@@ -93,11 +112,12 @@ function migrateSeenItemIds(seenItemIds: string[]): string[] {
 }
 
 function migrateWorldItems(worldItems: WorldItem[]): WorldItem[] {
-  return worldItems.map(entry => (
-    entry.itemId === 'cursed_idol' || entry.itemId === 'gravebound_ring'
-      ? { ...entry, itemId: 'wolf_ring' }
-      : entry
-  ));
+  return worldItems.filter(entry => {
+    if (entry.mapId === 'interior_ranger_cabin') {
+      return entry.itemId !== 'wolf_ring' && entry.itemId !== 'cursed_idol' && entry.itemId !== 'gravebound_ring';
+    }
+    return true;
+  });
 }
 
 function migrateInventoryForRingSwap(
@@ -108,6 +128,7 @@ function migrateInventoryForRingSwap(
   return inventory.map(item => {
     if (item.id === 'cursed_idol') return { ...items.wolf_ring };
     if (item.id === 'gravebound_ring' && olwenWolfClaimed) return { ...items.wolf_ring };
+    if (item.id === 'wayfarer_ring') return { ...items.wayfarer_ring };
     return item;
   });
 }
@@ -218,7 +239,7 @@ function normalizeSave(raw: RawSave): SaveData {
     lastBonfire: raw.lastBonfire ?? null,
     droppedEssence: raw.droppedEssence ?? null,
     worldItems,
-    quests: Array.isArray(raw.quests) ? raw.quests : [],
+    quests: migrateQuests(Array.isArray(raw.quests) ? (raw.quests as Quest[]) : []),
     gameFlags,
     // Strip portal-type markers on load — they are always regenerated fresh
     // from the current objective, so persisting them causes stale labels/colours.

@@ -37,7 +37,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'quest_active',
-        text: "Have you found any sign of our missing **hunter**? Search the **run down old shack** in the **Whispering Woods** if you have not yet, and please be careful in the **forest**.",
+        text: "Have you found any sign of our missing **hunter**? Search the **Disparaged Cottage** deep in the **Whispering Woods** if you have not yet, and please be careful in the **forest**.",
         responses: [
           { text: "Still searching. I'll keep looking.", nextId: 'end' },
         ],
@@ -1325,7 +1325,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'offer_ring',
-        text: "On the southeast trail past the lake — there's a **ranger cottage**, easy to miss. I left an **iron wolf-ring** on the shelf. Pulled it from a turned grave. Tried to throw it twice — back on my finger by morning, both times. If you want it, it's yours. I won't be going back.",
+        text: "On the southeast trail past the lake — there's a **ranger cottage**, easy to miss. I left an **iron wolf-ring** in a **special chest** in the far corner, opposite the door. Pulled it from a turned grave. Tried to throw it twice — back on my finger by morning, both times. If you want it, it's yours. I won't be going back.",
         responses: [
           { text: "I'll find the cottage.", nextId: 'take_ring' },
           { text: "Sounds like trouble. I'll pass.", nextId: 'refuse_ring' },
@@ -1333,7 +1333,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'take_ring',
-        text: "Southeast from here, past the lake, the shrine, and the old ridge lumberyard. The cottage has a **ranger crest** on the door — you'll know it when you see it. Whatever that ring does, it stopped clawing at me the moment I set it down. Maybe it picks its owners. Maybe it just got bored of an old man.",
+        text: "Southeast from here, past the lake, the shrine, and the old ridge lumberyard. The cottage has a **ranger crest** on the door — you'll know it when you see it. The ring chest sits in the **southeast corner** of the room, away from the hearth. Whatever that ring does, it stopped clawing at me the moment I set it down. Maybe it picks its owners. Maybe it just got bored of an old man.",
         responses: [{ text: "I'll find it.", nextId: 'end' }],
       },
       {

@@ -391,6 +391,7 @@ export function createEnemyAudioDirector(config: EnemyAudioDirectorConfig) {
 
   const getEnemyAudioType = (enemy: Enemy): EnemyAudioType | null => {
     const type = enemy.sprite.replace('enemy_', '') as EnemyAudioType | string;
+    if (type === 'water_slime') return 'slime';
     if (type === 'skeleton' || type === 'slime' || type === 'wolf' || type === 'shadow' || type === 'spider') return type;
     if (type === 'skeleton_captain') return 'skeleton';
     return null;

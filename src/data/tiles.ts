@@ -237,22 +237,18 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
         { y: 5, xMin: -3, xMax: 3 },
         { y: 6, xMin: -4, xMax: 4 },
       ],
+      // Only the lower dome/base (rows y=-2..+4) carries ground collision. Everything above that
+      // is the elevated spire + upper dome — it renders over the player (high draw order) but must
+      // NOT block the ground, so the player can walk a generous river-bank shore lane "behind" the
+      // tower instead of dead-ending against an invisible wall that reaches all the way to the water.
       rows: [
-        { y: -10, xMin: 0, xMax: 0 },
-        { y: -9, xMin: -1, xMax: 1 },
-        { y: -8, xMin: -2, xMax: 2 },
-        { y: -7, xMin: -3, xMax: 3 },
-        { y: -6, xMin: -4, xMax: 4 },
-        { y: -5, xMin: -5, xMax: 5 },
-        { y: -4, xMin: -4, xMax: 4 },
-        { y: -3, xMin: -4, xMax: 4 },
-        { y: -2, xMin: -4, xMax: 4 },
-        { y: -1, xMin: -4, xMax: 4 },
-        { y: 0, xMin: -4, xMax: 4 },
-        { y: 1, xMin: -5, xMax: 5 },
-        { y: 2, xMin: -5, xMax: 5 },
-        { y: 3, xMin: -5, xMax: 5 },
-        { y: 4, xMin: -5, xMax: 5 },
+        { y: -2, xMin: -3, xMax: 3 },
+        { y: -1, xMin: -3, xMax: 3 },
+        { y: 0, xMin: -3, xMax: 3 },
+        { y: 1, xMin: -3, xMax: 3 },
+        { y: 2, xMin: -3, xMax: 3 },
+        { y: 3, xMin: -3, xMax: 3 },
+        { y: 4, xMin: -3, xMax: 3 },
       ],
     },
   },

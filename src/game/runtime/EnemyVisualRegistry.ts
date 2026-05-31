@@ -15,6 +15,8 @@ export interface EnemyVisualRegistry {
   projectileMeshes: Map<string, THREE.Mesh>;
   /** Active falling-scythe hazard meshes keyed by hazard id. */
   hazardMeshes: Map<string, { marker: THREE.Mesh; scythe: THREE.Mesh }>;
+  /** Decorative per-enemy effect meshes (e.g. the Revenant's summoned blade array). */
+  auxMeshes: Map<string, THREE.Mesh[]>;
   registerEnemyVisuals: (
     enemyId: string,
     visuals: {
@@ -27,6 +29,7 @@ export interface EnemyVisualRegistry {
   removeEnemy: (enemyId: string) => void;
   removeProjectile: (projectileId: string) => void;
   removeHazard: (hazardId: string) => void;
+  removeAux: (enemyId: string) => void;
   disposeAll: () => void;
 }
 
@@ -43,6 +46,7 @@ export function createEnemyVisualRegistry(scene: THREE.Scene): EnemyVisualRegist
   const hpBars = new Map<string, EnemyHPBar>();
   const projectileMeshes = new Map<string, THREE.Mesh>();
   const hazardMeshes = new Map<string, { marker: THREE.Mesh; scythe: THREE.Mesh }>();
+  const auxMeshes = new Map<string, THREE.Mesh[]>();
 
   const getOrCreateHPBar = (enemyId: string): EnemyHPBar => {
     let hpBar = hpBars.get(enemyId);
@@ -90,11 +94,24 @@ export function createEnemyVisualRegistry(scene: THREE.Scene): EnemyVisualRegist
       (hpBar.fill.material as THREE.Material).dispose();
       hpBars.delete(enemyId);
     }
+
+    const aux = auxMeshes.get(enemyId);
+    if (aux) {
+      for (const mesh of aux) disposeMesh(scene, mesh);
+      auxMeshes.delete(enemyId);
+    }
   };
 
   const removeProjectile = (projectileId: string) => {
     disposeMesh(scene, projectileMeshes.get(projectileId));
     projectileMeshes.delete(projectileId);
+  };
+
+  const removeAux = (enemyId: string) => {
+    const meshes = auxMeshes.get(enemyId);
+    if (!meshes) return;
+    for (const mesh of meshes) disposeMesh(scene, mesh);
+    auxMeshes.delete(enemyId);
   };
 
   const removeHazard = (hazardId: string) => {
@@ -112,6 +129,7 @@ export function createEnemyVisualRegistry(scene: THREE.Scene): EnemyVisualRegist
     hpBars,
     projectileMeshes,
     hazardMeshes,
+    auxMeshes,
     registerEnemyVisuals: (enemyId, visuals) => {
       meshes.set(enemyId, visuals.mesh);
       shadows.set(enemyId, visuals.shadow);
@@ -121,6 +139,7 @@ export function createEnemyVisualRegistry(scene: THREE.Scene): EnemyVisualRegist
     removeEnemy,
     removeProjectile,
     removeHazard,
+    removeAux,
     disposeAll: () => {
       meshes.forEach(mesh => disposeMesh(scene, mesh));
       meshes.clear();
@@ -147,6 +166,11 @@ export function createEnemyVisualRegistry(scene: THREE.Scene): EnemyVisualRegist
         disposeMesh(scene, scythe);
       });
       hazardMeshes.clear();
+
+      auxMeshes.forEach(meshList => {
+        for (const mesh of meshList) disposeMesh(scene, mesh);
+      });
+      auxMeshes.clear();
     },
   };
 }

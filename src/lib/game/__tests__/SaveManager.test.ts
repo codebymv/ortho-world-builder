@@ -228,6 +228,7 @@ describe('SaveManager.load — v7 ring migration', () => {
     expect(loaded.gameFlags.cursed_idol_received).toBeUndefined();
     expect(loaded.equippedRingIds).toEqual(['wolf_ring', null]);
     expect(loaded.seenItemIds).toEqual(['wolf_ring']);
-    expect(loaded.worldItems[0].itemId).toBe('wolf_ring');
+    expect(loaded.worldItems).toEqual([]);
+    expect(loaded.gameFlags.ranger_wolf_ring_chest_opened).toBe(true);
   });
 });
