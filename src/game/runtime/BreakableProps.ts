@@ -14,6 +14,8 @@ export const BREAKABLE_TILES: ReadonlySet<TileType> = new Set<TileType>([
   'hay_bale',
   'bench',
   'lantern',
+  // Tall grass: walkable but slows movement; any swing clears it back to its grass base.
+  'tall_grass',
 ]);
 
 const WALKABLE_BASE_TILES: ReadonlySet<TileType> = new Set<TileType>([
@@ -34,6 +36,7 @@ const DEBRIS_COLORS: Partial<Record<TileType, number>> = {
   hay_bale:     0xD4A017,
   bench:        0x8B6914,
   lantern:      0x666666,
+  tall_grass:   0x5BA84F,
 };
 
 export interface BreakableWorld {

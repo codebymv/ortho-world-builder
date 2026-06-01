@@ -58,6 +58,8 @@ const FOREST_BONFIRE_LIST_ORDER: readonly string[] = [
   'bonfire_east_ridge_overlook',
   'bonfire_forest_fort',
   'bonfire_deep_hollow',
+  'bonfire_west_fort_north',
+  'bonfire_west_fort_ritual',
 ];
 
 function sortBonfiresByMapProgression(mapId: string, entries: BonfireEntry[]): BonfireEntry[] {
@@ -83,6 +85,8 @@ export const BONFIRE_REGISTRY: BonfireEntry[] = [
   { id: 'bonfire_cliff_cemetery',    name: 'Cliff Cemetery',      mapId: 'forest',        tileX: 291, tileY: 145 },
   { id: 'bonfire_east_ridge_overlook', name: 'East Ridge Overlook', mapId: 'forest',       tileX: 261, tileY: 107 },
   { id: 'bonfire_deep_hollow',       name: 'Deep Hollow',         mapId: 'forest',        tileX: 126, tileY: 46  },
+  { id: 'bonfire_west_fort_north',   name: 'West Fort — North Yard', mapId: 'forest',     tileX: 20,  tileY: 155 },
+  { id: 'bonfire_west_fort_ritual',  name: 'West Fort — Ritual Hall', mapId: 'forest',    tileX: 23,  tileY: 150 },
   { id: 'bonfire_guilrhym_gate',       name: 'City Gate',           mapId: 'guilrhym',       tileX: 150, tileY: 268 },
   { id: 'bonfire_guilrhym_market',     name: 'Market Square',       mapId: 'guilrhym',       tileX: 150, tileY: 155 },
   { id: 'bonfire_guilrhym_heights',    name: 'The Heights',         mapId: 'guilrhym',       tileX: 140, tileY: 85  },

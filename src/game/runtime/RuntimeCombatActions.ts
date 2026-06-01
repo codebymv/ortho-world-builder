@@ -334,6 +334,9 @@ export function createRuntimeCombatActions({
             screenShake.shake(0.55, 0.45);
             particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.45, 35, 0xFF6F00, 0.12, 2.0, 1.4);
           }
+        } else {
+          // West-side (fort) revenant: mark its ritual cleared so the glyph never re-summons.
+          state.setFlag('ritual_revenant_west_cleared', true);
         }
       }
     }

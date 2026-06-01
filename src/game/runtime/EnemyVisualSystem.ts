@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Enemy } from '@/lib/game/Combat';
 import type { GameState } from '@/lib/game/GameState';
-import type { EnemyVisualRegistry, EnemyHPBar } from '@/game/runtime/EnemyVisualRegistry';
+import type { EnemyVisualRegistry } from '@/game/runtime/EnemyVisualRegistry';
 
 const _SIN_TABLE_SIZE = 1024;
 const _TWO_PI = Math.PI * 2;

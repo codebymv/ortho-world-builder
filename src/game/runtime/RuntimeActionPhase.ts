@@ -188,6 +188,7 @@ export function setupRuntimeActionPhase({
   const bonfireActions = createBonfireRestAction({
     state,
     world,
+    combatSystem,
     particleSystem,
     notify,
     showHeroOverlay,

@@ -156,6 +156,7 @@ export function buildRuntimeLoopTailContext(options: BuildRuntimePhaseContextsOp
     npcScreenMinPx: options.npcScreenMinPx,
     biomeAmbience: options.biomeAmbience,
     corruptionFilter: options.corruptionFilter,
+    altitudeHaze: options.altitudeHaze,
     weatherSystem: options.weatherSystem,
     dayNightCycle: options.dayNightCycle,
     floatingText: options.floatingText,

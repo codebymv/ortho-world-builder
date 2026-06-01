@@ -109,6 +109,7 @@ export function runRuntimeLoopTail({
   currentBiome,
   biomeAmbience,
   corruptionFilter,
+  altitudeHaze,
   weatherSystem,
   dayNightCycle,
   floatingText,
@@ -230,6 +231,16 @@ export function runRuntimeLoopTail({
     const target = forestMusicRegion === 'hollow' ? 1.0 : 0.0;
     corruptionFilter.setTargetStrength(target);
     corruptionFilter.update(deltaTime, currentTime / 1000);
+  }
+
+  // High-mountain altitude haze: fades in within an authored east-ridge overlook zone
+  // (world x91-116, y-23..14 on the forest map) to sell "high up" with a faint cool wash + vignette.
+  if (altitudeHaze) {
+    const inAltitudeZone = state.currentMap === 'forest'
+      && playerPosition.x >= 91 && playerPosition.x <= 118
+      && playerPosition.y >= -23 && playerPosition.y <= 14;
+    altitudeHaze.setTargetStrength(inAltitudeZone ? 1.0 : 0.0);
+    altitudeHaze.update(deltaTime);
   }
 
   if (profilePhases) {

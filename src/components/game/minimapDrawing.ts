@@ -144,6 +144,8 @@ const MINIMAP_TILE_COLOR: Partial<Record<TileType, string>> & Record<string, str
   wood_floor: '#A1887F',
   cobblestone: '#7A7F88',
   cobblestone_dark: '#5C6068',
+  quarry_floor: '#9097A0',
+  quarry_bedrock: '#767E86',
   brick: '#8B4513',
   roof_tile: '#4A4A52',
   timber_wall: '#5C4033',
@@ -318,11 +320,15 @@ const LANDMARK_ICON_SIZES: Partial<Record<string, number>> = {
   statue:      3,
   market_stall: 3,
   ridge_lumberyard: 4,
+  quarry_crane: 4,
   special_chest: 3,
   special_chest_opened: 3,
   // Corrupted shrines — same landmark treatment as windmills / cottages
   heresy_altar:         5,
   heresy_altar_cracked: 5,
+  // Revenant summoning sigils — active (purple) and failed/dud (ash) read as landmarks once found
+  summoning_ritual:     5,
+  summoning_ritual_dud: 5,
   // World transitions — always rendered as a visible landmark so portals read on the map
   portal:               5,
   fog_gate:             5,
@@ -759,7 +765,10 @@ export function drawMinimapTerrain(p: DrawMinimapTerrainParams): void {
     const dx = basePx - half;
     const dy = basePy - half;
 
-    const sprite = assetManager ? getDrawableFromTexture(assetManager.getTexture(landmarkType)) : null;
+    // The dud tile's own texture is a white alpha-mask (filled with ash in-world), so swap to a
+    // dedicated opaque ash-grey icon for the map; everything else draws its in-world texture.
+    const textureId = landmarkType === 'summoning_ritual_dud' ? 'summoning_ritual_dud_icon' : landmarkType;
+    const sprite = assetManager ? getDrawableFromTexture(assetManager.getTexture(textureId)) : null;
     if (sprite) {
       ctx.drawImage(sprite, dx, dy, size, size);
     } else {

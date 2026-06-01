@@ -8,6 +8,7 @@ import type { ScreenShake } from '@/lib/game/ScreenShake';
 import type { World } from '@/lib/game/World';
 import type { BiomeAmbience } from '@/lib/game/BiomeAmbience';
 import type { CorruptionFilter } from '@/lib/game/CorruptionFilter';
+import type { AltitudeHaze } from '@/lib/game/AltitudeHaze';
 import type { WeatherSystem } from '@/lib/game/WeatherSystem';
 import type { DayNightCycle } from '@/lib/game/DayNightCycle';
 import type { WorldItemRendererInstance } from '@/game/runtime/WorldItemRenderer';
@@ -223,6 +224,7 @@ export interface RuntimeLoopTailContext {
    * synchronously with the music crossfade on hollow-side entry/exit.
    */
   corruptionFilter?: CorruptionFilter;
+  altitudeHaze?: AltitudeHaze;
   weatherSystem: WeatherSystem;
   dayNightCycle: DayNightCycle;
   floatingText: FloatingTextSystem;

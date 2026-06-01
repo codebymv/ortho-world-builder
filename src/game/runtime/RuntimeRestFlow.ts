@@ -1,7 +1,23 @@
 import * as THREE from 'three';
+import type { CombatSystem } from '@/lib/game/Combat';
 import type { GameState } from '@/lib/game/GameState';
 import type { World, WorldMap } from '@/lib/game/World';
-import { bonfireTileWorldPosition, type BonfireEntry } from '@/data/bonfires';
+import {
+  bonfireTileWorldPosition,
+  getBonfiresForMap,
+  isPlayerAtBonfireEntry,
+  type BonfireEntry,
+} from '@/data/bonfires';
+import {
+  areHostilesNearBonfire,
+  BONFIRE_HOSTILES_NEAR_MESSAGE,
+  evictEnemiesFromBonfireSafeZones,
+} from '@/game/runtime/bonfireCombatGuard';
+import {
+  clearWestFortNorthLogCover,
+  isWestFortNorthBonfireTile,
+  westFortNorthLogsBlocking,
+} from '@/game/runtime/westFortBonfires';
 
 interface RuntimeParticleSystemLike {
   emitBonfireKindled: (position: THREE.Vector3) => void;
@@ -11,6 +27,7 @@ interface RuntimeParticleSystemLike {
 interface CreateBonfireRestActionOptions {
   state: GameState;
   world: World;
+  combatSystem: CombatSystem;
   particleSystem: RuntimeParticleSystemLike;
   notify: (message: string, options?: { id?: string; type?: 'success' | 'info' | 'error'; description?: string; duration?: number }) => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
@@ -26,6 +43,7 @@ interface CreateBonfireRestActionOptions {
 export function createBonfireRestAction({
   state,
   world,
+  combatSystem,
   particleSystem,
   notify,
   showHeroOverlay,
@@ -37,6 +55,16 @@ export function createBonfireRestAction({
   triggerUIUpdate,
   openBonfireMenu,
 }: CreateBonfireRestActionOptions) {
+  const hostilesBlockBonfire = (tileX: number, tileY: number): boolean => {
+    if (!areHostilesNearBonfire(combatSystem, state.currentMap, tileX, tileY)) return false;
+    notify(BONFIRE_HOSTILES_NEAR_MESSAGE, {
+      id: 'bonfire-hostiles-near',
+      type: 'error',
+      duration: 3200,
+    });
+    return true;
+  };
+
   const kindleBonfire = (tileX: number, tileY: number) => {
     const map = world.getCurrentMap();
     const { x: bonfireWorldX, y: bonfireWorldY } = bonfireTileWorldPosition(state.currentMap, tileX, tileY);
@@ -76,7 +104,29 @@ export function createBonfireRestAction({
     triggerSave();
   };
 
-  const restAtBonfire = () => {
+  const resolveBonfireTileAtPlayer = (): { tileX: number; tileY: number } | null => {
+    const map = world.getCurrentMap();
+    const px = state.player.position.x;
+    const py = state.player.position.y;
+    const halfW = map.width / 2;
+    const halfH = map.height / 2;
+    const tx = Math.floor(px + halfW);
+    const ty = Math.floor(py + halfH);
+    const tile = map.tiles[ty]?.[tx];
+    if (tile?.interactionId?.includes('bonfire')) {
+      return { tileX: tx, tileY: ty };
+    }
+    for (const entry of getBonfiresForMap(state.currentMap)) {
+      if (isPlayerAtBonfireEntry(state.currentMap, px, py, entry)) {
+        return { tileX: entry.tileX, tileY: entry.tileY };
+      }
+    }
+    return null;
+  };
+
+  const restAtBonfireAt = (tileX: number, tileY: number) => {
+    if (hostilesBlockBonfire(tileX, tileY)) return;
+
     state.player.health = state.player.maxHealth;
     state.player.stamina = state.player.maxStamina;
     state.player.lastBreathUsedThisLife = false;
@@ -94,13 +144,38 @@ export function createBonfireRestAction({
     triggerUIUpdate();
   };
 
+  const restAtBonfire = () => {
+    const at = resolveBonfireTileAtPlayer();
+    if (!at) return;
+    restAtBonfireAt(at.tileX, at.tileY);
+  };
+
   const interact = (tileX: number, tileY: number) => {
+    const map = world.getCurrentMap();
+
+    if (isWestFortNorthBonfireTile(tileX, tileY) && westFortNorthLogsBlocking(map)) {
+      if (hostilesBlockBonfire(tileX, tileY)) return;
+      clearWestFortNorthLogCover(map, world, state);
+      notify('Timber cleared', {
+        id: 'west-fort-bonfire-logs-cleared',
+        type: 'success',
+        description: 'You drag the fallen logs aside. The cold hearth lies bare — kindle it when the yard is safe.',
+        duration: 4200,
+      });
+      triggerSave();
+      triggerUIUpdate();
+      return;
+    }
+
+    if (hostilesBlockBonfire(tileX, tileY)) return;
+
     const firstKey = `bonfire_first_${state.currentMap}_${tileX}_${tileY}`;
     const alreadyKindled = state.getFlag(firstKey);
 
     if (alreadyKindled) {
       // Bonfire is already lit — kindle updates respawn point then open the menu.
       kindleBonfire(tileX, tileY);
+      evictEnemiesFromBonfireSafeZones(combatSystem, state.currentMap);
       openBonfireMenu();
     } else {
       // First interaction: kindle (shows hero overlay, particles, sfx) but keep menu closed
@@ -110,6 +185,16 @@ export function createBonfireRestAction({
   };
 
   const travelToBonfire = (entry: BonfireEntry) => {
+    if (areHostilesNearBonfire(combatSystem, entry.mapId, entry.tileX, entry.tileY)) {
+      notify(BONFIRE_HOSTILES_NEAR_MESSAGE, {
+        id: 'bonfire-travel-hostiles-near',
+        type: 'error',
+        description: 'That flame is surrounded — deal with the nearby threats first.',
+        duration: 3200,
+      });
+      return;
+    }
+
     const map = world.getCurrentMap();
     const { x: worldX, y: worldY } = bonfireTileWorldPosition(entry.mapId, entry.tileX, entry.tileY);
 
@@ -120,6 +205,7 @@ export function createBonfireRestAction({
 
     state.killedEnemyIds.clear();
     respawnEnemiesForCurrentMap(state.currentMap, map);
+    evictEnemiesFromBonfireSafeZones(combatSystem, entry.mapId);
     showTransitionOverlay(map.name, map.subtitle);
     playBonfireRestore();
     notify('Arrived at bonfire', {

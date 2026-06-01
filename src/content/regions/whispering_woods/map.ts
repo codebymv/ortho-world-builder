@@ -22,11 +22,18 @@ export const forestDef: MapDefinition = {
     { x: 48, y: 146, width: 20, height: 20, type: 'clearing', fill: 'dirt' },
     { x: 250, y: 50, width: 20, height: 16, type: 'clearing', fill: 'grass' },
     { x: 150, y: 50, width: 30, height: 20, type: 'clearing', fill: 'grass' },
+    // Failed ritual glyph — world (-16, -17); opens the tree cover for the decor ring.
+    { x: 130, y: 129, width: 9, height: 9, type: 'clearing', fill: 'grass' },
     { x: 138, y: 246, width: 24, height: 18, type: 'clearing', fill: 'dirt' },
     // Ends at y=171 so the ranger cabin approach (172+) can stay grass until the y=175 artery.
     { x: 126, y: 156, width: 48, height: 16, type: 'clearing', fill: 'dirt' },
     { x: 116, y: 192, width: 48, height: 24, type: 'clearing', fill: 'dirt' },
     { x: 126, y: 180, width: 26, height: 14, type: 'clearing', fill: 'dirt' },
+    // === TALL GRASS GATE — Western Fort approach corridor ===
+    // A dense 7-wide grass corridor (world x:-109..-103, y:-26..12; tiles x41-47, y124-162)
+    // running from the cliff at y=-26 up to the grove-rim fence. Slows movement 50% unless
+    // chopped, softly gating the western fort so the area reads as secluded / earned to reach.
+    { x: 41, y: 124, width: 7, height: 39, type: 'clearing', fill: 'tall_grass' },
 
     // === RANGER OUTPOST (overgrown ruin — real cabin relocated to SE hills) ===
     { x: 136, y: 164, width: 6, height: 6, type: 'cottage', interactionId: 'ranger_cabin_ruin' },
@@ -639,7 +646,6 @@ export const forestDef: MapDefinition = {
     // North cap sits one row off the cliff sprite so the grass lip remains visible.
     { x: 60, y: 214, width: 28, height: 1, type: 'wall', fill: 'fence' },
     { x: 60, y: 218, width: 28, height: 1, type: 'wall', fill: 'fence' },
-
     // --- West creek: short grove outlet (original reach ? does not run the full south spine) ---
     { x: 38, y: 212, width: 3, height: 20, type: 'wall', fill: 'water' },
     { x: 36, y: 230, width: 14, height: 3, type: 'wall', fill: 'water' },
@@ -747,9 +753,10 @@ export const forestDef: MapDefinition = {
     // === ROCKY OUTCROPS & STONE CLEARINGS ===
     // ============================================================
 
-    // --- Rocky outcrop south-east (fills empty zone x:210-240, y:210-230) ---
-    { x: 212, y: 212, width: 16, height: 10, type: 'clearing', fill: 'stone' },
-    { x: 214, y: 216, width: 8, height: 4, type: 'clearing', fill: 'mossy_stone' },
+    // --- Quarry — lower west shelf (one continuous dig site with the main pit; abuts its west rim at x228) ---
+    { x: 212, y: 212, width: 16, height: 10, type: 'clearing', fill: 'quarry_bedrock' },
+    { x: 214, y: 214, width: 11, height: 6, type: 'clearing', fill: 'quarry_floor' },
+    { x: 216, y: 215, width: 6, height: 3, type: 'clearing', fill: 'cobblestone' },
 
     // --- Ancient stone circle (far east, x:285, y:140) ---
     { x: 285, y: 140, width: 12, height: 10, type: 'clearing', fill: 'mossy_stone' },
@@ -795,9 +802,10 @@ export const forestDef: MapDefinition = {
     { x: 280, y: 160, width: 6, height: 6, type: 'cottage', interactionId: 'collapsed_cottage' },
     { x: 276, y: 158, width: 14, height: 10, type: 'clearing', fill: 'grass' },
 
-    // --- Stone quarry (south-east, x:230, y:205) ---
-    { x: 228, y: 205, width: 16, height: 12, type: 'clearing', fill: 'stone' },
-    { x: 232, y: 208, width: 8, height: 6, type: 'clearing', fill: 'cobblestone' },
+    // --- Stone quarry (south-east, x:230, y:205) — nested terraces: rough rim → worked floor → cut pit ---
+    { x: 228, y: 205, width: 16, height: 12, type: 'clearing', fill: 'quarry_bedrock' },
+    { x: 231, y: 207, width: 11, height: 8, type: 'clearing', fill: 'quarry_floor' },
+    { x: 233, y: 209, width: 6, height: 4, type: 'clearing', fill: 'cobblestone' },
 
     // --- Sunken garden (west, x:20, y:170) ---
     { x: 18, y: 168, width: 14, height: 12, type: 'clearing', fill: 'grass' },
@@ -946,7 +954,7 @@ export const forestDef: MapDefinition = {
     { x: 208, y: 66, interactionId: 'fort_chest_2' },
     { x: 68, y: 196, interactionId: 'fort_chest_3' },
     // West Fort boss reward — inside the dual-gated fort, guarding by the Ridge Revenant.
-    { x: 19, y: 147, interactionId: 'west_fort_chest' },
+    { x: 19, y: 140, interactionId: 'west_fort_chest' },
     { x: 111, y: 220, interactionId: 'forest_river_chest' },
     { x: 218, y: 183, interactionId: 'golem_arena_chest' },
     // Hidden chest behind waterfall
@@ -998,6 +1006,10 @@ export const forestDef: MapDefinition = {
     { x: 291, y: 145, type: 'bonfire', walkable: false, interactionId: 'bonfire_cliff_cemetery' },
     { x: 261, y: 107, type: 'bonfire', walkable: false, interactionId: 'bonfire_east_ridge_overlook' },
     { x: 126, y: 46, type: 'bonfire', walkable: false, interactionId: 'bonfire_deep_hollow' },
+    // West fort — world ~(-130, 5), north of the sealed garrison (logs smother until cleared).
+    { x: 20, y: 155, type: 'bonfire', walkable: false, interactionId: 'bonfire_west_fort_north' },
+    // West fort ritual hall — world ~(-127, 0), beside the summoning glyph.
+    { x: 23, y: 150, type: 'bonfire', walkable: false, interactionId: 'bonfire_west_fort_ritual' },
     // Lever is on the NORTH side of the ranger gate (y=199-202) so the player must first
     // navigate the long way around through the forest to reach the cottage, then on the way
     // back south they pull the lever to open the shortcut home to the Ranger Outpost.
@@ -1005,8 +1017,6 @@ export const forestDef: MapDefinition = {
     { x: 146, y: 240, type: 'stump', walkable: false },
     { x: 100, y: 100, type: 'stump', walkable: false },
     { x: 200, y: 90, type: 'stump', walkable: false },
-    { x: 87, y: 228, type: 'mushroom', walkable: true },
-    { x: 45, y: 145, type: 'mushroom', walkable: true },
     { x: 170, y: 182, type: 'mushroom', walkable: true },
     { x: 35, y: 250, type: 'campfire_remains', walkable: false },
     { x: 275, y: 270, type: 'well', walkable: false, interactionId: 'well' },
@@ -1080,6 +1090,24 @@ export const forestDef: MapDefinition = {
 
   ],
   props: [
+    // === REVENANT SUMMONING GLYPHS (walkable ground sigils) ===
+    // Stepping onto these with 3+ cursed sediment summons a Ridge Revenant
+    // (RevenantRituals.ts). East glyph = Tempered Core fight; west glyph = fort boss room.
+    { x: 260, y: 142, type: 'summoning_ritual', walkable: true }, // East Ridge Ascent summit (world ~110,-8)
+    { x: 18, y: 147, type: 'summoning_ritual', walkable: true },  // West Fort interior (world ~-132,-3)
+    // Failed ritual (dud) — SE hills; decor ring applied at runtime (RevenantRituals dud hint).
+    { x: 273, y: 259, type: 'summoning_ritual_dud', walkable: true }, // world (123, 109)
+    { x: 134, y: 133, type: 'summoning_ritual_dud', walkable: true }, // world (-16, -17)
+    { x: 285, y: 162, type: 'summoning_ritual_dud', walkable: true }, // world (135, 12)
+    // Ritual rings — east placed at map gen; west ring is re-stamped after the fort overlay loads.
+    { x: 257, y: 139, type: 'ritual_candle_knocked', walkable: true },
+    { x: 263, y: 139, type: 'ritual_candle_knocked', walkable: true },
+    { x: 264, y: 142, type: 'ritual_candle', walkable: true },
+    { x: 263, y: 145, type: 'ritual_candle_knocked', walkable: true },
+    { x: 257, y: 145, type: 'ritual_candle_knocked', walkable: true },
+    { x: 256, y: 142, type: 'bones', walkable: true },
+    { x: 265, y: 142, type: 'rubble', walkable: true },
+
     // === HERESY ALTARS (minimap landmarks ? downscaled sprite icons once explored) ===
     // Corrupted shrines hidden off the main progression spine ? 2 hits to destroy, +1 cursed sediment each.
     { x: 34, y: 259, type: 'heresy_altar', walkable: false }, // world (-116, 109) ? far SW dirt plot
@@ -1089,9 +1117,8 @@ export const forestDef: MapDefinition = {
     { x: 177, y: 182, type: 'heresy_altar', walkable: false }, // world (27, 32) ? final cliff lookout
     { x: 107, y: 54, type: 'heresy_altar', walkable: false }, // world (-43, -96) ? corrupted west-cliff stair shelf
     { x: 279, y: 72, type: 'heresy_altar', walkable: false }, // world (129, -78) ? eastern Hollow edge grove
-    { x: 263, y: 231, type: 'ridge_lumberyard', walkable: false }, // world (113, 81) ? old ridge lumberyard waypoint
+    { x: 263, y: 231, type: 'ridge_lumberyard', walkable: false }, // world (~113, 81) — ridge lumberyard remains
     { x: 278, y: 90, type: 'sign', walkable: false, interactionId: 'east_ridge_lumberyard_sign' },
-    { x: 278, y: 160, type: 'sign', walkable: false, interactionId: 'consumed_ridge_camp_sign' },
     { x: 276, y: 162, type: 'bones_pile', walkable: false },
     { x: 280, y: 158, type: 'barrel', walkable: false },
     // Watch tower south-east of the west fort ? world (-117, 9)
@@ -1527,7 +1554,6 @@ export const forestDef: MapDefinition = {
     { x: 136, y: 126, type: 'crate', walkable: false },
     { x: 148, y: 126, type: 'barrel', walkable: false },
     { x: 150, y: 126, type: 'crate', walkable: false },
-    { x: 138, y: 134, type: 'weapon_rack', walkable: false },
 
     // ============================================================
     // === ENVIRONMENTAL SCATTER ??? rocks, stumps, wells, statues ===
@@ -1579,12 +1605,16 @@ export const forestDef: MapDefinition = {
     { x: 228, y: 98, type: 'bloodstain', walkable: true },
     { x: 226, y: 93, type: 'bloodstain', walkable: true },
     { x: 215, y: 95, type: 'bloodstain', walkable: true },
-    // --- South-east rocky shelf scatter ---
-    { x: 214, y: 218, type: 'rock', walkable: false },
-    { x: 218, y: 220, type: 'rock', walkable: false },
-    { x: 222, y: 216, type: 'rock', walkable: false },
-    { x: 220, y: 222, type: 'stump', walkable: false },
-    { x: 216, y: 214, type: 'rock', walkable: false },
+    // --- Quarry lower shelf — cut blocks staged for haulage, a spare cart, spoil and tools ---
+    { x: 215, y: 214, type: 'cut_stone_blocks', walkable: false },
+    { x: 223, y: 218, type: 'cut_stone_blocks', walkable: false },
+    { x: 225, y: 216, type: 'quarry_cart', walkable: false },     // cart on the haul-out track west
+    { x: 218, y: 214, type: 'quarry_tools', walkable: false },
+    { x: 213, y: 217, type: 'quarry_rubble', walkable: true },
+    { x: 220, y: 219, type: 'quarry_rubble', walkable: true },
+    { x: 214, y: 220, type: 'rock', walkable: false },            // unworked boulders at the shelf rim
+    { x: 222, y: 213, type: 'rock', walkable: false },
+    { x: 218, y: 221, type: 'stump', walkable: false },
 
     // --- Cliff corridor ladder ??? gate prop removed; stairway now carves through the cliff ---
     // Lantern at the base of the cliff to draw the player's eye upward
@@ -1636,14 +1666,17 @@ export const forestDef: MapDefinition = {
     // Weathered lantern at the clearing edge
     { x: 285, y: 143, type: 'lantern', walkable: false },
 
-    // --- Stone quarry debris ---
-    { x: 230, y: 206, type: 'rock', walkable: false },
-    { x: 234, y: 210, type: 'rock', walkable: false },
-    { x: 238, y: 208, type: 'rock', walkable: false },
-    { x: 232, y: 214, type: 'rock', walkable: false },
-    { x: 236, y: 212, type: 'stump', walkable: false },
-    { x: 240, y: 206, type: 'rock', walkable: false },
-    { x: 228, y: 210, type: 'rock', walkable: false },
+    // --- Stone quarry — worked dig site: timber hoist, cut blocks, mine cart, spoil ---
+    { x: 230, y: 207, type: 'quarry_crane', walkable: false },     // shear-legs hoist over the pit (NW edge)
+    { x: 237, y: 208, type: 'cut_stone_blocks', walkable: false }, // freshly-cut blocks stacked for haulage
+    { x: 234, y: 213, type: 'cut_stone_blocks', walkable: false },
+    { x: 240, y: 211, type: 'quarry_cart', walkable: false },      // loaded mine cart on its rail
+    { x: 233, y: 211, type: 'quarry_tools', walkable: false },     // pickaxe driven into a block
+    { x: 239, y: 214, type: 'quarry_rubble', walkable: true },     // spoil heaps raked aside
+    { x: 231, y: 213, type: 'quarry_rubble', walkable: true },
+    { x: 241, y: 207, type: 'rock', walkable: false },             // unworked boulders at the rough rim
+    { x: 229, y: 211, type: 'rock', walkable: false },
+    { x: 236, y: 206, type: 'stump', walkable: false },
 
     // --- Old well clearing props ---
     { x: 192, y: 122, type: 'well', walkable: false },
@@ -1694,7 +1727,6 @@ export const forestDef: MapDefinition = {
     // --- Collapsed cottage rubble ---
     { x: 278, y: 162, type: 'rock', walkable: false },
     { x: 282, y: 164, type: 'rock', walkable: false },
-    { x: 284, y: 162, type: 'stump', walkable: false },
     { x: 280, y: 166, type: 'barrel', walkable: false },
 
     // --- Sunken garden detail (west) ---
@@ -2020,14 +2052,9 @@ export const forestDef: MapDefinition = {
     // Faces south (cliff wall) by default. A dripfeed of the Hollow section.
     { x: 107, y: 190, width: 6, height: 2, enemyType: 'shadow_lurker', count: 1 },
 
-    // East Ridge Ascent summit — lone Ridge Revenant (bound reaper, evolved Hollow Reaver)
-    // guarding the Tempered Core on the highest cliff tier (world ~110,-8).
-    { x: 260, y: 142, width: 1, height: 1, enemyType: 'ridge_revenant', count: 1 },
-    // West Fort interior — a second Ridge Revenant mirrors the east-side challenge at this
-    // latitude, turning the dual-gated fort into a real boss room. NOTE: the Tempered Core
-    // is scoped to east-side revenants only (see RuntimeCombatActions), so this one is a
-    // tough fight + chest reward, not a duplicate Core source.
-    { x: 16, y: 145, width: 6, height: 6, enemyType: 'ridge_revenant', count: 1 },
+    // The two Ridge Revenants are no longer placed as static zones — they are SUMMONED from
+    // heresy glyphs (props: summoning_ritual at tile 260,142 and 18,147) when a player holding
+    // 3+ cursed sediment on a ritual glyph summons the revenant. Logic: RevenantRituals.ts.
 
     // West ??? hidden grove plants
     { x: 18, y: 124, width: 22, height: 18, enemyType: 'plant', count: 5 },
@@ -2116,17 +2143,33 @@ export const forestDef: MapDefinition = {
     { x: 118, y: 30, width: 10, height: 6, enemyType: 'hollow_reaver', count: 1 },
 
     // East ridge wolf zone removed ??? zone was 97% unwalkable cliff tiles.
-    // Stone quarry ??? skeletons among the rubble
+    // Stone quarry ??? skeletons among the rubble (main pit + lower west shelf of the same dig)
     { x: 228, y: 205, width: 16, height: 12, enemyType: 'skeleton', count: 4 },
+    { x: 213, y: 213, width: 13, height: 8, enemyType: 'skeleton', count: 2 },
     // Logging camp ??? wolves prowl the cleared area
     { x: 162, y: 234, width: 18, height: 12, enemyType: 'wolf', count: 3 },
     // Collapsed cottage spiders removed — east void consolidated into Consumed Ridge Camp POI.
     // Hollow-side bridge water stretch around world (-51,64): first water-slime test pocket,
     // safely below the y=105 cutoff and away from the start portal river.
-    { x: 88, y: 208, width: 30, height: 18, enemyType: 'water_slime', count: 2 },
+    { x: 88, y: 208, width: 30, height: 18, enemyType: 'water_slime', count: 1 },
     // Southern lake connector just below world y=105. Spawns prefer water, with shore fallback
     // only if the local generated water shape leaves no valid water tile in the zone.
-    { x: 180, y: 244, width: 24, height: 12, enemyType: 'water_slime', count: 2 },
+    { x: 180, y: 244, width: 24, height: 12, enemyType: 'water_slime', count: 1 },
+    // === WATER SLIMES — every sizable water body south of the north portal river ===
+    // Eastern overlook lake + channel — world (~100, 39).
+    { x: 240, y: 180, width: 20, height: 16, enemyType: 'water_slime', count: 2 },
+    // West forest lake — world (~-110, 50).
+    { x: 40, y: 200, width: 16, height: 12, enemyType: 'water_slime', count: 1 },
+    // Central golem-ford river (broken-bridge crossing) — world (~-30, 8).
+    { x: 120, y: 154, width: 100, height: 12, enemyType: 'water_slime', count: 2 },
+    // South-east creek system — world (~75, 98).
+    { x: 200, y: 232, width: 50, height: 32, enemyType: 'water_slime', count: 1 },
+    // Southern river bend — world (~0, 124).
+    { x: 118, y: 270, width: 64, height: 8, enemyType: 'water_slime', count: 1 },
+    // SW rocky pond — world (~-122, 132).
+    { x: 28, y: 278, width: 12, height: 8, enemyType: 'water_slime', count: 1 },
+    // East small pond — world (~130, 75).
+    { x: 275, y: 220, width: 10, height: 8, enemyType: 'water_slime', count: 1 },
     // Ruined shrine ??? shadows guard the ancient stones
     { x: 76, y: 276, width: 14, height: 12, enemyType: 'shadow', count: 2 },
     // SW corner golem den ? punishes players who stray deep into the south-west forest early.

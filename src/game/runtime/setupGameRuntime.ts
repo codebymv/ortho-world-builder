@@ -47,6 +47,10 @@ import {
 import { buildRuntimePhaseContexts } from '@/game/runtime/RuntimePhaseContextBuilder';
 import { createWorldItemRenderer } from '@/game/runtime/WorldItemRenderer';
 import type { PerfProfiler } from '@/game/runtime/PerfProfiler';
+import {
+  registerRevenantRitualDevCommands,
+  unregisterRevenantRitualDevCommands,
+} from '@/game/runtime/revenantRitualDev';
 
 type InteractionPrompt = string | null;
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
@@ -295,6 +299,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       combatSystem,
       biomeAmbience,
       corruptionFilter,
+      altitudeHaze,
       weatherSystem,
       dayNightCycle,
       floatingText,
@@ -939,6 +944,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           particleSystem,
           biomeAmbience,
           corruptionFilter,
+          altitudeHaze,
           weatherSystem,
           dayNightCycle,
           scene,
@@ -1197,6 +1203,13 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
 
     animate();
 
+    registerRevenantRitualDevCommands({
+      getState: () => gameStateRef.current,
+      getCombat: () => combatSystemRef.current,
+      getWorld: () => worldRef.current,
+      onChanged: triggerUIUpdate,
+    });
+
     const cancelEnemyPrewarm = assetManager.startBackgroundEnemyPrewarm(() => disposed);
 
     queueRuntimeStartupNotifications({
@@ -1210,6 +1223,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
 
     return () => {
       disposed = true;
+      unregisterRevenantRitualDevCommands();
       performRuntimeTeardown({
         rafId,
         effectTimeouts,
@@ -1257,6 +1271,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             particleSystem,
             biomeAmbience,
             corruptionFilter,
+            altitudeHaze,
             weatherSystem,
             dayNightCycle,
             floatingText,

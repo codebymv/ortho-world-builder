@@ -104,15 +104,6 @@ const CombatBars = React.memo(({
 }) => (
   <div className="flex items-center gap-3 min-[1100px]:gap-5 shrink-0">
     <div className="flex items-center gap-1.5 min-[1100px]:gap-2">
-      <div className="w-16 min-[900px]:w-20 min-[1100px]:w-28 h-2.5 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
-        <div
-          className="h-full bg-gradient-to-r from-red-600 to-red-400"
-          style={{ width: `${(health / maxHealth) * 100}%` }}
-        />
-      </div>
-      <span className="hidden min-[900px]:inline text-[10px] font-bold text-[#F5DEB3] tracking-wide whitespace-nowrap">
-        {health}/{maxHealth}
-      </span>
       {lastBreathArmed && lastBreathItem && (
         <div
           className="relative flex h-7 w-7 items-center justify-center rounded-full border border-[#83B6FF]/70 bg-[#102040]/85 shadow-[0_0_10px_rgba(96,165,250,0.55)]"
@@ -128,6 +119,15 @@ const CombatBars = React.memo(({
           )}
         </div>
       )}
+      <div className="w-16 min-[900px]:w-20 min-[1100px]:w-28 h-2.5 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
+        <div
+          className="h-full bg-gradient-to-r from-red-600 to-red-400"
+          style={{ width: `${(health / maxHealth) * 100}%` }}
+        />
+      </div>
+      <span className="hidden min-[900px]:inline text-[10px] font-bold text-[#F5DEB3] tracking-wide whitespace-nowrap">
+        {health}/{maxHealth}
+      </span>
     </div>
 
     <div className="flex items-center gap-1.5 min-[1100px]:gap-2">

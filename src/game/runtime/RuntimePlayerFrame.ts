@@ -212,6 +212,22 @@ export function runPlayerFramePhase({
     }
   }
 
+  // Tall-grass rustle — green motes kick up at the feet while wading through unchopped grass.
+  if (state.player.isMoving
+      && world.getTile(state.player.position.x, state.player.position.y)?.type === 'tall_grass'
+      && Math.random() < 0.4) {
+    particleSystem.emitAt(
+      state.player.position.x + (Math.random() - 0.5) * 0.4,
+      state.player.position.y - 0.1,
+      0.06,
+      2,
+      0x6CB85C,
+      0.22,
+      0.5,
+      0.5,
+    );
+  }
+
   let visualScaleX = playerBaseScale;
   let visualScaleY = playerBaseScale;
   let visualRotation = 0;

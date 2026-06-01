@@ -37,6 +37,11 @@ describe('PROBE fort west ladder', () => {
     writeFileSync('probegrid.txt', lines.join('\n'), 'utf8');
 
     const t = (tx: number, ty: number) => map.tiles[ty][tx];
+    // C7 west rim over the cliff void (world 90-92, 13) must not be a walkable grass shelf.
+    for (let tx = 240; tx <= 242; tx++) {
+      expect({ type: t(tx, 163).type, w: t(tx, 163).walkable, e: t(tx, 163).elevation })
+        .toEqual({ type: 'cliff', w: false, e: 1 });
+    }
     // Player shelf row (world 92,22 = tile 242,172) shares elevation with gate row.
     expect({ type: t(242, 172).type, w: t(242, 172).walkable, e: t(242, 172).elevation })
       .toEqual({ type: 'grass', w: true, e: 1 });

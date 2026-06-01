@@ -6,9 +6,16 @@ import { getVillageReactivityStage } from '@/game/domain/VillageReactivity';
 import { mapDefinitions } from '@/data/maps';
 import { TILE_METADATA } from '@/data/tiles';
 import { getClosedChestTileType, getOpenedChestTileType, isChestTileType } from '@/data/specialChests';
+import { evictEnemiesFromBonfireSafeZones } from '@/game/runtime/bonfireCombatGuard';
 import { spawnEnemiesFromMapZones } from '@/game/runtime/RuntimeWorldUtils';
 import { ENEMY_BLUEPRINTS } from '@/data/enemies';
 import { syncHeresyAltarsForMap } from '@/game/runtime/HeresyAltars';
+import {
+  applyRevenantRitualDecor,
+  ensureForestDudRitualSites,
+  isRitualDecorTileType,
+} from '@/game/runtime/revenantRitualDecor';
+import { syncWestFortBonfireLogs } from '@/game/runtime/westFortBonfires';
 
 interface RuntimeMapTransitionServiceLike {
   transitionTo: (targetMap: string, targetX: number, targetY: number) => void;
@@ -1473,9 +1480,16 @@ export function createRuntimeMapFlow({
           continue;
         }
 
-        // ── Interior — cobblestone, but keep authored chests (e.g. Wayfarer Ring) ────
+        // ── Interior — cobblestone, but keep authored chests (e.g. Wayfarer Ring) and
+        //    the summoning glyph (the west-fort Revenant ritual lives on the floor here) ──
         const interiorTile = row[tx];
-        if (isChestTileType(interiorTile.type)) {
+        if (
+          isChestTileType(interiorTile.type)
+          || interiorTile.type === 'summoning_ritual'
+          || isRitualDecorTileType(interiorTile.type)
+          || interiorTile.type === 'bonfire'
+          || interiorTile.type === 'bonfire_unlit'
+        ) {
           continue;
         }
         row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
@@ -1491,10 +1505,24 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
+  /** Failed summoning circles (dud sites) — re-stamp glyph + pad + decor after late map-gen passes. */
+  const syncForestDudRitualSites = () => {
+    if (state.currentMap !== 'forest') return;
+    ensureForestDudRitualSites(world, state.currentMap, {
+      forceRemesh: true,
+      playerWorldX: state.player.position.x,
+      playerWorldY: state.player.position.y,
+    });
+  };
+
   const syncWestFortGateState = () => {
     if (state.currentMap !== 'forest') return;
     // Western fort — moved +10 y from original placement, fully sealed (dual gates)
     buildOptionalFort('west_fort_gate_open', 'west_fort_gate', 12, 141, 14, 14);
+    const map = world.getCurrentMap();
+    applyRevenantRitualDecor(map, 18, 147);
+    syncWestFortBonfireLogs(map, state);
+    world.rebuildChunks();
   };
 
   const syncGolemFortGateState = () => {
@@ -1812,6 +1840,7 @@ export function createRuntimeMapFlow({
     syncForestFortGateState();
     syncNorthFortGateState();
     syncWestFortGateState();
+    syncForestDudRitualSites();
     syncGolemFortGateState();
     syncManuscriptCheckpointGateState();
     syncHollowFogGateState();
@@ -1927,6 +1956,7 @@ export function createRuntimeMapFlow({
       }
     }
 
+    evictEnemiesFromBonfireSafeZones(combatSystem, targetMap);
     console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
   };
 

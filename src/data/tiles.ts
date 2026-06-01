@@ -104,6 +104,15 @@ const RIDGE_LUMBERYARD_FOUNDATION: TileMetadata['foundation'] = {
   ],
 };
 
+// Shear-legs base blocks the two tiles under the hoist (anchor + tile to the north).
+const QUARRY_CRANE_FOUNDATION: TileMetadata['foundation'] = {
+  walkable: false,
+  rows: [
+    { y: -1, xMin: 0, xMax: 1 },
+    { y: 0, xMin: 0, xMax: 1 },
+  ],
+};
+
 export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   tree: { isOverlay: true, baseTile: 'grass', scale: 2.25, sortTrim: 0.12 },
   house: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1, foundation: HOUSE_BODY_FOUNDATION },
@@ -144,7 +153,13 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   stump: { isOverlay: true, baseTile: 'grass', scale: 0.75, sortTrim: 0.16 },
   fallen_log: { isOverlay: true, baseTile: 'grass', scale: 1.6, sortTrim: 0.18 },
   fallen_log_v: { isOverlay: true, baseTile: 'grass', scale: 1.6, sortTrim: 0.18 },
-  ridge_lumberyard: { isOverlay: true, baseTile: 'grass', scale: 1.85, sortTrim: 0.16, yOffset: 0.05, foundation: RIDGE_LUMBERYARD_FOUNDATION },
+  ridge_lumberyard: { isOverlay: true, baseTile: 'grass', scale: 4.7, sortTrim: 0.26, yOffset: 0.72, foundation: RIDGE_LUMBERYARD_FOUNDATION },
+  // Stone quarry asset set — cut-stone props anchored on stone/quarry_floor ground.
+  quarry_crane: { isOverlay: true, baseTile: 'quarry_floor', scale: 3.3, sortTrim: 0.24, yOffset: 0.66, foundation: QUARRY_CRANE_FOUNDATION },
+  cut_stone_blocks: { isOverlay: true, baseTile: 'quarry_bedrock', scale: 1.25, sortTrim: 0.18 },
+  quarry_cart: { isOverlay: true, baseTile: 'quarry_bedrock', scale: 1.5, sortTrim: 0.14 },
+  quarry_rubble: { isOverlay: true, baseTile: 'quarry_bedrock', scale: 1.1, sortTrim: 0.22 },
+  quarry_tools: { isOverlay: true, baseTile: 'quarry_bedrock', scale: 1.0, sortTrim: 0.18 },
   blighted_stump: { isOverlay: true, baseTile: 'grass', scale: 0.95, sortTrim: 0.16 },
   fence: { isOverlay: true, baseTile: 'grass', scale: 1.0, sortTrim: 0.22 },
   gate: { isOverlay: true, baseTile: 'stone', scale: 1.15, sortTrim: 0.22 },
@@ -171,7 +186,9 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   },
   hay_bale: { isOverlay: true, baseTile: 'farmland', scale: 0.7, sortTrim: 0.18 },
   lantern: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.14 },
-  tall_grass: { isOverlay: true, baseTile: 'grass', scale: 0.9, sortTrim: 0.24 },
+  // Stands tall as a billboard reed clump (not a flat decal); scale + yOffset lift it well above
+  // the tile so dense fills read as a wall of grass the player wades through / chops down.
+  tall_grass: { isOverlay: true, baseTile: 'grass', scale: 1.7, sortTrim: 0.3, yOffset: 0.5 },
   wheat: { isOverlay: true, baseTile: 'farmland', scale: 0.95, sortTrim: 0.24 },
   wagon: { isOverlay: true, baseTile: 'dirt', scale: 2.4, sortTrim: 0.1 },
   cart: { isOverlay: true, baseTile: 'dirt', scale: 1.6, sortTrim: 0.14 },
@@ -195,6 +212,12 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   altar: { isOverlay: true, baseTile: 'stone', scale: 1.4, sortTrim: 0.08 },
   heresy_altar: { isOverlay: true, baseTile: 'hollow_blight', scale: 1.45, sortTrim: 0.1, yOffset: 0.08 },
   heresy_altar_cracked: { isOverlay: true, baseTile: 'hollow_blight', scale: 1.45, sortTrim: 0.1, yOffset: 0.08 },
+  // Large flat summoning glyph on the ground; high sortTrim keeps it behind actors like a decal.
+  summoning_ritual: { isOverlay: true, baseTile: 'hollow_blight', scale: 3.6, sortTrim: 0.32, yOffset: 0 },
+  /** Failed / abandoned summoning circle — cosmetic only (no RevenantRituals binding). */
+  summoning_ritual_dud: { isOverlay: true, baseTile: 'grass', scale: 3.6, sortTrim: 0.32, yOffset: 0 },
+  ritual_candle: { isOverlay: true, baseTile: 'cobblestone', scale: 0.85, sortTrim: 0.18, yOffset: 0.02 },
+  ritual_candle_knocked: { isOverlay: true, baseTile: 'cobblestone', scale: 0.8, sortTrim: 0.2, yOffset: 0.01 },
   bloodstain: { isOverlay: true, baseTile: 'stone', scale: 0.8, sortTrim: 0.28 },
   chain: { isOverlay: true, baseTile: 'stone', scale: 0.7, sortTrim: 0.2 },
   shortcut_lever: { isOverlay: true, baseTile: 'dirt', scale: 1.18, sortTrim: 0.2, yOffset: 0.08 },

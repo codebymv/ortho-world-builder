@@ -5,6 +5,8 @@ import type { EnemyLoopContext } from '@/game/runtime/RuntimePhaseContexts';
 import { ENEMY_BLUEPRINTS } from '@/data/enemies';
 import { getClimbVisualElevation } from '@/game/runtime/PlayerSimulationSystem';
 import { updateEastRidgeBoulder } from '@/game/runtime/EastRidgeBoulder';
+import { updateFailedRitualGlyphs, updateRevenantRituals } from '@/game/runtime/RevenantRituals';
+import type { Enemy } from '@/lib/game/Combat';
 
 const announcedHollowEclipses = new Set<number>();
 type BossSfxState = { state: string; type: string | undefined; phase: number | undefined; combo: number | undefined };
@@ -13,6 +15,98 @@ const liveProjectileIdsScratch = new Set<string>();
 const liveHazardIdsScratch = new Set<string>();
 const projectileRemovalScratch: string[] = [];
 const hazardRemovalScratch: string[] = [];
+
+function getPlantLashReach(enemy: { attackRange: number }): number {
+  return enemy.attackRange * 1.3;
+}
+
+function getPlantLashProgress(enemy: { state: string; telegraphTimer: number; telegraphDuration: number; attackAnimationTimer: number }): number {
+  if (enemy.state === 'telegraphing') {
+    const raw = enemy.telegraphDuration > 0
+      ? 1 - enemy.telegraphTimer / enemy.telegraphDuration
+      : 1;
+    if (raw < 0.68) return 0;
+    const snap = (raw - 0.68) / 0.32;
+    return Math.max(0, Math.min(1, snap * snap * (3 - 2 * snap)));
+  }
+
+  if (enemy.state === 'recovering') {
+    const raw = Math.max(0, Math.min(1, enemy.attackAnimationTimer / 0.3));
+    return Math.sin(raw * Math.PI);
+  }
+
+  return 0;
+}
+
+function updatePlantLashVisual({
+  scene,
+  assetManager,
+  registry,
+  enemy,
+  state,
+  currentTime,
+  getVisualYAt,
+  getActorRenderOrder,
+}: Pick<RunEnemyLoopOptions, 'scene' | 'assetManager' | 'registry' | 'state' | 'currentTime' | 'getVisualYAt' | 'getActorRenderOrder'> & {
+  enemy: Enemy;
+}): boolean {
+  if (enemy.type !== 'plant' ||
+      (enemy.state !== 'telegraphing' && !(enemy.state === 'recovering' && enemy.attackAnimationTimer > 0))) {
+    return false;
+  }
+
+  let aux = registry.auxMeshes.get(enemy.id);
+  if (!aux) {
+    const lashMesh = new THREE.Mesh(SharedGeometry.tile, new THREE.MeshBasicMaterial({
+      map: assetManager.getTexture('fx_vine_lash'),
+      transparent: true,
+      depthWrite: false,
+    }));
+    lashMesh.position.z = 0.23;
+    scene.add(lashMesh);
+    aux = [lashMesh];
+    registry.auxMeshes.set(enemy.id, aux);
+  }
+
+  const lash = aux[0];
+  const target = state.player.position;
+  const dx = target.x - enemy.position.x;
+  const dy = target.y - enemy.position.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const nx = dx / dist;
+  const ny = dy / dist;
+  const fullReach = getPlantLashReach(enemy);
+  const progress = getPlantLashProgress(enemy);
+  if (progress <= 0.01) {
+    lash.visible = false;
+    return true;
+  }
+
+  const flicker = Math.floor(currentTime / 42 + enemy.visualSeed * 11) % 3;
+  const whipSnap = enemy.state === 'telegraphing'
+    ? 0.82 + progress * 0.24
+    : 0.9 + Math.sin(currentTime / 24 + enemy.visualSeed * 19) * 0.12;
+  const reach = fullReach * whipSnap;
+  const originOffset = 0.28;
+  const startX = enemy.position.x + nx * originOffset;
+  const startY = enemy.position.y + ny * originOffset;
+  const side = flicker === 1 ? 1 : flicker === 2 ? -1 : 0;
+  const lateral = side * (enemy.state === 'recovering' ? 0.16 : 0.08) * progress;
+  const centerX = startX + nx * reach * 0.5 + -ny * lateral;
+  const centerY = startY + ny * reach * 0.5 + nx * lateral;
+  const mat = lash.material as THREE.MeshBasicMaterial;
+
+  lash.visible = reach > 0.05;
+  lash.position.set(centerX, getVisualYAt(centerX, centerY) + 0.24, 0.23);
+  lash.rotation.z = Math.atan2(ny, nx) + side * 0.06 * progress;
+  lash.scale.set(Math.max(0.08, reach), 0.22 + progress * 0.16, 1);
+  lash.renderOrder = getActorRenderOrder(centerX, centerY, 0.3) + 3;
+  mat.opacity = enemy.state === 'telegraphing'
+    ? (flicker === 0 ? 0.45 : 0.85) * progress
+    : Math.max(0.15, progress * (flicker === 2 ? 0.45 : 0.95));
+
+  return true;
+}
 
 export interface RunEnemyLoopOptions extends EnemyLoopContext {
   currentTime: number;
@@ -400,7 +494,16 @@ export function runEnemyLoop({
       getActorRenderOrder,
       getTexture,
     });
-
+    let auxHandled = updatePlantLashVisual({
+      scene,
+      assetManager,
+      registry,
+      enemy,
+      state,
+      currentTime,
+      getVisualYAt,
+      getActorRenderOrder,
+    });
     // Ridge Revenant summoned blade array — during the bladestorm cast an arc of
     // spectral blades materializes behind the wraith, lifts overhead, points at
     // the player, and converges into firing position as the telegraph completes.
@@ -409,7 +512,11 @@ export function runEnemyLoop({
     if (enemy.type === 'ridge_revenant'
         && enemy.state === 'telegraphing'
         && enemy.currentAttackType === 'revenant_bladestorm') {
-      const BLADE_AURA_COUNT = 7;
+      auxHandled = true;
+      // Aux layout: [0..BLADE_AURA_COUNT-1] = summoned blades, [last] = casting arm.
+      // Blade count + fan are kept in lockstep with the projectile volley in Combat.ts.
+      const BLADE_AURA_COUNT = 9;
+      const ARM_INDEX = BLADE_AURA_COUNT;
       let aura = registry.auxMeshes.get(enemy.id);
       if (!aura) {
         aura = [];
@@ -425,6 +532,16 @@ export function runEnemyLoop({
           scene.add(bladeMesh);
           aura.push(bladeMesh);
         }
+        // Casting arm overlay — sweeps up toward the aim as the cast charges (the hand-wave).
+        const armMesh = new THREE.Mesh(SharedGeometry.enemy, new THREE.MeshBasicMaterial({
+          map: assetManager.getTexture('fx_revenant_cast_arm'),
+          transparent: true,
+          depthWrite: false,
+          color: 0xffffff,
+        }));
+        armMesh.position.z = 0.24;
+        scene.add(armMesh);
+        aura.push(armMesh);
         registry.auxMeshes.set(enemy.id, aura);
       }
       const progress = enemy.telegraphDuration > 0
@@ -434,7 +551,7 @@ export function runEnemyLoop({
       const baseAngle = Math.atan2(aim.y - enemy.position.y, aim.x - enemy.position.x);
       const ex = enemy.position.x;
       const ey = getVisualYAt(enemy.position.x, enemy.position.y) + 0.4;
-      const fan = (70 * Math.PI) / 180;
+      const fan = (80 * Math.PI) / 180;
       const ringRadius = 1.5 - progress * 0.55;
       const auraRenderOrder = getActorRenderOrder(enemy.position.x, enemy.position.y, 0.5) + 2;
       for (let i = 0; i < BLADE_AURA_COUNT; i++) {
@@ -456,7 +573,34 @@ export function runEnemyLoop({
         bladeMesh.renderOrder = auraRenderOrder;
         bladeMesh.visible = true;
       }
-    } else if (registry.auxMeshes.has(enemy.id)) {
+
+      // Casting arm: anchored at the wraith's shoulder, it eases from a lowered rest pose
+      // up to a fully-extended point toward the aim, with a sharp forward "flick" right
+      // before release — selling the gesture that looses the storm.
+      const armMesh = aura[ARM_INDEX];
+      if (armMesh) {
+        const shoulderX = ex + Math.cos(baseAngle) * 0.22;
+        const shoulderY = ey + 0.35;
+        const restAngle = baseAngle - 1.15;            // arm hangs below the aim line at rest
+        const ease = progress * progress * (3 - 2 * progress); // smoothstep
+        const flick = progress > 0.82 ? (progress - 0.82) / 0.18 * 0.35 : 0; // overshoot near release
+        const armAngle = restAngle + (baseAngle - restAngle) * ease + flick;
+        const armLen = 0.55 + progress * 0.25;         // extends as it charges
+        armMesh.position.x = shoulderX + Math.cos(armAngle) * armLen * 0.5;
+        armMesh.position.y = shoulderY + Math.sin(armAngle) * armLen * 0.5;
+        armMesh.position.z = 0.24;
+        armMesh.rotation.z = armAngle;
+        // Rotation alone aims the +X-pointing arm sprite in any direction — no mirror needed.
+        const armScale = 0.85 + progress * 0.2;
+        armMesh.scale.set(armScale, armScale, 1);
+        const armMat = armMesh.material as THREE.MeshBasicMaterial;
+        armMat.opacity = Math.min(1, 0.4 + progress * 0.6);
+        armMesh.renderOrder = auraRenderOrder + 1;
+        armMesh.visible = true;
+      }
+    }
+
+    if (!auxHandled && registry.auxMeshes.has(enemy.id)) {
       registry.removeAux(enemy.id);
     }
   }
@@ -478,6 +622,10 @@ export function runEnemyLoop({
   // and resolves collision this same frame.
   if (!isPlayerDead) {
     updateEastRidgeBoulder({ state, combatSystem, screenShake, particleSystem, playPropBreak });
+    // Heresy summoning rituals: materialize a Ridge Revenant when a sufficiently-heretical
+    // player (3+ cursed sediment) steps onto a summoning glyph.
+    updateRevenantRituals({ state, world, combatSystem, screenShake, particleSystem, deltaTime, currentTime });
+    updateFailedRitualGlyphs({ state, world });
   }
 
   // Update + render thrown projectiles. A reflected projectile = a parry, so

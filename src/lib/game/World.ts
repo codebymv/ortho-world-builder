@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager';
 import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
+import { isPositionInBonfireSafeZone } from '@/game/runtime/bonfireCombatGuard';
 
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'water_corrupted' | 'stone' | 'wood' 
@@ -17,7 +18,7 @@ export type TileType =
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
   | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter'
   | 'bed' | 'wardrobe' | 'fireplace' | 'weapon_rack' | 'alchemy_table' | 'cauldron'
-  | 'throne' | 'altar' | 'heresy_altar' | 'heresy_altar_cracked' | 'bloodstain' | 'chain' | 'shortcut_lever' | 'cage' | 'bones_pile' | 'ranger_remains'
+  | 'throne' | 'altar' | 'heresy_altar' | 'heresy_altar_cracked' | 'summoning_ritual' | 'summoning_ritual_dud' | 'ritual_candle' | 'ritual_candle_knocked' | 'bloodstain' | 'chain' | 'shortcut_lever' | 'cage' | 'bones_pile' | 'ranger_remains'
   | 'door' | 'door_interior' | 'door_iron'
   | 'fog_gate'
   | 'bonfire_unlit'
@@ -30,7 +31,8 @@ export type TileType =
   | 'observatory'
   | 'fallen_log'
   | 'fallen_log_v'
-  | 'ridge_lumberyard';
+  | 'ridge_lumberyard'
+  | 'quarry_floor' | 'quarry_bedrock' | 'quarry_crane' | 'cut_stone_blocks' | 'quarry_cart' | 'quarry_rubble' | 'quarry_tools';
 
 /** Pass as `getInteractableNear` radius from gameplay so gates / chunky facades stay in scan + reach.
  * Must be >= every `getInteractableReach` value so the min() cap does not shrink large reaches. */
@@ -72,6 +74,8 @@ export interface WorldMap {
   coastalSouthBackdrop?: boolean;
   /** When true, deep-ocean planes also extend past the north, east, and west map edges (matches coastalBorderAllSides generation). */
   coastalBorderAllSides?: boolean;
+  /** Runtime map key (village, forest, …) — used for bonfire sanctuary collision. */
+  mapKey?: string;
 }
 
 export interface InteractableHit {
@@ -499,6 +503,18 @@ export class World {
       Math.abs(tileY - this.lastChunkCenter.y) <= CULL_RADIUS;
   }
 
+  /** True when the live map tile type does not match the rendered mesh (or mesh is missing in view range). */
+  isActiveTileMeshStale(tileX: number, tileY: number): boolean {
+    const tile = this.map.tiles[tileY]?.[tileX];
+    if (!tile) return false;
+    const key = this.tileKey(tileX, tileY);
+    const object = this.activeMeshes.get(key);
+    if (!object) {
+      return this.shouldKeepTileActive(tileX, tileY);
+    }
+    return object.userData?.tileType !== tile.type;
+  }
+
   private removeActiveTileObject(key: number): void {
     const object = this.activeMeshes.get(key);
     if (!object) return;
@@ -540,7 +556,13 @@ export class World {
     this.activeMeshes.set(this.tileKey(tileX, tileY), object);
   }
 
-  private refreshTileRegion(minTileX: number, minTileY: number, maxTileX: number, maxTileY: number): void {
+  private refreshTileRegion(
+    minTileX: number,
+    minTileY: number,
+    maxTileX: number,
+    maxTileY: number,
+    options?: { forceAttach?: boolean },
+  ): void {
     this.mapRevision += 1;
     this.interactableCache = null;
     const clampedMinX = Math.max(0, minTileX);
@@ -548,6 +570,8 @@ export class World {
     const clampedMaxX = Math.min(this.map.width - 1, maxTileX);
     const clampedMaxY = Math.min(this.map.height - 1, maxTileY);
     if (clampedMinX > clampedMaxX || clampedMinY > clampedMaxY) return;
+
+    const forceAttach = options?.forceAttach === true;
 
     this.pendingTiles = this.pendingTiles.filter(({ x, y }) =>
       x < clampedMinX || x > clampedMaxX || y < clampedMinY || y > clampedMaxY
@@ -557,7 +581,13 @@ export class World {
       for (let x = clampedMinX; x <= clampedMaxX; x++) {
         const key = this.tileKey(x, y);
         this.removeActiveTileObject(key);
-        if (!this.shouldKeepTileActive(x, y)) continue;
+        if (!forceAttach && !this.shouldKeepTileActive(x, y)) {
+          const tile = this.map.tiles[y]?.[x];
+          if (tile && !this.pendingTiles.some((p) => p.x === x && p.y === y)) {
+            this.pendingTiles.push({ x, y, key });
+          }
+          continue;
+        }
 
         const tile = this.map.tiles[y]?.[x];
         if (!tile) continue;
@@ -1197,9 +1227,73 @@ export class World {
     group.add(mesh);
   }
 
+  /** Spent ritual: grass underfoot + ash noise texture clipped to the sigil mask (no flat grey sprite / pad). */
+  private createDudRitualTileObject(tile: Tile, tileX: number, tileY: number): THREE.Object3D | null {
+    const ashTexture = this.assetManager.getTexture('ash');
+    const maskTexture = this.assetManager.getTexture('summoning_ritual_dud');
+    const baseType = this.resolveBaseTileType(
+      tileX,
+      tileY,
+      TILE_METADATA.summoning_ritual_dud?.baseTile ?? 'grass',
+    );
+    const baseTexture = this.assetManager.getTexture(baseType);
+    if (!ashTexture || !maskTexture || !baseTexture) return null;
+
+    const baseScale = TILE_METADATA.summoning_ritual_dud?.scale ?? 1.0;
+    const isOverworldMap = this.map.width >= 80 || this.map.height >= 80;
+    const structureScaleBoost = isOverworldMap && OVERWORLD_STRUCTURE_TILE_TYPES.has('summoning_ritual_dud')
+      ? OVERWORLD_STRUCTURE_SCALE_MULTIPLIER
+      : 1;
+    const scale = baseScale * structureScaleBoost;
+    const sortTrim = TILE_METADATA.summoning_ritual_dud?.sortTrim ?? 0.16;
+    const yOffset = TILE_METADATA.summoning_ritual_dud?.yOffset ?? ((scale - 1) * this.tileSize * 0.3);
+    const sortAnchorY = ((scale - 1) * this.tileSize * 0.3) - (scale * 0.5) + sortTrim;
+
+    const group = this.overlayPool.pop() ?? new THREE.Group();
+    group.clear();
+    group.matrixAutoUpdate = false;
+    group.userData = {
+      tileType: tile.type,
+      sortAnchorY,
+      renderOrderBias: 800,
+    };
+
+    const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
+    this.setRenderRole(baseMesh, 'ground');
+
+    const materialKey = 'overlay_dud_ash_sigil';
+    let sigilMaterial = this.materialCache.get(materialKey);
+    if (!sigilMaterial) {
+      sigilMaterial = new THREE.MeshBasicMaterial({
+        map: ashTexture,
+        alphaMap: maskTexture,
+        transparent: true,
+        depthWrite: false,
+        depthTest: false,
+        alphaTest: 0.05,
+      });
+      this.materialCache.set(materialKey, sigilMaterial);
+    }
+    const overlayMesh = this.acquireMesh(this.sharedTileGeometry, sigilMaterial);
+    overlayMesh.position.z = 0.1;
+    overlayMesh.scale.set(scale, scale, 1);
+    overlayMesh.position.y = yOffset;
+    this.setRenderRole(overlayMesh, 'overlay');
+    overlayMesh.updateMatrix();
+
+    baseMesh.updateMatrix();
+    group.add(baseMesh, overlayMesh);
+    this.appendTerrainSeamFillers(group, tile, tileX, tileY);
+    return group;
+  }
+
   private createTileObject(tile: Tile, tileX?: number, tileY?: number): THREE.Object3D | null {
     if (HEIGHT_TILE_TYPES.has(tile.type)) {
       return this.createHeightTileObject(tile, tileX, tileY);
+    }
+
+    if (tile.type === 'summoning_ritual_dud' && tileX !== undefined && tileY !== undefined) {
+      return this.createDudRitualTileObject(tile, tileX, tileY);
     }
 
     const isOverlay = TILE_METADATA[tile.type]?.isOverlay;
@@ -1306,9 +1400,11 @@ export class World {
           ? 1300
           : tile.type === 'chest' || tile.type === 'chest_opened' || tile.type === 'special_chest' || tile.type === 'special_chest_opened'
             ? 900
-            : tile.type === 'windmill'
+            : tile.type === 'windmill' || tile.type === 'ridge_lumberyard'
               ? 850
-              : 0;
+              : tile.type === 'summoning_ritual' || tile.type === 'summoning_ritual_dud'
+                ? 800
+                : 0;
 
     group.userData = {
       tileType: tile.type,
@@ -1578,8 +1674,14 @@ export class World {
    * south coast backdrop (deep blue) and all tiles, which produced a visible blue edge flash
    * on chest opens / pickups when the GPU recomposited the frame.
    */
-  refreshMapTileRegion(minTileX: number, minTileY: number, maxTileX: number, maxTileY: number): void {
-    this.refreshTileRegion(minTileX, minTileY, maxTileX, maxTileY);
+  refreshMapTileRegion(
+    minTileX: number,
+    minTileY: number,
+    maxTileX: number,
+    maxTileY: number,
+    options?: { forceAttach?: boolean },
+  ): void {
+    this.refreshTileRegion(minTileX, minTileY, maxTileX, maxTileY, options);
   }
 
   getTile(x: number, y: number): Tile | null {
@@ -1728,6 +1830,7 @@ export class World {
     const toTileY = Math.floor(toY + this.map.height / 2);
     if (!this.canEnemyStepBetween(fromTile, toTile, fromTileX, fromTileY, toTileX, toTileY)) return false;
     if (this.isEnemyBlockedStandingTile(toTile)) return false;
+    if (this.map.mapKey && isPositionInBonfireSafeZone(this.map.mapKey, toX, toY)) return false;
     return true;
   }
 

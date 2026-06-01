@@ -6,6 +6,10 @@ import { dialogues } from '@/data/dialogues';
 import { mapDefinitions } from '@/data/maps';
 import { ENEMY_BLUEPRINTS, DEFAULT_ENEMY } from '@/data/enemies';
 import type { EnemyBlueprint } from '@/data/enemies';
+import {
+  evictEnemiesFromBonfireSafeZones,
+  isPositionInBonfireSafeZone,
+} from '@/game/runtime/bonfireCombatGuard';
 import type { Item } from '@/lib/game/GameState';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
 
@@ -131,6 +135,7 @@ export function getInteractionPromptLabel(
 }
 
 function pickEnemySpawnInZone(
+  mapKey: string,
   zone: { x: number; y: number; width: number; height: number; patrolRadius?: number },
   mapWorld: WorldMap,
   world: World,
@@ -139,7 +144,7 @@ function pickEnemySpawnInZone(
   blueprint?: EnemyBlueprint,
 ): { x: number; y: number } | null {
   if (blueprint?.behaviorOverrides?.amphibiousWaterLeash) {
-    return pickWaterSlimeSpawnInZone(zone, mapWorld, world);
+    return pickWaterSlimeSpawnInZone(mapKey, zone, mapWorld, world);
   }
 
   const cols = Math.max(1, Math.min(Math.floor(zone.width), Math.ceil(Math.sqrt(total))));
@@ -153,12 +158,22 @@ function pickEnemySpawnInZone(
   for (let t = 0; t < 10; t++) {
     const ex = bx + Math.random() * subW - mapWorld.width / 2;
     const ey = by + Math.random() * subH - mapWorld.height / 2;
-    if (world.canEnemyMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)) return { x: ex, y: ey };
+    if (
+      !isPositionInBonfireSafeZone(mapKey, ex, ey) &&
+      world.canEnemyMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)
+    ) {
+      return { x: ex, y: ey };
+    }
   }
   for (let t = 0; t < 28; t++) {
     const ex = zone.x + Math.random() * zone.width - mapWorld.width / 2;
     const ey = zone.y + Math.random() * zone.height - mapWorld.height / 2;
-    if (world.canEnemyMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)) return { x: ex, y: ey };
+    if (
+      !isPositionInBonfireSafeZone(mapKey, ex, ey) &&
+      world.canEnemyMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)
+    ) {
+      return { x: ex, y: ey };
+    }
   }
   return null;
 }
@@ -171,6 +186,7 @@ function tileToWorldCenter(mapWorld: WorldMap, tileX: number, tileY: number): { 
 }
 
 function pickWaterSlimeSpawnInZone(
+  mapKey: string,
   zone: { x: number; y: number; width: number; height: number },
   mapWorld: WorldMap,
   world: World,
@@ -191,6 +207,7 @@ function pickWaterSlimeSpawnInZone(
       const tile = row[tx];
       if (!tile) continue;
       const pos = tileToWorldCenter(mapWorld, tx, ty);
+      if (isPositionInBonfireSafeZone(mapKey, pos.x, pos.y)) continue;
       if (WATER_SLIME_SPAWN_TILES.has(tile.type)) {
         waterCandidates.push(pos);
       } else if (world.canEnemyMoveTo(pos.x, pos.y, pos.x, pos.y, SPAWN_BODY_R)) {
@@ -249,7 +266,7 @@ export function spawnEnemiesFromMapZones(
     for (let i = 0; i < zone.count; i++) {
       const zoneId = `${mapKey}:z${zoneIdx}:${i}`;
       if (killedIds.has(zoneId)) continue;
-      const pos = pickEnemySpawnInZone(zone, mapWorld, world, i, zone.count, blueprint);
+      const pos = pickEnemySpawnInZone(mapKey, zone, mapWorld, world, i, zone.count, blueprint);
       if (!pos) continue;
       combatSystem.spawnEnemy(
         blueprint.name,
@@ -274,4 +291,5 @@ export function spawnEnemiesFromMapZones(
       );
     }
   }
+  evictEnemiesFromBonfireSafeZones(combatSystem, mapKey);
 }

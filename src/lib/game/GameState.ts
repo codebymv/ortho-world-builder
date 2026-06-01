@@ -20,6 +20,8 @@ export type KnownGameFlag =
   | 'forest_kill_count'
   | 'grove_shelf_shortcut_open'
   | 'west_cliff_gate_open'
+  | 'ritual_revenant_west_cleared'
+  | 'bonfire_west_fort_north_logs_cleared'
   | 'guard_duty_kill_baseline'
   | 'hollow_approach_ladder_extended'
   | 'hollow_entered'

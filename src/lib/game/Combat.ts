@@ -3,12 +3,18 @@ import { GameState } from './GameState';
 import { SpatialHash } from './SpatialHash';
 import { World } from './World';
 import { breakTilesInRadius } from '@/game/runtime/BreakableProps';
+import {
+  isPositionInBonfireSafeZone,
+  nudgeEnemyOutOfBonfireSanctuary,
+} from '@/game/runtime/bonfireCombatGuard';
 
 type CardinalDirection = 'up' | 'down' | 'left' | 'right';
 
 const BLOCK_DAMAGE_REDUCTION = 0.6;
 const PARRY_WINDOW = 0.25;
 const ENEMY_MOVE_RADIUS = 0.3;
+/** Locomotion multiplier while an enemy stands in unchopped tall grass (mirrors the player slow). */
+const TALL_GRASS_SLOW = 0.5;
 const DORMANCY_RANGE_SQ = 40 * 40;
 // Faction enemies only begin fighting each other once the player is within this radius.
 // Keeps pre-staged battles in stasis until the player is close enough to witness the start.
@@ -334,20 +340,21 @@ function pickBigEnemyAttackType(
       return 'reaver_rush';
     case 'ridge_revenant':
       if (closeBand) {
-        if (roll < 0.32) return 'revenant_flurry';
-        if (roll < 0.62) return 'revenant_crusher';
-        if (roll < 0.82) return 'revenant_rush';
-        return 'revenant_bladestorm';
+        // Point-blank: pure melee pressure. Bladestorm is a spacing tool and reads
+        // poorly fired from the enemy's own tile, so it's reserved for mid/far.
+        if (roll < 0.40) return 'revenant_flurry';
+        if (roll < 0.72) return 'revenant_crusher';
+        return 'revenant_rush';
       }
       if (midBand) {
         // At mid range the Revenant favors its summoned blade array — you cannot
         // simply back off to safety; the storm punishes spacing.
-        if (roll < 0.40) return 'revenant_bladestorm';
-        if (roll < 0.70) return 'revenant_rush';
+        if (roll < 0.45) return 'revenant_bladestorm';
+        if (roll < 0.72) return 'revenant_rush';
         return 'revenant_crusher';
       }
-      // Far band: close the gap with a rush or open with the blade storm.
-      return roll < 0.55 ? 'revenant_bladestorm' : 'revenant_rush';
+      // Far band: open with the blade storm or close the gap with a rush.
+      return roll < 0.60 ? 'revenant_bladestorm' : 'revenant_rush';
     default:
       return 'normal';
   }
@@ -708,9 +715,11 @@ export class CombatSystem {
       zoneId: options.zoneId,
     };
 
-    this.enemies.push(enemy);
-    this.spatialHash.insert(enemy);
-    this._enemiesDirty = true;
+    if (!isPositionInBonfireSafeZone(this.gameState.currentMap, position.x, position.y)) {
+      this.enemies.push(enemy);
+      this.spatialHash.insert(enemy);
+      this._enemiesDirty = true;
+    }
     return enemy;
   }
 
@@ -784,6 +793,15 @@ export class CombatSystem {
     let parried = false;
     let parryEnemyId: string | null = null;
     const now = performance.now() / 1000;
+    const mapId = this.gameState.currentMap;
+    const playerInBonfireSanctuary = isPositionInBonfireSafeZone(
+      mapId,
+      playerPosition.x,
+      playerPosition.y,
+    );
+    if (playerInBonfireSanctuary) {
+      playerInvulnerable = true;
+    }
 
     for (const enemy of this.enemies) {
       if (enemy.state === 'dead') continue;
@@ -825,6 +843,12 @@ export class CombatSystem {
       const playerDistSq = playerDx * playerDx + playerDy * playerDy;
 
       if (enemy.state === 'idle' && playerDistSq > DORMANCY_RANGE_SQ) continue;
+
+      if (isPositionInBonfireSafeZone(mapId, enemy.position.x, enemy.position.y)) {
+        nudgeEnemyOutOfBonfireSanctuary(enemy, mapId);
+        updateMovementVisuals(enemy, 0, 0, false, 0);
+        continue;
+      }
 
       // Faction target resolution — find the nearest alive enemy from a different faction.
       // Only runs when the enemy has a faction and the player hasn't aggroed it yet.
@@ -966,6 +990,10 @@ export class CombatSystem {
             px = enemy.patrolOrigin.x;
             py = enemy.patrolOrigin.y;
           }
+          if (isPositionInBonfireSafeZone(mapId, px, py)) {
+            px = enemy.patrolOrigin.x;
+            py = enemy.patrolOrigin.y;
+          }
           const pdx = px - enemy.position.x;
           const pdy = py - enemy.position.y;
           const pdistSq = pdx * pdx + pdy * pdy;
@@ -974,7 +1002,8 @@ export class CombatSystem {
             _tmpOldPos.x = enemy.position.x;
             _tmpOldPos.y = enemy.position.y;
             const pdist = Math.sqrt(pdistSq);
-            const moveSpeed = enemy.speed * 0.4 * deltaTime * 60;
+            const grassMult = world && world.getTile(enemy.position.x, enemy.position.y)?.type === 'tall_grass' ? TALL_GRASS_SLOW : 1;
+            const moveSpeed = enemy.speed * 0.4 * grassMult * deltaTime * 60;
             const nvx = pdx / pdist;
             const nvy = pdy / pdist;
             const nextX = enemy.position.x + nvx * moveSpeed;
@@ -1009,13 +1038,24 @@ export class CombatSystem {
 
           // Start chasing if target is in range. For faction enemies, also engage immediately
           // when a faction target has been detected (regardless of exact distance).
-          if (distSq <= chaseRangeSq || enemy.factionTarget !== null) {
+          if (
+            !playerInBonfireSanctuary &&
+            (distSq <= chaseRangeSq || enemy.factionTarget !== null)
+          ) {
             enemy.state = 'chasing';
           }
           break;
         }
 
         case 'chasing': {
+          if (playerInBonfireSanctuary) {
+            enemy.state = 'idle';
+            enemy.playerAggroed = false;
+            enemy.factionTarget = null;
+            enemy.attackLockedTarget = null;
+            updateMovementVisuals(enemy, 0, 0, false, 0);
+            break;
+          }
           const leashRangeSq = chaseRangeSq * 2.25;
           if (distSq > leashRangeSq) {
             enemy.state = 'idle';
@@ -1137,7 +1177,9 @@ export class CombatSystem {
             _tmpOldPos.y = enemy.position.y;
             const dist = Math.sqrt(distSq);
             const sprintMult = enemy.sprintBurstTimer > 0 ? 2.4 : 1.0;
-            const moveSpeed = enemy.speed * sprintMult * deltaTime * 60;
+            // Tall grass slows everything that wades through it, enemies included.
+            const grassMult = world && world.getTile(enemy.position.x, enemy.position.y)?.type === 'tall_grass' ? TALL_GRASS_SLOW : 1;
+            const moveSpeed = enemy.speed * sprintMult * grassMult * deltaTime * 60;
             const nvx = dx / dist;
             const nvy = dy / dist;
             const nextX = enemy.position.x + nvx * moveSpeed;
@@ -1180,6 +1222,13 @@ export class CombatSystem {
         }
 
         case 'telegraphing': {
+          if (playerInBonfireSanctuary) {
+            enemy.state = 'idle';
+            enemy.playerAggroed = false;
+            enemy.attackLockedTarget = null;
+            updateMovementVisuals(enemy, 0, 0, false, 0);
+            break;
+          }
           enemy.telegraphTimer -= deltaTime;
 
           // Mid-telegraph dash for committed attacks — the enemy actually moves
@@ -1391,17 +1440,28 @@ export class CombatSystem {
               // blades behind it launch as a wide fan aimed at the player. Each blade
               // does modest damage; the threat is the spread, which forces a clean
               // dodge or a parry of an individual blade. Parried blades reflect.
-              const aimOrigin = enemy.attackLockedTarget ?? playerPosition;
-              const bdx = aimOrigin.x - enemy.position.x;
-              const bdy = aimOrigin.y - enemy.position.y;
-              const baseAngle = Math.atan2(bdy, bdx);
-              const bladeCount = 7;
-              const fanSpread = (70 * Math.PI) / 180;
-              const bladeSpeed = 7.5;
-              const bladeDamage = Math.max(8, Math.floor(enemy.damage * 0.5));
+              // The outer fan is locked to the telegraph target (sidestep-the-lock play),
+              // but the inner blades RE-AIM at the player's live position at release, so
+              // backpedalling or strafing during the cast no longer dodges the whole storm.
+              const lockedAngle = Math.atan2(
+                (enemy.attackLockedTarget ?? playerPosition).y - enemy.position.y,
+                (enemy.attackLockedTarget ?? playerPosition).x - enemy.position.x,
+              );
+              const liveAngle = Math.atan2(
+                playerPosition.y - enemy.position.y,
+                playerPosition.x - enemy.position.x,
+              );
+              const bladeCount = 9;
+              const fanSpread = (80 * Math.PI) / 180;
+              const bladeSpeed = 7.8;
+              const bladeDamage = Math.max(8, Math.floor(enemy.damage * 0.45));
+              const liveAimBand = 2; // the central |b - center| <= this re-aim at the player
+              const center = (bladeCount - 1) / 2;
               for (let b = 0; b < bladeCount; b++) {
                 const offset = -fanSpread / 2 + (fanSpread * b) / (bladeCount - 1);
-                const angle = baseAngle + offset;
+                // Inner blades track the player live; outer blades stay on the locked fan.
+                const isInner = Math.abs(b - center) <= liveAimBand;
+                const angle = (isInner ? liveAngle : lockedAngle) + offset * (isInner ? 0.5 : 1);
                 // Slight per-blade speed variance so the fan arrives as a ripple
                 // rather than a single flat wall.
                 const speed = bladeSpeed * (0.9 + 0.06 * (b % 3));
@@ -1462,7 +1522,6 @@ export class CombatSystem {
             } else if (eBo.rangedAttack && eBo.rangedProjectile && rangedDistSq > attackRangeSq && rangedDistSq <= rangedMaxSq) {
               const dxP = playerPosition.x - enemy.position.x;
               const dyP = playerPosition.y - enemy.position.y;
-              const lenP = Math.hypot(dxP, dyP) || 1;
               const speed = eBo.rangedProjectileSpeed ?? 6.0;
               const projectileSprite = eBo.rangedProjectileSprite ?? 'projectile_scythe';
               // Fan a volley of N blades centered on the aim direction (Bladestorm). A single
@@ -1527,6 +1586,13 @@ export class CombatSystem {
         }
 
         case 'attacking': {
+          if (playerInBonfireSanctuary) {
+            enemy.state = 'idle';
+            enemy.playerAggroed = false;
+            enemy.attackLockedTarget = null;
+            updateMovementVisuals(enemy, 0, 0, false, 0);
+            break;
+          }
           enemy.state = 'recovering';
           enemy.recoverTimer = enemy.recoverDuration;
           updateMovementVisuals(enemy, 0, 0, false, 0);
@@ -1534,6 +1600,13 @@ export class CombatSystem {
         }
 
         case 'recovering': {
+          if (playerInBonfireSanctuary) {
+            enemy.state = 'idle';
+            enemy.playerAggroed = false;
+            enemy.attackLockedTarget = null;
+            updateMovementVisuals(enemy, 0, 0, false, 0);
+            break;
+          }
           enemy.recoverTimer -= deltaTime;
           updateMovementVisuals(enemy, 0, 0, false, 0);
           if (enemy.recoverTimer <= 0) {

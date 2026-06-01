@@ -28,6 +28,7 @@ interface RuntimeCleanupOptions {
   particleSystem: CleanupSystemLike;
   biomeAmbience: CleanupSystemLike;
   corruptionFilter?: CleanupSystemLike;
+  altitudeHaze?: CleanupSystemLike;
   weatherSystem: CleanupSystemLike;
   dayNightCycle: CleanupSystemLike;
   floatingText: CleanupSystemLike;
@@ -60,6 +61,7 @@ export function cleanupRuntimeResources({
   particleSystem,
   biomeAmbience,
   corruptionFilter,
+  altitudeHaze,
   weatherSystem,
   dayNightCycle,
   floatingText,
@@ -104,6 +106,7 @@ export function cleanupRuntimeResources({
   particleSystem.cleanup();
   biomeAmbience.cleanup();
   corruptionFilter?.cleanup();
+  altitudeHaze?.cleanup();
   weatherSystem.cleanup();
   dayNightCycle.cleanup();
   floatingText.cleanup();

@@ -433,9 +433,9 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     chaseRange: 12,
     telegraphDuration: 1.15,
     recoverDuration: 0.85,
-    poise: 320,
+    poise: 340,
     staggerDuration: 1.4,
-    essenceReward: 120,
+    essenceReward: 175,
     behaviorOverrides: {
       chainAttack: true,
       chainChance: 0.45,

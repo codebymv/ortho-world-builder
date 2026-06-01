@@ -27,7 +27,7 @@ export class AssetManager {
     this.textureDataUrls = new Map();
   }
 
-  createColorTexture(color: number, width: number = 32, height: number = 32, pattern?: 'noise' | 'checker' | 'gradient' | 'cobblestone_grid'): THREE.Texture {
+  createColorTexture(color: number, width: number = 32, height: number = 32, pattern?: 'noise' | 'checker' | 'gradient' | 'cobblestone_grid' | 'bedrock'): THREE.Texture {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -91,6 +91,29 @@ export class AssetManager {
         const factor = y / height * 0.3;
         ctx.fillStyle = `rgba(0,0,0,${factor})`;
         ctx.fillRect(0, y, width, 1);
+      }
+    } else if (pattern === 'bedrock') {
+      // Quarried bedrock — granite-like speckle in 2px clusters. No directional gradient, so it
+      // tiles across a clearing without the repeating horizontal "bars" the gradient pattern caused.
+      const clamp = (v: number) => Math.max(0, Math.min(255, v));
+      for (let y = 0; y < height; y += 2) {
+        for (let x = 0; x < width; x += 2) {
+          const roll = Math.random();
+          let v: number;
+          if (roll < 0.14) v = 16 + Math.floor(Math.random() * 16);       // bright mineral fleck
+          else if (roll < 0.30) v = -(18 + Math.floor(Math.random() * 18)); // dark pit / shadow
+          else v = Math.floor(Math.random() * 16) - 8;                      // mid mottle
+          ctx.fillStyle = `rgb(${clamp(r + v)}, ${clamp(g + v)}, ${clamp(b + v)})`;
+          ctx.fillRect(x, y, 2, 2);
+        }
+      }
+      // Fine grit overlay so the rock doesn't read as uniform 2px blocks.
+      const grit = Math.floor(width * height * 0.14);
+      for (let i = 0; i < grit; i++) {
+        const gx = Math.floor(Math.random() * width);
+        const gy = Math.floor(Math.random() * height);
+        ctx.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.16)';
+        ctx.fillRect(gx, gy, 1, 1);
       }
     }
     
@@ -2999,6 +3022,26 @@ export class AssetManager {
       [C,       C,       C,       C,       C,       C,       C,       C      ],
     ], 4, 'projectile_spectral_blade'));
 
+    // Ridge Revenant casting arm — a sleeved forearm ending in a pale claw wreathed in teal
+    // cast-energy, pointing RIGHT (+X). The bladestorm overlay anchors this at the wraith's
+    // shoulder and sweeps it up toward the aim as the cast charges (the "hand wave").
+    const AR_SL = 0x220E40; // sleeve dark
+    const AR_SM = 0x3E1C6E; // sleeve mid
+    const AR_SH = 0x5E30A0; // sleeve highlight
+    const AR_CW = 0xC8A8E8; // pale claw
+    const AR_GL = 0x40FFEE; // teal cast energy
+    this.registerTexture('fx_revenant_cast_arm', () => this.createSpriteTexture([
+      //        0        1        2        3        4        5        6        7
+      [C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       AR_GL,   C,       C      ],
+      [AR_SL,   AR_SM,   AR_SM,   AR_SH,   AR_CW,   AR_CW,   AR_GL,   C      ],
+      [AR_SL,   AR_SM,   AR_SH,   AR_SH,   AR_CW,   AR_CW,   AR_CW,   AR_GL  ],
+      [AR_SL,   AR_SM,   AR_SM,   AR_SH,   AR_CW,   AR_CW,   AR_GL,   C      ],
+      [C,       AR_SL,   AR_SM,   AR_SH,   AR_CW,   AR_GL,   C,       C      ],
+      [C,       C,       C,       C,       AR_GL,   C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C      ],
+    ], 4, 'fx_revenant_cast_arm'));
+
     this.registerTexture('hazard_scythe_marker', () => this.createSpriteTexture([
       [C,       C,       PB_DIM,  C,       C,       PB_DIM,  C,       C      ],
       [C,       PB_DIM,  C,       PB_GLW,  PB_GLW,  C,       PB_DIM,  C      ],
@@ -3052,6 +3095,13 @@ export class AssetManager {
       [C,       C,       VINE_S,  VINE,    VINE,    VINE_S,  C,       C,       C,       C],
       [C,       VINE_S,  C,       VINE_S,  VINE_S,  C,       VINE_S,  C,       C,       C],
     ], 4, 'enemy_plant_attack'));
+
+    this.registerTexture('fx_vine_lash', () => this.createSpriteTexture([
+      [C,      C,      C,      VINE_S, C,      C,      VINE_S, C,      C,      VINE_S, C,      C,      VINE_S, C,      C,      THORN],
+      [VINE_S, VINE,   VINE_H, VINE,   VINE,   VINE_H, VINE,   VINE,   VINE_H, VINE,   VINE,   VINE_H, VINE,   VINE,   VINE_H, THORN],
+      [C,      VINE_S, VINE,   VINE_S, VINE_H, VINE,   VINE_S, VINE_H, VINE,   VINE_S, VINE_H, VINE,   VINE_S, VINE_H, VINE,   C],
+      [C,      C,      THORN,  C,      C,      THORN,  C,      C,      THORN,  C,      C,      THORN,  C,      C,      C,      C],
+    ], 4, 'fx_vine_lash'));
 
     this.registerTexture('enemy_plant_walk_0', () => this.createSpriteTexture([
       [C,       C,       PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, C,       C,       C,       C],
@@ -3529,9 +3579,8 @@ export class AssetManager {
     ], 4, 'enemy_ashen_reaver_attack'));
 
     // --- Ridge Revenant: hooded void reaper — humanoid wraith matching the game thumbnail ---
-    // Clear humanoid silhouette: pointed hood, two glowing teal eyes in a void face, hunched
-    // broad shoulders, two draping arms ending in pale claws, a glowing teal rune-orb on the
-    // chest, and a tattered robe fading to wisps. Deep purples with teal accents.
+    // Readable as humanoid only at a glance: huge thorned hood, bright soul-core,
+    // one dominant talon mass, and a ragged cloak-body.
     const RR_VD  = 0x080412; // void core / face void (darkest black-purple)
     const RR_VH  = 0x140A24; // void dark highlight
     const RR_PD  = 0x220E40; // dark purple robe
@@ -3546,71 +3595,71 @@ export class AssetManager {
     const RR_EYE = 0x90FFE8; // glowing eye (bright cyan)
     const RR_CLW = 0xC8A8E8; // pale purple claw
     const RR_WSP = 0x0E061E; // robe wisps
+    const RR_BON = 0xB48ECF; // dead ridge-bone / talon shadow
     const RR_SLH = 0xE0FFFA; // claw slash glint (attack)
     const RR_GLP = 0xFF50FF; // glow pulse (telegraph)
 
     // Idle — hooded reaper: pointed hood, deep void face with two glowing eyes, defined
-    // shoulders, a small hollow teal rune-sigil high on the chest (NOT a belly orb), shaded
-    // robe folds, and a tapered tattered hem fading to wisps. Light biases upper-left.
+    // soul-core, oversized talon mass, and tapered cloak wisps. Light biases upper-left.
     this.registerTexture('enemy_ridge_revenant', () => this.createSpriteTexture([
-      [C,       C,       C,       C,       C,       C,       C,       RR_PM,   RR_PD,   C,       C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       C,       RR_PM,   RR_PH,   RR_PM,   RR_PD,   C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       RR_PH,   RR_PL,   RR_PH,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       RR_PH,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_PL,   RR_PM,   RR_EYE,  RR_VD,   RR_VD,   RR_EYE,  RR_PM,   RR_PD,   C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_PH,   RR_PM,   RR_VD,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C,       C      ],
-      [C,       C,       C,       RR_PL,   RR_PH,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TS,   RR_TL,   RR_TL,   RR_TS,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TL,   RR_VD,   RR_VD,   RR_TL,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TH,   RR_TL,   RR_TL,   RR_TH,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_PL,   RR_PA,   RR_PM,   RR_PD,   RR_PD,   RR_PD,   RR_PD,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_PH,   RR_PE,   RR_PM,   RR_PH,   RR_PD,   RR_PD,   RR_PH,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       RR_CLW,  RR_PH,   RR_PM,   RR_PD,   RR_PM,   RR_PH,   RR_PM,   RR_PD,   RR_PM,   RR_PM,   RR_CLW,  C,       C,       C      ],
-      [C,       C,       C,       RR_CLW,  RR_PM,   RR_PD,   RR_PM,   RR_PD,   RR_PD,   RR_PM,   RR_PD,   RR_CLW,  C,       C,       C,       C      ],
-      [C,       C,       C,       RR_VH,   RR_PD,   RR_WSP,  RR_PD,   RR_PM,   RR_PD,   RR_WSP,  RR_PD,   RR_VH,   C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_WSP,  RR_VH,   RR_WSP,  RR_PD,   RR_PD,   RR_WSP,  RR_VH,   RR_WSP,  C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       RR_PD,   C,       RR_PM,   C,       RR_PD,   C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_PD,   RR_PH,   RR_PM,   RR_PL,   RR_PH,   RR_PM,   RR_PD,   C,       C,       C,       C,       C      ],
+      [C,       C,       C,       RR_PD,   RR_PM,   RR_PH,   RR_VD,   RR_VD,   RR_VD,   RR_PH,   RR_PM,   RR_PD,   C,       C,       C,       C      ],
+      [C,       C,       RR_VH,   RR_PM,   RR_PH,   RR_VD,   RR_VD,   RR_EYE,  RR_EYE,  RR_VD,   RR_PM,   RR_PD,   RR_VH,   C,       C,       C      ],
+      [C,       RR_VH,   RR_PM,   RR_PH,   RR_VD,   RR_VD,   RR_VD,   RR_TS,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [C,       RR_PM,   RR_PH,   RR_PM,   RR_VD,   RR_VD,   RR_PD,   RR_PM,   RR_PD,   RR_VD,   RR_PM,   RR_PD,   RR_WSP,  C,       C,       C      ],
+      [RR_BON,  RR_CLW,  RR_PM,   RR_PD,   RR_PM,   RR_PD,   RR_TS,   RR_TL,   RR_TL,   RR_TS,   RR_PD,   RR_PM,   RR_WSP,  C,       C,       C      ],
+      [RR_CLW,  RR_BON,  RR_PH,   RR_PM,   RR_PD,   RR_PD,   RR_TL,   RR_TH,   RR_TH,   RR_TL,   RR_PD,   RR_PM,   RR_PD,   RR_WSP,  C,       C      ],
+      [C,       RR_CLW,  RR_BON,  RR_PH,   RR_PM,   RR_PD,   RR_TS,   RR_TL,   RR_TL,   RR_TS,   RR_PD,   RR_PM,   RR_PD,   RR_WSP,  C,       C      ],
+      [C,       C,       RR_CLW,  RR_BON,  RR_PH,   RR_PM,   RR_PD,   RR_PD,   RR_PD,   RR_PD,   RR_PM,   RR_PD,   RR_PM,   RR_WSP,  C,       C      ],
+      [C,       C,       C,       RR_CLW,  RR_PM,   RR_PH,   RR_PM,   RR_PD,   RR_PD,   RR_PM,   RR_PD,   RR_PM,   RR_WSP,  RR_PD,   C,       C      ],
+      [C,       C,       C,       RR_WSP,  RR_PM,   RR_PA,   RR_PH,   RR_PM,   RR_PD,   RR_PD,   RR_PM,   RR_WSP,  RR_CLW,  RR_BON,  C,       C      ],
+      [C,       C,       RR_WSP,  RR_PH,   RR_PE,   RR_PM,   RR_PD,   RR_WSP,  RR_PD,   RR_PM,   RR_WSP,  RR_CLW,  RR_BON,  C,       C,       C      ],
+      [C,       RR_WSP,  RR_VH,   RR_PD,   RR_PM,   RR_WSP,  RR_VH,   RR_PD,   RR_WSP,  RR_PD,   RR_WSP,  RR_BON,  C,       C,       C,       C      ],
+      [C,       C,       RR_WSP,  RR_PD,   RR_WSP,  C,       RR_WSP,  RR_PD,   C,       RR_WSP,  RR_PD,   RR_WSP,  C,       C,       C,       C      ],
+      [C,       C,       C,       RR_WSP,  C,       C,       RR_WSP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       C,       C      ],
     ], 4, 'enemy_ridge_revenant'));
 
     // Telegraph — eyes flare, chest rune-sigil blazes, purple energy crackles along the hood,
-    // shoulders, and tattered hem.
+    // thorned hood and tattered hem.
     this.registerTexture('enemy_ridge_revenant_telegraph', () => this.createSpriteTexture([
-      [C,       C,       C,       C,       C,       C,       RR_GLP,  RR_PM,   RR_PD,   RR_GLP,  C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       C,       RR_PM,   RR_PH,   RR_PM,   RR_PD,   C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_GLP,  RR_PH,   RR_PE,   RR_PH,   RR_PM,   RR_PM,   RR_PD,   RR_GLP,  C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       RR_PE,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_PE,   RR_PM,   RR_EYE,  RR_VH,   RR_VH,   RR_EYE,  RR_PM,   RR_PD,   C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_PH,   RR_PM,   RR_VD,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C,       C      ],
-      [C,       C,       RR_GLP,  RR_PL,   RR_PH,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PD,   RR_GLP,  C,       C      ],
-      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TL,   RR_TH,   RR_TH,   RR_TL,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TH,   RR_TL,   RR_TL,   RR_TH,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TH,   RR_TH,   RR_TH,   RR_TH,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       RR_GLP,  RR_PL,   RR_PA,   RR_PM,   RR_PD,   RR_PD,   RR_PD,   RR_PD,   RR_PM,   RR_PM,   RR_PD,   RR_GLP,  C,       C      ],
-      [C,       C,       C,       RR_PH,   RR_PE,   RR_PM,   RR_PH,   RR_PD,   RR_PD,   RR_PH,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       RR_CLW,  RR_PH,   RR_PM,   RR_PD,   RR_PM,   RR_PH,   RR_PM,   RR_PD,   RR_PM,   RR_PM,   RR_CLW,  C,       C,       C      ],
-      [C,       C,       C,       RR_CLW,  RR_PM,   RR_PD,   RR_PM,   RR_GLP,  RR_GLP,  RR_PM,   RR_PD,   RR_CLW,  C,       C,       C,       C      ],
-      [C,       C,       RR_GLP,  RR_VH,   RR_PD,   RR_WSP,  RR_PD,   RR_GLP,  RR_GLP,  RR_WSP,  RR_PD,   RR_VH,   RR_GLP,  C,       C,       C      ],
-      [C,       C,       C,       C,       RR_WSP,  RR_VH,   RR_GLP,  RR_PD,   RR_PD,   RR_GLP,  RR_VH,   RR_WSP,  C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_GLP,  RR_PD,   C,       RR_PE,   C,       RR_GLP,  RR_PD,   C,       C,       C,       C,       C      ],
+      [C,       C,       C,       RR_GLP,  RR_PD,   RR_PH,   RR_PE,   RR_PL,   RR_PE,   RR_PH,   RR_PD,   RR_GLP,  C,       C,       C,       C      ],
+      [C,       C,       C,       RR_PD,   RR_PM,   RR_PE,   RR_VD,   RR_VD,   RR_VD,   RR_PE,   RR_PM,   RR_PD,   C,       C,       C,       C      ],
+      [C,       C,       RR_GLP,  RR_PM,   RR_PE,   RR_VD,   RR_EYE,  RR_TH,   RR_TH,   RR_EYE,  RR_PM,   RR_PD,   RR_GLP,  C,       C,       C      ],
+      [C,       RR_VH,   RR_PM,   RR_PE,   RR_VD,   RR_VD,   RR_VD,   RR_TL,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   RR_GLP,  C,       C      ],
+      [RR_GLP,  RR_PM,   RR_PH,   RR_PM,   RR_VD,   RR_GLP,  RR_PD,   RR_PM,   RR_PD,   RR_GLP,  RR_PM,   RR_PD,   RR_WSP,  C,       C,       C      ],
+      [RR_BON,  RR_CLW,  RR_PH,   RR_PD,   RR_PM,   RR_PD,   RR_TL,   RR_TH,   RR_TH,   RR_TL,   RR_PD,   RR_PM,   RR_WSP,  RR_GLP,  C,       C      ],
+      [RR_CLW,  RR_BON,  RR_PE,   RR_PM,   RR_PD,   RR_TS,   RR_TH,   RR_TH,   RR_TH,   RR_TH,   RR_TS,   RR_PM,   RR_PD,   RR_WSP,  C,       C      ],
+      [C,       RR_CLW,  RR_BON,  RR_PE,   RR_PM,   RR_PD,   RR_TL,   RR_TH,   RR_TH,   RR_TL,   RR_PD,   RR_PM,   RR_PD,   RR_WSP,  RR_GLP,  C      ],
+      [C,       C,       RR_CLW,  RR_BON,  RR_PH,   RR_PM,   RR_PD,   RR_GLP,  RR_GLP,  RR_PD,   RR_PM,   RR_PD,   RR_PM,   RR_WSP,  C,       C      ],
+      [C,       C,       RR_GLP,  RR_CLW,  RR_PM,   RR_PH,   RR_PM,   RR_PD,   RR_PD,   RR_PM,   RR_PD,   RR_PM,   RR_WSP,  RR_PD,   C,       C      ],
+      [C,       C,       C,       RR_WSP,  RR_PM,   RR_PE,   RR_PH,   RR_PM,   RR_PD,   RR_PD,   RR_PM,   RR_WSP,  RR_CLW,  RR_BON,  RR_GLP,  C      ],
+      [C,       C,       RR_WSP,  RR_PH,   RR_PE,   RR_PM,   RR_GLP,  RR_WSP,  RR_PD,   RR_PM,   RR_WSP,  RR_CLW,  RR_BON,  C,       C,       C      ],
+      [C,       RR_WSP,  RR_GLP,  RR_PD,   RR_PM,   RR_WSP,  RR_VH,   RR_PD,   RR_GLP,  RR_PD,   RR_WSP,  RR_BON,  C,       C,       C,       C      ],
+      [C,       C,       RR_WSP,  RR_PD,   RR_WSP,  C,       RR_WSP,  RR_PD,   C,       RR_WSP,  RR_PD,   RR_WSP,  RR_GLP,  C,       C,       C      ],
+      [C,       C,       C,       RR_WSP,  C,       C,       RR_GLP,  C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       C,       C      ],
     ], 4, 'enemy_ridge_revenant_telegraph'));
 
     // Attack — claws rake DOWNWARD past the robe hem with slash glints (a descending swipe,
-    // not a sideways flap); the chest rune discharges and dims to core teal.
+    // not a sideways flap); the soul-core discharges and dims to core teal.
     this.registerTexture('enemy_ridge_revenant_attack', () => this.createSpriteTexture([
-      [C,       C,       C,       C,       C,       C,       C,       RR_PM,   RR_PD,   C,       C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       C,       RR_PM,   RR_PH,   RR_PM,   RR_PD,   C,       C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       RR_PH,   RR_PL,   RR_PH,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       C,       RR_PH,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_PL,   RR_PM,   RR_EYE,  RR_VD,   RR_VD,   RR_EYE,  RR_PM,   RR_PD,   C,       C,       C,       C      ],
-      [C,       C,       C,       C,       RR_PH,   RR_PM,   RR_VD,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C,       C      ],
-      [C,       C,       C,       RR_PL,   RR_PH,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TS,   RR_TL,   RR_TL,   RR_TS,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TL,   RR_VD,   RR_VD,   RR_TL,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_PH,   RR_PM,   RR_PD,   RR_TL,   RR_TS,   RR_TS,   RR_TL,   RR_PD,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_PL,   RR_PM,   RR_PD,   RR_PD,   RR_PD,   RR_PD,   RR_PD,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_PH,   RR_PM,   RR_PM,   RR_PH,   RR_PD,   RR_PD,   RR_PH,   RR_PM,   RR_PM,   RR_PD,   C,       C,       C      ],
-      [C,       C,       C,       RR_CLW,  RR_PM,   RR_PD,   RR_PM,   RR_PH,   RR_PM,   RR_PD,   RR_PM,   RR_CLW,  C,       C,       C,       C      ],
-      [C,       C,       RR_CLW,  RR_SLH,  RR_PD,   RR_PM,   RR_PD,   RR_PM,   RR_PD,   RR_PM,   RR_SLH,  RR_CLW,  C,       C,       C,       C      ],
-      [C,       RR_SLH,  RR_CLW,  RR_VH,   RR_WSP,  RR_PD,   RR_WSP,  RR_PD,   RR_WSP,  RR_PD,   RR_VH,   RR_CLW,  RR_SLH,  C,       C,       C      ],
-      [RR_SLH,  C,       C,       C,       RR_WSP,  C,       RR_WSP,  C,       C,       RR_WSP,  C,       C,       RR_SLH,  C,       C,       C      ],
+      [C,       C,       C,       C,       C,       RR_PD,   C,       RR_PM,   C,       RR_PD,   C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RR_PD,   RR_PH,   RR_PM,   RR_PL,   RR_PH,   RR_PM,   RR_PD,   C,       C,       C,       C,       C      ],
+      [C,       C,       C,       RR_PD,   RR_PM,   RR_PH,   RR_VD,   RR_VD,   RR_VD,   RR_PH,   RR_PM,   RR_PD,   C,       C,       C,       C      ],
+      [C,       C,       RR_VH,   RR_PM,   RR_PH,   RR_VD,   RR_VD,   RR_EYE,  RR_EYE,  RR_VD,   RR_PM,   RR_PD,   RR_VH,   C,       C,       C      ],
+      [RR_SLH,  C,       RR_PM,   RR_PH,   RR_VD,   RR_VD,   RR_VD,   RR_TS,   RR_VD,   RR_VD,   RR_VD,   RR_PM,   RR_PD,   C,       C,       C      ],
+      [RR_CLW,  RR_SLH,  RR_PH,   RR_PM,   RR_VD,   RR_VD,   RR_PD,   RR_PM,   RR_PD,   RR_VD,   RR_PM,   RR_PD,   RR_WSP,  C,       C,       C      ],
+      [RR_BON,  RR_CLW,  RR_SLH,  RR_PD,   RR_PM,   RR_PD,   RR_TS,   RR_TL,   RR_TL,   RR_TS,   RR_PD,   RR_PM,   RR_WSP,  C,       C,       C      ],
+      [C,       RR_BON,  RR_CLW,  RR_SLH,  RR_PD,   RR_PM,   RR_TL,   RR_TH,   RR_TH,   RR_TL,   RR_PD,   RR_PM,   RR_PD,   RR_WSP,  C,       C      ],
+      [C,       C,       RR_BON,  RR_CLW,  RR_SLH,  RR_PH,   RR_TS,   RR_TL,   RR_TL,   RR_TS,   RR_PD,   RR_PM,   RR_PD,   RR_WSP,  C,       C      ],
+      [C,       C,       C,       RR_BON,  RR_CLW,  RR_SLH,  RR_PH,   RR_PD,   RR_PD,   RR_PD,   RR_PM,   RR_PD,   RR_PM,   RR_WSP,  C,       C      ],
+      [C,       C,       C,       C,       RR_BON,  RR_CLW,  RR_SLH,  RR_PM,   RR_PD,   RR_PM,   RR_PD,   RR_PM,   RR_WSP,  RR_PD,   C,       C      ],
+      [C,       C,       C,       RR_WSP,  RR_PM,   RR_BON,  RR_CLW,  RR_SLH,  RR_PD,   RR_PD,   RR_PM,   RR_WSP,  RR_CLW,  RR_BON,  C,       C      ],
+      [C,       C,       RR_WSP,  RR_PH,   RR_PE,   RR_PM,   RR_BON,  RR_CLW,  RR_SLH,  RR_PM,   RR_WSP,  RR_CLW,  RR_BON,  C,       C,       C      ],
+      [C,       RR_WSP,  RR_VH,   RR_PD,   RR_PM,   RR_WSP,  RR_VH,   RR_BON,  RR_CLW,  RR_SLH,  RR_WSP,  RR_BON,  C,       C,       C,       C      ],
+      [C,       C,       RR_WSP,  RR_PD,   RR_WSP,  C,       RR_WSP,  RR_PD,   RR_BON,  RR_CLW,  RR_SLH,  RR_WSP,  C,       C,       C,       C      ],
+      [C,       C,       C,       RR_WSP,  C,       C,       RR_WSP,  C,       C,       RR_BON,  RR_SLH,  RR_WSP,  C,       C,       C,       C      ],
     ], 4, 'enemy_ridge_revenant_attack'));
 
     const registerWalkAliasCycle = (prefix: string, frames: readonly string[]) => {
@@ -3750,7 +3799,34 @@ export class AssetManager {
     registerColorTexture('water_corrupted', 0x1A0A22, 32, 32, 'noise');
     registerColorTexture('stone', 0x6E7B85, 32, 32, 'gradient');
     registerColorTexture('wood', 0x795548, 32, 32, 'gradient');
-    registerColorTexture('tall_grass', 0x388E3C, 32, 32, 'noise');
+    // Tall grass — a fanning clump of reed blades (full-height, dark base tuft) that stands up
+    // as a billboard. Tiled densely it forms a "wall of grass"; scale/yOffset (tiles.ts) lift it
+    // tall off the ground. Replaces the old flat green-noise square.
+    {
+      const TG_DK = 0x1F5C24; // shaded base blade
+      const TG_MD = 0x388E3C; // mid green (legacy tall_grass tone)
+      const TG_LT = 0x5BB85A; // lit blade
+      const TG_TP = 0x8FD98A; // pale tip
+      const X = C;
+      this.registerTexture('tall_grass', () => this.createSpriteTexture([
+        [X,    X,    X,    X,    X,    X,    X,    TG_TP,X,    X,    X,    X,    X,    X,    X,    X    ],
+        [X,    X,    X,    X,    X,    X,    TG_LT,TG_TP,TG_LT,X,    X,    X,    X,    X,    X,    X    ],
+        [X,    X,    X,    X,    X,    X,    TG_LT,TG_MD,TG_LT,X,    TG_TP,X,    X,    X,    X,    X    ],
+        [X,    X,    X,    X,    X,    TG_TP,TG_MD,TG_MD,TG_MD,X,    TG_LT,X,    X,    X,    X,    X    ],
+        [X,    X,    X,    X,    X,    TG_LT,TG_MD,TG_MD,TG_MD,TG_TP,TG_MD,X,    X,    X,    X,    X    ],
+        [X,    X,    X,    X,    TG_TP,TG_MD,TG_MD,TG_MD,TG_MD,TG_LT,TG_MD,X,    X,    X,    X,    X    ],
+        [X,    X,    X,    X,    TG_LT,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_LT,X,    X,    X,    X    ],
+        [X,    X,    X,    TG_TP,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_LT,X,    X,    X,    X    ],
+        [X,    X,    X,    TG_LT,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_TP,X,    X,    X    ],
+        [X,    X,    X,    TG_MD,TG_MD,TG_MD,TG_LT,TG_LT,TG_MD,TG_MD,TG_MD,TG_MD,TG_LT,X,    X,    X    ],
+        [X,    X,    TG_TP,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,X,    X,    X    ],
+        [X,    X,    TG_LT,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_TP,X,    X    ],
+        [X,    X,    X,    TG_MD,TG_MD,TG_MD,TG_MD,TG_LT,TG_LT,TG_MD,TG_MD,TG_MD,TG_MD,TG_LT,X,    X    ],
+        [X,    X,    X,    TG_DK,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_DK,X,    X,    X    ],
+        [X,    X,    X,    TG_DK,TG_DK,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_DK,TG_DK,X,    X,    X    ],
+        [X,    X,    X,    X,    TG_DK,TG_DK,TG_DK,TG_DK,TG_DK,TG_DK,TG_DK,TG_DK,X,    X,    X,    X    ],
+      ], 4, 'tall_grass'));
+    }
     registerColorTexture('sand', 0xF5DEB3, 32, 32, 'noise');
     registerColorTexture('swamp', 0x556B2F, 32, 32, 'noise');
     // â”€â”€ bridge: rickety wooden planks running Eâ€“W, bridge travels Nâ€“S â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -4076,6 +4152,10 @@ export class AssetManager {
 
     registerColorTexture('cobblestone', 0x7A7F88, 32, 32, 'cobblestone_grid');
     registerColorTexture('cobblestone_dark', 0x5C6068, 32, 32, 'cobblestone_grid');
+    // Worked quarry floor — pale chiselled cut-stone, gridded like blocks scored out of bedrock.
+    registerColorTexture('quarry_floor', 0x9097A0, 32, 32, 'cobblestone_grid');
+    // Rough quarry bedrock rim — mottled granite speckle (replaces the banded 'stone' gradient here).
+    registerColorTexture('quarry_bedrock', 0x767E86, 32, 32, 'bedrock');
     registerColorTexture('brick', 0x8B4513, 32, 32, 'noise');
     registerColorTexture('roof_tile', 0x4A4A52, 32, 32, 'gradient');
     registerColorTexture('timber_wall', 0x5C4033, 32, 32, 'gradient');
@@ -4866,6 +4946,100 @@ export class AssetManager {
       [HA_SHD,  HA_STN,  HA_SHD,  HA_SHD,   HA_SHD,  HA_SHD,  HA_SHD], // rubble chip
     ]);
 
+    // Summoning ritual glyph — a flattened double-ring heresy sigil on the ground (violet
+    // outer ring, teal inner ring, rune ticks, hollow core). Drawn as a wide decal; the
+    // RevenantRituals system fires the charge FX + materializes the wraith on top of it.
+    const SR_O = 0xCC44FF; // violet outer ring
+    const SR_I = 0x40FFEE; // teal inner ring
+    const SR_R = 0xB090CC; // pale rune tick
+    const SR_K = 0x7A1F8C; // dim core ring
+    this.registerTexture('summoning_ritual', () => this.createSpriteTexture([
+      [C,    C,    C,    C,    C,    SR_O, SR_O, SR_O, SR_O, SR_O, SR_O, C,    C,    C,    C,    C    ],
+      [C,    C,    C,    SR_O, C,    C,    C,    C,    C,    C,    C,    C,    SR_O, C,    C,    C    ],
+      [C,    C,    SR_O, C,    C,    SR_R, C,    C,    C,    C,    SR_R, C,    C,    SR_O, C,    C    ],
+      [C,    SR_O, C,    C,    SR_I, SR_I, SR_I, C,    C,    SR_I, SR_I, SR_I, C,    C,    SR_O, C    ],
+      [C,    SR_O, C,    SR_I, C,    C,    C,    C,    C,    C,    C,    C,    SR_I, C,    SR_O, C    ],
+      [SR_O, C,    SR_R, SR_I, C,    C,    SR_K, SR_K, SR_K, SR_K, C,    C,    SR_I, SR_R, C,    SR_O ],
+      [SR_O, C,    C,    SR_I, C,    C,    SR_K, C,    C,    SR_K, C,    C,    SR_I, C,    C,    SR_O ],
+      [SR_O, C,    SR_R, SR_I, C,    C,    SR_K, C,    C,    SR_K, C,    C,    SR_I, SR_R, C,    SR_O ],
+      [SR_O, C,    SR_R, SR_I, C,    C,    SR_K, SR_K, SR_K, SR_K, C,    C,    SR_I, SR_R, C,    SR_O ],
+      [C,    SR_O, C,    SR_I, C,    C,    C,    C,    C,    C,    C,    C,    SR_I, C,    SR_O, C    ],
+      [C,    SR_O, C,    C,    SR_I, SR_I, SR_I, C,    C,    SR_I, SR_I, SR_I, C,    C,    SR_O, C    ],
+      [C,    C,    SR_O, C,    C,    SR_R, C,    C,    C,    C,    SR_R, C,    C,    SR_O, C,    C    ],
+      [C,    C,    C,    SR_O, C,    C,    C,    C,    C,    C,    C,    C,    SR_O, C,    C,    C    ],
+      [C,    C,    C,    C,    C,    SR_O, SR_O, SR_O, SR_O, SR_O, SR_O, C,    C,    C,    C,    C    ],
+      [C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C    ],
+      [C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C    ],
+    ], 4, 'summoning_ritual'));
+
+    // Failed summoning glyph mask — white ring on transparent; World.ts fills with the ash tile texture.
+    const DM = 0xFFFFFF;
+    this.registerTexture('summoning_ritual_dud', () => this.createSpriteTexture([
+      [C,    C,    C,    C,    C,    DM,   DM,   DM,   DM,   DM,   DM,   C,    C,    C,    C,    C    ],
+      [C,    C,    C,    DM,   C,    C,    C,    C,    C,    C,    C,    C,    DM,   C,    C,    C    ],
+      [C,    C,    DM,   C,    C,    DM,   C,    C,    C,    C,    DM,   C,    C,    DM,   C,    C    ],
+      [C,    DM,   C,    C,    DM,   DM,   DM,   C,    C,    DM,   DM,   DM,   C,    C,    DM,   C    ],
+      [C,    DM,   C,    DM,   C,    C,    C,    C,    C,    C,    C,    C,    DM,   C,    DM,   C    ],
+      [DM,   C,    DM,   DM,   C,    C,    DM,   DM,   DM,   DM,   C,    C,    DM,   DM,   C,    DM   ],
+      [DM,   C,    C,    DM,   C,    C,    DM,   C,    C,    DM,   C,    C,    DM,   C,    C,    DM   ],
+      [DM,   C,    DM,   DM,   C,    C,    DM,   C,    C,    DM,   C,    C,    DM,   DM,   C,    DM   ],
+      [DM,   C,    DM,   DM,   C,    C,    DM,   DM,   DM,   DM,   C,    C,    DM,   DM,   C,    DM   ],
+      [C,    DM,   C,    DM,   C,    C,    C,    C,    C,    C,    C,    C,    DM,   C,    DM,   C    ],
+      [C,    DM,   C,    C,    DM,   DM,   C,    DM,   DM,   DM,   DM,   C,    C,    DM,   C,    C    ],
+      [C,    C,    DM,   C,    C,    DM,   C,    C,    C,    C,    DM,   C,    C,    DM,   C,    C    ],
+      [C,    C,    C,    DM,   C,    C,    C,    C,    C,    C,    C,    C,    DM,   C,    C,    C    ],
+      [C,    C,    C,    C,    C,    DM,   DM,   DM,   C,    DM,   DM,   DM,   C,    C,    C,    C    ],
+      [C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C    ],
+      [C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C    ],
+    ], 4, 'summoning_ritual_dud'));
+
+    // Failed summoning glyph — opaque ash-grey version used only as a minimap/map landmark icon
+    // (the in-world tile uses the white mask above as an alphaMap over the ash texture).
+    const AD_O = 0x8A7F70; // outer ring (light ash)
+    const AD_I = 0x5E564B; // inner lines (mid ash)
+    const AD_K = 0x403A32; // dead core (dark ash)
+    const AD_R = 0x9B9080; // rune tick (pale ash)
+    this.registerTexture('summoning_ritual_dud_icon', () => this.createSpriteTexture([
+      [C,    C,    C,    C,    C,    AD_O, AD_O, AD_O, AD_O, AD_O, AD_O, C,    C,    C,    C,    C    ],
+      [C,    C,    C,    AD_O, C,    C,    C,    C,    C,    C,    C,    C,    AD_O, C,    C,    C    ],
+      [C,    C,    AD_O, C,    C,    AD_R, C,    C,    C,    C,    AD_R, C,    C,    AD_O, C,    C    ],
+      [C,    AD_O, C,    C,    AD_I, AD_I, AD_I, C,    C,    AD_I, AD_I, AD_I, C,    C,    AD_O, C    ],
+      [C,    AD_O, C,    AD_I, C,    C,    C,    C,    C,    C,    C,    C,    AD_I, C,    AD_O, C    ],
+      [AD_O, C,    AD_R, AD_I, C,    C,    AD_K, AD_K, AD_K, AD_K, C,    C,    AD_I, AD_R, C,    AD_O ],
+      [AD_O, C,    C,    AD_I, C,    C,    AD_K, C,    C,    AD_K, C,    C,    AD_I, C,    C,    AD_O ],
+      [AD_O, C,    AD_R, AD_I, C,    C,    AD_K, C,    C,    AD_K, C,    C,    AD_I, AD_R, C,    AD_O ],
+      [AD_O, C,    AD_R, AD_I, C,    C,    AD_K, AD_K, AD_K, AD_K, C,    C,    AD_I, AD_R, C,    AD_O ],
+      [C,    AD_O, C,    AD_I, C,    C,    C,    C,    C,    C,    C,    C,    AD_I, C,    AD_O, C    ],
+      [C,    AD_O, C,    C,    AD_I, AD_I, AD_I, C,    C,    AD_I, AD_I, AD_I, C,    C,    AD_O, C    ],
+      [C,    C,    AD_O, C,    C,    AD_R, C,    C,    C,    C,    AD_R, C,    C,    AD_O, C,    C    ],
+      [C,    C,    C,    AD_O, C,    C,    C,    C,    C,    C,    C,    C,    AD_O, C,    C,    C    ],
+      [C,    C,    C,    C,    C,    AD_O, AD_O, AD_O, AD_O, AD_O, AD_O, C,    C,    C,    C,    C    ],
+      [C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C    ],
+      [C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C    ],
+    ], 4, 'summoning_ritual_dud_icon'));
+
+    // Ritual site props — candles knocked over in a ring around summoning glyphs.
+    const RC_W = 0xF5E6C8;
+    const RC_F = 0xD84315;
+    const RC_M = 0x4E342E;
+    const RC_WX = 0x8D6E63;
+    registerSpriteTexture('ritual_candle', [
+      [C,     C,     RC_M,  RC_M,  C,     C    ],
+      [C,     RC_M,  RC_W,  RC_W,  RC_M,  C    ],
+      [C,     RC_W,  RC_F,  RC_F,  RC_W,  C    ],
+      [C,     RC_W,  RC_F,  RC_F,  RC_W,  C    ],
+      [C,     RC_M,  RC_WX, RC_W,  RC_M,  C    ],
+      [C,     C,     RC_M,  RC_M,  C,     C    ],
+    ], 4);
+    registerSpriteTexture('ritual_candle_knocked', [
+      [C,     RC_M,  RC_M,  C,     C,     C    ],
+      [RC_M,  RC_WX, RC_W,  RC_W,  C,     C    ],
+      [C,     RC_W,  RC_F,  RC_F,  RC_W,  C    ],
+      [C,     C,     RC_W,  RC_WX, RC_M,  C    ],
+      [C,     C,     C,     RC_M,  RC_M,  C    ],
+      [C,     C,     C,     C,     C,     C    ],
+    ], 4);
+
     this.registerTexture('bloodstain', () => this.createBloodstainTexture(0, 'bloodstain'));
     for (let variant = 0; variant < 16; variant++) {
       const spriteId = `bloodstain_variant_${variant}`;
@@ -5371,23 +5545,122 @@ export class AssetManager {
       [C, C, C, C, C,       TRUNK,   C,       TRUNK,   TRUNK,   TRUNK_S, TRUNK_S, C,       C, C, C, C, C],  // row 10
     ]);
 
-    // Blighted stump â€” corrupted wood with dark thorny tendrils and green/purple glow
-    const RLY_BARK = 0x5D4037;
-    const RLY_BARK_D = 0x3E2723;
-    const RLY_CUT = 0xBCAAA4;
-    const RLY_CUT_H = 0xD7CCC8;
-    const RLY_PLANK = 0x8D6E63;
-    const RLY_MOSS = 0x558B2F;
+    // Ridge lumberyard remains — run-down log shed: gabled roof, plank walls, dark doorway, woodpiles.
+    const LY_B = 0x5D4037;   // log bark
+    const LY_BD = 0x3E2723;  // dark bark / plank gap
+    const LY_E = 0xCBB89E;   // log cut-end (light)
+    const LY_ER = 0x9C8468;  // log end ring
+    const LY_P = 0x8D6E63;   // wall plank
+    const LY_PH = 0xA1887F;  // plank highlight
+    const LY_PO = 0x4E342E;  // corner post / frame
+    const LY_RO = 0x7B4A2A;  // roof shingle
+    const LY_RH = 0xA66A3F;  // roof highlight
+    const LY_RD = 0x4E2E1A;  // roof shadow / eave
+    const LY_DR = 0x241A12;  // doorway / window void
+    const LY_M = 0x6B8E3A;   // moss
     registerSpriteTexture('ridge_lumberyard', [
-      [C,          C,          C,          C,          RLY_BARK_D, C,          C,          C,          RLY_PLANK,  C,          C,          C,          C],
-      [C,          RLY_MOSS,   C,          RLY_PLANK,  RLY_BARK,   RLY_PLANK,  C,          C,          RLY_BARK_D, C,          RLY_MOSS,   C,          C],
-      [RLY_CUT,    RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_BARK,   RLY_CUT,    C],
-      [RLY_CUT_H,  RLY_BARK_D, RLY_BARK,   RLY_PLANK,  RLY_BARK,   RLY_BARK_D, RLY_BARK,   RLY_PLANK,  RLY_BARK,   RLY_BARK_D, RLY_BARK,   RLY_CUT_H,  C],
-      [C,          RLY_CUT,    RLY_BARK,   RLY_BARK,   RLY_BARK_D, RLY_BARK,   RLY_BARK,   RLY_BARK_D, RLY_BARK,   RLY_BARK,   RLY_CUT,    C,          C],
-      [C,          RLY_PLANK,  RLY_BARK_D, RLY_PLANK,  RLY_BARK,   RLY_PLANK,  RLY_BARK_D, RLY_PLANK,  RLY_BARK,   RLY_PLANK,  RLY_BARK_D, C,          C],
-      [C,          C,          RLY_BARK_D, C,          C,          C,          RLY_BARK_D, C,          C,          C,          RLY_BARK_D, C,          C],
-      [C,          RLY_MOSS,   C,          RLY_BARK_D, C,          RLY_PLANK,  C,          RLY_BARK_D, C,          RLY_MOSS,   C,          RLY_PLANK,  C],
-      [C,          C,          RLY_PLANK,  RLY_BARK_D, C,          C,          RLY_PLANK,  C,          RLY_BARK_D, C,          C,          C,          C],
+      // 20x20 — run-down log shed: caved-in gabled roof, plank walls, woodpiles wrapping every side
+      [C,    LY_B, LY_ER,C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    C,    LY_ER,LY_B, C    ],
+      [LY_B, LY_ER,LY_E, C,    C,    C,    C,    C,    C,    LY_RD,LY_RD,C,    C,    C,    C,    C,    C,    LY_E, LY_ER,LY_B ],
+      [LY_ER,LY_E, LY_ER,C,    C,    C,    C,    C,    LY_RD,LY_DR,LY_DR,LY_RD,C,    C,    C,    C,    C,    LY_ER,LY_E, LY_ER],
+      [LY_B, LY_ER,LY_E, C,    C,    C,    C,    LY_RD,LY_RO,LY_DR,LY_DR,LY_RO,LY_RD,C,    C,    C,    C,    LY_E, LY_ER,LY_B ],
+      [LY_ER,LY_E, LY_ER,C,    C,    C,    LY_RD,LY_RO,LY_RO,LY_DR,LY_DR,LY_RO,LY_RO,LY_RD,C,    C,    C,    LY_ER,LY_E, LY_ER],
+      [LY_B, LY_ER,LY_E, C,    C,    LY_RD,LY_RO,LY_RO,LY_RO,LY_DR,LY_PO,LY_RO,LY_RO,LY_RO,LY_RD,C,    C,    LY_E, LY_ER,LY_B ],
+      [LY_ER,LY_E, LY_ER,C,    LY_RD,LY_RO,LY_RO,LY_RO,LY_RH,LY_DR,LY_DR,LY_RO,LY_RO,LY_RO,LY_RO,LY_RD,C,    LY_ER,LY_E, LY_ER],
+      [LY_B, LY_ER,LY_E, LY_RD,LY_RO,LY_RO,LY_RO,LY_RO,LY_PO,LY_DR,LY_DR,LY_PO,LY_RO,LY_RO,LY_RO,LY_RO,LY_RD,LY_E, LY_ER,LY_B ],
+      // plank walls with collapsed front (interior void shows through)
+      [LY_ER,LY_E, LY_ER,LY_PO,LY_P, LY_P, LY_PH,LY_P, LY_DR,LY_DR,LY_DR,LY_DR,LY_P, LY_PH,LY_P, LY_P, LY_PO,LY_ER,LY_E, LY_ER],
+      [LY_B, LY_ER,LY_E, LY_PO,LY_P, LY_PH,LY_P, LY_P, LY_DR,LY_DR,LY_DR,LY_DR,LY_P, LY_P, LY_PH,LY_P, LY_PO,LY_E, LY_ER,LY_B ],
+      [LY_ER,LY_E, LY_ER,LY_PO,LY_P, LY_P, LY_P, LY_P, LY_P, LY_DR,LY_DR,LY_P, LY_P, LY_P, LY_P, LY_P, LY_PO,LY_ER,LY_E, LY_ER],
+      [LY_B, LY_ER,LY_E, LY_PO,LY_PH,LY_P, LY_P, LY_DR,LY_P, LY_P, LY_P, LY_P, LY_DR,LY_P, LY_P, LY_PH,LY_PO,LY_E, LY_ER,LY_B ],
+      [LY_ER,LY_E, LY_ER,LY_PO,LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_PO,LY_ER,LY_E, LY_ER],
+      [LY_B, LY_ER,LY_E, LY_PO,LY_P, LY_PH,LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_PH,LY_P, LY_PO,LY_E, LY_ER,LY_B ],
+      [LY_ER,LY_E, LY_ER,LY_PO,LY_P, LY_P, LY_P, LY_P, LY_M, LY_P, LY_P, LY_M, LY_P, LY_P, LY_P, LY_P, LY_PO,LY_ER,LY_E, LY_ER],
+      [LY_B, LY_ER,LY_E, LY_BD,LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_P, LY_BD,LY_E, LY_ER,LY_B, C    ],
+      // woodpiles wrapping the base — round log cut-ends
+      [LY_ER,LY_E, LY_ER,LY_B, LY_ER,LY_B, LY_ER,LY_B, LY_ER,LY_B, LY_ER,LY_B, LY_ER,LY_B, LY_ER,LY_B, LY_ER,LY_E, LY_ER,C    ],
+      [LY_B, LY_ER,LY_E, LY_E, LY_ER,LY_E, LY_ER,LY_E, LY_ER,LY_E, LY_ER,LY_E, LY_ER,LY_E, LY_ER,LY_E, LY_ER,LY_ER,LY_E, LY_B ],
+      [LY_ER,LY_E, LY_ER,LY_B, LY_ER,LY_M, LY_ER,LY_B, LY_ER,LY_B, LY_M, LY_B, LY_ER,LY_B, LY_ER,LY_M, LY_ER,LY_E, LY_ER,C    ],
+      [C,    LY_ER,LY_E, LY_ER,C,    LY_ER,LY_E, LY_ER,C,    LY_ER,LY_E, LY_ER,C,    LY_ER,LY_E, LY_ER,C,    LY_ER,LY_E, C    ],
+    ]);
+
+    // ==== STONE QUARRY ASSET SET ==========================================
+    // Shared cut-stone + timber + iron palette so every quarry prop reads as one site.
+    const QS_L = 0xB6BEC6; // cut stone — light face
+    const QS_M = 0x8A929B; // cut stone — mid
+    const QS_S = 0x6E7780; // cut stone — shaded
+    const QS_E = 0x4A525B; // cut stone — deep edge / mortar gap
+    const QW_L = 0xC29A6B; // timber — light
+    const QW_M = 0x8D6E63; // timber — mid
+    const QW_D = 0x6D4C41; // timber — dark
+    const QW_P = 0x4E342E; // timber — post/footing
+    const QI_H = 0x90A4AE; // iron — highlight
+    const QI_M = 0x546E7A; // iron — mid
+    const QI_D = 0x37474F; // iron — dark
+    const QR_O = 0xCDB173; // rope
+
+    // Timber shear-legs hoist with a cut-stone block hanging from the pulley — quarry centerpiece.
+    registerSpriteTexture('quarry_crane', [
+      [C,    C,    C,    C,    C,    C,    QW_D, C,    C,    C,    C,    C,    C    ],
+      [C,    C,    C,    C,    C,    QI_D, QI_H, QI_D, C,    C,    C,    C,    C    ],
+      [C,    C,    C,    C,    C,    QW_M, QR_O, QW_M, C,    C,    C,    C,    C    ],
+      [C,    C,    C,    C,    QW_M, QW_D, QR_O, QW_D, QW_M, C,    C,    C,    C    ],
+      [C,    C,    C,    C,    QW_M, C,    QR_O, C,    QW_M, C,    C,    C,    C    ],
+      [C,    C,    C,    QW_M, QW_D, C,    QR_O, C,    QW_D, QW_M, C,    C,    C    ],
+      [C,    C,    C,    QW_M, C,    C,    QR_O, C,    C,    QW_M, C,    C,    C    ],
+      [C,    C,    QW_M, QW_D, C,    C,    QR_O, C,    C,    QW_D, QW_M, C,    C    ],
+      [C,    C,    QW_M, QW_L, QW_L, QW_L, QW_L, QW_L, QW_L, QW_L, QW_M, C,    C    ],
+      [C,    QW_M, QW_D, C,    QS_L, QS_L, QS_L, QS_L, QS_L, C,    QW_D, QW_M, C    ],
+      [C,    QW_M, C,    QS_E, QS_L, QS_M, QS_M, QS_M, QS_L, QS_E, C,    QW_M, C    ],
+      [QW_M, QW_D, C,    QS_E, QS_M, QS_M, QS_S, QS_M, QS_M, QS_E, C,    QW_D, QW_M ],
+      [QW_M, C,    C,    C,    QS_E, QS_E, QS_E, QS_E, QS_E, C,    C,    C,    QW_M ],
+      [QW_P, QW_P, C,    C,    C,    C,    C,    C,    C,    C,    C,    QW_P, QW_P ],
+    ]);
+
+    // Stacked, freshly-cut quarry blocks — three slabs of decreasing size with mortar gaps.
+    registerSpriteTexture('cut_stone_blocks', [
+      [C,    C,    C,    QS_L, QS_L, QS_L, QS_L, C,    C,    C    ],
+      [C,    C,    C,    QS_L, QS_M, QS_M, QS_L, C,    C,    C    ],
+      [C,    C,    C,    QS_E, QS_E, QS_E, QS_E, C,    C,    C    ],
+      [C,    QS_L, QS_L, QS_L, QS_L, QS_L, QS_L, QS_L, QS_L, C    ],
+      [C,    QS_L, QS_M, QS_M, QS_L, QS_M, QS_M, QS_L, QS_M, C    ],
+      [C,    QS_E, QS_E, QS_E, QS_E, QS_E, QS_E, QS_E, QS_E, C    ],
+      [QS_L, QS_L, QS_L, QS_L, QS_L, QS_L, QS_L, QS_L, QS_L, QS_L ],
+      [QS_M, QS_M, QS_L, QS_M, QS_M, QS_L, QS_M, QS_M, QS_L, QS_M ],
+      [QS_E, QS_E, QS_E, QS_E, QS_E, QS_E, QS_E, QS_E, QS_E, QS_E ],
+    ]);
+
+    // Loaded mine cart of rubble on a short iron rail.
+    registerSpriteTexture('quarry_cart', [
+      [C,    C,    QS_M, QS_L, QS_S, QS_L, QS_S, QS_L, C,    C,    C    ],
+      [C,    QS_L, QS_S, QS_L, QS_M, QS_S, QS_L, QS_S, QS_L, C,    C    ],
+      [C,    QS_E, QS_S, QS_M, QS_L, QS_M, QS_S, QS_E, QS_E, C,    C    ],
+      [QW_L, QW_M, QW_M, QW_M, QW_M, QW_M, QW_M, QW_M, QW_M, QW_L, C    ],
+      [QW_M, QW_D, QW_M, QW_D, QW_M, QW_D, QW_M, QW_D, QW_M, QW_M, C    ],
+      [QW_D, QW_M, QW_D, QW_M, QW_D, QW_M, QW_D, QW_M, QW_D, QW_M, C    ],
+      [C,    QI_D, QI_H, QI_D, C,    C,    QI_D, QI_H, QI_D, C,    C    ],
+      [QI_M, QI_D, QI_M, QI_D, QI_M, QI_D, QI_M, QI_D, QI_M, QI_D, QI_M ],
+    ]);
+
+    // Low spoil heap — broken stone grit raked off to the side (walkable).
+    registerSpriteTexture('quarry_rubble', [
+      [C,    C,    C,    QS_M, QS_L, C,    QS_M, C,    C,    C    ],
+      [C,    C,    QS_L, QS_M, QS_M, QS_L, QS_M, QS_M, C,    C    ],
+      [C,    QS_M, QS_L, QS_S, QS_E, QS_M, QS_L, QS_S, QS_E, C    ],
+      [QS_S, QS_E, QS_M, QS_S, QS_M, QS_E, QS_M, QS_S, QS_M, QS_E ],
+      [C,    QS_E, QS_S, QS_E, QS_E, QS_S, QS_E, QS_E, QS_S, C    ],
+    ]);
+
+    // Quarryman's tools — a pickaxe driven into a small cut block.
+    registerSpriteTexture('quarry_tools', [
+      [C,    C,    C,    C,    C,    QI_D, QI_H, C    ],
+      [C,    C,    C,    C,    QI_H, QW_D, C,    C    ],
+      [C,    C,    C,    QW_L, QW_D, C,    C,    C    ],
+      [C,    C,    QW_L, QW_D, C,    C,    C,    C    ],
+      [C,    QS_L, QS_L, QS_L, QS_L, QS_L, QS_L, C    ],
+      [QS_L, QS_M, QS_M, QS_L, QS_M, QS_M, QS_L, QS_M ],
+      [QS_E, QS_S, QS_M, QS_E, QS_S, QS_M, QS_E, QS_S ],
+      [QS_E, QS_E, QS_E, QS_E, QS_E, QS_E, QS_E, QS_E ],
     ]);
 
     const BV = 0x1B5E20; // dark blight vine

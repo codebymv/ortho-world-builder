@@ -119,7 +119,7 @@ export async function preloadMap(key: string): Promise<WorldMap | undefined> {
   const def = await ensureMapDefinition(key);
   if (!def) return undefined;
 
-  mapCache[key] = generateMap(def);
+  mapCache[key] = generateMap(def, key);
   return mapCache[key];
 }
 
@@ -152,7 +152,7 @@ function getOrGenerateMap(key: string): WorldMap | undefined {
   if (!mapCache[key]) {
     const def = getLoadedMapDefinition(key);
     if (!def) return undefined;
-    mapCache[key] = generateMap(def);
+    mapCache[key] = generateMap(def, key);
   }
   return mapCache[key];
 }

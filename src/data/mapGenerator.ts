@@ -1,6 +1,7 @@
 import { WorldMap, Tile, TileType } from '@/lib/game/World';
 import { TILE_METADATA } from './tiles';
 import { getClosedChestTileType, isChestTileType } from './specialChests';
+import { enforceBonfireSanctuaryTiles } from '@/game/runtime/bonfireCombatGuard';
 
 
 // Simple 2D noise
@@ -2579,6 +2580,17 @@ function validateMapTransitions(tiles: Tile[][], def: MapDefinition) {
   }
 }
 
+/** Late map passes can overwrite prop tiles — restore authored ritual glyphs before validation. */
+function restampAuthoredRitualGlyphs(tiles: Tile[][], def: MapDefinition) {
+  const ritualTypes: Set<string> = new Set(['summoning_ritual', 'summoning_ritual_dud']);
+  for (const prop of def.props ?? []) {
+    if (!ritualTypes.has(prop.type)) continue;
+    if (prop.y < 0 || prop.y >= tiles.length || prop.x < 0 || prop.x >= tiles[0].length) continue;
+    const el = tiles[prop.y][prop.x]?.elevation ?? 0;
+    tiles[prop.y][prop.x] = createTile(prop.type as TileType, prop.walkable ?? true, { elevation: el });
+  }
+}
+
 function validateAuthoredPlacements(tiles: Tile[][], def: MapDefinition) {
   const spawnDx = (x: number) => x - def.spawnPoint.x;
   const spawnDy = (y: number) => y - def.spawnPoint.y;
@@ -2595,6 +2607,21 @@ function validateAuthoredPlacements(tiles: Tile[][], def: MapDefinition) {
     const distSq = spawnDx(chest.x) * spawnDx(chest.x) + spawnDy(chest.y) * spawnDy(chest.y);
     if (distSq <= 4) {
       console.warn(`[MapValidation] ${def.name}: chest ${chest.interactionId} is very close to spawn at (${chest.x},${chest.y})`);
+    }
+  }
+
+  const ritualGlyphTypes: Set<string> = new Set(['summoning_ritual', 'summoning_ritual_dud']);
+  for (const prop of def.props ?? []) {
+    if (!ritualGlyphTypes.has(prop.type)) continue;
+    if (prop.y < 0 || prop.y >= tiles.length || prop.x < 0 || prop.x >= tiles[0].length) {
+      console.warn(`[MapValidation] ${def.name}: ritual glyph out of bounds at (${prop.x},${prop.y})`);
+      continue;
+    }
+    const tile = tiles[prop.y][prop.x];
+    if (tile.type !== prop.type) {
+      console.warn(
+        `[MapValidation] ${def.name}: ritual glyph overwritten at (${prop.x},${prop.y}) expected [${prop.type}] got [${tile.type}]`,
+      );
     }
   }
 
@@ -3581,6 +3608,76 @@ function enforceCliffCorridorTraditionalApproach(tiles: Tile[][], def: MapDefini
 // so it matches the el1 overlook with no seams, while the surrounding void stays cliff so the
 // route reads as a narrow ledge threading the rock. The 3-tile cliff buffers on each side keep it
 // isolated from the homestead/skeleton story route.
+// Authored tall-grass "gate" fields. Stamped AFTER all cleanup/cliff passes because tall_grass is
+// a LAND_DECORATION + POST_CLIFF_DECOR and the scrub passes otherwise eat clearing-fill grass that
+// sits near cliffs/water. Converts only walkable ground (never cliffs, water, paths, props, or
+// interactables) so the gate fills its corridor without paving over real terrain or routes.
+type TallGrassGateRect = {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  /** When true, convert spine-path grass/dirt in this rect (e.g. shelf beside a dirt bridge). */
+  throughSpinePath?: boolean;
+};
+
+const TALL_GRASS_GATE_RECTS: Record<string, TallGrassGateRect[]> = {
+  'Whispering Woods': [
+    // Western Fort approach corridor — runs from the cliff up to the grove-rim fence (y162), x41-47.
+    // Bottom pushed one row into the cliff edge (y123) so the grass meets the cliff with no bare gap;
+    // the enforce pass skips true cliff tiles, so over-reaching into the cliff is harmless.
+    { x0: 41, y0: 123, x1: 47, y1: 162 },
+    // Southern reed band — a 4-tile-tall hedge (world y85-88) sweeping west from x93 to the
+    // western coastal cliff at x6, screening the south-west approach.
+    { x0: 6, y0: 235, x1: 93, y1: 238 },
+    // East cliff-gap hedge — fills the break between cliffs (world x124-132, y-2..2) with reeds so
+    // the gap reads as a soft-gated grass pass rather than an open lane.
+    { x0: 274, y0: 148, x1: 282, y1: 152 },
+    // West cliff shelf lane — world (-61, 68). x0 reaches the cliff face (x85–86); enforce skips
+    // true cliff tiles so the reed band starts flush on the east edge of the cliff sprite.
+    { x0: 86, y0: 217, x1: 90, y1: 223, throughSpinePath: true },
+    // East-central reed column — world (89-93, -44..-32); a tall vertical hedge screening the
+    // approach here. Trees in the lane are cleared to walkable grass by the enforce pass.
+    { x0: 239, y0: 106, x1: 243, y1: 118 },
+  ],
+};
+const TALL_GRASS_GATE_GROUND: ReadonlySet<TileType> = new Set<TileType>([
+  'grass', 'dirt', 'dark_grass', 'hollow_blight',
+]);
+// Scatter decorations cleared out of the way inside a gate so the reed band reads as a clean,
+// continuous hedge — trees, stumps, logs, rocks, loose flora. Cliffs/water/walls/paths/props and
+// anything interactive are NOT listed here, so they survive untouched.
+const TALL_GRASS_GATE_CLEARABLE: ReadonlySet<TileType> = new Set<TileType>([
+  'tree', 'dead_tree', 'fallen_tree', 'stump', 'fallen_log', 'fallen_log_v',
+  'rock', 'mushroom', 'hedge', 'flower', 'bones', 'fence',
+]);
+
+function enforceWhisperingWoodsTallGrassGates(tiles: Tile[][], def: MapDefinition) {
+  const rects = TALL_GRASS_GATE_RECTS[def.name];
+  if (!rects) return;
+  for (const r of rects) {
+    for (let ty = r.y0; ty <= r.y1; ty++) {
+      for (let tx = r.x0; tx <= r.x1; tx++) {
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        const t = tiles[ty][tx];
+        // Preserve authored paths, props, and anything interactive (chests, levers, pickups, portals).
+        if (t.transition || t.interactable) continue;
+        if (t.spinePath && !r.throughSpinePath) continue;
+        const isGround = TALL_GRASS_GATE_GROUND.has(t.type);
+        const isClearable = TALL_GRASS_GATE_CLEARABLE.has(t.type);
+        // Cliffs/water/walls fall through both sets and stay untouched.
+        if (!isGround && !isClearable) continue;
+        // Only grass WALKABLE ground. A cliff's non-walkable sprite-buffer tiles keep their grass
+        // type but stay impassable; grassing them made reeds appear to climb the cliff face, so we
+        // skip them and let the hedge stop cleanly at the cliff edge. Scatter (trees/logs/etc.) is
+        // always cleared to walkable tall grass, since removing the obstacle is the whole point.
+        if (isGround && !t.walkable) continue;
+        tiles[ty][tx] = createTile('tall_grass', true, { elevation: t.elevation ?? 0 });
+      }
+    }
+  }
+}
+
 function enforceEastRidgeAscent(tiles: Tile[][], def: MapDefinition) {
   if (def.name !== 'Whispering Woods') return;
   // [x, y, width, height, elevation?] switchback segments, matching the authored clearings.
@@ -3690,7 +3787,7 @@ function enforceEastRidgeAscent(tiles: Tile[][], def: MapDefinition) {
 
 // Carves the cliff shortcut linking C7 (world ~90, ~13) to the fort-side grass pocket.
 // Layout (all tile coords):
-//   • Approach ledge   el1  y=163, x=240-242  — C7 west ledge
+//   • C7 west rim    el1  y=163, x=240-242 — cliff void (world 90-92, 13); not walkable shelf
 //   • Cliff fill            y=164-168, x=238-242 — seals world (88-92, 14-18)
 //   • Descent corridor el1→el0  x=243-244, y=164-171 — east-of-fill outlet C7 → platform
 //   • Grass platform   el0  y=170-173, x=239-242 — sealed cliff pocket
@@ -3706,9 +3803,9 @@ function enforceFortRidgeLadderGate(tiles: Tile[][], def: MapDefinition) {
     tiles[ty][tx] = createTile(type, walkable, { elevation, ...extra });
   };
 
-  // Approach ledge (el1): west extension of C7.
+  // C7 west rim (el1): world (90-92, 13) hangs over the cliff void — keep impassable like y162.
   for (let tx = 240; tx <= 242; tx++) {
-    stamp(tx, 163, 'grass', true, 1);
+    stamp(tx, 163, 'cliff', false, 1);
   }
 
   // Cliff fill: seal world (88-92, 14-18) = tile (238-242, 164-168).
@@ -4289,7 +4386,7 @@ function applyAuthoredSpinePathFlags(tiles: Tile[][], def: MapDefinition) {
   }
 }
 
-export function generateMap(def: MapDefinition): WorldMap {
+export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
   const tiles = generateBaseTerrain(def);
   const isHandCraftedInterior = def.autoRoads === false && def.width <= 24 && def.height <= 24;
 
@@ -4373,8 +4470,18 @@ export function generateMap(def: MapDefinition): WorldMap {
   applyAuthoredSpinePathFlags(tiles, def);
   enforceWalkableElevationSeamCrossings(tiles, def);
 
+  restampAuthoredRitualGlyphs(tiles, def);
+  // Re-assert authored tall-grass gates last: tall_grass is a LAND_DECORATION + POST_CLIFF_DECOR,
+  // so the cleanup/cliff scrub passes eat clearing-fill grass near cliffs (e.g. the western-fort
+  // corridor's cliff at y=-26). This restores the full field over any walkable ground.
+  enforceWhisperingWoodsTallGrassGates(tiles, def);
+
   validateMapTransitions(tiles, def);
   validateAuthoredPlacements(tiles, def);
+
+  if (mapKey) {
+    enforceBonfireSanctuaryTiles(tiles, mapKey);
+  }
 
   return {
     name: def.name,
@@ -4385,5 +4492,6 @@ export function generateMap(def: MapDefinition): WorldMap {
     spawnPoint: def.spawnPoint,
     coastalSouthBackdrop: hasCoastalSouthBorder(def),
     coastalBorderAllSides: hasCoastalAllSides(def),
+    mapKey,
   };
 }

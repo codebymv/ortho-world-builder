@@ -8,6 +8,7 @@ import type { ScreenShake } from '@/lib/game/ScreenShake';
 import type { World } from '@/lib/game/World';
 import type { BiomeAmbience } from '@/lib/game/BiomeAmbience';
 import type { CorruptionFilter } from '@/lib/game/CorruptionFilter';
+import type { AltitudeHaze } from '@/lib/game/AltitudeHaze';
 import type { WeatherSystem } from '@/lib/game/WeatherSystem';
 import type { DayNightCycle } from '@/lib/game/DayNightCycle';
 import type { Direction8 } from '@/game/runtime/PlayerSimulationSystem';
@@ -26,6 +27,7 @@ export interface BuildRuntimePhaseContextsOptions {
   particleSystem: ParticleSystem;
   biomeAmbience: BiomeAmbience;
   corruptionFilter?: CorruptionFilter;
+  altitudeHaze?: AltitudeHaze;
   weatherSystem: WeatherSystem;
   dayNightCycle: DayNightCycle;
   scene: THREE.Scene;
