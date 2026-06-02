@@ -191,6 +191,7 @@ export const MapModal = memo(function MapModal({
     let ctx: CanvasRenderingContext2D | null = null;
     let running = true;
     let lastDrawPerf = 0;
+    let minFrameMs = 48;
 
     const draw = () => {
       if (!running) return;
@@ -213,6 +214,11 @@ export const MapModal = memo(function MapModal({
       }
       const nowMs = Date.now();
       const nowPerf = performance.now();
+      if (nowPerf - lastDrawPerf < minFrameMs) {
+        animRef.current = requestAnimationFrame(draw);
+        return;
+      }
+
       const state = gameStateRef.current;
       if (!state) {
         animRef.current = requestAnimationFrame(draw);
@@ -234,11 +240,7 @@ export const MapModal = memo(function MapModal({
       const dynamicSecondary = idolMarker?.map === currentMapId ? [idolMarker] : [];
       const currentMarkers = [...(dynamicPrimary ? [dynamicPrimary] : []), ...baseMarkers, ...dynamicSecondary];
       const hasPulsing = currentMarkers.some(m => nowMs < m.pulseUntil);
-      const minFrameMs = hasPulsing ? 16 : 48;
-      if (nowPerf - lastDrawPerf < minFrameMs) {
-        animRef.current = requestAnimationFrame(draw);
-        return;
-      }
+      minFrameMs = hasPulsing ? 16 : 48;
       lastDrawPerf = nowPerf;
 
       const start = performance.now();

@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "audit:content": "tsx scripts/audit.mts",
+    "audit:content": "tsx --tsconfig tsconfig.app.json scripts/audit.mts",
     "probe:hunter": "tsx scripts/probe-hunter.mts",
     "simulate:cottage": "tsx scripts/simulate-cottage-pad.ts"
   },

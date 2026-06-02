@@ -603,6 +603,8 @@ const Game = () => {
   }, [anyMenuModalOpen]);
 
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
     const handleCollisionDebugToggle = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() !== 'b' || e.repeat) return;
       setCollisionDebugEnabled(prev => {
@@ -1193,7 +1195,7 @@ const Game = () => {
         }}
         onDismiss={() => setAcquiredItemQueue(q => q.slice(1))}
       />
-      <DevFooter />
+      {import.meta.env.DEV && <DevFooter />}
     </div>
   );
 };

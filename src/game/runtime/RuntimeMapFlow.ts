@@ -534,27 +534,14 @@ export function createRuntimeMapFlow({
     const bottomY = gateY - 4;
     if (!map.tiles[gateY]?.[gateX]) return;
 
-    // Older live sessions may still have the previous y=133..136 ladder stamped in the map.
-    // Always scrub that legacy footprint first so the player cannot walk through stale rungs
-    // while the corrected ladder drops toward y=128.
-    for (let ty = gateY + 1; ty <= gateY + 4; ty++) {
-      if (map.tiles[ty]?.[gateX - 1]) {
-        map.tiles[ty][gateX - 1] = { type: 'cliff' as TileType, walkable: false, elevation: 1 };
-      }
-      if (map.tiles[ty]?.[gateX]) {
-        map.tiles[ty][gateX] = ty === gateY + 1
-          ? { type: 'cliff' as TileType, walkable: false, elevation: 1 }
-          : { type: 'grass' as TileType, walkable: true, elevation: 1 };
-      }
-      if (map.tiles[ty]?.[gateX + 1]) {
-        map.tiles[ty][gateX + 1] = ty <= gateY + 2
-          ? {
-              type: 'grass' as TileType,
-              walkable: true,
-              elevation: 1,
-              enemyBlocked: true,
-            }
-          : { type: 'cliff' as TileType, walkable: false, elevation: 1 };
+    // Clean cliff block south-east of the corridor ladder overlook:
+    // world x=118..122, y=-17..-13 => tile x=268..272, y=133..137.
+    // This also scrubs older live sessions that still have stale ladder/grass here.
+    for (let ty = 133; ty <= 137; ty++) {
+      for (let tx = 268; tx <= 272; tx++) {
+        if (map.tiles[ty]?.[tx]) {
+          map.tiles[ty][tx] = { type: 'cliff' as TileType, walkable: false, elevation: 1 };
+        }
       }
     }
 
@@ -1957,7 +1944,9 @@ export function createRuntimeMapFlow({
     }
 
     evictEnemiesFromBonfireSafeZones(combatSystem, targetMap);
-    console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
+    if (import.meta.env.DEV) {
+      console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
+    }
   };
 
   const mapTransitionService: RuntimeMapTransitionServiceLike = createMapTransitionService({

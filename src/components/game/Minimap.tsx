@@ -106,12 +106,18 @@ export const Minimap = memo(
 
       let running = true;
       let lastDrawPerf = 0;
+      let minFrameMs = 48;
 
       const draw = () => {
         if (!running) return;
 
         const nowMs = Date.now();
         const nowPerf = performance.now();
+        if (nowPerf - lastDrawPerf < minFrameMs) {
+          animFrameRef.current = requestAnimationFrame(draw);
+          return;
+        }
+
         const state = gameStateRef.current;
         // Resolve the dynamic primary for THIS map specifically so a forest marker
         // cannot accidentally suppress village markers (or vice-versa).
@@ -132,12 +138,7 @@ export const Minimap = memo(
         const dynamicSecondary = idolMarker?.map === currentMapId ? [idolMarker] : [];
         const currentMarkers = [...(dynamicPrimary ? [dynamicPrimary] : []), ...baseMarkers, ...dynamicSecondary];
         const hasPulsing = currentMarkers.some(m => nowMs < m.pulseUntil);
-        const minFrameMs = hasPulsing ? 16 : 48;
-
-        if (nowPerf - lastDrawPerf < minFrameMs) {
-          animFrameRef.current = requestAnimationFrame(draw);
-          return;
-        }
+        minFrameMs = hasPulsing ? 16 : 48;
         lastDrawPerf = nowPerf;
 
         if (!state) {

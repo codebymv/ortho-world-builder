@@ -20,6 +20,13 @@ function getPlantLashReach(enemy: { attackRange: number }): number {
   return enemy.attackRange * 1.3;
 }
 
+function getProjectileVisualScale(sprite: string): { x: number; y: number } {
+  if (sprite === 'projectile_spectral_blade') return { x: 0.78, y: 0.42 };
+  if (sprite === 'projectile_scythe') return { x: 0.68, y: 0.5 };
+  if (sprite === 'projectile_shell') return { x: 0.48, y: 0.42 };
+  return { x: 0.55, y: 0.55 };
+}
+
 function getPlantLashProgress(enemy: { state: string; telegraphTimer: number; telegraphDuration: number; attackAnimationTimer: number }): number {
   if (enemy.state === 'telegraphing') {
     const raw = enemy.telegraphDuration > 0
@@ -32,7 +39,7 @@ function getPlantLashProgress(enemy: { state: string; telegraphTimer: number; te
 
   if (enemy.state === 'recovering') {
     const raw = Math.max(0, Math.min(1, enemy.attackAnimationTimer / 0.3));
-    return Math.sin(raw * Math.PI);
+    return raw;
   }
 
   return 0;
@@ -64,46 +71,123 @@ function updatePlantLashVisual({
     }));
     lashMesh.position.z = 0.23;
     scene.add(lashMesh);
-    aux = [lashMesh];
+    const tipMesh = new THREE.Mesh(SharedGeometry.enemy, new THREE.MeshBasicMaterial({
+      map: assetManager.getTexture('fx_vine_lash_tip'),
+      transparent: true,
+      depthWrite: false,
+    }));
+    tipMesh.position.z = 0.24;
+    scene.add(tipMesh);
+    aux = [lashMesh, tipMesh];
     registry.auxMeshes.set(enemy.id, aux);
   }
 
   const lash = aux[0];
-  const target = state.player.position;
-  const dx = target.x - enemy.position.x;
-  const dy = target.y - enemy.position.y;
-  const dist = Math.hypot(dx, dy) || 1;
-  const nx = dx / dist;
-  const ny = dy / dist;
+  const tip = aux[1];
   const fullReach = getPlantLashReach(enemy);
   const progress = getPlantLashProgress(enemy);
   if (progress <= 0.01) {
     lash.visible = false;
+    if (tip) tip.visible = false;
+    lash.userData.aimLocked = false;
     return true;
   }
 
-  const flicker = Math.floor(currentTime / 42 + enemy.visualSeed * 11) % 3;
+  if (!lash.userData.aimLocked) {
+    const target = state.player.position;
+    const dx = target.x - enemy.position.x;
+    const dy = target.y - enemy.position.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    lash.userData.aimLocked = true;
+    lash.userData.aimX = dx / dist;
+    lash.userData.aimY = dy / dist;
+  }
+  const nx = typeof lash.userData.aimX === 'number' ? lash.userData.aimX : 1;
+  const ny = typeof lash.userData.aimY === 'number' ? lash.userData.aimY : 0;
+  const flicker = Math.floor(currentTime / 36 + enemy.visualSeed * 11) % 3;
   const whipSnap = enemy.state === 'telegraphing'
-    ? 0.82 + progress * 0.24
-    : 0.9 + Math.sin(currentTime / 24 + enemy.visualSeed * 19) * 0.12;
+    ? 0.55 + progress * 0.5
+    : 0.5 + Math.sin(progress * Math.PI) * 0.38;
   const reach = fullReach * whipSnap;
   const originOffset = 0.28;
   const startX = enemy.position.x + nx * originOffset;
   const startY = enemy.position.y + ny * originOffset;
   const side = flicker === 1 ? 1 : flicker === 2 ? -1 : 0;
-  const lateral = side * (enemy.state === 'recovering' ? 0.16 : 0.08) * progress;
+  const snapBend = Math.sin(progress * Math.PI);
+  const lateral = side * (enemy.state === 'recovering' ? 0.18 : 0.11) * snapBend;
   const centerX = startX + nx * reach * 0.5 + -ny * lateral;
   const centerY = startY + ny * reach * 0.5 + nx * lateral;
   const mat = lash.material as THREE.MeshBasicMaterial;
 
   lash.visible = reach > 0.05;
   lash.position.set(centerX, getVisualYAt(centerX, centerY) + 0.24, 0.23);
-  lash.rotation.z = Math.atan2(ny, nx) + side * 0.06 * progress;
-  lash.scale.set(Math.max(0.08, reach), 0.22 + progress * 0.16, 1);
+  lash.rotation.z = Math.atan2(ny, nx) + side * 0.08 * snapBend;
+  lash.scale.set(Math.max(0.08, reach), 0.18 + snapBend * 0.18, 1);
   lash.renderOrder = getActorRenderOrder(centerX, centerY, 0.3) + 3;
   mat.opacity = enemy.state === 'telegraphing'
-    ? (flicker === 0 ? 0.45 : 0.85) * progress
-    : Math.max(0.15, progress * (flicker === 2 ? 0.45 : 0.95));
+    ? (0.7 + (flicker === 0 ? 0.1 : 0.3)) * progress
+    : Math.max(0.12, progress * (flicker === 2 ? 0.55 : 0.9));
+
+  if (tip) {
+    const tipMat = tip.material as THREE.MeshBasicMaterial;
+    const tipX = startX + nx * reach + -ny * lateral * 1.6;
+    const tipY = startY + ny * reach + nx * lateral * 1.6;
+    tip.visible = enemy.state === 'telegraphing' ? progress > 0.72 : progress > 0.2;
+    tip.position.set(tipX, getVisualYAt(tipX, tipY) + 0.26, 0.24);
+    tip.rotation.z = Math.atan2(ny, nx) + side * 0.12 * snapBend;
+    const tipScale = 0.34 + snapBend * 0.16;
+    tip.scale.set(tipScale, tipScale, 1);
+    tip.renderOrder = lash.renderOrder + 1;
+    tipMat.opacity = Math.min(1, mat.opacity + 0.15);
+  }
+
+  return true;
+}
+
+function updateHollowGuardianAttackVisual({
+  scene,
+  assetManager,
+  registry,
+  enemy,
+  currentTime,
+  getVisualYAt,
+  getActorRenderOrder,
+}: Pick<RunEnemyLoopOptions, 'scene' | 'assetManager' | 'registry' | 'currentTime' | 'getVisualYAt' | 'getActorRenderOrder'> & {
+  enemy: Enemy;
+}): boolean {
+  if (enemy.type !== 'hollow_guardian' || enemy.state !== 'slamming') return false;
+
+  let aux = registry.auxMeshes.get(enemy.id);
+  if (!aux) {
+    const crackMesh = new THREE.Mesh(SharedGeometry.tile, new THREE.MeshBasicMaterial({
+      map: assetManager.getTexture('fx_hollow_nova_cracks'),
+      transparent: true,
+      depthWrite: false,
+    }));
+    crackMesh.position.z = 0.17;
+    scene.add(crackMesh);
+    aux = [crackMesh];
+    registry.auxMeshes.set(enemy.id, aux);
+  }
+
+  const crack = aux[0];
+  const duration = enemy.currentAttackType === 'hail_mary' ? 2.2 : 0.5;
+  const timer = enemy.novaSlamTimer ?? 0;
+  const progress = Math.max(0, Math.min(1, 1 - timer / duration));
+  const pulse = 1 + Math.sin(currentTime / 55 + enemy.visualSeed * 9) * 0.04;
+  const radius = enemy.currentAttackType === 'hail_mary' ? 5.7 : 3.0;
+  const scale = Math.max(0.6, radius * (0.45 + progress * 0.85) * pulse);
+  const mat = crack.material as THREE.MeshBasicMaterial;
+
+  crack.visible = true;
+  crack.position.set(enemy.position.x, getVisualYAt(enemy.position.x, enemy.position.y), 0.17);
+  crack.rotation.z = enemy.visualSeed * Math.PI * 2 + progress * 0.25;
+  crack.scale.set(scale, scale, 1);
+  crack.renderOrder = getActorRenderOrder(enemy.position.x, enemy.position.y, -0.3);
+  mat.opacity = enemy.currentAttackType === 'hail_mary'
+    ? 0.18 + progress * 0.42
+    : 0.25 + progress * 0.5;
+  mat.color.setHex(enemy.currentAttackType === 'hail_mary' ? 0xaa66ff : 0x55ffee);
 
   return true;
 }
@@ -357,6 +441,7 @@ export function runEnemyLoop({
 
   const enemies = combatSystem.getEnemies();
   const enemyAudioNow = currentTime / 1000;
+  const FULL_VISUAL_RANGE_SQ = 28 * 28;
   const VISUAL_RANGE_SQ = 36 * 36;
   const px = state.player.position.x;
   const py = state.player.position.y;
@@ -368,6 +453,9 @@ export function runEnemyLoop({
     const eDistSq = edx * edx + edy * edy;
 
     const existingVisuals = registry.meshes.get(enemy.id);
+    const isBossType = enemy.type === 'hollow_guardian' || enemy.type === 'golem' ||
+      enemy.type === 'ashen_reaver' || enemy.type === 'corrupted_giant' ||
+      enemy.type === 'stone_sentinel';
     if (eDistSq > VISUAL_RANGE_SQ) {
       if (existingVisuals) {
         existingVisuals.visible = false;
@@ -381,14 +469,12 @@ export function runEnemyLoop({
           hpBar.fill.visible = false;
         }
       }
+      registry.removeAux(enemy.id);
       continue;
     }
 
     let enemyMesh = existingVisuals;
 
-    const isBossType = enemy.type === 'hollow_guardian' || enemy.type === 'golem' ||
-      enemy.type === 'ashen_reaver' || enemy.type === 'corrupted_giant' ||
-      enemy.type === 'stone_sentinel';
     const isBossAttackState = enemy.state === 'telegraphing' || enemy.state === 'charging' ||
       enemy.state === 'slamming';
     if (isBossType && isBossAttackState) {
@@ -418,27 +504,36 @@ export function runEnemyLoop({
     // Committed-attack lock indicator — paints the impact tile with rising
     // dust so the player can read where to sidestep. Throttled to ~once per
     // 4 frames to keep particle count reasonable.
-    if (enemy.state === 'telegraphing' && enemy.attackLockedTarget &&
+    if (eDistSq <= FULL_VISUAL_RANGE_SQ &&
+        enemy.state === 'telegraphing' && enemy.attackLockedTarget &&
         (enemy.currentAttackType === 'sentinel_slab' ||
-         enemy.currentAttackType === 'golem_stomp')) {
+         enemy.currentAttackType === 'golem_stomp' ||
+         enemy.currentAttackType === 'revenant_crusher')) {
       const t = enemy.attackLockedTarget;
       // Use the rotation field for a per-enemy phase so the emit fires
       // asynchronously across multiple sentinels.
       const phase = Math.floor((currentTime + enemy.position.x * 17) / 60) % 4;
       if (phase === 0) {
-        const color = enemy.currentAttackType === 'sentinel_slab' ? 0xA68A5A : 0x7C6A52;
-        particleSystem.emitAt(t.x, t.y, 0.1, 4, color, 0.35, 0.9, 0.6);
+        const color = enemy.currentAttackType === 'revenant_crusher'
+          ? 0x6e4cb8
+          : enemy.currentAttackType === 'sentinel_slab'
+            ? 0xA68A5A
+            : 0x7C6A52;
+        particleSystem.emitAt(t.x, t.y, 0.1, 4, color, 0.35, 0.9, 0.6, { important: false });
       }
     }
     // Dash-attack motion trail — leaves a streak behind committed dashes so
     // the slide reads as kinetic rather than a snap teleport.
-    if (enemy.state === 'telegraphing' &&
+    if (eDistSq <= FULL_VISUAL_RANGE_SQ &&
+        enemy.state === 'telegraphing' &&
         (enemy.currentAttackType === 'giant_lunge' ||
          enemy.currentAttackType === 'reaver_rush' ||
-         enemy.currentAttackType === 'golem_grab')) {
+         enemy.currentAttackType === 'golem_grab' ||
+         enemy.currentAttackType === 'revenant_rush')) {
       const phase = Math.floor((currentTime + enemy.position.y * 19) / 50) % 3;
       if (phase === 0) {
-        particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.2, 3, 0x5C4836, 0.3, 0.7, 0.5);
+        const color = enemy.currentAttackType === 'revenant_rush' ? 0x7651d1 : 0x5C4836;
+        particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.2, 3, color, 0.3, 0.7, 0.5, { important: false });
       }
     }
 
@@ -473,13 +568,40 @@ export function runEnemyLoop({
       });
     }
 
-    if (!enemyMesh.visible) {
+    if (!isBossType && eDistSq > FULL_VISUAL_RANGE_SQ) {
+      const enemyType = enemy.sprite.replace('enemy_', '');
+      const enemyVisual = enemyVisualProfiles[enemyType] ?? enemyVisualProfiles.wolf;
+      const visualY = getVisualYAt(enemy.position.x, enemy.position.y);
       enemyMesh.visible = true;
+      enemyMesh.position.set(enemy.position.x, visualY, 0.2);
+      enemyMesh.scale.set(enemyVisual.baseScale, enemyVisual.baseScale, 1);
+      enemyMesh.rotation.z = 0;
+      enemyMesh.renderOrder = getActorRenderOrder(enemy.position.x, enemy.position.y, 0);
+      const material = enemyMesh.material as THREE.MeshBasicMaterial;
+      if (enemy.damageFlashTimer > 0) {
+        enemy.damageFlashTimer = Math.max(0, enemy.damageFlashTimer - deltaTime);
+      }
+      if (enemy.damageFlashTimer <= 0) {
+        material.opacity = 1;
+      }
       const shadow = registry.shadows.get(enemy.id);
       const outline = registry.outlines.get(enemy.id);
-      if (shadow) shadow.visible = true;
-      if (outline) outline.visible = true;
+      if (shadow) shadow.visible = false;
+      if (outline) outline.visible = false;
+      const hpBar = registry.hpBars.get(enemy.id);
+      if (hpBar) {
+        hpBar.bg.visible = false;
+        hpBar.fill.visible = false;
+      }
+      registry.removeAux(enemy.id);
+      continue;
     }
+
+    enemyMesh.visible = true;
+    const shadow = registry.shadows.get(enemy.id);
+    const outline = registry.outlines.get(enemy.id);
+    if (shadow) shadow.visible = true;
+    if (outline) outline.visible = true;
 
     enemyAudio.maybePlayWalk(enemy, enemyAudioNow, state.player.position);
     applyEnemyVisuals({
@@ -504,6 +626,15 @@ export function runEnemyLoop({
       getVisualYAt,
       getActorRenderOrder,
     });
+    auxHandled = updateHollowGuardianAttackVisual({
+      scene,
+      assetManager,
+      registry,
+      enemy,
+      currentTime,
+      getVisualYAt,
+      getActorRenderOrder,
+    }) || auxHandled;
     // Ridge Revenant summoned blade array — during the bladestorm cast an arc of
     // spectral blades materializes behind the wraith, lifts overhead, points at
     // the player, and converges into firing position as the telegraph completes.
@@ -657,21 +788,12 @@ export function runEnemyLoop({
   liveProjectileIds.clear();
   for (const proj of projectiles) {
     liveProjectileIds.add(proj.id);
-    let mesh = registry.projectileMeshes.get(proj.id);
-    if (!mesh) {
-      const tex = assetManager.getTexture(proj.sprite);
-      const mat = new THREE.MeshBasicMaterial({
-        map: tex,
-        transparent: true,
-        depthWrite: false,
-      });
-      mesh = new THREE.Mesh(SharedGeometry.enemy, mat);
-      mesh.position.z = 0.25;
-      scene.add(mesh);
-      registry.projectileMeshes.set(proj.id, mesh);
-    }
-    const reflectedPulse = proj.reflected ? Math.sin(currentTime / 45) * 0.08 + 1.08 : 1;
-    mesh.scale.set(0.55 * reflectedPulse, 0.55 * reflectedPulse, 1);
+    const mesh = registry.acquireProjectile(proj.id, assetManager.getTexture(proj.sprite));
+    mesh.position.z = 0.25;
+    const reflected = proj.reflected || false;
+    const reflectedPulse = reflected ? Math.sin(currentTime / 45) * 0.08 + 1.08 : 1;
+    const projectileScale = getProjectileVisualScale(proj.sprite);
+    mesh.scale.set(projectileScale.x * reflectedPulse, projectileScale.y * reflectedPulse, 1);
     mesh.position.x = proj.position.x;
     mesh.position.y = getVisualYAt(proj.position.x, proj.position.y) + 0.35;
     mesh.rotation.z = proj.rotation;
@@ -697,28 +819,11 @@ export function runEnemyLoop({
   liveHazardIds.clear();
   for (const hazard of hazards) {
     liveHazardIds.add(hazard.id);
-    let meshes = registry.hazardMeshes.get(hazard.id);
-    if (!meshes) {
-      const markerTex = assetManager.getTexture('hazard_scythe_marker');
-      const scytheTex = assetManager.getTexture('projectile_scythe_falling');
-      const marker = new THREE.Mesh(SharedGeometry.enemy, new THREE.MeshBasicMaterial({
-        map: markerTex,
-        transparent: true,
-        depthWrite: false,
-        color: 0x88ffff,
-      }));
-      const scythe = new THREE.Mesh(SharedGeometry.enemy, new THREE.MeshBasicMaterial({
-        map: scytheTex,
-        transparent: true,
-        depthWrite: false,
-      }));
-      marker.position.z = 0.16;
-      scythe.position.z = 0.28;
-      scene.add(marker);
-      scene.add(scythe);
-      meshes = { marker, scythe };
-      registry.hazardMeshes.set(hazard.id, meshes);
-    }
+    const meshes = registry.acquireHazard(
+      hazard.id,
+      assetManager.getTexture('hazard_scythe_marker'),
+      assetManager.getTexture('projectile_scythe_falling'),
+    );
 
     const warningProgress = 1 - hazard.warningTimer / hazard.maxWarningTimer;
     const strikeProgress = hazard.state === 'striking'
@@ -733,13 +838,13 @@ export function runEnemyLoop({
       : Math.max(0, hazard.strikeTimer / hazard.maxStrikeTimer) * 0.55;
     markerMat.color.setHex(hazard.source === 'eclipse' ? 0xcc44ff : 0x44ffee);
     meshes.marker.visible = true;
-    meshes.marker.scale.set(hazard.radius * 2 * pulse, hazard.radius * 2 * pulse, 1);
+    meshes.marker.scale.set(hazard.radius * 2.2 * pulse, hazard.radius * 2.2 * pulse, 1);
     meshes.marker.position.set(hazard.position.x, getVisualYAt(hazard.position.x, hazard.position.y), 0.16);
     meshes.marker.rotation.z = hazard.rotation * 0.25;
     meshes.marker.renderOrder = getActorRenderOrder(hazard.position.x, hazard.position.y, -0.2);
 
     const scytheMat = meshes.scythe.material as THREE.MeshBasicMaterial;
-    meshes.scythe.visible = hazard.state === 'striking';
+    meshes.scythe.visible = hazard.state === 'striking' || warningProgress > 0.38;
     if (hazard.state === 'striking') {
       const lift = (1 - strikeProgress) * 0.9;
       const scytheScale = hazard.source === 'eclipse' ? 0.95 : 0.82;
@@ -753,6 +858,20 @@ export function runEnemyLoop({
       meshes.scythe.renderOrder = getActorRenderOrder(hazard.position.x, hazard.position.y, 0.3);
       scytheMat.opacity = Math.max(0, hazard.strikeTimer / hazard.maxStrikeTimer);
       scytheMat.color.setHex(hazard.source === 'eclipse' ? 0xff99ff : 0xffffff);
+    } else if (meshes.scythe.visible) {
+      const fallProgress = Math.max(0, Math.min(1, (warningProgress - 0.38) / 0.62));
+      const lift = 2.2 - fallProgress * 1.7;
+      const scytheScale = hazard.source === 'eclipse' ? 0.88 : 0.74;
+      meshes.scythe.scale.set(scytheScale, scytheScale, 1);
+      meshes.scythe.position.set(
+        hazard.position.x,
+        getVisualYAt(hazard.position.x, hazard.position.y) + 0.4 + lift,
+        0.28,
+      );
+      meshes.scythe.rotation.z = hazard.rotation + Math.sin(currentTime / 70) * 0.08;
+      meshes.scythe.renderOrder = getActorRenderOrder(hazard.position.x, hazard.position.y, 0.3);
+      scytheMat.opacity = 0.12 + fallProgress * 0.68;
+      scytheMat.color.setHex(hazard.source === 'eclipse' ? 0xdd99ff : 0xdffcff);
     }
   }
 

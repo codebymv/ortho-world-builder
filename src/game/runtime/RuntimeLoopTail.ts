@@ -171,6 +171,7 @@ export function runRuntimeLoopTail({
   const adaptiveScale = perfProfiler?.getAdaptiveEffectsScale() ?? 1;
   biomeAmbience.setQualityScale(adaptiveScale);
   weatherSystem.setQualityScale(adaptiveScale);
+  particleSystem.setQualityScale(adaptiveScale);
   applyAdaptivePixelRatio(renderer, perfProfiler?.getAdaptivePixelRatioCap() ?? 2);
 
   if (profilePhases) {
@@ -254,13 +255,19 @@ export function runRuntimeLoopTail({
       particleSystem.update(deltaTime);
     });
     perfProfiler!.measure('worldItems', () => {
-      worldItemRenderer.update(state.worldItems, state.currentMap, assetManager, currentTime, getVisualYAt);
+      worldItemRenderer.update(state.worldItems, state.currentMap, assetManager, currentTime, getVisualYAt, {
+        playerX: playerPosition.x,
+        playerY: playerPosition.y,
+      });
     });
   } else {
     dayNightCycle.update(deltaTime, playerPosition.x, playerPosition.y);
     floatingText.update(deltaTime);
     particleSystem.update(deltaTime);
-    worldItemRenderer.update(state.worldItems, state.currentMap, assetManager, currentTime, getVisualYAt);
+    worldItemRenderer.update(state.worldItems, state.currentMap, assetManager, currentTime, getVisualYAt, {
+      playerX: playerPosition.x,
+      playerY: playerPosition.y,
+    });
   }
 
   let nextAutoSaveTime = lastAutoSaveTime;

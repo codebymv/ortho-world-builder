@@ -45,6 +45,7 @@ function collectPerfStats(phaseContexts: RuntimePhaseContexts): PerfStatsInput {
     particleSystem: tail.particleSystem,
     weatherSystem: tail.weatherSystem,
     biomeAmbience: tail.biomeAmbience,
+    worldItemRenderer: tail.worldItemRenderer,
     worldItemCount: tail.state.worldItems.length,
   };
 }
@@ -162,6 +163,7 @@ export function runRuntimeFrame({
   runtimeSession.animation.comboStep = preludeState.comboStep;
   runtimeSession.animation.comboWindowTimer = preludeState.comboWindowTimer;
   runtimeSession.input.comboInputBuffered = preludeState.comboInputBuffered;
+  particleSystem.beginFrameBudget(perfProfiler?.getAdaptiveEffectsScale() ?? 1);
 
   if (!state.dialogueActive) {
     const pfOpts = phaseContexts.playerFrameContext as RunPlayerFramePhaseOptions;

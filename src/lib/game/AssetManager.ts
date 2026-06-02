@@ -27,7 +27,7 @@ export class AssetManager {
     this.textureDataUrls = new Map();
   }
 
-  createColorTexture(color: number, width: number = 32, height: number = 32, pattern?: 'noise' | 'checker' | 'gradient' | 'cobblestone_grid' | 'bedrock'): THREE.Texture {
+  createColorTexture(color: number, width: number = 32, height: number = 32, pattern?: 'noise' | 'checker' | 'gradient' | 'cobblestone_grid' | 'mossy_cobblestone' | 'bedrock'): THREE.Texture {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -85,6 +85,64 @@ export class AssetManager {
           ctx.fillStyle = 'rgba(0,0,0,0.12)';
           ctx.fillRect(sx, row + stoneH - 1, stoneW, 1);
         }
+      }
+    } else if (pattern === 'mossy_cobblestone') {
+      const clamp = (v: number) => Math.max(0, Math.min(255, v));
+      const moss = { r: 60, g: 92, b: 48 };
+      const darkMoss = { r: 36, g: 60, b: 32 };
+      const stoneW = 7;
+      const stoneH = 5;
+      const gap = 1;
+
+      ctx.fillStyle = `rgb(${clamp(r - 38)}, ${clamp(g - 35)}, ${clamp(b - 32)})`;
+      ctx.fillRect(0, 0, width, height);
+
+      for (let row = 0; row < height + stoneH; row += stoneH + gap) {
+        const rowIdx = Math.floor(row / (stoneH + gap));
+        const offset = rowIdx % 2 === 0 ? 0 : Math.floor(stoneW / 2);
+        for (let col = -stoneW; col < width + stoneW; col += stoneW + gap) {
+          const sx = col + offset;
+          const hash = (rowIdx * 29 + col * 17 + width * 7) & 31;
+          const v = (hash % 11) - 5;
+          const sr = clamp(r + 12 + v);
+          const sg = clamp(g + 8 + v);
+          const sb = clamp(b + 2 + v);
+          ctx.fillStyle = `rgb(${sr}, ${sg}, ${sb})`;
+          ctx.fillRect(sx, row, stoneW, stoneH);
+
+          ctx.fillStyle = 'rgba(255,255,255,0.10)';
+          ctx.fillRect(sx, row, stoneW, 1);
+          ctx.fillStyle = 'rgba(0,0,0,0.22)';
+          ctx.fillRect(sx, row + stoneH - 1, stoneW, 1);
+          ctx.fillRect(sx + stoneW - 1, row, 1, stoneH);
+
+          if (hash % 3 === 0) {
+            ctx.fillStyle = `rgba(${moss.r},${moss.g},${moss.b},0.52)`;
+            ctx.fillRect(sx, row + stoneH - 1, stoneW, 1);
+            if (stoneH > 3) ctx.fillRect(sx + 1, row + stoneH - 2, Math.max(1, stoneW - 3), 1);
+          }
+          if (hash % 5 === 0) {
+            ctx.fillStyle = `rgba(${darkMoss.r},${darkMoss.g},${darkMoss.b},0.55)`;
+            ctx.fillRect(sx, row, 1, stoneH);
+            ctx.fillRect(sx + 1, row + 1, 1, Math.max(1, stoneH - 2));
+          }
+          if (hash % 7 === 0) {
+            ctx.fillStyle = 'rgba(25,24,22,0.42)';
+            ctx.fillRect(sx + 2, row + 1, 1, Math.max(1, stoneH - 2));
+            ctx.fillRect(sx + 3, row + 2, 2, 1);
+          }
+        }
+      }
+
+      const flecks = Math.floor(width * height * 0.08);
+      for (let i = 0; i < flecks; i++) {
+        const fx = Math.floor(Math.random() * width);
+        const fy = Math.floor(Math.random() * height);
+        const isMoss = Math.random() < 0.65;
+        ctx.fillStyle = isMoss
+          ? `rgba(${moss.r},${moss.g + 18},${moss.b},0.42)`
+          : 'rgba(255,255,255,0.10)';
+        ctx.fillRect(fx, fy, 1, 1);
       }
     } else if (pattern === 'gradient') {
       for (let y = 0; y < height; y++) {
@@ -2349,8 +2407,26 @@ export class AssetManager {
       [C,          SPIDER_LEG,C,          SPIDER_BODY,SPIDER_BODY,C,          SPIDER_LEG,C,          C,         C],
       [SPIDER_LEG, C,         C,          C,          C,          C,          C,         SPIDER_LEG, C,         C],
     ], 4, 'enemy_spider'));
-    this.registerTexture('enemy_spider_telegraph', () => this.getTexture('enemy_spider')!);
-    this.registerTexture('enemy_spider_attack', () => this.getTexture('enemy_spider')!);
+    this.registerTexture('enemy_spider_telegraph', () => this.createSpriteTexture([
+      [C,          C,         SPIDER_LEG, C,          C,          SPIDER_LEG,C,          C,         C,         C],
+      [C,          SPIDER_LEG,SPIDER_BODY,SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY_H,SPIDER_LEG,C,    C,         C],
+      [SPIDER_LEG, SPIDER_BODY,SPIDER_EYE,SPIDER_EYE,SPIDER_BODY,SPIDER_EYE,SPIDER_EYE,SPIDER_BODY,SPIDER_LEG,C],
+      [C,          SPIDER_BODY,SPIDER_FANG,SPIDER_BODY_H,SPIDER_BODY_H,SPIDER_FANG,SPIDER_BODY,C, C,         C],
+      [C,          SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY_H,C, C,         C],
+      [C,          SPIDER_LEG,SPIDER_BODY,SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY,SPIDER_LEG,C,     C,         C],
+      [SPIDER_LEG, C,         C,          SPIDER_BODY,SPIDER_BODY,C,          C,         SPIDER_LEG,C,       C],
+      [C,          C,         SPIDER_LEG, C,          C,          SPIDER_LEG,C,          C,         C,       C],
+    ], 4, 'enemy_spider_telegraph'));
+    this.registerTexture('enemy_spider_attack', () => this.createSpriteTexture([
+      [SPIDER_LEG, C,         C,          C,          C,          C,          C,         C,         SPIDER_LEG,C],
+      [C,          SPIDER_LEG,SPIDER_BODY,SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY_H,C,    SPIDER_LEG,C,       C],
+      [SPIDER_LEG, SPIDER_BODY,SPIDER_EYE,SPIDER_BODY,SPIDER_BODY,SPIDER_EYE,SPIDER_BODY,SPIDER_LEG,C,      C],
+      [C,          SPIDER_BODY,SPIDER_FANG,SPIDER_FANG,SPIDER_BODY_H,SPIDER_BODY_H,SPIDER_FANG,SPIDER_FANG,C,C],
+      [C,          SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY_H,C, C,        C],
+      [SPIDER_LEG, C,         SPIDER_BODY,SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY,C,     SPIDER_LEG,C,       C],
+      [C,          SPIDER_LEG,C,          SPIDER_BODY,SPIDER_BODY,C,          SPIDER_LEG,C,        C,      C],
+      [SPIDER_LEG, C,         C,          C,          C,          C,          C,        SPIDER_LEG,C,       C],
+    ], 4, 'enemy_spider_attack'));
 
     this.registerTexture('enemy_spider_walk_0', () => this.createSpriteTexture([
       [C,          SPIDER_LEG,C,          C,          C,          C,          SPIDER_LEG,C,          C,          C],
@@ -2412,8 +2488,22 @@ export class AssetManager {
       [C,          SLIME_BODY,SLIME_BODY,SLIME_BODY,SLIME_BODY,SLIME_BODY,C,          C],
       [C,          SLIME_S,   SLIME_BODY,SLIME_S,   SLIME_BODY,SLIME_S,   C,          C],
     ], 4, 'enemy_slime'));
-    this.registerTexture('enemy_slime_telegraph', () => this.getTexture('enemy_slime')!);
-    this.registerTexture('enemy_slime_attack', () => this.getTexture('enemy_slime')!);
+    this.registerTexture('enemy_slime_telegraph', () => this.createSpriteTexture([
+      [C,          C,          C,          C,          C,          C,          C,          C],
+      [C,          C,          SLIME_SHINE,SLIME_H,   SLIME_H,   C,          C,          C],
+      [C,          SLIME_S,   SLIME_BODY,SLIME_BODY,SLIME_BODY,SLIME_S,   C,          C],
+      [SLIME_S,   SLIME_BODY,SLIME_EYE, SLIME_BODY,SLIME_EYE, SLIME_BODY,SLIME_S,    C],
+      [SLIME_S,   SLIME_BODY,SLIME_PUPIL,SLIME_BODY,SLIME_PUPIL,SLIME_BODY,SLIME_S,  C],
+      [C,          SLIME_S,   SLIME_S,   SLIME_BODY,SLIME_S,   SLIME_S,   C,          C],
+    ], 4, 'enemy_slime_telegraph'));
+    this.registerTexture('enemy_slime_attack', () => this.createSpriteTexture([
+      [C,          C,          SLIME_H,   SLIME_H,   SLIME_H,   C,          C,          C],
+      [C,          SLIME_H,   SLIME_SHINE,SLIME_BODY,SLIME_BODY,SLIME_H,   SLIME_H,   C],
+      [SLIME_S,   SLIME_BODY,SLIME_EYE, SLIME_BODY,SLIME_EYE, SLIME_BODY,SLIME_BODY,SLIME_S],
+      [SLIME_S,   SLIME_BODY,SLIME_PUPIL,SLIME_BODY,SLIME_PUPIL,SLIME_BODY,SLIME_BODY,SLIME_S],
+      [C,          SLIME_BODY,SLIME_BODY,SLIME_BODY,SLIME_BODY,SLIME_BODY,SLIME_H,   C],
+      [C,          SLIME_S,   SLIME_BODY,SLIME_S,   SLIME_BODY,SLIME_S,   C,          C],
+    ], 4, 'enemy_slime_attack'));
 
     const WSLIME_BODY = 0x46B8D8;
     const WSLIME_H = 0x7EDCFF;
@@ -3043,15 +3133,34 @@ export class AssetManager {
     ], 4, 'fx_revenant_cast_arm'));
 
     this.registerTexture('hazard_scythe_marker', () => this.createSpriteTexture([
-      [C,       C,       PB_DIM,  C,       C,       PB_DIM,  C,       C      ],
-      [C,       PB_DIM,  C,       PB_GLW,  PB_GLW,  C,       PB_DIM,  C      ],
-      [PB_DIM,  C,       PB_GLW,  C,       C,       PB_GLW,  C,       PB_DIM ],
-      [C,       PB_GLW,  C,       PB_BLM,  PB_BLM,  C,       PB_GLW,  C      ],
-      [C,       PB_GLW,  C,       PB_BLM,  PB_BLM,  C,       PB_GLW,  C      ],
-      [PB_DIM,  C,       PB_GLW,  C,       C,       PB_GLW,  C,       PB_DIM ],
-      [C,       PB_DIM,  C,       PB_GLW,  PB_GLW,  C,       PB_DIM,  C      ],
-      [C,       C,       PB_DIM,  C,       C,       PB_DIM,  C,       C      ],
+      [C,       C,       PB_DIM,  C,       C,       C,       PB_DIM,  C      ],
+      [C,       PB_DIM,  C,       C,       PB_GLW,  C,       C,       C      ],
+      [PB_DIM,  C,       PB_GLW,  C,       PB_BLS,  PB_GLW,  C,       PB_DIM ],
+      [C,       C,       C,       PB_BLS,  PB_BLM,  PB_BLS,  PB_GLW,  C      ],
+      [C,       PB_GLW,  PB_BLS,  PB_BLM,  PB_BLS,  C,       C,       C      ],
+      [PB_DIM,  C,       PB_GLW,  PB_BLS,  C,       PB_GLW,  C,       PB_DIM ],
+      [C,       C,       C,       PB_GLW,  C,       C,       PB_DIM,  C      ],
+      [C,       PB_DIM,  C,       C,       C,       PB_DIM,  C,       C      ],
     ], 4, 'hazard_scythe_marker'));
+
+    const HC_CORE = 0x55FFEE;
+    const HC_PURP = 0x9C55FF;
+    const HC_DARK = 0x191126;
+    const HC_DIM = 0x2E2440;
+    this.registerTexture('fx_hollow_nova_cracks', () => this.createSpriteTexture([
+      [C,       C,       C,       HC_DIM,  C,       C,       C,       C,       C,       HC_DIM,  C,       C],
+      [C,       HC_DIM,  C,       HC_PURP, C,       C,       HC_DARK, C,       HC_PURP, C,       C,       C],
+      [C,       C,       HC_DIM,  HC_PURP, HC_CORE, C,       HC_DARK, HC_CORE, HC_PURP, HC_DIM,  C,       C],
+      [HC_DIM,  HC_PURP, HC_PURP, C,       HC_CORE, HC_DARK, HC_CORE, C,       HC_PURP, HC_PURP, HC_DIM,  C],
+      [C,       C,       HC_CORE, HC_CORE, HC_DARK, HC_CORE, HC_DARK, HC_CORE, HC_CORE, C,       C,       C],
+      [C,       HC_DARK, C,       HC_DARK, HC_CORE, C,       C,       HC_CORE, HC_DARK, C,       HC_DARK, C],
+      [C,       C,       HC_CORE, HC_CORE, HC_DARK, HC_CORE, HC_DARK, HC_CORE, HC_CORE, C,       C,       C],
+      [C,       HC_DIM,  HC_PURP, HC_PURP, C,       HC_CORE, HC_DARK, HC_CORE, C,       HC_PURP, HC_PURP, HC_DIM],
+      [C,       C,       HC_DIM,  HC_PURP, HC_CORE, HC_DARK, C,       HC_CORE, HC_PURP, HC_DIM,  C,       C],
+      [C,       C,       C,       C,       HC_PURP, C,       C,       C,       HC_PURP, C,       HC_DIM,  C],
+      [C,       HC_DIM,  C,       C,       C,       HC_DIM,  C,       C,       C,       C,       C,       C],
+      [C,       C,       C,       HC_DIM,  C,       C,       C,       HC_DIM,  C,       C,       C,       C],
+    ], 4, 'fx_hollow_nova_cracks'));
 
     // ========== NEW ENEMY: Plant Monster ==========
     const VINE = 0x2E7D32;
@@ -3102,6 +3211,15 @@ export class AssetManager {
       [C,      VINE_S, VINE,   VINE_S, VINE_H, VINE,   VINE_S, VINE_H, VINE,   VINE_S, VINE_H, VINE,   VINE_S, VINE_H, VINE,   C],
       [C,      C,      THORN,  C,      C,      THORN,  C,      C,      THORN,  C,      C,      THORN,  C,      C,      C,      C],
     ], 4, 'fx_vine_lash'));
+
+    this.registerTexture('fx_vine_lash_tip', () => this.createSpriteTexture([
+      [C,      C,      THORN,  C,      C,      C],
+      [C,      VINE_S, VINE_H, THORN,  C,      C],
+      [VINE_S, VINE_H, VINE_H, VINE,   THORN,  C],
+      [C,      VINE_S, VINE_H, THORN,  C,      C],
+      [C,      C,      THORN,  C,      C,      C],
+      [C,      C,      C,      C,      C,      C],
+    ], 4, 'fx_vine_lash_tip'));
 
     this.registerTexture('enemy_plant_walk_0', () => this.createSpriteTexture([
       [C,       C,       PETAL_EH,PETAL_E, PETAL_EH,PETAL_E, C,       C,       C,       C],
@@ -4163,7 +4281,7 @@ export class AssetManager {
     registerColorTexture('dark_grass', 0x2E7D32, 32, 32, 'noise');
     // Bleached / ash-sick forest floor (Deep Hollow, tile y < 59 â‰ˆ world y â‰¤ -91)
     registerColorTexture('hollow_blight', 0xC9B896, 32, 32, 'noise');
-    registerColorTexture('mossy_stone', 0x6B7B5A, 32, 32, 'checker');
+    registerColorTexture('mossy_stone', 0x6B7B5A, 32, 32, 'mossy_cobblestone');
     registerColorTexture('ruined_fort_wall', 0x777066, 32, 32, 'cobblestone_grid');
     registerColorTexture('ruined_fort_wall_mossy', 0x65705C, 32, 32, 'cobblestone_grid');
     registerColorTexture('wooden_path', 0x8D6E63, 32, 32, 'gradient');
@@ -5164,6 +5282,39 @@ export class AssetManager {
       [C,     C,     C,     FK_SH, FK_SD, FK_SH, C,     C   ],  // tooth 2
       [C,     C,     C,     FK_SH, FK_SD, C,     C,     C   ],
       [C,     C,     C,     C,     FK_SD, C,     C,     C   ],  // tip
+    ], 4);
+
+    const MAP_PAPER = 0xEAD7A8;
+    const MAP_PAPER_H = 0xFFF1C8;
+    const MAP_PAPER_S = 0xB99A66;
+    const MAP_INK = 0x5B3924;
+    const MAP_ROUTE = 0x2D6F87;
+    const MAP_SEAL = 0xB33A3A;
+    registerSpriteTexture('map', [
+      [C,           MAP_PAPER_H, MAP_PAPER_H, MAP_PAPER,   MAP_PAPER,   MAP_PAPER_H, MAP_PAPER_S, C],
+      [MAP_PAPER_H, MAP_PAPER,   MAP_INK,     MAP_PAPER,   MAP_ROUTE,   MAP_PAPER,   MAP_PAPER_S, C],
+      [MAP_PAPER_H, MAP_PAPER,   MAP_PAPER,   MAP_INK,     MAP_ROUTE,   MAP_PAPER,   MAP_PAPER,   MAP_PAPER_S],
+      [MAP_PAPER,   MAP_ROUTE,   MAP_ROUTE,   MAP_PAPER,   MAP_PAPER,   MAP_INK,     MAP_PAPER,   MAP_PAPER_S],
+      [MAP_PAPER,   MAP_PAPER,   MAP_ROUTE,   MAP_PAPER,   MAP_SEAL,    MAP_PAPER,   MAP_INK,     MAP_PAPER_S],
+      [MAP_PAPER_S, MAP_PAPER,   MAP_PAPER,   MAP_INK,     MAP_PAPER,   MAP_PAPER,   MAP_PAPER,   MAP_PAPER_S],
+      [C,           MAP_PAPER_S, MAP_PAPER,   MAP_PAPER,   MAP_PAPER,   MAP_PAPER_S, MAP_PAPER_S, C],
+    ], 4);
+
+    const KEY_GH = 0xFFE27A;
+    const KEY_G = 0xC9962D;
+    const KEY_GD = 0x7A5520;
+    const KEY_SH = 0xD7DEE8;
+    const KEY_S = 0x8793A3;
+    const KEY_SD = 0x4C5667;
+    registerSpriteTexture('key', [
+      [C,      KEY_GH, KEY_G,  KEY_GD, C,      C,      C,      C],
+      [KEY_GH,KEY_G,  C,      KEY_GD, KEY_G,  C,      C,      C],
+      [KEY_G, KEY_GD, C,      KEY_G,  KEY_GH, C,      C,      C],
+      [C,     KEY_G,  KEY_GD, KEY_GH, KEY_S,  KEY_SH, KEY_S,  C],
+      [C,     C,      C,      C,      KEY_SD, KEY_SH, KEY_SD, C],
+      [C,     C,      C,      C,      KEY_SD, KEY_SH, KEY_S,  KEY_SH],
+      [C,     C,      C,      C,      KEY_SD, KEY_SH, C,      C],
+      [C,     C,      C,      C,      C,      KEY_SD, KEY_SH, C],
     ], 4);
 
     // Small environmental sprites

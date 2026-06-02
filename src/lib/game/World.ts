@@ -150,7 +150,24 @@ const MAX_TILES_PER_FRAME = 200; // steady-state budget while moving
 const INITIAL_LOAD_TILES_PER_FRAME = 320; // smoother initial/after-rebuild streaming without one-frame spikes
 const TILE_KEY_STRIDE = 65536;
 const MAX_MESH_POOL_SIZE = 1200;
+const DECORATIVE_OVERLAY_NEAR_RADIUS = 26;
 const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted', 'stairs', 'ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open']);
+const OVERLAY_CULL_EXEMPT_TILE_TYPES: ReadonlySet<TileType> = new Set([
+  'door', 'door_interior', 'door_iron',
+  'chest', 'chest_opened', 'special_chest', 'special_chest_opened',
+  'portal', 'bonfire', 'bonfire_unlit',
+  'ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open',
+  'gate', 'fog_gate',
+  'house', 'house_entry', 'house_blue', 'house_blue_entry', 'house_green', 'house_green_entry',
+  'house_thatch', 'house_thatch_entry',
+  'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
+  'cottage_house_ranger', 'cottage_shed',
+  'windmill', 'ridge_lumberyard', 'observatory',
+  'heresy_altar', 'heresy_altar_cracked', 'summoning_ritual', 'summoning_ritual_dud',
+  'shortcut_lever',
+  'cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted',
+  'stairs',
+]);
 const ELEVATION_CONNECTOR_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'stairs',
   'ladder',
@@ -286,6 +303,8 @@ export class World {
   private pendingTiles: Array<{ x: number; y: number; key: number }> = [];
   private isInitialLoad: boolean = true;
   private mapRevision: number = 0;
+  private renderCenter: { x: number; y: number } = { x: -9999, y: -9999 };
+  private decorativeOverlayCullSkips: number = 0;
   private interactableCache: {
     centerTileX: number;
     centerTileY: number;
@@ -535,6 +554,8 @@ export class World {
       ...object.userData,
       tileX,
       tileY,
+      visualSignature: this.getTileVisualSignature(this.map.tiles[tileY][tileX], tileX, tileY),
+      isOverlayObject: isOverlay,
     };
     if (isOverlay) {
       const sortAnchorY = object.userData?.sortAnchorY ?? 0;
@@ -580,16 +601,19 @@ export class World {
     for (let y = clampedMinY; y <= clampedMaxY; y++) {
       for (let x = clampedMinX; x <= clampedMaxX; x++) {
         const key = this.tileKey(x, y);
+        const tile = this.map.tiles[y]?.[x];
+        const existing = this.activeMeshes.get(key);
+        if (!forceAttach && existing && tile && existing.userData?.visualSignature === this.getTileVisualSignature(tile, x, y)) {
+          continue;
+        }
         this.removeActiveTileObject(key);
         if (!forceAttach && !this.shouldKeepTileActive(x, y)) {
-          const tile = this.map.tiles[y]?.[x];
           if (tile && !this.pendingTiles.some((p) => p.x === x && p.y === y)) {
             this.pendingTiles.push({ x, y, key });
           }
           continue;
         }
 
-        const tile = this.map.tiles[y]?.[x];
         if (!tile) continue;
         const object = this.createTileObject(tile, x, y);
         if (!object) continue;
@@ -865,6 +889,49 @@ export class World {
 
   private isOverlayTileType(type: TileType): boolean {
     return Boolean(TILE_METADATA[type]?.isOverlay) || HEIGHT_TILE_TYPES.has(type);
+  }
+
+  private isDecorativeOverlayCullCandidate(tile: Tile): boolean {
+    if (!this.isOverlayTileType(tile.type)) return false;
+    if (HEIGHT_TILE_TYPES.has(tile.type)) return false;
+    if (tile.interactable || tile.transition) return false;
+    if (OVERLAY_CULL_EXEMPT_TILE_TYPES.has(tile.type)) return false;
+    const metadata = TILE_METADATA[tile.type];
+    if (metadata?.foundation) return false;
+    return true;
+  }
+
+  private shouldCullDecorativeOverlay(tile: Tile, tileX?: number, tileY?: number): boolean {
+    if (tileX === undefined || tileY === undefined) return false;
+    if (!this.isDecorativeOverlayCullCandidate(tile)) return false;
+    if (this.renderCenter.x === -9999 || this.renderCenter.y === -9999) return false;
+    return Math.abs(tileX - this.renderCenter.x) > DECORATIVE_OVERLAY_NEAR_RADIUS ||
+      Math.abs(tileY - this.renderCenter.y) > DECORATIVE_OVERLAY_NEAR_RADIUS;
+  }
+
+  private getTileVisualSignature(tile: Tile, tileX: number, tileY: number): string {
+    const overlayCulled = this.shouldCullDecorativeOverlay(tile, tileX, tileY);
+    const overlayTextureId = getOverlayTextureId(tile.type, tileX, tileY);
+    const baseType = this.isOverlayTileType(tile.type)
+      ? tile.baseTile ?? this.resolveBaseTileType(tileX, tileY, TILE_METADATA[tile.type]?.baseTile ?? 'grass')
+      : tile.type;
+    const transition = tile.transition
+      ? `${tile.transition.targetMap}:${tile.transition.targetX}:${tile.transition.targetY}`
+      : '';
+    return [
+      tile.type,
+      tile.walkable ? 1 : 0,
+      tile.elevation ?? 0,
+      tile.baseTile ?? '',
+      tile.stairAxis ?? '',
+      tile.interactable ? 1 : 0,
+      tile.interactionId ?? '',
+      transition,
+      tile.hidden ? 1 : 0,
+      overlayTextureId,
+      baseType,
+      overlayCulled ? 1 : 0,
+    ].join('|');
   }
 
   private resolveBaseTileType(tileX: number, tileY: number, fallback: TileType = 'dirt'): TileType {
@@ -1372,6 +1439,26 @@ export class World {
     const baseTexture = this.assetManager.getTexture(baseType);
     if (!overlayTexture || !baseTexture) return null;
 
+    if (this.shouldCullDecorativeOverlay(tile, tileX, tileY)) {
+      this.decorativeOverlayCullSkips++;
+      const group = this.overlayPool.pop() ?? new THREE.Group();
+      group.clear();
+      group.matrixAutoUpdate = false;
+      group.userData = {
+        tileType: tile.type,
+        sortAnchorY: null,
+        overlayCulled: true,
+      };
+      const baseMesh = this.createPlaneMesh(baseTexture, -0.5, `base_${baseType}`);
+      this.setRenderRole(baseMesh, 'ground');
+      baseMesh.updateMatrix();
+      group.add(baseMesh);
+      if (tileX !== undefined && tileY !== undefined) {
+        this.appendTerrainSeamFillers(group, tile, tileX, tileY);
+      }
+      return group;
+    }
+
     const group = this.overlayPool.pop() ?? new THREE.Group();
     group.clear();
     group.matrixAutoUpdate = false;
@@ -1569,6 +1656,7 @@ export class World {
   updateChunks(playerWorldX: number, playerWorldY: number) {
     const centerTileX = Math.floor(playerWorldX + this.map.width / 2);
     const centerTileY = Math.floor(playerWorldY + this.map.height / 2);
+    this.renderCenter = { x: centerTileX, y: centerTileY };
 
     const dx = centerTileX - this.lastChunkCenter.x;
     const dy = centerTileY - this.lastChunkCenter.y;
@@ -1612,6 +1700,7 @@ export class World {
     const maxDy = RENDER_RADIUS + Math.max(0, preY);
 
     // Cull distant tiles (keep anything within cull radius to prevent flicker)
+    const signatureRefreshTiles: Array<{ x: number; y: number; key: number }> = [];
     for (const [key, object] of this.activeMeshes) {
       const kx = typeof object.userData?.tileX === 'number' ? object.userData.tileX : unpackTileKeyX(key);
       const ky = typeof object.userData?.tileY === 'number' ? object.userData.tileY : unpackTileKeyY(key);
@@ -1619,18 +1708,27 @@ export class World {
         this.scene.remove(object);
         this.recycleObject(object);
         this.activeMeshes.delete(key);
+        continue;
+      }
+
+      const tile = this.map.tiles[ky]?.[kx];
+      if (tile && object.userData?.visualSignature !== this.getTileVisualSignature(tile, kx, ky)) {
+        this.scene.remove(object);
+        this.recycleObject(object);
+        this.activeMeshes.delete(key);
+        signatureRefreshTiles.push({ x: kx, y: ky, key });
       }
     }
 
     // Collect new tiles to create
-    this.pendingTiles = [];
+    this.pendingTiles = signatureRefreshTiles;
     for (const { dx: offsetX, dy: offsetY } of this.sortedRenderOffsets) {
       if (offsetX < minDx || offsetX > maxDx || offsetY < minDy || offsetY > maxDy) continue;
       const x = centerTileX + offsetX;
       const y = centerTileY + offsetY;
       if (x < 0 || y < 0 || x >= this.map.width || y >= this.map.height) continue;
       const key = this.tileKey(x, y);
-      if (!this.activeMeshes.has(key)) {
+      if (!this.activeMeshes.has(key) && !this.pendingTiles.some((p) => p.key === key)) {
         this.pendingTiles.push({ x, y, key });
       }
     }
@@ -2243,10 +2341,30 @@ export class World {
     return this.mapRevision;
   }
 
-  getPerformanceStats(): { activeObjects: number; pendingTiles: number; mapRevision: number } {
+  getPerformanceStats(): {
+    activeObjects: number;
+    activeOverlayObjects: number;
+    activeDecorativeOverlayCulls: number;
+    decorativeOverlayCullSkips: number;
+    pendingTiles: number;
+    meshPoolSize: number;
+    groupPoolSize: number;
+    mapRevision: number;
+  } {
+    let activeOverlayObjects = 0;
+    let activeDecorativeOverlayCulls = 0;
+    for (const object of this.activeMeshes.values()) {
+      if (object.userData?.isOverlayObject) activeOverlayObjects++;
+      if (object.userData?.overlayCulled) activeDecorativeOverlayCulls++;
+    }
     return {
       activeObjects: this.activeMeshes.size,
+      activeOverlayObjects,
+      activeDecorativeOverlayCulls,
+      decorativeOverlayCullSkips: this.decorativeOverlayCullSkips,
       pendingTiles: this.pendingTiles.length,
+      meshPoolSize: this.meshPool.length,
+      groupPoolSize: this.overlayPool.length,
       mapRevision: this.mapRevision,
     };
   }

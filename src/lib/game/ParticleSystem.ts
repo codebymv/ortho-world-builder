@@ -22,6 +22,11 @@ export class ParticleSystem {
   private readonly bucketCounts = new Uint16Array(PARTICLE_ALPHA_BUCKETS.length);
   /** Count of live particles. Lets the per-frame update bail before iterating an idle pool. */
   private activeCount: number = 0;
+  private qualityScale: number = 1;
+  private frameBudget: number = 90;
+  private remainingFrameBudget: number = 90;
+  private emittedThisFrame: number = 0;
+  private droppedThisFrame: number = 0;
   /** Set when any mesh was non-empty last frame so we can clear instance counts once. */
   private meshesDirty: boolean = false;
 
@@ -108,6 +113,18 @@ export class ParticleSystem {
     this.emitAt(position.x, position.y, position.z, count, color, lifetime, speed, spread);
   }
 
+  setQualityScale(scale: number): void {
+    this.qualityScale = Math.max(0.25, Math.min(1, scale));
+  }
+
+  beginFrameBudget(scale: number = this.qualityScale): void {
+    this.setQualityScale(scale);
+    this.frameBudget = Math.max(24, Math.floor(90 * this.qualityScale));
+    this.remainingFrameBudget = this.frameBudget;
+    this.emittedThisFrame = 0;
+    this.droppedThisFrame = 0;
+  }
+
   /**
    * Numeric-args variant of {@link emit} for hot-path callers — avoids the
    * `new THREE.Vector3(...)` allocation that combat/AI loops were paying on
@@ -121,11 +138,19 @@ export class ParticleSystem {
     color: number,
     lifetime: number = 1,
     speed: number = 2,
-    spread: number = 1
+    spread: number = 1,
+    options?: { important?: boolean },
   ) {
+    const targetCount = count <= 0 ? 0 : Math.max(1, Math.floor(count * this.qualityScale));
+    const important = options?.important !== false;
+    const budgetedCount = Math.min(targetCount, this.remainingFrameBudget);
+    const allowedCount = budgetedCount > 0 ? budgetedCount : (important && targetCount > 0 ? 1 : 0);
+    if (allowedCount < targetCount) {
+      this.droppedThisFrame += targetCount - allowedCount;
+    }
     let emitted = 0;
     for (const particle of this.particles) {
-      if (!particle.active && emitted < count) {
+      if (!particle.active && emitted < allowedCount) {
         particle.active = true;
         particle.lifetime = 0;
         particle.maxLifetime = lifetime;
@@ -142,6 +167,11 @@ export class ParticleSystem {
         emitted++;
         this.activeCount++;
       }
+    }
+    this.emittedThisFrame += emitted;
+    this.remainingFrameBudget = Math.max(0, this.remainingFrameBudget - emitted);
+    if (emitted < allowedCount) {
+      this.droppedThisFrame += allowedCount - emitted;
     }
   }
 
@@ -228,10 +258,21 @@ export class ParticleSystem {
     this.meshesDirty = true;
   }
 
-  getPerformanceStats(): { activeParticles: number; poolSize: number } {
+  getPerformanceStats(): {
+    activeParticles: number;
+    poolSize: number;
+    qualityScale: number;
+    frameBudget: number;
+    emittedThisFrame: number;
+    droppedThisFrame: number;
+  } {
     return {
       activeParticles: this.activeCount,
       poolSize: this.poolSize,
+      qualityScale: this.qualityScale,
+      frameBudget: this.frameBudget,
+      emittedThisFrame: this.emittedThisFrame,
+      droppedThisFrame: this.droppedThisFrame,
     };
   }
 

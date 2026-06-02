@@ -211,7 +211,7 @@ export function createKeyboardInputController({
       return;
     }
 
-    if (e.key.toLowerCase() === 'v' && !e.repeat) {
+    if (import.meta.env.DEV && e.key.toLowerCase() === 'v' && !e.repeat) {
       const nextDebug = !getTransitionDebug();
       setTransitionDebug(nextDebug);
       setTransitionDebugEnabled(nextDebug);

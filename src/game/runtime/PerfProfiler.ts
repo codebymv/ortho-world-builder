@@ -37,19 +37,38 @@ interface FrameSnapshot {
 export interface PerfStatsInput {
   renderer?: THREE.WebGLRenderer;
   world?: {
-    getPerformanceStats?: () => { activeObjects: number; pendingTiles: number; mapRevision: number };
+    getPerformanceStats?: () => {
+      activeObjects: number;
+      activeOverlayObjects?: number;
+      activeDecorativeOverlayCulls?: number;
+      decorativeOverlayCullSkips?: number;
+      pendingTiles: number;
+      meshPoolSize?: number;
+      groupPoolSize?: number;
+      mapRevision: number;
+    };
   };
   combatSystem?: {
     getPerformanceStats?: () => { liveEnemies: number; totalEnemies: number; projectiles: number; hazards: number };
   };
   particleSystem?: {
-    getPerformanceStats?: () => { activeParticles: number; poolSize: number };
+    getPerformanceStats?: () => {
+      activeParticles: number;
+      poolSize: number;
+      qualityScale?: number;
+      frameBudget?: number;
+      emittedThisFrame?: number;
+      droppedThisFrame?: number;
+    };
   };
   weatherSystem?: {
     getPerformanceStats?: () => { renderedParticles: number; activeWeather: string; qualityScale: number };
   };
   biomeAmbience?: {
     getPerformanceStats?: () => { activeParticles: number; poolSize: number; qualityScale: number };
+  };
+  worldItemRenderer?: {
+    getPerformanceStats?: () => { activeVisuals: number; visibleVisuals: number; cachedVisibleItems: number };
   };
   worldItemCount?: number;
 }
@@ -71,7 +90,12 @@ export interface PerfSnapshot {
   };
   world: {
     activeObjects: number;
+    activeOverlayObjects: number;
+    activeDecorativeOverlayCulls: number;
+    decorativeOverlayCullSkips: number;
     pendingTiles: number;
+    meshPoolSize: number;
+    groupPoolSize: number;
     mapRevision: number;
   };
   entities: {
@@ -80,9 +104,15 @@ export interface PerfSnapshot {
     projectiles: number;
     hazards: number;
     particles: number;
+    particleBudget: number;
+    particleEmitted: number;
+    particleDropped: number;
+    particleQualityScale: number;
     weatherParticles: number;
     ambientParticles: number;
     worldItems: number;
+    worldItemVisuals: number;
+    worldItemVisible: number;
   };
 }
 
@@ -210,6 +240,7 @@ export class PerfProfiler {
     const particles = this.latestStats.particleSystem?.getPerformanceStats?.();
     const weather = this.latestStats.weatherSystem?.getPerformanceStats?.();
     const ambience = this.latestStats.biomeAmbience?.getPerformanceStats?.();
+    const worldItems = this.latestStats.worldItemRenderer?.getPerformanceStats?.();
     const phases: Partial<Record<PerfPhase, PhaseSnapshot>> = {};
     for (const [phase, samples] of this.phaseSamples) {
       phases[phase] = summarizePhase(samples);
@@ -232,7 +263,12 @@ export class PerfProfiler {
       },
       world: {
         activeObjects: world?.activeObjects ?? 0,
+        activeOverlayObjects: world?.activeOverlayObjects ?? 0,
+        activeDecorativeOverlayCulls: world?.activeDecorativeOverlayCulls ?? 0,
+        decorativeOverlayCullSkips: world?.decorativeOverlayCullSkips ?? 0,
         pendingTiles: world?.pendingTiles ?? 0,
+        meshPoolSize: world?.meshPoolSize ?? 0,
+        groupPoolSize: world?.groupPoolSize ?? 0,
         mapRevision: world?.mapRevision ?? 0,
       },
       entities: {
@@ -241,9 +277,15 @@ export class PerfProfiler {
         projectiles: combat?.projectiles ?? 0,
         hazards: combat?.hazards ?? 0,
         particles: particles?.activeParticles ?? 0,
+        particleBudget: particles?.frameBudget ?? 0,
+        particleEmitted: particles?.emittedThisFrame ?? 0,
+        particleDropped: particles?.droppedThisFrame ?? 0,
+        particleQualityScale: particles?.qualityScale ?? 1,
         weatherParticles: weather?.renderedParticles ?? 0,
         ambientParticles: ambience?.activeParticles ?? 0,
         worldItems: this.latestStats.worldItemCount ?? 0,
+        worldItemVisuals: worldItems?.activeVisuals ?? 0,
+        worldItemVisible: worldItems?.visibleVisuals ?? 0,
       },
     };
   }

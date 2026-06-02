@@ -40,12 +40,19 @@ export function PerfOverlay({ snapshot }: PerfOverlayProps) {
         <div>cap {snapshot.adaptivePixelRatioCap.toFixed(2)}x</div>
         <div>world {number(snapshot.world.activeObjects)}</div>
         <div>pending {number(snapshot.world.pendingTiles)}</div>
+        <div>overlays {number(snapshot.world.activeOverlayObjects)}</div>
+        <div>culled {number(snapshot.world.activeDecorativeOverlayCulls)}</div>
+        <div>mesh pool {number(snapshot.world.meshPoolSize)}</div>
+        <div>grp pool {number(snapshot.world.groupPoolSize)}</div>
         <div>enemies {snapshot.entities.liveEnemies}/{snapshot.entities.totalEnemies}</div>
         <div>proj {snapshot.entities.projectiles + snapshot.entities.hazards}</div>
         <div>particles {snapshot.entities.particles}</div>
+        <div>p budget {snapshot.entities.particleEmitted}/{snapshot.entities.particleBudget}</div>
+        <div>p drop {number(snapshot.entities.particleDropped)}</div>
+        <div>p scale {snapshot.entities.particleQualityScale.toFixed(2)}</div>
         <div>weather {snapshot.entities.weatherParticles}</div>
         <div>ambient {snapshot.entities.ambientParticles}</div>
-        <div>items {snapshot.entities.worldItems}</div>
+        <div>items {snapshot.entities.worldItemVisible}/{snapshot.entities.worldItemVisuals}/{snapshot.entities.worldItems}</div>
       </div>
       <div className="mt-2 border-t border-[#3B5B72]/70 pt-1">
         {phaseEntries.map(([name, phase]) => (

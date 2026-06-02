@@ -287,23 +287,25 @@ export function createRuntimeSfx({
     playFallbackDefeatSound: deathSfx.play,
   });
 
-  const testAudio = () => {
-    console.log('Testing audio...');
-    if (walkFootstepSfx.pool.length > 0) {
-      const testSfx = walkFootstepSfx.pool[0];
-      console.log('Test audio ready state:', testSfx.readyState);
-      console.log('Test audio src:', testSfx.src);
-      testSfx.play().then(() => {
-        console.log('Test audio played successfully');
-      }).catch(err => {
-        console.error('Test audio failed:', err);
-      });
-    } else {
-      console.error('No audio in pool');
-    }
-  };
+  if (import.meta.env.DEV) {
+    const testAudio = () => {
+      console.log('Testing audio...');
+      if (walkFootstepSfx.pool.length > 0) {
+        const testSfx = walkFootstepSfx.pool[0];
+        console.log('Test audio ready state:', testSfx.readyState);
+        console.log('Test audio src:', testSfx.src);
+        testSfx.play().then(() => {
+          console.log('Test audio played successfully');
+        }).catch(err => {
+          console.error('Test audio failed:', err);
+        });
+      } else {
+        console.error('No audio in pool');
+      }
+    };
 
-  (window as Window & { testAudio?: () => void }).testAudio = testAudio;
+    (window as Window & { testAudio?: () => void }).testAudio = testAudio;
+  }
 
   return {
     enemyAudio,

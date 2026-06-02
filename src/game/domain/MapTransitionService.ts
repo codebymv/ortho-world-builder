@@ -95,7 +95,9 @@ export function createMapTransitionService(context: TransitionContext) {
 
   const transitionTo = (targetMap: string, targetX: number, targetY: number): void => {
     void (async (): Promise<MapTransitionResult> => {
-      console.log(`[MapTransition] Starting transition to ${targetMap} at (${targetX}, ${targetY})`);
+      if (import.meta.env.DEV) {
+        console.log(`[MapTransition] Starting transition to ${targetMap} at (${targetX}, ${targetY})`);
+      }
       const sourceMap = context.state.currentMap;
 
       if (!context.isPortalDestinationUnlocked(targetMap)) {
@@ -109,11 +111,15 @@ export function createMapTransitionService(context: TransitionContext) {
 
       const newMap = await context.loadMap(targetMap);
       if (!newMap) {
-        console.log(`[MapTransition] ERROR: Map ${targetMap} not found!`);
+        if (import.meta.env.DEV) {
+          console.log(`[MapTransition] ERROR: Map ${targetMap} not found!`);
+        }
         return { ok: false, reason: 'missing_map' };
       }
 
-      console.log(`[MapTransition] Map loaded: ${newMap.name}, size: ${newMap.width}x${newMap.height}`);
+      if (import.meta.env.DEV) {
+        console.log(`[MapTransition] Map loaded: ${newMap.name}, size: ${newMap.width}x${newMap.height}`);
+      }
 
       context.showTransitionOverlay(newMap.name, newMap.subtitle);
 

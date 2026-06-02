@@ -114,6 +114,19 @@ describe('Whispering Woods elevation seam audit', () => {
     expect(canCrossSpinePathElevation(el0, el1)).toBe(true);
   });
 
+  it('keeps world (118,-17) through (122,-13) as a clean cliff block', () => {
+    const map = generateMap(forestDef);
+    for (let ty = 133; ty <= 137; ty++) {
+      for (let tx = 268; tx <= 272; tx++) {
+        expect(map.tiles[ty][tx]).toMatchObject({
+          type: 'cliff',
+          walkable: false,
+          elevation: 1,
+        });
+      }
+    }
+  });
+
   it('world (59,-73) north-fort south approach allows N-S crossing', () => {
     const map = generateMap(forestDef);
     const south = map.tiles[77][209];
@@ -419,5 +432,20 @@ describe('known fixed seams', () => {
     const map = generateMap(forestDef);
     expect(map.tiles[177][239].spinePath).toBe(true);
     expect(map.tiles[177][240].spinePath).toBe(true);
+  });
+});
+
+describe('forest cathedral interior collision', () => {
+  it('keeps a central aisle walkable while pew rows block side movement', () => {
+    const map = generateMap(forestDef);
+
+    for (const tx of [185, 186]) {
+      expect(map.tiles[134][tx].walkable).toBe(true);
+      expect(map.tiles[145][tx].walkable).toBe(true);
+    }
+
+    for (const tx of [183, 184, 187, 188]) {
+      expect(map.tiles[134][tx]).toMatchObject({ type: 'wooden_path', walkable: false });
+    }
   });
 });

@@ -80,11 +80,15 @@ export function useGameMusic({
   const musicDirector = musicDirectorRef.current;
 
   switchMusicTrackRef.current = (mapId: string) => {
-    console.log(`[Music] Switching to: ${mapId}`);
     const track = resolveMusicTrack(mapId);
-    console.log(`[Music] Track: ${track}`);
+    if (import.meta.env.DEV) {
+      console.log(`[Music] Switching to: ${mapId}`);
+      console.log(`[Music] Track: ${track}`);
+    }
     if (currentTrackRef.current === track) {
-      console.log('[Music] Same track, skipping');
+      if (import.meta.env.DEV) {
+        console.log('[Music] Same track, skipping');
+      }
       return;
     }
     musicDirector.switchTrack(mapId);

@@ -7,6 +7,8 @@ export const MAP_BIOMES: Record<string, string> = {
   guilrhym: 'city',
 };
 
+// Ship-readiness note: portal routes stay open until design review decides
+// whether to add real locks or remove locked-route messaging.
 export function isPortalDestinationUnlocked(_state: GameState, _targetMap: string): boolean {
   return true;
 }

@@ -39,6 +39,7 @@ const WATER_SLIME_SURFACE_DURATION = 0.45;
 const ENEMY_STUCK_FRAME_LIMIT = 6;
 const ENEMY_PATH_RECOVERY_DURATION = 0.85;
 const ENEMY_PATH_RECOVERY_BLEND = 0.28;
+const ENEMY_PATH_HARD_STUCK_FRAMES = ENEMY_STUCK_FRAME_LIMIT * 2;
 const BACKSTAB_FACING_DOT = 0.5;
 
 type EnemyMovePredicate = (fromX: number, fromY: number, toX: number, toY: number, r: number) => boolean;
@@ -250,6 +251,28 @@ function tryEnemyChaseMove(
 
   const preferredSide = enemy.pathRecoverySide || (enemy.visualSeed < 0.5 ? -1 : 1);
   const sideOrder: Array<-1 | 1> = [preferredSide, preferredSide === 1 ? -1 : 1];
+  const distanceOrder = enemy.pathRecoveryTimer > 0
+    ? [moveDistance, moveDistance * 0.62, moveDistance * 0.34]
+    : [moveDistance, moveDistance * 0.62];
+  const tryRecoveryVector = (rvx: number, rvy: number): EnemyChaseMoveStep | null => {
+    const normalized = normalizeMoveVector(rvx, rvy);
+    if (normalized.x === 0 && normalized.y === 0) return null;
+    for (const distance of distanceOrder) {
+      const step = tryEnemyMoveVector(
+        world,
+        enemy.position.x,
+        enemy.position.y,
+        normalized.x,
+        normalized.y,
+        distance,
+        r,
+        true,
+        canMove,
+      );
+      if (step.moved) return step;
+    }
+    return null;
+  };
 
   for (const side of sideOrder) {
     const sideVx = -vy * side;
@@ -258,10 +281,24 @@ function tryEnemyChaseMove(
     // enemy a diagonal slide along the wall that still drifts toward the
     // player, instead of pure perpendicular movement.
     const blended = normalizeMoveVector(vx * ENEMY_PATH_RECOVERY_BLEND + sideVx, vy * ENEMY_PATH_RECOVERY_BLEND + sideVy);
-    const blendedStep = tryEnemyMoveVector(world, enemy.position.x, enemy.position.y, blended.x, blended.y, moveDistance, r, true, canMove);
-    if (blendedStep.moved) return blendedStep;
-    const pureStep = tryEnemyMoveVector(world, enemy.position.x, enemy.position.y, sideVx, sideVy, moveDistance, r, true, canMove);
-    if (pureStep.moved) return pureStep;
+    const blendedStep = tryRecoveryVector(blended.x, blended.y);
+    if (blendedStep) return blendedStep;
+    const pureStep = tryRecoveryVector(sideVx, sideVy);
+    if (pureStep) return pureStep;
+
+    if (enemy.pathRecoveryTimer > 0 || enemy.stuckFrames >= ENEMY_STUCK_FRAME_LIMIT) {
+      const wideArcStep = tryRecoveryVector(vx * -0.35 + sideVx, vy * -0.35 + sideVy);
+      if (wideArcStep) return wideArcStep;
+    }
+  }
+
+  if (enemy.stuckFrames >= ENEMY_STUCK_FRAME_LIMIT) {
+    for (const side of sideOrder) {
+      const sideVx = -vy * side;
+      const sideVy = vx * side;
+      const backstep = tryRecoveryVector(-vx * 0.65 + sideVx * 0.75, -vy * 0.65 + sideVy * 0.75);
+      if (backstep) return backstep;
+    }
   }
 
   return { x: enemy.position.x, y: enemy.position.y, moved: false, vx: 0, vy: 0, usedRecovery: false };
@@ -1202,7 +1239,10 @@ export class CombatSystem {
                 updateMovementVisuals(enemy, step.vx, step.vy, true, sprintMult > 1 ? 16 : 10);
               } else {
                 enemy.stuckFrames++;
-                if (enemy.stuckFrames >= ENEMY_STUCK_FRAME_LIMIT) {
+                if (enemy.stuckFrames === ENEMY_STUCK_FRAME_LIMIT) {
+                  enemy.pathRecoverySide = enemy.pathRecoverySide === 1 ? -1 : 1;
+                  enemy.pathRecoveryTimer = Math.max(enemy.pathRecoveryTimer, ENEMY_PATH_RECOVERY_DURATION);
+                } else if (enemy.stuckFrames >= ENEMY_PATH_HARD_STUCK_FRAMES) {
                   const wasRecoveringPath = enemy.pathRecoveryTimer > 0;
                   enemy.stuckFrames = 0;
                   enemy.pathRecoverySide = enemy.pathRecoverySide === 1 ? -1 : 1;

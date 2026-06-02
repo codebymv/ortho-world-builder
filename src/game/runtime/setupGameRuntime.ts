@@ -345,7 +345,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       }
     };
 
-    if (savedData) {
+    if (import.meta.env.DEV && savedData) {
       console.log('[SaveManager] Loaded save from', new Date(savedData.timestamp).toLocaleString());
     }
     

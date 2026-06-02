@@ -1264,6 +1264,9 @@ function placeWall(tiles: Tile[][], f: MapFeature, baseTerrain?: string) {
 function placeRuinsFeature(tiles: Tile[][], f: MapFeature) {
   const halfW = Math.floor(f.width / 2);
   const halfH = Math.floor(f.height / 2);
+  const cx = f.x + halfW;
+  const cy = f.y + halfH;
+  const maxDist = Math.max(halfW, halfH) || 1;
 
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
@@ -1271,6 +1274,8 @@ function placeRuinsFeature(tiles: Tile[][], f: MapFeature) {
       const ty = f.y + dy;
       if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
 
+      const dist = Math.abs(dx - halfW) + Math.abs(dy - halfH);
+      const hash = (dx * 17 + dy * 31 + f.x * 7 + f.y * 11) % 13;
       const isNSWall = dy === 0 || dy === f.height - 1;
       const isEWWall = dx === 0 || dx === f.width - 1;
       const isCorner = isNSWall && isEWWall;
@@ -1284,38 +1289,47 @@ function placeRuinsFeature(tiles: Tile[][], f: MapFeature) {
         if (isNSGap || isEWGap) {
           // Entrance floor matches interior ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â the brown continues through the wall opening
           // so the gap is immediately readable as "you can walk through here"
-          tiles[ty][tx] = createTile('ruins_floor', true);
+          tiles[ty][tx] = createTile((dx + dy) % 3 === 0 ? 'cobblestone_dark' : 'ruins_floor', true);
         } else {
           // Scatter mossy_stone patches ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ages/weathers the wall visually
-          const isMossy = (dx * 7 + dy * 3) % 5 === 0;
-          tiles[ty][tx] = createTile(isMossy ? 'mossy_stone' : 'stone', false);
+          const broken = hash < 4 && !isCorner;
+          tiles[ty][tx] = createTile(broken ? 'rubble' : (hash < 8 ? 'mossy_stone' : 'stone'), false);
         }
       } else {
         // Interior ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ruins_floor reads clearly as ancient flagstone vs the stone walls
-        tiles[ty][tx] = createTile('ruins_floor', true);
+        const isAisle = Math.abs(dx - halfW) <= 1 || Math.abs(dy - halfH) <= 1;
+        const outerWear = dist > maxDist * 0.95 && hash < 4;
+        const floorType: TileType = outerWear
+          ? 'mossy_stone'
+          : isAisle || hash > 3
+            ? 'ruins_floor'
+            : 'cobblestone_dark';
+        tiles[ty][tx] = createTile(floorType, true);
       }
     }
   }
 
   // Rock gateposts one tile outside each entrance ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â flanking pillars that frame the opening
   // and draw the eye toward it from the surrounding terrain.
-  const set = (tx: number, ty: number) => {
+  const set = (tx: number, ty: number, type: TileType, walkable: boolean) => {
     if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-      tiles[ty][tx] = createTile('rock', false);
+      const existing = tiles[ty][tx];
+      if (existing?.transition || existing?.interactable) return;
+      tiles[ty][tx] = createTile(type, walkable, { elevation: existing?.elevation ?? 0 });
     }
   };
   // North entrance gateposts (outside north wall)
-  set(f.x + halfW - 2, f.y - 1);
-  set(f.x + halfW + 1, f.y - 1);
+  set(f.x + halfW - 2, f.y - 1, 'pillar', false);
+  set(f.x + halfW + 1, f.y - 1, 'rubble', true);
   // South entrance gateposts (outside south wall)
-  set(f.x + halfW - 2, f.y + f.height);
-  set(f.x + halfW + 1, f.y + f.height);
+  set(f.x + halfW - 2, f.y + f.height, 'rubble', true);
+  set(f.x + halfW + 1, f.y + f.height, 'pillar', false);
   // West entrance gateposts (outside west wall)
-  set(f.x - 1, f.y + halfH - 2);
-  set(f.x - 1, f.y + halfH + 1);
+  set(f.x - 1, f.y + halfH - 2, 'mossy_stone', false);
+  set(f.x - 1, f.y + halfH + 1, 'rubble', true);
   // East entrance gateposts (outside east wall)
-  set(f.x + f.width, f.y + halfH - 2);
-  set(f.x + f.width, f.y + halfH + 1);
+  set(f.x + f.width, f.y + halfH - 2, 'rubble', true);
+  set(f.x + f.width, f.y + halfH + 1, 'mossy_stone', false);
 
   // Rubble piles just inside the corners ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â gives the space a lived-in, collapsed feel
   const rubble: [number, number][] = [
@@ -1326,8 +1340,41 @@ function placeRuinsFeature(tiles: Tile[][], f: MapFeature) {
   ];
   for (const [rx, ry] of rubble) {
     if (ry >= 0 && ry < tiles.length && rx >= 0 && rx < tiles[0].length) {
-      tiles[ry][rx] = createTile('rock', false);
+      tiles[ry][rx] = createTile((rx + ry) % 2 === 0 ? 'rubble' : 'mossy_stone', (rx + ry) % 2 === 0);
     }
+  }
+
+  set(cx, cy, 'campfire_remains', false);
+  if (f.width >= 10 && f.height >= 8) {
+    set(cx - 1, cy, 'cobblestone_dark', true);
+    set(cx + 1, cy, 'cobblestone_dark', true);
+    set(cx, cy - 1, 'cobblestone_dark', true);
+    set(cx, cy + 1, 'cobblestone_dark', true);
+  }
+
+  const columnPairs: Array<[number, number]> = [
+    [f.x + 2, f.y + 2],
+    [f.x + f.width - 3, f.y + 2],
+    [f.x + 2, f.y + f.height - 3],
+    [f.x + f.width - 3, f.y + f.height - 3],
+  ];
+  for (const [px, py] of columnPairs) {
+    if (px > f.x && px < f.x + f.width - 1 && py > f.y && py < f.y + f.height - 1) {
+      set(px, py, (px + py) % 3 === 0 ? 'rubble' : 'pillar', false);
+    }
+  }
+
+  if (f.width >= 12) {
+    set(cx - 3, cy - 1, 'rubble', true);
+    set(cx + 3, cy + 1, 'rubble', true);
+    set(cx - 4, cy + 2, 'bones_pile', true);
+    set(cx + 4, cy - 2, 'chain', true);
+  }
+  if (f.height >= 10) {
+    set(cx - 2, cy - 3, 'ritual_candle_knocked', true);
+    set(cx + 2, cy - 3, 'ritual_candle', true);
+    set(cx - 2, cy + 3, 'ritual_candle', true);
+    set(cx + 2, cy + 3, 'ritual_candle_knocked', true);
   }
 }
 
@@ -2218,6 +2265,9 @@ function placeEnchantedGrove(tiles: Tile[][], f: MapFeature) {
 
 function placeChurch(tiles: Tile[][], f: MapFeature) {
   if (isBuildingNearby(tiles, f.x, f.y, f.width, f.height)) return;
+  const aisleCenter = Math.floor(f.width / 2);
+  const aisleHalfWidth = f.width >= 10 ? 1 : 0;
+  const isAisle = (dx: number) => dx >= aisleCenter - aisleHalfWidth && dx <= aisleCenter;
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
@@ -2225,9 +2275,8 @@ function placeChurch(tiles: Tile[][], f: MapFeature) {
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         // Stone walls
         if (dx === 0 || dx === f.width - 1 || dy === 0 || dy === f.height - 1) {
-          const cx = Math.floor(f.width / 2);
-          const isSouthGate = dx === cx && dy === f.height - 1;
-          const isNorthExit = dx === cx && dy === 0;
+          const isSouthGate = isAisle(dx) && dy === f.height - 1;
+          const isNorthExit = isAisle(dx) && dy === 0;
           if (isSouthGate || isNorthExit) {
             tiles[ty][tx] = createTile('dirt', true);
           } else {
@@ -2242,8 +2291,8 @@ function placeChurch(tiles: Tile[][], f: MapFeature) {
         }
         // Pews (cobblestone rows)
         else if (dy >= 3 && dy <= f.height - 3 && (dx >= 3 && dx <= f.width - 4)) {
-          if (dy % 2 === 0) {
-            tiles[ty][tx] = createTile('wooden_path', true);
+          if (dy % 2 === 0 && !isAisle(dx)) {
+            tiles[ty][tx] = createTile('wooden_path', false);
           } else {
             tiles[ty][tx] = createTile('cobblestone', true);
           }
@@ -3597,6 +3646,17 @@ function enforceCliffCorridorTraditionalApproach(tiles: Tile[][], def: MapDefini
           elevation: ty === gateY ? 1 : 0,
         });
       }
+    }
+  }
+
+  // Clean cliff block south-east of the corridor ladder overlook:
+  // world x=118..122, y=-17..-13 => tile x=268..272, y=133..137.
+  for (let ty = 133; ty <= 137; ty++) {
+    for (let tx = 268; tx <= 272; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      tiles[ty][tx] = createTile('cliff', false, { elevation: 1 });
     }
   }
 }
