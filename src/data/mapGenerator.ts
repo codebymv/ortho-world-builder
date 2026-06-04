@@ -2,6 +2,7 @@ import { WorldMap, Tile, TileType } from '@/lib/game/World';
 import { TILE_METADATA } from './tiles';
 import { getClosedChestTileType, isChestTileType } from './specialChests';
 import { enforceBonfireSanctuaryTiles } from '@/game/runtime/bonfireCombatGuard';
+import { applyRevenantRitualDecor } from '@/game/runtime/revenantRitualDecor';
 
 
 // Simple 2D noise
@@ -335,23 +336,12 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
           break;
 
         case 'city':
-          if (n1 > 0.75 && n2 > 0.5) {
-            tile = createTile('cobblestone_dark', true);
-          } else if (n1 > 0.6 && n2 < 0.2) {
-            tile = createTile('stone', true);
-          } else if (n2 < 0.06) {
-            tile = createTile('bones', true);
-          } else if (n1 < 0.3 && n2 > 0.6) {
-            tile = createTile('cobblestone_dark', true);
-          } else if (n1 > 0.5 && n3 > 0.7) {
-            tile = createTile('brick', true);
-          } else if (n3 > 0.92 && n1 < 0.25) {
-            tile = createTile('sewer_grate', true);
-          } else if (n3 > 0.85 && n1 < 0.3) {
-            tile = createTile('tall_grass', true);
-          } else {
-            tile = createTile('cobblestone', true);
-          }
+          // Deterministic, uniform ground. City maps are authored at 100% intent:
+          // ALL texture variation (cobblestone_dark accents, brick foundations,
+          // bones, sewer grates, etc.) is placed explicitly via features/props, so
+          // the base layer carries no procedural noise — never a "is that meant to
+          // be here?" tile. Variation is reintroduced only by authored content.
+          tile = createTile('cobblestone', true);
           break;
 
         case 'dungeon':
@@ -652,7 +642,9 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean, 
       )
     : baseVariant;
   
-  const yardFill: TileType = isCity ? 'brick' : 'grass';
+  // City building aprons blend into the cobblestone base (no orange brick halos).
+  // City maps are authored at 100% intent — brick is placed explicitly where wanted.
+  const yardFill: TileType = isCity ? 'cobblestone' : 'grass';
   // First, clear a yard around the building (3-tile border)
   const yardPad = 4;
   for (let dy = -yardPad; dy < f.height + yardPad; dy++) {
@@ -1226,37 +1218,17 @@ function placeWall(tiles: Tile[][], f: MapFeature, baseTerrain?: string) {
     return;
   }
 
-  const blockW = 8;
-  const blockH = 6;
-  const fills: TileType[] = ['roof_tile', 'brick', 'timber_wall', 'stone', 'cobblestone_dark'];
-
+  // City walls default to UNIFORM stone (no procedural multi-material/chimney
+  // texturing). City maps are authored at 100% intent: any masonry variation is
+  // placed explicitly via features, so a plain stone wall is exactly that — no
+  // "is that meant to be here?" patches. (The old block-texturer was built for
+  // the legacy giant-wall-block layout; real buildings now use type:'building'.)
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
       if (ty >= tiles.length || tx >= tiles[0].length || ty < 0 || tx < 0) continue;
-
-      const bx = Math.floor(dx / blockW);
-      const by = Math.floor(dy / blockH);
-      const seed = ((bx * 31 + by * 17 + f.x * 7 + f.y * 13) >>> 0) % 127;
-      const blockFill = fills[seed % fills.length];
-
-      const isHBorder = dx % blockW === 0 && dx > 0;
-      const isVBorder = dy % blockH === 0 && dy > 0;
-
-      if (isHBorder || isVBorder) {
-        tiles[ty][tx] = createTile('timber_wall', false);
-      } else {
-        const innerDx = dx % blockW;
-        const innerDy = dy % blockH;
-        if (blockFill === 'roof_tile' && innerDx === 4 && innerDy === 3 && seed % 3 !== 0) {
-          tiles[ty][tx] = createTile('chimney', false);
-        } else if (innerDx === 1 && innerDy === 1 && seed % 5 === 0) {
-          tiles[ty][tx] = createTile('wall_torch', false);
-        } else {
-          tiles[ty][tx] = createTile(blockFill, false);
-        }
-      }
+      tiles[ty][tx] = createTile('stone', false);
     }
   }
 }
@@ -2638,6 +2610,21 @@ function restampAuthoredRitualGlyphs(tiles: Tile[][], def: MapDefinition) {
     const el = tiles[prop.y][prop.x]?.elevation ?? 0;
     tiles[prop.y][prop.x] = createTile(prop.type as TileType, prop.walkable ?? true, { elevation: el });
   }
+
+  if (def.name === 'Whispering Woods') {
+    const mapLike: WorldMap = {
+      name: def.name,
+      width: def.width,
+      height: def.height,
+      tiles,
+      spawnPoint: def.spawnPoint,
+    };
+    for (const prop of def.props ?? []) {
+      if (prop.type === 'summoning_ritual') {
+        applyRevenantRitualDecor(mapLike, prop.x, prop.y);
+      }
+    }
+  }
 }
 
 function validateAuthoredPlacements(tiles: Tile[][], def: MapDefinition) {
@@ -3586,6 +3573,60 @@ function scrubWhisperingWoodsNorthFortElevationSeam(tiles: Tile[][], def: MapDef
   }
 }
 
+function scrubWhisperingWoodsWestHollowSpineSeamArt(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  const seamArtTypes: Set<TileType> = new Set([
+    'grass',
+    'dark_grass',
+    'hollow_blight',
+    'cliff',
+    'cliff_edge',
+    'cliff_corrupted',
+    'cliff_edge_corrupted',
+  ]);
+
+  // Around world (-42,-121) through (-20,-112), the pale elevation seam is visual
+  // support for the dirt spine, not a separate wall. Keep the dirt readable, but
+  // remove collision from adjacent non-dirt seam art in this short Hollow approach strip.
+  for (let ty = 28; ty <= 41; ty++) {
+    for (let tx = 106; tx <= 148; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable || t.type === 'dirt') continue;
+      if (!seamArtTypes.has(t.type)) continue;
+      tiles[ty][tx] = createTile('hollow_blight', true, {
+        elevation: t.elevation ?? 1,
+        spinePath: true,
+        enemyBlocked: t.enemyBlocked,
+      });
+    }
+  }
+}
+
+function enforceWhisperingWoodsDeepHollowBonfireApron(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  const floorTypes: Set<TileType> = new Set(['dirt', 'hollow_blight', 'dark_grass', 'grass', 'sand']);
+  const targetElevation = 1;
+
+  for (let ty = 43; ty <= 48; ty++) {
+    for (let tx = 123; tx <= 129; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition) continue;
+
+      if (t.type === 'bonfire' || t.type === 'bonfire_unlit') {
+        tiles[ty][tx] = { ...t, walkable: true, elevation: targetElevation };
+        continue;
+      }
+
+      if (!floorTypes.has(t.type)) continue;
+      tiles[ty][tx] = { ...t, walkable: true, elevation: targetElevation, spinePath: true };
+    }
+  }
+}
+
 function enforceGreenleafUpperRidgeDetour(tiles: Tile[][], def: MapDefinition) {
   if (def.name !== 'Greenleaf Village') return;
 
@@ -3734,6 +3775,160 @@ function enforceWhisperingWoodsTallGrassGates(tiles: Tile[][], def: MapDefinitio
         if (isGround && !t.walkable) continue;
         tiles[ty][tx] = createTile('tall_grass', true, { elevation: t.elevation ?? 0 });
       }
+    }
+  }
+}
+
+function scrubWhisperingWoodsOpenLaneTallGrass(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // World (-17, 42) sits in an open Hollow lane. Keep the cliff-side grass fields,
+  // but clear the stray tall grass clump that reads like accidental obstruction.
+  for (let ty = 190; ty <= 194; ty++) {
+    for (let tx = 131; tx <= 136; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.type !== 'tall_grass' || t.transition || t.interactable) continue;
+      tiles[ty][tx] = createTile('grass', true, { elevation: t.elevation ?? 0 });
+    }
+  }
+}
+
+function scrubWhisperingWoodsPrecipiceReserveLiveTrees(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // Precipice Reserve should read as a clear, first-class threshold pocket. Strip only
+  // the live green trees near world (109,-113), leaving dead/corrupted silhouettes intact.
+  for (let ty = 35; ty <= 49; ty++) {
+    for (let tx = 253; tx <= 263; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.type !== 'tree' || t.transition || t.interactable) continue;
+      tiles[ty][tx] = createTile('hollow_blight', true, { elevation: t.elevation ?? 1 });
+    }
+  }
+}
+
+function scrubWhisperingWoodsPrecipiceWestPocketLiveTrees(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // West Precipice lip pocket around world (77,-139): props alone get overwritten by late
+  // elevation/cliff passes, so strip live trees here after all stamping is finished.
+  for (let ty = 9; ty <= 13; ty++) {
+    for (let tx = 225; tx <= 232; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.type !== 'tree' || t.transition || t.interactable) continue;
+      tiles[ty][tx] = createTile('hollow_blight', true, { elevation: t.elevation ?? 1 });
+    }
+  }
+}
+
+function scrubWhisperingWoodsPrecipiceWestRitualDeadTrees(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // Precipice summoning glyph (tile 227,12 / world 77,-138): procedural dead_tree scatter
+  // overlaps the large ritual sprite — clear only the two tiles hugging the sigil.
+  const anchorX = 227;
+  const anchorY = 12;
+  const clearRadius = 2;
+  for (let ty = anchorY - clearRadius; ty <= anchorY + clearRadius; ty++) {
+    for (let tx = anchorX - clearRadius; tx <= anchorX + clearRadius; tx++) {
+      if (tx === anchorX && ty === anchorY) continue;
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const dist = Math.max(Math.abs(tx - anchorX), Math.abs(ty - anchorY));
+      if (dist > clearRadius) continue;
+      const t = tiles[ty][tx];
+      if (t.type !== 'dead_tree' || t.transition || t.interactable) continue;
+      tiles[ty][tx] = createTile('hollow_blight', true, { elevation: t.elevation ?? 1 });
+    }
+  }
+}
+
+function enforceWhisperingWoodsPrecipiceReserveWestLip(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // World x=96 / tile x=246 is the visible west lip of the huge off-map caldera.
+  // Keep the cliff/seam art intact; only clear collision on the local walk-through segment.
+  for (let ty = 9; ty <= 36; ty++) {
+    for (let tx = 245; tx <= 246; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.transition || t.interactable) continue;
+      tiles[ty][tx] = { ...t, walkable: true, spinePath: true };
+    }
+  }
+}
+
+function enforceWhisperingWoodsPrecipiceReserveCliffBites(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // The west-lip seam has intentional walk-throughs near world y=-138 and y=-115,
+  // but the cliff face between them should remain a solid visual wall.
+  for (let ty = 19; ty <= 31; ty++) {
+    for (let tx = 244; tx <= 249; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.transition || t.interactable) continue;
+      tiles[ty][tx] = createTile(ty === 19 ? 'cliff_edge_corrupted' : 'cliff_corrupted', false, {
+        elevation: t.elevation ?? 2,
+      });
+    }
+  }
+}
+
+function scrubWhisperingWoodsPrecipiceReserveSouthSeam(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // Remove only the live trees on the Precipice Reserve vertical sightline around
+  // world x=92, y=-122..-109. Dead trees remain as Hollow silhouettes.
+  for (let ty = 28; ty <= 41; ty++) {
+    for (let tx = 239; tx <= 245; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.type !== 'tree' || t.transition || t.interactable) continue;
+      tiles[ty][tx] = createTile('hollow_blight', true, { elevation: t.elevation ?? 1 });
+    }
+  }
+
+  // World y=-112 / tile y=38: clear collision along the horizontal seam from
+  // world x=76..96 while preserving the existing seam/cliff/dead-tree art.
+  for (let ty = 37; ty <= 39; ty++) {
+    for (let tx = 226; tx <= 246; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.transition || t.interactable) continue;
+      tiles[ty][tx] = { ...t, walkable: true, spinePath: true };
+    }
+  }
+}
+
+function scrubWhisperingWoodsPrecipiceAltarDeadTrees(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // World (86,-105) / tile (236,45): open up the NE ridge heresy altar without
+  // changing the altar itself or the surrounding elevation seam art.
+  for (let ty = 41; ty <= 49; ty++) {
+    for (let tx = 231; tx <= 240; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.type !== 'dead_tree' || t.transition || t.interactable) continue;
+      tiles[ty][tx] = createTile('hollow_blight', true, { elevation: t.elevation ?? 1 });
+    }
+  }
+}
+
+function enforceWhisperingWoodsPrecipiceSpineCliffCover(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // World x=76..80, y=-110..-93 / tile x=226..230, y=40..57:
+  // cover this exposed dirt spine segment with solid cliff face.
+  for (let ty = 40; ty <= 57; ty++) {
+    for (let tx = 226; tx <= 230; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.transition || t.interactable) continue;
+      tiles[ty][tx] = createTile('cliff', false, { elevation: t.elevation ?? 2 });
     }
   }
 }
@@ -4529,12 +4724,23 @@ export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
   enforceHighlandPassageCorridor(tiles, def);
   applyAuthoredSpinePathFlags(tiles, def);
   enforceWalkableElevationSeamCrossings(tiles, def);
+  scrubWhisperingWoodsWestHollowSpineSeamArt(tiles, def);
+  enforceWhisperingWoodsDeepHollowBonfireApron(tiles, def);
 
   restampAuthoredRitualGlyphs(tiles, def);
   // Re-assert authored tall-grass gates last: tall_grass is a LAND_DECORATION + POST_CLIFF_DECOR,
   // so the cleanup/cliff scrub passes eat clearing-fill grass near cliffs (e.g. the western-fort
   // corridor's cliff at y=-26). This restores the full field over any walkable ground.
   enforceWhisperingWoodsTallGrassGates(tiles, def);
+  scrubWhisperingWoodsOpenLaneTallGrass(tiles, def);
+  scrubWhisperingWoodsPrecipiceReserveLiveTrees(tiles, def);
+  scrubWhisperingWoodsPrecipiceWestPocketLiveTrees(tiles, def);
+  scrubWhisperingWoodsPrecipiceWestRitualDeadTrees(tiles, def);
+  enforceWhisperingWoodsPrecipiceReserveWestLip(tiles, def);
+  enforceWhisperingWoodsPrecipiceReserveCliffBites(tiles, def);
+  scrubWhisperingWoodsPrecipiceReserveSouthSeam(tiles, def);
+  scrubWhisperingWoodsPrecipiceAltarDeadTrees(tiles, def);
+  enforceWhisperingWoodsPrecipiceSpineCliffCover(tiles, def);
 
   validateMapTransitions(tiles, def);
   validateAuthoredPlacements(tiles, def);

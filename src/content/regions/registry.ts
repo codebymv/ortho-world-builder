@@ -26,5 +26,6 @@ export const regionContentRegistry: RegionContentEntry[] = [
     label: 'Guilrhym',
     summary: 'A sprawling Victorian city overrun by reanimated dead and corruption, reached after the Hollow boss.',
     mapIds: ['guilrhym'],
+    interiorIds: ['interior_guilrhym_cathedral'],
   },
 ];

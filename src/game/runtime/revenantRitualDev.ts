@@ -18,6 +18,8 @@ export interface SoulsSlopDevApi {
   fixDudRituals: () => void;
   /** Teleport the player onto the dud ritual glyph (world 123, 109) and remesh it. */
   gotoDudRitual: () => void;
+  /** Dev warp: load any map at a tile coordinate (defaults to that map's spawn-ish center). */
+  gotoMap: (mapId: string, tileX?: number, tileY?: number) => void;
 }
 
 const DEV_METHOD_KEYS: (keyof SoulsSlopDevApi)[] = [
@@ -27,6 +29,7 @@ const DEV_METHOD_KEYS: (keyof SoulsSlopDevApi)[] = [
   'giveCursedSediment',
   'fixDudRituals',
   'gotoDudRitual',
+  'gotoMap',
 ];
 
 const DUD_TILE_X = RANGER_APPROACH_DUD_RITUAL.tileX;
@@ -37,6 +40,7 @@ interface RevenantRitualDevHost {
   getCombat: () => CombatSystem | null;
   getWorld: () => World | null;
   onChanged: () => void;
+  transitionTo?: (mapId: string, tileX: number, tileY: number) => void;
 }
 
 function runReset(host: RevenantRitualDevHost, target: 'west' | 'east' | 'all'): void {
@@ -135,6 +139,14 @@ export function registerRevenantRitualDevCommands(host: RevenantRitualDevHost): 
       console.log(
         `[soulsSlopDev] Teleported to dud ritual glyph at world (${DUD_TILE_X - map.width / 2},${DUD_TILE_Y - map.height / 2}). It should be under your feet now.`,
       );
+    },
+    gotoMap: (mapId: string, tileX = 150, tileY = 150) => {
+      if (!host.transitionTo) {
+        console.warn('[soulsSlopDev] gotoMap unavailable (no transition host).');
+        return;
+      }
+      host.transitionTo(mapId, tileX, tileY);
+      console.log(`[soulsSlopDev] gotoMap('${mapId}', ${tileX}, ${tileY})`);
     },
   };
 

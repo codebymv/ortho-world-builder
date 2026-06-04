@@ -463,6 +463,131 @@ export class AssetManager {
     return this.createSpriteTexture(pixels, 4, spriteId);
   }
 
+  // Guilrhym building "kit" — takes a hand-authored base facade and layers
+  // deterministic, bounded character per variant (grime streaks, boarded/broken
+  // windows, ashen corruption creeping up from the street, roof holes + chimney
+  // toggle, awnings, hanging signs, sparse vines, cracks). Same approach as the
+  // ruined forest cottage, so every placed building reads as individual.
+  createGuilrhymBuildingVariant(
+    baseSprite: readonly (readonly number[])[],
+    variant: number = 0,
+    spriteId?: string,
+  ): THREE.Texture {
+    const C = 0;
+    const TB = 0x6b4a3a, TBD = 0x533829, TBL = 0x7d5a48, TBG = 0x46362c;   // brick base/shadow/light/grime
+    const TS = 0x8a8278;                                                    // stone trim/sill/cornice
+    const TW = 0x171b22, TWG = 0x39434f, TWF = 0x241a14;                    // window glass/glow/frame
+    const TR = 0x3a3a44, TRD = 0x2a2a32, CHM = 0x4a3530;                    // slate roof / chimney
+    const TGF = 0x453f39, TSG = 0x2b3138;                                   // ground stone / shop glass
+    const SOOT = 0x2a241e, ASH1 = 0x35313a, ASH2 = 0x201d26;               // soot grime / ashen corruption
+    const MOSS = 0x55603f, VINE = 0x3f5238;                                 // muted urban green (rare)
+    const BRD = 0x5a4632, BRD2 = 0x6e5640;                                  // boarding planks
+    const AWN = [0x6e2b2b, 0x294a6e, 0x35543a, 0x6e5a2b, 0x4a2b5a];         // awning cloth options
+
+    const pixels: number[][] = baseSprite.map(row => [...row]);
+    const H = pixels.length;
+    const W = pixels[0]?.length ?? 0;
+    let seed = (Math.imul(variant + 53, 1664525) + 1013904223) >>> 0;
+    const rand = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 0xffffffff; };
+    const ri = (m: number) => Math.floor(rand() * m);
+    const pick = <T,>(a: readonly T[]): T => a[Math.min(a.length - 1, ri(a.length))];
+    const inB = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H;
+    const get = (x: number, y: number) => (inB(x, y) ? pixels[y][x] : C);
+    const set = (x: number, y: number, c: number) => { if (inB(x, y)) pixels[y][x] = c; };
+    const wall = new Set([TB, TBD, TBL, TBG, TS]);
+    const roof = new Set([TR, TRD, CHM]);
+
+    // 1) Soot streaks weeping down the brickwork.
+    const streaks = 3 + ri(4);
+    for (let i = 0; i < streaks; i++) {
+      let x = 1 + ri(W - 2);
+      const y0 = 5 + ri(8);
+      const len = 4 + ri(10);
+      for (let s = 0; s < len; s++) {
+        const y = y0 + s;
+        if (wall.has(get(x, y))) set(x, y, rand() > 0.5 ? TBG : SOOT);
+        if (rand() > 0.72) x += rand() > 0.5 ? 1 : -1;
+        x = Math.max(0, Math.min(W - 1, x));
+      }
+    }
+
+    // 2) Ashen corruption creeping up from the base (Guilrhym's blight).
+    const ashH = 3 + ri(7);
+    for (let y = H - 1; y >= H - ashH; y--) {
+      const t = (y - (H - ashH)) / ashH; // 0 at top of band -> 1 at base
+      for (let x = 0; x < W; x++) {
+        if (get(x, y) === C) continue;
+        if (rand() < 0.35 + 0.45 * (1 - t)) set(x, y, rand() > 0.5 ? ASH2 : ASH1);
+      }
+    }
+
+    // 3) Per-window: board up, shatter dark, or leave. Window glow cells are anchors.
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (get(x, y) !== TWG) continue;
+        const roll = rand();
+        if (roll > 0.72) {            // boarded
+          set(x, y, BRD); set(x - 1, y, BRD2); set(x + 1, y, rand() > 0.5 ? BRD : BRD2);
+          if (rand() > 0.5) set(x, y - 1, BRD2);
+        } else if (roll > 0.44) {     // dark / shattered
+          set(x, y, TW); if (rand() > 0.6) set(x + 1, y, TWF);
+        }
+      }
+    }
+
+    // 4) Roof hole + chimney toggle for skyline variety.
+    if (rand() > 0.55) {
+      const cx = 3 + ri(W - 6), cy = 1 + ri(2);
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        if (roof.has(get(cx + dx, cy + dy))) set(cx + dx, cy + dy, rand() > 0.5 ? TRD : SOOT);
+      }
+    }
+    if (rand() > 0.5) { // knock out the chimney on some variants
+      for (let y = 0; y < 3; y++) for (let x = 0; x < W; x++) if (get(x, y) === CHM) set(x, y, C);
+    }
+
+    // 5) Ground-floor awning (cloth band) on roughly half the variants.
+    if (rand() > 0.45) {
+      const col = pick(AWN);
+      const ay = H - 6 + ri(2);
+      const ax0 = 1 + ri(3), ax1 = W - 2 - ri(3);
+      for (let x = ax0; x <= ax1; x++) if (get(x, ay) !== C) set(x, ay, (x % 2 === 0) ? col : 0xe8e0d0);
+    }
+
+    // 6) A hanging shop sign bracket near the door.
+    if (rand() > 0.5) {
+      const sy = H - 8 + ri(2);
+      const sx = rand() > 0.5 ? 2 + ri(2) : W - 4 - ri(2);
+      set(sx, sy, 0x2a2018); set(sx, sy + 1, pick(AWN)); set(sx + 1, sy + 1, pick(AWN));
+    }
+
+    // 7) Sparse vines / moss on one flank (urban, not jungle).
+    if (rand() > 0.4) {
+      const side = rand() > 0.5 ? 1 : W - 2;
+      let x = side;
+      for (let y = 6 + ri(4); y < H - 2; y++) {
+        if (wall.has(get(x, y)) && rand() > 0.4) set(x, y, rand() > 0.5 ? VINE : MOSS);
+        if (rand() > 0.7) x += rand() > 0.5 ? 1 : -1;
+        x = Math.max(0, Math.min(W - 1, x));
+      }
+    }
+
+    // 8) Hairline cracks through the brick.
+    const cracks = 1 + ri(3);
+    for (let i = 0; i < cracks; i++) {
+      let x = 2 + ri(W - 4);
+      const y0 = 6 + ri(H - 14);
+      const len = 3 + ri(6);
+      for (let s = 0; s < len; s++) {
+        const y = y0 + s;
+        if (wall.has(get(x, y))) set(x, y, rand() > 0.4 ? TBD : SOOT);
+        if (rand() > 0.55) x += rand() > 0.5 ? 1 : -1;
+      }
+    }
+
+    return this.createSpriteTexture(pixels, 4, spriteId);
+  }
+
   // Unified pixel-art character sprite - pure fillRect, no curves
   createChibiCharacter(
     dir: 'down' | 'up' | 'left' | 'right',
@@ -4270,6 +4395,53 @@ export class AssetManager {
 
     registerColorTexture('cobblestone', 0x7A7F88, 32, 32, 'cobblestone_grid');
     registerColorTexture('cobblestone_dark', 0x5C6068, 32, 32, 'cobblestone_grid');
+    // Guilrhym district pavers — distinct palettes give each district identity with
+    // zero procedural scatter (flat patterned ground, like cobblestone).
+    registerColorTexture('cobble_grand', 0x9C968A, 32, 32, 'cobblestone_grid');        // civic / cathedral pale stone
+    registerColorTexture('cobble_market', 0x867A68, 32, 32, 'cobblestone_grid');       // warm market paving
+    registerColorTexture('cobble_residential', 0x6B6E66, 32, 32, 'cobblestone_grid');  // muted residential
+    registerColorTexture('waterlogged_cobble', 0x44525A, 32, 32, 'cobblestone_grid');  // flood-damaged wet stone
+    registerColorTexture('flood_silt', 0x53564A, 32, 32, 'noise');                     // canal silt / mud
+    registerColorTexture('ashen_cobble', 0x4A4640, 32, 32, 'noise');                   // corrupted ash paving near the cathedral
+
+    // --- Guilrhym TENEMENT kit — a tall Victorian townhouse (16x28 @ 4px), 4 storeys
+    // + mansard roof with dormers + chimney + street-level shopfront. Registered as a
+    // base plus 12 procedural variants (createGuilrhymBuildingVariant) so dense rows
+    // read as a row of INDIVIDUAL buildings, not repeated apartments.
+    {
+      const C = 0;
+      const TB = 0x6b4a3a, TBD = 0x533829, TBL = 0x7d5a48;
+      const TW = 0x171b22, TWG = 0x39434f, TWF = 0x241a14;
+      const TS = 0x8a8278;
+      const TR = 0x3a3a44, TRD = 0x2a2a32, TRL = 0x4e4e5a, CHM = 0x4a3530;
+      const TGF = 0x453f39, TSG = 0x2b3138, TDR = 0x201810;
+      const lintel = [TBD, TB, TWF, TWF, TWF, TBD, TB, TBL, TWF, TWF, TWF, TB, TBD, TB, TBD, C];
+      const win    = [TBD, TB, TW, TWG, TW, TBD, TB, TBL, TW, TWG, TW, TB, TBD, TB, TBD, C];
+      const sill   = [TBD, TB, TS, TS, TS, TBD, TB, TBL, TS, TS, TS, TB, TBD, TB, TBD, C];
+      const brick  = [TBD, TB, TB, TBL, TB, TBD, TB, TBL, TBL, TB, TB, TB, TBD, TB, TBD, C];
+      const cornice = [TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, C];
+      const shop   = [TGF, TGF, TSG, TSG, TSG, TGF, TGF, TGF, TSG, TSG, TSG, TGF, TGF, TGF, TGF, C];
+      const doorR  = [TGF, TGF, TGF, TGF, TGF, TDR, TDR, TDR, TGF, TGF, TGF, TGF, TGF, TGF, TGF, C];
+      const baseR  = [TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, C];
+      const tenementBase: number[][] = [
+        [C, C, C, C, C, C, C, C, C, C, C, C, CHM, CHM, C, C],
+        [C, C, C, TRL, TR, TR, TR, TR, TR, TR, TR, TR, CHM, CHM, C, C],
+        [C, C, TRL, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TRD, C, C],
+        [C, TRL, TR, TR, TW, TWG, TR, TR, TR, TR, TW, TWG, TR, TRD, C, C],
+        cornice,
+        lintel, win, sill, brick,
+        lintel, win, sill, brick,
+        lintel, win, sill, brick,
+        lintel, win, sill, brick,
+        cornice,
+        shop, shop, doorR, doorR, baseR, baseR,
+      ].map(r => [...r]);
+      registerSpriteTexture('tenement_facade', tenementBase, 4);
+      for (let v = 0; v < 12; v++) {
+        const id = `tenement_facade_variant_${v}`;
+        this.registerTexture(id, () => this.createGuilrhymBuildingVariant(tenementBase, v, id));
+      }
+    }
     // Worked quarry floor — pale chiselled cut-stone, gridded like blocks scored out of bedrock.
     registerColorTexture('quarry_floor', 0x9097A0, 32, 32, 'cobblestone_grid');
     // Rough quarry bedrock rim — mottled granite speckle (replaces the banded 'stone' gradient here).

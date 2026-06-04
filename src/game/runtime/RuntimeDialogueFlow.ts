@@ -16,9 +16,18 @@ interface CreateRuntimeDialogueFlowOptions {
   setCurrentDialogue: Dispatch<SetStateAction<{ node: DialogueNode; npcName: string } | null>>;
   addMarkersFromText: (text: string, currentMap: string) => void;
   playItemGrab: () => void;
+  playGoldPickup: () => void;
+  playEssencePickup: () => void;
   playGrassPull: () => void;
   playChestUnlock: () => void;
   playGateShortcut: () => void;
+  playLeverPull: () => void;
+  playGateOpenHeavy: () => void;
+  playGateLockedHeavy: () => void;
+  playDoorOpenWood: () => void;
+  playDoorCloseWood: () => void;
+  playDoorLocked: () => void;
+  playLadderClimb: () => void;
   particleSystem: {
     emitSparkles: (position: THREE.Vector3) => void;
     emitHeal: (position: THREE.Vector3) => void;
@@ -67,9 +76,18 @@ export function createRuntimeDialogueFlow({
   setCurrentDialogue,
   addMarkersFromText,
   playItemGrab,
+  playGoldPickup,
+  playEssencePickup,
   playGrassPull,
   playChestUnlock,
   playGateShortcut,
+  playLeverPull,
+  playGateOpenHeavy,
+  playGateLockedHeavy,
+  playDoorOpenWood,
+  playDoorCloseWood,
+  playDoorLocked,
+  playLadderClimb,
   particleSystem,
   notify,
   triggerSave,
@@ -141,9 +159,18 @@ export function createRuntimeDialogueFlow({
     startDialogue,
     items,
     playItemGrab,
+    playGoldPickup,
+    playEssencePickup,
     playGrassPull,
     playChestUnlock,
     playGateShortcut,
+    playLeverPull,
+    playGateOpenHeavy,
+    playGateLockedHeavy,
+    playDoorOpenWood,
+    playDoorCloseWood,
+    playDoorLocked,
+    playLadderClimb,
     emitSparkles: position => {
       particleSystem.emitSparkles(position);
     },

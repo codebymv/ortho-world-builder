@@ -5,6 +5,42 @@ import {
   applyMasterGainMute,
 } from '@/game/domain/audioMutePreference';
 
+const MASTER_COMPRESSOR_THRESHOLD_DB = -30;
+const MASTER_COMPRESSOR_KNEE_DB = 24;
+const MASTER_COMPRESSOR_RATIO = 8;
+const MASTER_COMPRESSOR_ATTACK_SEC = 0.005;
+const MASTER_COMPRESSOR_RELEASE_SEC = 0.18;
+const MASTER_POST_COMPRESSOR_GAIN = 1.25;
+const AUDIO_DEBUG_WINDOW_KEY = '__ORTHO_AUDIO_DEBUG';
+const audioLowpassRequests = new WeakMap<HTMLAudioElement, number>();
+const audioLowpassNodes = new WeakMap<HTMLAudioElement, BiquadFilterNode>();
+
+export function logAudioEvent(event: string, label: string, detail?: Record<string, unknown>) {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return;
+  const debugFlag = (window as Window & Record<string, unknown>)[AUDIO_DEBUG_WINDOW_KEY];
+  if (debugFlag === false) return;
+
+  const time = new Date().toLocaleTimeString();
+  if (detail) {
+    console.log(`[Audio ${time}] ${event}: ${label}`, detail);
+    return;
+  }
+  console.log(`[Audio ${time}] ${event}: ${label}`);
+}
+
+export function setAudioElementLowpass(audio: HTMLAudioElement, frequencyHz: number): void {
+  const clampedFrequency = Math.max(20, Math.min(22050, frequencyHz));
+  audioLowpassRequests.set(audio, clampedFrequency);
+  const filter = audioLowpassNodes.get(audio);
+  if (!filter) return;
+
+  const context = filter.context;
+  const safeFrequency = Math.min(clampedFrequency, context.sampleRate / 2);
+  const now = context.currentTime;
+  filter.frequency.cancelScheduledValues(now);
+  filter.frequency.setTargetAtTime(safeFrequency, now, 0.08);
+}
+
 interface AudioProcessorRefs {
   audioContextRef: MutableRefObject<AudioContext | null>;
   compressorRef: MutableRefObject<DynamicsCompressorNode | null>;
@@ -19,14 +55,14 @@ export function createAudioProcessor(refs: AudioProcessorRefs) {
       refs.audioContextRef.current = new (window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
 
       refs.compressorRef.current = refs.audioContextRef.current.createDynamicsCompressor();
-      refs.compressorRef.current.threshold.value = -24;
-      refs.compressorRef.current.knee.value = 30;
-      refs.compressorRef.current.ratio.value = 12;
-      refs.compressorRef.current.attack.value = 0.003;
-      refs.compressorRef.current.release.value = 0.25;
+      refs.compressorRef.current.threshold.value = MASTER_COMPRESSOR_THRESHOLD_DB;
+      refs.compressorRef.current.knee.value = MASTER_COMPRESSOR_KNEE_DB;
+      refs.compressorRef.current.ratio.value = MASTER_COMPRESSOR_RATIO;
+      refs.compressorRef.current.attack.value = MASTER_COMPRESSOR_ATTACK_SEC;
+      refs.compressorRef.current.release.value = MASTER_COMPRESSOR_RELEASE_SEC;
 
       refs.gainNodeRef.current = refs.audioContextRef.current.createGain();
-      refs.gainNodeRef.current.gain.value = 1.4;
+      refs.gainNodeRef.current.gain.value = MASTER_POST_COMPRESSOR_GAIN;
 
       refs.masterGainRef.current = refs.audioContextRef.current.createGain();
       applyMasterGainMute(refs.masterGainRef.current);
@@ -88,6 +124,18 @@ export function createAudioProcessor(refs: AudioProcessorRefs) {
 
     const source = context.createMediaElementSource(audio);
     refs.audioSourcesConnectedRef.current.add(audio);
+    const lowpassFrequency = audioLowpassRequests.get(audio);
+    if (lowpassFrequency) {
+      const lowpass = context.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.value = Math.min(lowpassFrequency, context.sampleRate / 2);
+      lowpass.Q.value = 0.7;
+      audioLowpassNodes.set(audio, lowpass);
+      source.connect(lowpass);
+      lowpass.connect(refs.compressorRef.current);
+      return source;
+    }
+
     source.connect(refs.compressorRef.current);
     return source;
   };
@@ -122,26 +170,64 @@ const clampVolume = (value: number) => Math.max(0, Math.min(1, value));
 
 export function createMusicDirector(context: MusicDirectorContext) {
   let fadeFrame: number | null = null;
+  let activeFadeFromAudio: HTMLAudioElement | null = null;
+  let activeFadeToAudio: HTMLAudioElement | null = null;
+  let fadeGeneration = 0;
 
   const cancelFade = () => {
-    if (fadeFrame === null) return;
-    cancelAnimationFrame(fadeFrame);
-    fadeFrame = null;
+    fadeGeneration++;
+    if (fadeFrame !== null) {
+      cancelAnimationFrame(fadeFrame);
+      fadeFrame = null;
+    }
+    if (activeFadeFromAudio && activeFadeFromAudio !== context.musicRef.current) {
+      activeFadeFromAudio.pause();
+      activeFadeFromAudio.src = '';
+    }
+    if (activeFadeToAudio && activeFadeToAudio !== context.musicRef.current) {
+      activeFadeToAudio.pause();
+      activeFadeToAudio.src = '';
+    }
+    activeFadeFromAudio = null;
+    activeFadeToAudio = null;
   };
 
   const equalPowerCrossfade = (fromAudio: HTMLAudioElement, toTrack: string) => {
     cancelFade();
+    const fadeId = fadeGeneration;
     const wasMuted = fromAudio.muted;
     const toAudio = new Audio(toTrack);
     toAudio.loop = true;
+    toAudio.preload = 'auto';
     toAudio.volume = 0;
     toAudio.muted = wasMuted;
     context.processAudioElement(toAudio);
+    logAudioEvent('music:crossfade', toTrack, { from: fromAudio.src });
+    activeFadeFromAudio = fromAudio;
+    activeFadeToAudio = toAudio;
+
+    const restoreFromAudio = () => {
+      cancelFade();
+      fromAudio.volume = MAP_MUSIC_VOLUME;
+      fromAudio.muted = wasMuted;
+      context.musicRef.current = fromAudio;
+      if (import.meta.env.DEV) {
+        console.warn(`[Music] Failed to start track: ${toTrack}`);
+      }
+    };
 
     toAudio.play().then(() => {
+      if (fadeId !== fadeGeneration) {
+        if (toAudio !== context.musicRef.current) {
+          toAudio.pause();
+          toAudio.src = '';
+        }
+        return;
+      }
       context.musicRef.current = toAudio;
       const startTime = performance.now();
       const step = (now: number) => {
+        if (fadeId !== fadeGeneration) return;
         const t = Math.min(1, (now - startTime) / MUSIC_FADE_MS);
         const theta = t * Math.PI * 0.5;
         fromAudio.volume = clampVolume(Math.cos(theta) * MAP_MUSIC_VOLUME);
@@ -154,17 +240,12 @@ export function createMusicDirector(context: MusicDirectorContext) {
         fromAudio.pause();
         fromAudio.src = '';
         toAudio.volume = MAP_MUSIC_VOLUME;
+        activeFadeFromAudio = null;
+        activeFadeToAudio = null;
       };
       fadeFrame = requestAnimationFrame(step);
     }).catch(() => {
-      fromAudio.pause();
-      fromAudio.src = toTrack;
-      fromAudio.loop = true;
-      fromAudio.volume = MAP_MUSIC_VOLUME;
-      fromAudio.muted = wasMuted;
-      context.processAudioElement(fromAudio);
-      context.musicRef.current = fromAudio;
-      fromAudio.play().catch(() => {});
+      restoreFromAudio();
     });
   };
 
@@ -173,6 +254,7 @@ export function createMusicDirector(context: MusicDirectorContext) {
     if (context.currentTrackRef.current === track) return;
 
     context.currentTrackRef.current = track;
+    logAudioEvent('music:switch', track, { key: mapId });
     const audio = context.musicRef.current;
     if (!audio) return;
 
@@ -201,6 +283,7 @@ export function createMusicDirector(context: MusicDirectorContext) {
     context.processAudioElement(audio);
     context.musicRef.current = audio;
     context.currentTrackRef.current = startTrack;
+    logAudioEvent('music:init', startTrack, { key: initialMapId });
     return audio;
   };
 
@@ -239,6 +322,7 @@ interface SequentialAudioPoolConfig {
   poolSize: number;
   processAudioElement: (audio: HTMLAudioElement) => void;
   playbackRate?: number;
+  label?: string;
 }
 
 export function createSequentialAudioPool(config: SequentialAudioPoolConfig) {
@@ -258,6 +342,11 @@ export function createSequentialAudioPool(config: SequentialAudioPoolConfig) {
     index += 1;
     audio.currentTime = 0;
     audio.playbackRate = config.playbackRate ?? 1;
+    logAudioEvent('sfx', config.label ?? config.src, {
+      src: config.src,
+      volume: config.volume,
+      poolIndex: (index - 1) % pool.length,
+    });
     audio.play().catch(() => {});
   };
 
@@ -270,6 +359,7 @@ export function createSequentialAudioPool(config: SequentialAudioPoolConfig) {
 interface RandomAudioPoolEntry {
   src: string;
   volume: number;
+  label?: string;
 }
 
 interface RandomAudioPoolConfig {
@@ -278,6 +368,7 @@ interface RandomAudioPoolConfig {
   processAudioElement: (audio: HTMLAudioElement) => void;
   onPlaySuccess?: () => void;
   onPlayError?: (error: unknown) => void;
+  label?: string;
 }
 
 export function createRandomAudioPool(config: RandomAudioPoolConfig) {
@@ -300,6 +391,11 @@ export function createRandomAudioPool(config: RandomAudioPoolConfig) {
       ? idle[Math.floor(Math.random() * idle.length)]
       : pool[Math.floor(Math.random() * pool.length)];
     audio.currentTime = 0;
+    logAudioEvent('sfx', config.label ?? audio.src.split('/').pop() ?? 'random-pool', {
+      src: audio.src,
+      volume: audio.volume,
+      idleAvailable: idle.length,
+    });
     audio.play()
       .then(() => {
         config.onPlaySuccess?.();
@@ -315,7 +411,17 @@ export function createRandomAudioPool(config: RandomAudioPoolConfig) {
   };
 }
 
-type EnemyAudioType = 'skeleton' | 'slime' | 'wolf' | 'shadow' | 'spider';
+type EnemyAudioType =
+  | 'skeleton'
+  | 'slime'
+  | 'wolf'
+  | 'shadow'
+  | 'spider'
+  | 'plant'
+  | 'golem'
+  | 'stone_sentinel'
+  | 'hollow_reaver'
+  | 'ridge_revenant';
 
 interface EnemyAudioDirectorConfig {
   processAudioElement: (audio: HTMLAudioElement) => void;
@@ -355,6 +461,36 @@ export function createEnemyAudioDirector(config: EnemyAudioDirectorConfig) {
       poolSize: 2,
       processAudioElement: config.processAudioElement,
     }),
+    plant: createSequentialAudioPool({
+      src: './audio/plant_defeat.mp3',
+      volume: 0.42,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
+    golem: createSequentialAudioPool({
+      src: './audio/golem_defeat.mp3',
+      volume: 0.48,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
+    stone_sentinel: createSequentialAudioPool({
+      src: './audio/stone_sentinel_defeat.mp3',
+      volume: 0.48,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
+    hollow_reaver: createSequentialAudioPool({
+      src: './audio/hollow_reaver_defeat.mp3',
+      volume: 0.46,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
+    ridge_revenant: createSequentialAudioPool({
+      src: './audio/ridge_revenant_defeat.mp3',
+      volume: 0.46,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
   };
   const walkPools: Record<EnemyAudioType, ReturnType<typeof createSequentialAudioPool>> = {
     skeleton: createSequentialAudioPool({
@@ -387,12 +523,53 @@ export function createEnemyAudioDirector(config: EnemyAudioDirectorConfig) {
       poolSize: 2,
       processAudioElement: config.processAudioElement,
     }),
+    plant: createSequentialAudioPool({
+      src: './audio/plant_walk.mp3',
+      volume: 0.2,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
+    golem: createSequentialAudioPool({
+      src: './audio/golem_walk.mp3',
+      volume: 0.34,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
+    stone_sentinel: createSequentialAudioPool({
+      src: './audio/stone_sentinel_walk.mp3',
+      volume: 0.34,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
+    hollow_reaver: createSequentialAudioPool({
+      src: './audio/hollow_reaver_walk.mp3',
+      volume: 0.32,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
+    ridge_revenant: createSequentialAudioPool({
+      src: './audio/ridge_revenant_walk.mp3',
+      volume: 0.34,
+      poolSize: 2,
+      processAudioElement: config.processAudioElement,
+    }),
   };
 
   const getEnemyAudioType = (enemy: Enemy): EnemyAudioType | null => {
     const type = enemy.sprite.replace('enemy_', '') as EnemyAudioType | string;
     if (type === 'water_slime') return 'slime';
-    if (type === 'skeleton' || type === 'slime' || type === 'wolf' || type === 'shadow' || type === 'spider') return type;
+    if (
+      type === 'skeleton' ||
+      type === 'slime' ||
+      type === 'wolf' ||
+      type === 'shadow' ||
+      type === 'spider' ||
+      type === 'plant' ||
+      type === 'golem' ||
+      type === 'stone_sentinel' ||
+      type === 'hollow_reaver' ||
+      type === 'ridge_revenant'
+    ) return type;
     if (type === 'skeleton_captain') return 'skeleton';
     return null;
   };
@@ -434,6 +611,11 @@ export function createEnemyAudioDirector(config: EnemyAudioDirectorConfig) {
       type === 'skeleton' ? 0.64 :
       type === 'shadow' ? 1.20 :
       type === 'spider' ? 0.58 :
+      type === 'plant' ? 0.95 :
+      type === 'golem' ? 1.08 :
+      type === 'stone_sentinel' ? 0.96 :
+      type === 'hollow_reaver' ? 0.78 :
+      type === 'ridge_revenant' ? 1.18 :
       0.78;
     walkCooldowns.set(enemy.id, nowSeconds + baseInterval + Math.random() * 0.18);
   };

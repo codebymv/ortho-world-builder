@@ -1,5 +1,5 @@
 import { WorldMap } from '@/lib/game/World';
-import { interiorBlacksmithDef, interiorCottageADef, interiorCottageForestDef, interiorHollowArenaDef, interiorHunterCottageDef, interiorInnDef, interiorMerchantDef, interiorRangerCabinDef, interiorWoodcutterCottageDef } from '@/content/regions/interiors';
+import { interiorBlacksmithDef, interiorCottageADef, interiorCottageForestDef, interiorGuilrhymCathedralDef, interiorHollowArenaDef, interiorHunterCottageDef, interiorInnDef, interiorMerchantDef, interiorRangerCabinDef, interiorWoodcutterCottageDef } from '@/content/regions/interiors';
 import { villageDef } from '@/content/regions/greenleaf/map';
 import { forestDef } from '@/content/regions/whispering_woods/map';
 import { generateMap, MapDefinition } from './mapGenerator';
@@ -51,6 +51,7 @@ const staticMapDefinitions: Record<string, MapDefinition> = {
   interior_woodcutter_cottage: interiorWoodcutterCottageDef,
   interior_hunter_cottage: interiorHunterCottageDef,
   interior_hollow_arena: interiorHollowArenaDef,
+  interior_guilrhym_cathedral: interiorGuilrhymCathedralDef,
 };
 
 const deferredMapLoaders: Record<string, DeferredMapDefinitionLoader> = {
@@ -81,6 +82,7 @@ const mapDefinitionSummaries: Record<string, MapDefinitionSummary> = {
   interior_woodcutter_cottage: summarizeMapDefinition(interiorWoodcutterCottageDef),
   interior_hunter_cottage: summarizeMapDefinition(interiorHunterCottageDef),
   interior_hollow_arena: summarizeMapDefinition(interiorHollowArenaDef),
+  interior_guilrhym_cathedral: summarizeMapDefinition(interiorGuilrhymCathedralDef),
 };
 
 function clearDeferredMapDefinitions() {

@@ -21,12 +21,14 @@ import {
   SPRITE_MAP,
   SPRITE_OBJECTIVES,
 } from '@/components/game/HudSprite';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   applyElementMute,
   applyMasterGainMute,
+  getAudioVolume,
   isAudioMuted,
   setAudioMuted,
+  setAudioVolume,
 } from '@/game/domain/audioMutePreference';
 import { CONTROL_GROUPS } from './controlBindings';
 import { cn } from '@/lib/utils';
@@ -405,6 +407,9 @@ export const GameUI = ({
   activeQuestCount = 0,
 }: GameUIProps) => {
   const [isMuted, setIsMuted] = useState(() => isAudioMuted());
+  const [volume, setVolume] = useState(() => getAudioVolume());
+  const [volumeOpen, setVolumeOpen] = useState(false);
+  const volumePanelRef = useRef<HTMLDivElement | null>(null);
   /** Compact controls help: closed by default so HUD stays minimal; click to expand rectangular panel. */
   const [controlsHelpOpen, setControlsHelpOpen] = useState(false);
 
@@ -455,18 +460,50 @@ export const GameUI = ({
   // Belt-and-suspenders: re-apply persisted mute once HUD mounts (audio may have
   // started before gameState was ready).
   useEffect(() => {
-    if (!isMuted) return;
     applyMasterGainMute(masterGainRef?.current);
     applyElementMute(musicRef.current);
-  }, [isMuted, masterGainRef, musicRef]);
+  }, [isMuted, volume, masterGainRef, musicRef]);
 
   const toggleMute = () => {
     const nextMuted = !isMuted;
+    if (!nextMuted && volume <= 0) {
+      setVolume(0.5);
+      setAudioVolume(0.5);
+    }
     setIsMuted(nextMuted);
     setAudioMuted(nextMuted);
     applyMasterGainMute(masterGainRef?.current);
     applyElementMute(musicRef.current);
   };
+
+  const handleVolumeChange = (nextVolume: number) => {
+    const clamped = Math.max(0, Math.min(1, nextVolume));
+    setVolume(clamped);
+    setAudioVolume(clamped);
+    if (clamped > 0 && isMuted) {
+      setIsMuted(false);
+      setAudioMuted(false);
+    } else if (clamped === 0 && !isMuted) {
+      setIsMuted(true);
+      setAudioMuted(true);
+    }
+    applyMasterGainMute(masterGainRef?.current);
+    applyElementMute(musicRef.current);
+  };
+
+  useEffect(() => {
+    if (!volumeOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (volumePanelRef.current?.contains(target)) return;
+      setVolumeOpen(false);
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => window.removeEventListener('pointerdown', handlePointerDown);
+  }, [volumeOpen]);
 
   return (
     <>
@@ -509,15 +546,53 @@ export const GameUI = ({
 
           {/* Right nav — icon-only below 1280px; extra right margin clears FlashCore fullscreen control */}
           <div className="ml-auto flex shrink-0 items-center gap-0.5 mr-10 min-[1280px]:mr-8">
-            <Button
-              onClick={toggleMute}
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent rounded-sm transition-colors"
-              title={isMuted ? 'Unmute' : 'Mute'}
-            >
-              <HudSprite spec={isMuted ? SPRITE_VOLUME_MUTE : SPRITE_VOLUME_ON} size={16} />
-            </Button>
+            <div ref={volumePanelRef} className="relative">
+              <Button
+                onClick={() => setVolumeOpen(open => !open)}
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11] border border-transparent rounded-sm transition-colors"
+                title="Volume"
+                aria-haspopup="dialog"
+                aria-expanded={volumeOpen}
+              >
+                <HudSprite spec={isMuted || volume <= 0 ? SPRITE_VOLUME_MUTE : SPRITE_VOLUME_ON} size={16} />
+              </Button>
+              {volumeOpen && (
+                <div
+                  role="dialog"
+                  aria-label="Volume"
+                  className="absolute right-0 top-10 z-[70] w-48 max-w-[calc(100vw-1rem)] rounded-sm border border-[#5C3A21] bg-[#1A0F0A]/95 p-3 shadow-xl backdrop-blur-md"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#DAA520]">Volume</span>
+                    <button
+                      type="button"
+                      onClick={toggleMute}
+                      className="rounded-sm border border-[#5C3A21]/70 bg-[#2D1B11]/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#F5DEB3] hover:border-[#DAA520]/60 hover:text-[#DAA520]"
+                    >
+                      {isMuted ? 'Unmute' : 'Mute'}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-[14px_minmax(0,1fr)_2rem] items-center gap-2">
+                    <HudSprite spec={isMuted || volume <= 0 ? SPRITE_VOLUME_MUTE : SPRITE_VOLUME_ON} size={14} />
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={Math.round(volume * 100)}
+                      aria-label="Master volume"
+                      onChange={event => handleVolumeChange(Number(event.currentTarget.value) / 100)}
+                      className="h-2 min-w-0 accent-[#DAA520]"
+                    />
+                    <span className="w-8 text-right text-[10px] font-bold tabular-nums text-[#F5DEB3]">
+                      {Math.round(volume * 100)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <HudNavButton label="Player (P)" title="Player (P)" onClick={onOpenPlayer} sprite={SPRITE_PLAYER} />
             <HudNavButton label="Inventory (I)" title="Inventory (I)" onClick={onOpenInventory} sprite={SPRITE_INVENTORY} />

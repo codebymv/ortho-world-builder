@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateMap } from '@/data/mapGenerator';
 import { forestDef } from '@/content/regions/whispering_woods/map';
+import { getBonfiresForMap } from '@/data/bonfires';
 import { canCrossSpinePathElevation } from '@/lib/game/World';
 import type { Tile } from '@/lib/game/World';
 
@@ -276,6 +277,22 @@ describe('Whispering Woods elevation seam audit', () => {
     expect(canCrossSpinePathElevation(here, north)).toBe(true);
     expect(canCrossSpinePathElevation(west, east)).toBe(true);
   });
+
+  it('world (-42,-121) through (-20,-112) keeps dirt spine readable while adjacent seam art has no collision', () => {
+    const map = generateMap(forestDef);
+    const seam = map.tiles[38][130];
+    const westSeam = map.tiles[38][114];
+    const farWestSeam = map.tiles[29][108];
+    for (const tile of [seam, map.tiles[37][130], map.tiles[39][130], westSeam, farWestSeam]) {
+      expect(tile.type).toBe('hollow_blight');
+      expect(tile.walkable).toBe(true);
+      expect(tile.spinePath).toBe(true);
+      expect(canCrossSpinePathElevation(seam, tile)).toBe(true);
+    }
+
+    // Dirt in this rectangle can include normal ground; the fix targets adjacent
+    // non-dirt seam art so it no longer collides beside the readable dirt spine.
+  });
 });
 
 describe('world (63,106) stair band collision', () => {
@@ -287,6 +304,19 @@ describe('world (63,106) stair band collision', () => {
     expect(player.walkable).toBe(true);
     expect(south.type).toBe('grass');
     expect(south.walkable).toBe(true);
+  });
+});
+
+describe('world (-17,42) Hollow open lane grass cleanup', () => {
+  it('clears the stray tall grass clump from the open lane', () => {
+    const map = generateMap(forestDef);
+    for (let ty = 190; ty <= 194; ty++) {
+      for (let tx = 131; tx <= 136; tx++) {
+        expect(map.tiles[ty][tx].type).not.toBe('tall_grass');
+      }
+    }
+    expect(map.tiles[192][133].walkable).toBe(true);
+    expect(map.tiles[192][133].type).not.toBe('tall_grass');
   });
 });
 
@@ -418,6 +448,181 @@ describe('grove shelf shortcut at world (-92,14)', () => {
     expect(south).toMatchObject({ type: 'dirt', walkable: true, elevation: 0, spinePath: true });
     expect(gate).toMatchObject({ type: 'dirt', walkable: true, elevation: 1, spinePath: true });
     expect(canCrossSpinePathElevation(south, gate)).toBe(true);
+  });
+});
+
+describe('Deep Hollow bonfire landing', () => {
+  it('does not trap fast travel arrivals inside an elevation pocket', () => {
+    const map = generateMap(forestDef);
+    const bonfire = map.tiles[46][126];
+
+    expect(['bonfire', 'bonfire_unlit']).toContain(bonfire.type);
+    expect(bonfire.walkable).toBe(true);
+    expect(bonfire.elevation).toBe(1);
+
+    for (const [tx, ty] of [
+      [126, 45],
+      [127, 46],
+      [126, 47],
+      [125, 46],
+    ] as const) {
+      const exit = map.tiles[ty][tx];
+      expect(exit.walkable).toBe(true);
+      expect(exit.elevation).toBe(1);
+    }
+  });
+});
+
+describe('Guilrhym return landing', () => {
+  it('has a first-class return portal back to Guilrhym', () => {
+    const map = generateMap(forestDef);
+    const portal = map.tiles[45][266];
+
+    expect(portal.type).toBe('portal');
+    expect(portal.walkable).toBe(true);
+    expect(portal.transition).toMatchObject({
+      targetMap: 'guilrhym',
+      targetX: 150,
+      targetY: 292,
+    });
+
+    for (const [tx, ty] of [
+      [266, 44],
+      [267, 45],
+      [266, 46],
+      [265, 45],
+      [261, 45],
+    ] as const) {
+      expect(map.tiles[ty][tx].walkable).toBe(true);
+    }
+  });
+
+  it('has a registered bonfire near the threshold pocket', () => {
+    const map = generateMap(forestDef);
+    const bonfire = map.tiles[45][256];
+    const registryEntry = getBonfiresForMap('forest').find(entry => entry.id === 'bonfire_guilrhym_threshold');
+
+    expect(registryEntry).toMatchObject({
+      name: 'Precipice Reserve',
+      tileX: 256,
+      tileY: 45,
+    });
+    expect(bonfire.type).toBe('bonfire_unlit');
+    expect(bonfire.walkable).toBe(true);
+    expect(bonfire.interactionId).toBe('bonfire_guilrhym_threshold');
+  });
+
+  it('keeps the Precipice Reserve pocket free of live trees', () => {
+    const map = generateMap(forestDef);
+
+    for (let ty = 35; ty <= 49; ty++) {
+      for (let tx = 253; tx <= 263; tx++) {
+        expect(map.tiles[ty][tx].type).not.toBe('tree');
+      }
+    }
+  });
+
+  it('frames the reserve against a massive off-map caldera lip', () => {
+    const map = generateMap(forestDef);
+    const mountainTypes = new Set(['lava', 'volcanic_rock', 'ash', 'rock']);
+    let mountainTiles = 0;
+
+    for (let ty = 0; ty <= 58; ty++) {
+      for (let tx = 262; tx <= 299; tx++) {
+        if (mountainTypes.has(map.tiles[ty][tx].type)) mountainTiles++;
+      }
+    }
+
+    expect(mountainTiles).toBeGreaterThan(650);
+    expect(map.tiles[16][292].type).toBe('lava');
+    expect(map.tiles[45][256].type).toBe('bonfire_unlit');
+    expect(map.tiles[45][266].type).toBe('portal');
+  });
+
+  it('clears collision on the world x=96 caldera lip without deleting cliff art', () => {
+    const map = generateMap(forestDef);
+    const westNeighbor = map.tiles[11][245];
+    const calledOutTile = map.tiles[11][246];
+    const cliffArtTile = map.tiles[23][246];
+
+    expect(westNeighbor.walkable).toBe(true);
+    expect(westNeighbor.spinePath).toBe(true);
+    expect(calledOutTile.walkable).toBe(true);
+    expect(calledOutTile.spinePath).toBe(true);
+    expect(canCrossSpinePathElevation(westNeighbor, calledOutTile)).toBe(true);
+    expect(cliffArtTile.type).not.toBe('hollow_blight');
+    expect(cliffArtTile.walkable).toBe(false);
+
+    const lowerWestNeighbor = map.tiles[35][245];
+    const lowerSeamTile = map.tiles[35][246];
+    expect(lowerWestNeighbor.walkable).toBe(true);
+    expect(lowerWestNeighbor.spinePath).toBe(true);
+    expect(lowerSeamTile.walkable).toBe(true);
+    expect(lowerSeamTile.spinePath).toBe(true);
+    expect(canCrossSpinePathElevation(lowerWestNeighbor, lowerSeamTile)).toBe(true);
+
+    for (let ty = 9; ty <= 36; ty++) {
+      for (let tx = 245; tx <= 246; tx++) {
+        if (ty >= 19 && ty <= 31) continue;
+        expect(map.tiles[ty][tx].walkable).toBe(true);
+        expect(map.tiles[ty][tx].spinePath).toBe(true);
+      }
+    }
+
+    for (let ty = 19; ty <= 31; ty++) {
+      for (let tx = 244; tx <= 249; tx++) {
+        expect(map.tiles[ty][tx].type).toBe(ty === 19 ? 'cliff_edge_corrupted' : 'cliff_corrupted');
+        expect(map.tiles[ty][tx].walkable).toBe(false);
+      }
+    }
+  });
+
+  it('clears live trees and collision on the south Precipice seam', () => {
+    const map = generateMap(forestDef);
+
+    for (let ty = 28; ty <= 41; ty++) {
+      for (let tx = 239; tx <= 245; tx++) {
+        expect(map.tiles[ty][tx].type).not.toBe('tree');
+      }
+    }
+
+    for (let tx = 226; tx <= 246; tx++) {
+      const north = map.tiles[37][tx];
+      const seam = map.tiles[38][tx];
+      const south = map.tiles[39][tx];
+      expect(north.walkable).toBe(true);
+      expect(north.spinePath).toBe(true);
+      expect(seam.walkable).toBe(true);
+      expect(seam.spinePath).toBe(true);
+      expect(south.walkable).toBe(true);
+      expect(south.spinePath).toBe(true);
+      expect(canCrossSpinePathElevation(north, seam)).toBe(true);
+      expect(canCrossSpinePathElevation(seam, south)).toBe(true);
+    }
+  });
+
+  it('keeps the NE ridge heresy altar clear of surrounding dead trees', () => {
+    const map = generateMap(forestDef);
+
+    expect(map.tiles[45][235].type).toBe('heresy_altar');
+    for (let ty = 41; ty <= 49; ty++) {
+      for (let tx = 231; tx <= 240; tx++) {
+        if (tx === 235 && ty === 45) continue;
+        expect(map.tiles[ty][tx].type).not.toBe('dead_tree');
+      }
+    }
+  });
+
+  it('covers the exposed Precipice dirt spine with cliff face', () => {
+    const map = generateMap(forestDef);
+
+    for (let ty = 40; ty <= 57; ty++) {
+      for (let tx = 226; tx <= 230; tx++) {
+        const tile = map.tiles[ty][tx];
+        expect(tile.type).toBe('cliff');
+        expect(tile.walkable).toBe(false);
+      }
+    }
   });
 });
 

@@ -52,4 +52,26 @@ describe('Whispering Woods dirt spine elevation', () => {
     expect(from.spinePath).not.toBe(true);
     expect(canCrossSpinePathElevation(from, to)).toBe(false);
   });
+
+  it('allows explicitly walkable seam art while keeping normal cliffs blocked', () => {
+    expect(canCrossSpinePathElevation(
+      { type: 'cliff', walkable: true, elevation: 1, spinePath: true },
+      { type: 'cliff_edge', walkable: true, elevation: 2, spinePath: true },
+    )).toBe(true);
+
+    expect(canCrossSpinePathElevation(
+      { type: 'cliff', walkable: false, elevation: 1, spinePath: true },
+      { type: 'cliff_edge', walkable: true, elevation: 2, spinePath: true },
+    )).toBe(false);
+
+    expect(canCrossSpinePathElevation(
+      { type: 'ash', walkable: true, elevation: 1, spinePath: true },
+      { type: 'volcanic_rock', walkable: true, elevation: 2, spinePath: true },
+    )).toBe(true);
+
+    expect(canCrossSpinePathElevation(
+      { type: 'hollow_blight', walkable: true, elevation: 1, spinePath: true },
+      { type: 'dead_tree', walkable: true, elevation: 2, spinePath: true },
+    )).toBe(true);
+  });
 });

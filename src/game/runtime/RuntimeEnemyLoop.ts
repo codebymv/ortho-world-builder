@@ -11,10 +11,20 @@ import type { Enemy } from '@/lib/game/Combat';
 const announcedHollowEclipses = new Set<number>();
 type BossSfxState = { state: string; type: string | undefined; phase: number | undefined; combo: number | undefined };
 const bossAttackSfxKeys = new Map<string, BossSfxState>();
+type EnemyAttackSfxState = { state: string; type: string | undefined };
+const enemyAttackSfxKeys = new Map<string, EnemyAttackSfxState>();
+const plantIdleCooldowns = new Map<string, number>();
 const liveProjectileIdsScratch = new Set<string>();
 const liveHazardIdsScratch = new Set<string>();
 const projectileRemovalScratch: string[] = [];
 const hazardRemovalScratch: string[] = [];
+const projectileSfxSprites = new Map<string, string>();
+const projectileSfxCounts = new Map<string, number>();
+const hazardSfxStates = new Map<string, string>();
+
+function isBoulderProjectile(sprite: string, sourceEnemyId?: string): boolean {
+  return sprite === 'rock' || sourceEnemyId === 'east_ridge_boulder';
+}
 
 function getPlantLashReach(enemy: { attackRange: number }): number {
   return enemy.attackRange * 1.3;
@@ -220,7 +230,25 @@ export function runEnemyLoop({
   enemyAudio,
   playPlayerHit,
   playBossAttack,
+  playParrySuccess,
+  playParryProjectile,
+  playGuardBreak,
   playPropBreak,
+  playRitualSummonStart,
+  playPlantIdle,
+  playPlantLash,
+  playHollowReaverAttack,
+  playProjectileCast,
+  startProjectileFly,
+  stopProjectileFly,
+  playProjectileImpact,
+  playProjectileReflect,
+  playHazardWarningPulse,
+  playHazardScytheFall,
+  playHazardScytheImpact,
+  startBoulderRollLoop,
+  stopBoulderRollLoop,
+  playBoulderImpact,
   shadowGeometry,
   shadowMaterial,
   createOutlineMesh,
@@ -228,6 +256,7 @@ export function runEnemyLoop({
   getActorRenderOrder,
 }: RunEnemyLoopOptions) {
   const playerHealthBeforeUpdate = state.player.health;
+  const guardBreakBeforeUpdate = state.player.guardBrokenTimer;
   const playerCombatElevation = state.player.isClimbing
     ? getClimbVisualElevation(world, state.player.position.x, state.player.position.y)
     : world.getElevationAt(state.player.position.x, state.player.position.y);
@@ -356,6 +385,9 @@ export function runEnemyLoop({
   if (state.player.health < playerHealthBeforeUpdate) {
     playPlayerHit();
   }
+  if (guardBreakBeforeUpdate <= 0 && state.player.guardBrokenTimer > 0) {
+    playGuardBreak?.();
+  }
 
   /**
    * Fire fully immersive parry feedback at a world position. No floating text —
@@ -374,6 +406,15 @@ export function runEnemyLoop({
     let ringCount = 0;
     let ringColor = 0xCCEEFF;
     switch (source) {
+      case 'melee':
+        shakeIntensity = 0.4;
+        shakeDuration = 0.14;
+        stopDuration = 0.12;
+        goldCount = 9;
+        goldSpeed = 2.0;
+        ringCount = 12;
+        ringColor = 0xffffff;
+        break;
       case 'aoe':
         shakeIntensity = 0.5;
         shakeDuration = 0.18;
@@ -402,14 +443,28 @@ export function runEnemyLoop({
         ringColor = 0xEEDDFF;
         break;
     }
+    const px = state.player.position.x;
+    const py = state.player.position.y;
+    const clashX = source === 'melee' ? (px + x) * 0.5 : x;
+    const clashY = source === 'melee' ? (py + y) * 0.5 + 0.35 : y;
+
     screenShake.shake(shakeIntensity, shakeDuration);
     screenShake.hitStop(stopDuration);
-    particleSystem.emitSparklesAt(x, y, 0.3);
-    particleSystem.emitAt(x, y, 0.4, goldCount, 0xFFD700, 0.55, goldSpeed, 1.0);
+    if (source === 'projectile' || source === 'hazard') {
+      playParryProjectile?.();
+    } else {
+      playParrySuccess?.();
+    }
+    if (source === 'melee') {
+      particleSystem.emitParryClashSparkAt(clashX, clashY, 0.38);
+    } else {
+      particleSystem.emitSparklesAt(clashX, clashY, 0.3);
+    }
+    particleSystem.emitAt(clashX, clashY, 0.4, goldCount, 0xFFD700, 0.55, goldSpeed, 1.0);
     if (ringCount > 0) {
       // Thin ring of bright sparks at the impact point — reads as the deflected
       // edge of the strike spraying outward.
-      particleSystem.emitAt(x, y, 0.42, ringCount, ringColor, 0.4, goldSpeed * 1.3, 1.6);
+      particleSystem.emitAt(clashX, clashY, 0.42, ringCount, ringColor, 0.4, goldSpeed * 1.3, 1.6);
     }
     // Brief blade kick on the player (parryBonusTimer already drives the next-hit
     // damage boost; this also makes the blade glow shader read as "primed").
@@ -489,6 +544,23 @@ export function runEnemyLoop({
       }
     } else {
       bossAttackSfxKeys.delete(enemy.id);
+    }
+
+    if (
+      enemy.state === 'telegraphing' &&
+      (enemy.type === 'plant' || enemy.type === 'hollow_reaver')
+    ) {
+      const cached = enemyAttackSfxKeys.get(enemy.id);
+      if (!cached || cached.state !== enemy.state || cached.type !== enemy.currentAttackType) {
+        enemyAttackSfxKeys.set(enemy.id, { state: enemy.state, type: enemy.currentAttackType });
+        if (enemy.type === 'plant') {
+          playPlantLash?.();
+        } else {
+          playHollowReaverAttack?.();
+        }
+      }
+    } else {
+      enemyAttackSfxKeys.delete(enemy.id);
     }
 
     if (enemy.type === 'hollow_guardian' && enemy.state === 'slamming' && enemy.currentAttackType === 'hail_mary') {
@@ -604,6 +676,20 @@ export function runEnemyLoop({
     if (outline) outline.visible = true;
 
     enemyAudio.maybePlayWalk(enemy, enemyAudioNow, state.player.position);
+    if (
+      enemy.type === 'plant' &&
+      enemy.state !== 'telegraphing' &&
+      enemy.state !== 'recovering' &&
+      eDistSq <= 25
+    ) {
+      const nextIdleAllowed = plantIdleCooldowns.get(enemy.id) ?? 0;
+      if (enemyAudioNow >= nextIdleAllowed) {
+        playPlantIdle?.();
+        plantIdleCooldowns.set(enemy.id, enemyAudioNow + 3.2 + Math.random() * 1.4);
+      }
+    } else if (enemy.type !== 'plant') {
+      plantIdleCooldowns.delete(enemy.id);
+    }
     applyEnemyVisuals({
       enemy,
       state,
@@ -740,6 +826,7 @@ export function runEnemyLoop({
   for (const enemy of combatSystem.getAllEnemies()) {
     if (enemy.state === 'dead' && updateDeadEnemyVisual(enemy, registry)) {
       enemyAudio.clearEnemy(enemy.id);
+      plantIdleCooldowns.delete(enemy.id);
       fullyDeadEnemyIds.push(enemy.id);
     }
   }
@@ -755,7 +842,7 @@ export function runEnemyLoop({
     updateEastRidgeBoulder({ state, combatSystem, screenShake, particleSystem, playPropBreak });
     // Heresy summoning rituals: materialize a Ridge Revenant when a sufficiently-heretical
     // player (3+ cursed sediment) steps onto a summoning glyph.
-    updateRevenantRituals({ state, world, combatSystem, screenShake, particleSystem, deltaTime, currentTime });
+    updateRevenantRituals({ state, world, combatSystem, screenShake, particleSystem, deltaTime, currentTime, playRitualSummonStart });
     updateFailedRitualGlyphs({ state, world });
   }
 
@@ -771,6 +858,7 @@ export function runEnemyLoop({
   );
   if (projectileParry) {
     fireParryFeedback(projectileParry.x, projectileParry.y, 'projectile');
+    playProjectileReflect?.();
   }
   const hazardParry = combatSystem.updateFallingScytheHazards(
     deltaTime,
@@ -788,6 +876,19 @@ export function runEnemyLoop({
   liveProjectileIds.clear();
   for (const proj of projectiles) {
     liveProjectileIds.add(proj.id);
+    if (!projectileSfxSprites.has(proj.id)) {
+      projectileSfxSprites.set(proj.id, proj.sprite);
+      if (isBoulderProjectile(proj.sprite, proj.sourceEnemyId)) {
+        const count = projectileSfxCounts.get('rock') ?? 0;
+        if (count === 0) startBoulderRollLoop?.();
+        projectileSfxCounts.set('rock', count + 1);
+      } else {
+        playProjectileCast?.(proj.sprite);
+        const count = projectileSfxCounts.get(proj.sprite) ?? 0;
+        if (count === 0) startProjectileFly?.(proj.sprite);
+        projectileSfxCounts.set(proj.sprite, count + 1);
+      }
+    }
     const mesh = registry.acquireProjectile(proj.id, assetManager.getTexture(proj.sprite));
     mesh.position.z = 0.25;
     const reflected = proj.reflected || false;
@@ -811,7 +912,32 @@ export function runEnemyLoop({
     registry.projectileMeshes.forEach((_mesh, id) => {
       if (!liveProjectileIds.has(id)) projectileRemovalScratch.push(id);
     });
-    for (const id of projectileRemovalScratch) registry.removeProjectile(id);
+    for (const id of projectileRemovalScratch) {
+      const sprite = projectileSfxSprites.get(id);
+      if (sprite) {
+        if (isBoulderProjectile(sprite)) {
+          const count = (projectileSfxCounts.get('rock') ?? 1) - 1;
+          if (count <= 0) {
+            projectileSfxCounts.delete('rock');
+            stopBoulderRollLoop?.();
+          } else {
+            projectileSfxCounts.set('rock', count);
+          }
+          playBoulderImpact?.();
+        } else {
+          const count = (projectileSfxCounts.get(sprite) ?? 1) - 1;
+          if (count <= 0) {
+            projectileSfxCounts.delete(sprite);
+            stopProjectileFly?.(sprite);
+          } else {
+            projectileSfxCounts.set(sprite, count);
+          }
+          playProjectileImpact?.(sprite);
+        }
+        projectileSfxSprites.delete(id);
+      }
+      registry.removeProjectile(id);
+    }
   }
 
   const hazards = combatSystem.getFallingScytheHazards();
@@ -819,6 +945,16 @@ export function runEnemyLoop({
   liveHazardIds.clear();
   for (const hazard of hazards) {
     liveHazardIds.add(hazard.id);
+    const previousHazardState = hazardSfxStates.get(hazard.id);
+    if (!previousHazardState) {
+      hazardSfxStates.set(hazard.id, hazard.state);
+      playHazardWarningPulse?.();
+    } else if (previousHazardState !== hazard.state) {
+      hazardSfxStates.set(hazard.id, hazard.state);
+      if (hazard.state === 'striking') {
+        playHazardScytheFall?.();
+      }
+    }
     const meshes = registry.acquireHazard(
       hazard.id,
       assetManager.getTexture('hazard_scythe_marker'),
@@ -880,7 +1016,12 @@ export function runEnemyLoop({
     registry.hazardMeshes.forEach((_mesh, id) => {
       if (!liveHazardIds.has(id)) hazardRemovalScratch.push(id);
     });
-    for (const id of hazardRemovalScratch) registry.removeHazard(id);
+    for (const id of hazardRemovalScratch) {
+      if (hazardSfxStates.delete(id)) {
+        playHazardScytheImpact?.();
+      }
+      registry.removeHazard(id);
+    }
   }
 
   if (state.player.health <= 0 && !isPlayerDead) {

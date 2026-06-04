@@ -82,6 +82,18 @@ const COTTAGE_SHED_FOUNDATION: TileMetadata['foundation'] = {
   ],
 };
 
+// Guilrhym tenement — a tall Victorian block. The prop anchor sits at the building's
+// south base; the mass rises north. Blocks a 4-wide x 3-deep footprint, street in front.
+const TENEMENT_FOUNDATION: TileMetadata['foundation'] = {
+  walkable: false,
+  rows: [
+    { y: -3, xMin: -2, xMax: 2 },
+    { y: -2, xMin: -2, xMax: 2 },
+    { y: -1, xMin: -2, xMax: 2 },
+    { y: 0, xMin: -2, xMax: 2 },
+  ],
+};
+
 const WINDMILL_BODY_FOUNDATION: TileMetadata['foundation'] = {
   walkable: false,
   rows: [
@@ -129,6 +141,7 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   cottage_house_forest_ruined: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8, foundation: COTTAGE_BODY_FOUNDATION },
   cottage_house_ranger: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8, foundation: COTTAGE_ENTRY_FOUNDATION },
   cottage_shed: { isOverlay: true, baseTile: 'dirt', scale: 4.0, sortTrim: 0.25, yOffset: 1.2, foundation: COTTAGE_SHED_FOUNDATION },
+  tenement_facade: { isOverlay: true, baseTile: 'cobblestone', scale: 5.4, sortTrim: 0.3, yOffset: 2.1, foundation: TENEMENT_FOUNDATION },
   rock: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.18 },
   chest: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.32 },
   chest_opened: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.32 },

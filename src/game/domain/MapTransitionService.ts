@@ -128,17 +128,17 @@ export function createMapTransitionService(context: TransitionContext) {
       context.syncPersistentMapState();
       context.setActiveNpcsForCurrentMap();
 
+      const preferredTarget = resolveExteriorExitTarget(sourceMap, targetMap, newMap, targetX, targetY);
+      const safeTarget = context.resolveSafeTransitionPosition(context.world, newMap, preferredTarget.x, preferredTarget.y);
+      context.state.player.position = { x: safeTarget.x, y: safeTarget.y };
+      context.syncPlayerSpatialState(targetMap, safeTarget.x, safeTarget.y);
+
       if (!targetMap.startsWith('interior_')) {
         context.setBiomeForMap(targetMap);
         context.switchMusicTrack(targetMap);
       }
 
       context.triggerSave();
-
-      const preferredTarget = resolveExteriorExitTarget(sourceMap, targetMap, newMap, targetX, targetY);
-      const safeTarget = context.resolveSafeTransitionPosition(context.world, newMap, preferredTarget.x, preferredTarget.y);
-      context.state.player.position = { x: safeTarget.x, y: safeTarget.y };
-      context.syncPlayerSpatialState(targetMap, safeTarget.x, safeTarget.y);
 
       context.resetEnemiesForMap(targetMap, newMap);
       context.applyMapEntryProgression(targetMap);

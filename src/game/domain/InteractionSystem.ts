@@ -17,9 +17,18 @@ interface InteractionSystemContext {
   startDialogue: (dialogueId: string, npcName?: string) => void;
   items: Record<string, Item>;
   playItemGrab: () => void;
+  playGoldPickup: () => void;
+  playEssencePickup: () => void;
   playGrassPull: () => void;
   playChestUnlock: () => void;
   playGateShortcut: () => void;
+  playLeverPull: () => void;
+  playGateOpenHeavy: () => void;
+  playGateLockedHeavy: () => void;
+  playDoorOpenWood: () => void;
+  playDoorCloseWood: () => void;
+  playDoorLocked: () => void;
+  playLadderClimb: () => void;
   emitSparkles: (position: THREE.Vector3) => void;
   emitHeal: (position: THREE.Vector3) => void;
   notify: (message: string, options?: NotificationOptions) => void;
@@ -91,7 +100,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
     context.state.addEssence(dropped.amount);
     context.state.droppedEssence = null;
-    context.playItemGrab();
+    context.playEssencePickup();
     context.emitSparkles(new THREE.Vector3(dropped.x, dropped.y, 0.5));
     context.notify('Essence reclaimed', {
       id: 'essence-reclaim',
@@ -231,6 +240,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       : 15;
 
     context.state.addGold(goldAmount);
+    context.playGoldPickup();
 
     // Per-chest consumable override. Chests not listed here fall through to
     // the default Ephemeral Extract so we keep healing potions broadly available.
@@ -332,6 +342,8 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     const transition = getTransitionAt(px, py);
     if (!transition) return false;
 
+    if (interactionId === 'building_entrance') context.playDoorOpenWood();
+    else context.playDoorCloseWood();
     context.handleMapTransition(transition.targetMap, transition.targetX, transition.targetY);
     return true;
   };
@@ -385,9 +397,11 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
+    context.playLeverPull();
     context.state.setFlag('whispering_woods_shortcut_open', true);
     context.syncWhisperingWoodsShortcutState();
     context.updateWorldChunksAtPlayer();
+    context.playGateOpenHeavy();
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     // Pan camera to the gate that just opened so the player sees the effect.
@@ -406,6 +420,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
   const tryHandleWestCliffGateLever = (interactionId: string): boolean => {
     // Right-side sealed face — player bumped into it from the wrong side.
     if (interactionId === 'west_cliff_gate_sealed') {
+      context.playGateLockedHeavy();
       context.notify('No mechanism on this side.', { id: 'west-cliff-gate-sealed', duration: 2000 });
       return true;
     }
@@ -417,9 +432,11 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
+    context.playLeverPull();
     context.state.setFlag('west_cliff_gate_open', true);
     context.syncWestCliffGateState();
     context.updateWorldChunksAtPlayer();
+    context.playGateOpenHeavy();
     context.playGateShortcut();
     context.showHeroOverlay('Gate Unbarred');
     context.notify('Gate unbarred', {
@@ -442,9 +459,11 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
+    context.playLeverPull();
     context.state.setFlag('grove_shelf_shortcut_open', true);
     context.syncGroveShelfShortcutState();
     context.updateWorldChunksAtPlayer();
+    context.playGateOpenHeavy();
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.startCameraPan?.(-93, 13, 750);
@@ -468,9 +487,11 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
+    context.playLeverPull();
     context.state.setFlag('riverside_bridge_shortcut_open', true);
     context.syncRiversideBridgeShortcutState();
     context.updateWorldChunksAtPlayer();
+    context.playGateOpenHeavy();
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.startCameraPan?.(-1, 7, 750);
@@ -487,6 +508,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
   const tryHandleEastHollowRouteGateLever = (interactionId: string): boolean => {
     if (interactionId === 'east_hollow_route_gate_sealed') {
+      context.playGateLockedHeavy();
       context.notify('No lever on this side.', { id: 'east-hollow-route-gate-sealed', duration: 2000 });
       return true;
     }
@@ -498,9 +520,11 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
+    context.playLeverPull();
     context.state.setFlag('east_hollow_route_gate_open', true);
     context.syncEastHollowRouteGateState();
     context.updateWorldChunksAtPlayer();
+    context.playGateOpenHeavy();
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.startCameraPan?.(89, -93, 750);
@@ -517,6 +541,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
   const tryHandleHollowShortcutLever = (interactionId: string): boolean => {
     if (interactionId === 'hollow_gate_sealed') {
+      context.playGateLockedHeavy();
       context.notify('No lever on this side.', { id: 'hollow-gate-sealed', duration: 2000 });
       return true;
     }
@@ -528,9 +553,11 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
+    context.playLeverPull();
     context.state.setFlag('hollow_shortcut_open', true);
     context.syncHollowShortcutState();
     context.updateWorldChunksAtPlayer();
+    context.playGateOpenHeavy();
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.startCameraPan?.(-28, -100, 750);
@@ -554,6 +581,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
+    context.playLadderClimb();
     context.state.setFlag('hollow_approach_ladder_extended', true);
     context.syncHollowApproachLadderState();
     context.updateWorldChunksAtPlayer();
@@ -586,6 +614,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
+    context.playLadderClimb();
     context.state.setFlag('cliff_corridor_ladder_extended', true);
     context.syncCliffCorridorLadderState();
     context.updateWorldChunksAtPlayer();
@@ -621,6 +650,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
+    context.playLadderClimb();
     context.state.setFlag('fort_ridge_ladder_extended', true);
     context.syncFortRidgeLadderState();
     context.updateWorldChunksAtPlayer();
@@ -649,10 +679,12 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     }
 
     if (!context.state.hasItem('fort_gate_key')) {
+      context.playGateLockedHeavy();
       context.startDialogue('forest_fort_gate_locked');
       return true;
     }
 
+    context.playGateOpenHeavy();
     context.state.setFlag('forest_fort_gate_open', true);
     context.syncForestFortGateState();
     context.syncManuscriptCheckpointGateState();
@@ -680,10 +712,12 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     }
 
     if (!context.state.hasItem('fort_gate_key')) {
+      context.playGateLockedHeavy();
       context.startDialogue('north_fort_gate_locked');
       return true;
     }
 
+    context.playGateOpenHeavy();
     context.state.setFlag('north_fort_gate_open', true);
     context.syncNorthFortGateState();
     context.updateWorldChunksAtPlayer();
@@ -710,10 +744,12 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     }
 
     if (!context.state.hasItem('fort_gate_key')) {
+      context.playGateLockedHeavy();
       context.startDialogue('west_fort_gate_locked');
       return true;
     }
 
+    context.playGateOpenHeavy();
     context.state.setFlag('west_fort_gate_open', true);
     context.syncWestFortGateState();
     context.updateWorldChunksAtPlayer();
@@ -740,10 +776,12 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     }
 
     if (!context.state.hasItem('fort_gate_key')) {
+      context.playGateLockedHeavy();
       context.startDialogue('golem_fort_gate_locked');
       return true;
     }
 
+    context.playGateOpenHeavy();
     context.state.setFlag('golem_fort_gate_open', true);
     context.syncGolemFortGateState();
     context.updateWorldChunksAtPlayer();
@@ -772,11 +810,12 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
   const tryHandleHollowFogGate = (interactionId: string): boolean => {
     if (interactionId === 'guilrhym_fog_gate') {
+      if (context.state.currentMap !== 'guilrhym') return true;
       if (context.state.getFlag('ashen_reaver_defeated')) {
         context.notify('The ashen fog has lifted.', { id: 'fog-gate-clear', duration: 1800 });
         return true;
       }
-      context.notify('A wall of dark fog blocks the way. Something terrible guards the cathedral plaza.', { id: 'fog-gate-locked', duration: 3000 });
+      context.startDialogue('guilrhym_fog_gate_confirm');
       return true;
     }
 
@@ -788,7 +827,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
-    context.handleMapTransition('interior_hollow_arena', 18, 32);
+    context.startDialogue('hollow_fog_gate_confirm');
     return true;
   };
 
@@ -802,9 +841,11 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       return true;
     }
 
+    context.playLeverPull();
     context.state.setFlag(flagKey, true);
     context.syncGuilrhymBossState();
     context.updateWorldChunksAtPlayer();
+    context.playGateOpenHeavy();
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.notify('Shortcut unlocked', {
@@ -911,6 +952,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
     context.state.setFlag(flagKey, true);
     context.state.addGold(10);
+    context.playGoldPickup();
     context.playChestUnlock();
     context.notify('Rummaged through the container', {
       id: `${interactionId}-found`,

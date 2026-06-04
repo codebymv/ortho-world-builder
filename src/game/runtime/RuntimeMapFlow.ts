@@ -1770,12 +1770,18 @@ export function createRuntimeMapFlow({
     }
   };
 
+  const GUILRHYM_ARENA_VICTORY_PORTAL_TARGET = { targetMap: 'village', targetX: 120, targetY: 115 } as const;
+
+  // Cathedral-steps fog gate on the main map. Interacting with it (when the Reaver lives)
+  // transitions the player into interior_guilrhym_cathedral; once the Reaver is defeated the
+  // gate clears to walkable cobblestone. The boss fight itself resolves in the interior arena,
+  // so there is no in-place arena or victory portal on the main map anymore.
   const syncGuilrhymBossState = () => {
     if (state.currentMap !== 'guilrhym') return;
     const map = world.getCurrentMap();
     const defeated = state.getFlag('ashen_reaver_defeated');
 
-    const GATE_Y = 55;
+    const GATE_Y = 45;
     const GATE_CX = 150;
     for (let dx = -3; dx <= 3; dx++) {
       const tx = GATE_CX + dx;
@@ -1795,20 +1801,102 @@ export function createRuntimeMapFlow({
       }
     }
 
-    const PORTAL_Y = 15;
-    const PORTAL_X = 150;
-    const portalRow = map.tiles[PORTAL_Y];
-    if (portalRow) {
-      const el = portalRow[PORTAL_X]?.elevation ?? 0;
-      if (defeated) {
-        portalRow[PORTAL_X] = {
-          type: 'portal' as TileType,
+    // Shortcut portcullis gates. Each is opened by its winch lever (flag <leverId>_open).
+    // Closed: a solid iron gate; open: walkable cobblestone. These collapse the long
+    // detour loops back onto the bonfire spine once the player finds the lever.
+    const shortcutGates: Array<{ flag: string; y0: number; y1: number; x0: number; x1: number; openType: TileType; closedType: TileType }> = [
+      // Lever 1 — the winch portcullis on the direct upper-city ascent (the Heights gate).
+      { flag: 'guilrhym_shortcut_lever_1_open', y0: 116, y1: 118, x0: 146, x1: 154, openType: 'cobblestone', closedType: 'gate' },
+      // Lever 2 — the central canal sluice gate, opening a straight crossing back onto the spine.
+      { flag: 'guilrhym_shortcut_lever_2_open', y0: 169, y1: 175, x0: 146, x1: 154, openType: 'bridge', closedType: 'water' },
+    ];
+    for (const gate of shortcutGates) {
+      const open = state.getFlag(gate.flag);
+      for (let gy = gate.y0; gy <= gate.y1; gy++) {
+        const grow = map.tiles[gy];
+        if (!grow) continue;
+        for (let gx = gate.x0; gx <= gate.x1; gx++) {
+          const gel = grow[gx]?.elevation ?? 0;
+          grow[gx] = open
+            ? { type: gate.openType, walkable: true, elevation: gel }
+            : { type: gate.closedType, walkable: false, elevation: gel };
+        }
+      }
+    }
+
+    world.rebuildChunks();
+  };
+
+  const syncGuilrhymArenaVictoryPortalState = () => {
+    if (state.currentMap !== 'interior_guilrhym_cathedral') return;
+    const map = world.getCurrentMap();
+    const portalX = 18;
+    const portalY = 18;
+    const victoryChests = [
+      { x: 6, y: 6, interactionId: 'guilrhym_arena_chest_nw' },
+      { x: 29, y: 6, interactionId: 'guilrhym_arena_chest_ne' },
+      { x: 6, y: 29, interactionId: 'guilrhym_arena_chest_sw' },
+    ];
+    // Reaver's reward — a special chest at the boss's fall point, 3 tiles south of the portal.
+    const REAVER_CHEST_X = 18;
+    const REAVER_CHEST_Y = 21;
+    const row = map.tiles[portalY];
+    if (!row) return;
+    const el = row[portalX]?.elevation ?? 0;
+    if (state.getFlag('ashen_reaver_defeated')) {
+      row[portalX] = {
+        type: 'portal' as TileType,
+        walkable: true,
+        elevation: el,
+        transition: { ...GUILRHYM_ARENA_VICTORY_PORTAL_TARGET },
+      };
+      const bonfireY = 28;
+      const bonfireRow = map.tiles[bonfireY];
+      if (bonfireRow) {
+        const bel = bonfireRow[portalX]?.elevation ?? 0;
+        bonfireRow[portalX] = {
+          type: 'bonfire_unlit' as TileType,
           walkable: true,
-          elevation: el,
-          transition: { targetMap: 'village', targetX: 120, targetY: 115 },
+          elevation: bel,
+          interactable: true,
+          interactionId: 'guilrhym_arena_bonfire',
         };
-      } else {
-        portalRow[PORTAL_X] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
+      }
+      for (const chest of victoryChests) {
+        const chestRow = map.tiles[chest.y];
+        if (!chestRow) continue;
+        const chestEl = chestRow[chest.x]?.elevation ?? 0;
+        chestRow[chest.x] = {
+          type: 'chest' as TileType,
+          walkable: true,
+          elevation: chestEl,
+          interactable: true,
+          interactionId: chest.interactionId,
+        };
+      }
+      const reaverRow = map.tiles[REAVER_CHEST_Y];
+      if (reaverRow) {
+        const rEl = reaverRow[REAVER_CHEST_X]?.elevation ?? 0;
+        reaverRow[REAVER_CHEST_X] = {
+          type: 'special_chest' as TileType,
+          walkable: true,
+          elevation: rEl,
+          interactable: true,
+          interactionId: 'guilrhym_reaver_chest',
+        };
+      }
+    } else {
+      row[portalX] = { type: 'ruins_floor' as TileType, walkable: true, elevation: el };
+      for (const chest of victoryChests) {
+        const chestRow = map.tiles[chest.y];
+        if (!chestRow) continue;
+        const chestEl = chestRow[chest.x]?.elevation ?? 0;
+        chestRow[chest.x] = { type: 'cobblestone' as TileType, walkable: true, elevation: chestEl };
+      }
+      const reaverRow = map.tiles[REAVER_CHEST_Y];
+      if (reaverRow) {
+        const rEl = reaverRow[REAVER_CHEST_X]?.elevation ?? 0;
+        reaverRow[REAVER_CHEST_X] = { type: 'ruins_floor' as TileType, walkable: true, elevation: rEl };
       }
     }
 
@@ -1833,6 +1921,7 @@ export function createRuntimeMapFlow({
     syncHollowFogGateState();
     syncHollowArenaVictoryPortalState();
     syncGuilrhymBossState();
+    syncGuilrhymArenaVictoryPortalState();
     syncVillageReactivityState();
     syncVillageInteriorReactivityState();
     syncOpenedChestState();
@@ -1943,6 +2032,48 @@ export function createRuntimeMapFlow({
       }
     }
 
+    // Boss arena: spawn the Ashen Reaver at the cathedral nave centre, with two
+    // shadow lurkers anchored to the north corners for crossfire pressure as the
+    // player advances up the nave toward the boss.
+    if (targetMap === 'interior_guilrhym_cathedral' && !state.getFlag('ashen_reaver_defeated')) {
+      const bp = ENEMY_BLUEPRINTS.ashen_reaver;
+      if (bp) {
+        const arenaCenter = { x: 0, y: 0 }; // tile (18,18) -> world (0,0)
+        combatSystem.spawnEnemy(bp.name, arenaCenter, bp.hp, bp.damage, bp.sprite, {
+          speed: bp.speed,
+          attackRange: bp.attackRange,
+          chaseRange: bp.chaseRange,
+          essenceReward: bp.essenceReward,
+          telegraphDuration: bp.telegraphDuration,
+          recoverDuration: bp.recoverDuration,
+          poise: bp.poise,
+          staggerDuration: bp.staggerDuration,
+          behaviorOverrides: bp.behaviorOverrides,
+        });
+      }
+
+      const addBp = ENEMY_BLUEPRINTS.shadow_lurker;
+      if (addBp) {
+        const addCorners = [
+          { x: -7, y: -7 }, // NW corner
+          { x:  6, y: -7 }, // NE corner
+        ];
+        for (const corner of addCorners) {
+          combatSystem.spawnEnemy(addBp.name, corner, addBp.hp, addBp.damage, addBp.sprite, {
+            speed: addBp.speed,
+            attackRange: addBp.attackRange,
+            chaseRange: addBp.chaseRange,
+            essenceReward: addBp.essenceReward,
+            telegraphDuration: addBp.telegraphDuration,
+            recoverDuration: addBp.recoverDuration,
+            poise: addBp.poise,
+            staggerDuration: addBp.staggerDuration,
+            behaviorOverrides: addBp.behaviorOverrides,
+          });
+        }
+      }
+    }
+
     evictEnemiesFromBonfireSafeZones(combatSystem, targetMap);
     if (import.meta.env.DEV) {
       console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
@@ -1999,6 +2130,7 @@ export function createRuntimeMapFlow({
     syncHollowFogGateState,
     syncHollowArenaVictoryPortalState,
     syncGuilrhymBossState,
+    syncGuilrhymArenaVictoryPortalState,
     syncVillageReactivityState,
     syncVillageInteriorReactivityState,
     syncOpenedChestState,

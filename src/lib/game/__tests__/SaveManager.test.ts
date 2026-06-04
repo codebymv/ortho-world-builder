@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import * as THREE from 'three';
 import { SaveManager, type SaveData } from '../SaveManager';
+import { GameState } from '../GameState';
 
 // Minimal in-memory localStorage shim — vitest runs in node, so global
 // localStorage isn't defined by default.
@@ -14,6 +16,7 @@ class MemoryStorage {
 }
 
 const SAVE_KEY = 'rpg_save_data';
+const BOSS_ATTEMPT_CHECKPOINT_KEY = 'rpg_boss_attempt_checkpoint';
 
 beforeEach(() => {
   (globalThis as { localStorage: MemoryStorage }).localStorage = new MemoryStorage();
@@ -180,6 +183,40 @@ describe('SaveManager.hasSave / clearSave', () => {
     localStorage.setItem(SAVE_KEY, '{}');
     SaveManager.clearSave();
     expect(SaveManager.hasSave()).toBe(false);
+  });
+});
+
+describe('SaveManager boss attempt checkpoints', () => {
+  it('saves and loads a normalized pre-boss checkpoint separately from the normal save', () => {
+    const state = new GameState(new THREE.Scene(), new THREE.OrthographicCamera());
+    state.currentMap = 'forest';
+    state.player.position = { x: -28, y: -123 };
+    state.player.health = 69;
+    state.player.essence = 680;
+    state.setFlag('hollow_guardian_defeated', false);
+
+    SaveManager.saveBossAttemptCheckpoint(
+      state,
+      [{ id: 'marker-1', label: 'Fog', tileX: 1, tileY: 2, map: 'forest', type: 'danger', color: '#fff' }],
+      new Set(['forest|122|18']),
+      { bossId: 'hollow_guardian', targetMap: 'interior_hollow_arena' },
+    );
+
+    expect(SaveManager.load()).toBeNull();
+    const checkpoint = SaveManager.loadBossAttemptCheckpoint();
+    expect(checkpoint?.bossId).toBe('hollow_guardian');
+    expect(checkpoint?.targetMap).toBe('interior_hollow_arena');
+    expect(checkpoint?.save.currentMap).toBe('forest');
+    expect(checkpoint?.save.player.position).toEqual({ x: -28, y: -123 });
+    expect(checkpoint?.save.player.health).toBe(69);
+    expect(checkpoint?.save.player.essence).toBe(680);
+    expect(checkpoint?.save.visitedTiles).toEqual(['forest|122|18']);
+  });
+
+  it('clears boss attempt checkpoints', () => {
+    localStorage.setItem(BOSS_ATTEMPT_CHECKPOINT_KEY, JSON.stringify({ save: {} }));
+    SaveManager.clearBossAttemptCheckpoint();
+    expect(localStorage.getItem(BOSS_ATTEMPT_CHECKPOINT_KEY)).toBeNull();
   });
 });
 

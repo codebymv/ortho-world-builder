@@ -270,8 +270,10 @@ export const forestDef: MapDefinition = {
     // === TEMPLE (east) ??? removed; the cliff_face at (238,118,30,56) buries the structure.
     // Ruins props and relocated interactables fill the accessible corridor (x=268-274).
 
-    // === VOLCANO (far north-east) ===
-    { x: 260, y: 20, width: 28, height: 24, type: 'volcano' },
+    // === PRECIPICE RESERVE CALDERA (far north-east) ===
+    // The center is intentionally far beyond the playable bounds: the player only sees
+    // the lower-left lip of a much larger circular mountain mass.
+    { x: 250, y: -54, width: 120, height: 118, type: 'volcano' },
 
     // === FIELD BOSS ARENA ??? stone golem guards the south approach to the fort ===
     { x: 210, y: 175, width: 20, height: 18, type: 'boss_arena', interactionId: 'golem_boss' },
@@ -924,6 +926,9 @@ export const forestDef: MapDefinition = {
   ],
   portals: [
     { x: 150, y: 291, targetMap: 'village', targetX: 120, targetY: 8 },
+    // Guilrhym return landing: makes the post-Hollow city gate route a two-way threshold.
+    // Kept on the lower-left caldera lip so the portal is visible without landing the player in mountain collision.
+    { x: 266, y: 45, targetMap: 'guilrhym', targetX: 150, targetY: 292 },
   ],
   chests: [
     // Shifted east: Hollow river west seal (x???28???91, y???64???79) covers old spot.
@@ -1006,6 +1011,7 @@ export const forestDef: MapDefinition = {
     { x: 291, y: 145, type: 'bonfire', walkable: false, interactionId: 'bonfire_cliff_cemetery' },
     { x: 261, y: 107, type: 'bonfire', walkable: false, interactionId: 'bonfire_east_ridge_overlook' },
     { x: 126, y: 46, type: 'bonfire', walkable: false, interactionId: 'bonfire_deep_hollow' },
+    { x: 256, y: 45, type: 'bonfire', walkable: false, interactionId: 'bonfire_guilrhym_threshold' },
     // West fort — world ~(-130, 5), north of the sealed garrison (logs smother until cleared).
     { x: 20, y: 155, type: 'bonfire', walkable: false, interactionId: 'bonfire_west_fort_north' },
     // West fort ritual hall — world ~(-127, 0), beside the summoning glyph.
@@ -1095,6 +1101,7 @@ export const forestDef: MapDefinition = {
     // (RevenantRituals.ts). East glyph = Tempered Core fight; west glyph = fort boss room.
     { x: 260, y: 142, type: 'summoning_ritual', walkable: true }, // East Ridge Ascent summit (world ~110,-8)
     { x: 18, y: 147, type: 'summoning_ritual', walkable: true },  // West Fort interior (world ~-132,-3)
+    { x: 227, y: 12, type: 'summoning_ritual', walkable: true },  // Precipice west lip (world ~77,-138)
     // Failed ritual (dud) — SE hills; decor ring applied at runtime (RevenantRituals dud hint).
     { x: 273, y: 259, type: 'summoning_ritual_dud', walkable: true }, // world (123, 109)
     { x: 134, y: 133, type: 'summoning_ritual_dud', walkable: true }, // world (-16, -17)
@@ -1147,6 +1154,7 @@ export const forestDef: MapDefinition = {
     // tower (x:222,y:91) so the player can skirt its east edge down to the compound entrance.
     { x: 226, y: 86, type: 'grass', walkable: true },
     { x: 226, y: 89, type: 'grass', walkable: true },
+    // Precipice summoning glyph + decor ring: mapGenerator restampAuthoredRitualGlyphs (world ~77,-138).
     // Hollow approach and shortcut hints are atmosphere, not direct interactables.
     { x: 120, y: 26, type: 'campfire_remains', walkable: false },
     { x: 124, y: 28, type: 'bloodstain', walkable: true },
@@ -1883,8 +1891,8 @@ export const forestDef: MapDefinition = {
     { x: 108, y: 2, width: 94, height: 48, elevation: 2 },
     // === TIER 1: NE fortress ridge ===
     { x: 194, y: 24, width: 98, height: 96, elevation: 1 },
-    // === TIER 2: Far NE volcano peak ===
-    { x: 246, y: 2, width: 46, height: 54, elevation: 2 },
+    // === TIER 2: Far NE caldera lip ===
+    { x: 246, y: 0, width: 54, height: 56, elevation: 2 },
     // === TIER 1: NW ridge (wolf den / ruins area) ===
     { x: 4, y: 2, width: 50, height: 70, elevation: 1 },
     // === TIER 1: West hidden grove hill ===

@@ -34,6 +34,7 @@ interface SetupRuntimeInputPhaseOptions {
   setTransitionDebug: (enabled: boolean) => void;
   runtimeSession: RuntimeSessionState;
   playBlock: () => void;
+  playWeaponChargeStart: () => void;
   performAttack: () => void;
   performChargeAttack: (level: number) => void;
   chargeTimeMin: number;
@@ -72,6 +73,7 @@ export function setupRuntimeInputPhase({
   setTransitionDebug,
   runtimeSession,
   playBlock,
+  playWeaponChargeStart,
   performAttack,
   performChargeAttack,
   chargeTimeMin,
@@ -167,6 +169,7 @@ export function setupRuntimeInputPhase({
       runtimeSession.animation.playerAnimState = value;
     },
     playBlock,
+    playWeaponChargeStart,
     getIsChargingAttack: () => runtimeSession.animation.isChargingAttack,
     setIsChargingAttack: value => {
       runtimeSession.animation.isChargingAttack = value;

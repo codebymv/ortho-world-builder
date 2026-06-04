@@ -24,6 +24,10 @@ export type TileType =
   | 'bonfire_unlit'
   | 'boat_wreck' | 'dock'
   | 'cobblestone_dark' | 'brick' | 'roof_tile' | 'timber_wall'
+  // Guilrhym district pavers + canal ground (authored district identity; see AssetManager)
+  | 'cobble_grand' | 'cobble_market' | 'cobble_residential' | 'waterlogged_cobble' | 'flood_silt' | 'ashen_cobble'
+  // Guilrhym bespoke architecture — tall Victorian overlay structures (see AssetManager + tiles.ts)
+  | 'tenement_facade' | 'townhouse_facade' | 'cathedral_facade'
   | 'street_lamp' | 'iron_railing' | 'fountain' | 'pillar' | 'sewer_grate' | 'hanging_sign' | 'wall_torch' | 'awning'
   | 'rubble' | 'broken_stall' | 'crate_stack' | 'barrel_stack' | 'chimney'
   | 'cottage_shed'
@@ -162,6 +166,7 @@ const OVERLAY_CULL_EXEMPT_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'house_thatch', 'house_thatch_entry',
   'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
   'cottage_house_ranger', 'cottage_shed',
+  'tenement_facade', 'townhouse_facade', 'cathedral_facade',
   'windmill', 'ridge_lumberyard', 'observatory',
   'heresy_altar', 'heresy_altar_cracked', 'summoning_ritual', 'summoning_ritual_dud',
   'shortcut_lever',
@@ -178,11 +183,11 @@ const ELEVATION_CONNECTOR_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'wooden_path',
 ]);
 
-export const SPINE_ELEVATION_TILE_TYPES: ReadonlySet<TileType> = new Set(['dirt', 'grass', 'sand', 'hollow_blight', 'cobblestone']);
+export const SPINE_ELEVATION_TILE_TYPES: ReadonlySet<TileType> = new Set(['dirt', 'grass', 'sand', 'hollow_blight', 'cobblestone', 'cobble_grand', 'cobble_market', 'cobble_residential', 'waterlogged_cobble', 'flood_silt', 'ashen_cobble', 'ash', 'volcanic_rock', 'rock', 'dead_tree']);
 
 export function isSpinePathElevationTile(tile: Tile | null): boolean {
   if (!tile?.walkable || !tile.spinePath) return false;
-  return SPINE_ELEVATION_TILE_TYPES.has(tile.type);
+  return SPINE_ELEVATION_TILE_TYPES.has(tile.type) || HEIGHT_TILE_TYPES.has(tile.type);
 }
 
 /** Authored dirt/grass spine tiles may step ±1 elevation without stair/ladder connectors. */
@@ -229,10 +234,14 @@ const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'destroyed_house',
   'destroyed_house_rubble',
   'destroyed_house_overgrown',
+  'tenement_facade',
+  'townhouse_facade',
+  'cathedral_facade',
 ]);
 const OVERWORLD_STRUCTURE_SCALE_MULTIPLIER = 1.18;
 const BLOODSTAIN_VARIANT_COUNT = 16;
 const RUINED_FOREST_COTTAGE_VARIANT_COUNT = 12;
+const GUILRHYM_TENEMENT_VARIANT_COUNT = 12;
 
 function packTileKey(tileX: number, tileY: number): number {
   return tileY * TILE_KEY_STRIDE + tileX;
@@ -275,10 +284,16 @@ function getRuinedForestCottageTextureId(tileX: number, tileY: number): string {
   return `cottage_house_forest_ruined_variant_${Math.min(RUINED_FOREST_COTTAGE_VARIANT_COUNT - 1, variant)}`;
 }
 
+function getGuilrhymTenementTextureId(tileX: number, tileY: number): string {
+  const variant = Math.floor(tileHash(tileX, tileY, 613) * GUILRHYM_TENEMENT_VARIANT_COUNT);
+  return `tenement_facade_variant_${Math.min(GUILRHYM_TENEMENT_VARIANT_COUNT - 1, variant)}`;
+}
+
 function getOverlayTextureId(tileType: TileType, tileX: number | undefined, tileY: number | undefined): string {
   if (tileX === undefined || tileY === undefined) return tileType;
   if (tileType === 'bloodstain') return getBloodstainTextureId(tileX, tileY);
   if (tileType === 'cottage_house_forest_ruined') return getRuinedForestCottageTextureId(tileX, tileY);
+  if (tileType === 'tenement_facade') return getGuilrhymTenementTextureId(tileX, tileY);
   return tileType;
 }
 

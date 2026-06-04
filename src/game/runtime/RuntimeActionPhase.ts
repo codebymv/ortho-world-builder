@@ -6,7 +6,7 @@ import type { RuntimeSessionState } from '@/game/runtime/RuntimeSessionState';
 import type { Direction8 } from '@/game/runtime/PlayerSimulationSystem';
 import type { World, WorldMap } from '@/lib/game/World';
 import type { BreakableWorld } from '@/game/runtime/BreakableProps';
-import type { CombatSystem } from '@/lib/game/Combat';
+import type { CombatSystem, Enemy } from '@/lib/game/Combat';
 import type { FloatingTextSystem } from '@/lib/game/FloatingText';
 import type { ScreenShake } from '@/lib/game/ScreenShake';
 import type { ParticleSystem } from '@/lib/game/ParticleSystem';
@@ -185,6 +185,33 @@ export function setupRuntimeActionPhase({
     musicStarted,
   });
 
+  const playWeaponHitForEnemy = (enemy: Enemy) => {
+    switch (enemy.type) {
+      case 'skeleton':
+      case 'skeleton_captain':
+        sfx.playWeaponHitBone();
+        return;
+      case 'golem':
+      case 'stone_sentinel':
+        sfx.playWeaponHitStone();
+        return;
+      case 'plant':
+        sfx.playWeaponHitPlant();
+        return;
+      case 'shadow':
+      case 'shadow_lurker':
+      case 'hollow_reaver':
+      case 'void_wisp':
+      case 'hollow_guardian':
+      case 'ashen_reaver':
+      case 'ridge_revenant':
+        sfx.playWeaponHitEthereal();
+        return;
+      default:
+        sfx.playWeaponHitFlesh();
+    }
+  };
+
   const bonfireActions = createBonfireRestAction({
     state,
     world,
@@ -229,12 +256,17 @@ export function setupRuntimeActionPhase({
     screenShake,
     particleSystem,
     playPropBreak: sfx.playPropBreak,
+    playTallGrassBreak: sfx.playTallGrassBreak,
     enemyAudio: sfx.enemyAudio,
     notify,
     triggerUIUpdate,
-    playItemGrab: sfx.playItemGrab,
+    playEssencePickup: sfx.playEssencePickup,
     playSwordSwing: sfx.playSwordSwing,
     playBladeSheath: sfx.playBladeSheath,
+    playWeaponHit: playWeaponHitForEnemy,
+    playWeaponChargeRelease: sfx.playWeaponChargeRelease,
+    playWeaponArcWave: sfx.playWeaponArcWave,
+    playStaggerEnemy: sfx.playStaggerEnemy,
     getKillCount,
     setKillCount,
     getCurrentDir8,
@@ -309,6 +341,8 @@ export function setupRuntimeActionPhase({
       runtimeSession.lunge.damage = damage;
       runtimeSession.lunge.hitEnemyIds.clear();
     },
+    playHeresyAltarHit: sfx.playHeresyAltarHit,
+    playHeresyAltarBreak: sfx.playHeresyAltarBreak,
     triggerSave,
     onBossDefeated: () => {
       syncHollowArenaVictoryPortalState();
@@ -328,9 +362,18 @@ export function setupRuntimeActionPhase({
     setCurrentDialogue,
     addMarkersFromText,
     playItemGrab: sfx.playItemGrab,
+    playGoldPickup: sfx.playGoldPickup,
+    playEssencePickup: sfx.playEssencePickup,
     playGrassPull: sfx.playGrassPull,
     playChestUnlock: sfx.playChestUnlock,
     playGateShortcut: sfx.playGateShortcut,
+    playLeverPull: sfx.playLeverPull,
+    playGateOpenHeavy: sfx.playGateOpenHeavy,
+    playGateLockedHeavy: sfx.playGateLockedHeavy,
+    playDoorOpenWood: sfx.playDoorOpenWood,
+    playDoorCloseWood: sfx.playDoorCloseWood,
+    playDoorLocked: sfx.playDoorLocked,
+    playLadderClimb: sfx.playLadderClimb,
     particleSystem,
     notify,
     triggerSave,
@@ -370,6 +413,14 @@ export function setupRuntimeActionPhase({
     startCameraPan: scheduleCameraPan,
     hasDialogue,
     onWorldItemPickup: (itemId: string) => {
+      if (
+        itemId === 'manuscript_fragment' ||
+        itemId === 'hunters_manuscript' ||
+        itemId === 'wolf_ring' ||
+        itemId === 'gravebound_ring'
+      ) {
+        sfx.playKeyItemDiscovered();
+      }
       if (itemId === 'manuscript_fragment') {
         state.setFlag('manuscript_fragment_collected', true);
         const q = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
@@ -457,9 +508,33 @@ export function setupRuntimeActionPhase({
     playPotionDrink: sfx.playPotionDrink,
     playGrassChew: sfx.playGrassChew,
     playBlock: sfx.playBlock,
+    playWeaponChargeStart: sfx.playWeaponChargeStart,
+    playWeaponHit: playWeaponHitForEnemy,
+    playStaggerEnemy: sfx.playStaggerEnemy,
+    playParrySuccess: sfx.playParrySuccess,
+    playParryProjectile: sfx.playParryProjectile,
+    playGuardBreak: sfx.playGuardBreak,
     playPlayerHit: sfx.playPlayerHit,
     playSwordSwing: sfx.playSwordSwing,
     playHeroEvent: sfx.playHeroEvent,
+    playRitualSummonStart: sfx.playRitualSummonStart,
+    playPlantIdle: sfx.playPlantIdle,
+    playPlantLash: sfx.playPlantLash,
+    playHollowReaverAttack: sfx.playHollowReaverAttack,
+    playProjectileCast: sfx.playProjectileCast,
+    startProjectileFly: sfx.startProjectileFly,
+    stopProjectileFly: sfx.stopProjectileFly,
+    playProjectileImpact: sfx.playProjectileImpact,
+    playProjectileReflect: sfx.playProjectileReflect,
+    playHazardWarningPulse: sfx.playHazardWarningPulse,
+    playHazardScytheFall: sfx.playHazardScytheFall,
+    playHazardScytheImpact: sfx.playHazardScytheImpact,
+    startBoulderRollLoop: sfx.startBoulderRollLoop,
+    stopBoulderRollLoop: sfx.stopBoulderRollLoop,
+    playBoulderImpact: sfx.playBoulderImpact,
+    playVendorPurchase: sfx.playVendorPurchase,
+    playInventoryEquip: sfx.playInventoryEquip,
+    playInventoryUnequip: sfx.playInventoryUnequip,
     playGateShortcut: sfx.playGateShortcut,
     startPortalChargeLoop: sfx.startPortalChargeLoop,
     stopPortalChargeLoop: sfx.stopPortalChargeLoop,
@@ -473,6 +548,10 @@ export function setupRuntimeActionPhase({
     startStormLoop: sfx.startStormLoop,
     stopStormLoop: sfx.stopStormLoop,
     playThunder: sfx.playThunder,
+    setOutdoorsLoopState: sfx.setOutdoorsLoopState,
+    startCorruptionIdleLoop: sfx.startCorruptionIdleLoop,
+    stopCorruptionIdleLoop: sfx.stopCorruptionIdleLoop,
+    setCorruptionIdleLoopIntensity: sfx.setCorruptionIdleLoopIntensity,
     consumePotion,
     checkInteraction,
     performDodge,

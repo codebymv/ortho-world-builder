@@ -4,6 +4,7 @@ import { items } from '../../data/items';
 import { migrateFindHunterObjectiveOrder } from './findHunterProgression';
 
 const SAVE_KEY = 'rpg_save_data';
+const BOSS_ATTEMPT_CHECKPOINT_KEY = 'rpg_boss_attempt_checkpoint';
 const SAVE_VERSION = 8;
 
 export interface SaveData {
@@ -40,6 +41,15 @@ export interface SaveData {
   visitedTiles: string[];
   seenItemIds: string[];
   killedEnemyIds?: string[];
+}
+
+export interface BossAttemptCheckpointMetadata {
+  bossId: 'hollow_guardian';
+  targetMap: 'interior_hollow_arena';
+}
+
+export interface BossAttemptCheckpointData extends BossAttemptCheckpointMetadata {
+  save: SaveData;
 }
 
 // Loose shape used during migration — every field optional so we can defensively
@@ -258,43 +268,47 @@ function normalizeSave(raw: RawSave): SaveData {
   };
 }
 
+function createSaveData(state: GameState, mapMarkers: MapMarker[], visitedTiles: Set<string>): SaveData {
+  return {
+    version: SAVE_VERSION,
+    timestamp: Date.now(),
+    player: {
+      position: { ...state.player.position },
+      direction: state.player.direction,
+      health: state.player.health,
+      maxHealth: state.player.maxHealth,
+      gold: state.player.gold,
+      essence: state.player.essence,
+      cursedSediment: state.player.cursedSediment,
+      attackDamage: state.player.attackDamage,
+      attackRange: state.player.attackRange,
+      stamina: state.player.stamina,
+      maxStamina: state.player.maxStamina,
+      level: state.player.level,
+      vitality: state.player.vitality,
+      endurance: state.player.endurance,
+      strength: state.player.strength,
+    },
+    currentMap: state.currentMap,
+    inventory: state.inventory.map(i => ({ ...i })),
+    equippedWeaponId: state.equippedWeaponId,
+    equippedRingIds: [...state.equippedRingIds],
+    weaponLoadout: [...state.weaponLoadout],
+    lastBonfire: state.lastBonfire ? { ...state.lastBonfire } : null,
+    droppedEssence: state.droppedEssence ? { ...state.droppedEssence } : null,
+    worldItems: state.worldItems.map(wi => ({ ...wi })),
+    quests: state.quests.map(q => ({ ...q, objectives: [...q.objectives], reward: q.reward ? { ...q.reward } : undefined })),
+    gameFlags: { ...state.gameFlags },
+    mapMarkers: mapMarkers.map(m => ({ ...m })),
+    visitedTiles: Array.from(visitedTiles),
+    seenItemIds: Array.from(state.seenItemIds),
+    killedEnemyIds: Array.from(state.killedEnemyIds),
+  };
+}
+
 export class SaveManager {
   static save(state: GameState, mapMarkers: MapMarker[], visitedTiles: Set<string>): void {
-    const data: SaveData = {
-      version: SAVE_VERSION,
-      timestamp: Date.now(),
-      player: {
-        position: { ...state.player.position },
-        direction: state.player.direction,
-        health: state.player.health,
-        maxHealth: state.player.maxHealth,
-        gold: state.player.gold,
-        essence: state.player.essence,
-        cursedSediment: state.player.cursedSediment,
-        attackDamage: state.player.attackDamage,
-        attackRange: state.player.attackRange,
-        stamina: state.player.stamina,
-        maxStamina: state.player.maxStamina,
-        level: state.player.level,
-        vitality: state.player.vitality,
-        endurance: state.player.endurance,
-        strength: state.player.strength,
-      },
-      currentMap: state.currentMap,
-      inventory: state.inventory.map(i => ({ ...i })),
-      equippedWeaponId: state.equippedWeaponId,
-      equippedRingIds: [...state.equippedRingIds],
-      weaponLoadout: [...state.weaponLoadout],
-      lastBonfire: state.lastBonfire ? { ...state.lastBonfire } : null,
-      droppedEssence: state.droppedEssence ? { ...state.droppedEssence } : null,
-      worldItems: state.worldItems.map(wi => ({ ...wi })),
-      quests: state.quests.map(q => ({ ...q, objectives: [...q.objectives], reward: q.reward ? { ...q.reward } : undefined })),
-      gameFlags: { ...state.gameFlags },
-      mapMarkers: mapMarkers.map(m => ({ ...m })),
-      visitedTiles: Array.from(visitedTiles),
-      seenItemIds: Array.from(state.seenItemIds),
-      killedEnemyIds: Array.from(state.killedEnemyIds),
-    };
+    const data = createSaveData(state, mapMarkers, visitedTiles);
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     } catch (e) {
@@ -328,6 +342,65 @@ export class SaveManager {
     // Versions 1-4 (and any unset/future) all go through the same defensive
     // normalizer — it tolerates missing fields and fills them with safe defaults.
     return normalizeSave(parsed as RawSave);
+  }
+
+  static saveBossAttemptCheckpoint(
+    state: GameState,
+    mapMarkers: MapMarker[],
+    visitedTiles: Set<string>,
+    metadata: BossAttemptCheckpointMetadata,
+  ): void {
+    const data: BossAttemptCheckpointData = {
+      ...metadata,
+      save: createSaveData(state, mapMarkers, visitedTiles),
+    };
+    try {
+      localStorage.setItem(BOSS_ATTEMPT_CHECKPOINT_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.warn('[SaveManager] Failed to save boss checkpoint:', e);
+    }
+  }
+
+  static loadBossAttemptCheckpoint(): BossAttemptCheckpointData | null {
+    let raw: string | null;
+    try {
+      raw = localStorage.getItem(BOSS_ATTEMPT_CHECKPOINT_KEY);
+    } catch (e) {
+      console.warn('[SaveManager] localStorage unavailable:', e);
+      return null;
+    }
+    if (!raw) return null;
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      console.error('[SaveManager] Corrupt boss checkpoint (invalid JSON):', e);
+      return null;
+    }
+
+    if (!isObject(parsed) || !isObject(parsed.save)) {
+      console.error('[SaveManager] Corrupt boss checkpoint (not an object)');
+      return null;
+    }
+    if (parsed.bossId !== 'hollow_guardian' || parsed.targetMap !== 'interior_hollow_arena') {
+      console.error('[SaveManager] Corrupt boss checkpoint (unknown metadata)');
+      return null;
+    }
+
+    return {
+      bossId: parsed.bossId,
+      targetMap: parsed.targetMap,
+      save: normalizeSave(parsed.save as RawSave),
+    };
+  }
+
+  static clearBossAttemptCheckpoint(): void {
+    try {
+      localStorage.removeItem(BOSS_ATTEMPT_CHECKPOINT_KEY);
+    } catch (e) {
+      console.warn('[SaveManager] Failed to clear boss checkpoint:', e);
+    }
   }
 
   static hasSave(): boolean {

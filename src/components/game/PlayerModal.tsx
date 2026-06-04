@@ -23,6 +23,8 @@ interface PlayerModalProps {
   gameState: GameState;
   assetManager: AssetManager | null;
   triggerUIUpdate: () => void;
+  playInventoryEquip?: () => void;
+  playInventoryUnequip?: () => void;
 }
 
 const getItemIcon = (item: Item, className: string, assetManager?: AssetManager | null) => {
@@ -84,6 +86,8 @@ export const PlayerModal = memo(({
   gameState,
   assetManager,
   triggerUIUpdate,
+  playInventoryEquip,
+  playInventoryUnequip,
 }: PlayerModalProps) => {
   const [selectedWeaponId, setSelectedWeaponId] = useState<string | null>(null);
   const [selectedRingId, setSelectedRingId] = useState<string | null>(null);
@@ -139,6 +143,7 @@ export const PlayerModal = memo(({
     if (selectedWeaponId) {
       gameState.assignWeaponToLoadout(selectedWeaponId, slotIndex);
       setSelectedWeaponId(null);
+      playInventoryEquip?.();
       triggerUIUpdate();
       return;
     }
@@ -146,6 +151,7 @@ export const PlayerModal = memo(({
     const current = gameState.weaponLoadout[slotIndex];
     if (current) {
       gameState.setEquippedWeapon(current);
+      playInventoryEquip?.();
       triggerUIUpdate();
     }
   };
@@ -154,12 +160,14 @@ export const PlayerModal = memo(({
     if (selectedRingId) {
       gameState.equipRing(selectedRingId, slotIndex);
       setSelectedRingId(null);
+      playInventoryEquip?.();
       triggerUIUpdate();
       return;
     }
 
     if (gameState.equippedRingIds[slotIndex]) {
       gameState.unequipRing(slotIndex);
+      playInventoryUnequip?.();
       triggerUIUpdate();
     }
   };
@@ -178,6 +186,7 @@ export const PlayerModal = memo(({
     const empty = gameState.findEmptyWeaponLoadoutSlot();
     if (empty !== null) {
       gameState.assignWeaponToLoadout(weaponId, empty);
+      playInventoryEquip?.();
       triggerUIUpdate();
     }
   };
@@ -188,6 +197,7 @@ export const PlayerModal = memo(({
     const empty = gameState.findEmptyRingSlot();
     if (empty !== null) {
       gameState.equipRing(ringId, empty);
+      playInventoryEquip?.();
       triggerUIUpdate();
       return;
     }

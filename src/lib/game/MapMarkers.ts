@@ -75,8 +75,8 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
 
   // Guilrhym
   { keywords: ['guilrhym', 'city', 'victorian', 'urban'], tileX: 150, tileY: 150, map: 'guilrhym', label: 'Guilrhym', type: 'danger', color: '#696969' },
-  { keywords: ['oliver', 'injured warrior'], tileX: 148, tileY: 273, map: 'guilrhym', label: 'Oliver', type: 'npc', color: '#CD853F' },
-  { keywords: ['cathedral', 'reaver', 'ashen reaver'], tileX: 150, tileY: 30, map: 'guilrhym', label: 'Cathedral Plaza', type: 'danger', color: '#8B0000' },
+  { keywords: ['oliver', 'injured warrior'], tileX: 135, tileY: 268, map: 'guilrhym', label: 'Oliver', type: 'npc', color: '#CD853F' },
+  { keywords: ['cathedral', 'reaver', 'ashen reaver'], tileX: 150, tileY: 48, map: 'guilrhym', label: 'Cathedral Steps', type: 'danger', color: '#8B0000' },
   { keywords: ['terminus scythe', 'scythe'], tileX: 18, tileY: 21, map: 'guilrhym', label: 'Terminus Scythe', type: 'quest', color: '#4B0082' },
 
   // Enemies

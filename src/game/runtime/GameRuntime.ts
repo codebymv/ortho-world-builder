@@ -110,7 +110,14 @@ export function createGameRuntime({
   const corruptionFilter = new CorruptionFilter(scene);
   const altitudeHaze = new AltitudeHaze(scene);
 
-  const savedData = SaveManager.load();
+  const normalSave = SaveManager.load();
+  const bossAttemptCheckpoint = SaveManager.loadBossAttemptCheckpoint();
+  const shouldRestoreBossCheckpoint =
+    normalSave?.currentMap === 'interior_hollow_arena' &&
+    !normalSave.gameFlags.hollow_guardian_defeated &&
+    bossAttemptCheckpoint?.bossId === 'hollow_guardian' &&
+    bossAttemptCheckpoint.targetMap === 'interior_hollow_arena';
+  const savedData = shouldRestoreBossCheckpoint ? bossAttemptCheckpoint.save : normalSave;
   const rawStartMap = savedData?.currentMap || 'village';
   const startMap = (rawStartMap in mapDefinitions) ? rawStartMap : 'village';
   assetManager.warmupEnemyTexturesForZones(mapDefinitions[startMap]?.enemyZones);

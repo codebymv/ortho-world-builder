@@ -15,8 +15,9 @@ interface UseGameMusicOptions {
 const MAP_MUSIC_MAP: Record<string, string> = {
   village: './audio/ortho_loop2.mp3',
   forest: './audio/wood_theme.mp3',
-  forest_hollow: './audio/guilrhym_theme.mp3',
-  guilrhym: './audio/guilrhym_theme.mp3',
+  forest_hollow: './audio/gilrhym_theme.mp3',
+  forest_hollow_deep: './audio/gilrhym_theme.mp3',
+  guilrhym: './audio/gilrhym_theme.mp3',
   victory: './audio/victory_theme.mp3',
 };
 
@@ -42,7 +43,7 @@ export function useGameMusic({
    * Resolve the *initial* music key for a fresh load, accounting for the
    * hollow sub-region inside the forest map. Without this, refreshing in the
    * hollow loads wood_theme first and the loop tail immediately crossfades to
-   * guilrhym_theme — you hear both songs overlap for the fade duration.
+   * the Guilrhym theme — you hear both songs overlap for the fade duration.
    *
    * Critically: this hook's mount effect fires BEFORE `setupGameRuntime`
    * populates `gameStateRef.current`, so on first load the ref is null. We
@@ -101,6 +102,7 @@ export function useGameMusic({
   useEffect(() => {
     const initialKey = resolveInitialMapKey(gameStateRef.current);
     const audio = musicDirector.initializeMusic(initialKey);
+    let startOnInteraction: (() => void) | null = null;
 
     const tryPlay = () => {
       void resumeAudioProcessor();
@@ -131,9 +133,9 @@ export function useGameMusic({
       const iframe = document.querySelector('iframe');
       const container = document.getElementById('game-container');
 
-      const startOnInteraction = () => {
+      startOnInteraction = () => {
         if (!musicStarted.current) {
-          startMusicOnAction();
+          startMusic();
         }
       };
 
@@ -157,8 +159,16 @@ export function useGameMusic({
       musicDirector.disposeMusic();
       audio.pause();
       audio.src = '';
-      window.removeEventListener('click', startMusic);
-      window.removeEventListener('keydown', startMusic);
+      if (startOnInteraction) {
+        window.removeEventListener('click', startOnInteraction);
+        window.removeEventListener('keydown', startOnInteraction);
+        window.removeEventListener('touchstart', startOnInteraction);
+        document.removeEventListener('click', startOnInteraction);
+        document.removeEventListener('keydown', startOnInteraction);
+        document.getElementById('game-container')?.removeEventListener('click', startOnInteraction);
+        document.getElementById('game-container')?.removeEventListener('keydown', startOnInteraction);
+        document.querySelector('iframe')?.removeEventListener('load', startOnInteraction);
+      }
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [cleanupAudioProcessor, gameStateRef, musicDirector, resolveMusicTrack, resolveInitialMapKey, resumeAudioProcessor]);

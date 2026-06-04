@@ -47,6 +47,7 @@ import {
 import { buildRuntimePhaseContexts } from '@/game/runtime/RuntimePhaseContextBuilder';
 import { createWorldItemRenderer } from '@/game/runtime/WorldItemRenderer';
 import type { PerfProfiler } from '@/game/runtime/PerfProfiler';
+import { HOLLOW_MUSIC_ENTER_Y } from '@/game/runtime/RuntimeLoopTail';
 import {
   registerRevenantRitualDevCommands,
   unregisterRevenantRitualDevCommands,
@@ -59,6 +60,9 @@ type CurrentDialogueState = { node: DialogueNode; npcName: string } | null;
 const PLAYER_BASE_SCALE = 1.06;
 const NPC_FOOT_OFFSET = 0.42;
 const HEAL_COOLDOWN_MS = 30000;
+
+const resolveMusicKeyForPosition = (mapId: string, playerY: number) =>
+  mapId === 'forest' && playerY <= HOLLOW_MUSIC_ENTER_Y ? 'forest_hollow' : mapId;
 
 interface DialogueProgression {
   selectDialogueStartNode: (state: GameState, dialogueId: string) => DialogueNode | null | undefined;
@@ -110,8 +114,12 @@ export interface RuntimeHostRefs {
   stopDialogueLoopRef: MutableRefObject<(() => void) | null>;
   playMenuOpenRef: MutableRefObject<(() => void) | null>;
   playMenuCloseRef: MutableRefObject<(() => void) | null>;
+  playVendorPurchaseRef: MutableRefObject<(() => void) | null>;
+  playInventoryEquipRef: MutableRefObject<(() => void) | null>;
+  playInventoryUnequipRef: MutableRefObject<(() => void) | null>;
   restAtBonfireRef: MutableRefObject<(() => void) | null>;
   travelToBonfireRef: MutableRefObject<((entry: import('@/data/bonfires').BonfireEntry) => void) | null>;
+  handleMapTransitionRef: MutableRefObject<((targetMap: string, targetX: number, targetY: number) => void) | null>;
   killCountRef: MutableRefObject<number>;
 }
 
@@ -205,8 +213,12 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       stopDialogueLoopRef,
       playMenuOpenRef,
       playMenuCloseRef,
+      playVendorPurchaseRef,
+      playInventoryEquipRef,
+      playInventoryUnequipRef,
       restAtBonfireRef,
       travelToBonfireRef,
+      handleMapTransitionRef,
       killCountRef,
     },
     ui: {
@@ -236,7 +248,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       triggerMinimapUpdate,
       createDialogueProgression,
       closeDialogueSession,
-      switchMusicTrack,
+      switchMusicTrack: rawSwitchMusicTrack,
       processAudioElement,
       showHeroOverlay,
       openBonfireMenu,
@@ -308,6 +320,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       startMap,
       frustumSize,
     } = runtime;
+    const switchMusicTrack = (mapId: string) => {
+      rawSwitchMusicTrack(resolveMusicKeyForPosition(mapId, state.player.position.y));
+    };
     const isNpcPriorityCueTarget = (npc: NPC) => {
       if (isNpcObjectiveTarget(npc, state.currentMap, mapMarkersRef.current)) {
         const primaryObjectiveText = getPrimaryObjectiveText(state);
@@ -468,6 +483,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
 
     // Save helper
     const triggerSave = () => {
+      if (state.currentMap === 'interior_hollow_arena' && !state.getFlag('hollow_guardian_defeated')) {
+        return;
+      }
       SaveManager.save(state, mapMarkersRef.current, visitedTilesRef.current);
     };
 
@@ -705,13 +723,41 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       playPotionDrink,
       playGrassChew,
       playBlock,
+      playWeaponChargeStart,
+      playWeaponHit,
+      playStaggerEnemy,
+      playParrySuccess,
+      playParryProjectile,
+      playGuardBreak,
       playPlayerHit,
       playSwordSwing,
       playPropBreak,
       startStormLoop,
       stopStormLoop,
+      setOutdoorsLoopState,
+      startCorruptionIdleLoop,
+      stopCorruptionIdleLoop,
+      setCorruptionIdleLoopIntensity,
       playThunder,
       playHeroEvent,
+      playRitualSummonStart,
+      playPlantIdle,
+      playPlantLash,
+      playHollowReaverAttack,
+      playProjectileCast,
+      startProjectileFly,
+      stopProjectileFly,
+      playProjectileImpact,
+      playProjectileReflect,
+      playHazardWarningPulse,
+      playHazardScytheFall,
+      playHazardScytheImpact,
+      startBoulderRollLoop,
+      stopBoulderRollLoop,
+      playBoulderImpact,
+      playVendorPurchase,
+      playInventoryEquip,
+      playInventoryUnequip,
       startPortalChargeLoop,
       stopPortalChargeLoop,
       playPortalWarp,
@@ -821,13 +867,41 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           playPotionDrink: () => {},
           playGrassChew: () => {},
           playBlock: () => {},
+          playWeaponChargeStart: () => {},
+          playWeaponHit: () => {},
+          playStaggerEnemy: () => {},
+          playParrySuccess: () => {},
+          playParryProjectile: () => {},
+          playGuardBreak: () => {},
           playPlayerHit: () => {},
           playSwordSwing: () => {},
           playPropBreak: () => {},
           startStormLoop: () => {},
           stopStormLoop: () => {},
+          setOutdoorsLoopState: () => {},
+          startCorruptionIdleLoop: () => {},
+          stopCorruptionIdleLoop: () => {},
+          setCorruptionIdleLoopIntensity: () => {},
           playThunder: () => {},
           playHeroEvent: () => {},
+          playRitualSummonStart: () => {},
+          playPlantIdle: () => {},
+          playPlantLash: () => {},
+          playHollowReaverAttack: () => {},
+          playProjectileCast: () => {},
+          startProjectileFly: () => {},
+          stopProjectileFly: () => {},
+          playProjectileImpact: () => {},
+          playProjectileReflect: () => {},
+          playHazardWarningPulse: () => {},
+          playHazardScytheFall: () => {},
+          playHazardScytheImpact: () => {},
+          startBoulderRollLoop: () => {},
+          stopBoulderRollLoop: () => {},
+          playBoulderImpact: () => {},
+          playVendorPurchase: () => {},
+          playInventoryEquip: () => {},
+          playInventoryUnequip: () => {},
           startPortalChargeLoop: () => {},
           stopPortalChargeLoop: () => {},
           playPortalWarp: () => {},
@@ -859,8 +933,12 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     stopDialogueLoopRef.current = stopDialogueLoop;
     playMenuOpenRef.current = playMenuOpen;
     playMenuCloseRef.current = playMenuClose;
+    playVendorPurchaseRef.current = playVendorPurchase;
+    playInventoryEquipRef.current = playInventoryEquip;
+    playInventoryUnequipRef.current = playInventoryUnequip;
     restAtBonfireRef.current = restAtBonfire;
     travelToBonfireRef.current = travelToBonfire;
+    handleMapTransitionRef.current = handleMapTransition;
 
     const { keys, detachDomEvents } = (() => {
       try {
@@ -898,6 +976,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           },
           runtimeSession,
           playBlock,
+          playWeaponChargeStart,
           consumePotion,
           performAttack,
           performChargeAttack,
@@ -991,6 +1070,8 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             // CC-lock everything in its path. Staggering from the wave is reserved for
             // a future weapon whose kit is built around that effect.
             const result = combatSystem.playerAttack(enemy, damage, state.player.position, state.player.direction, 0.3);
+            playWeaponHit(enemy);
+            if (result.staggered) playStaggerEnemy();
             const actualDamage = enemy.state === 'staggered'
               ? Math.floor(damage * getStaggerDamageMultiplier(enemy.type))
               : damage;
@@ -1010,6 +1091,8 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
               state.player.position,
               state.player.direction,
             );
+            playWeaponHit(enemy);
+            if (result.staggered) playStaggerEnemy();
             const actualDamage = enemy.state === 'staggered'
               ? Math.floor(damage * getStaggerDamageMultiplier(enemy.type))
               : damage;
@@ -1076,9 +1159,31 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           enemyAudio,
       playPlayerHit,
       playBossAttack: playSwordSwing,
+      playParrySuccess,
+      playParryProjectile,
+      playGuardBreak,
       playPropBreak,
+      playRitualSummonStart,
+      playPlantIdle,
+      playPlantLash,
+      playHollowReaverAttack,
+      playProjectileCast,
+      startProjectileFly,
+      stopProjectileFly,
+      playProjectileImpact,
+      playProjectileReflect,
+      playHazardWarningPulse,
+      playHazardScytheFall,
+      playHazardScytheImpact,
+      startBoulderRollLoop,
+      stopBoulderRollLoop,
+      playBoulderImpact,
       startStormLoop,
       stopStormLoop,
+      setOutdoorsLoopState,
+      startCorruptionIdleLoop,
+      stopCorruptionIdleLoop,
+      setCorruptionIdleLoopIntensity,
       playThunder,
       switchMusicTrack,
       shadowGeometry,
@@ -1208,6 +1313,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       getCombat: () => combatSystemRef.current,
       getWorld: () => worldRef.current,
       onChanged: triggerUIUpdate,
+      transitionTo: (mapId, tileX, tileY) => handleMapTransition(mapId, tileX, tileY),
     });
 
     const cancelEnemyPrewarm = assetManager.startBackgroundEnemyPrewarm(() => disposed);
@@ -1247,8 +1353,12 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           stopDialogueLoopRef.current = null;
           playMenuOpenRef.current = null;
           playMenuCloseRef.current = null;
+          playVendorPurchaseRef.current = null;
+          playInventoryEquipRef.current = null;
+          playInventoryUnequipRef.current = null;
           restAtBonfireRef.current = null;
           travelToBonfireRef.current = null;
+          handleMapTransitionRef.current = null;
           gameStateRef.current = null;
           worldRef.current = null;
           assetManagerRef.current = null;

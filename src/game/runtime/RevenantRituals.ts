@@ -31,6 +31,7 @@ export interface RevenantRitualContext {
   particleSystem: ParticleSystemLike;
   deltaTime: number;
   currentTime: number;
+  playRitualSummonStart?: () => void;
 }
 
 /**
@@ -47,7 +48,7 @@ export interface RevenantRitualContext {
  *
  * Coordinates are world-space (forest map is 300x300, so world = tile - 150).
  */
-interface RitualSite {
+export interface RitualSite {
   mapId: string;
   tileX: number;
   tileY: number;
@@ -59,7 +60,36 @@ const RITUAL_SITES: RitualSite[] = [
   { mapId: 'forest', tileX: 260, tileY: 142, clearedFlag: 'ridge_revenant_defeated' },
   // West Fort interior (world ~-132,-3) — yields the west-fort chest on defeat.
   { mapId: 'forest', tileX: 18, tileY: 147, clearedFlag: 'ritual_revenant_west_cleared' },
+  // Precipice west lip (world ~77,-138) — outdoor ritual like the fort glyph.
+  { mapId: 'forest', tileX: 227, tileY: 12, clearedFlag: 'ritual_revenant_precipice_cleared' },
 ];
+
+/** Attribute a slain ritual revenant to the nearest glyph (world-space). */
+export function resolveNearestRitualSite(
+  mapId: string,
+  worldX: number,
+  worldY: number,
+  mapWidth: number,
+  mapHeight: number,
+  maxDist = 22,
+): RitualSite | null {
+  const halfW = mapWidth / 2;
+  const halfH = mapHeight / 2;
+  const maxDistSq = maxDist * maxDist;
+  let best: RitualSite | null = null;
+  let bestDistSq = maxDistSq;
+  for (const site of RITUAL_SITES) {
+    if (site.mapId !== mapId) continue;
+    const wx = site.tileX - halfW + 0.5;
+    const wy = site.tileY - halfH + 0.5;
+    const distSq = (worldX - wx) ** 2 + (worldY - wy) ** 2;
+    if (distSq < bestDistSq) {
+      bestDistSq = distSq;
+      best = site;
+    }
+  }
+  return best;
+}
 
 /** Minimum cursed sediment on the player to awaken a glyph (3+). */
 const MIN_CURSED_SEDIMENT = 3;
@@ -120,7 +150,7 @@ function spawnRitualRevenant(combatSystem: CombatSystem, x: number, y: number): 
 }
 
 export function updateRevenantRituals(ctx: RevenantRitualContext): void {
-  const { state, world, combatSystem, particleSystem, screenShake, deltaTime, currentTime } = ctx;
+  const { state, world, combatSystem, particleSystem, screenShake, deltaTime, currentTime, playRitualSummonStart } = ctx;
 
   if (state.currentMap !== _lastMap) {
     _charging.clear();
@@ -151,13 +181,16 @@ export function updateRevenantRituals(ctx: RevenantRitualContext): void {
     if (state.getFlag(site.clearedFlag)) {
       if (onGlyph && !_hintedCleared.has(key)) {
         _hintedCleared.add(key);
-        const isWest = site.clearedFlag === 'ritual_revenant_west_cleared';
+        const clearedHint =
+          site.clearedFlag === 'ritual_revenant_west_cleared'
+            ? 'The Ridge Revenant here is already gone. Loot the chest inside the fort if you have not yet.'
+            : site.clearedFlag === 'ritual_revenant_precipice_cleared'
+              ? 'The Ridge Revenant here is already gone. The precipice circle will not answer again.'
+              : 'This circle has already given up its wraith. The Tempered Core was claimed from the east ridge.';
         notify('The glyph is spent', {
           id: `revenant-ritual-cleared-${key}`,
           type: 'info',
-          description: isWest
-            ? 'The Ridge Revenant here is already gone. Loot the chest inside the fort if you have not yet.'
-            : 'This circle has already given up its wraith. The Tempered Core was claimed from the east ridge.',
+          description: clearedHint,
           duration: 5000,
         });
       }
@@ -215,6 +248,7 @@ export function updateRevenantRituals(ctx: RevenantRitualContext): void {
 
     // Begin the summon.
     _charging.set(key, SUMMON_CHARGE_TIME);
+    playRitualSummonStart?.();
     screenShake.shake(0.18, 0.25);
     notify('The glyph drinks your heresy', {
       id: `revenant-ritual-${key}`,

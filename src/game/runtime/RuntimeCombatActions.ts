@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import type { MutableRefObject } from 'react';
 import type { Enemy } from '@/lib/game/Combat';
-import type { GameState } from '@/lib/game/GameState';
+import type { GameFlagKey, GameState } from '@/lib/game/GameState';
+import { resolveNearestRitualSite } from '@/game/runtime/RevenantRituals';
 import type { ArcWaveState } from '@/game/runtime/PlayerSimulationSystem';
 import { breakTilesInRadius, type BreakableWorld } from '@/game/runtime/BreakableProps';
 import { damageHeresyAltarsInRadius } from '@/game/runtime/HeresyAltars';
@@ -13,6 +14,7 @@ import {
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
 import { revealAllTilesForMap } from '@/lib/game/visitedTiles';
 import { getStaggerDamageMultiplier } from '@/data/balance';
+import { SaveManager } from '@/lib/game/SaveManager';
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
 type Direction4 = 'up' | 'down' | 'left' | 'right';
@@ -122,9 +124,13 @@ interface RuntimeCombatActionOptions {
   enemyAudio: EnemyAudioLike;
   notify: (title: string, options?: { id?: string; description?: string; duration?: number }) => void;
   triggerUIUpdate: () => void;
-  playItemGrab: () => void;
+  playEssencePickup: () => void;
   playSwordSwing: () => void;
   playBladeSheath: () => void;
+  playWeaponHit: (enemy: Enemy) => void;
+  playWeaponChargeRelease: () => void;
+  playWeaponArcWave: () => void;
+  playStaggerEnemy: () => void;
   getKillCount: () => number;
   setKillCount: (value: number) => void;
   getCurrentDir8: () => Direction8;
@@ -169,6 +175,9 @@ interface RuntimeCombatActionOptions {
   startLunge: (dirX: number, dirY: number, speed: number, distance: number, recovery: number, damage: number) => void;
   onBossDefeated?: () => void;
   playPropBreak?: () => void;
+  playTallGrassBreak?: () => void;
+  playHeresyAltarHit?: () => void;
+  playHeresyAltarBreak?: () => void;
   triggerSave: () => void;
 }
 
@@ -183,9 +192,13 @@ export function createRuntimeCombatActions({
   enemyAudio,
   notify,
   triggerUIUpdate,
-  playItemGrab,
+  playEssencePickup,
   playSwordSwing,
   playBladeSheath,
+  playWeaponHit,
+  playWeaponChargeRelease,
+  playWeaponArcWave,
+  playStaggerEnemy,
   getKillCount,
   setKillCount,
   getCurrentDir8,
@@ -227,6 +240,9 @@ export function createRuntimeCombatActions({
   startLunge,
   onBossDefeated,
   playPropBreak,
+  playTallGrassBreak,
+  playHeresyAltarHit,
+  playHeresyAltarBreak,
   triggerSave,
 }: RuntimeCombatActionOptions) {
   const onEnemyKilled = (enemy: Enemy) => {
@@ -234,7 +250,7 @@ export function createRuntimeCombatActions({
     setKillCount(nextKillCount);
     enemyAudio.playDefeat(enemy);
     enemyAudio.clearEnemy(enemy.id);
-    if (enemy.essenceReward > 0) playItemGrab();
+    if (enemy.essenceReward > 0) playEssencePickup();
 
     if (enemy.zoneId) {
       state.killedEnemyIds.add(enemy.zoneId);
@@ -266,6 +282,7 @@ export function createRuntimeCombatActions({
       }
       if (enemy.type === 'hollow_guardian') {
         state.setFlag('hollow_guardian_defeated', true);
+        SaveManager.clearBossAttemptCheckpoint();
         const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
         if (hunterQuest) {
           markObjectiveDone(hunterQuest, FIND_HUNTER_INDEX.boss, FIND_HUNTER_BOSS_OBJECTIVE);
@@ -313,30 +330,36 @@ export function createRuntimeCombatActions({
         }
       }
       if (enemy.type === 'ridge_revenant') {
-        // The Tempered Core is the EAST RIDGE encounter's exclusive reward. Scope the drop and
-        // the completion flag to east-half revenants (world x > 0; the forest map is 300 wide so
-        // world x = tileX - 150). Other ridge revenants on the map — e.g. the one guarding the
-        // western fort — are tough fights that neither gate nor duplicate the Core.
-        const isEastRidgeRevenant = enemy.position.x > 0;
-        if (isEastRidgeRevenant) {
-          const remaining = combatSystem.getAllEnemies().filter(
-            e => e.type === 'ridge_revenant' && e.state !== 'dead' && e.id !== enemy.id && e.position.x > 0,
-          ).length;
-          if (remaining === 0) {
-            state.setFlag('ridge_revenant_defeated', true);
-            state.worldItems.push({
-              instanceId: `tempered_core_${state.currentMap}_${Math.round(enemy.position.x)}_${Math.round(enemy.position.y)}`,
-              itemId: 'tempered_core',
-              mapId: state.currentMap,
-              x: enemy.position.x + 0.5,
-              y: enemy.position.y - 0.5,
-            });
-            screenShake.shake(0.55, 0.45);
-            particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.45, 35, 0xFF6F00, 0.12, 2.0, 1.4);
+        const map = world.getCurrentMap();
+        const ritualSite = resolveNearestRitualSite(
+          state.currentMap,
+          enemy.position.x,
+          enemy.position.y,
+          map.width,
+          map.height,
+        );
+        if (ritualSite) {
+          state.setFlag(ritualSite.clearedFlag as GameFlagKey, true);
+          if (ritualSite.clearedFlag === 'ridge_revenant_defeated') {
+            const wx = ritualSite.tileX - map.width / 2 + 0.5;
+            const wy = ritualSite.tileY - map.height / 2 + 0.5;
+            const remaining = combatSystem.getAllEnemies().filter(e => {
+              if (e.type !== 'ridge_revenant' || e.state === 'dead' || e.id === enemy.id) return false;
+              const d = (e.position.x - wx) ** 2 + (e.position.y - wy) ** 2;
+              return d < 22 * 22;
+            }).length;
+            if (remaining === 0) {
+              state.worldItems.push({
+                instanceId: `tempered_core_${state.currentMap}_${Math.round(enemy.position.x)}_${Math.round(enemy.position.y)}`,
+                itemId: 'tempered_core',
+                mapId: state.currentMap,
+                x: enemy.position.x + 0.5,
+                y: enemy.position.y - 0.5,
+              });
+              screenShake.shake(0.55, 0.45);
+              particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.45, 35, 0xFF6F00, 0.12, 2.0, 1.4);
+            }
           }
-        } else {
-          // West-side (fort) revenant: mark its ritual cleared so the glyph never re-summons.
-          state.setFlag('ritual_revenant_west_cleared', true);
         }
       }
     }
@@ -371,6 +394,10 @@ export function createRuntimeCombatActions({
       });
     }
     triggerUIUpdate();
+
+    if (enemy.type === 'hollow_guardian') {
+      triggerSave();
+    }
   };
 
   // Total altars in the Whispering Woods forest map.
@@ -412,8 +439,14 @@ export function createRuntimeCombatActions({
       const attackX = state.player.position.x + off.x;
       const attackY = state.player.position.y + off.y;
       particleSystem.emitAt(attackX, attackY, 0.3, 4, 0xffffff, 0.3, 1, 1);
-      breakTilesInRadius(world, world.getCurrentMap(), attackX, attackY, state.player.attackRange, particleSystem, playPropBreak);
-      const altarsDestroyed = damageHeresyAltarsInRadius(state, world, world.getCurrentMap(), attackX, attackY, state.player.attackRange, particleSystem, playPropBreak, notify);
+      breakTilesInRadius(world, world.getCurrentMap(), attackX, attackY, state.player.attackRange, particleSystem, {
+        generic: playPropBreak,
+        tallGrass: playTallGrassBreak,
+      });
+      const altarsDestroyed = damageHeresyAltarsInRadius(state, world, world.getCurrentMap(), attackX, attackY, state.player.attackRange, particleSystem, {
+        hit: playHeresyAltarHit ?? playPropBreak,
+        destroy: playHeresyAltarBreak ?? playPropBreak,
+      }, notify);
       if (altarsDestroyed > 0 && state.currentMap === 'forest') {
         _trackAltarQuestProgress(altarsDestroyed);
       }
@@ -425,12 +458,14 @@ export function createRuntimeCombatActions({
     const baseDamage = Math.floor(state.player.attackDamage * parryBonus * stepDamageMult * state.player.berserkerDamageMult);
 
     const result = combatSystem.playerAttack(target, baseDamage, state.player.position, state.player.direction);
+    playWeaponHit(target);
 
     if (parryBonus > 1) state.player.parryBonusTimer = 0;
 
     const isCrit = target.state === 'recovering' || target.state === 'staggered';
     const isBackstab = result.backstab;
     const isStaggered = result.staggered;
+    if (isStaggered) playStaggerEnemy();
 
     let actualDamage = baseDamage;
     if (isBackstab) actualDamage = Math.floor(baseDamage * 2.5);
@@ -564,6 +599,7 @@ export function createRuntimeCombatActions({
     }
 
     playSwordSwing();
+    playWeaponChargeRelease();
 
     const dir = dir8ToVector[getCurrentDir8()];
     const distance = lungeDistMin + (lungeDistMax - lungeDistMin) * level;
@@ -595,6 +631,7 @@ export function createRuntimeCombatActions({
 
     playSwordSwing();
     playBladeSheath();
+    playWeaponArcWave();
 
     state.player.lastAttackTime = currentTime;
     state.player.stamina = Math.max(0, state.player.stamina - chargeAttackStaminaCost);
@@ -636,7 +673,10 @@ export function createRuntimeCombatActions({
       const t = (i / steps) * arcRange;
       const checkX = state.player.position.x + dx * t;
       const checkY = state.player.position.y + dy * t;
-      breakTilesInRadius(world, world.getCurrentMap(), checkX, checkY, arcWidth, particleSystem, playPropBreak);
+      breakTilesInRadius(world, world.getCurrentMap(), checkX, checkY, arcWidth, particleSystem, {
+        generic: playPropBreak,
+        tallGrass: playTallGrassBreak,
+      });
     }
 
     // Corruption wave release burst — dark void erupts at the scythe's release point.
@@ -670,6 +710,7 @@ export function createRuntimeCombatActions({
 
     playSwordSwing();
     playBladeSheath();
+    playWeaponChargeRelease();
     setSpinSwooshTimer(spinSwooshDuration);
 
     const spinAttackDuration = spinFrameDuration * spinDirections.length;
@@ -687,7 +728,10 @@ export function createRuntimeCombatActions({
     const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
     const chargeDamage = Math.floor(state.player.attackDamage * damageMultiplier * state.player.berserkerDamageMult);
     const chargeRange = state.player.attackRange * (1 + level * 0.5);
-    breakTilesInRadius(world, world.getCurrentMap(), state.player.position.x, state.player.position.y, chargeRange, particleSystem, playPropBreak);
+    breakTilesInRadius(world, world.getCurrentMap(), state.player.position.x, state.player.position.y, chargeRange, particleSystem, {
+      generic: playPropBreak,
+      tallGrass: playTallGrassBreak,
+    });
     const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, chargeRange, _scratchEnemies);
 
     if (enemiesInRange.length === 0) {
@@ -709,6 +753,8 @@ export function createRuntimeCombatActions({
         state.player.position,
         state.player.direction,
       );
+      playWeaponHit(target);
+      if (result.staggered) playStaggerEnemy();
 
       const actualDamage = target.state === 'staggered'
         ? Math.floor(chargeDamage * 2)

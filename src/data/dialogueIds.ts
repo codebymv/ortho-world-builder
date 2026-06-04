@@ -17,6 +17,8 @@ export const dialogueIds = new Set<string>([
   'hollow_warning_sign',
   'east_ridge_path_sign',
   'hollow_shortcut_lever',
+  'hollow_fog_gate_confirm',
+  'guilrhym_fog_gate_confirm',
   'east_hollow_route_gate_lever',
   'hollow_hunter_camp_1',
   'hollow_hunter_camp_2',

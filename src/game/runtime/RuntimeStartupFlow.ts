@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import type { MutableRefObject } from 'react';
 import type { GameState, Item } from '@/lib/game/GameState';
 import type { World, WorldMap } from '@/lib/game/World';
+import { HOLLOW_MUSIC_ENTER_Y } from '@/game/runtime/RuntimeLoopTail';
+
+const resolveMusicKeyForPosition = (mapId: string, playerY: number) =>
+  mapId === 'forest' && playerY <= HOLLOW_MUSIC_ENTER_Y ? 'forest_hollow' : mapId;
 
 interface CreateRespawnHandlerOptions {
   gameStateRef: MutableRefObject<GameState | null>;
@@ -85,7 +89,7 @@ export function createDeathRespawnHandler({
         setActiveNpcsForCurrentMap();
         if (!targetMap.startsWith('interior_')) {
           biomeAmbience.setBiome(mapBiomes[targetMap] || 'grassland');
-          switchMusicTrack(targetMap);
+          switchMusicTrack(resolveMusicKeyForPosition(targetMap, bonfire.y));
         }
       }
 

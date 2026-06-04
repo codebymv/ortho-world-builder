@@ -25,6 +25,7 @@ interface PointerInputOptions {
   getPlayerAnimState: () => PlayerAnimState;
   setPlayerAnimState: (value: PlayerAnimState) => void;
   playBlock: () => void;
+  playWeaponChargeStart: () => void;
   getIsChargingAttack: () => boolean;
   setIsChargingAttack: (value: boolean) => void;
   setChargeTimer: (value: number) => void;
@@ -52,6 +53,7 @@ export function createPointerInputController({
   getPlayerAnimState,
   setPlayerAnimState,
   playBlock,
+  playWeaponChargeStart,
   getIsChargingAttack,
   setIsChargingAttack,
   setChargeTimer,
@@ -68,7 +70,25 @@ export function createPointerInputController({
   chargeTimeMin,
   getComboWindowTimer,
 }: PointerInputOptions) {
+  let chargeStartTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const cancelChargeStartTimer = () => {
+    if (chargeStartTimer === null) return;
+    clearTimeout(chargeStartTimer);
+    chargeStartTimer = null;
+  };
+
+  const scheduleChargeStartSound = () => {
+    cancelChargeStartTimer();
+    chargeStartTimer = setTimeout(() => {
+      chargeStartTimer = null;
+      if (!getIsLmbHeld() || !getIsChargingAttack()) return;
+      playWeaponChargeStart();
+    }, Math.max(0, chargeTimeMin * 1000));
+  };
+
   const clearChargeState = () => {
+    cancelChargeStartTimer();
     setIsLmbHeld(false);
     setIsChargingAttack(false);
     setChargeTimer(0);
@@ -125,6 +145,7 @@ export function createPointerInputController({
             setChargeTimer(0);
             setChargeLevel(0);
             setPlayerAnimState('charge');
+            scheduleChargeStartSound();
           }
         }
       }
@@ -171,6 +192,7 @@ export function createPointerInputController({
           } else {
             performAttack();
           }
+          cancelChargeStartTimer();
           setIsChargingAttack(false);
           setChargeTimer(0);
           setChargeLevel(0);

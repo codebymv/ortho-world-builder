@@ -177,8 +177,12 @@ const Game = () => {
   const stopDialogueLoopRef = useRef<(() => void) | null>(null);
   const playMenuOpenRef = useRef<(() => void) | null>(null);
   const playMenuCloseRef = useRef<(() => void) | null>(null);
+  const playVendorPurchaseRef = useRef<(() => void) | null>(null);
+  const playInventoryEquipRef = useRef<(() => void) | null>(null);
+  const playInventoryUnequipRef = useRef<(() => void) | null>(null);
   const restAtBonfireRef = useRef<(() => void) | null>(null);
   const travelToBonfireRef = useRef<((entry: BonfireEntry) => void) | null>(null);
+  const handleMapTransitionRef = useRef<((targetMap: string, targetX: number, targetY: number) => void) | null>(null);
 
   // Audio processing system for compression and gain
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -504,6 +508,14 @@ const Game = () => {
     playGrassChewRef.current?.();
   }, []);
 
+  const handlePlayInventoryEquip = useCallback(() => {
+    playInventoryEquipRef.current?.();
+  }, []);
+
+  const handlePlayInventoryUnequip = useCallback(() => {
+    playInventoryUnequipRef.current?.();
+  }, []);
+
   const createDialogueProgression = () => {
     const runtimeContent = runtimeContentRef.current;
     const interactionContent = interactionContentRef.current;
@@ -664,6 +676,34 @@ const Game = () => {
   const handleDialogueResponse = (nextId: string, givesQuest?: string, opensVendor?: string) => {
     if (!gameState || !currentDialogue) return;
 
+    if (gameState.currentDialogue === 'hollow_fog_gate_confirm') {
+      if (nextId === 'proceed_hollow_arena') {
+        SaveManager.saveBossAttemptCheckpoint(gameState, mapMarkersRef.current, visitedTilesRef.current, {
+          bossId: 'hollow_guardian',
+          targetMap: 'interior_hollow_arena',
+        });
+        closeDialogueSession(gameState);
+        handleMapTransitionRef.current?.('interior_hollow_arena', 18, 32);
+        return;
+      }
+      if (nextId === 'end') {
+        closeDialogueSession(gameState);
+        return;
+      }
+    }
+
+    if (gameState.currentDialogue === 'guilrhym_fog_gate_confirm') {
+      if (nextId === 'proceed_guilrhym_arena') {
+        closeDialogueSession(gameState);
+        handleMapTransitionRef.current?.('interior_guilrhym_cathedral', 18, 32);
+        return;
+      }
+      if (nextId === 'end') {
+        closeDialogueSession(gameState);
+        return;
+      }
+    }
+
     const progressionService = createDialogueProgression();
     if (!progressionService) return;
 
@@ -705,6 +745,7 @@ const Game = () => {
       if (gameState.player.gold >= vendorItem.price) {
         gameState.spendGold(vendorItem.price);
         gameState.addItem({ ...item });
+        playVendorPurchaseRef.current?.();
         notify(`Purchased ${item.name}!`, {
           type: 'success',
           description: `Spent ${vendorItem.price} gold.`,
@@ -718,6 +759,7 @@ const Game = () => {
       if (gameState.player.essence >= vendorItem.price) {
         gameState.spendEssence(vendorItem.price);
         gameState.addItem({ ...item });
+        playVendorPurchaseRef.current?.();
         notify(`Purchased ${item.name}!`, {
           type: 'success',
           description: `Spent ${vendorItem.price} essence.`,
@@ -793,8 +835,12 @@ const Game = () => {
     stopDialogueLoopRef,
     playMenuOpenRef,
     playMenuCloseRef,
+    playVendorPurchaseRef,
+    playInventoryEquipRef,
+    playInventoryUnequipRef,
     restAtBonfireRef,
     travelToBonfireRef,
+    handleMapTransitionRef,
     killCountRef,
   } satisfies Omit<RuntimeHostRefs, 'mountElement'>;
 
@@ -1079,6 +1125,8 @@ const Game = () => {
                 gameState={gameState}
                 assetManager={assetManagerRef.current}
                 triggerUIUpdate={triggerUIUpdate}
+                playInventoryEquip={handlePlayInventoryEquip}
+                playInventoryUnequip={handlePlayInventoryUnequip}
               />
             </Suspense>
           )}
@@ -1184,12 +1232,14 @@ const Game = () => {
           const acquired = acquiredItemQueue[0];
           if (acquired?.type === 'ring') {
             if (gameState.tryAutoEquipRing(itemId)) {
+              playInventoryEquipRef.current?.();
               triggerUIUpdate();
             }
             return;
           }
           if (gameState.isWeaponInLoadout(itemId)) {
             gameState.setEquippedWeapon(itemId);
+            playInventoryEquipRef.current?.();
             triggerUIUpdate();
           }
         }}

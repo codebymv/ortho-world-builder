@@ -204,7 +204,25 @@ export interface EnemyLoopContext {
   getActorRenderOrder: (x: number, y: number, footOffset: number) => number;
   playPlayerHit: () => void;
   playBossAttack?: () => void;
+  playParrySuccess?: () => void;
+  playParryProjectile?: () => void;
+  playGuardBreak?: () => void;
   playPropBreak?: () => void;
+  playRitualSummonStart?: () => void;
+  playPlantIdle?: () => void;
+  playPlantLash?: () => void;
+  playHollowReaverAttack?: () => void;
+  playProjectileCast?: (sprite: string) => void;
+  startProjectileFly?: (sprite: string) => void;
+  stopProjectileFly?: (sprite: string) => void;
+  playProjectileImpact?: (sprite: string) => void;
+  playProjectileReflect?: () => void;
+  playHazardWarningPulse?: () => void;
+  playHazardScytheFall?: () => void;
+  playHazardScytheImpact?: () => void;
+  startBoulderRollLoop?: () => void;
+  stopBoulderRollLoop?: () => void;
+  playBoulderImpact?: () => void;
 }
 
 export interface RuntimeLoopTailContext {
@@ -236,6 +254,10 @@ export interface RuntimeLoopTailContext {
   assetManager: AssetManager;
   startStormLoop?: () => void;
   stopStormLoop?: () => void;
+  setOutdoorsLoopState?: (volumeScale: number, lowpassFrequencyHz: number) => void;
+  startCorruptionIdleLoop?: () => void;
+  stopCorruptionIdleLoop?: () => void;
+  setCorruptionIdleLoopIntensity?: (intensity: number) => void;
   playThunder?: () => void;
   switchMusicTrack: (mapId: string) => void;
 }

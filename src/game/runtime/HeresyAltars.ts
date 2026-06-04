@@ -23,6 +23,11 @@ interface AltarParticles {
   emit(position: THREE.Vector3, count: number, color: number, lifetime: number, speed: number, spread: number): void;
 }
 
+interface AltarSfx {
+  hit?: () => void;
+  destroy?: () => void;
+}
+
 const _tmp = new THREE.Vector3();
 
 function hitFlagKey(mapId: string, tx: number, ty: number): string {
@@ -49,9 +54,11 @@ export function damageHeresyAltarsInRadius(
   worldY: number,
   radius: number,
   particles: AltarParticles,
-  playPropBreak?: () => void,
+  sfx?: AltarSfx | (() => void),
   notify?: (message: string, options?: { id?: string; type?: 'success' | 'info'; description?: string; duration?: number }) => void,
 ): number {
+  const playHit = typeof sfx === 'function' ? sfx : sfx?.hit;
+  const playDestroy = typeof sfx === 'function' ? sfx : sfx?.destroy;
   const cx = worldX + map.width / 2;
   const cy = worldY + map.height / 2;
   const r = radius + 0.5;
@@ -89,7 +96,7 @@ export function damageHeresyAltarsInRadius(
         world.refreshMapTileRegion(tx - 1, ty - 1, tx + 1, ty + 1);
         _tmp.set(tileWorldX, tileWorldY, 0.45);
         particles.emit(_tmp.clone(), 6, HIT_PARTICLE_COLOR, 0.5, 1.2, 0.9);
-        playPropBreak?.();
+        playHit?.();
         continue;
       }
 
@@ -107,7 +114,7 @@ export function damageHeresyAltarsInRadius(
       _tmp.set(tileWorldX, tileWorldY, 0.5);
       particles.emit(_tmp.clone(), 18, SEDIMENT_PARTICLE_COLOR, 1.0, 2.2, 1.6);
       particles.emit(_tmp.clone(), 8, HIT_PARTICLE_COLOR, 0.7, 1.4, 1.2);
-      playPropBreak?.();
+      playDestroy?.();
 
       notify?.('Heresy altar shattered', {
         id: `heresy-altar-destroy-${tx}-${ty}`,

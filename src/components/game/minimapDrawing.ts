@@ -169,6 +169,8 @@ const MINIMAP_TILE_COLOR: Partial<Record<TileType, string>> & Record<string, str
   // --- Vertical / elevation art ---
   cliff: '#5D6A72',
   cliff_edge: '#6B7A85',
+  cliff_corrupted: '#4C4153',
+  cliff_edge_corrupted: '#5A4F63',
   stairs: '#8A9096',
   ladder: '#6D4C41',
   curled_ladder: '#5D4037',

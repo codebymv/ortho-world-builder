@@ -48,6 +48,13 @@ interface BreakableParticles {
   emit(position: THREE.Vector3, count: number, color: number, lifetime: number, speed: number, spread: number): void;
 }
 
+export interface BreakableSoundHandlers {
+  generic?: () => void;
+  tallGrass?: () => void;
+}
+
+type BreakableSound = (() => void) | BreakableSoundHandlers;
+
 function resolveBaseTile(map: WorldMap, tx: number, ty: number, fallback: TileType): TileType {
   const counts = new Map<TileType, number>();
   for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]] as const) {
@@ -69,20 +76,34 @@ function resolveBaseTile(map: WorldMap, tx: number, ty: number, fallback: TileTy
 
 const _tmpVec = new THREE.Vector3();
 
-export function breakTileAt(
+function playBreakableSound(sound: BreakableSound | undefined, tileType: TileType): void {
+  if (!sound) return;
+  if (typeof sound === 'function') {
+    sound();
+    return;
+  }
+  if (tileType === 'tall_grass') {
+    (sound.tallGrass ?? sound.generic)?.();
+    return;
+  }
+  sound.generic?.();
+}
+
+function breakTileAtWithType(
   world: BreakableWorld,
   map: WorldMap,
   tileX: number,
   tileY: number,
   particles: BreakableParticles,
-  playSound?: () => void,
-): boolean {
-  if (tileY < 0 || tileY >= map.height || tileX < 0 || tileX >= map.width) return false;
+  playSound?: BreakableSound,
+): TileType | null {
+  if (tileY < 0 || tileY >= map.height || tileX < 0 || tileX >= map.width) return null;
   const tile = map.tiles[tileY][tileX];
-  if (!BREAKABLE_TILES.has(tile.type)) return false;
+  const brokenType = tile.type;
+  if (!BREAKABLE_TILES.has(brokenType)) return null;
 
-  const color = DEBRIS_COLORS[tile.type] ?? 0x8B6914;
-  const fallback = TILE_METADATA[tile.type]?.baseTile ?? 'grass';
+  const color = DEBRIS_COLORS[brokenType] ?? 0x8B6914;
+  const fallback = TILE_METADATA[brokenType]?.baseTile ?? 'grass';
   const baseType = tile.baseTile ?? resolveBaseTile(map, tileX, tileY, fallback as TileType);
 
   map.tiles[tileY][tileX] = {
@@ -98,9 +119,20 @@ export function breakTileAt(
   _tmpVec.set(worldX, worldY, 0.3);
   particles.emit(_tmpVec.clone(), 6, color, 0.6, 1.5, 1.2);
 
-  playSound?.();
+  playBreakableSound(playSound, brokenType);
 
-  return true;
+  return brokenType;
+}
+
+export function breakTileAt(
+  world: BreakableWorld,
+  map: WorldMap,
+  tileX: number,
+  tileY: number,
+  particles: BreakableParticles,
+  playSound?: BreakableSound,
+): boolean {
+  return breakTileAtWithType(world, map, tileX, tileY, particles, playSound) !== null;
 }
 
 export function breakTilesInRadius(
@@ -110,7 +142,7 @@ export function breakTilesInRadius(
   worldY: number,
   radius: number,
   particles: BreakableParticles,
-  playSound?: () => void,
+  playSound?: BreakableSound,
 ): number {
   const cx = worldX + map.width / 2;
   const cy = worldY + map.height / 2;
@@ -123,17 +155,24 @@ export function breakTilesInRadius(
 
   const rSq = radius * radius;
   let count = 0;
+  let brokeTallGrass = false;
+  let brokeGeneric = false;
 
   for (let ty = minTY; ty <= maxTY; ty++) {
     for (let tx = minTX; tx <= maxTX; tx++) {
       const dx = (tx + 0.5) - cx;
       const dy = (ty + 0.5) - cy;
       if (dx * dx + dy * dy > rSq) continue;
-      if (breakTileAt(world, map, tx, ty, particles)) count++;
+      const brokenType = breakTileAtWithType(world, map, tx, ty, particles);
+      if (!brokenType) continue;
+      count++;
+      if (brokenType === 'tall_grass') brokeTallGrass = true;
+      else brokeGeneric = true;
     }
   }
 
-  if (count > 0) playSound?.();
+  if (brokeTallGrass) playBreakableSound(playSound, 'tall_grass');
+  if (brokeGeneric) playBreakableSound(playSound, 'barrel');
 
   return count;
 }

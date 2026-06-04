@@ -321,6 +321,36 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [{ id: 'start', text: "A crude lever mechanism bound in twisted roots and corroded iron. The path beyond would lead back toward the **Hollow bonfire**.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
 
+  hollow_fog_gate_confirm: {
+    id: 'hollow_fog_gate_confirm',
+    nodes: [
+      {
+        id: 'start',
+        text: "The fog churns like a living thing. Once you pass through, there may be no easy way back. Are you sure you want to proceed?",
+        responses: [
+          { text: "Yes. Enter the fog.", nextId: 'proceed_hollow_arena' },
+          { text: "No. Step back.", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  guilrhym_fog_gate_confirm: {
+    id: 'guilrhym_fog_gate_confirm',
+    nodes: [
+      {
+        id: 'start',
+        text: "Ashen fog pours from the cathedral doors, thick with the stink of old incense and ruin. The Reaver waits within. Step inside?",
+        responses: [
+          { text: "Yes. Enter the cathedral.", nextId: 'proceed_guilrhym_arena' },
+          { text: "No. Not yet.", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
   east_hollow_route_gate_lever: {
     id: 'east_hollow_route_gate_lever',
     nodes: [{ id: 'start', text: "A rusted lever bolted into the iron pickets. Pulling it should unbar the **east route gate** ahead.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],

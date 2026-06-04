@@ -15,10 +15,25 @@ const CAMP_SMOKE_REFRESH_MS = 900;
 export const HOLLOW_MUSIC_ENTER_Y = -61;
 export const HOLLOW_MUSIC_EXIT_Y = -55;
 
+const CORRUPTION_LOOP_RAMP_START_Y = 100;
+const CORRUPTION_LOOP_GROVE_Y = 4;
+const CORRUPTION_LOOP_GROVE_SCALE = 0.11;
+const CORRUPTION_LOOP_BRIDGE_APPROACH_SCALE = 0.38;
+const CORRUPTION_LOOP_SILENCE_EPSILON = 0.01;
+const CORRUPTION_LOOP_BUILD_TAU_SEC = 1.65;
+const CORRUPTION_LOOP_HOLLOW_SWELL_TAU_SEC = 0.42;
+const CORRUPTION_LOOP_FADE_OUT_TAU_SEC = 0.95;
+const OUTDOORS_LOOP_OUTSIDE_SCALE = 1;
+const OUTDOORS_LOOP_INSIDE_SCALE = 0.45;
+const OUTDOORS_LOOP_STORM_DUCK_SCALE = 0.125;
+const OUTDOORS_LOOP_OPEN_LOWPASS_HZ = 20000;
+const OUTDOORS_LOOP_CLOSED_DOOR_LOWPASS_HZ = 1000;
+
 // `null` until the first frame establishes the region from the actual player
 // position. Avoids the spurious "switch from woods → hollow" crossfade on
 // refresh-into-hollow when the track was already initialized correctly.
 let forestMusicRegion: 'woods' | 'hollow' | null = null;
+let corruptionLoopIntensity = 0;
 
 let campSmokeCache: {
   mapId: string;
@@ -89,6 +104,46 @@ function applyAdaptivePixelRatio(renderer: THREE.WebGLRenderer, cap: number): vo
   }
 }
 
+const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+
+function easeInCubic(t: number): number {
+  return t * t * t;
+}
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function getForestCorruptionLoopTarget(playerY: number, inHollow: boolean): number {
+  if (inHollow) return 1;
+  if (playerY >= CORRUPTION_LOOP_RAMP_START_Y) return 0;
+
+  if (playerY >= CORRUPTION_LOOP_GROVE_Y) {
+    const t = clamp01((CORRUPTION_LOOP_RAMP_START_Y - playerY) / (CORRUPTION_LOOP_RAMP_START_Y - CORRUPTION_LOOP_GROVE_Y));
+    return CORRUPTION_LOOP_GROVE_SCALE * easeInCubic(t);
+  }
+
+  const t = clamp01((CORRUPTION_LOOP_GROVE_Y - playerY) / (CORRUPTION_LOOP_GROVE_Y - HOLLOW_MUSIC_ENTER_Y));
+  return CORRUPTION_LOOP_GROVE_SCALE
+    + (CORRUPTION_LOOP_BRIDGE_APPROACH_SCALE - CORRUPTION_LOOP_GROVE_SCALE) * easeInOutCubic(t);
+}
+
+function approachCorruptionLoopIntensity(target: number, deltaTime: number): number {
+  const tau = target >= 1
+    ? CORRUPTION_LOOP_HOLLOW_SWELL_TAU_SEC
+    : target < corruptionLoopIntensity
+      ? CORRUPTION_LOOP_FADE_OUT_TAU_SEC
+      : CORRUPTION_LOOP_BUILD_TAU_SEC;
+  const alpha = 1 - Math.exp(-deltaTime / tau);
+  corruptionLoopIntensity += (target - corruptionLoopIntensity) * alpha;
+  if (target <= 0 && corruptionLoopIntensity < CORRUPTION_LOOP_SILENCE_EPSILON) {
+    corruptionLoopIntensity = 0;
+  }
+  return corruptionLoopIntensity;
+}
+
 export function runRuntimeLoopTail({
   scene,
   world,
@@ -122,6 +177,10 @@ export function runRuntimeLoopTail({
   assetManager,
   startStormLoop,
   stopStormLoop,
+  setOutdoorsLoopState,
+  startCorruptionIdleLoop,
+  stopCorruptionIdleLoop,
+  setCorruptionIdleLoopIntensity,
   playThunder,
   switchMusicTrack,
   perfProfiler,
@@ -202,6 +261,14 @@ export function runRuntimeLoopTail({
     stopStormLoop?.();
   }
 
+  const isInterior = state.currentMap.startsWith('interior_');
+  const outdoorsLoopBaseScale = isInterior ? OUTDOORS_LOOP_INSIDE_SCALE : OUTDOORS_LOOP_OUTSIDE_SCALE;
+  const outdoorsLoopStormScale = isStorm ? OUTDOORS_LOOP_STORM_DUCK_SCALE : 1;
+  setOutdoorsLoopState?.(
+    outdoorsLoopBaseScale * outdoorsLoopStormScale,
+    isInterior ? OUTDOORS_LOOP_CLOSED_DOOR_LOWPASS_HZ : OUTDOORS_LOOP_OPEN_LOWPASS_HZ,
+  );
+
   if (state.currentMap !== 'forest') {
     forestMusicRegion = 'woods';
   } else if (forestMusicRegion === null) {
@@ -232,6 +299,18 @@ export function runRuntimeLoopTail({
     const target = forestMusicRegion === 'hollow' ? 1.0 : 0.0;
     corruptionFilter.setTargetStrength(target);
     corruptionFilter.update(deltaTime, currentTime / 1000);
+  }
+
+  const corruptionLoopTarget = state.currentMap === 'forest'
+    ? getForestCorruptionLoopTarget(playerPosition.y, forestMusicRegion === 'hollow')
+    : 0;
+  const loopIntensity = approachCorruptionLoopIntensity(corruptionLoopTarget, deltaTime);
+  if (setCorruptionIdleLoopIntensity) {
+    setCorruptionIdleLoopIntensity(loopIntensity);
+  } else if (loopIntensity > CORRUPTION_LOOP_SILENCE_EPSILON) {
+    startCorruptionIdleLoop?.();
+  } else {
+    stopCorruptionIdleLoop?.();
   }
 
   // High-mountain altitude haze: fades in within an authored east-ridge overlook zone

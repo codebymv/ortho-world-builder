@@ -179,6 +179,14 @@ export class ParticleSystem {
     this.emitAt(x, y, z, 5, 0xcccccc, 0.4, 1, 1.5);
   }
 
+  /** Weapon-clash burst when a melee attack is parried — bright, short-lived sparks. */
+  emitParryClashSparkAt(x: number, y: number, z: number = 0.38) {
+    this.emitAt(x, y, z, 5, 0xffffff, 0.7, 3.2, 0.32);
+    this.emitAt(x, y, z + 0.02, 10, 0xffe566, 0.55, 2.4, 0.48);
+    this.emitAt(x, y, z + 0.04, 8, 0xaaeeff, 0.42, 2.0, 0.45);
+    this.emitSparklesAt(x, y, z);
+  }
+
   emitDamageAt(x: number, y: number, z: number) {
     this.emitAt(x, y, z, 4, 0xdddddd, 0.4, 1.5, 1);
   }
