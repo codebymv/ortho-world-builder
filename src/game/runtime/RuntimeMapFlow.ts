@@ -247,7 +247,7 @@ export function createRuntimeMapFlow({
             };
       }
     }
-    world.rebuildChunks();
+    world.refreshMapTileRegion(120, 198, 137, 203);
   };
 
   const syncGroveShelfShortcutState = () => {
@@ -261,7 +261,7 @@ export function createRuntimeMapFlow({
         ? { type: 'dirt', walkable: true, elevation: existing.elevation ?? 0, spinePath: true }
         : { type: 'iron_fence', walkable: false, elevation: existing.elevation ?? 0 };
     }
-    world.rebuildChunks();
+    world.refreshMapTileRegion(55, 162, 61, 164);
   };
 
   // West cliff fence gate — a 2-tile opening at x:87, y:58-59 (world ~-63, -91/-92) inside the
@@ -274,6 +274,26 @@ export function createRuntimeMapFlow({
   //       from this side" feedback.
   //     • From the WEST (far/shortcut side) the adjacent lever at (86,58) is nearer → opens it.
   // Open: walkable dirt, no interaction.
+  const syncQuarryBankShortcutState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const shortcutOpen = state.getFlag('quarry_bank_shortcut_open');
+    for (let ty = 219; ty <= 224; ty++) {
+      const existing = map.tiles[ty]?.[205];
+      if (!existing) continue;
+      map.tiles[ty][205] = shortcutOpen
+        ? { type: 'dirt' as TileType, walkable: true, elevation: existing.elevation ?? 0, spinePath: true }
+        : {
+            type: 'gate' as TileType,
+            walkable: false,
+            elevation: existing.elevation ?? 0,
+            interactable: true,
+            interactionId: 'quarry_bank_gate_sealed',
+          };
+    }
+    world.refreshMapTileRegion(204, 218, 206, 225);
+  };
+
   const syncWestCliffGateState = () => {
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
@@ -291,7 +311,7 @@ export function createRuntimeMapFlow({
             interactionId: 'west_cliff_gate_sealed',
           };
     }
-    world.rebuildChunks();
+    world.refreshMapTileRegion(86, 57, 88, 60);
   };
 
   const syncRiversideBridgeShortcutState = () => {
@@ -314,7 +334,7 @@ export function createRuntimeMapFlow({
         }
       }
     }
-    world.rebuildChunks();
+    world.refreshMapTileRegion(145, 154, 154, 162);
   };
 
   // Hollow corridor iron gate — horizontal picket row at x:116-129, y:50-51 (world ~-34..-21, -100).
@@ -371,7 +391,7 @@ export function createRuntimeMapFlow({
       124,
       'hollow_gate_sealed',
     );
-    world.rebuildChunks();
+    world.refreshMapTileRegion(115, 49, 130, 52);
   };
 
   // East hollow horizontal fence at y:57 (world ~76..101,-93). Gate band centered on world (89,-92).
@@ -389,7 +409,7 @@ export function createRuntimeMapFlow({
       241,
       'east_hollow_route_gate_sealed',
     );
-    world.rebuildChunks();
+    world.refreshMapTileRegion(232, 56, 247, 58);
   };
 
   const syncHollowCorridorGateState = () => syncHollowShortcutState();
@@ -434,7 +454,7 @@ export function createRuntimeMapFlow({
       if (!t || t.transition || t.interactable || !t.walkable) continue;
       map.tiles[ty][tx] = { ...t, enemyBlocked: true };
     }
-    world.rebuildChunks();
+    world.refreshMapTileRegion(109, 110, 119, 113);
   };
 
   const syncHollowApproachSpineGateState = () => {
@@ -471,7 +491,7 @@ export function createRuntimeMapFlow({
       const el = row[gateX].elevation ?? 0;
       row[gateX] = { type: 'iron_fence' as TileType, walkable: false, elevation: el };
     }
-    world.rebuildChunks();
+    world.refreshMapTileRegion(118, 111, 146, 114);
   };
 
   const syncHollowApproachLadderState = () => {
@@ -519,7 +539,7 @@ export function createRuntimeMapFlow({
         interactionId: 'hollow_approach_ladder',
       };
     }
-    world.rebuildChunks();
+    world.refreshMapTileRegion(118, 105, 120, 113);
   };
 
   const syncCliffCorridorLadderState = () => {
@@ -649,7 +669,7 @@ export function createRuntimeMapFlow({
         };
       }
     }
-    world.rebuildChunks();
+    world.refreshMapTileRegion(267, 127, 273, 138);
   };
 
   const syncFortRidgeLadderState = () => {
@@ -888,7 +908,7 @@ export function createRuntimeMapFlow({
     if (map.tiles[177]?.[239]) {
       map.tiles[177][239] = { type: 'grass' as TileType, walkable: true, elevation: 0 };
     }
-    world.rebuildChunks();
+    world.refreshMapTileRegion(234, 167, 245, 178);
   };
 
   const syncOpenedChestState = () => {
@@ -1718,8 +1738,8 @@ export function createRuntimeMapFlow({
 
     const showOpened =
       state.getFlag('wolf_ring_received') || state.getFlag(`${RANGER_WOLF_RING_CHEST_ID}_opened`);
-    const showClosed =
-      state.getFlag('olwen_ranger_cabin_hint') && !showOpened;
+    // The Wolf Ring chest exists from the start; Olwen's hint only reveals the secondary objective.
+    const showClosed = !showOpened;
 
     if (showOpened) {
       row[RANGER_WOLF_RING_CHEST_X] = {
@@ -1906,6 +1926,7 @@ export function createRuntimeMapFlow({
   const syncPersistentMapState = () => {
     syncWhisperingWoodsShortcutState();
     syncGroveShelfShortcutState();
+    syncQuarryBankShortcutState();
     syncWestCliffGateState();
     syncRiversideBridgeShortcutState();
     syncHollowShortcutState();
@@ -2112,6 +2133,7 @@ export function createRuntimeMapFlow({
   return {
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
+    syncQuarryBankShortcutState,
     syncWestCliffGateState,
     syncRiversideBridgeShortcutState,
     syncHollowShortcutState,

@@ -32,6 +32,11 @@ export interface EnemyBehaviorOverrides {
   snareDuration?: number;
   snareSpeedMult?: number;
   poiseImmunityFirstHit?: boolean;
+  /**
+   * Scales forced displacement from player knockback effects.
+   * 1 = normal shove, 0 = immovable.
+   */
+  knockbackResistance?: number;
 }
 
 export interface EnemyBlueprint {
@@ -75,6 +80,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       retreatAfterHit: true,
       retreatDuration: 1.0,
       retreatSpeedMult: 1.5,
+      knockbackResistance: 1.15,
     },
   },
   shadow: {
@@ -94,6 +100,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       chainAttack: true,
       chainChance: 0.3,
       chainTelegraph: 0.55,
+      knockbackResistance: 0.9,
     },
   },
   shadow_lurker: {
@@ -114,6 +121,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       chainAttack: true,
       chainChance: 0.25,
       chainTelegraph: 0.6,
+      knockbackResistance: 0.85,
     },
   },
   hollow_reaver: {
@@ -138,6 +146,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       rangedProjectileSpeed: 7.0,
       rangedProjectileSprite: 'projectile_scythe',
       rangedProjectileLifetime: 1.2,
+      knockbackResistance: 0.75,
     },
   },
   void_wisp: {
@@ -158,6 +167,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       chainAttack: true,
       chainChance: 0.4,
       chainTelegraph: 0.45,
+      knockbackResistance: 1.0,
     },
   },
   plant: {
@@ -178,6 +188,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       snareOnHit: true,
       snareDuration: 1.5,
       snareSpeedMult: 0.6,
+      knockbackResistance: 0.55,
     },
   },
   skeleton: {
@@ -211,6 +222,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     essenceReward: 40,
     behaviorOverrides: {
       poiseImmunityFirstHit: true,
+      knockbackResistance: 0.65,
     },
   },
   bandit: {
@@ -253,6 +265,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       snareOnHit: true,
       snareDuration: 0.8,
       snareSpeedMult: 0.45,
+      knockbackResistance: 0.2,
     },
   },
   spider: {
@@ -293,6 +306,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       chainAttack: true,
       chainChance: 0.2,
       chainTelegraph: 0.8,
+      knockbackResistance: 0.15,
     },
   },
   armored_wolf: {
@@ -311,6 +325,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     essenceReward: 25,
     behaviorOverrides: {
       poiseImmunityFirstHit: true,
+      knockbackResistance: 0.65,
     },
   },
   stone_sentinel: {
@@ -329,6 +344,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     essenceReward: 85,
     behaviorOverrides: {
       poiseImmunityFirstHit: true,
+      knockbackResistance: 0.4,
     },
   },
   ashen_reaver: {
@@ -350,6 +366,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       chainChance: 0.35,
       chainTelegraph: 0.7,
       poiseImmunityFirstHit: true,
+      knockbackResistance: 0.18,
     },
   },
   slime: {
@@ -420,6 +437,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       snareSpeedMult: 0.4,
       // First stagger is absorbed — corruption-hardened flesh
       poiseImmunityFirstHit: true,
+      knockbackResistance: 0.25,
     },
   },
   ridge_revenant: {

@@ -19,6 +19,7 @@ export class BiomeAmbience {
   private campSmokeTimer: number = 0;
   private readonly MAX_PARTICLES = 90;
   private qualityScale = 1;
+  private activeCount = 0;
 
   // Shared geometry for all ambient particles (avoids per-particle allocation)
   private readonly sharedGeometry = new THREE.PlaneGeometry(1, 1);
@@ -61,21 +62,40 @@ export class BiomeAmbience {
       p.active = false;
       p.mesh.visible = false;
     }
+    this.activeCount = 0;
   }
 
   setQualityScale(scale: number): void {
     this.qualityScale = Math.max(0.25, Math.min(1, scale));
+    const cap = this.getActiveParticleCap();
+    if (this.activeCount <= cap) return;
+
+    let toCull = this.activeCount - cap;
+    for (const particle of this.particles) {
+      if (!particle.active) continue;
+      particle.active = false;
+      particle.mesh.visible = false;
+      this.activeCount--;
+      toCull--;
+      if (toCull <= 0) break;
+    }
   }
 
   getPerformanceStats(): { activeParticles: number; poolSize: number; qualityScale: number } {
     return {
-      activeParticles: this.particles.reduce((count, particle) => count + (particle.active ? 1 : 0), 0),
+      activeParticles: this.activeCount,
       poolSize: this.MAX_PARTICLES,
       qualityScale: this.qualityScale,
     };
   }
 
+  private getActiveParticleCap(): number {
+    return Math.max(18, Math.floor(this.MAX_PARTICLES * this.qualityScale));
+  }
+
   private spawnParticle(playerX: number, playerY: number) {
+    if (this.activeCount >= this.getActiveParticleCap()) return;
+
     // Find inactive particle from pool
     let particle: AmbientParticle | null = null;
     for (const p of this.particles) {
@@ -203,6 +223,7 @@ export class BiomeAmbience {
 
     // Reuse mesh from pool - just update properties
     particle.active = true;
+    this.activeCount++;
     particle.lifetime = 0;
     particle.maxLifetime = lifetime;
     particle.baseY = y;
@@ -220,6 +241,8 @@ export class BiomeAmbience {
   }
 
   private spawnCampSmokeParticle(sourceX: number, sourceY: number) {
+    if (this.activeCount >= this.getActiveParticleCap()) return;
+
     let particle: AmbientParticle | null = null;
     for (const p of this.particles) {
       if (!p.active) {
@@ -235,6 +258,7 @@ export class BiomeAmbience {
     const y = sourceY + 0.16 + Math.random() * 0.08;
 
     particle.active = true;
+    this.activeCount++;
     particle.lifetime = 0;
     particle.maxLifetime = lifetime;
     particle.baseY = y;
@@ -341,6 +365,7 @@ export class BiomeAmbience {
       if (p.lifetime >= p.maxLifetime || dist > 400) {
         p.active = false;
         p.mesh.visible = false;
+        this.activeCount = Math.max(0, this.activeCount - 1);
       }
     }
   }
@@ -352,5 +377,6 @@ export class BiomeAmbience {
     }
     this.sharedGeometry.dispose();
     this.particles = [];
+    this.activeCount = 0;
   }
 }

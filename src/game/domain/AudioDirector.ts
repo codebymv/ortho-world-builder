@@ -12,13 +12,33 @@ const MASTER_COMPRESSOR_ATTACK_SEC = 0.005;
 const MASTER_COMPRESSOR_RELEASE_SEC = 0.18;
 const MASTER_POST_COMPRESSOR_GAIN = 1.25;
 const AUDIO_DEBUG_WINDOW_KEY = '__ORTHO_AUDIO_DEBUG';
+const LOOP_INTENSITY_LOG_INTERVAL_MS = 900;
+const FOOTSTEP_LOG_INTERVAL_MS = 300;
 const audioLowpassRequests = new WeakMap<HTMLAudioElement, number>();
 const audioLowpassNodes = new WeakMap<HTMLAudioElement, BiquadFilterNode>();
+const audioLogLastAt = new Map<string, number>();
+
+function getAudioLogIntervalMs(event: string, label: string): number {
+  if (event === 'loop:intensity') return LOOP_INTENSITY_LOG_INTERVAL_MS;
+  if (event === 'sfx' && /(^|\/)fs_\d+_(walk|sprint)\.mp3$/i.test(label)) {
+    return FOOTSTEP_LOG_INTERVAL_MS;
+  }
+  return 0;
+}
 
 export function logAudioEvent(event: string, label: string, detail?: Record<string, unknown>) {
   if (!import.meta.env.DEV || typeof window === 'undefined') return;
   const debugFlag = (window as Window & Record<string, unknown>)[AUDIO_DEBUG_WINDOW_KEY];
   if (debugFlag === false) return;
+
+  const intervalMs = getAudioLogIntervalMs(event, label);
+  if (intervalMs > 0) {
+    const key = `${event}:${label}`;
+    const now = performance.now();
+    const last = audioLogLastAt.get(key) ?? 0;
+    if (now - last < intervalMs) return;
+    audioLogLastAt.set(key, now);
+  }
 
   const time = new Date().toLocaleTimeString();
   if (detail) {

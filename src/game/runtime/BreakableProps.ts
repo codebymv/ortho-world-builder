@@ -104,7 +104,9 @@ function breakTileAtWithType(
 
   const color = DEBRIS_COLORS[brokenType] ?? 0x8B6914;
   const fallback = TILE_METADATA[brokenType]?.baseTile ?? 'grass';
-  const baseType = tile.baseTile ?? resolveBaseTile(map, tileX, tileY, fallback as TileType);
+  const baseType = brokenType === 'tall_grass'
+    ? tile.baseTile ?? 'grass'
+    : tile.baseTile ?? resolveBaseTile(map, tileX, tileY, fallback as TileType);
 
   map.tiles[tileY][tileX] = {
     type: baseType,

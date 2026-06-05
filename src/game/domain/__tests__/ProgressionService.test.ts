@@ -291,6 +291,49 @@ describe('handleDialogueResponse — vendor open short-circuits', () => {
   });
 });
 
+describe('handleDialogueResponse — Olwen ring hint', () => {
+  it('adds the ranger cottage hint when the player does not already have the Wolf Ring', () => {
+    const state = makeState();
+    state.currentDialogue = 'mountain_hermit';
+    const { service, spies } = makeService(state);
+
+    const result = service.handleDialogueResponse({
+      state,
+      currentDialogue: { node: { id: 'offer_ring', text: '', responses: [] }, npcName: 'Olwen' },
+      nextId: 'take_ring',
+    });
+
+    expect(state.getFlag('olwen_ranger_cabin_hint')).toBe(true);
+    expect(spies.notify).toHaveBeenCalledWith(
+      'Location Revealed',
+      expect.objectContaining({ id: 'olwen-cabin-hint' }),
+    );
+    expect(spies.triggerMinimapUpdate).toHaveBeenCalledWith(true);
+    expect(result.shouldSave).toBe(true);
+  });
+
+  it('does not add a secondary hint if the Wolf Ring was already found', () => {
+    const state = makeState();
+    state.currentDialogue = 'mountain_hermit';
+    state.setFlag('wolf_ring_received', true);
+    const { service, spies } = makeService(state);
+
+    const result = service.handleDialogueResponse({
+      state,
+      currentDialogue: { node: { id: 'offer_ring', text: '', responses: [] }, npcName: 'Olwen' },
+      nextId: 'take_ring',
+    });
+
+    expect(state.getFlag('olwen_ranger_cabin_hint')).toBe(false);
+    expect(spies.notify).not.toHaveBeenCalledWith(
+      'Location Revealed',
+      expect.anything(),
+    );
+    expect(spies.triggerMinimapUpdate).not.toHaveBeenCalled();
+    expect(result.shouldSave).toBe(false);
+  });
+});
+
 describe('handleDialogueResponse — healer/apothecary heal action', () => {
   it('heals the player to max when ending the heal node', () => {
     const state = makeState();

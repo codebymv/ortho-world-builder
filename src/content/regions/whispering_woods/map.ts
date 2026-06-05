@@ -1000,6 +1000,8 @@ export const forestDef: MapDefinition = {
     { x: 118, y: 48, type: 'shortcut_lever', walkable: false, interactionId: 'hollow_shortcut_lever' },
     // East hollow route gate lever — north of fence row at world (~86,-95) / tile (236,55).
     { x: 236, y: 55, type: 'shortcut_lever', walkable: false, interactionId: 'east_hollow_route_gate_lever' },
+    // Quarry-bank shortcut lever - on the quarry side of the west-bank picket cordon.
+    { x: 207, y: 220, type: 'shortcut_lever', walkable: false, interactionId: 'quarry_bank_shortcut_lever' },
     // South approach trail toward the fog-gate corridor ??? world near (-26, -46).
     { x: 124, y: 77, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_fort' },
     // Eastern fort passage - safe rest point inside the garrison by the gatekeeper and quartermaster.
@@ -1029,8 +1031,7 @@ export const forestDef: MapDefinition = {
     { x: 140, y: 95, type: 'well', walkable: false, interactionId: 'ancient_well' },
     { x: 30, y: 35, type: 'bones_pile', walkable: true, interactionId: 'wolf_den_bones' },
     { x: 65, y: 183, type: 'ranger_remains', walkable: true, interactionId: 'chapel_dead_ranger' },
-    { x: 83, y: 185, type: 'sign', walkable: false, interactionId: 'cliff_sanctum_warning' },
-    { x: 89, y: 190, type: 'ranger_remains', walkable: true, interactionId: 'highland_garrison_remains' },
+    { x: 89, y: 190, type: 'ranger_remains_scattered', walkable: true },
     { x: 262, y: 25, type: 'sign', walkable: false, interactionId: 'volcano_warning' },
     { x: 22, y: 248, type: 'cage', walkable: false, interactionId: 'spider_cocoon' },
     // Potion pickups in forest clearings and paths
@@ -1517,7 +1518,6 @@ export const forestDef: MapDefinition = {
     { x: 195, y: 173, type: 'bloodstain', walkable: true },
     { x: 201, y: 174, type: 'bloodstain', walkable: true },
     // Mossy waystone marker on the path edge
-    { x: 194, y: 173, type: 'mossy_stone', walkable: false },
     // Nature reclaiming the ruins
     { x: 190, y: 172, type: 'dead_tree', walkable: false },
     { x: 207, y: 170, type: 'dead_tree', walkable: false },
@@ -2051,10 +2051,11 @@ export const forestDef: MapDefinition = {
     // Hollow approach stair landing ? armored wolves on the grass shelf (world ~-38,-38).
     { x: 106, y: 111, width: 9, height: 2, enemyType: 'armored_wolf', count: 2, patrolRadius: 0.8 },
     { x: 86, y: 116, width: 20, height: 14, enemyType: 'wolf', count: 3 },
-    // Stone Sentinels now guard the deeper cliff sanctum past the Iron Gate / Cliff Ledge route,
-    // while the old west shelf carries warning props instead of a pre-checkpoint damage spike.
-    { x: 181, y: 190, width: 1, height: 1, enemyType: 'stone_sentinel', count: 1 },
-    { x: 204, y: 190, width: 1, height: 1, enemyType: 'stone_sentinel', count: 1 },
+    // Stone Sentinels now guard the deeper cliff sanctum past the Iron Gate / Cliff Ledge route.
+    // Keep them clearly outside the Cliff Ledge Approach bonfire sanctuary so they read as
+    // checkpoint-adjacent threats rather than inert safe-zone statues.
+    { x: 177, y: 190, width: 1, height: 1, enemyType: 'stone_sentinel', count: 1 },
+    { x: 209, y: 190, width: 1, height: 1, enemyType: 'stone_sentinel', count: 1 },
     // Cliff inlet back wall (world ~-46,41 / tile ~108,191) ??? Hollow Shade lurking deep.
     // Very tight chaseRange (2.8) ??? only aggros on direct approach; easily missed.
     // Faces south (cliff wall) by default. A dripfeed of the Hollow section.

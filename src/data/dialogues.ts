@@ -1062,10 +1062,6 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'cliff_inlet_marker',
     nodes: [{ id: 'start', text: "A weathered post with a carved arrow pointing south. Burned letters below read: '**GATE PASSAGE.** Ranger outpost — half a league south. Gate is locked. Find another way or turn back.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
-  cliff_sanctum_warning: {
-    id: 'cliff_sanctum_warning',
-    nodes: [{ id: 'start', text: "Scratched into a broken stone slab: '**DO NOT DESCEND.** The plateau below belongs to the __Stone Sentinels__ now. They do not sleep, they do not tire, and they do not forget a face that has passed through here alive. — Last garrison ranger'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
-  },
   east_ridge_lumberyard_sign: {
     id: 'east_ridge_lumberyard_sign',
     nodes: [{ id: 'start', text: "A splintered signpost marks the old **ridge lumberyard**. The cut is long abandoned. Fresh claw marks score the wood — something still patrols the timber stacks.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],

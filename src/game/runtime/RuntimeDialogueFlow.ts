@@ -49,6 +49,7 @@ interface CreateRuntimeDialogueFlowOptions {
   updateWorldChunksAtPlayer: () => void;
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
+  syncQuarryBankShortcutState: () => void;
   syncWestCliffGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
@@ -106,6 +107,7 @@ export function createRuntimeDialogueFlow({
   updateWorldChunksAtPlayer,
   syncWhisperingWoodsShortcutState,
   syncGroveShelfShortcutState,
+  syncQuarryBankShortcutState,
   syncWestCliffGateState,
   syncRiversideBridgeShortcutState,
   syncHollowShortcutState,
@@ -194,6 +196,7 @@ export function createRuntimeDialogueFlow({
     updateWorldChunksAtPlayer,
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
+    syncQuarryBankShortcutState,
     syncWestCliffGateState,
     syncRiversideBridgeShortcutState,
     syncHollowShortcutState,

@@ -1,4 +1,25 @@
 import type { MapDefinition } from '@/data/mapGenerator';
+import { cityBlocks } from './cityBlocks';
+
+// GUILRHYM ROAD NETWORK — the deliberate, inter-connecting streets (granite setts).
+// Buildings are kept OFF these (keepClear) and they're laid as walkable road_setts, so
+// roads read as roads. N-S roads are split at the canal (y169-175) — the only crossing is
+// the Toll Bridge. Everything NOT on a road is destined to be fenced/gated off.
+const GUILRHYM_ROADS: Array<{ x: number; y: number; width: number; height: number }> = [
+  // East–west streets (full width)
+  { x: 16, y: 30, width: 268, height: 3 },
+  { x: 16, y: 62, width: 268, height: 3 },
+  { x: 16, y: 92, width: 268, height: 3 },
+  { x: 16, y: 130, width: 268, height: 3 },
+  { x: 16, y: 192, width: 268, height: 3 },
+  { x: 16, y: 230, width: 268, height: 3 },
+  { x: 16, y: 270, width: 268, height: 3 },
+  // North–south streets, north half (stop at the canal's north bank)
+  ...[18, 58, 102, 198, 242, 280].map(x => ({ x, y: 16, width: 3, height: 150 })),
+  // North–south streets, south half (start at the canal's south bank)
+  ...[18, 58, 102, 198, 242, 280].map(x => ({ x, y: 178, width: 3, height: 110 })),
+];
+const ROAD_RECTS = GUILRHYM_ROADS.map(r => ({ x0: r.x, y0: r.y, x1: r.x + r.width - 1, y1: r.y + r.height - 1 }));
 
 // =============================================================================
 // GUILRHYM — 300x300 ruined Victorian city (the act-two level after the Hollow).
@@ -74,6 +95,14 @@ export const guilrhymDef: MapDefinition = {
     // Canal banks — flood-damaged wet stone (water overwrites the channel later)
     { x: 16, y: 166, width: 268, height: 3, type: 'clearing', fill: 'waterlogged_cobble' },
     { x: 16, y: 176, width: 268, height: 3, type: 'clearing', fill: 'waterlogged_cobble' },
+    // PROPER ROADS — granite setts on the thoroughfares (not dirt spines): the central
+    // gate boulevard + the dense west-pocket high street.
+    { x: 144, y: 248, width: 12, height: 44, type: 'clearing', fill: 'road_setts' },
+    { x: 24, y: 204, width: 116, height: 4, type: 'clearing', fill: 'road_setts' },
+    // THE ROAD NETWORK — the inter-connecting street grid (see GUILRHYM_ROADS at top).
+    // Laid EARLY so later walls / the canal / civic plazas override (and keep gating) where
+    // they cross; everything off these roads is fenced/gated off (the iron_fence fabric).
+    ...GUILRHYM_ROADS.map(r => ({ x: r.x, y: r.y, width: r.width, height: r.height, type: 'clearing' as const, fill: 'road_setts' as const })),
 
     // =========================================================================
     // ZONE A — OUTSKIRTS & GATE PLAZA (y: 242–293)
@@ -89,24 +118,21 @@ export const guilrhymDef: MapDefinition = {
     { x: 196, y: 240, width: 6, height: 8, type: 'building' },
     { x: 228, y: 240, width: 6, height: 8, type: 'building' },
 
-    // West estate (Oliver) — manor mass + walled garden
+    // West estate (Oliver) — manor where he slumps; the tenement lands + Tolbooth
+    // (placed as props) form the rest of the west frontage of the gate plaza.
     { x: 128, y: 259, width: 10, height: 7, type: 'building', interactionId: 'guilrhym_oliver_manor' },
-    { x: 112, y: 256, width: 12, height: 8, type: 'building' },
-    { x: 110, y: 266, width: 6, height: 6, type: 'garden' }, // the one kept "park" patch (Oliver's walled garden)
     { x: 124, y: 268, width: 10, height: 4, type: 'cobble_plaza' },
     { x: 108, y: 254, width: 34, height: 2, type: 'iron_fence_border' },
-    // East estate (ruined, asymmetric counterpart)
-    { x: 168, y: 258, width: 12, height: 8, type: 'building' },
-    { x: 184, y: 262, width: 10, height: 7, type: 'destroyed_town' },
+    // East frontage railings (the east tenement land sits behind, placed as props)
     { x: 176, y: 252, width: 16, height: 2, type: 'iron_fence_border' },
 
     // Outskirts edge — ruined buildings (no grass yards; this is a stone city)
-    { x: 40, y: 264, width: 12, height: 8, type: 'destroyed_town' },
-    { x: 56, y: 274, width: 10, height: 8, type: 'destroyed_town' },
-    { x: 244, y: 266, width: 12, height: 8, type: 'destroyed_town' },
-    { x: 258, y: 276, width: 10, height: 8, type: 'destroyed_town' },
-    { x: 36, y: 250, width: 10, height: 8, type: 'destroyed_town' },
-    { x: 252, y: 250, width: 10, height: 8, type: 'destroyed_town' },
+    { x: 40, y: 264, width: 12, height: 8, type: 'clearing', fill: 'cobblestone' },
+    { x: 56, y: 274, width: 10, height: 8, type: 'clearing', fill: 'cobblestone' },
+    { x: 244, y: 266, width: 12, height: 8, type: 'clearing', fill: 'cobblestone' },
+    { x: 258, y: 276, width: 10, height: 8, type: 'clearing', fill: 'cobblestone' },
+    { x: 36, y: 250, width: 10, height: 8, type: 'clearing', fill: 'cobblestone' },
+    { x: 252, y: 250, width: 10, height: 8, type: 'clearing', fill: 'cobblestone' },
     // Broken wagons on the approach
     { x: 120, y: 280, width: 6, height: 5, type: 'broken_wagon' },
     { x: 174, y: 282, width: 6, height: 5, type: 'broken_wagon' },
@@ -133,15 +159,9 @@ export const guilrhymDef: MapDefinition = {
     // Cemetery rise (east, elevated — see elevationZones)
     { x: 244, y: 168, width: 36, height: 18, type: 'cemetery' },
     { x: 250, y: 184, width: 22, height: 6, type: 'graveyard' },
-    // West-south residential pocket (optional explore, reachable from the plaza
-    // via the y205 cross-street; building masses with narrow lanes)
-    { x: 40, y: 188, width: 14, height: 10, type: 'building' },
-    { x: 58, y: 184, width: 12, height: 10, type: 'building' },
-    { x: 40, y: 206, width: 12, height: 10, type: 'building' },
-    { x: 58, y: 210, width: 14, height: 12, type: 'building' },
-    { x: 44, y: 224, width: 16, height: 12, type: 'destroyed_town' },
-    { x: 78, y: 196, width: 10, height: 10, type: 'building' },
-    { x: 96, y: 200, width: 12, height: 10, type: 'building' },
+    // West-south residential pocket — now DENSELY filled by cityBlocks() in the props
+    // array (dense-by-default tenement lands + carved winding closes). The old sparse
+    // building masses were removed so the fill owns this district.
     // Cross-street linking the west pocket to the market plaza (a clear lane at
     // y205; everything around it is base cobblestone, so this is just dressing)
     { x: 74, y: 204, width: 102, height: 4, type: 'clearing', fill: 'cobblestone' },
@@ -171,45 +191,9 @@ export const guilrhymDef: MapDefinition = {
     // Lever-1 portcullis shortcut lane stay open).
     { x: 104, y: 150, width: 42, height: 5, type: 'wall', fill: 'stone' },  // x104–145
     { x: 155, y: 150, width: 129, height: 5, type: 'wall', fill: 'stone' }, // x155–283
-    // UPPER-CITY WARREN (east of the spine, off the critical path) — a DENSE
-    // concrete maze of solid building blocks with 2-tile alleys, a packed
-    // Yharnam-style district the player threads through for optional loot. Region
-    // x158-272, y100-148; one block omitted as a courtyard nook (x214,y124).
-    // Row y100
-    { x: 158, y: 100, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 172, y: 100, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 186, y: 100, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 200, y: 100, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 214, y: 100, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 228, y: 100, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 242, y: 100, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 256, y: 100, width: 14, height: 10, type: 'wall', fill: 'stone' },
-    // Row y112
-    { x: 158, y: 112, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 172, y: 112, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 186, y: 112, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 200, y: 112, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 214, y: 112, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 228, y: 112, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 242, y: 112, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 256, y: 112, width: 14, height: 10, type: 'wall', fill: 'stone' },
-    // Row y124 (x214 omitted → courtyard nook with a chest)
-    { x: 158, y: 124, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 172, y: 124, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 186, y: 124, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 200, y: 124, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 228, y: 124, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 242, y: 124, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 256, y: 124, width: 14, height: 10, type: 'wall', fill: 'stone' },
-    // Row y136
-    { x: 158, y: 136, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 172, y: 136, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 186, y: 136, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 200, y: 136, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 214, y: 136, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 228, y: 136, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 242, y: 136, width: 12, height: 10, type: 'wall', fill: 'stone' },
-    { x: 256, y: 136, width: 14, height: 10, type: 'wall', fill: 'stone' },
+    // UPPER-CITY (north-east of the spine) — now packed densely as tenement lands by
+    // cityBlocks() in the props array (the old solid-stone warren was removed so the
+    // dense-fill owns this district and it reads as buildings on the map).
     // Center spine walls (leave the x146-154 column for the portcullis route)
     { x: 116, y: 120, width: 28, height: 16, type: 'building' },
     { x: 156, y: 120, width: 2, height: 16, type: 'wall', fill: 'stone' },
@@ -219,7 +203,7 @@ export const guilrhymDef: MapDefinition = {
     { x: 24, y: 116, width: 76, height: 48, type: 'clearing', fill: 'ruins_floor' },
     { x: 30, y: 124, width: 14, height: 12, type: 'building' },
     { x: 30, y: 144, width: 14, height: 12, type: 'building' },
-    { x: 54, y: 120, width: 12, height: 10, type: 'destroyed_town' },
+    { x: 54, y: 120, width: 12, height: 10, type: 'clearing', fill: 'cobblestone' },
     { x: 76, y: 124, width: 14, height: 12, type: 'building' },
     { x: 76, y: 146, width: 14, height: 12, type: 'building' },
     { x: 48, y: 140, width: 16, height: 14, type: 'ruined_fort' },
@@ -270,6 +254,7 @@ export const guilrhymDef: MapDefinition = {
   chests: [
     // --- Zone A (3) ---
     { x: 150, y: 264, interactionId: 'guilrhym_gate_chest' },
+    { x: 66, y: 249, interactionId: 'guilrhym_close_chest' }, // loot up a dead-end close in the west land
     { x: 46, y: 268, interactionId: 'guilrhym_outskirt_hidden_chest' }, // 'hidden' → richer
     { x: 132, y: 262, interactionId: 'guilrhym_servant_chest' },
     // --- Zone B Market (5) ---
@@ -397,12 +382,37 @@ export const guilrhymDef: MapDefinition = {
     { x: 122, y: 46, width: 56, height: 10, enemyType: 'shadow', count: 3 }, // final press before the gate
   ],
   props: [
-    // ===== ASSET TEST (temporary) — tenement kit: a row showing variant variety =====
+    // ===== ASSET TEST (temporary) — tenement "lands": short groups (spacing 6, butted
+    // at party walls) separated by narrow 2-tile CLOSES (anchors 9 apart) — the Edinburgh
+    // Old Town pattern of connected blocks broken by frequent wynds/closes.
     { x: 34, y: 254, type: 'tenement_facade', walkable: false },
-    { x: 42, y: 254, type: 'tenement_facade', walkable: false },
-    { x: 50, y: 254, type: 'tenement_facade', walkable: false },
-    { x: 58, y: 254, type: 'tenement_facade', walkable: false },
-    { x: 66, y: 254, type: 'tenement_facade', walkable: false },
+    { x: 40, y: 254, type: 'tenement_facade', walkable: false },
+    { x: 46, y: 254, type: 'tenement_facade', walkable: false },
+    // close
+    { x: 55, y: 254, type: 'tenement_facade', walkable: false },
+    { x: 61, y: 254, type: 'tenement_facade', walkable: false },
+    // close
+    { x: 70, y: 254, type: 'tenement_facade', walkable: false },
+    { x: 76, y: 254, type: 'tenement_facade', walkable: false },
+    { x: 82, y: 254, type: 'tenement_facade', walkable: false },
+    // close
+    { x: 91, y: 254, type: 'tenement_facade', walkable: false },
+    { x: 97, y: 254, type: 'tenement_facade', walkable: false },
+    // ===== LANDMARK — the Tolbooth clocktower (civic spire, POI in MapMarkers) =====
+    { x: 118, y: 250, type: 'clocktower', walkable: false },
+    // ===== STREET LIFE — abandoned in the fled city (carriages, a coach, signage) =====
+    { x: 140, y: 282, type: 'stagecoach', walkable: false },   // overturned coach at the gate
+    { x: 158, y: 270, type: 'street_sign', walkable: false },  // gate plaza fingerpost
+    { x: 66, y: 206, type: 'street_sign', walkable: false },   // west high-street nameplate
+    { x: 152, y: 277, type: 'baby_carriage', walkable: false },// pram abandoned at the gate
+    { x: 90, y: 213, type: 'baby_carriage', walkable: false }, // pram in the west pocket
+    // ===== EAST frontage of the gate plaza — two tenement groups split by a close,
+    // set WEST of the inner-wall gap (x200-228) so the dogleg-east route stays open.
+    { x: 172, y: 254, type: 'tenement_facade', walkable: false },
+    { x: 178, y: 254, type: 'tenement_facade', walkable: false },
+    // close (leads north onto the wall-side street toward the east gap)
+    { x: 190, y: 254, type: 'tenement_facade', walkable: false },
+    { x: 196, y: 254, type: 'tenement_facade', walkable: false },
 
     // =========================================================================
     // ENVIRONMENTAL STORYTELLING GRADIENT — bloodstains → bones → ash rising
@@ -487,5 +497,61 @@ export const guilrhymDef: MapDefinition = {
     { x: 150, y: 38, type: 'bones_pile', walkable: true },
     { x: 144, y: 32, type: 'bloodstain', walkable: true },
     { x: 156, y: 32, type: 'bloodstain', walkable: true },
+
+    // =========================================================================
+    // DENSE-BY-DEFAULT FILL — pack districts with tenement lands and carve a
+    // winding street/close network (the forest's "fill + carve", Yharnam-tight).
+    // =========================================================================
+    // West-south residential pocket (x24-138, y184-238). E-W streets at the cross
+    // lanes; closes offset per row so N-S travel must jog. POIs kept clear.
+    ...(() => {
+      // STREETS/CORRIDORS kept open (the dogleg + civic nodes + canal); buildings stay out.
+      const S = [
+        { x0: 142, y0: 8, x1: 157, y1: 293 },   // central spine road (+ lever gates)
+        { x0: 128, y0: 254, x1: 174, y1: 293 },  // gate plaza
+        { x0: 194, y0: 228, x1: 232, y1: 252 },  // east dogleg gap
+        { x0: 174, y0: 184, x1: 244, y1: 236 },  // market square node
+        { x0: 198, y0: 156, x1: 214, y1: 204 },  // toll bridge approach
+        { x0: 16, y0: 148, x1: 284, y1: 168 },   // north bank lane
+        { x0: 16, y0: 169, x1: 284, y1: 176 },   // canal channel
+        { x0: 22, y0: 112, x1: 102, y1: 166 },   // undercroft
+        { x0: 60, y0: 86, x1: 128, y1: 120 },    // the Heights
+        { x0: 116, y0: 92, x1: 158, y1: 104 },   // Heights → cloister connector
+        { x0: 118, y0: 44, x1: 180, y1: 98 },    // Reliquary cloister
+        { x0: 106, y0: 8, x1: 194, y1: 44 },     // cathedral forecourt
+        { x0: 108, y0: 248, x1: 138, y1: 274 },  // Oliver's manor + the Tolbooth
+      ];
+      // Block grammar: solid 28-wide terrace blocks, 16 deep, split by 3-tile streets
+      // and 2-tile alleys/wynds — continuous terraces with real alleys between blocks.
+      const o = { blockW: 28, blockH: 16, streetW: 3, alleyW: 2, rowStep: 7, baySpacing: 6, streetHalfWidth: 2 };
+      const chests = [
+        { x0: 46, y0: 192, x1: 46, y1: 192 }, { x0: 62, y0: 214, x1: 62, y1: 214 },
+        { x0: 100, y0: 204, x1: 100, y1: 204 }, { x0: 62, y0: 200, x1: 62, y1: 200 },
+        { x0: 88, y0: 200, x1: 88, y1: 200 },
+      ];
+      // District = a FREQUENCY mix of forms (colours jumble per-building via the kit palette).
+      const RES = ['townhouse_facade', 'townhouse_facade', 'townhouse_facade', 'tenement_facade'] as const;
+      const IND = ['warehouse_facade', 'warehouse_facade', 'warehouse_facade', 'tenement_facade'] as const;
+      const COMMON = ['tenement_facade', 'tenement_facade', 'tenement_facade', 'townhouse_facade'] as const;
+      const SLUM = ['tenement_facade', 'tenement_facade', 'tenement_facade', 'warehouse_facade', 'townhouse_facade'] as const;
+      const m = (a: readonly string[]) => [...a] as import('@/lib/game/World').TileType[];
+      return [
+        // WEST RESIDENTIAL — mostly townhouses
+        ...cityBlocks({ ...o, seed: 101, types: m(RES), x0: 26, y0: 186, x1: 136, y1: 236, streetRows: [205, 223], keepClear: [...S, ...chests] }),
+        // EAST DOCKS — mostly warehouses, tighter denser blocks
+        ...cityBlocks({ ...o, seed: 202, blockW: 34, blockH: 20, streetW: 2, alleyW: 2, types: m(IND), x0: 246, y0: 184, x1: 282, y1: 238, streetRows: [205], keepClear: S }),
+        // UPPER CITY (the Heights) — residential mix
+        ...cityBlocks({ ...o, seed: 303, types: m(RES), x0: 16, y0: 92, x1: 56, y1: 146, streetRows: [112, 130], keepClear: S }),
+        ...cityBlocks({ ...o, seed: 313, types: m(RES), x0: 104, y0: 122, x1: 140, y1: 146, streetRows: [], keepClear: S }),
+        // UPPER-EAST INDUSTRIAL — warehouses (the old warren region)
+        ...cityBlocks({ ...o, seed: 404, blockW: 34, blockH: 20, streetW: 2, alleyW: 2, types: m(IND), x0: 158, y0: 96, x1: 282, y1: 146, streetRows: [112, 130], keepClear: S }),
+        // CATHEDRAL APPROACH flanks — tight slum wynds
+        ...cityBlocks({ ...o, seed: 505, blockW: 22, alleyW: 2, courtChance: 0.16, types: m(SLUM), x0: 16, y0: 48, x1: 104, y1: 92, streetRows: [70], keepClear: S }),
+        ...cityBlocks({ ...o, seed: 515, blockW: 22, alleyW: 2, courtChance: 0.16, types: m(SLUM), x0: 192, y0: 48, x1: 282, y1: 92, streetRows: [70], keepClear: S }),
+        // GATE OUTSKIRTS flanks — common mix
+        ...cityBlocks({ ...o, seed: 606, types: m(COMMON), x0: 16, y0: 248, x1: 126, y1: 290, streetRows: [268], keepClear: S }),
+        ...cityBlocks({ ...o, seed: 616, types: m(COMMON), x0: 178, y0: 248, x1: 282, y1: 290, streetRows: [268], keepClear: S }),
+      ];
+    })(),
   ],
 };

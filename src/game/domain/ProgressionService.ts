@@ -273,7 +273,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
     }
 
     if (state.currentDialogue === 'mountain_hermit' && currentDialogue.node.id === 'offer_ring' && nextId === 'take_ring') {
-      if (!state.getFlag('olwen_ranger_cabin_hint')) {
+      if (!state.getFlag('wolf_ring_received') && !state.getFlag('olwen_ranger_cabin_hint')) {
         state.setFlag('olwen_ranger_cabin_hint', true);
         context.notify('Location Revealed', {
           id: 'olwen-cabin-hint',

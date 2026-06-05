@@ -47,6 +47,18 @@ if (typeof window !== 'undefined') {
 }
 const _scratchLungeEnemies: Enemy[] = [];
 
+function getEnemyLungeKnockbackScale(enemy: Enemy): number {
+  const tuned = enemy.behaviorOverrides.knockbackResistance;
+  if (typeof tuned === 'number') return Math.max(0, Math.min(1.25, tuned));
+  const poiseScale = 1 - Math.min(0.75, enemy.maxPoise / 500);
+  return Math.max(0.25, poiseScale);
+}
+
+function shouldLungeInterruptEnemy(enemy: Enemy, staggeredByHit: boolean): boolean {
+  if (staggeredByHit) return true;
+  return getEnemyLungeKnockbackScale(enemy) >= 0.5;
+}
+
 function isLadderTile(world: World, px: number, py: number): boolean {
   return world.getTile(px, py)?.type === 'ladder';
 }
@@ -350,7 +362,7 @@ interface UpdatePlayerSimulationOptions {
     getEnemiesInRange: (position: { x: number; y: number }, range: number, out?: Enemy[]) => Enemy[];
     playerAttack: (enemy: Enemy, damage: number, playerPosition: { x: number; y: number }, playerDirection: string) => { killed: boolean; staggered: boolean; backstab: boolean };
   };
-  onLungeHit: (enemy: Enemy, damage: number) => void;
+  onLungeHit: (enemy: Enemy, damage: number) => { killed: boolean; staggered: boolean; backstab: boolean };
   onLungeEnd: () => void;
   arcWave: ArcWaveState;
   onArcWaveHit: (enemy: Enemy, damage: number) => void;
@@ -904,12 +916,14 @@ export function updatePlayerSimulation({
     for (const enemy of nearby) {
       if (!lungeState.hitEnemyIds.has(enemy.id)) {
         lungeState.hitEnemyIds.add(enemy.id);
-        onLungeHit(enemy, lungeState.damage);
+        const result = onLungeHit(enemy, lungeState.damage);
 
         if (enemy.state !== 'dead') {
+          const knockbackScale = getEnemyLungeKnockbackScale(enemy);
           for (const dist of KNOCKBACK_DISTANCES) {
-            const pushX = state.player.position.x + dirX * dist;
-            const pushY = state.player.position.y + dirY * dist;
+            const scaledDist = Math.max(0.35, dist * knockbackScale);
+            const pushX = state.player.position.x + dirX * scaledDist;
+            const pushY = state.player.position.y + dirY * scaledDist;
             if (world.canEnemyMoveTo(enemy.position.x, enemy.position.y, pushX, pushY, 0.2)) {
               enemy.position.x = pushX;
               enemy.position.y = pushY;
@@ -917,7 +931,7 @@ export function updatePlayerSimulation({
             }
           }
 
-          if (enemy.state === 'telegraphing' || enemy.state === 'attacking') {
+          if (shouldLungeInterruptEnemy(enemy, result.staggered) && (enemy.state === 'telegraphing' || enemy.state === 'attacking')) {
             enemy.state = 'recovering';
             enemy.telegraphTimer = 0;
             enemy.recoverTimer = Math.max(enemy.recoverTimer, enemy.recoverDuration * 0.55);

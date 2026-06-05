@@ -55,6 +55,7 @@ interface RuntimeActionPhaseOptions {
   syncHarvestedMoonbloomState: () => void;
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
+  syncQuarryBankShortcutState: () => void;
   syncWestCliffGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
@@ -132,6 +133,7 @@ export function setupRuntimeActionPhase({
   syncHarvestedMoonbloomState,
   syncWhisperingWoodsShortcutState,
   syncGroveShelfShortcutState,
+  syncQuarryBankShortcutState,
   syncWestCliffGateState,
   syncRiversideBridgeShortcutState,
   syncHollowShortcutState,
@@ -396,6 +398,7 @@ export function setupRuntimeActionPhase({
     },
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
+    syncQuarryBankShortcutState,
     syncWestCliffGateState,
     syncRiversideBridgeShortcutState,
     syncHollowShortcutState,

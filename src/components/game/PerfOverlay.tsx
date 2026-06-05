@@ -24,6 +24,7 @@ export function PerfOverlay({ snapshot }: PerfOverlayProps) {
         <span>Perf profiler (F8)</span>
         <span>{snapshot.frames.fps.toFixed(0)} fps</span>
       </div>
+      <div className="mb-1 text-[10px] text-[#8DD8FF]/75">F9 captures this sample to console + window history</div>
       <div className="grid grid-cols-5 gap-1 text-center">
         <div>last<br />{ms(snapshot.frames.last)}</div>
         <div>p50<br />{ms(snapshot.frames.p50)}</div>

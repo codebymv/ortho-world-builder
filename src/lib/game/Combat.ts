@@ -41,6 +41,18 @@ const ENEMY_PATH_RECOVERY_DURATION = 0.85;
 const ENEMY_PATH_RECOVERY_BLEND = 0.28;
 const ENEMY_PATH_HARD_STUCK_FRAMES = ENEMY_STUCK_FRAME_LIMIT * 2;
 const BACKSTAB_FACING_DOT = 0.5;
+/** While chasing, disengage only beyond chaseRange * this linear multiplier (squared in leash checks). */
+export const ACTIVE_COMBAT_LEASH_RANGE_MULT = 1.5;
+
+/** Squared active-combat leash — must match `chasing` disengage so recovery/retreat do not drop aggro early. */
+export function getActiveCombatLeashRangeSq(chaseRangeSq: number): number {
+  return chaseRangeSq * ACTIVE_COMBAT_LEASH_RANGE_MULT * ACTIVE_COMBAT_LEASH_RANGE_MULT;
+}
+
+/** True when the target is still inside the leash used by the chasing state. */
+export function shouldEnemyResumeChasing(distSq: number, chaseRangeSq: number): boolean {
+  return distSq <= getActiveCombatLeashRangeSq(chaseRangeSq);
+}
 
 type EnemyMovePredicate = (fromX: number, fromY: number, toX: number, toY: number, r: number) => boolean;
 type EnemyMoveStep = { x: number; y: number; moved: boolean; vx: number; vy: number };
@@ -1014,6 +1026,7 @@ export class CombatSystem {
         ? enemy.chaseRange
         : enemy.chaseRange * stealthDetectionMult;
       const chaseRangeSq = effectiveChaseRange * effectiveChaseRange;
+      const leashRangeSq = getActiveCombatLeashRangeSq(chaseRangeSq);
       const attackRangeSq = enemy.attackRange * enemy.attackRange;
 
       switch (enemy.state) {
@@ -1093,7 +1106,6 @@ export class CombatSystem {
             updateMovementVisuals(enemy, 0, 0, false, 0);
             break;
           }
-          const leashRangeSq = chaseRangeSq * 2.25;
           if (distSq > leashRangeSq) {
             enemy.state = 'idle';
             updateMovementVisuals(enemy, 0, 0, false, 0);
@@ -1754,7 +1766,7 @@ export class CombatSystem {
               enemy.state = 'telegraphing';
               enemy.telegraphTimer = bo.chainTelegraph ?? enemy.telegraphDuration * 0.5;
             } else {
-              enemy.state = distSq <= chaseRangeSq ? 'chasing' : 'idle';
+              enemy.state = shouldEnemyResumeChasing(distSq, chaseRangeSq) ? 'chasing' : 'idle';
             }
           }
           break;
@@ -1799,7 +1811,7 @@ export class CombatSystem {
         case 'retreating': {
           enemy.retreatTimer -= deltaTime;
           if (enemy.retreatTimer <= 0) {
-            enemy.state = distSq <= chaseRangeSq ? 'chasing' : 'idle';
+            enemy.state = shouldEnemyResumeChasing(distSq, chaseRangeSq) ? 'chasing' : 'idle';
             updateMovementVisuals(enemy, 0, 0, false, 0);
             break;
           }
@@ -1895,7 +1907,7 @@ export class CombatSystem {
           updateMovementVisuals(enemy, 0, 0, false, 0);
           if (enemy.staggerTimer <= 0) {
             enemy.poise = enemy.maxPoise *0.3;
-            enemy.state = distSq <= chaseRangeSq ? 'chasing' : 'idle';
+            enemy.state = shouldEnemyResumeChasing(distSq, chaseRangeSq) ? 'chasing' : 'idle';
           }
           break;
         }

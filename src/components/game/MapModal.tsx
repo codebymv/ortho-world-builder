@@ -66,6 +66,7 @@ export const MapModal = memo(function MapModal({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
   const animRef = useRef<number>(0);
+  const terrainDrawKeyRef = useRef('');
   const scale = useMemo(
     () => computeMinimapScaleToFit(currentMap.width, currentMap.height, viewport.w, viewport.h, 2, 14),
     [currentMap.height, currentMap.width, viewport.h, viewport.w],
@@ -152,6 +153,27 @@ export const MapModal = memo(function MapModal({
     const overlayCanvas = overlayCanvasRef.current;
     if (!terrainCanvas || !overlayCanvas) return false;
 
+    const terrainDrawKey = [
+      currentMapId,
+      currentMap.width,
+      currentMap.height,
+      currentMap.revision ?? 0,
+      visitedTilesRef.current.size,
+      scale,
+      canvasWidth,
+      canvasHeight,
+      assetManager ? 'assets' : 'flat',
+    ].join(':');
+    if (
+      terrainDrawKeyRef.current === terrainDrawKey &&
+      terrainCanvas.width === canvasWidth &&
+      terrainCanvas.height === canvasHeight &&
+      overlayCanvas.width === canvasWidth &&
+      overlayCanvas.height === canvasHeight
+    ) {
+      return true;
+    }
+
     terrainCanvas.width = canvasWidth;
     terrainCanvas.height = canvasHeight;
     overlayCanvas.width = canvasWidth;
@@ -171,6 +193,7 @@ export const MapModal = memo(function MapModal({
       scale,
       assetManager,
     });
+    terrainDrawKeyRef.current = terrainDrawKey;
     perfProfiler?.recordExternal('mapTerrain', performance.now() - start);
     return true;
   }, [canvasWidth, canvasHeight, currentMap, currentMapId, gameStateRef, visitedTilesRef, scale, assetManager, perfProfiler]);

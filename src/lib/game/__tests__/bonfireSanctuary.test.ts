@@ -41,6 +41,16 @@ describe('bonfire sanctuary', () => {
     expect(isPositionInBonfireSafeZone('forest', x + outside, y)).toBe(false);
   });
 
+  it('keeps cliff ledge sentinels outside the bonfire sanctuary', () => {
+    const toWorld = (tileX: number, tileY: number) => ({
+      x: tileX - forestDef.width / 2 + 0.5,
+      y: tileY - forestDef.height / 2 + 0.5,
+    });
+
+    expect(isPositionInBonfireSafeZone('forest', toWorld(177, 190).x, toWorld(177, 190).y)).toBe(false);
+    expect(isPositionInBonfireSafeZone('forest', toWorld(209, 190).x, toWorld(209, 190).y)).toBe(false);
+  });
+
   it('applies village bonfire sanctuary', () => {
     const map = generateMap(villageDef, 'village');
     const { x, y } = bonfireTileWorldPosition('village', 120, 104);

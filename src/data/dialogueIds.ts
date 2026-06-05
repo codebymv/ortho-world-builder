@@ -70,7 +70,6 @@ export const dialogueIds = new Set<string>([
   'river_east_waypost',
   'fort_north_waypost',
   'cliff_inlet_marker',
-  'cliff_sanctum_warning',
   'east_ridge_lumberyard_sign',
   'consumed_ridge_camp_sign',
   'grove_warden',

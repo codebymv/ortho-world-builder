@@ -19,6 +19,7 @@ export type KnownGameFlag =
   | 'forest_golem_defeated'
   | 'forest_kill_count'
   | 'grove_shelf_shortcut_open'
+  | 'quarry_bank_shortcut_open'
   | 'west_cliff_gate_open'
   | 'ritual_revenant_west_cleared'
   | 'ritual_revenant_precipice_cleared'

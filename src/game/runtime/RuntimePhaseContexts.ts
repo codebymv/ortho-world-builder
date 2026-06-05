@@ -93,7 +93,7 @@ export interface GameplayPreludeContext {
     getEnemiesInRange: (position: { x: number; y: number }, range: number, out?: Enemy[]) => Enemy[];
     playerAttack: (enemy: Enemy, damage: number, playerPosition: { x: number; y: number }, playerDirection: string) => { killed: boolean; staggered: boolean; backstab: boolean };
   };
-  onLungeHit: (enemy: Enemy, damage: number) => void;
+  onLungeHit: (enemy: Enemy, damage: number) => { killed: boolean; staggered: boolean; backstab: boolean };
   onLungeEnd: () => void;
   arcWave: import('@/game/runtime/PlayerSimulationSystem').ArcWaveState;
   onArcWaveHit: (enemy: Enemy, damage: number) => void;

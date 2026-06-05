@@ -496,6 +496,76 @@ export class AssetManager {
     const set = (x: number, y: number, c: number) => { if (inB(x, y)) pixels[y][x] = c; };
     const wall = new Set([TB, TBD, TBL, TBG, TS]);
     const roof = new Set([TR, TRD, CHM]);
+    const TRL = 0x4e4e5a;
+
+    // Victorian palette pool — every building rolls one so brick / soot-black / grey
+    // ashlar / stucco-white / brown all jumble together (a district is defined by the
+    // MIX of forms, not a uniform colour). Remapped onto the base brick at the very end.
+    const PALETTES = [
+      { b: 0x8a4a3a, d: 0x6a3528, l: 0x9a5a48, r: 0x3a3a44, rd: 0x2a2a32, ch: 0x4a3028 }, // red brick
+      { b: 0x8c8884, d: 0x6c6864, l: 0x9e9a96, r: 0x44444c, rd: 0x303038, ch: 0x5a5650 }, // grey ashlar
+      { b: 0x36363c, d: 0x26262c, l: 0x48484f, r: 0x26262c, rd: 0x1a1a20, ch: 0x2a2a30 }, // soot black
+      { b: 0xc4b49a, d: 0xa4947c, l: 0xd6c6ae, r: 0x4a4640, rd: 0x35332e, ch: 0x6a5a48 }, // cream stucco
+      { b: 0x6b4a3a, d: 0x533829, l: 0x7d5a48, r: 0x3a3a44, rd: 0x2a2a32, ch: 0x4a3530 }, // brown brick
+      { b: 0x9a9488, d: 0x787268, l: 0xaca698, r: 0x4e4a44, rd: 0x383530, ch: 0x6a6458 }, // pale stone
+      { b: 0x6e3a3a, d: 0x4e2828, l: 0x804848, r: 0x3a3036, rd: 0x281f24, ch: 0x44302c }, // oxblood
+    ];
+    const PAL = PALETTES[Math.floor(rand() * PALETTES.length)];
+
+    // ---- STRUCTURAL variety (roofline, height, bay) — applied before grime so the
+    // silhouette itself differs per building, not just the surface. ----
+    const cx = Math.floor(W / 2);
+    const clearRoof = () => { for (let y = 0; y <= 3; y++) for (let x = 0; x < W; x++) set(x, y, C); };
+    const style = variant % 4;
+    if (style === 1) {
+      // Flat roof + crenellated parapet.
+      clearRoof();
+      for (let x = 1; x < W - 2; x++) { set(x, 2, TBD); set(x, 3, (x % 3 === 0) ? C : TB); }
+    } else if (style === 2) {
+      // Peaked gable — narrow peak at the TOP (row 0), widening to the eaves (row 3).
+      clearRoof();
+      for (let s = 0; s <= 3; s++) {
+        const half = s + 1;
+        for (let x = cx - half; x <= cx + half; x++) set(x, s, (x === cx - half || x === cx + half) ? TRD : TR);
+      }
+    } else if (style === 3) {
+      // Stepped (Dutch) gable.
+      clearRoof();
+      for (let s = 0; s <= 3; s++) {
+        const half = 3 - s;
+        for (let x = cx - half; x <= cx + half; x++) set(x, 3 - s, (s % 2 === 0) ? TB : TBD);
+      }
+    }
+    // else style 0: keep the authored mansard + dormers.
+
+    // Chimney toggle (independent of roofline).
+    if (rand() > 0.5) { for (let y = 0; y < 3; y++) for (let x = 0; x < W; x++) if (get(x, y) === CHM) set(x, y, C); }
+
+    // Height variation — full / minus-one / minus-two storeys — so a connected terrace
+    // gets a jagged Edinburgh-"lands" skyline instead of a flat top. The shortened
+    // buildings take a flat crenellated parapet at their new roofline.
+    const hr = rand();
+    const cut = hr > 0.78 ? 12 : hr > 0.48 ? 8 : 0;
+    if (cut > 0) {
+      for (let y = 0; y <= cut; y++) for (let x = 0; x < W; x++) set(x, y, C);
+      for (let x = 1; x < W - 2; x++) {
+        set(x, cut, TS);                                  // cornice line
+        set(x, cut - 1, (x % 3 === 0) ? C : TB);          // crenellated parapet
+        if (rand() > 0.6) set(x, cut + 1, TBD);           // grime under cornice
+      }
+    }
+
+    // Protruding bay/oriel window on one storey (~55%).
+    if (rand() > 0.45) {
+      const wy = pick([6, 10, 14, 18]);
+      const x0 = rand() > 0.5 ? 2 : 8;
+      for (let x = x0 - 1; x <= x0 + 3; x++) {
+        if (get(x, wy) !== C) set(x, wy, TWG);
+        if (get(x, wy + 1) !== C) set(x, wy + 1, TW);
+        set(x, wy - 1, TRL);
+        if (get(x, wy + 2) !== C) set(x, wy + 2, TBD);
+      }
+    }
 
     // 1) Soot streaks weeping down the brickwork.
     const streaks = 3 + ri(4);
@@ -582,6 +652,19 @@ export class AssetManager {
         const y = y0 + s;
         if (wall.has(get(x, y))) set(x, y, rand() > 0.4 ? TBD : SOOT);
         if (rand() > 0.55) x += rand() > 0.5 ? 1 : -1;
+      }
+    }
+
+    // Final palette remap — recolours this building's brick + roof to its rolled palette
+    // (windows, doors, sills, soot, boards, vines keep their own tones).
+    const remap = new Map<number, number>([
+      [TB, PAL.b], [TBD, PAL.d], [TBL, PAL.l], [TBG, PAL.d],
+      [TR, PAL.r], [TRD, PAL.rd], [CHM, PAL.ch],
+    ]);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const mapped = remap.get(pixels[y][x]);
+        if (mapped !== undefined) pixels[y][x] = mapped;
       }
     }
 
@@ -2117,6 +2200,359 @@ export class AssetManager {
       this.textureDataUrls.set(spriteId, canvas.toDataURL());
     }
 
+    return texture;
+  }
+
+  createFallenRangerRemains(
+    palette: {
+      hair: number; hairLight: number; hairDark: number;
+      skin: number; skinLight: number; skinShadow: number;
+      eyeIris: number; eyeIrisDark: number;
+      tunicMain: number; tunicLight: number; tunicDark: number;
+      trimColor: number; trimLight: number;
+      capeMain: number; capeDark: number;
+      pantColor: number; pantDark: number;
+      bootColor: number; bootDark: number;
+    },
+    spriteId?: string,
+  ): THREE.Texture {
+    const G = 4;
+    const W = 24 * G;
+    const H = 16 * G;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+    const p = palette;
+
+    const cell = (gx: number, gy: number, color: number) => {
+      ctx.fillStyle = this.hex(color);
+      ctx.fillRect(gx * G, gy * G, G, G);
+    };
+
+    const BLOOD_D = 0x2A0707;
+    const BLOOD_M = 0x5C1010;
+    const BLOOD_H = 0x8B1A1A;
+    const STEEL_D = 0x455A64;
+    const STEEL_M = 0x78909C;
+    const STEEL_H = 0xB0BEC5;
+    const KEY = 0xFFD54F;
+    const BLADE = 0xB7C9D6;
+    const GRIP = 0x5D4037;
+
+    // Bloodstain footprint under and around the crushed torso.
+    const bloodCells: Array<[number, number, number]> = [
+      [4, 8, BLOOD_D], [5, 7, BLOOD_M], [5, 8, BLOOD_H], [6, 7, BLOOD_M], [6, 8, BLOOD_H],
+      [7, 7, BLOOD_D], [7, 8, BLOOD_M], [8, 6, BLOOD_D], [8, 7, BLOOD_M], [8, 8, BLOOD_H],
+      [9, 6, BLOOD_M], [9, 7, BLOOD_H], [9, 8, BLOOD_M], [10, 6, BLOOD_D], [10, 7, BLOOD_M],
+      [11, 7, BLOOD_M], [11, 8, BLOOD_H], [12, 8, BLOOD_M], [13, 8, BLOOD_D],
+      [4, 10, BLOOD_M], [3, 11, BLOOD_D], [12, 10, BLOOD_M], [14, 9, BLOOD_D],
+    ];
+    for (const [x, y, color] of bloodCells) cell(x, y, color);
+
+    // Dropped blade, offset from the hand so the body reads as abandoned.
+    cell(1, 10, BLADE); cell(2, 10, BLADE); cell(3, 10, BLADE);
+    cell(4, 10, STEEL_H); cell(5, 10, GRIP);
+    cell(3, 11, STEEL_D); cell(4, 9, STEEL_D);
+
+    // Cape and coat flattened against the ground.
+    cell(8, 9, p.capeDark); cell(9, 9, p.capeMain); cell(10, 9, p.capeMain); cell(11, 9, p.capeDark);
+    cell(7, 10, p.capeDark); cell(8, 10, p.capeMain); cell(9, 10, p.capeMain); cell(10, 10, p.capeMain);
+    cell(11, 10, p.capeDark); cell(12, 10, p.capeDark);
+    cell(8, 11, p.capeDark); cell(9, 11, p.capeMain); cell(10, 11, p.capeDark);
+
+    // Head on its side, built from the same square chibi face language as the player.
+    cell(4, 5, p.hairDark); cell(5, 4, p.hair); cell(6, 4, p.hairLight); cell(7, 4, p.hair);
+    cell(4, 6, p.hair); cell(5, 5, p.skinLight); cell(6, 5, p.skin); cell(7, 5, p.skin);
+    cell(5, 6, p.skin); cell(6, 6, p.skin); cell(7, 6, p.skinShadow);
+    cell(5, 7, p.hairDark); cell(6, 7, p.skinShadow); cell(7, 7, p.skinShadow);
+    cell(6, 5, p.eyeIrisDark); cell(7, 6, 0x2A1A14);
+
+    // Neck and broken chest plate, diagonal instead of upright/sitting.
+    cell(8, 6, p.skinShadow);
+    cell(8, 7, STEEL_H); cell(9, 6, STEEL_M); cell(9, 7, STEEL_H); cell(10, 6, STEEL_D);
+    cell(10, 7, STEEL_M); cell(11, 7, STEEL_D); cell(8, 8, STEEL_M); cell(9, 8, STEEL_H);
+    cell(10, 8, STEEL_M); cell(11, 8, STEEL_D);
+    cell(9, 7, BLOOD_H); cell(10, 8, BLOOD_M);
+    cell(11, 7, KEY);
+
+    // Sprawled arms.
+    cell(7, 8, p.tunicDark); cell(6, 9, p.skinShadow); cell(5, 9, p.skin);
+    cell(12, 7, p.tunicDark); cell(13, 6, p.skinShadow); cell(14, 6, p.skin);
+    cell(14, 5, p.skinLight);
+
+    // Kicked-out legs and boots, separated so the pose reads limp.
+    cell(12, 9, p.pantColor); cell(13, 10, p.pantDark); cell(14, 11, p.pantColor);
+    cell(15, 12, p.bootDark); cell(16, 12, p.bootColor);
+    cell(11, 10, p.pantDark); cell(12, 11, p.pantColor); cell(12, 12, p.pantDark);
+    cell(12, 13, p.bootDark); cell(13, 13, p.bootColor);
+
+    // Scattered blood flecks around the remains.
+    cell(2, 8, BLOOD_H); cell(15, 8, BLOOD_M); cell(16, 10, BLOOD_D); cell(6, 12, BLOOD_M);
+    cell(10, 12, BLOOD_H); cell(3, 6, BLOOD_D);
+
+    const imgData = ctx.getImageData(0, 0, W, H);
+    for (let y = 0; y < H; y += G) {
+      for (let x = 0; x < W; x += G) {
+        const i = (y * W + x) * 4;
+        if (imgData.data[i + 3] > 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.1)';
+          ctx.fillRect(x, y, 1, 1);
+          ctx.fillStyle = 'rgba(0,0,0,0.14)';
+          ctx.fillRect(x + G - 1, y + G - 1, 1, 1);
+        }
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+
+    if (spriteId) {
+      this.textureDataUrls.set(spriteId, canvas.toDataURL());
+    }
+
+    return texture;
+  }
+
+  createKeyRangerRemains(
+    palette: {
+      hair: number; hairLight: number; hairDark: number;
+      skin: number; skinLight: number; skinShadow: number;
+      eyeIris: number; eyeIrisDark: number;
+      tunicMain: number; tunicLight: number; tunicDark: number;
+      trimColor: number; trimLight: number;
+      capeMain: number; capeDark: number;
+      pantColor: number; pantDark: number;
+      bootColor: number; bootDark: number;
+    },
+    spriteId?: string,
+  ): THREE.Texture {
+    const G = 4;
+    const W = 28 * G;
+    const H = 18 * G;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+    const p = palette;
+    const cell = (gx: number, gy: number, color: number) => {
+      ctx.fillStyle = this.hex(color);
+      ctx.fillRect(gx * G, gy * G, G, G);
+    };
+
+    const BLOOD_D = 0x250606;
+    const BLOOD_M = 0x5C1010;
+    const BLOOD_H = 0x8B1A1A;
+    const STEEL_D = 0x455A64;
+    const STEEL_M = 0x78909C;
+    const STEEL_H = 0xB0BEC5;
+    const KEY = 0xFFD54F;
+    const KEY_D = 0xB8860B;
+    const BLADE = 0xB7C9D6;
+    const GRIP = 0x5D4037;
+
+    const bodyOx = 5;
+    const bodyOy = -4;
+    const rc = (sx: number, sy: number, color: number) => {
+      cell(bodyOx + sy, bodyOy + (15 - sx), color);
+    };
+
+    const blood: Array<[number, number, number]> = [
+      [12, 8, BLOOD_D], [13, 7, BLOOD_M], [13, 8, BLOOD_H], [14, 7, BLOOD_H], [14, 8, BLOOD_H],
+      [15, 7, BLOOD_M], [15, 8, BLOOD_H], [16, 8, BLOOD_M], [17, 8, BLOOD_D],
+      [13, 10, BLOOD_M], [15, 10, BLOOD_D], [11, 6, BLOOD_M], [18, 6, BLOOD_D],
+    ];
+    for (const [x, y, color] of blood) cell(x, y, color);
+
+    // Dropped weapon reads as a clue, but sits away from the key-bearing belt.
+    cell(1, 12, BLADE); cell(2, 12, BLADE); cell(3, 12, STEEL_H);
+    cell(4, 12, GRIP); cell(4, 11, STEEL_D);
+
+    // Cape under the rotated body. It supports the silhouette without changing anatomy.
+    cell(12, 10, p.capeDark); cell(13, 10, p.capeMain); cell(14, 10, p.capeMain);
+    cell(15, 10, p.capeDark); cell(13, 11, p.capeDark); cell(14, 11, p.capeMain);
+    cell(15, 11, p.capeDark);
+
+    // Exact 90-degree mapping of the player down-idle body grid.
+    for (let sx = 5; sx <= 10; sx++) rc(sx, 0, p.hair);
+    rc(6, 0, p.hairLight); rc(8, 0, p.hairLight); rc(9, 0, p.hair);
+    for (let sx = 4; sx <= 11; sx++) rc(sx, 1, sx % 3 === 0 ? p.hairLight : p.hair);
+
+    for (let sy = 2; sy <= 5; sy++) {
+      const inset = sy === 2 ? 1 : 0;
+      for (let sx = 5 + inset; sx <= 10 - inset; sx++) rc(sx, sy, p.skin);
+    }
+    rc(6, 2, p.skinLight); rc(7, 2, p.skinLight); rc(8, 2, p.skinLight);
+    rc(4, 2, p.hair); rc(11, 2, p.hair);
+    rc(4, 3, p.hairDark); rc(11, 3, p.hairDark);
+    rc(4, 4, p.hairDark); rc(11, 4, p.hairDark);
+    rc(6, 3, 0xFFFFFF); rc(10, 3, 0xFFFFFF);
+    rc(7, 3, p.eyeIrisDark); rc(9, 3, p.eyeIrisDark);
+    rc(6, 2, p.hairDark); rc(7, 2, p.hairDark);
+    rc(9, 2, p.hairDark); rc(10, 2, p.hairDark);
+    rc(8, 4, p.skinShadow);
+    rc(7, 5, p.skinShadow); rc(8, 5, p.skinShadow);
+    rc(7, 6, p.skinShadow); rc(8, 6, p.skinShadow);
+
+    for (let sx = 5; sx <= 10; sx++) {
+      rc(sx, 7, p.tunicLight);
+      rc(sx, 8, p.tunicMain);
+      rc(sx, 9, p.tunicMain);
+      rc(sx, 10, p.bootDark);
+      rc(sx, 11, p.tunicDark);
+    }
+    rc(7, 7, p.trimColor); rc(8, 7, p.trimColor);
+    rc(7, 8, p.trimColor); rc(8, 8, p.trimColor);
+    rc(7, 10, p.trimColor); rc(8, 10, p.trimColor);
+    rc(4, 7, p.tunicDark); rc(4, 8, p.tunicDark); rc(4, 9, p.skinShadow);
+    rc(11, 7, p.tunicDark); rc(11, 8, p.tunicDark); rc(11, 9, p.skinShadow);
+    rc(6, 12, p.pantColor); rc(7, 12, p.pantColor);
+    rc(6, 13, p.pantColor); rc(7, 13, p.pantColor);
+    rc(6, 14, p.bootColor); rc(7, 14, p.bootColor);
+    rc(8, 12, p.pantColor); rc(9, 12, p.pantColor);
+    rc(8, 13, p.pantColor); rc(9, 13, p.pantColor);
+    rc(8, 14, p.bootColor); rc(9, 14, p.bootColor);
+    rc(6, 14, p.bootDark); rc(9, 14, p.bootDark);
+
+    // Armor sits exactly on the torso cells: width remains 6, matching the player body.
+    for (let sx = 5; sx <= 10; sx++) {
+      rc(sx, 7, sx === 5 || sx === 10 ? STEEL_D : STEEL_H);
+      rc(sx, 8, sx === 5 || sx === 10 ? STEEL_D : STEEL_M);
+      rc(sx, 9, sx === 7 || sx === 8 ? BLOOD_H : STEEL_M);
+    }
+    rc(7, 10, KEY_D); rc(8, 10, KEY); rc(8, 9, KEY); rc(9, 10, KEY_D);
+    cell(20, 7, BLOOD_M); cell(7, 6, BLOOD_D); cell(17, 11, BLOOD_H);
+
+    const imgData = ctx.getImageData(0, 0, W, H);
+    for (let y = 0; y < H; y += G) {
+      for (let x = 0; x < W; x += G) {
+        const i = (y * W + x) * 4;
+        if (imgData.data[i + 3] > 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.1)';
+          ctx.fillRect(x, y, 1, 1);
+          ctx.fillStyle = 'rgba(0,0,0,0.14)';
+          ctx.fillRect(x + G - 1, y + G - 1, 1, 1);
+        }
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    if (spriteId) this.textureDataUrls.set(spriteId, canvas.toDataURL());
+    return texture;
+  }
+
+  createRangerRemainsFacedownKit(
+    palette: {
+      hair: number; hairLight: number; hairDark: number;
+      skin: number; skinLight: number; skinShadow: number;
+      eyeIris: number; eyeIrisDark: number;
+      tunicMain: number; tunicLight: number; tunicDark: number;
+      trimColor: number; trimLight: number;
+      capeMain: number; capeDark: number;
+      pantColor: number; pantDark: number;
+      bootColor: number; bootDark: number;
+    },
+    spriteId?: string,
+  ): THREE.Texture {
+    const G = 4;
+    const W = 28 * G;
+    const H = 18 * G;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+    const p = palette;
+    const cell = (gx: number, gy: number, color: number) => {
+      ctx.fillStyle = this.hex(color);
+      ctx.fillRect(gx * G, gy * G, G, G);
+    };
+
+    const BLOOD_D = 0x250606;
+    const BLOOD_M = 0x5C1010;
+    const BLOOD_H = 0x8B1A1A;
+    const STEEL_D = 0x455A64;
+    const STEEL_M = 0x78909C;
+    const STEEL_H = 0xB0BEC5;
+
+    const bodyOx = 5;
+    const bodyOy = -4;
+    const rc = (sx: number, sy: number, color: number) => {
+      cell(bodyOx + sy, bodyOy + (15 - sx), color);
+    };
+
+    // Same corpse footprint as the key ranger, but no gold cue.
+    const blood: Array<[number, number, number]> = [
+      [12, 8, BLOOD_D], [13, 7, BLOOD_M], [13, 8, BLOOD_H], [14, 7, BLOOD_M], [14, 8, BLOOD_H],
+      [15, 7, BLOOD_M], [15, 8, BLOOD_H], [16, 8, BLOOD_M], [17, 8, BLOOD_D],
+      [13, 10, BLOOD_M], [15, 10, BLOOD_D], [11, 6, BLOOD_M], [18, 6, BLOOD_D],
+    ];
+    for (const [x, y, color] of blood) cell(x, y, color);
+
+    cell(12, 10, p.capeDark); cell(13, 10, p.capeMain); cell(14, 10, p.capeMain);
+    cell(15, 10, p.capeDark); cell(13, 11, p.capeDark); cell(14, 11, p.capeMain);
+    cell(15, 11, p.capeDark);
+
+    // Same rotated player grid, but the head is the back of the head: hair only,
+    // with a small neck shadow instead of face/eyes.
+    for (let sx = 5; sx <= 10; sx++) rc(sx, 0, p.hairDark);
+    rc(6, 0, p.hair); rc(8, 0, p.hair); rc(9, 0, p.hairDark);
+    for (let sx = 4; sx <= 11; sx++) rc(sx, 1, sx % 3 === 0 ? p.hair : p.hairDark);
+    for (let sy = 2; sy <= 5; sy++) {
+      const inset = sy === 2 ? 1 : 0;
+      for (let sx = 5 + inset; sx <= 10 - inset; sx++) rc(sx, sy, p.hair);
+    }
+    rc(4, 2, p.hairDark); rc(11, 2, p.hairDark);
+    rc(4, 3, p.hairDark); rc(11, 3, p.hairDark);
+    rc(4, 4, p.hairDark); rc(11, 4, p.hairDark);
+    rc(7, 5, p.skinShadow); rc(8, 5, p.skinShadow);
+    rc(7, 6, p.skinShadow); rc(8, 6, p.skinShadow);
+
+    for (let sx = 5; sx <= 10; sx++) {
+      rc(sx, 7, p.tunicLight);
+      rc(sx, 8, p.tunicMain);
+      rc(sx, 9, p.tunicMain);
+      rc(sx, 10, p.bootDark);
+      rc(sx, 11, p.tunicDark);
+    }
+    rc(7, 7, p.trimColor); rc(8, 7, p.trimColor);
+    rc(7, 8, p.trimColor); rc(8, 8, p.trimColor);
+    rc(4, 7, p.tunicDark); rc(4, 8, p.tunicDark); rc(4, 9, p.skinShadow);
+    rc(11, 7, p.tunicDark); rc(11, 8, p.tunicDark); rc(11, 9, p.skinShadow);
+    rc(6, 12, p.pantColor); rc(7, 12, p.pantColor);
+    rc(6, 13, p.pantColor); rc(7, 13, p.pantColor);
+    rc(6, 14, p.bootColor); rc(7, 14, p.bootColor);
+    rc(8, 12, p.pantColor); rc(9, 12, p.pantColor);
+    rc(8, 13, p.pantColor); rc(9, 13, p.pantColor);
+    rc(8, 14, p.bootColor); rc(9, 14, p.bootColor);
+    rc(6, 14, p.bootDark); rc(9, 14, p.bootDark);
+
+    for (let sx = 5; sx <= 10; sx++) {
+      rc(sx, 7, sx === 5 || sx === 10 ? STEEL_D : STEEL_H);
+      rc(sx, 8, sx === 5 || sx === 10 ? STEEL_D : STEEL_M);
+      rc(sx, 9, sx === 7 || sx === 8 ? BLOOD_M : STEEL_M);
+    }
+    cell(20, 7, BLOOD_M); cell(7, 6, BLOOD_D); cell(17, 11, BLOOD_H);
+
+    const imgData = ctx.getImageData(0, 0, W, H);
+    for (let y = 0; y < H; y += G) {
+      for (let x = 0; x < W; x += G) {
+        const i = (y * W + x) * 4;
+        if (imgData.data[i + 3] > 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.08)';
+          ctx.fillRect(x, y, 1, 1);
+          ctx.fillStyle = 'rgba(0,0,0,0.16)';
+          ctx.fillRect(x + G - 1, y + G - 1, 1, 1);
+        }
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    if (spriteId) this.textureDataUrls.set(spriteId, canvas.toDataURL());
     return texture;
   }
 
@@ -4415,14 +4851,16 @@ export class AssetManager {
       const TS = 0x8a8278;
       const TR = 0x3a3a44, TRD = 0x2a2a32, TRL = 0x4e4e5a, CHM = 0x4a3530;
       const TGF = 0x453f39, TSG = 0x2b3138, TDR = 0x201810;
-      const lintel = [TBD, TB, TWF, TWF, TWF, TBD, TB, TBL, TWF, TWF, TWF, TB, TBD, TB, TBD, C];
-      const win    = [TBD, TB, TW, TWG, TW, TBD, TB, TBL, TW, TWG, TW, TB, TBD, TB, TBD, C];
-      const sill   = [TBD, TB, TS, TS, TS, TBD, TB, TBL, TS, TS, TS, TB, TBD, TB, TBD, C];
-      const brick  = [TBD, TB, TB, TBL, TB, TBD, TB, TBL, TBL, TB, TB, TB, TBD, TB, TBD, C];
-      const cornice = [TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, C];
-      const shop   = [TGF, TGF, TSG, TSG, TSG, TGF, TGF, TGF, TSG, TSG, TSG, TGF, TGF, TGF, TGF, C];
-      const doorR  = [TGF, TGF, TGF, TGF, TGF, TDR, TDR, TDR, TGF, TGF, TGF, TGF, TGF, TGF, TGF, C];
-      const baseR  = [TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, C];
+      // Right edge (col 15) is a brick PARTY WALL (not transparent) so adjacent bays
+      // butt seamlessly into one continuous terrace/"land", not a row of detached boxes.
+      const lintel = [TBD, TB, TWF, TWF, TWF, TBD, TB, TBL, TWF, TWF, TWF, TB, TBD, TB, TB, TBD];
+      const win    = [TBD, TB, TW, TWG, TW, TBD, TB, TBL, TW, TWG, TW, TB, TBD, TB, TB, TBD];
+      const sill   = [TBD, TB, TS, TS, TS, TBD, TB, TBL, TS, TS, TS, TB, TBD, TB, TB, TBD];
+      const brick  = [TBD, TB, TB, TBL, TB, TBD, TB, TBL, TBL, TB, TB, TB, TBD, TB, TB, TBD];
+      const cornice = [TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS];
+      const shop   = [TGF, TGF, TSG, TSG, TSG, TGF, TGF, TGF, TSG, TSG, TSG, TGF, TGF, TGF, TGF, TGF];
+      const doorR  = [TGF, TGF, TGF, TGF, TGF, TDR, TDR, TDR, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF];
+      const baseR  = [TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF, TGF];
       const tenementBase: number[][] = [
         [C, C, C, C, C, C, C, C, C, C, C, C, CHM, CHM, C, C],
         [C, C, C, TRL, TR, TR, TR, TR, TR, TR, TR, TR, CHM, CHM, C, C],
@@ -4437,10 +4875,174 @@ export class AssetManager {
         shop, shop, doorR, doorR, baseR, baseR,
       ].map(r => [...r]);
       registerSpriteTexture('tenement_facade', tenementBase, 4);
-      for (let v = 0; v < 12; v++) {
+      for (let v = 0; v < 18; v++) {
         const id = `tenement_facade_variant_${v}`;
         this.registerTexture(id, () => this.createGuilrhymBuildingVariant(tenementBase, v, id));
       }
+    }
+
+    // --- TOWNHOUSE kit (pale Georgian terrace) — refined residential: cream stucco,
+    // grand fanlight door over steps, area railing. Shares the variant generator. ---
+    {
+      const C = 0;
+      // Walls use the shared brick consts so the generator's per-building palette remap
+      // recolours townhouses too — they differ from tenements by FORM (fanlight door,
+      // area railing), not a fixed colour.
+      const CW = 0x6b4a3a, CWD = 0x533829, CWL = 0x7d5a48;
+      const TW = 0x171b22, TWG = 0x39434f, TWF = 0x241a14;        // windows (generator targets TWG)
+      const TS = 0x8a8278;                                        // stone sill/cornice
+      const TR = 0x3a3a44, TRD = 0x2a2a32, CHM = 0x4a3530;
+      const DR = 0x2a1c12, FL = 0x4a5a6a, RL = 0x33333c, ST = 0x8a8278;
+      const lintel = [CWD, CW, TWF, TWF, TWF, CWD, CW, CWL, TWF, TWF, TWF, CW, CWD, CW, CW, CWD];
+      const win    = [CWD, CW, TW, TWG, TW, CWD, CW, CWL, TW, TWG, TW, CW, CWD, CW, CW, CWD];
+      const sill   = [CWD, CW, TS, TS, TS, CWD, CW, CWL, TS, TS, TS, CW, CWD, CW, CW, CWD];
+      const wall   = [CWD, CW, CW, CWL, CW, CWD, CW, CWL, CWL, CW, CW, CW, CWD, CW, CW, CWD];
+      const corn   = [TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS];
+      const roof   = [TRD, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TRD];
+      const door1  = [CWD, CW, CW, CW, CW, CW, DR, FL, FL, DR, CW, CW, CW, CW, CW, CWD];
+      const door2  = [CW, CW, CW, CW, CW, CW, DR, DR, DR, DR, CW, CW, CW, CW, CW, CW];
+      const stepR  = [ST, ST, RL, ST, ST, ST, DR, DR, DR, DR, ST, ST, RL, ST, ST, ST];
+      const townhouseBase: number[][] = [
+        [C, C, C, C, C, C, C, C, C, C, C, C, CHM, CHM, C, C],
+        roof, roof, roof, corn,
+        lintel, win, sill, wall,
+        lintel, win, sill, wall,
+        lintel, win, sill, wall,
+        lintel, win, sill, wall,
+        corn,
+        door1, door2, stepR, stepR, stepR, stepR,
+      ].map(r => [...r]);
+      registerSpriteTexture('townhouse_facade', townhouseBase, 4);
+      for (let v = 0; v < 18; v++) {
+        const id = `townhouse_facade_variant_${v}`;
+        this.registerTexture(id, () => this.createGuilrhymBuildingVariant(townhouseBase, v, id));
+      }
+    }
+
+    // --- WAREHOUSE kit (canal/industrial) — dark engineering brick, big arched
+    // loading bay, small high windows, a smoking chimney stack. Shares the generator. ---
+    {
+      const C = 0;
+      // Shared brick consts (palette-remapped per building); warehouses differ by FORM
+      // — the big arched loading bay, small high windows, smoking chimney stacks.
+      const WB = 0x6b4a3a, WBD = 0x533829, WBL = 0x7d5a48;
+      const TW = 0x141820, TWG = 0x39434f, TWF = 0x201810;        // small windows
+      const TS = 0x8a8278;
+      const TR = 0x3a3a44, TRD = 0x2a2a32, CHM = 0x4a3530;
+      const DR = 0x171210, AR = 0x2a201a;                         // loading bay door + arch
+      const lintel = [WBD, WB, WBL, WB, TWF, WB, WBD, WB, TWF, WB, WBL, WB, WBD, WB, WB, WBD];
+      const win    = [WBD, WB, WBL, WB, TWG, WB, WBD, WB, TWG, WB, WBL, WB, WBD, WB, WB, WBD];
+      const brick  = [WBD, WB, WB, WBL, WB, WBD, WB, WBL, WBL, WB, WB, WB, WBD, WB, WB, WBD];
+      const band   = [TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS];
+      const roof   = [TRD, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TRD];
+      const archT  = [WBD, WB, WB, AR, AR, AR, AR, AR, AR, AR, AR, AR, AR, WB, WB, WBD];
+      const bayR   = [WBD, WB, WB, AR, DR, DR, DR, DR, DR, DR, DR, DR, AR, WB, WB, WBD];
+      const warehouseBase: number[][] = [
+        [C, C, C, C, C, C, C, C, C, C, CHM, CHM, CHM, C, C, C],
+        roof, roof, roof, band,
+        brick, lintel, win, brick,
+        brick, lintel, win, brick,
+        band,
+        brick, lintel, win, brick,
+        band,
+        archT, bayR, bayR, bayR, bayR, bayR,
+      ].map(r => [...r]);
+      registerSpriteTexture('warehouse_facade', warehouseBase, 4);
+      for (let v = 0; v < 18; v++) {
+        const id = `warehouse_facade_variant_${v}`;
+        this.registerTexture(id, () => this.createGuilrhymBuildingVariant(warehouseBase, v, id));
+      }
+    }
+
+    // --- Guilrhym TOLBOOTH CLOCKTOWER — the civic landmark spire (12x28 @ 4px):
+    // pointed slate spire, crenellated parapet, clock stage, arched belfry, lancet
+    // shaft, plinth with an arched door. Towers over the tenements as the orienting POI.
+    {
+      const C = 0;
+      const STN = 0x8c8678, STD = 0x6f695d, STL = 0x9e988b;  // ashlar stone (base / shadow / highlight)
+      const SPR = 0x3c3c46, SPD = 0x2a2a32;                  // slate spire
+      const CF = 0xe6dcc0, CR = 0x4a4030, CH = 0x201810;     // clock face / rim / hands
+      const WN = 0x171b22, WG = 0x39434f, DR = 0x201810;     // window / glow / door
+      registerSpriteTexture('clocktower', [
+        [C, C, C, C, C, SPD, SPD, C, C, C, C, C],
+        [C, C, C, C, SPD, SPR, SPR, SPD, C, C, C, C],
+        [C, C, C, SPD, SPR, SPR, SPR, SPR, SPD, C, C, C],
+        [C, C, SPD, SPR, SPR, SPR, SPR, SPR, SPR, SPD, C, C],
+        [C, SPD, SPR, SPR, SPR, SPR, SPR, SPR, SPR, SPR, SPD, C],
+        [SPD, SPR, SPR, SPR, SPR, SPR, SPR, SPR, SPR, SPR, SPR, SPD],
+        [STD, STN, STN, STN, STN, STN, STN, STN, STN, STN, STN, STD],
+        [STN, STD, STN, STD, STN, STD, STN, STD, STN, STD, STN, STD],
+        [STD, STN, STN, STN, STN, STN, STN, STN, STN, STN, STN, STD],
+        [STD, STN, STN, CR, CR, CR, CR, CR, CR, STN, STN, STD],
+        [STD, STN, CR, CF, CF, CH, CH, CF, CF, CR, STN, STD],
+        [STD, STN, CR, CF, CH, CF, CF, CH, CF, CR, STN, STD],
+        [STD, STN, STN, CR, CR, CR, CR, CR, CR, STN, STN, STD],
+        [STD, STN, STN, STN, STN, STN, STN, STN, STN, STN, STN, STD],
+        [STD, STN, STN, WN, WG, STN, STN, WG, WN, STN, STN, STD],
+        [STD, STN, STN, WN, WG, STN, STN, WG, WN, STN, STN, STD],
+        [STD, STN, STN, STN, STN, STN, STN, STN, STN, STN, STN, STD],
+        [STD, STN, STL, STN, STN, STD, STN, STN, STL, STN, STN, STD],
+        [STD, STN, STN, STN, WN, STD, STN, WN, STN, STN, STN, STD],
+        [STD, STN, STN, STN, WN, STD, STN, WN, STN, STN, STN, STD],
+        [STD, STL, STN, STN, STN, STD, STN, STN, STN, STL, STN, STD],
+        [STD, STN, STN, STN, WN, STD, STN, WN, STN, STN, STN, STD],
+        [STD, STN, STN, STN, WN, STD, STN, WN, STN, STN, STN, STD],
+        [STD, STN, STL, STN, STN, STD, STN, STN, STL, STN, STN, STD],
+        [STD, STN, STN, STN, STN, STN, STN, STN, STN, STN, STN, STD],
+        [STN, STN, STN, STN, CR, DR, DR, CR, STN, STN, STN, STN],
+        [STN, STN, STN, STN, DR, DR, DR, DR, STN, STN, STN, STN],
+        [STN, STN, STN, STN, DR, DR, DR, DR, STN, STN, STN, STN],
+      ], 4);
+    }
+
+    // --- Guilrhym street life (props) + paved road ---
+    // Proper paved road (granite setts) — distinct from plaza cobblestone for thoroughfares.
+    registerColorTexture('road_setts', 0x676b72, 32, 32, 'cobblestone_grid');
+    {
+      const C = 0;
+      // Baby carriage / perambulator (8x9) — dark bassinet + hood on big spoked wheels.
+      const BD = 0x33384a, HD = 0x23283a, FR = 0x8a6a3a, WH = 0x1a1a22, WS = 0x5a5a66, BL = 0x4a5066;
+      registerSpriteTexture('baby_carriage', [
+        [C, C, HD, HD, C, C, C, C],
+        [C, HD, HD, BD, BD, C, C, C],
+        [C, HD, BD, BD, BD, BD, C, C],
+        [C, BD, BL, BD, BD, BD, FR, C],
+        [C, BD, BD, BD, BD, BD, C, C],
+        [C, FR, FR, FR, FR, FR, FR, C],
+        [C, WS, WH, WS, WS, WH, WS, C],
+        [C, WH, WH, WH, WH, WH, WH, C],
+        [C, C, WS, C, C, WS, C, C],
+      ], 4);
+      // Stagecoach (16x10) — lacquered coach body, windows, roof rail, big wheels.
+      const CB = 0x5a342a, CT = 0x8a6a3a, CW = 0x23283a, CR2 = 0x3a241c, WHl = 0x2a2018, SP = 0x6a5238, LP = 0x3a3a42;
+      registerSpriteTexture('stagecoach', [
+        [C, C, C, LP, C, C, C, C, C, C, C, C, C, C, C, C],
+        [C, C, CR2, CR2, CR2, CR2, CR2, CR2, CR2, CR2, CR2, CR2, C, C, C, C],
+        [C, C, CT, CB, CB, CT, CB, CB, CT, CB, CB, CT, C, C, C, C],
+        [C, C, CB, CW, CW, CB, CW, CW, CB, CW, CW, CB, C, C, C, C],
+        [C, C, CB, CW, CW, CB, CW, CW, CB, CW, CW, CB, CB, C, C, C],
+        [C, C, CT, CB, CB, CT, CB, CB, CT, CB, CB, CT, CT, C, C, C],
+        [C, C, CB, CB, CB, CB, CB, CB, CB, CB, CB, CB, CB, C, C, C],
+        [C, SP, WHl, SP, C, C, C, C, C, C, SP, WHl, SP, C, C, C],
+        [SP, WHl, WHl, WHl, C, C, C, C, C, SP, WHl, WHl, WHl, SP, C, C],
+        [C, SP, WHl, SP, C, C, C, C, C, C, SP, WHl, SP, C, C, C],
+      ], 4);
+      // Street sign / fingerpost (8x12) — iron post + enamel nameplate.
+      const PO = 0x33333c, PL = 0x3a5a4a, TX = 0xd0d0c4, PB = 0x23232a;
+      registerSpriteTexture('street_sign', [
+        [C, C, C, PO, PO, C, C, C],
+        [C, PL, PL, PL, PL, PL, PL, C],
+        [C, PL, TX, TX, TX, TX, PL, C],
+        [C, PL, PL, PL, PL, PL, PL, C],
+        [C, C, C, PO, PO, C, C, C],
+        [C, C, C, PO, PO, C, C, C],
+        [C, C, C, PO, PO, C, C, C],
+        [C, C, C, PO, PO, C, C, C],
+        [C, C, C, PO, PO, C, C, C],
+        [C, C, C, PO, PO, C, C, C],
+        [C, C, PB, PB, PB, PB, C, C],
+        [C, PB, PB, PB, PB, PB, PB, C],
+      ], 4);
     }
     // Worked quarry floor — pale chiselled cut-stone, gridded like blocks scored out of bedrock.
     registerColorTexture('quarry_floor', 0x9097A0, 32, 32, 'cobblestone_grid');
@@ -5433,6 +6035,42 @@ export class AssetManager {
     ]);
 
     // Fort gate key â€” gold ring bow + iron shaft with two teeth
+    // Improved fallen ranger sprite. Registering the same texture key replaces the
+    // compact legacy version above with a larger, more human-readable body.
+    const RM2_BD = 0x2A0707;
+    const RM2_BM = 0x5C1010;
+    const RM2_BH = 0x8B1A1A;
+    const RM2_CD = 0x0E1F3D;
+    const RM2_CM = 0x1B355C;
+    const RM2_CH = 0x3568A8;
+    const RM2_ST = 0x78909C;
+    const RM2_SS = 0x455A64;
+    const RM2_SH = 0xB0BEC5;
+    const RM2_SK = 0xD7B894;
+    const RM2_HR = 0x6D4C41;
+    const RM2_DK = 0x1C2529;
+    const RM2_BT = 0x3E2723;
+    const RM2_KG = 0xFFD54F;
+    registerSpriteTexture('ranger_remains', [
+      [C,      C,      C,      C,      RM2_BD, RM2_BM, RM2_BM, RM2_BD, C,      C,      C,      C,      C     ],
+      [C,      C,      C,      RM2_BD, RM2_BM, RM2_BH, RM2_BH, RM2_BM, RM2_BD, C,      C,      C,      C     ],
+      [C,      C,      RM2_BD, RM2_BM, RM2_SH, RM2_ST, RM2_ST, RM2_SH, RM2_BM, RM2_BD, C,      C,      C     ],
+      [C,      C,      RM2_BM, RM2_SS, RM2_SH, RM2_SK, RM2_SK, RM2_SH, RM2_SS, RM2_BM, C,      C,      C     ],
+      [C,      RM2_BD, RM2_BM, RM2_SS, RM2_HR, RM2_SK, RM2_DK, RM2_SK, RM2_HR, RM2_SS, RM2_BM, C,      C     ],
+      [C,      RM2_BM, RM2_CM, RM2_SS, RM2_ST, RM2_SH, RM2_ST, RM2_SS, RM2_CM, RM2_CD, RM2_BH, C,      C     ],
+      [RM2_BD, RM2_CM, RM2_CH, RM2_CM, RM2_ST, RM2_SH, RM2_ST, RM2_CM, RM2_CH, RM2_CM, RM2_BM, RM2_BD, C     ],
+      [RM2_BM, RM2_CD, RM2_CM, RM2_CH, RM2_ST, RM2_KG, RM2_ST, RM2_CH, RM2_CM, RM2_CD, RM2_BH, RM2_BM, C     ],
+      [C,      RM2_BD, RM2_CD, RM2_CM, RM2_CM, RM2_BT, RM2_BT, RM2_CM, RM2_CM, RM2_CD, RM2_BM, C,      C     ],
+      [C,      C,      RM2_BM, RM2_BT, RM2_CD, RM2_CM, RM2_CM, RM2_CD, RM2_BT, RM2_BM, C,      C,      C     ],
+      [C,      C,      C,      RM2_BT, RM2_BT, C,      C,      RM2_BT, RM2_BT, C,      C,      C,      C     ],
+      [C,      C,      C,      C,      RM2_BD, RM2_BM, RM2_BH, RM2_BM, RM2_BD, C,      C,      C,      C     ],
+    ], 4);
+
+    // Final ranger corpse pass: the progression corpse keeps a visible key cue,
+    // while the alternate kit is non-key battlefield set dressing.
+    this.registerTexture('ranger_remains', () => this.createKeyRangerRemains(guardPalette, 'ranger_remains'));
+    this.registerTexture('ranger_remains_scattered', () => this.createRangerRemainsFacedownKit(guardPalette, 'ranger_remains_scattered'));
+
     const FK_GH = 0xFFD54F;  // gold highlight
     const FK_G  = 0xD4AF37;  // gold mid
     const FK_GD = 0x8D7420;  // gold dark

@@ -316,7 +316,7 @@ export function createRuntimeSfx({
 
   const essencePickupSfx = createSequentialAudioPool({
     src: './audio/essence_pickup.mp3',
-    volume: 0.46,
+    volume: 0.2,
     poolSize: SMALL_SFX_POOL,
     processAudioElement,
   });
@@ -381,7 +381,7 @@ export function createRuntimeSfx({
 
   const portalWarpSfx = createSequentialAudioPool({
     src: './audio/portal_warp.mp3',
-    volume: 0.31,
+    volume: 0.12,
     poolSize: SMALL_SFX_POOL,
     processAudioElement,
   });

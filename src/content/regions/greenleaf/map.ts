@@ -13,8 +13,8 @@ export const villageDef: MapDefinition = {
     // ====== CENTRAL VILLAGE SQUARE (dirt clearing with grass border) ======
     { x: 95, y: 68, width: 50, height: 34, type: 'clearing', fill: 'dirt' },
 
-    // ====== TOWN HALL (center of plaza) ======
-    { x: 110, y: 58, width: 16, height: 10, type: 'building', interactionId: 'town_hall' },
+    // ====== TOWN HALL (plaza east of the main N-S road — was x=110 overlapping the spine at world ~-1,-21) ======
+    { x: 122, y: 86, width: 14, height: 10, type: 'building', interactionId: 'town_hall' },
 
     // ====== NON-ENTERABLE BUILDINGS INSIDE SQUARE (small houses for density) ======
     { x: 96, y: 72, width: 5, height: 4, type: 'cottage' },

@@ -3773,7 +3773,10 @@ function enforceWhisperingWoodsTallGrassGates(tiles: Tile[][], def: MapDefinitio
         // skip them and let the hedge stop cleanly at the cliff edge. Scatter (trees/logs/etc.) is
         // always cleared to walkable tall grass, since removing the obstacle is the whole point.
         if (isGround && !t.walkable) continue;
-        tiles[ty][tx] = createTile('tall_grass', true, { elevation: t.elevation ?? 0 });
+        tiles[ty][tx] = createTile('tall_grass', true, {
+          elevation: t.elevation ?? 0,
+          baseTile: r.throughSpinePath ? 'grass' : undefined,
+        });
       }
     }
   }
@@ -3820,6 +3823,21 @@ function scrubWhisperingWoodsPrecipiceWestPocketLiveTrees(tiles: Tile[][], def: 
       const t = tiles[ty][tx];
       if (t.type !== 'tree' || t.transition || t.interactable) continue;
       tiles[ty][tx] = createTile('hollow_blight', true, { elevation: t.elevation ?? 1 });
+    }
+  }
+}
+
+function scrubWhisperingWoodsQuarryBankShortcutLiveTrees(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // Keep the quarry-bank shortcut readable once the gate is added to the west-bank picket cordon.
+  // The live forest scatter crowds the lever/gate sprite here; clear only tree anchor tiles.
+  for (let ty = 216; ty <= 228; ty++) {
+    for (let tx = 198; tx <= 214; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.type !== 'tree' || t.transition || t.interactable) continue;
+      tiles[ty][tx] = createTile('grass', true, { elevation: t.elevation ?? 0 });
     }
   }
 }
@@ -4735,6 +4753,7 @@ export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
   scrubWhisperingWoodsOpenLaneTallGrass(tiles, def);
   scrubWhisperingWoodsPrecipiceReserveLiveTrees(tiles, def);
   scrubWhisperingWoodsPrecipiceWestPocketLiveTrees(tiles, def);
+  scrubWhisperingWoodsQuarryBankShortcutLiveTrees(tiles, def);
   scrubWhisperingWoodsPrecipiceWestRitualDeadTrees(tiles, def);
   enforceWhisperingWoodsPrecipiceReserveWestLip(tiles, def);
   enforceWhisperingWoodsPrecipiceReserveCliffBites(tiles, def);

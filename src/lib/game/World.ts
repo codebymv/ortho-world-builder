@@ -18,7 +18,7 @@ export type TileType =
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
   | 'table' | 'pot' | 'rug' | 'wood_floor' | 'counter'
   | 'bed' | 'wardrobe' | 'fireplace' | 'weapon_rack' | 'alchemy_table' | 'cauldron'
-  | 'throne' | 'altar' | 'heresy_altar' | 'heresy_altar_cracked' | 'summoning_ritual' | 'summoning_ritual_dud' | 'ritual_candle' | 'ritual_candle_knocked' | 'bloodstain' | 'chain' | 'shortcut_lever' | 'cage' | 'bones_pile' | 'ranger_remains'
+  | 'throne' | 'altar' | 'heresy_altar' | 'heresy_altar_cracked' | 'summoning_ritual' | 'summoning_ritual_dud' | 'ritual_candle' | 'ritual_candle_knocked' | 'bloodstain' | 'chain' | 'shortcut_lever' | 'cage' | 'bones_pile' | 'ranger_remains' | 'ranger_remains_scattered'
   | 'door' | 'door_interior' | 'door_iron'
   | 'fog_gate'
   | 'bonfire_unlit'
@@ -27,7 +27,9 @@ export type TileType =
   // Guilrhym district pavers + canal ground (authored district identity; see AssetManager)
   | 'cobble_grand' | 'cobble_market' | 'cobble_residential' | 'waterlogged_cobble' | 'flood_silt' | 'ashen_cobble'
   // Guilrhym bespoke architecture — tall Victorian overlay structures (see AssetManager + tiles.ts)
-  | 'tenement_facade' | 'townhouse_facade' | 'cathedral_facade'
+  | 'tenement_facade' | 'townhouse_facade' | 'cathedral_facade' | 'clocktower' | 'warehouse_facade'
+  // Guilrhym street life + paving (props + a proper paved-road ground tile)
+  | 'baby_carriage' | 'stagecoach' | 'street_sign' | 'road_setts'
   | 'street_lamp' | 'iron_railing' | 'fountain' | 'pillar' | 'sewer_grate' | 'hanging_sign' | 'wall_torch' | 'awning'
   | 'rubble' | 'broken_stall' | 'crate_stack' | 'barrel_stack' | 'chimney'
   | 'cottage_shed'
@@ -74,6 +76,8 @@ export interface WorldMap {
   height: number;
   tiles: Tile[][];
   spawnPoint: { x: number; y: number };
+  /** Runtime-only revision for map tile edits that should invalidate cached terrain canvases. */
+  revision?: number;
   /** When true, World draws an extra south backdrop (cliff/ocean) below the tile grid so the camera does not show empty void past the coast. */
   coastalSouthBackdrop?: boolean;
   /** When true, deep-ocean planes also extend past the north, east, and west map edges (matches coastalBorderAllSides generation). */
@@ -166,7 +170,7 @@ const OVERLAY_CULL_EXEMPT_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'house_thatch', 'house_thatch_entry',
   'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
   'cottage_house_ranger', 'cottage_shed',
-  'tenement_facade', 'townhouse_facade', 'cathedral_facade',
+  'tenement_facade', 'townhouse_facade', 'cathedral_facade', 'clocktower', 'warehouse_facade',
   'windmill', 'ridge_lumberyard', 'observatory',
   'heresy_altar', 'heresy_altar_cracked', 'summoning_ritual', 'summoning_ritual_dud',
   'shortcut_lever',
@@ -183,7 +187,7 @@ const ELEVATION_CONNECTOR_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'wooden_path',
 ]);
 
-export const SPINE_ELEVATION_TILE_TYPES: ReadonlySet<TileType> = new Set(['dirt', 'grass', 'sand', 'hollow_blight', 'cobblestone', 'cobble_grand', 'cobble_market', 'cobble_residential', 'waterlogged_cobble', 'flood_silt', 'ashen_cobble', 'ash', 'volcanic_rock', 'rock', 'dead_tree']);
+export const SPINE_ELEVATION_TILE_TYPES: ReadonlySet<TileType> = new Set(['dirt', 'grass', 'sand', 'hollow_blight', 'cobblestone', 'cobble_grand', 'cobble_market', 'cobble_residential', 'waterlogged_cobble', 'flood_silt', 'ashen_cobble', 'road_setts', 'ash', 'volcanic_rock', 'rock', 'dead_tree']);
 
 export function isSpinePathElevationTile(tile: Tile | null): boolean {
   if (!tile?.walkable || !tile.spinePath) return false;
@@ -237,11 +241,15 @@ const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'tenement_facade',
   'townhouse_facade',
   'cathedral_facade',
+  'clocktower',
+  'warehouse_facade',
 ]);
 const OVERWORLD_STRUCTURE_SCALE_MULTIPLIER = 1.18;
 const BLOODSTAIN_VARIANT_COUNT = 16;
 const RUINED_FOREST_COTTAGE_VARIANT_COUNT = 12;
-const GUILRHYM_TENEMENT_VARIANT_COUNT = 12;
+const GUILRHYM_TENEMENT_VARIANT_COUNT = 18;
+const GUILRHYM_TOWNHOUSE_VARIANT_COUNT = 18;
+const GUILRHYM_WAREHOUSE_VARIANT_COUNT = 18;
 
 function packTileKey(tileX: number, tileY: number): number {
   return tileY * TILE_KEY_STRIDE + tileX;
@@ -289,11 +297,23 @@ function getGuilrhymTenementTextureId(tileX: number, tileY: number): string {
   return `tenement_facade_variant_${Math.min(GUILRHYM_TENEMENT_VARIANT_COUNT - 1, variant)}`;
 }
 
+function getGuilrhymTownhouseTextureId(tileX: number, tileY: number): string {
+  const variant = Math.floor(tileHash(tileX, tileY, 617) * GUILRHYM_TOWNHOUSE_VARIANT_COUNT);
+  return `townhouse_facade_variant_${Math.min(GUILRHYM_TOWNHOUSE_VARIANT_COUNT - 1, variant)}`;
+}
+
+function getGuilrhymWarehouseTextureId(tileX: number, tileY: number): string {
+  const variant = Math.floor(tileHash(tileX, tileY, 619) * GUILRHYM_WAREHOUSE_VARIANT_COUNT);
+  return `warehouse_facade_variant_${Math.min(GUILRHYM_WAREHOUSE_VARIANT_COUNT - 1, variant)}`;
+}
+
 function getOverlayTextureId(tileType: TileType, tileX: number | undefined, tileY: number | undefined): string {
   if (tileX === undefined || tileY === undefined) return tileType;
   if (tileType === 'bloodstain') return getBloodstainTextureId(tileX, tileY);
   if (tileType === 'cottage_house_forest_ruined') return getRuinedForestCottageTextureId(tileX, tileY);
   if (tileType === 'tenement_facade') return getGuilrhymTenementTextureId(tileX, tileY);
+  if (tileType === 'townhouse_facade') return getGuilrhymTownhouseTextureId(tileX, tileY);
+  if (tileType === 'warehouse_facade') return getGuilrhymWarehouseTextureId(tileX, tileY);
   return tileType;
 }
 
@@ -319,6 +339,8 @@ export class World {
   private isInitialLoad: boolean = true;
   private mapRevision: number = 0;
   private renderCenter: { x: number; y: number } = { x: -9999, y: -9999 };
+  private activeOverlayObjectCount: number = 0;
+  private activeDecorativeOverlayCullCount: number = 0;
   private decorativeOverlayCullSkips: number = 0;
   private interactableCache: {
     centerTileX: number;
@@ -345,6 +367,7 @@ export class World {
     this.scene = scene;
     this.assetManager = assetManager;
     this.map = map;
+    this.map.revision = this.mapRevision;
     this.detailGeometry = new THREE.PlaneGeometry(0.3, 0.3);
     this.shadowGeometry = new THREE.PlaneGeometry(1, 1);
     this.generateDetailTextures();
@@ -553,11 +576,30 @@ export class World {
     const object = this.activeMeshes.get(key);
     if (!object) return;
     this.scene.remove(object);
+    this.untrackActiveObject(object);
     this.recycleObject(object);
     this.activeMeshes.delete(key);
   }
 
+  private trackActiveObject(object: THREE.Object3D): void {
+    if (object.userData?.isOverlayObject) this.activeOverlayObjectCount++;
+    if (object.userData?.overlayCulled) this.activeDecorativeOverlayCullCount++;
+  }
+
+  private untrackActiveObject(object: THREE.Object3D): void {
+    if (object.userData?.isOverlayObject) {
+      this.activeOverlayObjectCount = Math.max(0, this.activeOverlayObjectCount - 1);
+    }
+    if (object.userData?.overlayCulled) {
+      this.activeDecorativeOverlayCullCount = Math.max(0, this.activeDecorativeOverlayCullCount - 1);
+    }
+  }
+
   private attachTileObject(tileX: number, tileY: number, object: THREE.Object3D): void {
+    const key = this.tileKey(tileX, tileY);
+    const existing = this.activeMeshes.get(key);
+    if (existing && existing !== object) this.untrackActiveObject(existing);
+
     const tileType = this.map.tiles[tileY]?.[tileX]?.type ?? 'grass';
     const isOverlay = this.isOverlayTileType(tileType);
     const baseZ = isOverlay ? 0.01 : 0.0;
@@ -589,7 +631,8 @@ export class World {
     object.updateMatrix();
     if (object instanceof THREE.Group) object.updateMatrixWorld(false);
     this.scene.add(object);
-    this.activeMeshes.set(this.tileKey(tileX, tileY), object);
+    this.activeMeshes.set(key, object);
+    this.trackActiveObject(object);
   }
 
   private refreshTileRegion(
@@ -600,6 +643,7 @@ export class World {
     options?: { forceAttach?: boolean },
   ): void {
     this.mapRevision += 1;
+    this.map.revision = this.mapRevision;
     this.interactableCache = null;
     const clampedMinX = Math.max(0, minTileX);
     const clampedMinY = Math.max(0, minTileY);
@@ -612,6 +656,7 @@ export class World {
     this.pendingTiles = this.pendingTiles.filter(({ x, y }) =>
       x < clampedMinX || x > clampedMaxX || y < clampedMinY || y > clampedMaxY
     );
+    const pendingTileKeys = new Set(this.pendingTiles.map(({ key }) => key));
 
     for (let y = clampedMinY; y <= clampedMaxY; y++) {
       for (let x = clampedMinX; x <= clampedMaxX; x++) {
@@ -623,8 +668,9 @@ export class World {
         }
         this.removeActiveTileObject(key);
         if (!forceAttach && !this.shouldKeepTileActive(x, y)) {
-          if (tile && !this.pendingTiles.some((p) => p.x === x && p.y === y)) {
+          if (tile && !pendingTileKeys.has(key)) {
             this.pendingTiles.push({ x, y, key });
+            pendingTileKeys.add(key);
           }
           continue;
         }
@@ -1721,6 +1767,7 @@ export class World {
       const ky = typeof object.userData?.tileY === 'number' ? object.userData.tileY : unpackTileKeyY(key);
       if (Math.abs(kx - centerTileX) > CULL_RADIUS || Math.abs(ky - centerTileY) > CULL_RADIUS) {
         this.scene.remove(object);
+        this.untrackActiveObject(object);
         this.recycleObject(object);
         this.activeMeshes.delete(key);
         continue;
@@ -1729,6 +1776,7 @@ export class World {
       const tile = this.map.tiles[ky]?.[kx];
       if (tile && object.userData?.visualSignature !== this.getTileVisualSignature(tile, kx, ky)) {
         this.scene.remove(object);
+        this.untrackActiveObject(object);
         this.recycleObject(object);
         this.activeMeshes.delete(key);
         signatureRefreshTiles.push({ x: kx, y: ky, key });
@@ -1737,14 +1785,16 @@ export class World {
 
     // Collect new tiles to create
     this.pendingTiles = signatureRefreshTiles;
+    const pendingTileKeys = new Set(this.pendingTiles.map(({ key }) => key));
     for (const { dx: offsetX, dy: offsetY } of this.sortedRenderOffsets) {
       if (offsetX < minDx || offsetX > maxDx || offsetY < minDy || offsetY > maxDy) continue;
       const x = centerTileX + offsetX;
       const y = centerTileY + offsetY;
       if (x < 0 || y < 0 || x >= this.map.width || y >= this.map.height) continue;
       const key = this.tileKey(x, y);
-      if (!this.activeMeshes.has(key) && !this.pendingTiles.some((p) => p.key === key)) {
+      if (!this.activeMeshes.has(key) && !pendingTileKeys.has(key)) {
         this.pendingTiles.push({ x, y, key });
+        pendingTileKeys.add(key);
       }
     }
 
@@ -1767,6 +1817,7 @@ export class World {
 
   rebuildChunks() {
     this.mapRevision += 1;
+    this.map.revision = this.mapRevision;
     this.interactableCache = null;
     this.disposeSouthCoastBackdrop();
     for (const [, object] of this.activeMeshes) {
@@ -1774,6 +1825,8 @@ export class World {
       this.recycleObject(object);
     }
     this.activeMeshes.clear();
+    this.activeOverlayObjectCount = 0;
+    this.activeDecorativeOverlayCullCount = 0;
     this.pendingTiles = [];
     this.lastChunkCenter = { x: -9999, y: -9999 };
     this.lastMoveDir = { x: 0, y: 0 };
@@ -2312,7 +2365,7 @@ export class World {
     if (tile.type === 'flower' || tile.type === 'moonbloom' || tile.type === 'mushroom' || tile.type === 'tempest_grass') {
       return 1.5;
     }
-    if (tile.type === 'ranger_remains' || tile.type === 'bones_pile') {
+    if (tile.type === 'ranger_remains' || tile.type === 'ranger_remains_scattered' || tile.type === 'bones_pile') {
       return 1.5;
     }
     return 1.4;
@@ -2366,16 +2419,10 @@ export class World {
     groupPoolSize: number;
     mapRevision: number;
   } {
-    let activeOverlayObjects = 0;
-    let activeDecorativeOverlayCulls = 0;
-    for (const object of this.activeMeshes.values()) {
-      if (object.userData?.isOverlayObject) activeOverlayObjects++;
-      if (object.userData?.overlayCulled) activeDecorativeOverlayCulls++;
-    }
     return {
       activeObjects: this.activeMeshes.size,
-      activeOverlayObjects,
-      activeDecorativeOverlayCulls,
+      activeOverlayObjects: this.activeOverlayObjectCount,
+      activeDecorativeOverlayCulls: this.activeDecorativeOverlayCullCount,
       decorativeOverlayCullSkips: this.decorativeOverlayCullSkips,
       pendingTiles: this.pendingTiles.length,
       meshPoolSize: this.meshPool.length,
@@ -2390,6 +2437,8 @@ export class World {
       this.scene.remove(object);
     }
     this.activeMeshes.clear();
+    this.activeOverlayObjectCount = 0;
+    this.activeDecorativeOverlayCullCount = 0;
     
     for (const [, material] of this.materialCache) {
       material.dispose();

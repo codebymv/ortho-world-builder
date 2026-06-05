@@ -98,6 +98,20 @@ function applyOpenGroveShelfGate(tiles: Tile[][]) {
   }
 }
 
+/** Mirrors syncQuarryBankShortcutState when the lever flag is set. */
+function applyOpenQuarryBankGate(tiles: Tile[][]) {
+  for (let y = 219; y <= 224; y++) {
+    const existing = tiles[y]?.[205];
+    if (!existing) continue;
+    tiles[y][205] = {
+      type: 'dirt',
+      walkable: true,
+      elevation: existing.elevation ?? 0,
+      spinePath: true,
+    };
+  }
+}
+
 describe('Whispering Woods elevation seam audit', () => {
   it('reports zero blocked el±1 path seams after auto-fix', () => {
     const map = generateMap(forestDef);
@@ -320,6 +334,19 @@ describe('world (-17,42) Hollow open lane grass cleanup', () => {
   });
 });
 
+describe('world (-61,68..73) west cliff shelf reed bank', () => {
+  it('keeps the reed lane cut base on grass instead of water or cliff', () => {
+    const map = generateMap(forestDef);
+
+    for (let ty = 218; ty <= 223; ty++) {
+      const tile = map.tiles[ty][89];
+      expect(tile.type).toBe('tall_grass');
+      expect(tile.walkable).toBe(true);
+      expect(tile.baseTile).toBe('grass');
+    }
+  });
+});
+
 describe('east hollow route gate at world (89,-92)', () => {
   function applyClosedEastHollowRouteGate(tiles: Tile[][]) {
     for (let tx = 233; tx <= 246; tx++) {
@@ -448,6 +475,40 @@ describe('grove shelf shortcut at world (-92,14)', () => {
     expect(south).toMatchObject({ type: 'dirt', walkable: true, elevation: 0, spinePath: true });
     expect(gate).toMatchObject({ type: 'dirt', walkable: true, elevation: 1, spinePath: true });
     expect(canCrossSpinePathElevation(south, gate)).toBe(true);
+  });
+});
+
+describe('quarry bank shortcut at world (55,72)', () => {
+  it('has a lever on the quarry side of the west-bank fence', () => {
+    const map = generateMap(forestDef);
+    const lever = map.tiles[220][207];
+
+    expect(lever).toMatchObject({
+      type: 'shortcut_lever',
+      interactionId: 'quarry_bank_shortcut_lever',
+    });
+    expect(map.tiles[219][205].type).toBe('fence');
+    expect(map.tiles[224][205].type).toBe('fence');
+  });
+
+  it('clears live trees crowding the shortcut read', () => {
+    const map = generateMap(forestDef);
+
+    for (let ty = 216; ty <= 228; ty++) {
+      for (let tx = 198; tx <= 214; tx++) {
+        expect(map.tiles[ty][tx].type).not.toBe('tree');
+      }
+    }
+  });
+
+  it('opened gate allows the west shore and quarry side to connect', () => {
+    const map = generateMap(forestDef);
+    applyOpenQuarryBankGate(map.tiles);
+
+    expect(map.tiles[221][204].walkable).toBe(true);
+    expect(map.tiles[221][205]).toMatchObject({ type: 'dirt', walkable: true, spinePath: true });
+    expect(map.tiles[221][206].walkable).toBe(true);
+    expect(map.tiles[224][205]).toMatchObject({ type: 'dirt', walkable: true, spinePath: true });
   });
 });
 

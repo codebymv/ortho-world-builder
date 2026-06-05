@@ -56,6 +56,12 @@ export function getInteractionPromptLabel(
   if (interactionId === 'grove_shelf_shortcut_lever') {
     return state.getFlag('grove_shelf_shortcut_open') ? 'Shortcut Unlocked' : 'Unbar Trail Gate';
   }
+  if (interactionId === 'quarry_bank_shortcut_lever') {
+    return state.getFlag('quarry_bank_shortcut_open') ? 'Shortcut Unlocked' : 'Unbar Quarry Gate';
+  }
+  if (interactionId === 'quarry_bank_gate_sealed') {
+    return 'No lever on this side';
+  }
   if (interactionId === 'west_cliff_gate_lever') {
     return state.getFlag('west_cliff_gate_open') ? 'Gate Opened' : 'Lift Bar';
   }

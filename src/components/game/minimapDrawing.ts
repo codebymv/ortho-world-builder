@@ -195,6 +195,19 @@ const MINIMAP_TILE_COLOR: Partial<Record<TileType, string>> & Record<string, str
   destroyed_house_rubble: '#3E2723',
   destroyed_house_overgrown: '#4A5C3A',
   observatory: '#78909C',
+  // --- Guilrhym bespoke assets ---
+  tenement_facade: '#6E4A3A',
+  clocktower: '#8C8678',
+  cathedral_facade: '#9E988B',
+  townhouse_facade: '#C8B89E',
+  warehouse_facade: '#4A3A34',
+  baby_carriage: '#33384A',
+  stagecoach: '#5A342A',
+  street_sign: '#3A5A4A',
+  road_setts: '#5E6168',
+  cobble_grand: '#9C968A',
+  ashen_cobble: '#4A4640',
+  waterlogged_cobble: '#44525A',
   // --- Gameplay objects ---
   tree: '#1B5E20',
   dead_tree: '#4E342E',
@@ -300,6 +313,16 @@ const LANDMARK_ICON_SIZES: Partial<Record<string, number>> = {
   // Large towers
   observatory: 6,
   windmill:    5,
+  // Guilrhym — the Tolbooth reads as the big civic landmark; tenements as a dense
+  // built-up mass; street props as small map dressing.
+  clocktower:       6,
+  cathedral_facade: 6,
+  tenement_facade:  3,
+  townhouse_facade: 3,
+  warehouse_facade: 3,
+  stagecoach:       3,
+  street_sign:      3,
+  baby_carriage:    2,
   // House variants — sized to read alongside the observatory/windmill
   house:                        5,
   house_entry:                  5,

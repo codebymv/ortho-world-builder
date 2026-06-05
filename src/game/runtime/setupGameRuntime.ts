@@ -619,6 +619,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     const {
       syncWhisperingWoodsShortcutState,
       syncGroveShelfShortcutState,
+      syncQuarryBankShortcutState,
       syncWestCliffGateState,
       syncRiversideBridgeShortcutState,
       syncHollowShortcutState,
@@ -807,6 +808,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncHarvestedMoonbloomState,
           syncWhisperingWoodsShortcutState,
           syncGroveShelfShortcutState,
+          syncQuarryBankShortcutState,
           syncWestCliffGateState,
           syncRiversideBridgeShortcutState,
           syncHollowShortcutState,
@@ -1083,6 +1085,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             if (result.killed) {
               onEnemyKilled(enemy);
             }
+            return result;
           },
           onLungeHit: (enemy: Enemy, damage: number) => {
             const result = combatSystem.playerAttack(
@@ -1104,6 +1107,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             if (result.killed) {
               onEnemyKilled(enemy);
             }
+            return result;
           },
           onLungeEnd: () => {
             // Recovery complete — no additional SFX needed (swing played at lunge start)

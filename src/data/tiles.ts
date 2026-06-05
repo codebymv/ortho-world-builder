@@ -84,13 +84,40 @@ const COTTAGE_SHED_FOUNDATION: TileMetadata['foundation'] = {
 
 // Guilrhym tenement — a tall Victorian block. The prop anchor sits at the building's
 // south base; the mass rises north. Blocks a 4-wide x 3-deep footprint, street in front.
+// Collision follows the building's ground footprint (its lower storeys), like the
+// observatory: the tall facade above renders OVER the player but does not block the
+// ground, so the player can't stand "on" the building yet can pass behind it. The
+// door faces map-south (+Y), so the southern apron rows are cleared for approach.
 const TENEMENT_FOUNDATION: TileMetadata['foundation'] = {
   walkable: false,
+  clearRows: [
+    { y: 4, xMin: -1, xMax: 1 },
+    { y: 5, xMin: -2, xMax: 2 },
+  ],
   rows: [
-    { y: -3, xMin: -2, xMax: 2 },
+    { y: -2, xMin: -3, xMax: 3 },
+    { y: -1, xMin: -3, xMax: 3 },
+    { y: 0, xMin: -3, xMax: 3 },
+    { y: 1, xMin: -3, xMax: 3 },
+    { y: 2, xMin: -3, xMax: 3 },
+    { y: 3, xMin: -3, xMax: 3 },
+  ],
+};
+
+// Tolbooth clocktower — a slender tower; collision is just the stone shaft base, the
+// spire/clock above render over the player (observatory-style silhouette mask).
+const CLOCKTOWER_FOUNDATION: TileMetadata['foundation'] = {
+  walkable: false,
+  clearRows: [
+    { y: 3, xMin: -1, xMax: 1 },
+    { y: 4, xMin: -2, xMax: 2 },
+  ],
+  rows: [
     { y: -2, xMin: -2, xMax: 2 },
     { y: -1, xMin: -2, xMax: 2 },
     { y: 0, xMin: -2, xMax: 2 },
+    { y: 1, xMin: -2, xMax: 2 },
+    { y: 2, xMin: -2, xMax: 2 },
   ],
 };
 
@@ -141,7 +168,13 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   cottage_house_forest_ruined: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8, foundation: COTTAGE_BODY_FOUNDATION },
   cottage_house_ranger: { isOverlay: true, baseTile: 'dirt', scale: 5.6, sortTrim: 0.3, yOffset: 1.8, foundation: COTTAGE_ENTRY_FOUNDATION },
   cottage_shed: { isOverlay: true, baseTile: 'dirt', scale: 4.0, sortTrim: 0.25, yOffset: 1.2, foundation: COTTAGE_SHED_FOUNDATION },
-  tenement_facade: { isOverlay: true, baseTile: 'cobblestone', scale: 5.4, sortTrim: 0.3, yOffset: 2.1, foundation: TENEMENT_FOUNDATION },
+  tenement_facade: { isOverlay: true, baseTile: 'cobblestone', scale: 7.0, sortTrim: 0.34, yOffset: 2.9, foundation: TENEMENT_FOUNDATION },
+  clocktower: { isOverlay: true, baseTile: 'cobblestone', scale: 6.6, sortTrim: 0.4, yOffset: 3.0, foundation: CLOCKTOWER_FOUNDATION },
+  townhouse_facade: { isOverlay: true, baseTile: 'cobblestone', scale: 7.0, sortTrim: 0.34, yOffset: 2.9, foundation: TENEMENT_FOUNDATION },
+  warehouse_facade: { isOverlay: true, baseTile: 'cobblestone', scale: 7.0, sortTrim: 0.34, yOffset: 2.9, foundation: TENEMENT_FOUNDATION },
+  baby_carriage: { isOverlay: true, baseTile: 'cobblestone', scale: 0.85, sortTrim: 0.14 },
+  stagecoach: { isOverlay: true, baseTile: 'cobblestone', scale: 1.9, sortTrim: 0.16, yOffset: 0.06 },
+  street_sign: { isOverlay: true, baseTile: 'cobblestone', scale: 1.25, sortTrim: 0.2, yOffset: 0.1 },
   rock: { isOverlay: true, baseTile: 'stone', scale: 1.0, sortTrim: 0.18 },
   chest: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.32 },
   chest_opened: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.32 },
@@ -236,7 +269,8 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   shortcut_lever: { isOverlay: true, baseTile: 'dirt', scale: 1.18, sortTrim: 0.2, yOffset: 0.08 },
   cage: { isOverlay: true, baseTile: 'stone', scale: 1.2, sortTrim: 0.12 },
   bones_pile: { isOverlay: true, baseTile: 'stone', scale: 0.9, sortTrim: 0.2 },
-  ranger_remains: { isOverlay: true, baseTile: 'dirt', scale: 1.18, sortTrim: 0.14 },
+  ranger_remains: { isOverlay: true, baseTile: 'dirt', scale: 1.45, sortTrim: 0.24, yOffset: 0.02 },
+  ranger_remains_scattered: { isOverlay: true, baseTile: 'dirt', scale: 1.35, sortTrim: 0.24, yOffset: 0.02 },
   fog_gate: { isOverlay: true, baseTile: 'hollow_blight', scale: 1.6, sortTrim: 0.08 },
   door: { isOverlay: true, baseTile: 'dirt', scale: 1.2, sortTrim: 1.45 },
   door_interior: { isOverlay: true, baseTile: 'wood_floor', scale: 1.2, sortTrim: 1.45 },

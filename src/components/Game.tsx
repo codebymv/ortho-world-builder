@@ -75,6 +75,18 @@ type LoadedInteractionContent = {
   vendors: typeof import('@/data/vendors').vendors;
 };
 
+type DevPerfCapture = {
+  label: string;
+  capturedAt: string;
+  mapId: string;
+  player: { x: number; y: number };
+  snapshot: PerfSnapshot;
+};
+
+const DEV_PERF_CAPTURE_KEY = '__ORTHO_PERF_CAPTURES';
+const DEV_PERF_CAPTURE_FN_KEY = '__ORTHO_CAPTURE_PERF';
+const DEV_PERF_CLEAR_FN_KEY = '__ORTHO_CLEAR_PERF_CAPTURES';
+
 const loadMapModal = () => import('./game/MapModal');
 const loadInventoryModal = () => import('./game/InventoryModal');
 const loadPlayerModal = () => import('./game/PlayerModal');
@@ -659,6 +671,77 @@ const Game = () => {
   }, []);
 
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
+    const win = window as Window & Record<string, unknown>;
+    const capturePerf = (label = 'manual'): DevPerfCapture => {
+      const snapshot = perfProfilerRef.current.getSnapshot();
+      const state = gameStateRef.current;
+      const capture: DevPerfCapture = {
+        label,
+        capturedAt: new Date().toISOString(),
+        mapId: state?.currentMap ?? 'unknown',
+        player: {
+          x: Number((state?.player.position.x ?? 0).toFixed(2)),
+          y: Number((state?.player.position.y ?? 0).toFixed(2)),
+        },
+        snapshot,
+      };
+
+      const existing = Array.isArray(win[DEV_PERF_CAPTURE_KEY])
+        ? win[DEV_PERF_CAPTURE_KEY] as DevPerfCapture[]
+        : [];
+      const captures = [...existing, capture].slice(-20);
+      win[DEV_PERF_CAPTURE_KEY] = captures;
+
+      const phaseRows = Object.entries(snapshot.phases)
+        .map(([phase, value]) => ({
+          phase,
+          last: Number((value?.last ?? 0).toFixed(2)),
+          avg: Number((value?.avg ?? 0).toFixed(2)),
+          p95: Number((value?.p95 ?? 0).toFixed(2)),
+        }))
+        .sort((a, b) => b.p95 - a.p95);
+
+      console.log('[PerfCapture]', capture);
+      console.table(phaseRows);
+      notify(`Perf captured: ${capture.mapId} ${capture.player.x}, ${capture.player.y}`, {
+        id: 'performance-profiler-capture',
+        duration: 1800,
+      });
+      return capture;
+    };
+
+    const clearPerfCaptures = () => {
+      win[DEV_PERF_CAPTURE_KEY] = [];
+      notify('Perf captures cleared', {
+        id: 'performance-profiler-clear',
+        duration: 1400,
+      });
+    };
+
+    const handlePerfCapture = (e: KeyboardEvent) => {
+      if (e.key !== 'F9' || e.repeat) return;
+      e.preventDefault();
+      if (!perfProfilerRef.current.isEnabled()) {
+        perfProfilerRef.current.setEnabled(true);
+        setPerfOverlayEnabled(true);
+      }
+      setPerfOverlaySnapshot(perfProfilerRef.current.getSnapshot());
+      capturePerf('F9');
+    };
+
+    win[DEV_PERF_CAPTURE_FN_KEY] = capturePerf;
+    win[DEV_PERF_CLEAR_FN_KEY] = clearPerfCaptures;
+    window.addEventListener('keydown', handlePerfCapture);
+    return () => {
+      window.removeEventListener('keydown', handlePerfCapture);
+      delete win[DEV_PERF_CAPTURE_FN_KEY];
+      delete win[DEV_PERF_CLEAR_FN_KEY];
+    };
+  }, []);
+
+  useEffect(() => {
     if (!perfOverlayEnabled) return;
     const interval = window.setInterval(() => {
       setPerfOverlaySnapshot(perfProfilerRef.current.getSnapshot());
@@ -963,7 +1046,6 @@ const Game = () => {
           <GameUI
             gameState={gameState}
             assetManager={assetManagerRef.current}
-            refreshToken={uiVersion}
             bossHud={bossHud}
             justPickedUpItem={justPickedUpItem}
             justGainedCurrency={justGainedCurrency}

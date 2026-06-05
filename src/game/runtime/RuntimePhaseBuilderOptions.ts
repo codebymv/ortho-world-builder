@@ -78,7 +78,7 @@ export interface BuildRuntimePhaseContextsOptions {
     damage: number;
     hitEnemyIds: Set<string>;
   };
-  onLungeHit: (enemy: Enemy, damage: number) => void;
+  onLungeHit: (enemy: Enemy, damage: number) => { killed: boolean; staggered: boolean; backstab: boolean };
   onLungeEnd: () => void;
   arcWave: import('@/game/runtime/PlayerSimulationSystem').ArcWaveState;
   onArcWaveHit: (enemy: Enemy, damage: number) => void;

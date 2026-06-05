@@ -48,6 +48,7 @@ interface InteractionSystemContext {
   updateWorldChunksAtPlayer: () => void;
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
+  syncQuarryBankShortcutState: () => void;
   syncWestCliffGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
@@ -67,6 +68,14 @@ interface InteractionSystemContext {
   getAliveEnemyCountNearPlayer?: (radius: number) => number;
   /** Briefly pan the camera to a world position (e.g. a shortcut gate just opened). */
   startCameraPan?: (worldX: number, worldY: number, durationMs: number) => void;
+}
+
+export function canReleaseFortRidgeLadderFromPosition(playerX: number, ladderWorldX: number): boolean {
+  // The usable release pin is reached from the east-side ridge tile centered one full tile
+  // to the right of the gate ladder. Standing on the fort-side landing still puts the
+  // player within generic interaction reach, so require them to actually be on the
+  // progressed/east ledge rather than merely adjacent to the gate.
+  return playerX >= ladderWorldX + 0.5;
 }
 
 export function createInteractionSystem(context: InteractionSystemContext) {
@@ -158,9 +167,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
   const tryHandleRingRewardChest = (interactionId: string, px: number, py: number): boolean => {
     if (!isRingRewardChestInteractionId(interactionId)) return false;
-    if (interactionId === 'ranger_wolf_ring_chest' && !context.state.getFlag('olwen_ranger_cabin_hint')) {
-      return false;
-    }
     if (context.state.getFlag(`${interactionId}_opened`)) return false;
 
     const ringItem =
@@ -478,6 +484,39 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  const tryHandleQuarryBankShortcutLever = (interactionId: string): boolean => {
+    if (interactionId === 'quarry_bank_gate_sealed') {
+      context.playGateLockedHeavy();
+      context.notify('No lever on this side.', { id: 'quarry-bank-gate-sealed', duration: 2000 });
+      return true;
+    }
+    if (interactionId !== 'quarry_bank_shortcut_lever') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('quarry_bank_shortcut_open')) {
+      context.notify('The quarry-bank gate is already open.', { id: 'quarry-bank-shortcut-open', duration: 1800 });
+      return true;
+    }
+
+    context.playLeverPull();
+    context.state.setFlag('quarry_bank_shortcut_open', true);
+    context.syncQuarryBankShortcutState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateOpenHeavy();
+    context.playGateShortcut();
+    context.showHeroOverlay('Shortcut Unlocked');
+    context.startCameraPan?.(55, 72, 750);
+    context.notify('Shortcut unlocked', {
+      id: 'quarry-bank-shortcut-unlocked',
+      type: 'success',
+      description: 'The wooden gate swings open - the quarry bank now links back to the west shore.',
+      duration: 3200,
+    });
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
   const tryHandleRiversideBridgeShortcutLever = (interactionId: string): boolean => {
     if (interactionId !== 'riverside_bridge_shortcut_lever') return false;
     if (context.state.currentMap !== 'forest') return true;
@@ -644,8 +683,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     }
 
     // The latch is released only from the el1 overlook EAST of the gate. A fort-side player
-    // (west of the gate, down on the fort grass) cannot kick it loose.
-    if (context.state.player.position.x < ladderWorldX) {
+    // can still stand close enough to the gate ladder to interact, so require the actual
+    // east ridge tile rather than any position merely "not west" of the gate.
+    if (!canReleaseFortRidgeLadderFromPosition(context.state.player.position.x, ladderWorldX)) {
       context.startDialogue('fort_ridge_ladder_wrong_side');
       return true;
     }
@@ -976,6 +1016,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleHealingSource,
     tryHandleForestShortcutLever,
     tryHandleGroveShelfShortcutLever,
+    tryHandleQuarryBankShortcutLever,
     tryHandleWestCliffGateLever,
     tryHandleRiversideBridgeShortcutLever,
     tryHandleHollowShortcutLever,

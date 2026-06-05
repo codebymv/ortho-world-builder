@@ -36,7 +36,6 @@ import { cn } from '@/lib/utils';
 interface GameUIProps {
   gameState: GameState;
   assetManager?: AssetManager | null;
-  refreshToken: number;
   bossHud?: {
     name: string;
     health: number;
@@ -392,7 +391,6 @@ const JustPickedUpDisplay = React.memo(({
 export const GameUI = ({
   gameState,
   assetManager,
-  refreshToken,
   bossHud = null,
   justPickedUpItem = null,
   justGainedCurrency = null,
@@ -412,6 +410,11 @@ export const GameUI = ({
   const volumePanelRef = useRef<HTMLDivElement | null>(null);
   /** Compact controls help: closed by default so HUD stays minimal; click to expand rectangular panel. */
   const [controlsHelpOpen, setControlsHelpOpen] = useState(false);
+  const inventorySignature = gameState.inventory.map(item => item.id).join('|');
+  const weaponLoadoutSignature = gameState.weaponLoadout.join('|');
+  const questSignature = gameState.quests
+    .map(quest => `${quest.id}:${quest.active ? 1 : 0}:${quest.completed ? 1 : 0}:${quest.objectives.join('~')}`)
+    .join('|');
 
   const groupedInventory = useMemo(() => {
     const groups = new Map<string, { item: Item; count: number }>();
@@ -424,7 +427,7 @@ export const GameUI = ({
       }
     });
     return Array.from(groups.values());
-  }, [gameState.inventory, refreshToken]);
+  }, [gameState.inventory, inventorySignature]);
 
   const groupedConsumables = useMemo(
     () => groupedInventory.filter(({ item }) => isQuickUseConsumable(item)),
@@ -444,7 +447,7 @@ export const GameUI = ({
         return item ? { item, count: 1 } : null;
       })
       .filter((entry): entry is { item: Item; count: number } => entry !== null),
-    [gameState.inventory, gameState.weaponLoadout, refreshToken],
+    [gameState.inventory, inventorySignature, weaponLoadoutSignature],
   );
 
   const activeConsumable = gameState.inventory[gameState.activeItemIndex];
@@ -455,7 +458,7 @@ export const GameUI = ({
     const quest = gameState.quests.find(q => q.active && !q.completed);
     if (!quest) return null;
     return quest.objectives.find(o => !o.includes('\u2713')) ?? quest.title;
-  }, [gameState.quests, refreshToken]);
+  }, [gameState.quests, questSignature]);
 
   // Belt-and-suspenders: re-apply persisted mute once HUD mounts (audio may have
   // started before gameState was ready).

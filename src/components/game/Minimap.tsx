@@ -57,6 +57,7 @@ export const Minimap = memo(
     const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
     const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
     const animFrameRef = useRef<number>(0);
+    const terrainDrawKeyRef = useRef('');
     const maxHudPixels = 200;
     const scale = useMemo(
       () => computeMinimapScale(currentMap.width, currentMap.height, maxHudPixels, 1, 4),
@@ -85,6 +86,19 @@ export const Minimap = memo(
       const state = gameStateRef.current;
       if (!state) return;
 
+      const terrainDrawKey = [
+        currentMapId,
+        currentMap.width,
+        currentMap.height,
+        currentMap.revision ?? 0,
+        visitedTilesRef.current.size,
+        scale,
+        canvasWidth,
+        canvasHeight,
+        assetManager ? 'assets' : 'flat',
+      ].join(':');
+      if (terrainDrawKeyRef.current === terrainDrawKey) return;
+
       const start = performance.now();
       drawMinimapTerrain({
         ctx,
@@ -95,6 +109,7 @@ export const Minimap = memo(
         scale,
         assetManager,
       });
+      terrainDrawKeyRef.current = terrainDrawKey;
       perfProfiler?.recordExternal('minimapTerrain', performance.now() - start);
     }, [canvasHeight, canvasWidth, currentMap, currentMapId, gameStateRef, refreshToken, scale, visitedTilesRef, assetManager, perfProfiler]);
 
