@@ -456,7 +456,7 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
         }
         break;
       case 'broken_wagon':
-        placeBrokenWagon(tiles, feature);
+        placeBrokenWagon(tiles, feature, def.baseTerrain);
         break;
       case 'market_stall_row':
         placeMarketStallRow(tiles, feature);
@@ -560,6 +560,9 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
 }
 
 const HOUSE_VARIANTS: TileType[] = ['house', 'house_blue', 'house_green', 'house_thatch'];
+// Guilrhym (and any `city` baseTerrain) building masses use the Victorian facade kit
+// instead of the rural cottage overlays, so the city never inherits Whispering Woods imagery.
+const CITY_FACADE_VARIANTS: TileType[] = ['townhouse_facade', 'tenement_facade', 'warehouse_facade'];
 const HOUSE_TYPES: Set<TileType> = new Set([
   'house', 'house_entry',
   'house_blue', 'house_blue_entry',
@@ -734,6 +737,49 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean, 
 
   // One centered house sprite per building ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â each sprite is scale 2.2 so it visually
   // spans the full facade. Multiple side-by-side sprites produce a "stacked houses" look.
+  // City masses: a solid stone block fronted by one or more Victorian facade sprites
+  // (anchored at the block's south base, rising north). No rural cottage overlay, no
+  // dirt/wood — the city reads as stone, never as a Whispering Woods homestead.
+  if (isCity) {
+    const facadeType = CITY_FACADE_VARIANTS[(f.x * 7 + f.y * 13) % CITY_FACADE_VARIANTS.length];
+    const cityBodyRows = Math.max(2, Math.ceil(f.height * 0.5));
+    const cityHasDoor = !!f.interactionId;
+    const cx = Math.floor(f.width / 2);
+    for (let dy = 0; dy < f.height; dy++) {
+      for (let dx = 0; dx < f.width; dx++) {
+        const tx = f.x + dx;
+        const ty = f.y + dy;
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        if (cityHasDoor && dx === cx && dy === f.height - 1) {
+          tiles[ty][tx] = createTile('cobblestone', true, { interactable: true, interactionId: f.interactionId });
+        } else if (dy < cityBodyRows) {
+          tiles[ty][tx] = createTile('stone', false);
+        } else if (cityHasDoor && dy === f.height - 1 && (dx === cx - 1 || dx === cx + 1) && f.width >= 4) {
+          tiles[ty][tx] = createTile('street_lamp', false);
+        } else {
+          tiles[ty][tx] = createTile('cobblestone', true);
+        }
+      }
+    }
+    // Facade sprites along the south edge of the solid mass, butted into a terrace.
+    const anchorY = f.y + cityBodyRows - 1;
+    for (let ax = f.x + 2; ax <= f.x + f.width - 2; ax += 5) {
+      if (anchorY < 0 || anchorY >= tiles.length || ax < 0 || ax >= tiles[0].length) continue;
+      tiles[anchorY][ax] = createTile(facadeType, false);
+    }
+    if (cityHasDoor) {
+      const doorX = f.x + cx;
+      for (let dy = 1; dy <= 3; dy++) {
+        const ty = f.y + f.height - 1 + dy;
+        if (ty >= 0 && ty < tiles.length && doorX >= 0 && doorX < tiles[0].length) {
+          const existing = tiles[ty][doorX];
+          if (existing.walkable) tiles[ty][doorX] = createTile('cobblestone', true);
+        }
+      }
+    }
+    return;
+  }
+
   const houseWidth = 1;
   const houseStartX = Math.floor(f.width / 2);
   const facadeRow = 0;
@@ -786,13 +832,15 @@ function placeBuilding(tiles: Tile[][], f: MapFeature, interiorPortal: boolean, 
   }
 }
 
-function placeBrokenWagon(tiles: Tile[][], f: MapFeature) {
+function placeBrokenWagon(tiles: Tile[][], f: MapFeature, baseTerrain?: string) {
+  // On stone cities the wagon sits on cobblestone, not a rural dirt patch.
+  const groundFill: TileType = baseTerrain === 'city' ? 'cobblestone' : 'dirt';
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
       const tx = f.x + dx;
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
-        tiles[ty][tx] = createTile('dirt', true);
+        tiles[ty][tx] = createTile(groundFill, true);
       }
     }
   }

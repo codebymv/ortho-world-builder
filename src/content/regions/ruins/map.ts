@@ -199,8 +199,8 @@ export const guilrhymDef: MapDefinition = {
     { x: 156, y: 120, width: 2, height: 16, type: 'wall', fill: 'stone' },
     { x: 142, y: 120, width: 2, height: 16, type: 'wall', fill: 'stone' },
 
-    // The Undercroft (WEST) — sunken cloister: ruins floor, drainage, claustral
-    { x: 24, y: 116, width: 76, height: 48, type: 'clearing', fill: 'ruins_floor' },
+    // The Undercroft (WEST) — sunken cloister: dark flood-stained stone, drainage, claustral
+    { x: 24, y: 116, width: 76, height: 48, type: 'clearing', fill: 'cobblestone_dark' },
     { x: 30, y: 124, width: 14, height: 12, type: 'building' },
     { x: 30, y: 144, width: 14, height: 12, type: 'building' },
     { x: 54, y: 120, width: 12, height: 10, type: 'clearing', fill: 'cobblestone' },
@@ -228,7 +228,7 @@ export const guilrhymDef: MapDefinition = {
     // flanking — building masses wall both sides; a votive-candle trail wayfinds.
     // Cathedral Steps bonfire (150,55) sits just before the fog gate (y45).
     // =========================================================================
-    { x: 122, y: 46, width: 56, height: 48, type: 'clearing', fill: 'ruins_floor' },
+    { x: 122, y: 46, width: 56, height: 48, type: 'clearing', fill: 'cobblestone_dark' },
     // Cloister side walls (funnel — no flanking)
     { x: 110, y: 46, width: 12, height: 50, type: 'wall', fill: 'stone' },
     { x: 178, y: 46, width: 12, height: 50, type: 'wall', fill: 'stone' },

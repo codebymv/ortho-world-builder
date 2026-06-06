@@ -463,11 +463,68 @@ export class AssetManager {
     return this.createSpriteTexture(pixels, 4, spriteId);
   }
 
+  // Supersamples a hand-authored facade base 2× on each axis (so a 16×28 design becomes
+  // 32×56). The authored layout is the design source of truth; this doubles the logical
+  // resolution so each cell covers a quarter of the on-screen area at the building's
+  // imposing render scale (≈7 tiles), killing the chunky "few-giant-pixels" look without
+  // changing proportions (the 4:7 aspect is preserved, so scale/yOffset/foundation hold).
+  //
+  // Window glow cells are the generator's per-window anchors, so after doubling we THIN
+  // each 2×2 glow block back to a single top-left anchor (the rest become dark glass),
+  // keeping one anchor per window. A subtle mullion + transom is drawn into the enlarged
+  // pane, and horizontal mortar courses are scored across the brick — real sub-cell detail
+  // the higher resolution now affords.
+  private upscaleFacadeBase(
+    base: readonly (readonly number[])[],
+    windowAnchor: number,
+    windowGlass: number,
+    windowFrame: number,
+    wallColors: readonly number[],
+    mortar: number,
+  ): number[][] {
+    const H = base.length;
+    const W = base[0]?.length ?? 0;
+    const out: number[][] = Array.from({ length: H * 2 }, () => new Array<number>(W * 2).fill(0));
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const c = base[y][x];
+        out[2 * y][2 * x] = c;
+        out[2 * y][2 * x + 1] = c;
+        out[2 * y + 1][2 * x] = c;
+        out[2 * y + 1][2 * x + 1] = c;
+      }
+    }
+    const wall = new Set(wallColors);
+    // Thin window-glow blocks to a single anchor, then mullion/transom the enlarged pane.
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (base[y][x] !== windowAnchor) continue;
+        const ax = 2 * x, ay = 2 * y;
+        out[ay][ax] = windowAnchor;          // single anchor (top-left)
+        out[ay][ax + 1] = windowGlass;
+        out[ay + 1][ax] = windowFrame;       // transom bar
+        out[ay + 1][ax + 1] = windowGlass;
+      }
+    }
+    // Mortar courses: score a faint horizontal line every 4 rows through brick walls so
+    // the masonry reads as coursed stone/brick instead of a flat slab at large scale.
+    for (let y = 0; y < H * 2; y += 4) {
+      for (let x = 0; x < W * 2; x++) {
+        if (wall.has(out[y][x]) && (x % 2 === 0)) out[y][x] = mortar;
+      }
+    }
+    return out;
+  }
+
   // Guilrhym building "kit" — takes a hand-authored base facade and layers
   // deterministic, bounded character per variant (grime streaks, boarded/broken
   // windows, ashen corruption creeping up from the street, roof holes + chimney
   // toggle, awnings, hanging signs, sparse vines, cracks). Same approach as the
   // ruined forest cottage, so every placed building reads as individual.
+  //
+  // Resolution-relative: every structural edit derives its rows/heights from the base's
+  // actual H/W (via scaleY/scaleX vs the original 16×28 design grid), so the same code
+  // drives both the legacy size and the 2× supersampled facades.
   createGuilrhymBuildingVariant(
     baseSprite: readonly (readonly number[])[],
     variant: number = 0,
@@ -514,51 +571,57 @@ export class AssetManager {
 
     // ---- STRUCTURAL variety (roofline, height, bay) — applied before grime so the
     // silhouette itself differs per building, not just the surface. ----
+    // Everything below is expressed relative to the base's actual size vs the original
+    // 16×28 design grid, so the legacy and 2× supersampled facades both work.
     const cx = Math.floor(W / 2);
-    const clearRoof = () => { for (let y = 0; y <= 3; y++) for (let x = 0; x < W; x++) set(x, y, C); };
+    const scaleY = H / 28;
+    const sY = (v: number) => Math.max(0, Math.round(v * scaleY));
+    const roofRows = Math.max(2, sY(4));                 // authored roof+dormer band height
+    const clearRoof = () => { for (let y = 0; y < roofRows; y++) for (let x = 0; x < W; x++) set(x, y, C); };
+    const parapetGap = Math.max(2, Math.round(3 * (W / 16)));
     const style = variant % 4;
     if (style === 1) {
       // Flat roof + crenellated parapet.
       clearRoof();
-      for (let x = 1; x < W - 2; x++) { set(x, 2, TBD); set(x, 3, (x % 3 === 0) ? C : TB); }
+      for (let x = 1; x < W - 2; x++) { set(x, roofRows - 2, TBD); set(x, roofRows - 1, (x % parapetGap === 0) ? C : TB); }
     } else if (style === 2) {
-      // Peaked gable — narrow peak at the TOP (row 0), widening to the eaves (row 3).
+      // Peaked gable — narrow peak at the TOP (row 0), widening to the eaves.
       clearRoof();
-      for (let s = 0; s <= 3; s++) {
+      for (let s = 0; s < roofRows; s++) {
         const half = s + 1;
         for (let x = cx - half; x <= cx + half; x++) set(x, s, (x === cx - half || x === cx + half) ? TRD : TR);
       }
     } else if (style === 3) {
       // Stepped (Dutch) gable.
       clearRoof();
-      for (let s = 0; s <= 3; s++) {
-        const half = 3 - s;
-        for (let x = cx - half; x <= cx + half; x++) set(x, 3 - s, (s % 2 === 0) ? TB : TBD);
+      for (let s = 0; s < roofRows; s++) {
+        const half = (roofRows - 1) - s;
+        for (let x = cx - half; x <= cx + half; x++) set(x, (roofRows - 1) - s, (s % 2 === 0) ? TB : TBD);
       }
     }
     // else style 0: keep the authored mansard + dormers.
 
     // Chimney toggle (independent of roofline).
-    if (rand() > 0.5) { for (let y = 0; y < 3; y++) for (let x = 0; x < W; x++) if (get(x, y) === CHM) set(x, y, C); }
+    if (rand() > 0.5) { for (let y = 0; y < roofRows; y++) for (let x = 0; x < W; x++) if (get(x, y) === CHM) set(x, y, C); }
 
     // Height variation — full / minus-one / minus-two storeys — so a connected terrace
     // gets a jagged Edinburgh-"lands" skyline instead of a flat top. The shortened
     // buildings take a flat crenellated parapet at their new roofline.
     const hr = rand();
-    const cut = hr > 0.78 ? 12 : hr > 0.48 ? 8 : 0;
+    const cut = hr > 0.78 ? sY(12) : hr > 0.48 ? sY(8) : 0;
     if (cut > 0) {
       for (let y = 0; y <= cut; y++) for (let x = 0; x < W; x++) set(x, y, C);
       for (let x = 1; x < W - 2; x++) {
         set(x, cut, TS);                                  // cornice line
-        set(x, cut - 1, (x % 3 === 0) ? C : TB);          // crenellated parapet
+        set(x, cut - 1, (x % parapetGap === 0) ? C : TB); // crenellated parapet
         if (rand() > 0.6) set(x, cut + 1, TBD);           // grime under cornice
       }
     }
 
     // Protruding bay/oriel window on one storey (~55%).
     if (rand() > 0.45) {
-      const wy = pick([6, 10, 14, 18]);
-      const x0 = rand() > 0.5 ? 2 : 8;
+      const wy = pick([sY(6), sY(10), sY(14), sY(18)]);
+      const x0 = rand() > 0.5 ? Math.round(2 * (W / 16)) : Math.round(8 * (W / 16));
       for (let x = x0 - 1; x <= x0 + 3; x++) {
         if (get(x, wy) !== C) set(x, wy, TWG);
         if (get(x, wy + 1) !== C) set(x, wy + 1, TW);
@@ -582,7 +645,7 @@ export class AssetManager {
     }
 
     // 2) Ashen corruption creeping up from the base (Guilrhym's blight).
-    const ashH = 3 + ri(7);
+    const ashH = sY(3) + ri(sY(7));
     for (let y = H - 1; y >= H - ashH; y--) {
       const t = (y - (H - ashH)) / ashH; // 0 at top of band -> 1 at base
       for (let x = 0; x < W; x++) {
@@ -607,26 +670,26 @@ export class AssetManager {
 
     // 4) Roof hole + chimney toggle for skyline variety.
     if (rand() > 0.55) {
-      const cx = 3 + ri(W - 6), cy = 1 + ri(2);
+      const cx = 3 + ri(W - 6), cy = ri(Math.max(1, roofRows - 1));
       for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
         if (roof.has(get(cx + dx, cy + dy))) set(cx + dx, cy + dy, rand() > 0.5 ? TRD : SOOT);
       }
     }
     if (rand() > 0.5) { // knock out the chimney on some variants
-      for (let y = 0; y < 3; y++) for (let x = 0; x < W; x++) if (get(x, y) === CHM) set(x, y, C);
+      for (let y = 0; y < roofRows; y++) for (let x = 0; x < W; x++) if (get(x, y) === CHM) set(x, y, C);
     }
 
     // 5) Ground-floor awning (cloth band) on roughly half the variants.
     if (rand() > 0.45) {
       const col = pick(AWN);
-      const ay = H - 6 + ri(2);
+      const ay = H - sY(6) + ri(2);
       const ax0 = 1 + ri(3), ax1 = W - 2 - ri(3);
       for (let x = ax0; x <= ax1; x++) if (get(x, ay) !== C) set(x, ay, (x % 2 === 0) ? col : 0xe8e0d0);
     }
 
     // 6) A hanging shop sign bracket near the door.
     if (rand() > 0.5) {
-      const sy = H - 8 + ri(2);
+      const sy = H - sY(8) + ri(2);
       const sx = rand() > 0.5 ? 2 + ri(2) : W - 4 - ri(2);
       set(sx, sy, 0x2a2018); set(sx, sy + 1, pick(AWN)); set(sx + 1, sy + 1, pick(AWN));
     }
@@ -4362,9 +4425,9 @@ export class AssetManager {
     ]);
     registerWalkAliasCycle('enemy_corrupted_giant', [
       'enemy_corrupted_giant',
-      'enemy_corrupted_giant_attack',
       'enemy_corrupted_giant',
-      'enemy_corrupted_giant_telegraph',
+      'enemy_corrupted_giant',
+      'enemy_corrupted_giant',
     ]);
     registerWalkAliasCycle('enemy_void_wisp', [
       'enemy_void_wisp',
@@ -4374,21 +4437,21 @@ export class AssetManager {
     ]);
     registerWalkAliasCycle('enemy_shadow', [
       'enemy_shadow',
-      'enemy_shadow_attack',
       'enemy_shadow',
-      'enemy_shadow_telegraph',
+      'enemy_shadow',
+      'enemy_shadow',
     ]);
     registerWalkAliasCycle('enemy_hollow_reaver', [
       'enemy_hollow_reaver',
-      'enemy_hollow_reaver_attack',
       'enemy_hollow_reaver',
-      'enemy_hollow_reaver_telegraph',
+      'enemy_hollow_reaver',
+      'enemy_hollow_reaver',
     ]);
     registerWalkAliasCycle('enemy_hollow_guardian', [
       'enemy_hollow_guardian',
-      'enemy_hollow_guardian_attack',
       'enemy_hollow_guardian',
-      'enemy_hollow_guardian_telegraph',
+      'enemy_hollow_guardian',
+      'enemy_hollow_guardian',
     ]);
     registerWalkAliasCycle('enemy_ashen_reaver', [
       'enemy_ashen_reaver',
@@ -4874,10 +4937,11 @@ export class AssetManager {
         cornice,
         shop, shop, doorR, doorR, baseR, baseR,
       ].map(r => [...r]);
-      registerSpriteTexture('tenement_facade', tenementBase, 4);
+      const tenementHi = this.upscaleFacadeBase(tenementBase, TWG, TW, TWF, [TB, TBL], TBD);
+      registerSpriteTexture('tenement_facade', tenementHi, 4);
       for (let v = 0; v < 18; v++) {
         const id = `tenement_facade_variant_${v}`;
-        this.registerTexture(id, () => this.createGuilrhymBuildingVariant(tenementBase, v, id));
+        this.registerTexture(id, () => this.createGuilrhymBuildingVariant(tenementHi, v, id));
       }
     }
 
@@ -4912,10 +4976,11 @@ export class AssetManager {
         corn,
         door1, door2, stepR, stepR, stepR, stepR,
       ].map(r => [...r]);
-      registerSpriteTexture('townhouse_facade', townhouseBase, 4);
+      const townhouseHi = this.upscaleFacadeBase(townhouseBase, TWG, TW, TWF, [CW, CWL], CWD);
+      registerSpriteTexture('townhouse_facade', townhouseHi, 4);
       for (let v = 0; v < 18; v++) {
         const id = `townhouse_facade_variant_${v}`;
-        this.registerTexture(id, () => this.createGuilrhymBuildingVariant(townhouseBase, v, id));
+        this.registerTexture(id, () => this.createGuilrhymBuildingVariant(townhouseHi, v, id));
       }
     }
 
@@ -4947,10 +5012,11 @@ export class AssetManager {
         band,
         archT, bayR, bayR, bayR, bayR, bayR,
       ].map(r => [...r]);
-      registerSpriteTexture('warehouse_facade', warehouseBase, 4);
+      const warehouseHi = this.upscaleFacadeBase(warehouseBase, TWG, TW, TWF, [WB, WBL], WBD);
+      registerSpriteTexture('warehouse_facade', warehouseHi, 4);
       for (let v = 0; v < 18; v++) {
         const id = `warehouse_facade_variant_${v}`;
-        this.registerTexture(id, () => this.createGuilrhymBuildingVariant(warehouseBase, v, id));
+        this.registerTexture(id, () => this.createGuilrhymBuildingVariant(warehouseHi, v, id));
       }
     }
 

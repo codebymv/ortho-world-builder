@@ -344,6 +344,13 @@ export function runEnemyLoop({
       }
 
       if (phase === 2) {
+        if (enemy.type === 'hollow_guardian') {
+          enemy.state = 'slamming';
+          enemy.currentAttackType = 'phase_transition';
+          enemy.novaSlamTimer = 0.4;
+          particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.6, 45, 0x8844CC, 0.12, 2.4, 1.6);
+          particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.4, 25, 0x44FFEE, 0.1, 1.8, 1.2);
+        }
         screenShake.shake(0.6, 0.3);
         screenShake.hitStop(0.3);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 20, 0x44FFEE, 0.1, 1.8, 1.2);
@@ -360,6 +367,13 @@ export function runEnemyLoop({
       }
 
       if (phase === 3) {
+        if (enemy.type === 'hollow_guardian') {
+          enemy.state = 'slamming';
+          enemy.currentAttackType = 'phase_transition';
+          enemy.novaSlamTimer = 0.4;
+          particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.7, 55, 0x44FFEE, 0.14, 2.8, 1.8);
+          particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 30, 0xCCAAFF, 0.1, 2.2, 1.4);
+        }
         screenShake.shake(0.8, 0.4);
         screenShake.hitStop(0.4);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 35, 0x44FFEE, 0.12, 2.2, 1.5);
@@ -381,6 +395,21 @@ export function runEnemyLoop({
     state.player.isClimbing,
     playerCombatElevation,
   );
+
+  for (const enemy of combatSystem.getAllEnemies()) {
+    if (enemy.state === 'dead') continue;
+    if (enemy.type === 'ridge_revenant'
+      && enemy.state === 'telegraphing'
+      && enemy.currentAttackType === 'revenant_crusher'
+      && !enemy.crusherTelegraphWarned) {
+      enemy.crusherTelegraphWarned = true;
+      const center = enemy.attackLockedTarget ?? enemy.position;
+      particleSystem.emitAt(center.x, center.y, 0.5, 18, 0xFF4400, 0.14, 2.2, 1.4);
+      particleSystem.emitAt(center.x, center.y, 0.35, 10, 0xFF8800, 0.08, 1.6, 1.0);
+    } else if (enemy.state !== 'telegraphing' || enemy.currentAttackType !== 'revenant_crusher') {
+      enemy.crusherTelegraphWarned = false;
+    }
+  }
 
   if (state.player.health < playerHealthBeforeUpdate) {
     playPlayerHit();

@@ -958,8 +958,8 @@ export const forestDef: MapDefinition = {
     { x: 58, y: 268, interactionId: 'enchanted_chest_3' },
     { x: 208, y: 66, interactionId: 'fort_chest_2' },
     { x: 68, y: 196, interactionId: 'fort_chest_3' },
-    // West Fort boss reward — inside the dual-gated fort, guarding by the Ridge Revenant.
-    { x: 19, y: 140, interactionId: 'west_fort_chest' },
+    // West Fort boss reward — tucked in the north yard (off the gate walkway), near the Ridge Revenant.
+    { x: 21, y: 144, interactionId: 'west_fort_chest' },
     { x: 111, y: 220, interactionId: 'forest_river_chest' },
     { x: 218, y: 183, interactionId: 'golem_arena_chest' },
     // Hidden chest behind waterfall

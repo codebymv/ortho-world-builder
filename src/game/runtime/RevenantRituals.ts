@@ -107,7 +107,6 @@ const RR_TEAL = 0x40FFEE;
 // when you leave simply doesn't complete).
 const _charging = new Map<string, number>();
 const _hintedInsufficient = new Set<string>();
-const _hintedCleared = new Set<string>();
 const _hintedDud = new Set<string>();
 let _lastMap = '';
 
@@ -155,7 +154,6 @@ export function updateRevenantRituals(ctx: RevenantRitualContext): void {
   if (state.currentMap !== _lastMap) {
     _charging.clear();
     _hintedInsufficient.clear();
-    _hintedCleared.clear();
     _hintedDud.clear();
     _lastMap = state.currentMap;
   }
@@ -179,21 +177,6 @@ export function updateRevenantRituals(ctx: RevenantRitualContext): void {
     const onGlyph = dx * dx + dy * dy <= TRIGGER_RADIUS_SQ;
 
     if (state.getFlag(site.clearedFlag)) {
-      if (onGlyph && !_hintedCleared.has(key)) {
-        _hintedCleared.add(key);
-        const clearedHint =
-          site.clearedFlag === 'ritual_revenant_west_cleared'
-            ? 'The Ridge Revenant here is already gone. Loot the chest inside the fort if you have not yet.'
-            : site.clearedFlag === 'ritual_revenant_precipice_cleared'
-              ? 'The Ridge Revenant here is already gone. The precipice circle will not answer again.'
-              : 'This circle has already given up its wraith. The Tempered Core was claimed from the east ridge.';
-        notify('The glyph is spent', {
-          id: `revenant-ritual-cleared-${key}`,
-          type: 'info',
-          description: clearedHint,
-          duration: 5000,
-        });
-      }
       continue;
     }
 
@@ -324,7 +307,6 @@ export function resetRevenantRitualForDev(
     const key = siteKey(site);
     _charging.delete(key);
     _hintedInsufficient.delete(key);
-    _hintedCleared.delete(key);
 
     const wx = site.tileX - halfW + 0.5;
     const wy = site.tileY - halfH + 0.5;

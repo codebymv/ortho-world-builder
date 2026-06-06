@@ -72,6 +72,7 @@ interface RuntimeActionPhaseOptions {
   syncHollowArenaVictoryPortalState: () => void;
   switchMusicTrack: (mapId: string) => void;
   syncGuilrhymBossState: () => void;
+  syncRevenantTerminusChestState: () => void;
   handleMapTransition: (targetMap: string, targetX: number, targetY: number) => void;
   healCooldowns: MutableRefObject<Map<string, number>>;
   visitedTilesRef: MutableRefObject<Set<string>>;
@@ -150,6 +151,7 @@ export function setupRuntimeActionPhase({
   syncHollowArenaVictoryPortalState,
   switchMusicTrack,
   syncGuilrhymBossState,
+  syncRevenantTerminusChestState,
   handleMapTransition,
   healCooldowns,
   visitedTilesRef,
@@ -345,6 +347,8 @@ export function setupRuntimeActionPhase({
     },
     playHeresyAltarHit: sfx.playHeresyAltarHit,
     playHeresyAltarBreak: sfx.playHeresyAltarBreak,
+    playRitualSummonStart: sfx.playRitualSummonStart,
+    syncRevenantTerminusChestState,
     triggerSave,
     onBossDefeated: () => {
       syncHollowArenaVictoryPortalState();

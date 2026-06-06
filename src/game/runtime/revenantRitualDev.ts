@@ -5,6 +5,10 @@ import { notify } from '@/lib/game/notificationBus';
 import { ensureForestDudRitualSites } from '@/game/runtime/revenantRitualDecor';
 import { resetRevenantRitualForDev } from '@/game/runtime/RevenantRituals';
 import { RANGER_APPROACH_DUD_RITUAL } from '@/game/runtime/ritualSiteConstants';
+import { items } from '@/data/items';
+
+/** Guilrhym gate landing — matches the forest→guilrhym gate portal target. */
+const GUILRHYM_GATE_TILE = { x: 150, y: 292 } as const;
 
 export interface SoulsSlopDevApi {
   /** West fort glyph (~-132,-3): clears `ritual_revenant_west_cleared` and nearby revenants. */
@@ -20,6 +24,10 @@ export interface SoulsSlopDevApi {
   gotoDudRitual: () => void;
   /** Dev warp: load any map at a tile coordinate (defaults to that map's spawn-ish center). */
   gotoMap: (mapId: string, tileX?: number, tileY?: number) => void;
+  /** Grant + equip the Terminus Scythe and set the early-obtained flag. */
+  giveTerminusScythe: () => void;
+  /** Warp to Guilrhym (gate landing by default) with the Terminus Scythe unlocked + equipped. */
+  gotoGuilrhym: (tileX?: number, tileY?: number) => void;
 }
 
 const DEV_METHOD_KEYS: (keyof SoulsSlopDevApi)[] = [
@@ -30,6 +38,8 @@ const DEV_METHOD_KEYS: (keyof SoulsSlopDevApi)[] = [
   'fixDudRituals',
   'gotoDudRitual',
   'gotoMap',
+  'giveTerminusScythe',
+  'gotoGuilrhym',
 ];
 
 const DUD_TILE_X = RANGER_APPROACH_DUD_RITUAL.tileX;
@@ -68,6 +78,26 @@ function runReset(host: RevenantRitualDevHost, target: 'west' | 'east' | 'all'):
     description: `${label} revenant can be summoned again. You need 3+ cursed sediment on the glyph.`,
     duration: 4000,
   });
+}
+
+function grantTerminusScythe(host: RevenantRitualDevHost): boolean {
+  const state = host.getState();
+  if (!state) {
+    console.warn('[soulsSlopDev] Game not ready — load into the world first.');
+    return false;
+  }
+  const scythe = items.terminus_scythe;
+  if (!scythe) {
+    console.warn('[soulsSlopDev] terminus_scythe item definition not found.');
+    return false;
+  }
+  if (!state.inventory.some(i => i.id === scythe.id)) {
+    state.addItem({ ...scythe });
+  }
+  state.setEquippedWeapon(scythe.id);
+  state.setFlag('terminus_scythe_early_obtained', true);
+  host.onChanged();
+  return true;
 }
 
 export function registerRevenantRitualDevCommands(host: RevenantRitualDevHost): void {
@@ -148,6 +178,29 @@ export function registerRevenantRitualDevCommands(host: RevenantRitualDevHost): 
       host.transitionTo(mapId, tileX, tileY);
       console.log(`[soulsSlopDev] gotoMap('${mapId}', ${tileX}, ${tileY})`);
     },
+    giveTerminusScythe: () => {
+      if (grantTerminusScythe(host)) {
+        console.log('[soulsSlopDev] Terminus Scythe granted + equipped (terminus_scythe_early_obtained = true).');
+        notify('Dev: Terminus Scythe', {
+          id: 'dev-terminus-scythe',
+          type: 'info',
+          description: 'Terminus Scythe granted and equipped.',
+          duration: 3000,
+        });
+      }
+    },
+    gotoGuilrhym: (tileX = GUILRHYM_GATE_TILE.x, tileY = GUILRHYM_GATE_TILE.y) => {
+      if (!host.transitionTo) {
+        console.warn('[soulsSlopDev] gotoGuilrhym unavailable (no transition host).');
+        return;
+      }
+      const granted = grantTerminusScythe(host);
+      host.transitionTo('guilrhym', tileX, tileY);
+      console.log(
+        `[soulsSlopDev] Warping to Guilrhym at tile (${tileX}, ${tileY})` +
+          (granted ? ' with the Terminus Scythe equipped.' : ' (scythe grant failed — see warning above).'),
+      );
+    },
   };
 
   win.soulsSlopDev = { ...win.soulsSlopDev, ...api };
@@ -159,6 +212,8 @@ export function registerRevenantRitualDevCommands(host: RevenantRitualDevHost): 
       '  soulsSlopDev.giveCursedSediment(3)\n' +
       '  soulsSlopDev.fixDudRituals()\n' +
       '  soulsSlopDev.gotoDudRitual()\n' +
+      '  soulsSlopDev.giveTerminusScythe()\n' +
+      '  soulsSlopDev.gotoGuilrhym()  // warp to Guilrhym with the Terminus Scythe\n' +
       'Then stand on the summoning circle with 3+ sediment.',
     'color:#83B6FF;font-weight:bold',
     '',

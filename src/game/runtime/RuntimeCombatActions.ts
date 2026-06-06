@@ -178,6 +178,8 @@ interface RuntimeCombatActionOptions {
   playTallGrassBreak?: () => void;
   playHeresyAltarHit?: () => void;
   playHeresyAltarBreak?: () => void;
+  playRitualSummonStart?: () => void;
+  syncRevenantTerminusChestState?: () => void;
   triggerSave: () => void;
 }
 
@@ -243,6 +245,8 @@ export function createRuntimeCombatActions({
   playTallGrassBreak,
   playHeresyAltarHit,
   playHeresyAltarBreak,
+  playRitualSummonStart,
+  syncRevenantTerminusChestState,
   triggerSave,
 }: RuntimeCombatActionOptions) {
   const onEnemyKilled = (enemy: Enemy) => {
@@ -359,6 +363,20 @@ export function createRuntimeCombatActions({
               screenShake.shake(0.55, 0.45);
               particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.45, 35, 0xFF6F00, 0.12, 2.0, 1.4);
             }
+          } else if (
+            (ritualSite.clearedFlag === 'ritual_revenant_west_cleared' ||
+             ritualSite.clearedFlag === 'ritual_revenant_precipice_cleared') &&
+            !state.getFlag('terminus_scythe_early_obtained')
+          ) {
+            // Chest materialises at the anchor — same burst the revenant was summoned with.
+            const wx = ritualSite.tileX - map.width / 2 + 0.5;
+            const wy = ritualSite.tileY - map.height / 2 + 0.5;
+            particleSystem.emitAt(wx, wy, 0.4, 30, 0x7C4DFF, 0.5, 2.4, 1.6);
+            particleSystem.emitAt(wx, wy, 0.4, 18, 0x44CCCC, 0.45, 2.0, 1.4);
+            particleSystem.emitAt(wx, wy, 0.55, 12, 0xFFD700, 0.6, 1.6, 1.2);
+            screenShake.shake(0.35, 0.3);
+            playRitualSummonStart?.();
+            syncRevenantTerminusChestState?.();
           }
         }
       }
@@ -757,7 +775,7 @@ export function createRuntimeCombatActions({
       if (result.staggered) playStaggerEnemy();
 
       const actualDamage = target.state === 'staggered'
-        ? Math.floor(chargeDamage * 2)
+        ? Math.floor(chargeDamage * getStaggerDamageMultiplier(target.type))
         : chargeDamage;
 
       floatingText.spawnDamage(target.position.x, target.position.y, actualDamage, true);

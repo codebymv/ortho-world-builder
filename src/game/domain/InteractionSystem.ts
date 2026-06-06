@@ -231,6 +231,8 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       ? 85
       : interactionId.includes('ruins')
       ? 75
+      : interactionId.includes('revenant_terminus')
+      ? 75
       : interactionId.includes('hollow_arena')
       ? 65
       : interactionId.includes('wolf') || interactionId.includes('shadow')
@@ -292,8 +294,16 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       context.state.addItem({ ...context.items.ornamental_broadsword });
       bonusDescription = ' and an Ornamental Broadsword';
     } else if (
-      interactionId === 'hollow_terminus_chest' &&
+      (interactionId === 'revenant_west_terminus_chest' || interactionId === 'revenant_precipice_terminus_chest') &&
       context.items.terminus_scythe
+    ) {
+      context.state.addItem({ ...context.items.terminus_scythe });
+      context.state.setFlag('terminus_scythe_early_obtained', true);
+      bonusDescription = ' and the Terminus Scythe';
+    } else if (
+      interactionId === 'hollow_terminus_chest' &&
+      context.items.terminus_scythe &&
+      !context.state.getFlag('terminus_scythe_early_obtained')
     ) {
       context.state.addItem({ ...context.items.terminus_scythe });
       bonusDescription = ' and the Terminus Scythe';

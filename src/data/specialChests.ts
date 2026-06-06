@@ -5,6 +5,8 @@ const SPECIAL_CHEST_INTERACTION_IDS = new Set<string>([
   'boss_arena_chest',
   'forest_river_chest',
   'hollow_terminus_chest',
+  'revenant_west_terminus_chest',
+  'revenant_precipice_terminus_chest',
   'hunter_cliff_shelf_chest',
   'ranger_wolf_ring_chest',
   'north_fort_wayfarer_ring_chest',

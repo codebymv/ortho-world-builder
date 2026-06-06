@@ -7,6 +7,7 @@ import {
   isPositionInBonfireSafeZone,
   nudgeEnemyOutOfBonfireSanctuary,
 } from '@/game/runtime/bonfireCombatGuard';
+import { getStaggerDamageMultiplier } from '@/data/balance';
 
 type CardinalDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -362,7 +363,8 @@ function pickBigEnemyAttackType(
       return 'golem_stomp';
     case 'stone_sentinel':
       if (closeBand) {
-        if (roll < 0.42) return 'sentinel_slab';
+        if (roll < 0.35) return 'sweep';
+        if (roll < 0.70) return 'sentinel_slab';
         return 'normal';
       }
       if (midBand) {
@@ -486,6 +488,10 @@ export interface Enemy {
   behaviorOverrides: EnemyBehaviorOverrides;
   /** Set once when first poise break is absorbed by poiseImmunityFirstHit. */
   poiseImmunityUsed: boolean;
+  /** Gold flash timer when poiseImmunityFirstHit absorbs a break (distinct from damage flash). */
+  poiseAbsorbFlashTimer: number;
+  /** One-shot warning ring when a revenant crusher telegraph begins. */
+  crusherTelegraphWarned: boolean;
   /** Stable cross-session ID set at spawn. Present on zone/fixed enemies; absent on arena phase-summons. */
   zoneId?: string;
   /** Retreat timer for retreatAfterHit behavior. */
@@ -524,7 +530,8 @@ export interface Enemy {
     | 'revenant_crusher'
     | 'revenant_rush'
     | 'revenant_flurry'
-    | 'revenant_bladestorm';
+    | 'revenant_bladestorm'
+    | 'phase_transition';
   /**
    * When an attack involves a committed dash/lunge during the telegraph,
    * this is the world-space target locked in at telegraph start. Used by
@@ -737,6 +744,8 @@ export class CombatSystem {
       phaseTransitioned: false,
       behaviorOverrides: options.behaviorOverrides ?? {},
       poiseImmunityUsed: false,
+      poiseAbsorbFlashTimer: 0,
+      crusherTelegraphWarned: false,
       retreatTimer: 0,
       chargeSlamTimer: 0,
       chargeSlamTarget: null,
@@ -1776,6 +1785,11 @@ export class CombatSystem {
           enemy.novaSlamTimer -= deltaTime;
           updateMovementVisuals(enemy, 0, 0, false, 0);
           if (enemy.novaSlamTimer <= 0) {
+            if (enemy.currentAttackType === 'phase_transition') {
+              enemy.currentAttackType = 'normal';
+              enemy.state = shouldEnemyResumeChasing(distSq, chaseRangeSq) ? 'chasing' : 'idle';
+              break;
+            }
             if (enemy.currentAttackType === 'hail_mary') {
               this.spawnHollowEclipseHazards(enemy);
               enemy.currentAttackType = 'normal';
@@ -2115,14 +2129,17 @@ export class CombatSystem {
     }
 
     if (targetEnemy.state === 'staggered') {
-      finalDamage = Math.floor(damage * 2);
+      finalDamage = Math.floor(damage * getStaggerDamageMultiplier(targetEnemy.type));
     }
 
+    let poiseAbsorbed = false;
     targetEnemy.poise -= Math.floor(finalDamage * poiseMult);
     if (targetEnemy.poise <= 0 && targetEnemy.state !== 'staggered') {
       if (targetEnemy.behaviorOverrides.poiseImmunityFirstHit && !targetEnemy.poiseImmunityUsed) {
         targetEnemy.poiseImmunityUsed = true;
         targetEnemy.poise = Math.floor(targetEnemy.maxPoise * 0.5);
+        targetEnemy.poiseAbsorbFlashTimer = 0.4;
+        poiseAbsorbed = true;
       } else {
         targetEnemy.state = 'staggered';
         targetEnemy.staggerTimer = targetEnemy.staggerDuration;
@@ -2132,7 +2149,9 @@ export class CombatSystem {
     }
 
     targetEnemy.health = Math.max(0, targetEnemy.health - finalDamage);
-    targetEnemy.damageFlashTimer = Math.max(targetEnemy.damageFlashTimer, 0.2);
+    if (!poiseAbsorbed) {
+      targetEnemy.damageFlashTimer = Math.max(targetEnemy.damageFlashTimer, 0.2);
+    }
     targetEnemy.poiseRegenTimer = 0;
 
     if (targetEnemy.health <= 0) {

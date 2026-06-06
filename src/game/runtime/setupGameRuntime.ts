@@ -645,6 +645,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       handleMapTransition,
       handlePortalTransition,
       respawnEnemiesForCurrentMap,
+      syncRevenantTerminusChestState,
     } = createRuntimeMapFlow({
       state,
       world,
@@ -825,6 +826,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncHollowArenaVictoryPortalState,
           switchMusicTrack,
           syncGuilrhymBossState,
+          syncRevenantTerminusChestState,
           handleMapTransition,
           healCooldowns,
           visitedTilesRef,

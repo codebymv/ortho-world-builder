@@ -205,6 +205,12 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 55,
     staggerDuration: 1.4,
     essenceReward: 55,
+    behaviorOverrides: {
+      retreatAfterHit: true,
+      retreatDuration: 0.6,
+      retreatSpeedMult: 1.3,
+      knockbackResistance: 0.75,
+    },
   },
   skeleton_captain: {
     type: 'skeleton_captain',
@@ -218,7 +224,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     telegraphDuration: 0.85,
     recoverDuration: 0.65,
     poise: 120,
-    staggerDuration: 1.2,
+    staggerDuration: 1.8,
     essenceReward: 40,
     behaviorOverrides: {
       poiseImmunityFirstHit: true,
@@ -286,6 +292,13 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       rangedAttack: true,
       rangedRange: 3.0,
       rangedChance: 0.5,
+      rangedProjectile: true,
+      rangedProjectileSpeed: 5.5,
+      rangedProjectileSprite: 'projectile_shell',
+      rangedProjectileLifetime: 1.0,
+      snareOnHit: true,
+      snareDuration: 0.7,
+      snareSpeedMult: 0.55,
     },
   },
   hollow_guardian: {
@@ -321,7 +334,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     telegraphDuration: 0.6,
     recoverDuration: 0.5,
     poise: 100,
-    staggerDuration: 0.9,
+    staggerDuration: 1.6,
     essenceReward: 25,
     behaviorOverrides: {
       poiseImmunityFirstHit: true,
@@ -383,6 +396,15 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 38,
     staggerDuration: 1.0,
     essenceReward: 30,
+    behaviorOverrides: {
+      rangedAttack: true,
+      rangedRange: 2.2,
+      rangedChance: 0.4,
+      rangedProjectile: true,
+      rangedProjectileSpeed: 3.5,
+      rangedProjectileSprite: 'projectile_shell',
+      rangedProjectileLifetime: 0.8,
+    },
   },
   water_slime: {
     type: 'water_slime',

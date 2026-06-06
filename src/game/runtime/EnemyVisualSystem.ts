@@ -209,48 +209,50 @@ export function applyEnemyVisuals({
   const isPhase3 = bossPhase === 3;
   const isGolem = enemyType === 'golem';
   const isStoneSentinel = enemyType === 'stone_sentinel';
-  const isRevenant = enemyType === 'ridge_revenant';
 
   if (isGolem || isStoneSentinel) {
     // Distinct sprite frames handle all state cues — no color tinting
-    if (enemy.damageFlashTimer > 0) {
+    if (enemy.poiseAbsorbFlashTimer > 0) {
+      enemy.poiseAbsorbFlashTimer -= deltaTime;
+      const pulse = Math.abs(fastSin(enemy.poiseAbsorbFlashTimer * 18)) * 0.35 + 0.65;
+      mat.color.setRGB(1.0, pulse * 0.85, pulse * 0.2);
+      mat.opacity = 0.7 + pulse * 0.3;
+    } else if (enemy.damageFlashTimer > 0) {
       enemy.damageFlashTimer -= deltaTime;
       mat.opacity = 0.5 + Math.abs(fastSin(enemy.damageFlashTimer * 25)) * 0.5;
+      mat.color.setHex(0xffffff);
     } else {
       mat.opacity = 1.0;
+      mat.color.setHex(0xffffff);
     }
-    mat.color.setHex(0xffffff);
+  } else if (enemy.poiseAbsorbFlashTimer > 0) {
+    enemy.poiseAbsorbFlashTimer -= deltaTime;
+    const pulse = Math.abs(fastSin(enemy.poiseAbsorbFlashTimer * 18)) * 0.35 + 0.65;
+    mat.color.setRGB(1.0, pulse * 0.85, pulse * 0.2);
+    mat.opacity = 1.0;
   } else if (enemy.damageFlashTimer > 0) {
     enemy.damageFlashTimer -= deltaTime;
     mat.color.setHex(0xff0000);
-  } else if (isRevenant && enemy.state === 'telegraphing') {
-    // Spectral wraith telegraph — a smooth teal→violet swell rather than the
-    // generic reddish strobe. The bladestorm cast glows brighter and cooler.
-    const flashPhase = enemy.telegraphTimer / enemy.telegraphDuration;
-    const isStorm = enemy.currentAttackType === 'revenant_bladestorm';
-    const pulse = fastSin((1 - flashPhase) * Math.PI * (isStorm ? 7 : 5)) * 0.5 + 0.5;
-    if (isStorm) {
-      // Cool teal-cyan gather as the blade array materializes.
-      mat.color.setRGB(0.45 + pulse * 0.25, 0.85 + pulse * 0.15, 0.95);
-    } else {
-      // Violet menace for melee windups (crusher / rush / flurry).
-      mat.color.setRGB(0.7 + pulse * 0.3, 0.45 + pulse * 0.2, 0.95);
-    }
-    mat.opacity = 1.0;
   } else if (enemy.state === 'telegraphing') {
-    mat.opacity = 1.0;
-    const flashPhase = enemy.telegraphTimer / enemy.telegraphDuration;
+    // Attack wind-ups intentionally do NOT tint the body. Souls-like NPCs read
+    // their telegraph from the dedicated `_telegraph` sprite pose + particle
+    // cues (e.g. the crusher warning ring), never a colored strobe on the mesh.
+    // Boss identity glows (phase 2/3) still apply below if the boss is enraged.
     if (isPhase3) {
-      const flash = fastSin(flashPhase * Math.PI * 10) * 0.45 + 0.55;
-      mat.color.setRGB(flash * 0.4, flash, flash);
+      const pulse = fastSin(currentTime / 200) * 0.15 + 0.85;
+      mat.color.setRGB(pulse * 0.3, pulse, pulse);
+      mat.opacity = 0.75 + fastSin(currentTime / 120) * 0.15;
+      mat.transparent = true;
     } else if (isPhase2) {
-      const flash = fastSin(flashPhase * Math.PI * 8) * 0.4 + 0.6;
-      mat.color.setRGB(flash * 0.3, flash, flash);
+      const pulse = fastSin(currentTime / 350) * 0.08 + 0.92;
+      mat.color.setRGB(pulse * 0.35, pulse, pulse);
+      mat.opacity = 1.0;
     } else {
-      const flash = fastSin(flashPhase * Math.PI * 6) * 0.3 + 0.7;
-      mat.color.setRGB(1, flash, flash);
+      mat.color.setHex(0xffffff);
+      mat.opacity = 1.0;
     }
   } else if (enemy.state === 'staggered') {
+    // Hit-result feedback (player broke poise), not an attack telegraph — kept.
     mat.color.setHex(0xaaaaee);
   } else if (enemy.state === 'slamming') {
     const novaTimer = enemy.novaSlamTimer ?? 0;

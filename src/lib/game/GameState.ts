@@ -23,6 +23,7 @@ export type KnownGameFlag =
   | 'west_cliff_gate_open'
   | 'ritual_revenant_west_cleared'
   | 'ritual_revenant_precipice_cleared'
+  | 'terminus_scythe_early_obtained'
   | 'bonfire_west_fort_north_logs_cleared'
   | 'guard_duty_kill_baseline'
   | 'hollow_approach_ladder_extended'

@@ -911,6 +911,37 @@ export function createRuntimeMapFlow({
     world.refreshMapTileRegion(234, 167, 245, 178);
   };
 
+  const syncRevenantTerminusChestState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const earlyObtained = state.getFlag('terminus_scythe_early_obtained');
+    // Anchor tile coords and per-site chest ids for the two early-unlock ritual sites.
+    const REVENANT_CHEST_SITES = [
+      { clearedFlag: 'ritual_revenant_west_cleared', interactionId: 'revenant_west_terminus_chest', anchorX: 18, anchorY: 147 },
+      { clearedFlag: 'ritual_revenant_precipice_cleared', interactionId: 'revenant_precipice_terminus_chest', anchorX: 227, anchorY: 12 },
+    ] as const;
+    for (const site of REVENANT_CHEST_SITES) {
+      const row = map.tiles[site.anchorY];
+      if (!row) continue;
+      const existing = row[site.anchorX];
+      if (!existing) continue;
+      const el = existing.elevation ?? 0;
+      const cleared = state.getFlag(site.clearedFlag);
+      const opened = state.getFlag(`${site.interactionId}_opened`);
+      if (cleared && !opened && !earlyObtained) {
+        // Chest hasn't been claimed yet — materialise special_chest over the dud glyph.
+        row[site.anchorX] = { type: 'special_chest' as TileType, walkable: true, elevation: el, interactable: true, interactionId: site.interactionId };
+      } else {
+        // Chest claimed or scythe already obtained — restore the dud glyph so the spent
+        // ritual site still reads correctly.  Only overwrite if the tile is currently a
+        // chest type (avoids clobbering other authored tiles that happen to share coords).
+        if (existing.type === 'special_chest' || existing.type === 'special_chest_opened') {
+          row[site.anchorX] = { type: 'summoning_ritual_dud' as TileType, walkable: true, elevation: el };
+        }
+      }
+    }
+  };
+
   const syncOpenedChestState = () => {
     const map = world.getCurrentMap();
     let changed = false;
@@ -1945,6 +1976,7 @@ export function createRuntimeMapFlow({
     syncGuilrhymArenaVictoryPortalState();
     syncVillageReactivityState();
     syncVillageInteriorReactivityState();
+    syncRevenantTerminusChestState();
     syncOpenedChestState();
     syncBlightedRootState();
     syncHarvestedTempestGrassState();
@@ -2155,6 +2187,7 @@ export function createRuntimeMapFlow({
     syncGuilrhymArenaVictoryPortalState,
     syncVillageReactivityState,
     syncVillageInteriorReactivityState,
+    syncRevenantTerminusChestState,
     syncOpenedChestState,
     syncRangerWolfRingChestState,
     syncBlightedRootState,
