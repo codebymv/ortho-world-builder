@@ -233,7 +233,7 @@ export function createKeyboardInputController({
     if (pausedRef.current || mapModalOpenRef.current || playerDeadRef.current) return;
 
     const lk = e.key.toLowerCase();
-    // Movement is WASD only — arrow keys reserved for weapon / item cycling.
+    // Movement is WASD only — arrow keys cycle quick-slot items; Q/E cycle weapons.
     if (lk !== 'arrowleft' && lk !== 'arrowright' && lk !== 'arrowup' && lk !== 'arrowdown') {
       keys[lk] = true;
     }
@@ -241,10 +241,10 @@ export function createKeyboardInputController({
       setInteractBuffered(true);
     }
     if (e.key.toLowerCase() === 'q') {
-      cycleConsumable(-1);
+      cycleWeapon(-1);
     }
     if (e.key.toLowerCase() === 'e') {
-      cycleConsumable(1);
+      cycleWeapon(1);
     }
     if (e.key.toLowerCase() === 'z' && !state.dialogueActive) {
       e.preventDefault();
@@ -252,11 +252,11 @@ export function createKeyboardInputController({
     }
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      cycleWeapon(-1);
+      cycleConsumable(-1);
     }
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      cycleWeapon(1);
+      cycleConsumable(1);
     }
     if (e.key === ' ' && !state.dialogueActive) {
       e.preventDefault();

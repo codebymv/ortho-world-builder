@@ -1991,10 +1991,11 @@ export function createRuntimeMapFlow({
   };
 
   const respawnEnemiesForCurrentMap = (targetMap: string, map: WorldMap) => {
+    const flags = state.gameFlags as Record<string, boolean | number>;
     combatSystem.clearAllEnemies();
     enemyVisuals.disposeAll();
     assetManager.warmupEnemyTexturesForZones(mapDefinitions[targetMap]?.enemyZones);
-    spawnEnemiesFromMapZones(targetMap, map, combatSystem, world, state.killedEnemyIds);
+    spawnEnemiesFromMapZones(targetMap, map, combatSystem, world, state.killedEnemyIds, flags);
 
     if (targetMap === 'forest') {
       const spawnBattleEnemy = (
@@ -2041,11 +2042,14 @@ export function createRuntimeMapFlow({
       spawnBattleEnemy('armored_wolf', { x: 81.0, y: -56.5 }, 'beast');
     }
 
-    // Boss arena: spawn the Hollow Guardian at the arena center
+    // Boss arena: spawn the Hollow Guardian at the nave centre (tile 18,18).
     if (targetMap === 'interior_hollow_arena' && !state.getFlag('hollow_guardian_defeated')) {
       const bp = ENEMY_BLUEPRINTS.hollow_guardian;
       if (bp) {
-        const arenaCenter = { x: 0, y: 0 }; // tile (18,18) -> world (18 - 18, 18 - 18)
+        const arenaCenter = {
+          x: 18 - map.width / 2 + 0.5,
+          y: 18 - map.height / 2 + 0.5,
+        };
         combatSystem.spawnEnemy(bp.name, arenaCenter, bp.hp, bp.damage, bp.sprite, {
           speed: bp.speed,
           attackRange: bp.attackRange,
@@ -2056,6 +2060,9 @@ export function createRuntimeMapFlow({
           poise: bp.poise,
           staggerDuration: bp.staggerDuration,
           behaviorOverrides: bp.behaviorOverrides,
+          // Scripted boss — must appear even if sanctuary radius overlaps the nave
+          // (registry post-victory bonfire at tile 18,28 used to silently drop the spawn).
+          ignoreBonfireSanctuary: true,
         });
       }
 
@@ -2080,6 +2087,7 @@ export function createRuntimeMapFlow({
             poise: reaverBp.poise,
             staggerDuration: reaverBp.staggerDuration,
             behaviorOverrides: reaverBp.behaviorOverrides,
+            ignoreBonfireSanctuary: true,
           });
         }
       }
@@ -2091,7 +2099,10 @@ export function createRuntimeMapFlow({
     if (targetMap === 'interior_guilrhym_cathedral' && !state.getFlag('ashen_reaver_defeated')) {
       const bp = ENEMY_BLUEPRINTS.ashen_reaver;
       if (bp) {
-        const arenaCenter = { x: 0, y: 0 }; // tile (18,18) -> world (0,0)
+        const arenaCenter = {
+          x: 18 - map.width / 2 + 0.5,
+          y: 18 - map.height / 2 + 0.5,
+        };
         combatSystem.spawnEnemy(bp.name, arenaCenter, bp.hp, bp.damage, bp.sprite, {
           speed: bp.speed,
           attackRange: bp.attackRange,
@@ -2102,6 +2113,7 @@ export function createRuntimeMapFlow({
           poise: bp.poise,
           staggerDuration: bp.staggerDuration,
           behaviorOverrides: bp.behaviorOverrides,
+          ignoreBonfireSanctuary: true,
         });
       }
 
@@ -2122,12 +2134,13 @@ export function createRuntimeMapFlow({
             poise: addBp.poise,
             staggerDuration: addBp.staggerDuration,
             behaviorOverrides: addBp.behaviorOverrides,
+            ignoreBonfireSanctuary: true,
           });
         }
       }
     }
 
-    evictEnemiesFromBonfireSafeZones(combatSystem, targetMap);
+    evictEnemiesFromBonfireSafeZones(combatSystem, targetMap, flags);
     if (import.meta.env.DEV) {
       console.log(`[Spawn] Total enemies spawned: ${combatSystem.getEnemies().length}`);
     }

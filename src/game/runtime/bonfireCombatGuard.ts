@@ -4,18 +4,25 @@ import {
   bonfireEntryWorldPosition,
   bonfireTileWorldPosition,
   getBonfiresForMap,
+  getKindledBonfiresForMap,
 } from '@/data/bonfires';
 
 /**
- * World-space radius around each bonfire where enemies must not spawn, path, or fight the player.
- * Matches the distance used to block rest / fast travel when hostiles are nearby.
+ * Tight disc around the flame where combat is suppressed (player invuln, enemy nudge, spawn block).
+ * Kept small so approach paths — e.g. Cliff Ledge at world ~(34, 39) — stay fightable.
  */
-export const BONFIRE_SAFE_RADIUS = 12;
+export const BONFIRE_COMBAT_SAFE_RADIUS = 6;
 
-/** @deprecated Use BONFIRE_SAFE_RADIUS — kept as alias for existing imports. */
-export const BONFIRE_ENEMY_BLOCK_RADIUS = BONFIRE_SAFE_RADIUS;
+/** Wider disc used to block rest / fast travel when hostiles are still nearby. */
+export const BONFIRE_REST_HOSTILE_RADIUS = 12;
 
-const BONFIRE_SAFE_RADIUS_SQ = BONFIRE_SAFE_RADIUS * BONFIRE_SAFE_RADIUS;
+/** @deprecated Use BONFIRE_COMBAT_SAFE_RADIUS or BONFIRE_REST_HOSTILE_RADIUS. */
+export const BONFIRE_SAFE_RADIUS = BONFIRE_COMBAT_SAFE_RADIUS;
+
+/** @deprecated Use BONFIRE_COMBAT_SAFE_RADIUS. */
+export const BONFIRE_ENEMY_BLOCK_RADIUS = BONFIRE_COMBAT_SAFE_RADIUS;
+
+const BONFIRE_COMBAT_SAFE_RADIUS_SQ = BONFIRE_COMBAT_SAFE_RADIUS * BONFIRE_COMBAT_SAFE_RADIUS;
 
 const ENEMY_SANCTUARY_TILE_TYPES: Set<string> = new Set([
   'water',
@@ -29,12 +36,20 @@ export function isPositionInBonfireSafeZone(
   mapId: string,
   worldX: number,
   worldY: number,
+  gameFlags?: Record<string, boolean | number>,
 ): boolean {
-  for (const entry of getBonfiresForMap(mapId)) {
+  // When flags are supplied, only *kindled* bonfires emit a combat sanctuary.
+  // Interior boss arenas register a post-victory bonfire tile long before the
+  // player ever rests there — treating it as active would silently block scripted
+  // boss spawns at the nave centre and grant spawn-point invulnerability.
+  const entries = gameFlags
+    ? getKindledBonfiresForMap(mapId, gameFlags)
+    : getBonfiresForMap(mapId);
+  for (const entry of entries) {
     const c = bonfireEntryWorldPosition(entry);
     const dx = worldX - c.x;
     const dy = worldY - c.y;
-    if (dx * dx + dy * dy <= BONFIRE_SAFE_RADIUS_SQ) return true;
+    if (dx * dx + dy * dy <= BONFIRE_COMBAT_SAFE_RADIUS_SQ) return true;
   }
   return false;
 }
@@ -47,7 +62,7 @@ export function countHostilesNearBonfire(
 ): number {
   const { x, y } = bonfireTileWorldPosition(mapId, tileX, tileY);
   return combatSystem
-    .getEnemiesInRange({ x, y }, BONFIRE_SAFE_RADIUS)
+    .getEnemiesInRange({ x, y }, BONFIRE_REST_HOSTILE_RADIUS)
     .filter(e => e.health > 0 && e.state !== 'dead').length;
 }
 
@@ -61,20 +76,27 @@ export function areHostilesNearBonfire(
 }
 
 /** Push a live enemy outside every bonfire sanctuary disc on this map. */
-export function nudgeEnemyOutOfBonfireSanctuary(enemy: Enemy, mapId: string): void {
+export function nudgeEnemyOutOfBonfireSanctuary(
+  enemy: Enemy,
+  mapId: string,
+  gameFlags?: Record<string, boolean | number>,
+): void {
   if (enemy.state === 'dead') return;
   let x = enemy.position.x;
   let y = enemy.position.y;
   let changed = false;
 
-  for (const entry of getBonfiresForMap(mapId)) {
+  const entries = gameFlags
+    ? getKindledBonfiresForMap(mapId, gameFlags)
+    : getBonfiresForMap(mapId);
+  for (const entry of entries) {
     const c = bonfireEntryWorldPosition(entry);
     const dx = x - c.x;
     const dy = y - c.y;
     const distSq = dx * dx + dy * dy;
-    if (distSq >= BONFIRE_SAFE_RADIUS_SQ) continue;
+    if (distSq >= BONFIRE_COMBAT_SAFE_RADIUS_SQ) continue;
     const dist = Math.sqrt(distSq);
-    const push = BONFIRE_SAFE_RADIUS + 1.25;
+    const push = BONFIRE_COMBAT_SAFE_RADIUS + 1.25;
     if (dist < 0.05) {
       x = c.x + push;
       y = c.y;
@@ -99,11 +121,15 @@ export function nudgeEnemyOutOfBonfireSanctuary(enemy: Enemy, mapId: string): vo
   }
 }
 
-export function evictEnemiesFromBonfireSafeZones(combatSystem: CombatSystem, mapId: string): void {
+export function evictEnemiesFromBonfireSafeZones(
+  combatSystem: CombatSystem,
+  mapId: string,
+  gameFlags?: Record<string, boolean | number>,
+): void {
   for (const enemy of combatSystem.getAllEnemies()) {
     if (enemy.state === 'dead') continue;
-    if (!isPositionInBonfireSafeZone(mapId, enemy.position.x, enemy.position.y)) continue;
-    nudgeEnemyOutOfBonfireSanctuary(enemy, mapId);
+    if (!isPositionInBonfireSafeZone(mapId, enemy.position.x, enemy.position.y, gameFlags)) continue;
+    nudgeEnemyOutOfBonfireSanctuary(enemy, mapId, gameFlags);
   }
 }
 
@@ -117,12 +143,12 @@ export function enforceBonfireSanctuaryTiles(
 ): void {
   const h = tiles.length;
   const w = tiles[0]?.length ?? 0;
-  const r = Math.ceil(BONFIRE_SAFE_RADIUS);
+  const r = Math.ceil(BONFIRE_COMBAT_SAFE_RADIUS);
 
   for (const entry of getBonfiresForMap(mapKey)) {
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
-        if (dx * dx + dy * dy > BONFIRE_SAFE_RADIUS_SQ) continue;
+        if (dx * dx + dy * dy > BONFIRE_COMBAT_SAFE_RADIUS_SQ) continue;
         const tx = entry.tileX + dx;
         const ty = entry.tileY + dy;
         if (ty < 0 || ty >= h || tx < 0 || tx >= w) continue;

@@ -3,7 +3,15 @@ import type { World } from '@/lib/game/World';
 import type { Enemy } from '@/lib/game/Combat';
 import type { ParticleSystem } from '@/lib/game/ParticleSystem';
 import { makeVisitedTileKey } from '@/lib/game/visitedTiles';
-import { breakTileAt, breakTilesInRadius } from '@/game/runtime/BreakableProps';
+import {
+  BREAKABLE_TILES,
+  breakTileAt,
+  breakTilesInRadius,
+  playBreakableSound,
+  type BreakableSoundHandlers,
+} from '@/game/runtime/BreakableProps';
+import { PLAYER_MOVE_RADIUS } from '@/lib/game/playerCombatGeometry';
+import { hasPlayerMeleeLineOfSight } from '@/lib/game/Combat';
 
 export interface ArcWaveState {
   active: boolean;
@@ -307,6 +315,14 @@ export function attackBlocksLocomotion(
   return playerAnimState === 'attack' && attackAnimationTimer > 0;
 }
 
+/** Souls-style consumable use — root the player until the drink/chew animation resolves. */
+export function consumableUseBlocksLocomotion(
+  _playerAnimState: PlayerAnimState,
+  drinkTimer: number,
+): boolean {
+  return drinkTimer > 0;
+}
+
 interface UpdatePlayerSimulationOptions {
   state: GameState;
   world: World;
@@ -368,6 +384,7 @@ interface UpdatePlayerSimulationOptions {
   onArcWaveHit: (enemy: Enemy, damage: number) => void;
   particleSystem: ParticleSystem;
   playPropBreak?: () => void;
+  playTallGrassBreak?: () => void;
   dodgeIFrameDuration: number;
   // Combo chain state
   comboStep: number;
@@ -376,6 +393,7 @@ interface UpdatePlayerSimulationOptions {
   comboWindowDuration: number;
   getComboFrameDuration: (step: number) => number;
   triggerComboChain: () => { frameDuration: number } | null;
+  completeConsumableUse?: () => void;
 }
 
 export interface PlayerSimulationResult {
@@ -444,6 +462,7 @@ export function updatePlayerSimulation({
   onArcWaveHit,
   particleSystem,
   playPropBreak,
+  playTallGrassBreak,
   dodgeIFrameDuration,
   comboStep,
   comboWindowTimer,
@@ -451,6 +470,7 @@ export function updatePlayerSimulation({
   comboWindowDuration,
   getComboFrameDuration,
   triggerComboChain,
+  completeConsumableUse,
 }: UpdatePlayerSimulationOptions): PlayerSimulationResult {
   const revealVisibleTiles = () => {
     const currentMap = world.getCurrentMap();
@@ -535,13 +555,13 @@ export function updatePlayerSimulation({
   if (kbMagSq > 0.0004) {
     const kbX = state.player.position.x + state.player.knockbackVelX * deltaTime;
     const kbY = state.player.position.y + state.player.knockbackVelY * deltaTime;
-    if (world.canMoveTo(state.player.position.x, state.player.position.y, kbX, kbY, 0.2)) {
+    if (world.canMoveTo(state.player.position.x, state.player.position.y, kbX, kbY, PLAYER_MOVE_RADIUS)) {
       state.player.position.x = kbX;
       state.player.position.y = kbY;
-    } else if (world.canMoveTo(state.player.position.x, state.player.position.y, kbX, state.player.position.y, 0.2)) {
+    } else if (world.canMoveTo(state.player.position.x, state.player.position.y, kbX, state.player.position.y, PLAYER_MOVE_RADIUS)) {
       state.player.position.x = kbX;
       state.player.knockbackVelY = 0;
-    } else if (world.canMoveTo(state.player.position.x, state.player.position.y, state.player.position.x, kbY, 0.2)) {
+    } else if (world.canMoveTo(state.player.position.x, state.player.position.y, state.player.position.x, kbY, PLAYER_MOVE_RADIUS)) {
       state.player.position.y = kbY;
       state.player.knockbackVelX = 0;
     } else {
@@ -619,7 +639,7 @@ export function updatePlayerSimulation({
     handledLadderDismount = true;
   }
 
-  if (!handledLadderDismount && dodgeBuffered && !isBlocking && !state.player.isClimbing && playerAnimState !== 'lunge' && playerAnimState !== 'lunge_recovery') {
+  if (!handledLadderDismount && dodgeBuffered && !isBlocking && !state.player.isClimbing && playerAnimState !== 'lunge' && playerAnimState !== 'lunge_recovery' && !consumableUseBlocksLocomotion(playerAnimState, drinkTimer)) {
     performDodge(moveX, moveY);
     dodgeBuffered = false;
   }
@@ -678,23 +698,34 @@ export function updatePlayerSimulation({
     const newDodgeX = state.player.position.x + state.player.dodgeDirection.x * dodgeFrameSpeed;
     const newDodgeY = state.player.position.y + state.player.dodgeDirection.y * dodgeFrameSpeed;
 
-    // Mirror the exact four corner probes that canMoveTo(r=0.2) uses so we
-    // break whichever tile blocks the roll — radius checks against tile
+    // Mirror the exact four corner probes that canMoveTo(PLAYER_MOVE_RADIUS) uses
+    // so we break whichever tile blocks the roll — radius checks against tile
     // centers are unreliable when the player straddles a tile boundary.
     const dodgeMap = world.getCurrentMap();
-    const DR = 0.2;
+    const DR = PLAYER_MOVE_RADIUS;
     const halfW = dodgeMap.width / 2;
     const halfH = dodgeMap.height / 2;
-    let dodgeBroke = false;
+    const breakSounds: BreakableSoundHandlers = {
+      generic: playPropBreak,
+      tallGrass: playTallGrassBreak,
+    };
+    let dodgeBrokeTallGrass = false;
+    let dodgeBrokeGeneric = false;
     for (let i = 0; i < 4; i++) {
       const cx = newDodgeX + (i & 1 ? DR : -DR);
       const cy = newDodgeY + (i & 2 ? DR : -DR);
       const tx = Math.floor(cx + halfW);
       const ty = Math.floor(cy + halfH);
-      if (breakTileAt(world, dodgeMap, tx, ty, particleSystem)) dodgeBroke = true;
+      const tile = dodgeMap.tiles[ty]?.[tx];
+      if (tile && BREAKABLE_TILES.has(tile.type)) {
+        if (tile.type === 'tall_grass') dodgeBrokeTallGrass = true;
+        else dodgeBrokeGeneric = true;
+      }
+      breakTileAt(world, dodgeMap, tx, ty, particleSystem);
     }
-    if (dodgeBroke) playPropBreak?.();
-    if (world.canMoveTo(state.player.position.x, state.player.position.y, newDodgeX, newDodgeY, 0.2)) {
+    if (dodgeBrokeTallGrass) playBreakableSound(breakSounds, 'tall_grass');
+    if (dodgeBrokeGeneric) playBreakableSound(breakSounds, 'barrel');
+    if (world.canMoveTo(state.player.position.x, state.player.position.y, newDodgeX, newDodgeY, PLAYER_MOVE_RADIUS)) {
       state.player.position.x = newDodgeX;
       state.player.position.y = newDodgeY;
     }
@@ -709,6 +740,7 @@ export function updatePlayerSimulation({
   } else if (
     moved &&
     !attackBlocksLocomotion(playerAnimState, state.player.attackAnimationTimer) &&
+    !consumableUseBlocksLocomotion(playerAnimState, drinkTimer) &&
     !isBlocking &&
     !isChargingAttack &&
     playerAnimState !== 'spin_attack' &&
@@ -767,7 +799,7 @@ export function updatePlayerSimulation({
         state.player.position.y = dismountY;
       }
     } else {
-      const moveRadius = state.player.isClimbing ? CLIMB_MOVE_RADIUS : 0.2;
+      const moveRadius = state.player.isClimbing ? CLIMB_MOVE_RADIUS : PLAYER_MOVE_RADIUS;
       if (world.canMoveTo(curX, curY, newX, newY, moveRadius)) {
         state.player.position.x = newX;
         state.player.position.y = newY;
@@ -819,6 +851,7 @@ export function updatePlayerSimulation({
       playerAnimState !== 'spin_attack' &&
       playerAnimState !== 'lunge' &&
       playerAnimState !== 'lunge_recovery' &&
+      playerAnimState !== 'drinking' &&
       playerAnimState !== 'block'
     ) {
       playerAnimState = state.player.isClimbing ? 'climb' : 'idle';
@@ -894,14 +927,17 @@ export function updatePlayerSimulation({
     const newLungeX = state.player.position.x + lungeState.dirX * step;
     const newLungeY = state.player.position.y + lungeState.dirY * step;
 
-    if (world.canMoveTo(state.player.position.x, state.player.position.y, newLungeX, newLungeY, 0.2)) {
+    if (world.canMoveTo(state.player.position.x, state.player.position.y, newLungeX, newLungeY, PLAYER_MOVE_RADIUS)) {
       state.player.position.x = newLungeX;
       state.player.position.y = newLungeY;
     } else {
       lungeState.distanceRemaining = 0;
     }
 
-    breakTilesInRadius(world, world.getCurrentMap(), state.player.position.x, state.player.position.y, 1.0, particleSystem, playPropBreak);
+    breakTilesInRadius(world, world.getCurrentMap(), state.player.position.x, state.player.position.y, 1.0, particleSystem, {
+      generic: playPropBreak,
+      tallGrass: playTallGrassBreak,
+    });
 
     lungeState.distanceRemaining -= step;
 
@@ -915,6 +951,10 @@ export function updatePlayerSimulation({
 
     for (const enemy of nearby) {
       if (!lungeState.hitEnemyIds.has(enemy.id)) {
+        // No hitting through walls / across tiers, consistent with the combo + charge.
+        if (!hasPlayerMeleeLineOfSight(world, state.player.position.x, state.player.position.y, enemy.position.x, enemy.position.y)) {
+          continue;
+        }
         lungeState.hitEnemyIds.add(enemy.id);
         const result = onLungeHit(enemy, lungeState.damage);
 
@@ -989,6 +1029,7 @@ export function updatePlayerSimulation({
       if (fwd < 0 || fwd > arcWave.currentDist) continue;
       const perpSq = edx * edx + edy * edy - fwd * fwd;
       if (perpSq > arcWave.arcWidth * arcWave.arcWidth) continue;
+      if (!hasPlayerMeleeLineOfSight(world, state.player.position.x, state.player.position.y, enemy.position.x, enemy.position.y)) continue;
       arcWave.hitIds.add(enemy.id);
       onArcWaveHit(enemy, arcWave.damage);
     }
@@ -998,12 +1039,18 @@ export function updatePlayerSimulation({
     }
   }
 
-  if (playerAnimState === 'drinking') {
+  if (drinkTimer > 0) {
+    playerAnimState = 'drinking';
     drinkTimer -= deltaTime;
+    state.player.isMoving = false;
+    state.player.isSprinting = false;
+    footstepTimer = 0;
     if (Math.random() < 0.3) {
       emitHeal(state.player.position.x, state.player.position.y + 0.5, 0.3);
     }
     if (drinkTimer <= 0) {
+      drinkTimer = 0;
+      completeConsumableUse?.();
       playerAnimState = 'idle';
     }
   }

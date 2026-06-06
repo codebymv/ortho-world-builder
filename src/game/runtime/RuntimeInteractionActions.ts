@@ -48,9 +48,17 @@ interface RuntimeWorldLike {
   getTransitionAt: (x: number, y: number) => { targetMap: string; targetX: number; targetY: number } | null;
 }
 
+export interface PendingConsumableUse {
+  itemId: string;
+  name: string;
+  healAmount?: number;
+  buffType?: 'stealth' | 'berserker';
+  buffDuration?: number;
+}
+
 interface PotionActionOptions {
   state: GameState;
-  particleSystem: { emitHeal: (position: THREE.Vector3) => void };
+  particleSystem: { emitHeal: (position: THREE.Vector3) => void; emitDamage: (position: THREE.Vector3) => void };
   notify: (title: string, options?: { id?: string; type?: 'success' | 'info' | 'error'; description?: string; duration?: number }) => void;
   triggerUIUpdate: () => void;
   playPotionDrink?: () => void;
@@ -59,6 +67,9 @@ interface PotionActionOptions {
   setHeldConsumableSpriteId?: (value: string | null) => void;
   setDrinkTimer?: (value: number) => void;
   drinkDuration?: number;
+  getIsConsuming?: () => boolean;
+  getPendingConsumableUse?: () => PendingConsumableUse | null;
+  setPendingConsumableUse?: (value: PendingConsumableUse | null) => void;
 }
 
 export function createUsePotionAction(options: PotionActionOptions) {
@@ -67,22 +78,15 @@ export function createUsePotionAction(options: PotionActionOptions) {
   };
 }
 
-export function applyHealthPotionAction({
-  state,
-  particleSystem,
-  notify,
-  triggerUIUpdate,
-  playPotionDrink,
-  playGrassChew,
-  setPlayerAnimState,
-  setHeldConsumableSpriteId,
-  setDrinkTimer,
-  drinkDuration,
-}: PotionActionOptions) {
+export function createCompleteConsumableUseAction(options: PotionActionOptions) {
+  return () => {
+    completePendingConsumableUse(options);
+  };
+}
+
+function resolveUsableItem(state: GameState, triggerUIUpdate: () => void) {
   let activeItem = state.inventory[state.activeItemIndex];
 
-  // Accept consumables that either heal OR apply an actively-triggered buff.
-  // last_breath is passive — never selectable via the hotkey.
   const isUsable = (i: typeof activeItem) =>
     i?.type === 'consumable' &&
     i.buffType !== 'last_breath' &&
@@ -94,23 +98,106 @@ export function applyHealthPotionAction({
 
   if (!isUsable(activeItem)) {
     const firstUsableIdx = state.inventory.findIndex(isUsable);
-    if (firstUsableIdx === -1) return;
+    if (firstUsableIdx === -1) return null;
     state.activeItemIndex = firstUsableIdx;
     activeItem = state.inventory[firstUsableIdx];
     triggerUIUpdate();
   }
 
-  // Berserker buff — does not require low health.
+  return activeItem;
+}
+
+function beginConsumableUse(
+  activeItem: NonNullable<ReturnType<typeof resolveUsableItem>>,
+  options: PotionActionOptions,
+) {
+  const {
+    playPotionDrink,
+    playGrassChew,
+    setPlayerAnimState,
+    setHeldConsumableSpriteId,
+    setDrinkTimer,
+    setPendingConsumableUse,
+    drinkDuration,
+  } = options;
+
+  if (activeItem.id === 'health_potion') {
+    playPotionDrink?.();
+  } else if (activeItem.id === 'tempest_grass') {
+    playGrassChew?.();
+  } else {
+    playPotionDrink?.();
+  }
+
+  setPendingConsumableUse?.({
+    itemId: activeItem.id,
+    name: activeItem.name,
+    healAmount: activeItem.healAmount,
+    buffType: activeItem.buffType === 'stealth' || activeItem.buffType === 'berserker'
+      ? activeItem.buffType
+      : undefined,
+    buffDuration: activeItem.buffDuration,
+  });
+  setPlayerAnimState?.('drinking');
+  setHeldConsumableSpriteId?.(activeItem.sprite);
+  setDrinkTimer?.(drinkDuration ?? 0.65);
+}
+
+export function applyHealthPotionAction(options: PotionActionOptions) {
+  const { state, notify, triggerUIUpdate, getIsConsuming } = options;
+
+  if (getIsConsuming?.()) return;
+
+  const activeItem = resolveUsableItem(state, triggerUIUpdate);
+  if (!activeItem) return;
+
   if (activeItem.buffType === 'berserker') {
-    const duration = activeItem.buffDuration ?? 10;
+    beginConsumableUse(activeItem, options);
+    triggerUIUpdate();
+    return;
+  }
+
+  if (activeItem.buffType === 'stealth') {
+    beginConsumableUse(activeItem, options);
+    triggerUIUpdate();
+    return;
+  }
+
+  const atFullHealth = state.player.health >= state.player.maxHealth;
+  const atFullStamina = state.player.stamina >= state.player.maxStamina;
+  if (atFullHealth && (activeItem.id !== 'tempest_grass' || atFullStamina)) {
+    notify('Already at full health!', { id: 'full-health', duration: 1500 });
+    return;
+  }
+
+  beginConsumableUse(activeItem, options);
+  triggerUIUpdate();
+}
+
+export function completePendingConsumableUse({
+  state,
+  particleSystem,
+  notify,
+  triggerUIUpdate,
+  getPendingConsumableUse,
+  setPendingConsumableUse,
+  setHeldConsumableSpriteId,
+}: PotionActionOptions) {
+  const pending = getPendingConsumableUse?.();
+  if (!pending) return;
+
+  setPendingConsumableUse?.(null);
+  setHeldConsumableSpriteId?.(null);
+
+  const inventoryItem = state.inventory.find(i => i.id === pending.itemId);
+  if (!inventoryItem) return;
+
+  if (pending.buffType === 'berserker') {
+    const duration = pending.buffDuration ?? 10;
     state.player.berserkerTimer = duration;
     state.player.berserkerDamageMult = 1.5;
     state.player.berserkerSpeedMult = 1.4;
-    playPotionDrink?.();
-    setPlayerAnimState?.('drinking');
-    setHeldConsumableSpriteId?.(activeItem.sprite);
-    if (typeof drinkDuration === 'number') setDrinkTimer?.(drinkDuration);
-    state.removeItem(activeItem.id);
+    state.removeItem(pending.itemId);
     if (state.activeItemIndex >= state.inventory.length) {
       state.activeItemIndex = Math.max(0, state.inventory.length - 1);
     }
@@ -125,16 +212,11 @@ export function applyHealthPotionAction({
     return;
   }
 
-  // Stealth buff — does not require low health.
-  if (activeItem.buffType === 'stealth') {
-    const duration = activeItem.buffDuration ?? 14;
+  if (pending.buffType === 'stealth') {
+    const duration = pending.buffDuration ?? 14;
     state.player.stealthTimer = duration;
     state.player.stealthDetectionMult = 0.25;
-    playPotionDrink?.();
-    setPlayerAnimState?.('drinking');
-    setHeldConsumableSpriteId?.(activeItem.sprite);
-    if (typeof drinkDuration === 'number') setDrinkTimer?.(drinkDuration);
-    state.removeItem(activeItem.id);
+    state.removeItem(pending.itemId);
     if (state.activeItemIndex >= state.inventory.length) {
       state.activeItemIndex = Math.max(0, state.inventory.length - 1);
     }
@@ -149,38 +231,20 @@ export function applyHealthPotionAction({
     return;
   }
 
-  // Tempest Grass — allow use when stamina is depleted even if HP is full.
-  const atFullHealth = state.player.health >= state.player.maxHealth;
-  const atFullStamina = state.player.stamina >= state.player.maxStamina;
-  if (atFullHealth && (activeItem.id !== 'tempest_grass' || atFullStamina)) {
-    notify('Already at full health!', { id: 'full-health', duration: 1500 });
-    return;
-  }
-
-  if (activeItem.id === 'health_potion') {
-    playPotionDrink?.();
-  } else if (activeItem.id === 'tempest_grass') {
-    playGrassChew?.();
-  }
-  setPlayerAnimState?.('drinking');
-  setHeldConsumableSpriteId?.(activeItem.sprite);
-  if (typeof drinkDuration === 'number') {
-    setDrinkTimer?.(drinkDuration);
-  }
-  state.player.health = Math.min(state.player.maxHealth, state.player.health + (activeItem.healAmount ?? 0));
-  if (activeItem.id === 'tempest_grass') {
+  state.player.health = Math.min(state.player.maxHealth, state.player.health + (pending.healAmount ?? 0));
+  if (pending.itemId === 'tempest_grass') {
     state.player.stamina = state.player.maxStamina;
   }
-  state.removeItem(activeItem.id);
+  state.removeItem(pending.itemId);
   if (state.activeItemIndex >= state.inventory.length) {
     state.activeItemIndex = Math.max(0, state.inventory.length - 1);
   }
   particleSystem.emitHeal(new THREE.Vector3(state.player.position.x, state.player.position.y, 0.3));
-  const staminaNote = activeItem.id === 'tempest_grass' ? ' Stamina fully restored.' : '';
-  notify(`Used ${activeItem.name}`, {
-    id: `used-${activeItem.id}`,
+  const staminaNote = pending.itemId === 'tempest_grass' ? ' Stamina fully restored.' : '';
+  notify(`Used ${pending.name}`, {
+    id: `used-${pending.itemId}`,
     type: 'success',
-    description: `Restored ${activeItem.healAmount} health.${staminaNote}`,
+    description: `Restored ${pending.healAmount} health.${staminaNote}`,
     duration: 2000,
   });
   triggerUIUpdate();

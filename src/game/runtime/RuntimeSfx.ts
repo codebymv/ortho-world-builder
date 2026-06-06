@@ -177,6 +177,14 @@ export function createRuntimeSfx({
     processAudioElement,
   });
 
+  /** Boss telegraph wind-up — same clip as the player swing, slightly louder. */
+  const bossAttackTelegraphSfx = createSequentialAudioPool({
+    src: './audio/sword_swing.mp3',
+    volume: 0.36,
+    poolSize: 2,
+    processAudioElement,
+  });
+
   const bladeSheathSfx = createSequentialAudioPool({
     src: './audio/blade_sheath.mp3',
     volume: 0.2,
@@ -316,7 +324,7 @@ export function createRuntimeSfx({
 
   const essencePickupSfx = createSequentialAudioPool({
     src: './audio/essence_pickup.mp3',
-    volume: 0.2,
+    volume: 0.16,
     poolSize: SMALL_SFX_POOL,
     processAudioElement,
   });
@@ -504,14 +512,14 @@ export function createRuntimeSfx({
 
   const plantLashSfx = createSequentialAudioPool({
     src: './audio/plant_lash.mp3',
-    volume: 0.44,
+    volume: 0.49,
     poolSize: SMALL_SFX_POOL,
     processAudioElement,
   });
 
   const hollowReaverAttackSfx = createSequentialAudioPool({
     src: './audio/hollow_reaver_attack.mp3',
-    volume: 0.48,
+    volume: 0.53,
     poolSize: SMALL_SFX_POOL,
     processAudioElement,
   });
@@ -578,23 +586,23 @@ export function createRuntimeSfx({
 
   const hazardScytheFallSfx = createSequentialAudioPool({
     src: './audio/hazard_scythe_fall.mp3',
-    volume: 0.42,
+    volume: 0.47,
     poolSize: SMALL_SFX_POOL,
     processAudioElement,
   });
 
   const hazardScytheImpactSfx = createSequentialAudioPool({
     src: './audio/hazard_scythe_impact.mp3',
-    volume: 0.5,
+    volume: 0.55,
     poolSize: SMALL_SFX_POOL,
     processAudioElement,
   });
 
-  const boulderRollLoopSfx = createLoopingAudio('./audio/boulder_roll_loop.mp3', 0.42, 1, 180);
+  const boulderRollLoopSfx = createLoopingAudio('./audio/boulder_roll_loop.mp3', 0.47, 1, 180);
 
   const boulderImpactSfx = createSequentialAudioPool({
     src: './audio/boulder_impact.mp3',
-    volume: 0.54,
+    volume: 0.60,
     poolSize: SMALL_SFX_POOL,
     processAudioElement,
   });
@@ -708,6 +716,7 @@ export function createRuntimeSfx({
     enemyAudio,
     playDodgeRoll: dodgeRollSfx.play,
     playSwordSwing: swordSwingSfx.play,
+    playBossAttack: bossAttackTelegraphSfx.play,
     playBladeSheath: bladeSheathSfx.play,
     playFootstep: (isSprinting: boolean) => {
       if (isSprinting) {

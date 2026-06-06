@@ -86,6 +86,7 @@ export interface BuildRuntimePhaseContextsOptions {
   triggerComboChain: () => { frameDuration: number } | null;
   comboWindowDuration: number;
   getComboFrameDuration: (step: number) => number;
+  completeConsumableUse?: () => void;
   textureCache: Map<string, THREE.Texture>;
   playerBaseScale: number;
   outlinePad: number;
@@ -144,6 +145,7 @@ export interface BuildRuntimePhaseContextsOptions {
   playParryProjectile?: () => void;
   playGuardBreak?: () => void;
   playPropBreak?: () => void;
+  playTallGrassBreak?: () => void;
   playRitualSummonStart?: () => void;
   playPlantIdle?: () => void;
   playPlantLash?: () => void;

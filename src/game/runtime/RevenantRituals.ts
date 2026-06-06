@@ -108,6 +108,8 @@ const RR_TEAL = 0x40FFEE;
 const _charging = new Map<string, number>();
 const _hintedInsufficient = new Set<string>();
 const _hintedDud = new Set<string>();
+/** Sites whose summon could not materialize this session — never re-arm (prevents toast spam). */
+const _summonFailed = new Set<string>();
 let _lastMap = '';
 
 /** Failed ritual circles — visual only; never summon (wrong elevation, chaotic rite, etc.). */
@@ -132,9 +134,9 @@ function siteKey(site: RitualSite): string {
   return `${site.mapId}:${site.tileX}:${site.tileY}`;
 }
 
-function spawnRitualRevenant(combatSystem: CombatSystem, x: number, y: number): void {
+function spawnRitualRevenant(combatSystem: CombatSystem, x: number, y: number): boolean {
   const bp = ENEMY_BLUEPRINTS.ridge_revenant;
-  combatSystem.spawnEnemy(bp.name, { x, y }, bp.hp, bp.damage, bp.sprite, {
+  const enemy = combatSystem.spawnEnemy(bp.name, { x, y }, bp.hp, bp.damage, bp.sprite, {
     speed: bp.speed,
     attackRange: bp.attackRange,
     chaseRange: bp.chaseRange,
@@ -145,7 +147,14 @@ function spawnRitualRevenant(combatSystem: CombatSystem, x: number, y: number): 
     staggerDuration: bp.staggerDuration,
     behaviorOverrides: bp.behaviorOverrides,
     faction: bp.faction,
+    // Several ritual glyphs (e.g. West Fort, tile 18,147) sit inside a bonfire
+    // sanctuary. A scripted summon must materialize anyway — otherwise spawnEnemy
+    // drops it and the glyph re-arms forever ("the glyph drinks your heresy" loop).
+    ignoreBonfireSanctuary: true,
   });
+  // Confirm the spawn actually entered the live set; guards against any future
+  // silent-drop path re-introducing the infinite re-arm loop.
+  return combatSystem.getAllEnemies().some(e => e.id === enemy.id && e.state !== 'dead');
 }
 
 export function updateRevenantRituals(ctx: RevenantRitualContext): void {
@@ -155,6 +164,7 @@ export function updateRevenantRituals(ctx: RevenantRitualContext): void {
     _charging.clear();
     _hintedInsufficient.clear();
     _hintedDud.clear();
+    _summonFailed.clear();
     _lastMap = state.currentMap;
   }
 
@@ -180,6 +190,12 @@ export function updateRevenantRituals(ctx: RevenantRitualContext): void {
       continue;
     }
 
+    // A summon that could not materialize this session is treated as spent until
+    // the player leaves and returns — prevents the re-arm/toast loop.
+    if (_summonFailed.has(key) && _charging.get(key) === undefined) {
+      continue;
+    }
+
     // ── Charge phase: glyph is firing. Escalate the FX, then materialize the wraith. ──
     const charge = _charging.get(key);
     if (charge !== undefined) {
@@ -194,7 +210,13 @@ export function updateRevenantRituals(ctx: RevenantRitualContext): void {
       const next = charge - deltaTime;
       if (next <= 0) {
         _charging.delete(key);
-        spawnRitualRevenant(combatSystem, wx, wy);
+        const summoned = spawnRitualRevenant(combatSystem, wx, wy);
+        if (!summoned) {
+          // Spawn was suppressed for some reason — do not re-arm, or the glyph
+          // would re-fire the summon toast every charge cycle. Flag the site spent.
+          _summonFailed.add(key);
+          continue;
+        }
         // Materialization burst.
         particleSystem.emitAt(wx, wy, 0.4, 30, RR_VIOLET, 0.5, 2.4, 1.6);
         particleSystem.emitAt(wx, wy, 0.4, 18, RR_TEAL, 0.45, 2.0, 1.4);
@@ -307,6 +329,7 @@ export function resetRevenantRitualForDev(
     const key = siteKey(site);
     _charging.delete(key);
     _hintedInsufficient.delete(key);
+    _summonFailed.delete(key);
 
     const wx = site.tileX - halfW + 0.5;
     const wy = site.tileY - halfH + 0.5;

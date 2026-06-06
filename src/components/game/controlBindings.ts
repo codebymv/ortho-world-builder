@@ -41,9 +41,9 @@ export const CONTROL_GROUPS: ControlGroup[] = [
   {
     title: 'Items',
     bindings: [
-      { keys: 'Q/E', action: 'Cycle Item' },
+      { keys: '←/→', action: 'Cycle Item' },
       { keys: 'Z', action: 'Use Item' },
-      { keys: '←/→', action: 'Cycle Weapon' },
+      { keys: 'Q/E', action: 'Cycle Weapon' },
     ],
   },
   {

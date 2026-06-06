@@ -90,7 +90,6 @@ const CombatBars = React.memo(({
   stamina,
   maxStamina,
   lastBreathItem,
-  lastBreathCount,
   lastBreathArmed,
   assetManager,
 }: {
@@ -99,7 +98,6 @@ const CombatBars = React.memo(({
   stamina: number;
   maxStamina: number;
   lastBreathItem?: Item | null;
-  lastBreathCount?: number;
   lastBreathArmed?: boolean;
   assetManager?: AssetManager | null;
 }) => (
@@ -108,16 +106,11 @@ const CombatBars = React.memo(({
       {lastBreathArmed && lastBreathItem && (
         <div
           className="relative flex h-7 w-7 items-center justify-center rounded-full border border-[#83B6FF]/70 bg-[#102040]/85 shadow-[0_0_10px_rgba(96,165,250,0.55)]"
-          title="Last Breath armed: the next killing blow will crack the charm and revive you at 1 HP."
-          aria-label="Last Breath armed"
+          title="Last Breath active: a killing blow this life will crack the charm and revive you at 1 HP."
+          aria-label="Last Breath active"
         >
           <span className="absolute inset-0 rounded-full border border-white/20" />
           {getItemIcon(lastBreathItem, 'w-5 h-5', assetManager)}
-          {lastBreathCount != null && lastBreathCount > 1 && (
-            <span className="absolute -right-1 -bottom-1 min-w-3.5 rounded-full border border-[#1A0F0A] bg-[#DAA520] px-0.5 text-center text-[8px] font-black leading-3 text-[#1A0F0A]">
-              {lastBreathCount}
-            </span>
-          )}
         </div>
       )}
       <div className="w-16 min-[900px]:w-20 min-[1100px]:w-28 h-2.5 bg-black/60 rounded-full overflow-hidden border border-[#5C3A21]">
@@ -529,7 +522,6 @@ export const GameUI = ({
               stamina={gameState.player.stamina}
               maxStamina={gameState.player.maxStamina}
               lastBreathItem={lastBreathEntry?.item}
-              lastBreathCount={lastBreathEntry?.count}
               lastBreathArmed={lastBreathArmed}
               assetManager={assetManager}
             />
@@ -684,8 +676,8 @@ export const GameUI = ({
             entries={groupedConsumables}
             activeItemId={activeConsumableId}
             assetManager={assetManager}
-            prevLabel="Q"
-            nextLabel="E"
+            prevLabel="←"
+            nextLabel="→"
             badgeLabel="Item"
             badgeKey="Z"
           />
@@ -696,8 +688,8 @@ export const GameUI = ({
             entries={groupedWeapons}
             activeItemId={activeWeaponId}
             assetManager={assetManager}
-            prevLabel="←"
-            nextLabel="→"
+            prevLabel="Q"
+            nextLabel="E"
             badgeLabel="Weapon"
             badgeKey="LMB"
             fullWidthTitle

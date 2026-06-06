@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import type { MutableRefObject } from 'react';
 import type { Enemy } from '@/lib/game/Combat';
+import type { World } from '@/lib/game/World';
+import { hasPlayerMeleeLineOfSight } from '@/lib/game/Combat';
 import type { GameFlagKey, GameState } from '@/lib/game/GameState';
 import { resolveNearestRitualSite } from '@/game/runtime/RevenantRituals';
 import type { ArcWaveState } from '@/game/runtime/PlayerSimulationSystem';
@@ -46,6 +48,7 @@ const getForwardMeleeTarget = (
   enemies: Enemy[],
   playerPosition: { x: number; y: number },
   direction: Direction4,
+  world?: World,
 ): Enemy | null => {
   let target: Enemy | null = null;
   let bestScore = Number.POSITIVE_INFINITY;
@@ -53,6 +56,8 @@ const getForwardMeleeTarget = (
   for (const enemy of enemies) {
     const dot = getEnemyForwardDot(enemy, playerPosition, direction);
     if (dot < PLAYER_MELEE_CONE_DOT) continue;
+    // Don't connect through walls or across cliff tiers — mirrors enemy melee LOS.
+    if (!hasPlayerMeleeLineOfSight(world, playerPosition.x, playerPosition.y, enemy.position.x, enemy.position.y)) continue;
     const dx = enemy.position.x - playerPosition.x;
     const dy = enemy.position.y - playerPosition.y;
     const distSq = dx * dx + dy * dy;
@@ -115,7 +120,7 @@ interface EnemyAudioLike {
 
 interface RuntimeCombatActionOptions {
   state: GameState;
-  world: BreakableWorld;
+  world: BreakableWorld & World;
   visitedTilesRef?: MutableRefObject<Set<string>>;
   combatSystem: CombatSystemLike;
   floatingText: FloatingTextLike;
@@ -261,7 +266,7 @@ export function createRuntimeCombatActions({
       triggerSave();
     }
 
-    if (state.currentMap === 'forest' || state.currentMap === 'interior_hollow_arena') {
+    if (state.currentMap === 'forest' || state.currentMap === 'interior_hollow_arena' || state.currentMap === 'interior_guilrhym_cathedral') {
       if (state.currentMap === 'forest') {
         const forestKillCount = (Number(state.getFlag('forest_kill_count')) || 0) + 1;
         state.setFlag('forest_kill_count', forestKillCount);
@@ -451,7 +456,7 @@ export function createRuntimeCombatActions({
   const _applyAttackDamage = (step: number) => {
     const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, state.player.attackRange, _scratchEnemies);
     const direction = dir8to4(getCurrentDir8()) as Direction4;
-    const target = getForwardMeleeTarget(enemiesInRange, state.player.position, direction);
+    const target = getForwardMeleeTarget(enemiesInRange, state.player.position, direction, world);
     if (!target) {
       const off = DIR_OFFSETS_4[direction];
       const attackX = state.player.position.x + off.x;
@@ -518,6 +523,7 @@ export function createRuntimeCombatActions({
   const _executeAttackStep = (step: number, skipCooldown = false): number => {
     const currentTime = performance.now();
     if (!skipCooldown && currentTime - state.player.lastAttackTime < state.player.attackCooldown) return 0;
+    if (getPlayerAnimState() === 'drinking') return 0;
     if (state.player.isDodging || state.player.isClimbing) return 0;
     if (state.player.stamina < attackStaminaCost) return 0;
 
@@ -548,6 +554,7 @@ export function createRuntimeCombatActions({
     if (state.player.hurtTimer > 0) return;
 
     const animState = getPlayerAnimState();
+    if (animState === 'drinking') return;
     const step = getComboStep();
 
     // During active swing: buffer the next press regardless of combo step.
@@ -589,6 +596,7 @@ export function createRuntimeCombatActions({
     const step = getComboStep();
     // Hurt lockout: an interrupted swing can't chain.
     if (state.player.hurtTimer > 0) return null;
+    if (getPlayerAnimState() === 'drinking') return null;
     if (state.player.isDodging || state.player.isClimbing) return null;
     if (state.player.stamina < attackStaminaCost) return null;
 
@@ -610,7 +618,12 @@ export function createRuntimeCombatActions({
 
   const performLungeAttack = (level: number) => {
     const currentTime = performance.now();
-    if (state.player.isDodging || state.player.isClimbing || state.player.stamina < chargeAttackStaminaCost) {
+    if (
+      getPlayerAnimState() === 'drinking' ||
+      state.player.isDodging ||
+      state.player.isClimbing ||
+      state.player.stamina < chargeAttackStaminaCost
+    ) {
       clearChargeState();
       setPlayerAnimState('idle');
       return;
@@ -641,7 +654,12 @@ export function createRuntimeCombatActions({
 
   const performArcSlash = (level: number) => {
     const currentTime = performance.now();
-    if (state.player.isDodging || state.player.isClimbing || state.player.stamina < chargeAttackStaminaCost) {
+    if (
+      getPlayerAnimState() === 'drinking' ||
+      state.player.isDodging ||
+      state.player.isClimbing ||
+      state.player.stamina < chargeAttackStaminaCost
+    ) {
       clearChargeState();
       setPlayerAnimState('idle');
       return;
@@ -720,7 +738,12 @@ export function createRuntimeCombatActions({
     }
 
     const currentTime = performance.now();
-    if (state.player.isDodging || state.player.isClimbing || state.player.stamina < chargeAttackStaminaCost) {
+    if (
+      getPlayerAnimState() === 'drinking' ||
+      state.player.isDodging ||
+      state.player.isClimbing ||
+      state.player.stamina < chargeAttackStaminaCost
+    ) {
       clearChargeState();
       setPlayerAnimState('idle');
       return;
@@ -765,6 +788,11 @@ export function createRuntimeCombatActions({
     }
 
     for (const target of enemiesInRange) {
+      // The charge sweep is radial, but it still shouldn't punch through walls or
+      // hit enemies a tier up/down — same LOS gate as the standard combo.
+      if (!hasPlayerMeleeLineOfSight(world, state.player.position.x, state.player.position.y, target.position.x, target.position.y)) {
+        continue;
+      }
       const result = combatSystem.playerAttack(
         target,
         chargeDamage,

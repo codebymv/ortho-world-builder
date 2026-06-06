@@ -280,6 +280,9 @@ export const forestDef: MapDefinition = {
 
     // === ENCHANTED GROVES with plant monsters ===
     { x: 70, y: 140, width: 30, height: 26, type: 'enchanted_grove' },
+    // Vine-choked ruin on the grove's north lip (~world -81, -9); unenterable set dressing.
+    // Former heresy altar tile; Olwen's hut before the blight (see cemetery dialogue).
+    { x: 66, y: 138, width: 5, height: 5, type: 'cottage', interactionId: 'hollow_ruin_4' },
     { x: 240, y: 240, width: 24, height: 22, type: 'enchanted_grove' },
     { x: 50, y: 260, width: 26, height: 22, type: 'enchanted_grove' },
 
@@ -1082,7 +1085,7 @@ export const forestDef: MapDefinition = {
     { x: 227, y: 134, type: 'barrel', walkable: false, interactionId: 'homestead_container_3' },
 
     // === SHORTCUT LEVER HINTS ===
-    // Bloodstain on the SOUTH face of the gate ??? environmental hint that someone fell here.
+    // Gate-side blood trail lives in props (PROGRESSION BLOOD TRAILS — iron gate cluster).
     // Sign on the bonfire plateau ??? visible after the player hits the gate and looks around.
     // === FORT INTERIOR ===
     // Grove shelf shortcut lever — north of the iron gate, west of the gap (x=56–60).
@@ -1121,7 +1124,7 @@ export const forestDef: MapDefinition = {
     { x: 34, y: 259, type: 'heresy_altar', walkable: false }, // world (-116, 109) ? far SW dirt plot
     { x: 235, y: 45, type: 'heresy_altar', walkable: false }, // world (85, -105) ? NE ridge clearing
     { x: 277, y: 205, type: 'heresy_altar', walkable: false }, // world (127, 55) ? east ranger outpost flank
-    { x: 68, y: 138, type: 'heresy_altar', walkable: false }, // world (-82, -12) ? mid-west isolated patch
+    { x: 58, y: 155, type: 'heresy_altar', walkable: false }, // world (-92, 5) — west grove shelf approach
     { x: 177, y: 182, type: 'heresy_altar', walkable: false }, // world (27, 32) ? final cliff lookout
     { x: 107, y: 54, type: 'heresy_altar', walkable: false }, // world (-43, -96) ? corrupted west-cliff stair shelf
     { x: 279, y: 72, type: 'heresy_altar', walkable: false }, // world (129, -78) ? eastern Hollow edge grove
@@ -1240,6 +1243,95 @@ export const forestDef: MapDefinition = {
     { x: 194, y: 175, type: 'bloodstain', walkable: true },
     { x: 210, y: 174, type: 'bloodstain', walkable: true },
     { x: 224, y: 175, type: 'bloodstain', walkable: true },
+
+    // === PROGRESSION BLOOD TRAILS ===
+    // Environmental breadcrumbs toward critical pickups — no dialogue, just a dragged patrol read.
+
+    // --- Iron key: south-bank artery west toward chapel dead ranger (65, 183) ---
+    { x: 130, y: 179, type: 'bloodstain', walkable: true },
+    { x: 115, y: 180, type: 'bloodstain', walkable: true },
+    { x: 100, y: 181, type: 'bloodstain', walkable: true },
+    { x: 88, y: 182, type: 'bloodstain', walkable: true },
+    { x: 76, y: 183, type: 'bloodstain', walkable: true },
+    { x: 67, y: 182, type: 'bloodstain', walkable: true },
+    { x: 52, y: 164, type: 'bloodstain', walkable: true },
+    { x: 56, y: 169, type: 'bloodstain', walkable: true },
+    { x: 60, y: 175, type: 'bloodstain', walkable: true },
+    { x: 63, y: 180, type: 'bloodstain', walkable: true },
+
+    // --- Iron gate: bonfire plateau north to the sealed ranger gate (y=199-202) ---
+    { x: 134, y: 206, type: 'bloodstain', walkable: true },
+    { x: 131, y: 204, type: 'bloodstain', walkable: true },
+    { x: 128, y: 202, type: 'bloodstain', walkable: true },
+    { x: 126, y: 200, type: 'bloodstain', walkable: true },
+    { x: 124, y: 199, type: 'bloodstain', walkable: true },
+    { x: 142, y: 205, type: 'bloodstain', walkable: true },
+    { x: 136, y: 203, type: 'bloodstain', walkable: true },
+
+    // --- Hunter cottage bypass: gate west along y=178, then up to Disparaged Cottage ---
+    { x: 112, y: 197, type: 'bloodstain', walkable: true },
+    { x: 102, y: 193, type: 'bloodstain', walkable: true },
+    { x: 92, y: 189, type: 'bloodstain', walkable: true },
+    { x: 82, y: 185, type: 'bloodstain', walkable: true },
+    { x: 72, y: 181, type: 'bloodstain', walkable: true },
+    { x: 62, y: 179, type: 'bloodstain', walkable: true },
+    { x: 100, y: 187, type: 'bloodstain', walkable: true },
+    { x: 115, y: 186, type: 'bloodstain', walkable: true },
+    { x: 125, y: 185, type: 'bloodstain', walkable: true },
+    { x: 133, y: 186, type: 'bloodstain', walkable: true },
+    { x: 137, y: 187, type: 'bloodstain', walkable: true },
+
+    // --- Manuscript checkpoint gate: north-bank corridor east to forest fort north wall (y=153) ---
+    { x: 138, y: 151, type: 'bloodstain', walkable: true },
+    { x: 152, y: 150, type: 'bloodstain', walkable: true },
+    { x: 165, y: 149, type: 'bloodstain', walkable: true },
+    { x: 178, y: 149, type: 'bloodstain', walkable: true },
+    { x: 205, y: 150, type: 'bloodstain', walkable: true },
+    { x: 222, y: 151, type: 'bloodstain', walkable: true },
+    { x: 228, y: 152, type: 'bloodstain', walkable: true },
+
+    // --- Fort gate key route: chapel fallout east toward garrison south gate (230, 172) ---
+    { x: 82, y: 178, type: 'bloodstain', walkable: true },
+    { x: 105, y: 174, type: 'bloodstain', walkable: true },
+    { x: 130, y: 170, type: 'bloodstain', walkable: true },
+    { x: 155, y: 165, type: 'bloodstain', walkable: true },
+    { x: 180, y: 160, type: 'bloodstain', walkable: true },
+    { x: 205, y: 158, type: 'bloodstain', walkable: true },
+    { x: 220, y: 163, type: 'bloodstain', walkable: true },
+    { x: 228, y: 169, type: 'bloodstain', walkable: true },
+
+    // --- Blighted root: grove-shelf path into enchanted grove center (85, 153) ---
+    { x: 62, y: 153, type: 'bloodstain', walkable: true },
+    { x: 70, y: 154, type: 'bloodstain', walkable: true },
+    { x: 78, y: 153, type: 'bloodstain', walkable: true },
+    { x: 83, y: 152, type: 'bloodstain', walkable: true },
+
+    // --- Second manuscript: spine north from Riverside Grove toward north fort shelf (~213, 70) ---
+    { x: 148, y: 140, type: 'bloodstain', walkable: true },
+    { x: 150, y: 125, type: 'bloodstain', walkable: true },
+    { x: 152, y: 110, type: 'bloodstain', walkable: true },
+    { x: 155, y: 95, type: 'bloodstain', walkable: true },
+    { x: 160, y: 82, type: 'bloodstain', walkable: true },
+    { x: 168, y: 75, type: 'bloodstain', walkable: true },
+    { x: 180, y: 71, type: 'bloodstain', walkable: true },
+    { x: 195, y: 69, type: 'bloodstain', walkable: true },
+    { x: 208, y: 70, type: 'bloodstain', walkable: true },
+    { x: 212, y: 71, type: 'bloodstain', walkable: true },
+
+    // --- Hollow fog gate: Corrupted Bridge bonfire up the spine toward the boss terminus ---
+    { x: 146, y: 70, type: 'bloodstain', walkable: true },
+    { x: 145, y: 58, type: 'bloodstain', walkable: true },
+    { x: 144, y: 45, type: 'bloodstain', walkable: true },
+    { x: 142, y: 35, type: 'bloodstain', walkable: true },
+    { x: 124, y: 30, type: 'bloodstain', walkable: true },
+    { x: 122, y: 24, type: 'bloodstain', walkable: true },
+
+    // --- Wolf ring (optional): cemetery shelf east toward relocated ranger cottage (236, 227) ---
+    { x: 200, y: 220, type: 'bloodstain', walkable: true },
+    { x: 215, y: 224, type: 'bloodstain', walkable: true },
+    { x: 228, y: 226, type: 'bloodstain', walkable: true },
+    { x: 234, y: 227, type: 'bloodstain', walkable: true },
+
     // Lanterns along the south bank.
     { x: 90, y: 166, type: 'lantern', walkable: false },
     { x: 150, y: 166, type: 'lantern', walkable: false },
@@ -2035,9 +2127,9 @@ export const forestDef: MapDefinition = {
     { x: 210, y: 25, width: 20, height: 18, enemyType: 'shadow', count: 6 },
     { x: 182, y: 46, width: 32, height: 14, enemyType: 'shadow', count: 4 },
 
-    // SW ??? spider nest + perimeter (offset from nest center)
-    { x: 20, y: 240, width: 28, height: 22, enemyType: 'spider', count: 8 },
-    { x: 55, y: 252, width: 22, height: 12, enemyType: 'spider', count: 4 },
+    // SW ??? spider nest + perimeter (offset from nest center; thinned for early-game readability)
+    { x: 20, y: 240, width: 28, height: 22, enemyType: 'spider', count: 5 },
+    { x: 55, y: 252, width: 22, height: 12, enemyType: 'spider', count: 2 },
 
     // NW ??? Hollow dark wolves + shadows (formerly skeletons)
     { x: 65, y: 25, width: 22, height: 16, enemyType: 'wolf', count: 4 },
@@ -2071,7 +2163,7 @@ export const forestDef: MapDefinition = {
     { x: 52, y: 148, width: 18, height: 15, enemyType: 'wolf', count: 4 },
 
     // E ??? lakeside spiders + temple skeletons
-    { x: 230, y: 176, width: 24, height: 14, enemyType: 'spider', count: 5 },
+    { x: 230, y: 176, width: 24, height: 14, enemyType: 'spider', count: 3 },
     { x: 246, y: 136, width: 26, height: 26, enemyType: 'skeleton', count: 6 },
 
     // First bridge crossing guard ? 2 wolves at the spine bridge over the south entry river (y:270).
@@ -2098,9 +2190,9 @@ export const forestDef: MapDefinition = {
     // Far E / SE coverage — east void consolidated into authored mini-POIs below.
     { x: 216, y: 68, width: 22, height: 16, enemyType: 'wolf', count: 3 },
     { x: 195, y: 256, width: 16, height: 14, enemyType: 'wolf', count: 3 },
-    { x: 55, y: 266, width: 18, height: 14, enemyType: 'spider', count: 3 },
+    { x: 55, y: 266, width: 18, height: 14, enemyType: 'spider', count: 2 },
     { x: 245, y: 266, width: 16, height: 14, enemyType: 'plant', count: 4 },
-    { x: 175, y: 178, width: 16, height: 14, enemyType: 'spider', count: 3 },
+    { x: 175, y: 178, width: 16, height: 14, enemyType: 'spider', count: 2 },
     { x: 105, y: 178, width: 14, height: 12, enemyType: 'wolf', count: 3 },
     // South of the Hollow river: a single undead guard force at the crossing approach.
     { x: 142, y: 90, width: 16, height: 14, enemyType: 'skeleton', count: 2 },

@@ -22,7 +22,7 @@ import {
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
 import { createRuntimeCombatActions } from '@/game/runtime/RuntimeCombatActions';
 import { createRuntimeDialogueFlow } from '@/game/runtime/RuntimeDialogueFlow';
-import { createInteractionCheckAction, createUsePotionAction } from '@/game/runtime/RuntimeInteractionActions';
+import { createInteractionCheckAction, createCompleteConsumableUseAction, createUsePotionAction } from '@/game/runtime/RuntimeInteractionActions';
 
 interface RuntimeActionPhaseOptions {
   state: GameState;
@@ -249,6 +249,7 @@ export function setupRuntimeActionPhase({
     triggerUIUpdate,
     dodgeIFrameDuration,
     dodgeStaminaCost,
+    getIsConsuming: () => runtimeSession.animation.drinkTimer > 0,
   });
 
   const { onEnemyKilled, performAttack, performChargeAttack, triggerComboChain } = createRuntimeCombatActions({
@@ -266,6 +267,7 @@ export function setupRuntimeActionPhase({
     triggerUIUpdate,
     playEssencePickup: sfx.playEssencePickup,
     playSwordSwing: sfx.playSwordSwing,
+    playBossAttack: sfx.playBossAttack,
     playBladeSheath: sfx.playBladeSheath,
     playWeaponHit: playWeaponHitForEnemy,
     playWeaponChargeRelease: sfx.playWeaponChargeRelease,
@@ -478,24 +480,32 @@ export function setupRuntimeActionPhase({
 
   dialoguePickupRef.startDialogue = startDialogue;
 
-  const consumePotion = createUsePotionAction({
+  const consumableUseOptions = {
     state,
     particleSystem,
     notify,
     triggerUIUpdate,
     playPotionDrink: sfx.playPotionDrink,
     playGrassChew: sfx.playGrassChew,
-    setPlayerAnimState: value => {
+    setPlayerAnimState: (value: 'drinking') => {
       runtimeSession.animation.playerAnimState = value;
     },
-    setHeldConsumableSpriteId: value => {
+    setHeldConsumableSpriteId: (value: string | null) => {
       runtimeSession.animation.heldConsumableSpriteId = value;
     },
-    setDrinkTimer: value => {
+    setDrinkTimer: (value: number) => {
       runtimeSession.animation.drinkTimer = value;
     },
     drinkDuration,
-  });
+    getIsConsuming: () => runtimeSession.animation.drinkTimer > 0,
+    getPendingConsumableUse: () => runtimeSession.animation.pendingConsumableUse,
+    setPendingConsumableUse: (value: typeof runtimeSession.animation.pendingConsumableUse) => {
+      runtimeSession.animation.pendingConsumableUse = value;
+    },
+  };
+
+  const consumePotion = createUsePotionAction(consumableUseOptions);
+  const completeConsumableUse = createCompleteConsumableUseAction(consumableUseOptions);
 
   const checkInteraction = createInteractionCheckAction({
     state,
@@ -523,6 +533,7 @@ export function setupRuntimeActionPhase({
     playGuardBreak: sfx.playGuardBreak,
     playPlayerHit: sfx.playPlayerHit,
     playSwordSwing: sfx.playSwordSwing,
+    playBossAttack: sfx.playBossAttack,
     playHeroEvent: sfx.playHeroEvent,
     playRitualSummonStart: sfx.playRitualSummonStart,
     playPlantIdle: sfx.playPlantIdle,
@@ -552,6 +563,7 @@ export function setupRuntimeActionPhase({
     playMenuOpen: sfx.playMenuOpen,
     playMenuClose: sfx.playMenuClose,
     playPropBreak: sfx.playPropBreak,
+    playTallGrassBreak: sfx.playTallGrassBreak,
     startStormLoop: sfx.startStormLoop,
     stopStormLoop: sfx.stopStormLoop,
     playThunder: sfx.playThunder,
@@ -560,6 +572,7 @@ export function setupRuntimeActionPhase({
     stopCorruptionIdleLoop: sfx.stopCorruptionIdleLoop,
     setCorruptionIdleLoopIntensity: sfx.setCorruptionIdleLoopIntensity,
     consumePotion,
+    completeConsumableUse,
     checkInteraction,
     performDodge,
     performAttack,

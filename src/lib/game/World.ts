@@ -2350,6 +2350,17 @@ export class World {
     if (tile.type === 'sign' || tile.type === 'chain' || tile.type === 'shortcut_lever' || tile.type === 'lantern') {
       return 1.45;
     }
+    // Coiled gate-ladders (fort ridge, cliff corridor) are released from the shelf
+    // tiles east of the gate. The interactable's stored point omits the +0.5 tile
+    // centre, so a player standing one tile diagonally out (e.g. world 90,23 vs a
+    // gate at 89,22) sits ~2.12 units away — out of a tighter reach. Use a radius
+    // that comfortably covers both the adjacent (distSq≈2.5) and diagonal
+    // (distSq≈4.5) approach tiles so the release fires wherever you're correctly
+    // perched on the ledge. Wrong-side (fort) players are still rejected by the
+    // elevation/X side gate, so the larger radius cannot open it from below.
+    if (tile.type === 'gate_ladder') {
+      return 2.4;
+    }
     if (tile.type === 'well' || tile.type === 'tombstone' || tile.type === 'tombstone_broken' || tile.type === 'tombstone_cracked_v' || tile.type === 'table' || tile.type === 'stump') {
       return 1.4;
     }

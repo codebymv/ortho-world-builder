@@ -3,7 +3,8 @@ import { generateMap } from '@/data/mapGenerator';
 import { forestDef } from '@/content/regions/whispering_woods/map';
 import { villageDef } from '@/content/regions/greenleaf/map';
 import {
-  BONFIRE_SAFE_RADIUS,
+  BONFIRE_COMBAT_SAFE_RADIUS,
+  BONFIRE_REST_HOSTILE_RADIUS,
   isPositionInBonfireSafeZone,
 } from '@/game/runtime/bonfireCombatGuard';
 import { bonfireTileWorldPosition } from '@/data/bonfires';
@@ -15,10 +16,10 @@ describe('bonfire sanctuary', () => {
     expect(isPositionInBonfireSafeZone('forest', x, y)).toBe(true);
 
     let blockedWalkable = 0;
-    const r = Math.ceil(BONFIRE_SAFE_RADIUS);
+    const r = Math.ceil(BONFIRE_COMBAT_SAFE_RADIUS);
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
-        if (dx * dx + dy * dy > BONFIRE_SAFE_RADIUS * BONFIRE_SAFE_RADIUS) continue;
+        if (dx * dx + dy * dy > BONFIRE_COMBAT_SAFE_RADIUS * BONFIRE_COMBAT_SAFE_RADIUS) continue;
         const nx = 156 + dx;
         const ny = 154 + dy;
         const t = map.tiles[ny]?.[nx];
@@ -37,8 +38,14 @@ describe('bonfire sanctuary', () => {
 
   it('excludes positions just outside the safe radius', () => {
     const { x, y } = bonfireTileWorldPosition('forest', 156, 154);
-    const outside = BONFIRE_SAFE_RADIUS + 2;
+    const outside = BONFIRE_COMBAT_SAFE_RADIUS + 2;
     expect(isPositionInBonfireSafeZone('forest', x + outside, y)).toBe(false);
+  });
+
+  it('keeps the cliff ledge approach path outside combat sanctuary', () => {
+    // Minimap HUD shows world coords — ~(34, 39) is the grass shelf fight before the bonfire.
+    expect(isPositionInBonfireSafeZone('forest', 34, 39)).toBe(false);
+    expect(BONFIRE_REST_HOSTILE_RADIUS).toBeGreaterThan(BONFIRE_COMBAT_SAFE_RADIUS);
   });
 
   it('keeps cliff ledge sentinels outside the bonfire sanctuary', () => {

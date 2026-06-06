@@ -76,7 +76,7 @@ function resolveBaseTile(map: WorldMap, tx: number, ty: number, fallback: TileTy
 
 const _tmpVec = new THREE.Vector3();
 
-function playBreakableSound(sound: BreakableSound | undefined, tileType: TileType): void {
+export function playBreakableSound(sound: BreakableSound | undefined, tileType: TileType): void {
   if (!sound) return;
   if (typeof sound === 'function') {
     sound();

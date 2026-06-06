@@ -1,4 +1,5 @@
 import type { Direction8, PlayerAnimState, ArcWaveState } from '@/game/runtime/PlayerSimulationSystem';
+import type { PendingConsumableUse } from '@/game/runtime/RuntimeInteractionActions';
 
 interface CreateRuntimeSessionStateOptions {
   initialPlayerSmoothedElevation: number;
@@ -25,6 +26,7 @@ export function createRuntimeSessionState({
       playerAnimState: 'idle' as PlayerAnimState,
       heldConsumableSpriteId: null as string | null,
       drinkTimer: 0,
+      pendingConsumableUse: null as PendingConsumableUse | null,
       attackFrameTimer: 0,
       attackFrame: 0,
       currentDir8: 'down' as Direction8,

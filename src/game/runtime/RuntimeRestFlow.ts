@@ -175,7 +175,7 @@ export function createBonfireRestAction({
     if (alreadyKindled) {
       // Bonfire is already lit — kindle updates respawn point then open the menu.
       kindleBonfire(tileX, tileY);
-      evictEnemiesFromBonfireSafeZones(combatSystem, state.currentMap);
+      evictEnemiesFromBonfireSafeZones(combatSystem, state.currentMap, state.gameFlags as Record<string, boolean | number>);
       openBonfireMenu();
     } else {
       // First interaction: kindle (shows hero overlay, particles, sfx) but keep menu closed
@@ -205,7 +205,7 @@ export function createBonfireRestAction({
 
     state.killedEnemyIds.clear();
     respawnEnemiesForCurrentMap(state.currentMap, map);
-    evictEnemiesFromBonfireSafeZones(combatSystem, entry.mapId);
+    evictEnemiesFromBonfireSafeZones(combatSystem, entry.mapId, state.gameFlags as Record<string, boolean | number>);
     showTransitionOverlay(map.name, map.subtitle);
     playBonfireRestore();
     notify('Arrived at bonfire', {

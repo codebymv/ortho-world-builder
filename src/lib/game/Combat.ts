@@ -8,6 +8,7 @@ import {
   nudgeEnemyOutOfBonfireSanctuary,
 } from '@/game/runtime/bonfireCombatGuard';
 import { getStaggerDamageMultiplier } from '@/data/balance';
+import { PLAYER_HIT_RADIUS } from '@/lib/game/playerCombatGeometry';
 
 type CardinalDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -441,6 +442,13 @@ interface SpawnEnemyOptions {
   patrolRadius?: number;
   /** Stable cross-session ID for persistence (format: `mapKey:z{zoneIdx}:{spawnIdx}` or `mapKey:fixed:{x}_{y}`). */
   zoneId?: string;
+  /**
+   * Force the enemy into the world even if it spawns inside a bonfire sanctuary.
+   * Used for scripted/ritual summons whose authored spawn point intentionally sits
+   * near a flame (e.g. the West Fort ritual revenant). Without this, spawnEnemy
+   * silently drops the enemy and any re-arming script (the summon glyph) loops forever.
+   */
+  ignoreBonfireSanctuary?: boolean;
 }
 
 export interface Enemy {
@@ -608,6 +616,52 @@ function canEnemyMeleeReachPlayer(
   return true;
 }
 
+/**
+ * Player-offense counterpart to `canEnemyMeleeReachPlayer`: returns false when a wall
+ * or a cliff tier sits between the player and the would-be target, so the player can no
+ * longer land melee/charge hits through geometry the way enemies already can't. Uses the
+ * same trace step + elevation tolerance as the enemy check for symmetric feel.
+ */
+export function hasPlayerMeleeLineOfSight(
+  world: World | undefined,
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+): boolean {
+  if (!world) return true;
+  const baseElevation = world.getElevationAt(fromX, fromY);
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+  const distance = Math.hypot(dx, dy);
+  const steps = Math.max(1, Math.ceil(distance / MELEE_TRACE_STEP));
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const sampleTile = world.getTile(fromX + dx * t, fromY + dy * t);
+    if (!sampleTile) return false;
+    // A solid (non-walkable, non-transition) tile between the two blocks the swing.
+    if (!sampleTile.walkable && !sampleTile.transition) return false;
+    // A tier change taller than the melee tolerance means the target is above/below us.
+    const sampleElevation = sampleTile.elevation ?? 0;
+    if (Math.abs(sampleElevation - baseElevation) > MELEE_ELEVATION_TOLERANCE) return false;
+  }
+  return true;
+}
+
+/**
+ * Squared reach for an incoming melee/AoE attack against the player, modelling the
+ * player as a circle of radius PLAYER_HIT_RADIUS rather than a point. Projectiles
+ * already use `hitRadius + PLAYER_HIT_RADIUS`; this brings ground attacks in line so
+ * "the blow clearly overlapped me" reliably connects regardless of damage type.
+ *
+ * `baseRadius` stays the authored gameplay reach (and the tile-break radius); only
+ * the player-hit test is padded.
+ */
+function paddedPlayerHitSq(baseRadius: number): number {
+  const r = baseRadius + PLAYER_HIT_RADIUS;
+  return r * r;
+}
+
 export interface AttackResult {
   killed: boolean;
   staggered: boolean;
@@ -773,7 +827,11 @@ export class CombatSystem {
       zoneId: options.zoneId,
     };
 
-    if (!isPositionInBonfireSafeZone(this.gameState.currentMap, position.x, position.y)) {
+    const flags = this.gameState.gameFlags as Record<string, boolean | number>;
+    if (
+      options.ignoreBonfireSanctuary ||
+      !isPositionInBonfireSafeZone(this.gameState.currentMap, position.x, position.y, flags)
+    ) {
       this.enemies.push(enemy);
       this.spatialHash.insert(enemy);
       this._enemiesDirty = true;
@@ -852,10 +910,12 @@ export class CombatSystem {
     let parryEnemyId: string | null = null;
     const now = performance.now() / 1000;
     const mapId = this.gameState.currentMap;
+    const flags = this.gameState.gameFlags as Record<string, boolean | number>;
     const playerInBonfireSanctuary = isPositionInBonfireSafeZone(
       mapId,
       playerPosition.x,
       playerPosition.y,
+      flags,
     );
     if (playerInBonfireSanctuary) {
       playerInvulnerable = true;
@@ -902,8 +962,8 @@ export class CombatSystem {
 
       if (enemy.state === 'idle' && playerDistSq > DORMANCY_RANGE_SQ) continue;
 
-      if (isPositionInBonfireSafeZone(mapId, enemy.position.x, enemy.position.y)) {
-        nudgeEnemyOutOfBonfireSanctuary(enemy, mapId);
+      if (isPositionInBonfireSafeZone(mapId, enemy.position.x, enemy.position.y, flags)) {
+        nudgeEnemyOutOfBonfireSanctuary(enemy, mapId, flags);
         updateMovementVisuals(enemy, 0, 0, false, 0);
         continue;
       }
@@ -1049,7 +1109,7 @@ export class CombatSystem {
             px = enemy.patrolOrigin.x;
             py = enemy.patrolOrigin.y;
           }
-          if (isPositionInBonfireSafeZone(mapId, px, py)) {
+          if (isPositionInBonfireSafeZone(mapId, px, py, flags)) {
             px = enemy.patrolOrigin.x;
             py = enemy.patrolOrigin.y;
           }
@@ -1350,6 +1410,9 @@ export class CombatSystem {
             const isRevenantBladestorm = enemy.currentAttackType === 'revenant_bladestorm';
             const rangeMult = isSweep ? 3.0 : 1.69;
             const extAttackRangeSq = attackRangeSq * rangeMult;
+            // Player-circle-padded variant of the extended melee reach (enemy-vs-enemy
+            // faction strikes keep the unpadded square above).
+            const extAttackRangePaddedSq = paddedPlayerHitSq(enemy.attackRange * Math.sqrt(rangeMult));
 
             const savedDamage = enemy.damage;
             if (isSweep) enemy.damage = Math.floor(enemy.damage * 0.7);
@@ -1369,7 +1432,7 @@ export class CombatSystem {
               }
               const sdx = playerPosition.x - enemy.position.x;
               const sdy = playerPosition.y - enemy.position.y;
-              if (sdx * sdx + sdy * sdy <= stompRadius * stompRadius && !playerInvulnerable) {
+              if (sdx * sdx + sdy * sdy <= paddedPlayerHitSq(stompRadius) && !playerInvulnerable) {
                 const result = this.applyAreaHitToPlayer(
                   Math.floor(enemy.damage * 1.1),
                   playerBlocking, blockStartTime, now, enemy,
@@ -1385,7 +1448,7 @@ export class CombatSystem {
               const grabRadius = 1.4;
               const gdx = playerPosition.x - enemy.position.x;
               const gdy = playerPosition.y - enemy.position.y;
-              if (gdx * gdx + gdy * gdy <= grabRadius * grabRadius && !playerInvulnerable) {
+              if (gdx * gdx + gdy * gdy <= paddedPlayerHitSq(grabRadius) && !playerInvulnerable) {
                 const result = this.applyAreaHitToPlayer(
                   Math.floor(enemy.damage * 1.6),
                   playerBlocking, blockStartTime, now, enemy,
@@ -1411,7 +1474,7 @@ export class CombatSystem {
               }
               const sldx = playerPosition.x - target.x;
               const sldy = playerPosition.y - target.y;
-              if (sldx * sldx + sldy * sldy <= slabRadius * slabRadius && !playerInvulnerable) {
+              if (sldx * sldx + sldy * sldy <= paddedPlayerHitSq(slabRadius) && !playerInvulnerable) {
                 // Push is from the slab origin (the locked target), not the
                 // enemy, so the player gets shoved off the impact tile.
                 const player = this.gameState.player;
@@ -1446,7 +1509,7 @@ export class CombatSystem {
               // mid-telegraph movement already advanced. Resolve a wide front
               // arc at the enemy's current position with extra reach.
               const reach = isReaverRush ? 2.0 : 2.2;
-              const reachSq = reach * reach;
+              const reachSq = paddedPlayerHitSq(reach);
               const ldx = playerPosition.x - enemy.position.x;
               const ldy = playerPosition.y - enemy.position.y;
               if (ldx * ldx + ldy * ldy <= reachSq && !playerInvulnerable) {
@@ -1467,7 +1530,7 @@ export class CombatSystem {
               }
               const cdx = playerPosition.x - crushCenter.x;
               const cdy = playerPosition.y - crushCenter.y;
-              if (cdx * cdx + cdy * cdy <= crushRadius * crushRadius && !playerInvulnerable) {
+              if (cdx * cdx + cdy * cdy <= paddedPlayerHitSq(crushRadius) && !playerInvulnerable) {
                 const player = this.gameState.player;
                 const crushDmg = Math.floor(enemy.damage * 1.45);
                 player.health = Math.max(0, player.health - crushDmg);
@@ -1483,7 +1546,7 @@ export class CombatSystem {
               const rushRadius = 1.6;
               const rdx = playerPosition.x - enemy.position.x;
               const rdy = playerPosition.y - enemy.position.y;
-              if (rdx * rdx + rdy * rdy <= rushRadius * rushRadius && !playerInvulnerable) {
+              if (rdx * rdx + rdy * rdy <= paddedPlayerHitSq(rushRadius) && !playerInvulnerable) {
                 const result = this.applyAreaHitToPlayer(
                   Math.floor(enemy.damage * 1.25),
                   playerBlocking, blockStartTime, now, enemy,
@@ -1542,7 +1605,7 @@ export class CombatSystem {
               }
             } else if (isRevenantFlurry) {
               const flurryReach = enemy.attackRange * 1.35;
-              const flurryReachSq = flurryReach * flurryReach;
+              const flurryReachSq = paddedPlayerHitSq(flurryReach);
               const fdx = playerPosition.x - enemy.position.x;
               const fdy = playerPosition.y - enemy.position.y;
               if (fdx * fdx + fdy * fdy <= flurryReachSq && !playerInvulnerable
@@ -1567,7 +1630,7 @@ export class CombatSystem {
               const finisherDx = playerPosition.x - enemy.position.x;
               const finisherDy = playerPosition.y - enemy.position.y;
               const finisherDistSq = finisherDx * finisherDx + finisherDy * finisherDy;
-              if (finisherDistSq <= finisherRadius * finisherRadius && !playerInvulnerable) {
+              if (finisherDistSq <= paddedPlayerHitSq(finisherRadius) && !playerInvulnerable) {
                 const result = this.applyAreaHitToPlayer(
                   Math.floor(enemy.damage * 1.25),
                   playerBlocking,
@@ -1620,7 +1683,7 @@ export class CombatSystem {
               const newDx = playerPosition.x - enemy.position.x;
               const newDy = playerPosition.y - enemy.position.y;
               const newDistSq = newDx * newDx + newDy * newDy;
-              if (newDistSq <= extAttackRangeSq && !playerInvulnerable
+              if (newDistSq <= extAttackRangePaddedSq && !playerInvulnerable
                 && canEnemyMeleeReachPlayer(world, enemy, playerPosition, playerCombatElevation, playerIsClimbing)) {
                 const result = this.attackPlayer(enemy, playerBlocking, blockStartTime, now);
                 if (result.parried) {
@@ -1806,7 +1869,7 @@ export class CombatSystem {
             const novaDx = playerPosition.x - enemy.position.x;
             const novaDy = playerPosition.y - enemy.position.y;
             const novaDistSq = novaDx * novaDx + novaDy * novaDy;
-            if (novaDistSq <= novaRadius * novaRadius && !playerInvulnerable) {
+            if (novaDistSq <= paddedPlayerHitSq(novaRadius) && !playerInvulnerable) {
               const novaDamage = Math.floor(enemy.damage * 1.5);
               const novaResult = this.applyAreaHitToPlayer(novaDamage, playerBlocking, blockStartTime, now, enemy);
               if (novaResult.parried) {
@@ -1867,7 +1930,7 @@ export class CombatSystem {
             const slamDx = playerPosition.x - enemy.position.x;
             const slamDy = playerPosition.y - enemy.position.y;
             const slamDistSq = slamDx * slamDx + slamDy * slamDy;
-            if (slamDistSq <= slamRange * slamRange && !playerInvulnerable) {
+            if (slamDistSq <= paddedPlayerHitSq(slamRange) && !playerInvulnerable) {
               const slamDamage = Math.floor(enemy.damage * 1.5);
               const slamResult = this.applyAreaHitToPlayer(slamDamage, playerBlocking, blockStartTime, now, enemy);
               if (slamResult.parried) {
@@ -2269,7 +2332,7 @@ export class CombatSystem {
       if (!hazard.hitPlayer && !playerInvulnerable) {
         const dx = playerPosition.x - hazard.position.x;
         const dy = playerPosition.y - hazard.position.y;
-        if (dx * dx + dy * dy <= hazard.radius * hazard.radius) {
+        if (dx * dx + dy * dy <= paddedPlayerHitSq(hazard.radius)) {
           hazard.hitPlayer = true;
           // Hazards have a remote source (guardian) — parry staggers the boss
           // so the player is rewarded for nailing scythe timing in their face.
@@ -2428,7 +2491,7 @@ export class CombatSystem {
     world?: World,
   ): ParryFeedbackEvent | null {
     const now = performance.now() / 1000;
-    const playerHitRadius = 0.4;
+    const playerHitRadius = PLAYER_HIT_RADIUS;
     let parryEvent: ParryFeedbackEvent | null = null;
 
     for (const p of this.projectiles) {

@@ -158,6 +158,7 @@ export function runGameplayPrelude({
   onArcWaveHit,
   particleSystem,
   playPropBreak,
+  playTallGrassBreak,
   dodgeIFrameDuration,
   comboStep,
   comboWindowTimer,
@@ -165,6 +166,7 @@ export function runGameplayPrelude({
   triggerComboChain,
   comboWindowDuration,
   getComboFrameDuration,
+  completeConsumableUse,
   notify,
 }: RunGameplayPreludeOptions) {
   const nowSec = currentTime / 1000;
@@ -332,6 +334,7 @@ export function runGameplayPrelude({
     onArcWaveHit,
     particleSystem,
     playPropBreak,
+    playTallGrassBreak,
     dodgeIFrameDuration,
     comboStep,
     comboWindowTimer,
@@ -339,6 +342,7 @@ export function runGameplayPrelude({
     comboWindowDuration,
     getComboFrameDuration,
     triggerComboChain,
+    completeConsumableUse,
   }));
 
   const currentMap = world.getCurrentMap();

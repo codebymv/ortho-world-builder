@@ -99,10 +99,12 @@ export interface GameplayPreludeContext {
   onArcWaveHit: (enemy: Enemy, damage: number) => void;
   particleSystem: ParticleSystem;
   playPropBreak?: () => void;
+  playTallGrassBreak?: () => void;
   dodgeIFrameDuration: number;
   triggerComboChain: () => { frameDuration: number } | null;
   comboWindowDuration: number;
   getComboFrameDuration: (step: number) => number;
+  completeConsumableUse?: () => void;
 }
 
 export interface PlayerFrameContext {

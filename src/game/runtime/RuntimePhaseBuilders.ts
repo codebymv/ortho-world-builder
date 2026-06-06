@@ -53,10 +53,12 @@ export function buildGameplayPreludeContext(options: BuildRuntimePhaseContextsOp
     onArcWaveHit: options.onArcWaveHit,
     particleSystem: options.particleSystem,
     playPropBreak: options.playPropBreak,
+    playTallGrassBreak: options.playTallGrassBreak,
     dodgeIFrameDuration: options.dodgeIFrameDuration,
     triggerComboChain: options.triggerComboChain,
     comboWindowDuration: options.comboWindowDuration,
     getComboFrameDuration: options.getComboFrameDuration,
+    completeConsumableUse: options.completeConsumableUse,
   };
 }
 

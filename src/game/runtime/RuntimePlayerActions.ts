@@ -20,6 +20,7 @@ interface CreatePerformDodgeActionOptions {
   triggerUIUpdate: () => void;
   dodgeIFrameDuration: number;
   dodgeStaminaCost: number;
+  getIsConsuming?: () => boolean;
 }
 
 export function createPerformDodgeAction({
@@ -30,6 +31,7 @@ export function createPerformDodgeAction({
   triggerUIUpdate,
   dodgeIFrameDuration,
   dodgeStaminaCost,
+  getIsConsuming,
 }: CreatePerformDodgeActionOptions) {
   return (moveX: number, moveY: number) => {
     const now = performance.now();
@@ -37,6 +39,7 @@ export function createPerformDodgeAction({
     if (state.player.stamina < dodgeStaminaCost) return;
     if (state.player.isDodging) return;
     if (state.player.isClimbing) return;
+    if (getIsConsuming?.()) return;
 
     let dx = moveX;
     let dy = moveY;

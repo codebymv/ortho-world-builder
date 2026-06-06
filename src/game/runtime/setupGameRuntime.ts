@@ -429,7 +429,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     // Animation state
     const IDLE_FRAME_DURATION = 0.8;
     const WALK_FRAME_DURATION = 0.18;
-    const DRINK_DURATION = 0.8; // seconds to drink potion
+    const DRINK_DURATION = 0.65; // seconds to use a consumable (Souls-style brief root)
     const ATTACK_FRAME_DURATION = 0.15;
 
     // Combo chain constants
@@ -733,7 +733,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       playGuardBreak,
       playPlayerHit,
       playSwordSwing,
+      playBossAttack,
       playPropBreak,
+      playTallGrassBreak,
       startStormLoop,
       stopStormLoop,
       setOutdoorsLoopState,
@@ -769,6 +771,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       playMenuOpen,
       playMenuClose,
       consumePotion,
+      completeConsumableUse,
       checkInteraction,
       performDodge,
       performAttack,
@@ -879,7 +882,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           playGuardBreak: () => {},
           playPlayerHit: () => {},
           playSwordSwing: () => {},
+          playBossAttack: () => {},
           playPropBreak: () => {},
+          playTallGrassBreak: () => {},
           startStormLoop: () => {},
           stopStormLoop: () => {},
           setOutdoorsLoopState: () => {},
@@ -915,6 +920,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           playMenuOpen: () => {},
           playMenuClose: () => {},
           consumePotion: () => {},
+          completeConsumableUse: () => {},
           checkInteraction: () => {},
           performDodge: () => {},
           performAttack: () => {},
@@ -1118,6 +1124,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           triggerComboChain,
           comboWindowDuration: COMBO_WINDOW_DURATION,
           getComboFrameDuration: (step: number) => ATTACK_FRAME_DURATION * (COMBO_FRAME_MULTIPLIERS[step] ?? 1),
+          completeConsumableUse,
           textureCache: textureCacheRef.current,
           playerBaseScale: PLAYER_BASE_SCALE,
           outlinePad: OUTLINE_PAD,
@@ -1164,11 +1171,12 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           enemyVisuals,
           enemyAudio,
       playPlayerHit,
-      playBossAttack: playSwordSwing,
+      playBossAttack: playBossAttack,
       playParrySuccess,
       playParryProjectile,
       playGuardBreak,
       playPropBreak,
+      playTallGrassBreak,
       playRitualSummonStart,
       playPlantIdle,
       playPlantLash,

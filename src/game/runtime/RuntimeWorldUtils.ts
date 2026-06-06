@@ -148,9 +148,10 @@ function pickEnemySpawnInZone(
   index: number,
   total: number,
   blueprint?: EnemyBlueprint,
+  gameFlags?: Record<string, boolean | number>,
 ): { x: number; y: number } | null {
   if (blueprint?.behaviorOverrides?.amphibiousWaterLeash) {
-    return pickWaterSlimeSpawnInZone(mapKey, zone, mapWorld, world);
+    return pickWaterSlimeSpawnInZone(mapKey, zone, mapWorld, world, gameFlags);
   }
 
   const cols = Math.max(1, Math.min(Math.floor(zone.width), Math.ceil(Math.sqrt(total))));
@@ -165,7 +166,7 @@ function pickEnemySpawnInZone(
     const ex = bx + Math.random() * subW - mapWorld.width / 2;
     const ey = by + Math.random() * subH - mapWorld.height / 2;
     if (
-      !isPositionInBonfireSafeZone(mapKey, ex, ey) &&
+      !isPositionInBonfireSafeZone(mapKey, ex, ey, gameFlags) &&
       world.canEnemyMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)
     ) {
       return { x: ex, y: ey };
@@ -175,7 +176,7 @@ function pickEnemySpawnInZone(
     const ex = zone.x + Math.random() * zone.width - mapWorld.width / 2;
     const ey = zone.y + Math.random() * zone.height - mapWorld.height / 2;
     if (
-      !isPositionInBonfireSafeZone(mapKey, ex, ey) &&
+      !isPositionInBonfireSafeZone(mapKey, ex, ey, gameFlags) &&
       world.canEnemyMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)
     ) {
       return { x: ex, y: ey };
@@ -196,6 +197,7 @@ function pickWaterSlimeSpawnInZone(
   zone: { x: number; y: number; width: number; height: number },
   mapWorld: WorldMap,
   world: World,
+  gameFlags?: Record<string, boolean | number>,
 ): { x: number; y: number } | null {
   if (zone.y > WATER_SLIME_MAX_TILE_Y) return null;
 
@@ -213,7 +215,7 @@ function pickWaterSlimeSpawnInZone(
       const tile = row[tx];
       if (!tile) continue;
       const pos = tileToWorldCenter(mapWorld, tx, ty);
-      if (isPositionInBonfireSafeZone(mapKey, pos.x, pos.y)) continue;
+      if (isPositionInBonfireSafeZone(mapKey, pos.x, pos.y, gameFlags)) continue;
       if (WATER_SLIME_SPAWN_TILES.has(tile.type)) {
         waterCandidates.push(pos);
       } else if (world.canEnemyMoveTo(pos.x, pos.y, pos.x, pos.y, SPAWN_BODY_R)) {
@@ -263,6 +265,7 @@ export function spawnEnemiesFromMapZones(
   combatSystem: CombatSystem,
   world: World,
   killedIds: ReadonlySet<string> = new Set(),
+  gameFlags?: Record<string, boolean | number>,
 ) {
   const mapDef = mapDefinitions[mapKey];
   if (!mapDef?.enemyZones?.length) return;
@@ -272,7 +275,7 @@ export function spawnEnemiesFromMapZones(
     for (let i = 0; i < zone.count; i++) {
       const zoneId = `${mapKey}:z${zoneIdx}:${i}`;
       if (killedIds.has(zoneId)) continue;
-      const pos = pickEnemySpawnInZone(mapKey, zone, mapWorld, world, i, zone.count, blueprint);
+      const pos = pickEnemySpawnInZone(mapKey, zone, mapWorld, world, i, zone.count, blueprint, gameFlags);
       if (!pos) continue;
       combatSystem.spawnEnemy(
         blueprint.name,
@@ -297,5 +300,5 @@ export function spawnEnemiesFromMapZones(
       );
     }
   }
-  evictEnemiesFromBonfireSafeZones(combatSystem, mapKey);
+  evictEnemiesFromBonfireSafeZones(combatSystem, mapKey, gameFlags);
 }
