@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { isRingRewardChestInteractionId } from '@/data/specialChests';
 import type { GameState, Item } from '@/lib/game/GameState';
-import type { RewardBundleEntry } from '@/game/domain/rewardDisplay';
+import type { RewardBundleEntry, ShowRewardBundleOptions } from '@/game/domain/rewardDisplay';
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
 
 type NotificationType = 'success' | 'info' | 'error';
@@ -33,7 +33,10 @@ interface InteractionSystemContext {
   emitSparkles: (position: THREE.Vector3) => void;
   emitHeal: (position: THREE.Vector3) => void;
   notify: (message: string, options?: NotificationOptions) => void;
-  showRewardBundle?: (bundle: { id: string; title: string; entries: RewardBundleEntry[] }) => void;
+  showRewardBundle?: (
+    bundle: { id: string; title: string; entries: RewardBundleEntry[] },
+    options?: ShowRewardBundleOptions,
+  ) => void;
   triggerSave: () => void;
   triggerUIUpdate: () => void;
   performBonfireRest: (tileX: number, tileY: number) => void;
@@ -232,26 +235,59 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       : interactionId.includes('guilrhym')
       ? 85
       : interactionId.includes('ruins')
-      ? 75
+      ? 90
       : interactionId.includes('revenant_terminus')
-      ? 75
+      ? 90
       : interactionId.includes('hollow_arena')
-      ? 65
+      ? 90
+      : interactionId.includes('waterfall') || interactionId.includes('observatory') || interactionId.includes('volcano')
+      ? 100
+      : interactionId.includes('golem_arena')
+      ? 90
       : interactionId.includes('wolf') || interactionId.includes('shadow')
-      ? 60
+      ? 80
       : interactionId.includes('enchanted')
-      ? 55
+      ? 75
       : interactionId.includes('hidden') || interactionId.includes('fort')
-      ? 50
-      : interactionId.includes('temple') || interactionId.includes('volcano') || interactionId.includes('spider')
-      ? 45
+      ? 70
+      : interactionId.includes('temple') || interactionId.includes('spider')
+      ? 80
       : interactionId.includes('forest')
-      ? 28
-      : 15;
+      ? 55
+      : 40;
 
     context.state.addGold(goldAmount);
     context.playGoldPickup();
     const rewardEntries: RewardBundleEntry[] = [{ kind: 'gold', amount: goldAmount }];
+
+    let deferBundleForWeaponAcquisition = false;
+    const grantChestWeapon = (item: Item) => {
+      const firstAcquisition = !context.state.seenItemIds.has(item.id);
+      context.state.addItem({ ...item });
+      if (firstAcquisition) deferBundleForWeaponAcquisition = true;
+    };
+
+    if (interactionId === 'ancient_chest' && context.items.shadow_blade) {
+      grantChestWeapon(context.items.shadow_blade);
+    } else if (interactionId === 'boss_arena_chest' && context.items.crystal_greatsword) {
+      grantChestWeapon(context.items.crystal_greatsword);
+    } else if (interactionId === 'forest_river_chest' && context.items.ornamental_broadsword) {
+      grantChestWeapon(context.items.ornamental_broadsword);
+    } else if (
+      (interactionId === 'revenant_west_terminus_chest' ||
+       interactionId === 'revenant_precipice_terminus_chest' ||
+       interactionId === 'revenant_east_terminus_chest') &&
+      context.items.terminus_scythe
+    ) {
+      grantChestWeapon(context.items.terminus_scythe);
+      context.state.setFlag('terminus_scythe_early_obtained', true);
+    } else if (
+      interactionId === 'hollow_terminus_chest' &&
+      context.items.terminus_scythe &&
+      !context.state.getFlag('terminus_scythe_early_obtained')
+    ) {
+      grantChestWeapon(context.items.terminus_scythe);
+    }
 
     // Per-chest consumable override. Chests not listed here fall through to
     // the default Ephemeral Extract so we keep healing potions broadly available.
@@ -304,49 +340,21 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       }
     }
 
-    let bonusDescription = '';
-    if (interactionId === 'ancient_chest' && context.items.shadow_blade) {
-      context.state.addItem({ ...context.items.shadow_blade }, { notify: false });
-      rewardEntries.push({ kind: 'item', item: { ...context.items.shadow_blade } });
-      bonusDescription = ' and a Shadow Blade';
-    } else if (interactionId === 'boss_arena_chest' && context.items.crystal_greatsword) {
-      context.state.addItem({ ...context.items.crystal_greatsword }, { notify: false });
-      rewardEntries.push({ kind: 'item', item: { ...context.items.crystal_greatsword } });
-      bonusDescription = ' and a Crystal Greatsword';
-    } else if (interactionId === 'forest_river_chest' && context.items.ornamental_broadsword) {
-      context.state.addItem({ ...context.items.ornamental_broadsword }, { notify: false });
-      rewardEntries.push({ kind: 'item', item: { ...context.items.ornamental_broadsword } });
-      bonusDescription = ' and an Ornamental Broadsword';
-    } else if (
-      (interactionId === 'revenant_west_terminus_chest' || interactionId === 'revenant_precipice_terminus_chest') &&
-      context.items.terminus_scythe
-    ) {
-      context.state.addItem({ ...context.items.terminus_scythe }, { notify: false });
-      rewardEntries.push({ kind: 'item', item: { ...context.items.terminus_scythe } });
-      context.state.setFlag('terminus_scythe_early_obtained', true);
-      bonusDescription = ' and the Terminus Scythe';
-    } else if (
-      interactionId === 'hollow_terminus_chest' &&
-      context.items.terminus_scythe &&
-      !context.state.getFlag('terminus_scythe_early_obtained')
-    ) {
-      context.state.addItem({ ...context.items.terminus_scythe }, { notify: false });
-      rewardEntries.push({ kind: 'item', item: { ...context.items.terminus_scythe } });
-      bonusDescription = ' and the Terminus Scythe';
-    }
-
     context.state.setFlag(`${interactionId}_opened`, true);
     context.syncOpenedChestState();
     context.emitSparkles(new THREE.Vector3(px, py, 0.3));
-    context.showRewardBundle?.({
-      id: `chest-${interactionId}-${Date.now()}`,
-      title: 'Chest Rewards',
-      entries: rewardEntries,
-    });
+    context.showRewardBundle?.(
+      {
+        id: `chest-${interactionId}-${Date.now()}`,
+        title: 'Chest Rewards',
+        entries: rewardEntries,
+      },
+      { deferUntilWeaponAcquisition: deferBundleForWeaponAcquisition },
+    );
     context.notify('Chest Opened!', {
       id: 'chest-open',
       type: 'success',
-      description: `Found ${goldAmount} gold, ${consumableLabel}${bonusDescription}.`,
+      description: `Found ${goldAmount} gold, ${consumableLabel}.`,
       duration: 3000,
     });
     context.triggerUIUpdate();
@@ -453,12 +461,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.showHeroOverlay('Shortcut Unlocked');
     // Pan camera to the gate that just opened so the player sees the effect.
     context.startCameraPan?.(-5, 45, 750);
-    context.notify('Shortcut unlocked', {
-      id: 'forest-shortcut-unlocked',
-      type: 'success',
-      description: 'The barred gate below groans open — a path back to the Ranger Outpost is now clear.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -468,7 +470,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     // Right-side sealed face — player bumped into it from the wrong side.
     if (interactionId === 'west_cliff_gate_sealed') {
       context.playGateLockedHeavy();
-      context.notify('No mechanism on this side.', { id: 'west-cliff-gate-sealed', duration: 2000 });
+      context.notify('Must open another way.', { id: 'west-cliff-gate-sealed', duration: 2000 });
       return true;
     }
     if (interactionId !== 'west_cliff_gate_lever') return false;
@@ -486,12 +488,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playGateOpenHeavy();
     context.playGateShortcut();
     context.showHeroOverlay('Gate Unbarred');
-    context.notify('Gate unbarred', {
-      id: 'west-cliff-gate-unlocked',
-      type: 'success',
-      description: 'The iron bar falls away — the passage through the west cliff fence is open.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -514,12 +510,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.startCameraPan?.(-93, 13, 750);
-    context.notify('Shortcut unlocked', {
-      id: 'grove-shelf-shortcut-unlocked',
-      type: 'success',
-      description: 'The iron gate at the trail head groans open — the path back through the Whispering Woods is clear.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -528,7 +518,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
   const tryHandleQuarryBankShortcutLever = (interactionId: string): boolean => {
     if (interactionId === 'quarry_bank_gate_sealed') {
       context.playGateLockedHeavy();
-      context.notify('No lever on this side.', { id: 'quarry-bank-gate-sealed', duration: 2000 });
+      context.notify('Must open another way.', { id: 'quarry-bank-gate-sealed', duration: 2000 });
       return true;
     }
     if (interactionId !== 'quarry_bank_shortcut_lever') return false;
@@ -547,12 +537,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.startCameraPan?.(55, 72, 750);
-    context.notify('Shortcut unlocked', {
-      id: 'quarry-bank-shortcut-unlocked',
-      type: 'success',
-      description: 'The wooden gate swings open - the quarry bank now links back to the west shore.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -575,12 +559,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.startCameraPan?.(-1, 7, 750);
-    context.notify('Shortcut unlocked', {
-      id: 'riverside-bridge-shortcut-unlocked',
-      type: 'success',
-      description: 'The folded bridge slams down over the river, opening the path back to the south bank.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -589,7 +567,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
   const tryHandleEastHollowRouteGateLever = (interactionId: string): boolean => {
     if (interactionId === 'east_hollow_route_gate_sealed') {
       context.playGateLockedHeavy();
-      context.notify('No lever on this side.', { id: 'east-hollow-route-gate-sealed', duration: 2000 });
+      context.notify('Must open another way.', { id: 'east-hollow-route-gate-sealed', duration: 2000 });
       return true;
     }
     if (interactionId !== 'east_hollow_route_gate_lever') return false;
@@ -608,12 +586,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.startCameraPan?.(89, -93, 750);
-    context.notify('Shortcut unlocked', {
-      id: 'east-hollow-route-gate-unlocked',
-      type: 'success',
-      description: 'The iron pickets groan aside — the east hollow route is open.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -622,7 +594,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
   const tryHandleHollowShortcutLever = (interactionId: string): boolean => {
     if (interactionId === 'hollow_gate_sealed') {
       context.playGateLockedHeavy();
-      context.notify('No lever on this side.', { id: 'hollow-gate-sealed', duration: 2000 });
+      context.notify('Must open another way.', { id: 'hollow-gate-sealed', duration: 2000 });
       return true;
     }
     if (interactionId !== 'hollow_shortcut_lever') return false;
@@ -641,12 +613,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.startCameraPan?.(-28, -100, 750);
-    context.notify('Shortcut unlocked', {
-      id: 'hollow-shortcut-unlocked',
-      type: 'success',
-      description: 'The iron gate groans open — a path back toward the Hollow bonfire is clear.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -667,12 +633,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
     context.showHeroOverlay('Ladder Extended');
-    context.notify('Ladder extended', {
-      id: 'hollow-approach-ladder-extended',
-      type: 'success',
-      description: 'You toss the rope up. It hooks on the clifftop — a shortcut back up.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -703,12 +663,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     // Tile (269, 128) → world (119, -22).
     context.startCameraPan?.(119, -22, 750);
     context.showHeroOverlay('Shortcut Unlocked');
-    context.notify('Passage opened', {
-      id: 'cliff-corridor-ladder-extended',
-      type: 'success',
-      description: 'You kick the coiled ladder over the edge. It drops to the lower east landing.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -739,12 +693,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     // Pan to the west-side landing below the drop (tile 238,171 → world 88, 21).
     context.startCameraPan?.(88, 21, 750);
     context.showHeroOverlay('Shortcut Unlocked');
-    context.notify('Ridge ladder extended', {
-      id: 'fort-ridge-ladder-unlocked',
-      type: 'success',
-      description: 'You kick the ladder off the cliff edge. It drops to the landing below.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -772,12 +720,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
     context.showHeroOverlay('Eastern Fort Unlocked');
-    context.notify('Eastern fort gate unlocked', {
-      id: 'fort-gate-unlocked',
-      type: 'success',
-      description: 'The iron lock gives way. The fort is open.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -804,12 +746,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
     context.showHeroOverlay('Southern Fort Unlocked');
-    context.notify('Southern fort gate unlocked', {
-      id: 'north-fort-gate-unlocked',
-      type: 'success',
-      description: 'The iron lock yields. The southern fort stands open.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -836,12 +772,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
     context.showHeroOverlay('Western Fort Unlocked');
-    context.notify('Western fort gate unlocked', {
-      id: 'west-fort-gate-unlocked',
-      type: 'success',
-      description: 'The iron lock yields. The western fort stands open.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -868,12 +798,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.updateWorldChunksAtPlayer();
     context.playGateShortcut();
     context.showHeroOverlay('Northern Fort Unlocked');
-    context.notify('Northern fort gate unlocked', {
-      id: 'golem-fort-gate-unlocked',
-      type: 'success',
-      description: 'The iron lock yields. The northern fort stands open.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -929,12 +853,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playGateOpenHeavy();
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
-    context.notify('Shortcut unlocked', {
-      id: `${interactionId}-unlocked`,
-      type: 'success',
-      description: 'An iron gate groans open, revealing a route back toward the bonfires.',
-      duration: 3200,
-    });
     context.triggerSave();
     context.triggerUIUpdate();
     return true;

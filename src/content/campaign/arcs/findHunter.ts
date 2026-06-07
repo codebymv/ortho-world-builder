@@ -8,7 +8,7 @@ export const findHunterArc: CampaignArc = {
     'Greenleaf sends the player into Whispering Woods, where the search for the missing hunter turns into a full first-act investigation and field-boss arc.',
   maps: ['village', 'forest', 'interior_hunter_cottage', 'interior_hollow_arena'],
   quests: ['find_hunter'],
-  items: ['manuscript_fragment', 'hunters_manuscript'],
+  items: ['manuscript_fragment', 'evacuation_order'],
   beats: [
     {
       id: 'greenleaf-briefing',
@@ -42,20 +42,20 @@ export const findHunterArc: CampaignArc = {
       label: 'The Hollow',
       role: 'boss',
       summary:
-        'Crossing the river into the Hollow culminates in the first field-boss check and the complete manuscript recovery.',
-      maps: ['forest', 'interior_hollow_arena'],
-      quests: ['find_hunter'],
-      items: ['hunters_manuscript'],
+        ‘Crossing the river into the Hollow culminates in the first field-boss check and the discovery of a fort evacuation order that names the Ashen Court as the source of the heresy.’,
+      maps: [‘forest’, ‘interior_hollow_arena’],
+      quests: [‘find_hunter’],
+      items: [‘evacuation_order’],
     },
     {
-      id: 'return-to-elder',
-      label: 'Return To Elder',
-      role: 'return',
+      id: ‘return-to-elder’,
+      label: ‘Return To Elder’,
+      role: ‘return’,
       summary:
-        'The manuscript and the fight’s aftermath confirm that the threat extends beyond the outer woods.',
-      maps: ['village'],
-      quests: ['find_hunter'],
-      items: ['hunters_manuscript'],
+        ‘The evacuation order confirms the corruption originated in Guilrhym — the Elder sends the player east to find the source.’,
+      maps: [‘village’],
+      quests: [‘find_hunter’],
+      items: [‘evacuation_order’],
     },
   ],
 };

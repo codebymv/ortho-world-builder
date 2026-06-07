@@ -31,7 +31,7 @@ import { notify } from '@/lib/game/notificationBus';
 import { createProgressionService } from '@/game/domain/ProgressionService';
 import { createAudioProcessor } from '@/game/domain/AudioDirector';
 import type { BonfireEntry } from '@/data/bonfires';
-import type { RewardBundle } from '@/game/domain/rewardDisplay';
+import type { RewardBundle, ShowRewardBundleOptions } from '@/game/domain/rewardDisplay';
 import type {
   RuntimeCallbacks,
   RuntimeContent,
@@ -257,6 +257,7 @@ const Game = () => {
   /** Queue of first-time pickups awaiting the acquisition overlay (one at a time). */
   const [acquiredItemQueue, setAcquiredItemQueue] = useState<Item[]>([]);
   const [rewardBundleQueue, setRewardBundleQueue] = useState<RewardBundle[]>([]);
+  const pendingRewardBundlesRef = useRef<RewardBundle[]>([]);
   const [bonfireMenuOpen, setBonfireMenuOpen] = useState(false);
   const bonfireOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const justPickedUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -285,6 +286,19 @@ const Game = () => {
       }
     };
   }, []);
+
+  const flushPendingRewardBundles = useCallback(() => {
+    if (pendingRewardBundlesRef.current.length === 0) return;
+    const pending = pendingRewardBundlesRef.current;
+    pendingRewardBundlesRef.current = [];
+    setRewardBundleQueue(q => [...q, ...pending]);
+  }, []);
+
+  useEffect(() => {
+    if (acquiredItemQueue.length === 0) {
+      flushPendingRewardBundles();
+    }
+  }, [acquiredItemQueue, flushPendingRewardBundles]);
 
   useEffect(() => {
     if (!gameState) return;
@@ -555,6 +569,7 @@ const Game = () => {
       items: runtimeContent.items,
       criticalPathItems: runtimeContent.criticalPathItems,
       notify,
+      showHeroOverlay,
       addMarkersFromText,
       clearNpcMarkerPulse,
       getKillCount: () => killCountRef.current,
@@ -990,7 +1005,11 @@ const Game = () => {
     switchMusicTrack,
     processAudioElement,
     showHeroOverlay,
-    showRewardBundle: (bundle: RewardBundle) => {
+    showRewardBundle: (bundle: RewardBundle, options?: ShowRewardBundleOptions) => {
+      if (options?.deferUntilWeaponAcquisition) {
+        pendingRewardBundlesRef.current.push(bundle);
+        return;
+      }
       setRewardBundleQueue(q => [...q, bundle]);
     },
     openBonfireMenu: () => {

@@ -100,7 +100,7 @@ function applyOpenGroveShelfGate(tiles: Tile[][]) {
 
 /** Mirrors syncQuarryBankShortcutState when the lever flag is set. */
 function applyOpenQuarryBankGate(tiles: Tile[][]) {
-  for (let y = 219; y <= 224; y++) {
+  for (let y = 221; y <= 224; y++) {
     const existing = tiles[y]?.[205];
     if (!existing) continue;
     tiles[y][205] = {
@@ -403,6 +403,28 @@ describe('east hollow route gate at world (89,-92)', () => {
     expect(map.tiles[57][233].type).toBe('iron_fence');
     expect(map.tiles[57][239].type).toBe('gate');
     expect(map.tiles[57][242].type).toBe('iron_fence');
+  });
+});
+
+describe('hunter cliff shelf east face at world y=48', () => {
+  it('seals cliff-1 east face (x=106–121) for y=196–199 with no dirt spine between cliff rows', () => {
+    const map = generateMap(forestDef);
+    for (let ty = 196; ty <= 199; ty++) {
+      for (let tx = 106; tx <= 121; tx++) {
+        const tile = map.tiles[ty][tx];
+        expect(tile.type).toBe('cliff');
+        expect(tile.walkable).toBe(false);
+      }
+    }
+
+    // Iron gate plateau / lever spur stays dirt east of cliff-1.
+    expect(map.tiles[196][122].type).toBe('dirt');
+    expect(map.tiles[196][122].walkable).toBe(true);
+    expect(map.tiles[198][122].type).toBe('dirt');
+
+    const leverApproach = map.tiles[197][125];
+    expect(leverApproach.type).toBe('dirt');
+    expect(leverApproach.walkable).toBe(true);
   });
 });
 

@@ -35,6 +35,7 @@ export type KnownGameFlag =
   | 'east_hollow_route_gate_open'
   | 'hunter_clue_dialogue_seen'
   | 'hunters_manuscript_collected'
+  | 'evacuation_order_collected'
   | 'manuscript_fragment_collected'
   | 'north_fort_gate_open'
   | 'petra_heart_delivered'
@@ -212,7 +213,7 @@ export interface WorldItem {
   y: number;
 }
 
-const STRENGTH_DAMAGE_PER_LEVEL = 2;
+const STRENGTH_DAMAGE_PER_LEVEL = 4;
 
 export class GameState {
   player: PlayerState;
@@ -536,7 +537,7 @@ export class GameState {
   }
 
   getStaminaRegenMultiplier(): number {
-    let mult = 1;
+    let mult = 1 + (this.player.endurance - 1) * 0.05;
     for (const ringId of this.equippedRingIds) {
       if (!ringId) continue;
       const ring = this.inventory.find(item => item.id === ringId && item.type === 'ring');
@@ -545,6 +546,14 @@ export class GameState {
       }
     }
     return mult;
+  }
+
+  getStaminaRegenDelay(): number {
+    return Math.max(0.1, this.player.staminaRegenDelay - (this.player.endurance - 1) * 0.03);
+  }
+
+  getVitalityDamageAbsorption(): number {
+    return Math.max(0, this.player.vitality - 1);
   }
 
   getRecoverySpeedMultiplier(): number {

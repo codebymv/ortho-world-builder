@@ -377,10 +377,6 @@ export function runEnemyLoop({
         screenShake.shake(0.8, 0.4);
         screenShake.hitStop(0.4);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 35, 0x44FFEE, 0.12, 2.2, 1.5);
-        // Summon 3 Hollow Shades surrounding the boss
-        for (const off of [{ x: -3.0, y: 0.0 }, { x: 1.5, y: -2.5 }, { x: 1.5, y: 2.5 }]) {
-          spawnShade(off);
-        }
         // Two Reavers at NW + SE — diagonal crossfire that forces the player off any
         // safe axis they've been using, raising stakes for the final phase.
         for (const corner of REAVER_CORNERS_PHASE3) {

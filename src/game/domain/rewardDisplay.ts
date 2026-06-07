@@ -16,3 +16,8 @@ export interface RewardBundle {
   title: string;
   entries: RewardBundleEntry[];
 }
+
+export interface ShowRewardBundleOptions {
+  /** Hold the bundle until the weapon-acquisition overlay is dismissed. */
+  deferUntilWeaponAcquisition?: boolean;
+}

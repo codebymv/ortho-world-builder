@@ -1282,7 +1282,10 @@ export class World {
       if (tileY <= 0) return;
       const nb = this.map.tiles[tileY - 1]?.[tileX];
       if (!nb) return;
-      if (WATER_BRIDGE_TILES.has(nb.type)) return;
+      // Do NOT skip when the north neighbour is water at higher elevation — that gap must be
+      // filled with terrain seam texture to avoid sky showing through below the water surface.
+      // (The symmetric south-bank case: cliff tiles use the water-bridge skip in addSouth, which
+      //  is intentional since the cliff sprite already covers that face.)
       const ne = nb.elevation ?? 0;
       if (HEIGHT_TILE_TYPES.has(nb.type) && ne <= me) return;
       if (ne <= me) return;

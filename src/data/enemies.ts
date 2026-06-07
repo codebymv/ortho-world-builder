@@ -49,6 +49,7 @@ export interface EnemyBlueprint {
   attackRange?: number;
   chaseRange?: number;
   essenceReward?: number;
+  goldReward?: number;
   telegraphDuration?: number;
   recoverDuration?: number;
   poise?: number;
@@ -73,6 +74,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 48,
     staggerDuration: 1.2,
     essenceReward: 42,
+    goldReward: 4,
     behaviorOverrides: {
       chainAttack: true,
       chainChance: 0.6,
@@ -96,6 +98,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     recoverDuration: 0.5,
     poise: 80,
     staggerDuration: 1.0,
+    goldReward: 5,
     behaviorOverrides: {
       chainAttack: true,
       chainChance: 0.3,
@@ -117,6 +120,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 90,
     staggerDuration: 1.1,
     essenceReward: 55,
+    goldReward: 10,
     behaviorOverrides: {
       chainAttack: true,
       chainChance: 0.25,
@@ -138,6 +142,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 60,
     staggerDuration: 1.2,
     essenceReward: 65,
+    goldReward: 12,
     behaviorOverrides: {
       rangedAttack: true,
       rangedRange: 3.5,
@@ -145,7 +150,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       rangedProjectile: true,
       rangedProjectileSpeed: 7.0,
       rangedProjectileSprite: 'projectile_scythe',
-      rangedProjectileLifetime: 1.2,
+      rangedProjectileLifetime: 0.85,
       knockbackResistance: 0.75,
     },
   },
@@ -163,6 +168,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 60,
     staggerDuration: 0.8,
     essenceReward: 45,
+    goldReward: 5,
     behaviorOverrides: {
       chainAttack: true,
       chainChance: 0.4,
@@ -184,6 +190,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 50,
     staggerDuration: 0.8,
     essenceReward: 50,
+    goldReward: 4,
     behaviorOverrides: {
       snareOnHit: true,
       snareDuration: 1.5,
@@ -205,6 +212,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 55,
     staggerDuration: 1.4,
     essenceReward: 55,
+    goldReward: 5,
     behaviorOverrides: {
       retreatAfterHit: true,
       retreatDuration: 0.6,
@@ -226,6 +234,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 120,
     staggerDuration: 1.8,
     essenceReward: 40,
+    goldReward: 14,
     behaviorOverrides: {
       poiseImmunityFirstHit: true,
       knockbackResistance: 0.65,
@@ -245,6 +254,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 50,
     staggerDuration: 1.5,
     essenceReward: 45,
+    goldReward: 5,
   },
   golem: {
     type: 'golem',
@@ -260,6 +270,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 300,
     staggerDuration: 2.2,
     essenceReward: 80,
+    goldReward: 22,
     behaviorOverrides: {
       // Chains a slower follow-up slam 40% of the time after the first hit
       chainAttack: true,
@@ -288,6 +299,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 42,
     staggerDuration: 1.8,
     essenceReward: 35,
+    goldReward: 3,
     behaviorOverrides: {
       rangedAttack: true,
       rangedRange: 2.6,
@@ -336,6 +348,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 100,
     staggerDuration: 1.6,
     essenceReward: 25,
+    goldReward: 12,
     behaviorOverrides: {
       poiseImmunityFirstHit: true,
       knockbackResistance: 0.65,
@@ -355,6 +368,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 250,
     staggerDuration: 1.2,
     essenceReward: 85,
+    goldReward: 18,
     behaviorOverrides: {
       poiseImmunityFirstHit: true,
       knockbackResistance: 0.4,
@@ -396,6 +410,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 38,
     staggerDuration: 1.0,
     essenceReward: 30,
+    goldReward: 3,
     behaviorOverrides: {
       rangedAttack: true,
       rangedRange: 2.2,
@@ -420,6 +435,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 38,
     staggerDuration: 1.0,
     essenceReward: 32,
+    goldReward: 3,
     behaviorOverrides: {
       rangedAttack: true,
       rangedRange: 3.25,
@@ -448,6 +464,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 280,
     staggerDuration: 1.8,
     essenceReward: 180,
+    goldReward: 32,
     behaviorOverrides: {
       // Relentless chain pressure — 50% follow-up before phase 2, ramps to 75% after
       chainAttack: true,
@@ -476,6 +493,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     poise: 340,
     staggerDuration: 1.4,
     essenceReward: 175,
+    goldReward: 30,
     behaviorOverrides: {
       chainAttack: true,
       chainChance: 0.45,

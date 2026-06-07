@@ -31,6 +31,7 @@ interface ProgressionServiceContext {
   items: Record<string, Item>;
   criticalPathItems: Record<string, { itemId: string; collectedFlag: string }>;
   notify: (message: string, options?: NotificationOptions) => void;
+  showHeroOverlay?: (title: string, subtitle?: string) => void;
   addMarkersFromText: (text: string, mapId: string) => void;
   clearNpcMarkerPulse: (mapId: string) => void;
   getKillCount: () => number;
@@ -62,6 +63,34 @@ function getPetraHeartsSold(state: GameState): number {
 }
 
 export function createProgressionService(context: ProgressionServiceContext) {
+  const announceQuestAccepted = (quest: Quest) => {
+    if (context.showHeroOverlay) {
+      context.showHeroOverlay('Quest Accepted', quest.title);
+      return;
+    }
+
+    context.notify(`Quest Accepted: ${quest.title}`, {
+      id: `quest-accept-${quest.id}`,
+      type: 'success',
+      description: quest.description,
+      duration: 6000,
+    });
+  };
+
+  const announceQuestCompleted = (quest: Quest, fallbackDescription: string, id: string) => {
+    if (context.showHeroOverlay) {
+      context.showHeroOverlay('Quest Completed', quest.title);
+      return;
+    }
+
+    context.notify(`Quest Completed: ${quest.title}!`, {
+      id,
+      type: 'success',
+      description: fallbackDescription,
+      duration: 6000,
+    });
+  };
+
   const selectVillageReactivityNode = (
     state: GameState,
     dialogue: Dialogue,
@@ -95,7 +124,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
         startNode = dialogue.nodes.find(node => node.id === 'after_reaver') ?? startNode;
       } else if (pursuitQuest?.active && !pursuitQuest.completed) {
         startNode = dialogue.nodes.find(node => node.id === 'heretical_pursuit_active') ?? startNode;
-      } else if (hunterQuest?.active && state.getFlag('hunters_manuscript_collected')) {
+      } else if (hunterQuest?.active && (state.getFlag('evacuation_order_collected') || state.getFlag('hunters_manuscript_collected'))) {
         startNode = dialogue.nodes.find(node => node.id === 'quest_complete') ?? startNode;
       } else if (hunterQuest?.active && state.getFlag('manuscript_fragment_collected')) {
         startNode = dialogue.nodes.find(node => node.id === 'quest_active_fragment') ?? startNode;
@@ -234,12 +263,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
 
     const quest = { ...questTemplate, objectives: [...questTemplate.objectives], active: true };
     state.addQuest(quest);
-    context.notify(`Quest Accepted: ${quest.title}`, {
-      id: `quest-accept-${quest.id}`,
-      type: 'success',
-      description: quest.description,
-      duration: 6000,
-    });
+    announceQuestAccepted(quest);
     // Stop any NPC markers on this map from pulsing — the player just spoke to the quest-giver
     // and is now heading somewhere else, so quest-giver NPC dots should not keep blinking.
     context.clearNpcMarkerPulse(state.currentMap);
@@ -351,12 +375,11 @@ export function createProgressionService(context: ProgressionServiceContext) {
         markObjectiveDone(pursuitQuest, 4, 'Return to the Elder', { silent: true });
         state.completeQuest('heretical_pursuit');
         state.setFlag(VILLAGE_REACTIVITY_FLAGS.afterReaver, true);
-        context.notify('Quest Completed: The Heretical Pursuit!', {
-          id: 'quest-done-pursuit',
-          type: 'success',
-          description: 'The Ashen Court is broken, but the heretical magic runs deeper still.',
-          duration: 6000,
-        });
+        announceQuestCompleted(
+          pursuitQuest,
+          'The Ashen Court is broken, but the heretical magic runs deeper still.',
+          'quest-done-pursuit',
+        );
         context.triggerUIUpdate();
         context.triggerMinimapUpdate(true);
         context.syncVillageReactivity?.();
@@ -383,12 +406,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
       if (guardQuest && guardQuest.objectives[1]?.includes(CHECKMARK)) {
         markObjectiveDone(guardQuest, 2, 'Report back to the guard', { silent: true });
         state.completeQuest('guard_duty');
-        context.notify('Quest Completed: Guard Duty!', {
-          id: 'quest-done-guard',
-          type: 'success',
-          description: 'The border is a little quieter tonight.',
-          duration: 6000,
-        });
+        announceQuestCompleted(guardQuest, 'The border is a little quieter tonight.', 'quest-done-guard');
         context.triggerUIUpdate();
         shouldSave = true;
       }
@@ -403,12 +421,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
         }
         markObjectiveDone(merchantQuest, 1, 'Return to the merchant', { silent: true });
         state.completeQuest('merchants_request');
-        context.notify("Quest Completed: Merchant's Rare Goods!", {
-          id: 'quest-done-merchant',
-          type: 'success',
-          description: 'Your purse grows heavier.',
-          duration: 6000,
-        });
+        announceQuestCompleted(merchantQuest, 'Your purse grows heavier.', 'quest-done-merchant');
         context.triggerUIUpdate();
         shouldSave = true;
       }
@@ -498,12 +511,11 @@ export function createProgressionService(context: ProgressionServiceContext) {
         state.removeItem('blighted_root_shard');
         markObjectiveDone(groveQuest, 2, 'Return to Warden Callum', { silent: true });
         state.completeQuest('blighted_heart');
-        context.notify('Quest Completed: The Blighted Heart!', {
-          id: 'quest-done-grove',
-          type: 'success',
-          description: 'The grove will heal. Three Verdant Tonics and 75 gold earned.',
-          duration: 6000,
-        });
+        announceQuestCompleted(
+          groveQuest,
+          'The grove will heal. Three Verdant Tonics and 75 gold earned.',
+          'quest-done-grove',
+        );
         context.triggerUIUpdate();
         shouldSave = true;
       }
@@ -515,12 +527,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
         markObjectiveDone(rangerQuest, 0, 'Defeat the Stone Golem', { silent: true });
         markObjectiveDone(rangerQuest, 1, 'Return to the ranger', { silent: true });
         state.completeQuest('rangers_request');
-        context.notify("Quest Completed: The Ranger's Request!", {
-          id: 'quest-done-ranger',
-          type: 'success',
-          description: 'The eastern high road is open again.',
-          duration: 6000,
-        });
+        announceQuestCompleted(rangerQuest, 'The eastern high road is open again.', 'quest-done-ranger');
         context.triggerUIUpdate();
         shouldSave = true;
       }

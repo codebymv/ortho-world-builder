@@ -58,6 +58,8 @@ export function buildGameplayPreludeContext(options: BuildRuntimePhaseContextsOp
     triggerComboChain: options.triggerComboChain,
     comboWindowDuration: options.comboWindowDuration,
     getComboFrameDuration: options.getComboFrameDuration,
+    comboStepCount: options.comboStepCount,
+    getComboRecovery: options.getComboRecovery,
     completeConsumableUse: options.completeConsumableUse,
   };
 }

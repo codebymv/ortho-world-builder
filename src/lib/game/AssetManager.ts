@@ -6383,6 +6383,12 @@ export class AssetManager {
       if (baseUrl) this.textureDataUrls.set('hunters_manuscript', baseUrl);
       return baseTexture;
     });
+    this.registerTexture('evacuation_order', () => {
+      const baseTexture = this.getTexture('loose_pages')!;
+      const baseUrl = this.textureDataUrls.get('loose_pages');
+      if (baseUrl) this.textureDataUrls.set('evacuation_order', baseUrl);
+      return baseTexture;
+    });
 
     // Blighted Root Shard â€” gnarled dark bark fragment with pulsing green corruption veins
     const BR_BARK  = 0x3E2723;   // dark bark

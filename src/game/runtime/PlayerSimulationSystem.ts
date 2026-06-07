@@ -1,4 +1,5 @@
 import type { GameState } from '@/lib/game/GameState';
+import type { PlayerState } from '@/lib/game/GameState';
 import type { World } from '@/lib/game/World';
 import type { Enemy } from '@/lib/game/Combat';
 import type { ParticleSystem } from '@/lib/game/ParticleSystem';
@@ -36,6 +37,17 @@ const CLIMB_MOVE_RADIUS = 0;
  */
 const LADDER_SNAP_RATE = 12;
 const LADDER_DISMOUNT_RATE = 14;
+export const SPRINT_RESTART_STAMINA_THRESHOLD = 18;
+export const SPRINT_MIN_HEALTH = 2;
+
+export function canPlayerSprint(
+  player: Pick<PlayerState, 'isClimbing' | 'isSprinting' | 'stamina' | 'health'>,
+  shiftHeld: boolean,
+): boolean {
+  if (!shiftHeld || player.isClimbing || player.health < SPRINT_MIN_HEALTH) return false;
+  if (player.isSprinting) return player.stamina > 0;
+  return player.stamina >= SPRINT_RESTART_STAMINA_THRESHOLD;
+}
 
 interface ClimbMovementResult {
   moveX: number;
@@ -766,7 +778,7 @@ export function updatePlayerSimulation({
     currentDir8 = rawDir;
     state.player.direction = dir8to4(rawDir) as CardinalDirection;
 
-    const wantsSprint = !state.player.isClimbing && keys.shift && state.player.stamina > 0;
+    const wantsSprint = canPlayerSprint(state.player, keys.shift);
     state.player.isSprinting = wantsSprint;
     const baseSpeed = wantsSprint ? state.player.sprintSpeed : state.player.speed;
     const climbAdjusted = state.player.isClimbing ? baseSpeed * CLIMB_SPEED_MULT : baseSpeed;
@@ -1106,6 +1118,10 @@ export function updatePlayerSimulation({
     // as the charge builds: frame 0 (just started) → 1 (mid wind-up) → 2 (fully coiled).
     const holdProgress = Math.min(1, chargeTimer / chargeTimeMax);
     animFrame = Math.min(2, Math.floor(holdProgress * 3));
+  }
+
+  if (!moved || state.player.isClimbing || state.player.stamina <= 0 || state.player.health < SPRINT_MIN_HEALTH) {
+    state.player.isSprinting = false;
   }
 
   return {

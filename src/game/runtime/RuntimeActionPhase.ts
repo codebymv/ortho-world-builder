@@ -10,7 +10,7 @@ import type { CombatSystem, Enemy } from '@/lib/game/Combat';
 import type { FloatingTextSystem } from '@/lib/game/FloatingText';
 import type { ScreenShake } from '@/lib/game/ScreenShake';
 import type { ParticleSystem } from '@/lib/game/ParticleSystem';
-import type { RewardBundle } from '@/game/domain/rewardDisplay';
+import type { RewardBundle, ShowRewardBundleOptions } from '@/game/domain/rewardDisplay';
 import { createRuntimeSfx } from '@/game/runtime/RuntimeSfx';
 import { createBonfireRestAction } from '@/game/runtime/RuntimeRestFlow';
 import { createPerformDodgeAction } from '@/game/runtime/RuntimePlayerActions';
@@ -33,7 +33,7 @@ interface RuntimeActionPhaseOptions {
   musicRef: MutableRefObject<HTMLAudioElement | null>;
   musicStarted: MutableRefObject<boolean>;
   showHeroOverlay: (title: string, subtitle?: string) => void;
-  showRewardBundle: (bundle: RewardBundle) => void;
+  showRewardBundle: (bundle: RewardBundle, options?: ShowRewardBundleOptions) => void;
   particleSystem: ParticleSystem;
   combatSystem: CombatSystem;
   floatingText: FloatingTextSystem;
@@ -270,6 +270,7 @@ export function setupRuntimeActionPhase({
     playTallGrassBreak: sfx.playTallGrassBreak,
     enemyAudio: sfx.enemyAudio,
     notify,
+    showHeroOverlay,
     triggerUIUpdate,
     playEssencePickup: sfx.playEssencePickup,
     playSwordSwing: sfx.playSwordSwing,
@@ -448,13 +449,13 @@ export function setupRuntimeActionPhase({
         if (!state.getFlag('hunter_clue_dialogue_seen') && hasDialogue('hunter_clue')) {
           dialoguePickupRef.startDialogue?.('hunter_clue');
         }
-      } else if (itemId === 'hunters_manuscript') {
-        state.setFlag('hunters_manuscript_collected', true);
+      } else if (itemId === 'evacuation_order' || itemId === 'hunters_manuscript') {
+        state.setFlag(itemId === 'evacuation_order' ? 'evacuation_order_collected' : 'hunters_manuscript_collected', true);
         const q = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
         if (q) {
           markObjectiveDone(q, FIND_HUNTER_INDEX.manuscript, FIND_HUNTER_MANUSCRIPT_OBJECTIVE);
           addMarkersFromText('Village Elder', 'village');
-          tryCompleteFindHunterQuest(state, notify);
+          tryCompleteFindHunterQuest(state, notify, showHeroOverlay);
           triggerUIUpdate();
         }
       } else if (itemId === 'wolf_ring') {

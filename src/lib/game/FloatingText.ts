@@ -184,6 +184,10 @@ export class FloatingTextSystem {
     this.spawn(x, y, `+${amount}`, '#44FF44', 22);
   }
 
+  spawnGold(x: number, y: number, amount: number) {
+    this.spawn(x, y, `+${amount}g`, '#FFD700', 20);
+  }
+
   update(deltaTime: number) {
     for (const e of this.entries) {
       if (!e.active) continue;

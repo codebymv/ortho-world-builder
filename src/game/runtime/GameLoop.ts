@@ -166,6 +166,8 @@ export function runGameplayPrelude({
   triggerComboChain,
   comboWindowDuration,
   getComboFrameDuration,
+  comboStepCount,
+  getComboRecovery,
   completeConsumableUse,
   notify,
 }: RunGameplayPreludeOptions) {
@@ -203,7 +205,7 @@ export function runGameplayPrelude({
       notify('Berserker rage subsides.', { id: 'berserker-faded', duration: 2000 });
     }
   }
-  if (nowSec - state.player.lastStaminaUseTime > state.player.staminaRegenDelay) {
+  if (nowSec - state.player.lastStaminaUseTime > state.getStaminaRegenDelay()) {
     const regenRate = state.player.staminaRegenRate * state.getStaminaRegenMultiplier();
     state.player.stamina = Math.min(
       state.player.maxStamina,
@@ -341,6 +343,8 @@ export function runGameplayPrelude({
     comboInputBuffered,
     comboWindowDuration,
     getComboFrameDuration,
+    comboStepCount,
+    getComboRecovery,
     triggerComboChain,
     completeConsumableUse,
   }));

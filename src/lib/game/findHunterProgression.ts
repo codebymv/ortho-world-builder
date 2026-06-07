@@ -2,7 +2,7 @@ import type { GameState } from '@/lib/game/GameState';
 import { CHECKMARK, markObjectiveDone } from '@/lib/game/progressionToasts';
 
 export const FIND_HUNTER_BOSS_OBJECTIVE = 'Defeat the Hollow Apparition';
-export const FIND_HUNTER_MANUSCRIPT_OBJECTIVE = 'Recover the complete manuscript';
+export const FIND_HUNTER_MANUSCRIPT_OBJECTIVE = 'Find proof of what happened here';
 
 /** Indices for `find_hunter` objectives after the manuscript / boss reorder. */
 export const FIND_HUNTER_INDEX = {
@@ -20,6 +20,8 @@ type NotifyFn = (message: string, options?: {
   description?: string;
   duration?: number;
 }) => void;
+
+type ShowHeroOverlayFn = (title: string, subtitle?: string) => void;
 
 /** Swap legacy saves that listed the boss step before the manuscript step. */
 export function migrateFindHunterObjectiveOrder(objectives: string[]): string[] {
@@ -41,18 +43,19 @@ function normalizeFindHunterBossLabel(line: string): string {
  * Marks the find_hunter quest complete once the manuscript is recovered and the
  * Hollow Apparition is defeated. Idempotent — safe to call after either milestone.
  */
-export function tryCompleteFindHunterQuest(state: GameState, notify?: NotifyFn): boolean {
+export function tryCompleteFindHunterQuest(state: GameState, notify?: NotifyFn, showHeroOverlay?: ShowHeroOverlayFn): boolean {
   const quest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
   if (!quest) return false;
 
-  if (state.getFlag('hunters_manuscript_collected') && !quest.objectives[FIND_HUNTER_INDEX.manuscript]?.includes(CHECKMARK)) {
+  const hasProof = state.getFlag('evacuation_order_collected') || state.getFlag('hunters_manuscript_collected');
+  if (hasProof && !quest.objectives[FIND_HUNTER_INDEX.manuscript]?.includes(CHECKMARK)) {
     markObjectiveDone(quest, FIND_HUNTER_INDEX.manuscript, FIND_HUNTER_MANUSCRIPT_OBJECTIVE, { silent: true });
   }
   if (state.getFlag('hollow_guardian_defeated') && !quest.objectives[FIND_HUNTER_INDEX.boss]?.includes(CHECKMARK)) {
     markObjectiveDone(quest, FIND_HUNTER_INDEX.boss, FIND_HUNTER_BOSS_OBJECTIVE, { silent: true });
   }
 
-  if (!state.getFlag('hunters_manuscript_collected') || !state.getFlag('hollow_guardian_defeated')) {
+  if (!hasProof || !state.getFlag('hollow_guardian_defeated')) {
     return false;
   }
   if (!quest.objectives.every(line => line.includes(CHECKMARK))) {
@@ -60,10 +63,15 @@ export function tryCompleteFindHunterQuest(state: GameState, notify?: NotifyFn):
   }
 
   state.completeQuest('find_hunter');
+  if (showHeroOverlay) {
+    showHeroOverlay('Quest Completed', 'The Missing Hunter');
+    return true;
+  }
+
   notify?.('Quest Completed: The Missing Hunter!', {
     id: 'quest-done-find-hunter',
     type: 'success',
-    description: 'The manuscript is whole and the Hollow Apparition is gone. Greenleaf can plan its next move.',
+    description: 'The evacuation order and the Hollow Apparition\'s fall. Greenleaf now knows where this began.',
     duration: 6000,
   });
   return true;

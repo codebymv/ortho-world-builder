@@ -10,7 +10,7 @@ export const quests: Record<string, Quest> = {
       'Find the Disparaged Cottage',
       'Find traces of the manuscript',
       'Cross the river into the Hollow',
-      'Recover the complete manuscript',
+      'Find proof of what happened here',
       'Defeat the Hollow Apparition',
     ],
     completed: false,

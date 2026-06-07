@@ -86,6 +86,8 @@ export interface BuildRuntimePhaseContextsOptions {
   triggerComboChain: () => { frameDuration: number } | null;
   comboWindowDuration: number;
   getComboFrameDuration: (step: number) => number;
+  comboStepCount: number;
+  getComboRecovery: (step: number) => number;
   completeConsumableUse?: () => void;
   textureCache: Map<string, THREE.Texture>;
   playerBaseScale: number;

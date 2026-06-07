@@ -15,7 +15,7 @@ import { hasDialogueId } from '@/data/dialogueIds';
 import { notify } from '@/lib/game/notificationBus';
 import type { Item } from '@/lib/game/GameState';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
-import type { RewardBundle } from '@/game/domain/rewardDisplay';
+import type { RewardBundle, ShowRewardBundleOptions } from '@/game/domain/rewardDisplay';
 import { createRuntimeMapFlow } from '@/game/runtime/RuntimeMapFlow';
 import { applyMapEntryProgression, isPortalDestinationUnlocked, MAP_BIOMES } from '@/game/runtime/RuntimeMapRules';
 import { createRuntimeVisualSubsystems } from '@/game/runtime/RuntimeVisualSubsystems';
@@ -158,7 +158,7 @@ export interface RuntimeCallbacks {
   switchMusicTrack: (mapId: string) => void;
   processAudioElement: (audio: HTMLAudioElement) => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
-  showRewardBundle: (bundle: RewardBundle) => void;
+  showRewardBundle: (bundle: RewardBundle, options?: ShowRewardBundleOptions) => void;
   openBonfireMenu: () => void;
 }
 

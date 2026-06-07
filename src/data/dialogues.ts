@@ -44,14 +44,14 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'quest_active_fragment',
-        text: "A **fragment**? There must be more. The hunter wouldn't have stopped there — he was __thorough__, stubborn to a fault. The writing speaks of a corruption deeper in the woods... beyond a river. Find the rest of the manuscript. That is our only hope of understanding what stirs in the forest.",
+        text: "A fragment? There must be more — the hunter wouldn't have stopped there. Whatever he found past that river, it was enough to keep him going. Find it.",
         responses: [
-          { text: "I'll cross the river and find the rest.", nextId: 'end' },
+          { text: "I'll cross the river and find it.", nextId: 'end' },
         ],
       },
       {
         id: 'quest_complete',
-        text: "The manuscript speaks of horrors beyond the **Hollow** — __heretical magic__, practitioners who tore open something that should have stayed sealed. The corruption that poisons our woods flows from the east. Press on. Don't turn back now.",
+        text: "This order never reached us. Weeks ago — and no one came. The **Ashen Court**. That name is in __Guilrhym__. Whatever they fractured, it started there, and the Hollow is what it left behind. Press on. Don't turn back now.",
         responses: [
           { text: "I'll follow the trail.", nextId: 'end' },
         ],
@@ -998,6 +998,7 @@ export const dialogues: Record<string, Dialogue> = {
         responses: [
           { text: "What do you sell?", nextId: 'end', opensVendor: 'fort_quartermaster' },
           { text: "Why are you out here?", nextId: 'rumors' },
+          { text: "What's happening to the creatures here?", nextId: 'corruption' },
           { text: "Never mind.", nextId: 'end' },
         ],
       },
@@ -1018,6 +1019,22 @@ export const dialogues: Record<string, Dialogue> = {
         responses: [
           { text: "Show me what you've got.", nextId: 'end', opensVendor: 'fort_quartermaster' },
           { text: "I'll manage.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'corruption',
+        text: "They're not just turning hostile — they're __transforming__. Those wolves? Some of them were animals a season ago. The heavier ones, with the plated shoulders? I watched one form from a **boulder** on the ridge. Not grow from it. *Form from it.* The dead in the old cemeteries don't stay dead either — the heresy reaches into the ground and pulls them back up wearing their own bones like a coat. Something is rewriting what lives here. Takes whatever's natural — stone, water, dead flesh — and **bends it into a soldier**. I stopped trying to make sense of it.",
+        responses: [
+          { text: "How does something like that work?", nextId: 'heresy_detail' },
+          { text: "That's enough for me.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'heresy_detail',
+        text: "Old texts call it __ritual binding__. Someone uses a heretical formula to fuse unnatural intent into a natural vessel. The slimes in the river? Heretically animated water — the water is still water, it just *wants* something now. I found three of those carved **stone markers** in the woods. Every time I went back, there were more bodies near them. I left them alone after that.",
+        responses: [
+          { text: "Show me what you've got.", nextId: 'end', opensVendor: 'fort_quartermaster' },
+          { text: "Noted.", nextId: 'end' },
         ],
       },
       { id: 'end', text: "I'll be here. Obviously.", responses: [] },
@@ -1272,7 +1289,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'has_fragment',
-        text: "The ranger studies the torn manuscript pages, then looks toward the dark road. \"So the hunter was right. If the rest lies beyond the Hollow, someone has to reach it. I'll open the checkpoint. Bring back enough proof for Greenleaf to act.\"",
+        text: "The ranger studies the torn pages, then looks toward the dark road. \"So the hunter found something. If there's more proof past the Hollow, someone has to reach it. I'll open the checkpoint. Come back with enough for Greenleaf to act.\"",
         responses: [{ text: "[Continue]", nextId: 'end' }],
       },
       {

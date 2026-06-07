@@ -45,9 +45,9 @@ const PixelFlame = () => (
 );
 
 const STAT_INFO: Record<string, { label: string; description: string }> = {
-  vitality:  { label: 'Vigor',      description: 'Max HP +20'      },
-  endurance: { label: 'Endurance',  description: 'Max Stamina +15' },
-  strength:  { label: 'Strength',   description: 'Attack +2'       },
+  vitality:  { label: 'Vigor',      description: 'HP +20  ·  Absorb +1 dmg'     },
+  endurance: { label: 'Endurance',  description: 'Stamina +15  ·  Regen faster' },
+  strength:  { label: 'Strength',   description: 'Attack +4'                    },
 };
 
 const BONFIRE_NPC_RADIUS = 30;

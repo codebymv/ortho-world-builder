@@ -66,6 +66,14 @@ export const items: Record<string, Item> = {
     type: 'quest',
     sprite: 'loose_pages',
   },
+
+  evacuation_order: {
+    id: 'evacuation_order',
+    name: "Commander's Evacuation Order",
+    description: "A fort commander's orders, wax seal broken, partially charred. The ink reads: 'All non-military personnel evacuate south to Greenleaf immediately. The Hollow corruption has breached the river line. Do not attempt to reach Guilrhym — the source of this heresy lies within the city walls. The Ashen Court has fractured the old seals.' Dated weeks ago. It never arrived.",
+    type: 'quest',
+    sprite: 'loose_pages',
+  },
   
   ornamental_broadsword: {
     id: 'ornamental_broadsword',

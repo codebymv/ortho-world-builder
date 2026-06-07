@@ -234,7 +234,7 @@ export const villageDef: MapDefinition = {
     { x: 120, y: 104, type: 'bonfire', walkable: false, interactionId: 'bonfire_village' },
     { x: 119, y: 82, type: 'well', walkable: false, interactionId: 'fountain' },
     { x: 119, y: 125, type: 'campfire_remains', walkable: false },
-    { x: 20, y: 30, type: 'tombstone', walkable: false, interactionId: 'tombstone' },
+    { x: 20, y: 30, type: 'tombstone', walkable: false },
 
     // ====== WELLS (residential, farm, lakeside) ======
     { x: 38, y: 60, type: 'well', walkable: false, interactionId: 'well' },

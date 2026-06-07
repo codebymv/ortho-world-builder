@@ -24,7 +24,7 @@ const FACTION_FIGHT_WAKE_SQ = 16 * 16;
 const _tmpOldPos = { x: 0, y: 0 };
 const HOLLOW_STILLNESS_THRESHOLD_SQ = 0.25 * 0.25;
 const HOLLOW_STILLNESS_TRIGGER = 0.75;
-const FALLING_SCYTHE_WARNING = 0.45;
+const FALLING_SCYTHE_WARNING = 1.5;
 const FALLING_SCYTHE_STRIKE = 0.35;
 const FALLING_SCYTHE_RADIUS = 0.75;
 const HOLLOW_ECLIPSE_TELEGRAPH = 2.2;
@@ -441,6 +441,7 @@ interface SpawnEnemyOptions {
   attackRange?: number;
   chaseRange?: number;
   essenceReward?: number;
+  goldReward?: number;
   telegraphDuration?: number;
   recoverDuration?: number;
   poise?: number;
@@ -469,6 +470,7 @@ export interface Enemy {
   damage: number;
   xpReward: number;
   essenceReward: number;
+  goldReward: number;
   sprite: string;
   speed: number;
   attackRange: number;
@@ -812,6 +814,7 @@ export class CombatSystem {
       damage,
       xpReward: health * 2,
       essenceReward: options.essenceReward ?? Math.floor(health / 2),
+      goldReward: options.goldReward ?? 0,
       sprite,
       speed: options.speed ?? 0.04,
       attackRange: options.attackRange ?? 1.5,
@@ -1558,6 +1561,7 @@ export class CombatSystem {
                     }
                     dmg = Math.floor(dmg * (1 - BLOCK_DAMAGE_REDUCTION));
                   }
+                  dmg = Math.max(1, dmg - this.gameState.getVitalityDamageAbsorption());
                   player.health = Math.max(0, player.health - dmg);
                   player.damageFlashTimer = 0.4;
                   player.hurtTimer = Math.max(player.hurtTimer, 0.35);
@@ -1594,7 +1598,7 @@ export class CombatSystem {
               const cdy = playerPosition.y - crushCenter.y;
               if (cdx * cdx + cdy * cdy <= paddedPlayerHitSq(crushRadius) && !playerInvulnerable) {
                 const player = this.gameState.player;
-                const crushDmg = Math.floor(enemy.damage * 1.45);
+                const crushDmg = Math.max(1, Math.floor(enemy.damage * 1.45) - this.gameState.getVitalityDamageAbsorption());
                 player.health = Math.max(0, player.health - crushDmg);
                 player.damageFlashTimer = 0.5;
                 player.hurtTimer = Math.max(player.hurtTimer, 0.45);
@@ -2073,6 +2077,7 @@ export class CombatSystem {
       this._enemiesDirty = true;
       // Award the player half the normal essence for witnessing the kill
       this.gameState.addEssence(Math.floor(target.essenceReward * 0.5));
+      this.gameState.addGold(Math.floor(target.goldReward * 0.5));
     }
   }
 
@@ -2145,6 +2150,7 @@ export class CombatSystem {
       }
       finalDamage = Math.floor(damage * (1 - BLOCK_DAMAGE_REDUCTION));
     }
+    finalDamage = Math.max(1, finalDamage - this.gameState.getVitalityDamageAbsorption());
 
     player.health = Math.max(0, player.health - finalDamage);
     player.damageFlashTimer = 0.4;
@@ -2189,6 +2195,7 @@ export class CombatSystem {
       }
       damage = Math.floor(damage * (1 - BLOCK_DAMAGE_REDUCTION));
     }
+    damage = Math.max(1, damage - this.gameState.getVitalityDamageAbsorption());
     player.health = Math.max(0, player.health - damage);
     player.damageFlashTimer = 0.3;
     player.hurtTimer = Math.max(player.hurtTimer, 0.35);
@@ -2283,6 +2290,7 @@ export class CombatSystem {
       targetEnemy.state = 'dead';
       this._enemiesDirty = true;
       this.gameState.addEssence(targetEnemy.essenceReward);
+      this.gameState.addGold(targetEnemy.goldReward);
       return { killed: true, staggered: false, backstab: isBackstab };
     }
 
@@ -2648,6 +2656,7 @@ export class CombatSystem {
       }
       return { outcome: 'blocked', parried: false };
     }
+    damage = Math.max(1, damage - this.gameState.getVitalityDamageAbsorption());
     player.health = Math.max(0, player.health - damage);
     player.damageFlashTimer = 0.3;
     player.hurtTimer = Math.max(player.hurtTimer, 0.35);
@@ -2712,6 +2721,7 @@ export class CombatSystem {
       target.state = 'dead';
       this._enemiesDirty = true;
       this.gameState.addEssence(target.essenceReward);
+      this.gameState.addGold(target.goldReward);
     }
   }
 

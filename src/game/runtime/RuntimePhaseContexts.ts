@@ -104,6 +104,8 @@ export interface GameplayPreludeContext {
   triggerComboChain: () => { frameDuration: number } | null;
   comboWindowDuration: number;
   getComboFrameDuration: (step: number) => number;
+  comboStepCount: number;
+  getComboRecovery: (step: number) => number;
   completeConsumableUse?: () => void;
 }
 

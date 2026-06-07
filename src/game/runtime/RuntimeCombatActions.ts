@@ -101,6 +101,7 @@ interface CombatSystemLike {
 interface FloatingTextLike {
   spawnDamage: (x: number, y: number, amount: number, crit?: boolean) => void;
   spawn: (x: number, y: number, text: string, color: string, size: number) => void;
+  spawnGold: (x: number, y: number, amount: number) => void;
 }
 
 interface ScreenShakeLike {
@@ -129,6 +130,7 @@ interface RuntimeCombatActionOptions {
   particleSystem: ParticleSystemLike;
   enemyAudio: EnemyAudioLike;
   notify: (title: string, options?: { id?: string; description?: string; duration?: number }) => void;
+  showHeroOverlay?: (title: string, subtitle?: string) => void;
   triggerUIUpdate: () => void;
   playEssencePickup: () => void;
   playSwordSwing: () => void;
@@ -197,6 +199,7 @@ export function createRuntimeCombatActions({
   particleSystem,
   enemyAudio,
   notify,
+  showHeroOverlay,
   triggerUIUpdate,
   playEssencePickup,
   playSwordSwing,
@@ -257,6 +260,7 @@ export function createRuntimeCombatActions({
     enemyAudio.playDefeat(enemy);
     enemyAudio.clearEnemy(enemy.id);
     if (enemy.essenceReward > 0) playEssencePickup();
+    if (enemy.goldReward > 0) floatingText.spawnGold(enemy.position.x, enemy.position.y + 0.6, enemy.goldReward);
 
     if (enemy.zoneId) {
       state.killedEnemyIds.add(enemy.zoneId);
@@ -292,7 +296,7 @@ export function createRuntimeCombatActions({
         const hunterQuest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);
         if (hunterQuest) {
           markObjectiveDone(hunterQuest, FIND_HUNTER_INDEX.boss, FIND_HUNTER_BOSS_OBJECTIVE);
-          tryCompleteFindHunterQuest(state, notify);
+          tryCompleteFindHunterQuest(state, notify, showHeroOverlay);
         }
         state.worldItems.push({
           instanceId: `heretical_essence_apparition_${state.currentMap}_${Math.round(enemy.position.x)}_${Math.round(enemy.position.y)}`,
@@ -401,11 +405,13 @@ export function createRuntimeCombatActions({
     }
 
     if (enemy.type === 'hollow_guardian') {
-      notify('HOLLOW APPARITION VANQUISHED', {
-        id: 'boss-kill',
-        description: `+${enemy.essenceReward} essence. The fog lifts…`,
-        duration: 5000,
-      });
+      if (!onBossDefeated) {
+        notify('HOLLOW APPARITION VANQUISHED', {
+          id: 'boss-kill',
+          description: `+${enemy.essenceReward} essence. The fog lifts...`,
+          duration: 5000,
+        });
+      }
     } else {
       notify(`Defeated ${enemy.name}!`, {
         id: 'enemy-kill',

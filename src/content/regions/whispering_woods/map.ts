@@ -472,12 +472,17 @@ export const forestDef: MapDefinition = {
     { x: 144, y: 206, width: 16, height: 14, type: 'cemetery', eastOpenDY: 9, eastOpenHalf: 1 },
 
     // === IRON GATE PROGRESSION SPINES — west bypass → lever + Disparaged Cottage ===
-    // North spur to the shortcut lever (127,196). Stops at y=198; gate row (y=199–202) is runtime-synced.
-    { x: 122, y: 190, width: 8, height: 9, type: 'path', fill: 'dirt' },
-    // Links the cliff inlet / west stair descent into the lever spur (visible right after the dead ranger).
-    { x: 98, y: 192, width: 26, height: 6, type: 'path', fill: 'dirt' },
+    // North spur to the shortcut lever (127,196). Stops at y=197 so world y=48 stays cliff face.
+    { x: 122, y: 190, width: 8, height: 8, type: 'path', fill: 'dirt' },
+    // Links the west stair inlet into the shelf — stops at x=105 so it never cuts the cliff east face (106+).
+    { x: 99, y: 196, width: 6, height: 2, type: 'path', fill: 'dirt' },
     // Westward fork off the Iron Gate plateau — steers away from the east fort artery at y=178.
-    { x: 106, y: 200, width: 26, height: 5, type: 'path', fill: 'dirt' },
+    // Dirt only east of cliff-1 (x≥122); x=106–121 stays cliff_face like pre-spine layout.
+    { x: 122, y: 200, width: 10, height: 5, type: 'path', fill: 'dirt' },
+    // Restore cliff shelf east face (world ~-44..-33, y~40–45 and ~50–53). Stops at y=195 so
+    // the west-only shelf connector (x≤105) stays walkable; lever access is via x≥122 spur.
+    { x: 106, y: 190, width: 16, height: 6, type: 'cliff_face' },
+    { x: 106, y: 200, width: 16, height: 5, type: 'cliff_face' },
     // Disparaged Cottage (236,227): southeast spur from the bypass loop, below the cemetery fence.
     { x: 148, y: 221, width: 90, height: 4, type: 'path', fill: 'dirt' },
     { x: 232, y: 221, width: 8, height: 10, type: 'path', fill: 'dirt' },
@@ -655,7 +660,7 @@ export const forestDef: MapDefinition = {
     // Stair-side picket run ? touches the south stair edge and connects into the bypass cap.
     { x: 59, y: 198, width: 1, height: 17, type: 'wall', fill: 'fence' },
     // West-bank picket cordon ? flush with the cliff at world y=60; water starts at y=82.
-    { x: 205, y: 210, width: 1, height: 22, type: 'wall', fill: 'fence' },
+    { x: 205, y: 210, width: 1, height: 20, type: 'wall', fill: 'fence' },
     // Rocky-shore sand divide ? world (-40, 97); chest on west side at ~(-45, 97).
     { x: 110, y: 246, width: 1, height: 2, type: 'wall', fill: 'fence' },
     // Bypass plank bridge (~world -68, 66) ? horizontal pickets along cliff-spin bands north + south of the trail.
@@ -945,33 +950,19 @@ export const forestDef: MapDefinition = {
     { x: 266, y: 45, targetMap: 'guilrhym', targetX: 150, targetY: 292 },
   ],
   chests: [
-    // Shifted east: Hollow river west seal (x???28???91, y???64???79) covers old spot.
-    { x: 102, y: 72, interactionId: 'forest_chest_1' },
-    // Placed south of the hollow corridor gate (gate at y:50-51) — visible bait on the far side
-    // at world (~-22,-95) / tile (128,55).
+    // Hollow corridor gate — last_breath_charm, earned before the boss approach
     { x: 128, y: 55, interactionId: 'hollow_gate_chest' },
-    // Corrupted cliff shelf supply chest: world (-70, -106), default Ephemeral Extract.
-    { x: 80, y: 44, interactionId: 'hollow_west_cliff_extract_chest' },
-    { x: 216, y: 110, interactionId: 'forest_chest_2' },
     { x: 33, y: 135, interactionId: 'hidden_grove_chest' },
     // Former interior_woodcutter_cottage loot (exterior prop only now).
     { x: 93, y: 177, interactionId: 'forest_woodcutter_chest' },
-    { x: 265, y: 85, interactionId: 'ruins_chest_1' },
     { x: 42, y: 38, interactionId: 'wolf_den_chest' },
     { x: 228, y: 244, interactionId: 'forest_lake_chest' },
-    { x: 160, y: 60, interactionId: 'forest_north_chest' },
     { x: 90, y: 230, interactionId: 'spider_chest' },
     { x: 275, y: 265, interactionId: 'forest_hermit_chest' },
-    { x: 105, y: 265, interactionId: 'ruins_south_chest' },
-    { x: 30, y: 250, interactionId: 'spider_nest_chest' },
     { x: 30, y: 210, interactionId: 'destroyed_town_chest' },
     { x: 268, y: 28, interactionId: 'volcano_chest' },
-    // New chests in enchanted groves and forts
-    { x: 80, y: 150, interactionId: 'enchanted_chest_1' },
-    { x: 248, y: 250, interactionId: 'enchanted_chest_2' },
+    // One grove chest (deepest grove exploration reward)
     { x: 58, y: 268, interactionId: 'enchanted_chest_3' },
-    { x: 208, y: 66, interactionId: 'fort_chest_2' },
-    { x: 68, y: 196, interactionId: 'fort_chest_3' },
     // West Fort boss reward — tucked in the north yard (off the gate walkway), near the Ridge Revenant.
     { x: 21, y: 144, interactionId: 'west_fort_chest' },
     { x: 111, y: 220, interactionId: 'forest_river_chest' },
@@ -984,6 +975,8 @@ export const forestDef: MapDefinition = {
     { x: 115, y: 106, interactionId: 'forest_chest_hollow_approach' },
     // Observatory compound ??? hidden reward corner at world (59, -60).
     { x: 209, y: 90, interactionId: 'observatory_chest' },
+    // East Ridge summoning site — appears after Ridge Revenant is defeated; gives Terminus Scythe early.
+    { x: 262, y: 140, interactionId: 'revenant_east_terminus_chest' },
     // Hunter gate ??? tucked in the east cliff notch just past the iron fence. World (6, 48).
     { x: 156, y: 198, interactionId: 'forest_southern_chest' },
     // Hunter cliff shelf ? reward inside the secluded shelf (world ~17, 49).
@@ -1456,7 +1449,6 @@ export const forestDef: MapDefinition = {
     { x: 129, y: 205, type: 'bloodstain', walkable: true },
     { x: 136, y: 209, type: 'bloodstain', walkable: true },
     { x: 144, y: 213, type: 'bloodstain', walkable: true },
-    { x: 120, y: 198, type: 'bloodstain', walkable: true },
     { x: 126, y: 194, type: 'bloodstain', walkable: true },
     { x: 134, y: 191, type: 'bloodstain', walkable: true },
     { x: 150, y: 222, type: 'bones_pile', walkable: true },
@@ -2002,7 +1994,11 @@ export const forestDef: MapDefinition = {
     // === TIER 2: Far NE caldera lip ===
     { x: 246, y: 0, width: 54, height: 56, elevation: 2 },
     // === TIER 1: NW ridge (wolf den / ruins area) ===
-    { x: 4, y: 2, width: 50, height: 70, elevation: 1 },
+    // height extended from 70→85 (y=2–86) to close the el=0 pocket at x=28–35, y=72–79
+    // (NW water seal gap between this zone and the broad highlands which start at x=36)
+    // and at x=4–35, y=80–86 (river west run). Water tiles in that pocket rendered at the
+    // wrong screen height, causing a sky-coloured strip visible from the south river bank.
+    { x: 4, y: 2, width: 50, height: 85, elevation: 1 },
     // === TIER 1: West hidden grove hill ===
     // Width reaches x=111 so the south cliff meets the ranger plateau (x=112) with no el0 gap
     // players could slip through to bypass the Disparaged Cottage / gate arc.
@@ -2159,10 +2155,7 @@ export const forestDef: MapDefinition = {
     // Hollow approach stair landing ? armored wolves on the grass shelf (world ~-38,-38).
     { x: 106, y: 111, width: 9, height: 2, enemyType: 'armored_wolf', count: 2, patrolRadius: 0.8 },
     { x: 86, y: 116, width: 20, height: 14, enemyType: 'wolf', count: 3 },
-    // Stone Sentinels now guard the deeper cliff sanctum past the Iron Gate / Cliff Ledge route.
-    // Keep them clearly outside the Cliff Ledge Approach bonfire sanctuary so they read as
-    // checkpoint-adjacent threats rather than inert safe-zone statues.
-    { x: 177, y: 190, width: 1, height: 1, enemyType: 'stone_sentinel', count: 1 },
+    // Stone Sentinel guards the deeper cliff sanctum east of the Iron Gate / Cliff Ledge route.
     { x: 209, y: 190, width: 1, height: 1, enemyType: 'stone_sentinel', count: 1 },
     // Cliff inlet back wall (world ~-46,41 / tile ~108,191) ??? Hollow Shade lurking deep.
     // Very tight chaseRange (2.8) ??? only aggros on direct approach; easily missed.

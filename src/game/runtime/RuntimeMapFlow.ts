@@ -278,7 +278,7 @@ export function createRuntimeMapFlow({
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
     const shortcutOpen = state.getFlag('quarry_bank_shortcut_open');
-    for (let ty = 219; ty <= 224; ty++) {
+    for (let ty = 221; ty <= 224; ty++) {
       const existing = map.tiles[ty]?.[205];
       if (!existing) continue;
       map.tiles[ty][205] = shortcutOpen
@@ -919,6 +919,7 @@ export function createRuntimeMapFlow({
     const REVENANT_CHEST_SITES = [
       { clearedFlag: 'ritual_revenant_west_cleared', interactionId: 'revenant_west_terminus_chest', anchorX: 18, anchorY: 147 },
       { clearedFlag: 'ritual_revenant_precipice_cleared', interactionId: 'revenant_precipice_terminus_chest', anchorX: 227, anchorY: 12 },
+      { clearedFlag: 'ridge_revenant_defeated', interactionId: 'revenant_east_terminus_chest', anchorX: 262, anchorY: 140 },
     ] as const;
     for (const site of REVENANT_CHEST_SITES) {
       const row = map.tiles[site.anchorY];
@@ -1805,7 +1806,7 @@ export function createRuntimeMapFlow({
 
     const PREPLACED: Array<{ itemId: string; collectedFlag: string; mapId: string; x: number; y: number; prerequisiteFlag?: string }> = [
       { itemId: 'manuscript_fragment', collectedFlag: 'manuscript_fragment_collected', mapId: 'interior_hunter_cottage', x: 0.5, y: -0.5 },
-      { itemId: 'hunters_manuscript', collectedFlag: 'hunters_manuscript_collected', mapId: 'forest', x: 63, y: -80 },
+      { itemId: 'evacuation_order', collectedFlag: 'evacuation_order_collected', mapId: 'forest', x: 63, y: -80 },
     ];
     for (const entry of PREPLACED) {
       if (state.getFlag(entry.collectedFlag)) continue;

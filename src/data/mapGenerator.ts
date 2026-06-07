@@ -1458,7 +1458,7 @@ function placeGraveyard(tiles: Tile[][], f: MapFeature) {
       const ty = f.y + dy;
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         if (dx % 3 === 1 && dy % 3 === 1) {
-          tiles[ty][tx] = createTile('tombstone', false, { interactable: true, interactionId: 'tombstone' });
+          tiles[ty][tx] = createTile('tombstone', false);
         } else {
           tiles[ty][tx] = createTile('dirt', true);
         }
@@ -1915,12 +1915,12 @@ function placeCemetery(tiles: Tile[][], f: MapFeature) {
         } else if (hash < 40) {
           tiles[ty][tx] = createTile(crackedVariant, false);
         } else {
-          tiles[ty][tx] = createTile('tombstone', false, { interactable: true, interactionId: 'tombstone' });
+          tiles[ty][tx] = createTile('tombstone', false);
         }
       } else if (dx % 4 === 3 && dy % 4 === 3 && hash < 35) {
         tiles[ty][tx] = hash < 18
           ? createTile(crackedVariant, false)
-          : createTile('tombstone', false, { interactable: true, interactionId: 'tombstone' });
+          : createTile('tombstone', false);
       } else if ((dx + dy * 3) % 17 === 0) {
         tiles[ty][tx] = createTile('bones', true);
       } else if ((dx * 11 + dy * 5 + f.x) % 23 === 0) {
@@ -3069,6 +3069,20 @@ function applyElevationZones(tiles: Tile[][], def: MapDefinition) {
         if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
         tiles[ty][tx].elevation = zone.elevation;
       }
+    }
+  }
+}
+
+function normalizeWhisperingWoodsSoutheastCreekWaterElevation(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // The southeast creek and west-lake connector pass beside two elevated hill zones.
+  // Keep the authored water/bridge surface flat so elevation seams cannot cut through it.
+  for (let ty = 232; ty <= 264; ty++) {
+    for (let tx = 184; tx <= 250; tx++) {
+      const tile = tiles[ty]?.[tx];
+      if (!tile || !WATER_BRIDGE_TILES.has(tile.type)) continue;
+      tiles[ty][tx] = { ...tile, elevation: 0 };
     }
   }
 }
@@ -4657,6 +4671,19 @@ function enforceWhisperingWoodsEastDirtSpineBreak(tiles: Tile[][], def: MapDefin
   }
 }
 
+/** Hunter cliff-1 east face — seal y=196–199 (world y=46–49) at x=106–121; cliff body not cliff_edge. */
+function enforceWhisperingWoodsHunterShelfEastLip(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  for (let ty = 196; ty <= 199; ty++) {
+    for (let tx = 106; tx <= 121; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const tile = tiles[ty][tx];
+      if (!tile || tile.transition || tile.interactable) continue;
+      tiles[ty][tx] = createTile('cliff', false, { elevation: tile.elevation ?? 0 });
+    }
+  }
+}
+
 /** Auto-mark spinePath on walkable grass/dirt tiles bordering a ±1 elevation neighbour of the same type. */
 function enforceWalkableElevationSeamCrossings(tiles: Tile[][], def: MapDefinition) {
   if (def.name !== 'Whispering Woods') return;
@@ -4749,6 +4776,7 @@ export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
   }
 
   applyElevationZones(tiles, def);
+  normalizeWhisperingWoodsSoutheastCreekWaterElevation(tiles, def);
   stampCliffs(tiles, def);
   // Second decoration cleanup: catches non-interactable decor that ended up adjacent
   // to cliffs after stampCliffs ran (pre-cliff cleanup couldn't see those yet).
@@ -4808,6 +4836,7 @@ export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
   scrubWhisperingWoodsPrecipiceReserveSouthSeam(tiles, def);
   scrubWhisperingWoodsPrecipiceAltarDeadTrees(tiles, def);
   enforceWhisperingWoodsPrecipiceSpineCliffCover(tiles, def);
+  enforceWhisperingWoodsHunterShelfEastLip(tiles, def);
 
   validateMapTransitions(tiles, def);
   validateAuthoredPlacements(tiles, def);

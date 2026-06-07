@@ -61,13 +61,13 @@ export function getInteractionPromptLabel(
     return state.getFlag('quarry_bank_shortcut_open') ? 'Shortcut Unlocked' : 'Unbar Quarry Gate';
   }
   if (interactionId === 'quarry_bank_gate_sealed') {
-    return 'No lever on this side';
+    return 'Must open another way';
   }
   if (interactionId === 'west_cliff_gate_lever') {
     return state.getFlag('west_cliff_gate_open') ? 'Gate Opened' : 'Lift Bar';
   }
   if (interactionId === 'west_cliff_gate_sealed') {
-    return 'No mechanism on this side';
+    return 'Must open another way';
   }
   if (interactionId === 'riverside_bridge_shortcut_lever') {
     return state.getFlag('riverside_bridge_shortcut_open') ? 'Shortcut Unlocked' : 'Lower Bridge';
@@ -76,13 +76,13 @@ export function getInteractionPromptLabel(
     return state.getFlag('hollow_shortcut_open') ? 'Shortcut Unlocked' : 'Unbar Hollow Gate';
   }
   if (interactionId === 'hollow_gate_sealed') {
-    return 'No lever on this side';
+    return 'Must open another way';
   }
   if (interactionId === 'east_hollow_route_gate_lever') {
     return state.getFlag('east_hollow_route_gate_open') ? 'Shortcut Unlocked' : 'Unbar Route Gate';
   }
   if (interactionId === 'east_hollow_route_gate_sealed') {
-    return 'No lever on this side';
+    return 'Must open another way';
   }
 
   if (criticalItemInteractionIds.has(interactionId)) {
