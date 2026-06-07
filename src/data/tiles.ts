@@ -152,8 +152,21 @@ const QUARRY_CRANE_FOUNDATION: TileMetadata['foundation'] = {
   ],
 };
 
+// Memorial column — only the plinth blocks; the slender shaft + finial render OVER the
+// player (clocktower-style silhouette mask) so it reads tall without a fat footprint.
+const MEMORIAL_COLUMN_FOUNDATION: TileMetadata['foundation'] = {
+  walkable: false,
+  rows: [
+    { y: -1, xMin: -1, xMax: 1 },
+    { y: 0, xMin: -1, xMax: 1 },
+    { y: 1, xMin: -1, xMax: 1 },
+  ],
+};
+
 export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
-  tree: { isOverlay: true, baseTile: 'grass', scale: 2.25, sortTrim: 0.12 },
+  tree:   { isOverlay: true, baseTile: 'grass', scale: 2.25, sortTrim: 0.12 },
+  tree_b: { isOverlay: true, baseTile: 'grass', scale: 2.55, sortTrim: 0.13 }, // denser spreading oak
+  tree_c: { isOverlay: true, baseTile: 'grass', scale: 1.85, sortTrim: 0.10 }, // slender young tree
   house: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1, foundation: HOUSE_BODY_FOUNDATION },
   house_entry: { isOverlay: true, baseTile: 'dirt', scale: 3.95, sortTrim: 0.26, yOffset: 0.7, foundation: HOUSE_ENTRY_FOUNDATION },
   house_blue: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.14, yOffset: -0.1, foundation: HOUSE_BODY_FOUNDATION },
@@ -196,9 +209,13 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   tombstone_broken: { isOverlay: true, baseTile: 'dirt', scale: 0.88, sortTrim: 0.16 },
   tombstone_cracked_v: { isOverlay: true, baseTile: 'dirt', scale: 0.88, sortTrim: 0.16 },
   mushroom: { isOverlay: true, baseTile: 'grass', scale: 0.52, sortTrim: 0.2 },
-  stump: { isOverlay: true, baseTile: 'grass', scale: 0.75, sortTrim: 0.16 },
-  fallen_log: { isOverlay: true, baseTile: 'grass', scale: 1.6, sortTrim: 0.18 },
-  fallen_log_v: { isOverlay: true, baseTile: 'grass', scale: 1.6, sortTrim: 0.18 },
+  stump:          { isOverlay: true, baseTile: 'grass', scale: 0.75, sortTrim: 0.16 },
+  stump_b:        { isOverlay: true, baseTile: 'grass', scale: 0.62, sortTrim: 0.14 }, // smaller mossy stump
+  stump_c:        { isOverlay: true, baseTile: 'grass', scale: 0.90, sortTrim: 0.18 }, // larger fresh-cut stump
+  fallen_log:     { isOverlay: true, baseTile: 'grass', scale: 1.6,  sortTrim: 0.18 },
+  fallen_log_b:   { isOverlay: true, baseTile: 'grass', scale: 1.35, sortTrim: 0.16 }, // shorter broken piece
+  fallen_log_v:   { isOverlay: true, baseTile: 'grass', scale: 1.6,  sortTrim: 0.18 },
+  fallen_log_v_b: { isOverlay: true, baseTile: 'grass', scale: 1.35, sortTrim: 0.16 }, // shorter vertical piece
   ridge_lumberyard: { isOverlay: true, baseTile: 'grass', scale: 4.7, sortTrim: 0.26, yOffset: 0.72, foundation: RIDGE_LUMBERYARD_FOUNDATION },
   // Stone quarry asset set — cut-stone props anchored on stone/quarry_floor ground.
   quarry_crane: { isOverlay: true, baseTile: 'quarry_floor', scale: 3.3, sortTrim: 0.24, yOffset: 0.66, foundation: QUARRY_CRANE_FOUNDATION },
@@ -213,7 +230,9 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   crate: { isOverlay: true, baseTile: 'wood', scale: 0.7, sortTrim: 0.16 },
   spike_trap: { isOverlay: true, baseTile: 'stone', scale: 0.8, sortTrim: 0.2 },
   bones: { isOverlay: true, baseTile: 'dirt', scale: 0.5, sortTrim: 0.18 },
-  dead_tree: { isOverlay: true, baseTile: 'ash', scale: 1.9, sortTrim: 0.1 },
+  dead_tree:   { isOverlay: true, baseTile: 'ash', scale: 1.9,  sortTrim: 0.1 },
+  dead_tree_b: { isOverlay: true, baseTile: 'ash', scale: 1.65, sortTrim: 0.1 }, // asymmetric, lost left limb
+  dead_tree_c: { isOverlay: true, baseTile: 'ash', scale: 2.15, sortTrim: 0.1 }, // struck crown, low branch
   destroyed_house: { isOverlay: true, baseTile: 'ruins_floor', scale: 2.0, sortTrim: 0.1 },
   destroyed_house_rubble: { isOverlay: true, baseTile: 'ruins_floor', scale: 2.0, sortTrim: 0.1 },
   destroyed_house_overgrown: { isOverlay: true, baseTile: 'ruins_floor', scale: 2.0, sortTrim: 0.1 },
@@ -234,7 +253,9 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   lantern: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.14 },
   // Stands tall as a billboard reed clump (not a flat decal); scale + yOffset lift it well above
   // the tile so dense fills read as a wall of grass the player wades through / chops down.
-  tall_grass: { isOverlay: true, baseTile: 'grass', scale: 1.7, sortTrim: 0.3, yOffset: 0.5 },
+  tall_grass:   { isOverlay: true, baseTile: 'grass', scale: 1.70, sortTrim: 0.3, yOffset: 0.5 },
+  tall_grass_b: { isOverlay: true, baseTile: 'grass', scale: 1.64, sortTrim: 0.3, yOffset: 0.5 }, // very slightly shorter
+  tall_grass_c: { isOverlay: true, baseTile: 'grass', scale: 1.76, sortTrim: 0.3, yOffset: 0.5 }, // very slightly taller
   wheat: { isOverlay: true, baseTile: 'farmland', scale: 0.95, sortTrim: 0.24 },
   wagon: { isOverlay: true, baseTile: 'dirt', scale: 2.4, sortTrim: 0.1 },
   cart: { isOverlay: true, baseTile: 'dirt', scale: 1.6, sortTrim: 0.14 },
@@ -289,6 +310,11 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   broken_stall: { isOverlay: true, baseTile: 'cobblestone', scale: 1.8, sortTrim: 0.12 },
   crate_stack: { isOverlay: true, baseTile: 'cobblestone', scale: 1.2, sortTrim: 0.1 },
   barrel_stack: { isOverlay: true, baseTile: 'cobblestone', scale: 1.2, sortTrim: 0.1 },
+  // Burning barricade — a low, wide pile; collision is the single placed tile (walkable:false
+  // in the prop entry), so authors span a street by placing a short run of them side by side.
+  burning_barricade: { isOverlay: true, baseTile: 'cobblestone', scale: 1.7, sortTrim: 0.14, yOffset: 0.12 },
+  // Memorial column — tall civic landmark; plinth blocks, shaft renders over the player.
+  memorial_column: { isOverlay: true, baseTile: 'cobblestone', scale: 3.4, sortTrim: 0.32, yOffset: 2.2, foundation: MEMORIAL_COLUMN_FOUNDATION },
   chimney: { isOverlay: true, baseTile: 'roof_tile', scale: 1.0, sortTrim: 0.14 },
   observatory: {
     isOverlay: true,

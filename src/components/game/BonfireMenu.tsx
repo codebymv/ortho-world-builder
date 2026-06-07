@@ -52,33 +52,61 @@ const STAT_INFO: Record<string, { label: string; description: string }> = {
 
 const BONFIRE_NPC_RADIUS = 30;
 
-function countNearbyNpcs(gameState: GameState, entry: BonfireEntry): number {
+function countNearbyNpcs(gameState: GameState, entry: BonfireEntry): { merchants: number; regular: number } {
   const bonfirePos = bonfireEntryWorldPosition(entry);
   const radiusSq = BONFIRE_NPC_RADIUS * BONFIRE_NPC_RADIUS;
 
-  return gameState.npcs.filter(npc => {
-    if (npc.mapId && npc.mapId !== entry.mapId) return false;
+  let merchants = 0;
+  let regular = 0;
+  for (const npc of gameState.npcs) {
+    if (npc.mapId && npc.mapId !== entry.mapId) continue;
     const dx = npc.position.x - bonfirePos.x;
     const dy = npc.position.y - bonfirePos.y;
-    return dx * dx + dy * dy <= radiusSq;
-  }).length;
+    if (dx * dx + dy * dy > radiusSq) continue;
+    if (npc.sprite === 'npc_merchant') merchants++;
+    else regular++;
+  }
+  return { merchants, regular };
 }
 
-const NearbyNpcBadge = ({ count }: { count: number }) => {
-  if (count <= 0) return null;
+const MerchantIcon = () => (
+  <span className="relative inline-block leading-none text-[#DAA520]">
+    <User className="h-[18px] w-[18px]" strokeWidth={2.2} />
+    <span
+      className="absolute bottom-[-2px] right-[-3px] flex items-center justify-center w-[10px] h-[10px] rounded-full bg-[#1A0F0A] text-[#DAA520] text-[9px] font-black leading-none"
+      style={{ border: '1px solid #DAA520' }}
+    >
+      $
+    </span>
+  </span>
+);
 
-  const visibleIcons = Math.min(count, 3);
+const NearbyNpcBadge = ({ merchants, regular }: { merchants: number; regular: number }) => {
+  const total = merchants + regular;
+  if (total <= 0) return null;
+
+  const visibleMerchants = Math.min(merchants, 2);
+  const visibleRegular = Math.min(regular, 3 - visibleMerchants);
+  const overflow = total - visibleMerchants - visibleRegular;
+
+  const parts: string[] = [];
+  if (merchants > 0) parts.push(`${merchants} merchant${merchants === 1 ? '' : 's'}`);
+  if (regular > 0) parts.push(`${regular} NPC${regular === 1 ? '' : 's'}`);
+
   return (
     <span
       className="ml-2 inline-flex shrink-0 items-center gap-0.5 text-[#B8A590]"
-      title={`${count} nearby NPC${count === 1 ? '' : 's'}`}
-      aria-label={`${count} nearby NPC${count === 1 ? '' : 's'}`}
+      title={parts.join(', ')}
+      aria-label={parts.join(', ')}
     >
-      {Array.from({ length: visibleIcons }, (_, i) => (
-        <User key={i} className="h-3.5 w-3.5" strokeWidth={2.4} />
+      {Array.from({ length: visibleMerchants }, (_, i) => (
+        <MerchantIcon key={`m${i}`} />
       ))}
-      {count > visibleIcons && (
-        <span className="ml-0.5 text-[10px] font-bold normal-case tracking-normal">+{count - visibleIcons}</span>
+      {Array.from({ length: visibleRegular }, (_, i) => (
+        <User key={`n${i}`} className="h-[18px] w-[18px]" strokeWidth={2.2} />
+      ))}
+      {overflow > 0 && (
+        <span className="ml-0.5 text-[10px] font-bold normal-case tracking-normal">+{overflow}</span>
       )}
     </span>
   );
@@ -213,7 +241,7 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
 
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 pointer-events-auto">
-        <div className="bg-[#1A0F0A]/95 border-2 border-[#8B5A2B] rounded-lg p-8 max-w-xl w-full mx-4 shadow-2xl animate-scale-in">
+        <div className="bg-[#1A0F0A]/95 border-2 border-[#8B5A2B] rounded-lg p-8 max-w-2xl w-full mx-4 shadow-2xl animate-scale-in">
 
           <div className="flex items-baseline justify-between mb-5">
             <h2 className="text-base font-bold text-[#DAA520] uppercase tracking-[0.25em]">
@@ -226,10 +254,10 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
 
           <div className="border-t border-[#3A2215] mb-4" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[3px] mb-5">
+          <div className="grid grid-cols-1 gap-[3px] mb-5">
             {kindled.map(entry => {
               const isCurrent = isCurrentBonfire(entry);
-              const nearbyNpcCount = countNearbyNpcs(gameState, entry);
+              const nearbyNpcs = countNearbyNpcs(gameState, entry);
               return (
                 <button
                   key={entry.id}
@@ -241,7 +269,7 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
                       : 'border-[#3A2215] text-[#F5DEB3] hover:bg-[#2D1B11] hover:border-[#8B5A2B] hover:text-[#FFD98A]'
                   }`}
                 >
-                  <span className="min-w-0 truncate">
+                  <span className="min-w-0">
                     {entry.name}
                     {isCurrent && (
                       <span className="ml-2 text-[10px] normal-case tracking-normal text-[#8B7355]">
@@ -249,9 +277,9 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
                       </span>
                     )}
                   </span>
-                  {nearbyNpcCount > 0 && (
-                    <span className={`shrink-0 ${isCurrent ? 'text-[#8B7355]' : ''}`}>
-                      <NearbyNpcBadge count={nearbyNpcCount} />
+                  {(nearbyNpcs.merchants + nearbyNpcs.regular) > 0 && (
+                    <span className={`shrink-0 ${isCurrent ? 'opacity-50' : ''}`}>
+                      <NearbyNpcBadge merchants={nearbyNpcs.merchants} regular={nearbyNpcs.regular} />
                     </span>
                   )}
                 </button>

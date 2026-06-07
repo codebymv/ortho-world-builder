@@ -24,12 +24,30 @@ import {
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { PlayerFaceMapIcon } from '@/components/game/PlayerFaceMapIcon';
+import { OverworldMap } from '@/components/game/OverworldMap';
+
+type MapView = 'region' | 'overworld';
 
 const DYNAMIC_PRIMARY_MARKER_IDS = new Set([MANUSCRIPT_PRIMARY_MARKER_ID, VILLAGE_PRIMARY_MARKER_ID]);
 const HIDE_MARKER_IDS_WHEN_PRIMARY = new Set(['forest_Disparaged Cottage', 'village_Village Elder']);
 const MIN_MAP_ZOOM = 1;
 const MAX_MAP_ZOOM = 6;
 const MAP_ZOOM_STEP = 1.25;
+
+const MAP_TERRAIN_CACHE = new Map<string, HTMLCanvasElement>();
+const MAP_TERRAIN_CACHE_LIMIT = 4;
+
+function rememberMapTerrainCache(key: string, source: HTMLCanvasElement): void {
+  if (MAP_TERRAIN_CACHE.size >= MAP_TERRAIN_CACHE_LIMIT) {
+    const oldest = MAP_TERRAIN_CACHE.keys().next().value;
+    if (oldest) MAP_TERRAIN_CACHE.delete(oldest);
+  }
+  const cached = document.createElement('canvas');
+  cached.width = source.width;
+  cached.height = source.height;
+  cached.getContext('2d')?.drawImage(source, 0, 0);
+  MAP_TERRAIN_CACHE.set(key, cached);
+}
 
 interface MapModalProps {
   open: boolean;
@@ -61,6 +79,7 @@ export const MapModal = memo(function MapModal({
   const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState<MapView>('region');
   const [viewport, setViewport] = useState({ w: 640, h: 480 });
   const [zoom, setZoom] = useState(MIN_MAP_ZOOM);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -114,6 +133,7 @@ export const MapModal = memo(function MapModal({
 
   useEffect(() => {
     resetView();
+    if (open) setView('region');
   }, [currentMapId, open, resetView]);
 
   useEffect(() => {
@@ -174,6 +194,23 @@ export const MapModal = memo(function MapModal({
       return true;
     }
 
+    const cached = MAP_TERRAIN_CACHE.get(terrainDrawKey);
+    if (
+      cached &&
+      cached.width === canvasWidth &&
+      cached.height === canvasHeight
+    ) {
+      terrainCanvas.width = canvasWidth;
+      terrainCanvas.height = canvasHeight;
+      overlayCanvas.width = canvasWidth;
+      overlayCanvas.height = canvasHeight;
+      const ctx = terrainCanvas.getContext('2d', { alpha: false });
+      if (!ctx) return false;
+      ctx.drawImage(cached, 0, 0);
+      terrainDrawKeyRef.current = terrainDrawKey;
+      return true;
+    }
+
     terrainCanvas.width = canvasWidth;
     terrainCanvas.height = canvasHeight;
     overlayCanvas.width = canvasWidth;
@@ -194,19 +231,46 @@ export const MapModal = memo(function MapModal({
       assetManager,
     });
     terrainDrawKeyRef.current = terrainDrawKey;
+    rememberMapTerrainCache(terrainDrawKey, terrainCanvas);
     perfProfiler?.recordExternal('mapTerrain', performance.now() - start);
     return true;
   }, [canvasWidth, canvasHeight, currentMap, currentMapId, gameStateRef, visitedTilesRef, scale, assetManager, perfProfiler]);
 
+  const scheduleTerrainDraw = useCallback(() => {
+    let cancelled = false;
+    let rafId = 0;
+    const attempt = () => {
+      if (cancelled) return;
+      if (!drawTerrain()) rafId = requestAnimationFrame(attempt);
+    };
+    rafId = requestAnimationFrame(() => {
+      rafId = requestAnimationFrame(attempt);
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+    };
+  }, [drawTerrain]);
+
   useEffect(() => {
     if (!open) return;
-    // Canvas refs may be null on the first effect pass when the Dialog portal
-    // hasn't mounted yet. Retry after a frame if the initial draw fails.
-    if (!drawTerrain()) {
-      const id = requestAnimationFrame(() => { drawTerrain(); });
-      return () => cancelAnimationFrame(id);
+    return scheduleTerrainDraw();
+  }, [open, scheduleTerrainDraw, refreshToken]);
+
+  // Pre-warm terrain while the map is closed so M opens on a cached bitmap.
+  useEffect(() => {
+    if (open) return;
+    const warm = () => {
+      drawTerrain();
+    };
+    const ric = window.requestIdleCallback?.bind(window);
+    if (ric) {
+      const idleId = ric(warm, { timeout: 1500 });
+      return () => window.cancelIdleCallback(idleId);
     }
-  }, [open, drawTerrain, refreshToken]);
+    const timeoutId = window.setTimeout(warm, 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [open, drawTerrain, refreshToken, currentMapId]);
 
   useEffect(() => {
     if (!open) return;
@@ -390,17 +454,42 @@ export const MapModal = memo(function MapModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        forceMount
+        instant
         onOpenAutoFocus={e => e.preventDefault()}
         className={cn(
-          'z-[85] flex max-h-[min(92vh,900px)] w-[min(96vw,1100px)] max-w-[min(96vw,1100px)] flex-col gap-3 border-2 border-[#5C3A21] bg-[#120A08]/97 p-4 text-left shadow-2xl backdrop-blur-md sm:rounded-sm'
+          'z-[85] flex max-h-[min(92vh,900px)] w-[min(96vw,1100px)] max-w-[min(96vw,1100px)] flex-col gap-3 border-2 border-[#5C3A21] bg-[#120A08]/97 p-4 text-left shadow-2xl backdrop-blur-md sm:rounded-sm',
+          !open && 'pointer-events-none invisible',
         )}
       >
-        <DialogTitle className="sr-only">Region map — {currentMap.name}</DialogTitle>
+        <DialogTitle className="sr-only">
+          {view === 'overworld' ? 'Zrasa Peninsula Map' : `Region map — ${currentMap.name}`}
+        </DialogTitle>
         <div className="flex flex-shrink-0 flex-wrap items-end justify-between gap-2 border-b border-[#5C3A21]/60 pb-2 pr-12">
-          <div>
-            <h2 className="font-bold uppercase tracking-[0.2em] text-[#DAA520]">{currentMap.name}</h2>
+          <div className="flex flex-col gap-2">
+            <h2 className="font-bold uppercase tracking-[0.2em] text-[#DAA520]">
+              {view === 'overworld' ? 'Zrasa Peninsula' : currentMap.name}
+            </h2>
+            <div className="flex w-fit items-center gap-1 rounded border border-[#5C3A21] bg-[#1A0F0A] p-0.5">
+              {(['region', 'overworld'] as const).map(tab => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setView(tab)}
+                  aria-pressed={view === tab}
+                  className={cn(
+                    'rounded px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors focus:outline-none focus:ring-1 focus:ring-[#DAA520]',
+                    view === tab
+                      ? 'bg-[#3A2118] text-[#DAA520]'
+                      : 'text-[#F5DEB3]/60 hover:text-[#F5DEB3]',
+                  )}
+                >
+                  {tab === 'region' ? 'Region' : 'Overworld'}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className={cn('flex items-center gap-3', view === 'overworld' && 'hidden')}>
             <span className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-2 py-1 font-mono text-sm text-[#DAA520]">
               X: {Math.round(gameStateRef.current?.player.position.x ?? 0)} Y: {Math.round(gameStateRef.current?.player.position.y ?? 0)}
             </span>
@@ -439,42 +528,59 @@ export const MapModal = memo(function MapModal({
 
         <div
           ref={wrapRef}
-          onWheel={handleWheel}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerEnd}
-          onPointerCancel={handlePointerEnd}
-          className="relative flex min-h-[min(55vh,520px)] flex-1 cursor-grab select-none items-center justify-center overflow-hidden rounded-sm border-2 border-[#3a2812] bg-[#050302] p-2 active:cursor-grabbing"
-          style={{ touchAction: 'none' }}
+          className="relative flex min-h-[min(55vh,520px)] flex-1 items-center justify-center overflow-hidden rounded-sm border-2 border-[#3a2812] bg-[#050302] p-2"
         >
           <div
-            className="relative max-h-full max-w-full shadow-inner"
-            style={{
-              width: canvasWidth,
-              height: canvasHeight,
-              maxWidth: '100%',
-              maxHeight: '100%',
-              aspectRatio: `${currentMap.width} / ${currentMap.height}`,
-              transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
-              transformOrigin: 'center',
-            }}
+            onWheel={handleWheel}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerEnd}
+            onPointerCancel={handlePointerEnd}
+            className={cn(
+              'relative flex max-h-full max-w-full cursor-grab select-none active:cursor-grabbing',
+              view === 'overworld' && 'hidden',
+            )}
+            style={{ touchAction: 'none' }}
           >
-            <canvas
-              ref={terrainCanvasRef}
-              className="absolute inset-0 block h-full w-full pixelated"
-              style={{ imageRendering: 'pixelated' }}
-              aria-hidden
-            />
-            <canvas
-              ref={overlayCanvasRef}
-              className="pointer-events-none absolute inset-0 block h-full w-full pixelated"
-              style={{ imageRendering: 'pixelated' }}
-              aria-hidden
+            <div
+              className="relative max-h-full max-w-full shadow-inner"
+              style={{
+                width: canvasWidth,
+                height: canvasHeight,
+                maxWidth: '100%',
+                maxHeight: '100%',
+                aspectRatio: `${currentMap.width} / ${currentMap.height}`,
+                transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+                transformOrigin: 'center',
+              }}
+            >
+              <canvas
+                ref={terrainCanvasRef}
+                className="absolute inset-0 block h-full w-full pixelated"
+                style={{ imageRendering: 'pixelated' }}
+                aria-hidden
+              />
+              <canvas
+                ref={overlayCanvasRef}
+                className="pointer-events-none absolute inset-0 block h-full w-full pixelated"
+                style={{ imageRendering: 'pixelated' }}
+                aria-hidden
+              />
+            </div>
+          </div>
+
+          <div className={cn('relative flex max-h-full max-w-full', view === 'region' && 'hidden')}>
+            <OverworldMap
+              currentMapId={currentMapId}
+              gameStateRef={gameStateRef}
+              refreshToken={refreshToken}
+              displayWidth={canvasWidth}
+              displayHeight={canvasHeight}
             />
           </div>
         </div>
 
-        <div className="flex-shrink-0 border-t border-[#5C3A21]/50 pt-3">
+        <div className={cn('flex-shrink-0 border-t border-[#5C3A21]/50 pt-3', view === 'overworld' && 'hidden')}>
           <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#DAA520]/90">Map key</p>
           <div className="grid grid-cols-1 gap-1.5 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
             {legendEntries.map(entry => (

@@ -21,7 +21,12 @@ export const interiorHollowArenaDef: MapDefinition = {
     { x: 13, y: 13, width: 10, height: 10, type: 'clearing', fill: 'ruins_floor' },
   ],
   portals: [],
-  chests: [],
+  chests: [
+    // Post-boss reward — Crystal Greatsword. East side of the inner ruins area, reachable
+    // after the Apparition falls. No flag gate needed: the arena exit portal only opens on
+    // hollow_guardian_defeated, so the player cannot leave without killing the boss.
+    { x: 24, y: 16, interactionId: 'boss_arena_chest' },
+  ],
   interactables: [],
   props: [
     { x: 10, y: 10, type: 'statue', walkable: false },

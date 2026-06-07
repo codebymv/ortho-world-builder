@@ -5,13 +5,13 @@ import { isPositionInBonfireSafeZone } from '@/game/runtime/bonfireCombatGuard';
 
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'water_corrupted' | 'stone' | 'wood' 
-  | 'tree' | 'house' | 'house_entry' | 'house_blue' | 'house_blue_entry' | 'house_green' | 'house_green_entry' | 'house_thatch' | 'house_thatch_entry' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'cottage_house_ranger' | 'rock' | 'chest' | 'chest_opened' | 'special_chest' | 'special_chest_opened' | 'portal' | 'flower' | 'moonbloom' | 'tempest_grass'
-  | 'tall_grass' | 'bridge' | 'bridge_corrupted' | 'bridge_folded' | 'sand' | 'swamp' | 'lava' | 'ice'
+  | 'tree' | 'tree_b' | 'tree_c' | 'house' | 'house_entry' | 'house_blue' | 'house_blue_entry' | 'house_green' | 'house_green_entry' | 'house_thatch' | 'house_thatch_entry' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'cottage_house_ranger' | 'rock' | 'chest' | 'chest_opened' | 'special_chest' | 'special_chest_opened' | 'portal' | 'flower' | 'moonbloom' | 'tempest_grass'
+  | 'tall_grass' | 'tall_grass_b' | 'tall_grass_c' | 'bridge' | 'bridge_corrupted' | 'bridge_folded' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
-  | 'campfire' | 'campfire_remains' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'tombstone_broken' | 'tombstone_cracked_v' | 'mushroom' | 'stump'
+  | 'campfire' | 'campfire_remains' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'tombstone_broken' | 'tombstone_cracked_v' | 'mushroom' | 'stump' | 'stump_b' | 'stump_c'
   | 'fence' | 'gate' | 'barrel' | 'crate' | 'spike_trap' | 'bones'
   | 'volcanic_rock' | 'ash' | 'ruins_floor' | 'waterfall' | 'snow'
-  | 'dead_tree' | 'destroyed_house' | 'destroyed_house_rubble' | 'destroyed_house_overgrown' | 'broken_sign' | 'statue'
+  | 'dead_tree' | 'dead_tree_b' | 'dead_tree_c' | 'destroyed_house' | 'destroyed_house_rubble' | 'destroyed_house_overgrown' | 'broken_sign' | 'statue'
   | 'cliff' | 'cliff_edge' | 'cliff_corrupted' | 'cliff_edge_corrupted' | 'cobblestone' | 'farmland' | 'wheat'
   | 'iron_fence' | 'hedge' | 'scarecrow' | 'windmill' | 'hay_bale' | 'lantern'
   | 'dark_grass' | 'hollow_blight' | 'mossy_stone' | 'ruined_fort_wall' | 'ruined_fort_wall_mossy' | 'wooden_path' | 'stairs' | 'ladder' | 'curled_ladder' | 'gate_ladder' | 'gate_ladder_open'
@@ -32,11 +32,13 @@ export type TileType =
   | 'baby_carriage' | 'stagecoach' | 'street_sign' | 'road_setts'
   | 'street_lamp' | 'iron_railing' | 'fountain' | 'pillar' | 'sewer_grate' | 'hanging_sign' | 'wall_torch' | 'awning'
   | 'rubble' | 'broken_stall' | 'crate_stack' | 'barrel_stack' | 'chimney'
+  // Guilrhym fallen-city dressing — a burning street barricade + a civic memorial column landmark
+  | 'burning_barricade' | 'memorial_column'
   | 'cottage_shed'
   | 'blighted_stump'
   | 'observatory'
-  | 'fallen_log'
-  | 'fallen_log_v'
+  | 'fallen_log' | 'fallen_log_b'
+  | 'fallen_log_v' | 'fallen_log_v_b'
   | 'ridge_lumberyard'
   | 'quarry_floor' | 'quarry_bedrock' | 'quarry_crane' | 'cut_stone_blocks' | 'quarry_cart' | 'quarry_rubble' | 'quarry_tools';
 

@@ -4063,6 +4063,12 @@ function enforceEastRidgeAscent(tiles: Tile[][], def: MapDefinition) {
     [252, 130, 'bones', true, 1],
     // Upper switchback (C3) — a dead tree clinging to the rock at the NW dead corner.
     [241, 134, 'dead_tree', false, 1],
+    // Boulder containment at the lane summit (tile 242,134 = world 92,−16).
+    // The skeleton guard breaks this loose; the crate and rubble read as the wooden
+    // cradle that was holding the boulder in place.
+    [242, 134, 'crate',     false, 1],
+    [243, 134, 'rubble',    true,  1],
+    [243, 135, 'bones',     true,  1],
     // Long west descent (C4), the boulder lane — rockfall debris and old bloodstains.
     [242, 143, 'bloodstain', true, 1],
     [243, 145, 'rubble', true, 1],
@@ -4734,6 +4740,33 @@ function applyAuthoredSpinePathFlags(tiles: Tile[][], def: MapDefinition) {
   }
 }
 
+/**
+ * After all placement and scrub functions have run, distribute live 'tree' and
+ * 'tall_grass' tiles across their kit variants using a deterministic position hash.
+ * The same map always produces the same distribution; no runtime RNG required.
+ * Only the Whispering Woods forest map runs this pass.
+ */
+function randomizeForestTreeVariants(tiles: Tile[][], def: MapDefinition): void {
+  if (def.name !== 'Whispering Woods') return;
+  for (let ty = 0; ty < tiles.length; ty++) {
+    const row = tiles[ty];
+    if (!row) continue;
+    for (let tx = 0; tx < row.length; tx++) {
+      const tile = row[tx];
+      if (!tile) continue;
+      // Deterministic hash — same coordinates always yield the same variant.
+      const hash = (((tx * 2654435761) ^ (ty * 2246822519)) >>> 0) % 3;
+      if (tile.type === 'tree') {
+        if (hash === 1) row[tx] = { ...tile, type: 'tree_b' };
+        else if (hash === 2) row[tx] = { ...tile, type: 'tree_c' };
+      } else if (tile.type === 'tall_grass') {
+        if (hash === 1) row[tx] = { ...tile, type: 'tall_grass_b' };
+        else if (hash === 2) row[tx] = { ...tile, type: 'tall_grass_c' };
+      }
+    }
+  }
+}
+
 export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
   const tiles = generateBaseTerrain(def);
   const isHandCraftedInterior = def.autoRoads === false && def.width <= 24 && def.height <= 24;
@@ -4837,6 +4870,11 @@ export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
   scrubWhisperingWoodsPrecipiceAltarDeadTrees(tiles, def);
   enforceWhisperingWoodsPrecipiceSpineCliffCover(tiles, def);
   enforceWhisperingWoodsHunterShelfEastLip(tiles, def);
+
+  // Last visual pass: distribute live tree tiles across kit variants for visual variety.
+  // Runs after ALL placement, scrub, and enforcement functions so only tiles that survived
+  // the full pipeline receive variants — zero risk to existing walkability or collision logic.
+  randomizeForestTreeVariants(tiles, def);
 
   validateMapTransitions(tiles, def);
   validateAuthoredPlacements(tiles, def);

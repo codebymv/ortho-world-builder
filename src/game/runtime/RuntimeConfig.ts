@@ -94,7 +94,7 @@ export function createDefaultNpcData(): NPC[] {
     // Unnamed Hollow figure on the north bank of the corrupted river. Dismissive until
     // the player kills the Hollow Apparition (flag: hollow_guardian_defeated).
     { id: 'mysterious_man', name: 'A Hooded Figure', mapId: 'forest', position: { x: -55, y: -73 }, dialogueId: 'mysterious_man', sprite: 'npc_mysterious_man', facing: 'left' },
-    { id: 'oliver', name: 'Oliver', mapId: 'guilrhym', position: { x: -15, y: 118 }, dialogueId: 'oliver', sprite: 'npc_oliver_injured' },
+    { id: 'oliver', name: 'Oliver', mapId: 'guilrhym', position: { x: 9, y: 125 }, dialogueId: 'oliver', sprite: 'npc_oliver_injured' }, // world (9,125) = tile (159,275), gate plaza
   ];
 }
 

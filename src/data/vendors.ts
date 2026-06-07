@@ -43,8 +43,8 @@ export const vendors: Record<string, VendorDef> = {
     name: 'Listless Merchant',
     greeting: "Take your time. I'm not going anywhere.",
     items: [
-      { itemId: 'tempest_grass', price: 20, currency: 'gold' },
-      { itemId: 'health_potion', price: 38, currency: 'gold' },
+      { itemId: 'tempest_grass', price: 20, currency: 'gold', stock: 12 },
+      { itemId: 'health_potion', price: 38, currency: 'gold', stock: 12 },
       { itemId: 'sundered_essence_i', price: 75, currency: 'gold', stock: 5 },
       { itemId: 'ornamental_broadsword', price: 700, currency: 'gold', unique: true },
     ],

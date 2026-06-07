@@ -621,7 +621,6 @@ const Game = () => {
 
   useEffect(() => {
     const preloadMenuChunks = () => {
-      void loadMapModal();
       void loadInventoryModal();
       void loadPlayerModal();
       void loadObjectivesModal();
@@ -640,6 +639,11 @@ const Game = () => {
 
     const timeoutId = window.setTimeout(preloadMenuChunks, 1200);
     return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  // Map modal is opened frequently — load its chunk immediately.
+  useEffect(() => {
+    void loadMapModal();
   }, []);
 
   // Unified menu modal sound effect — plays open/close for map, inventory, or objectives.
@@ -1226,7 +1230,7 @@ const Game = () => {
             )}
             <NotificationFeed />
           </div>
-          {mapModalOpen && currentWorldMap && (
+          {currentWorldMap && (
             <Suspense fallback={null}>
               <LazyMapModal
                 open={mapModalOpen}

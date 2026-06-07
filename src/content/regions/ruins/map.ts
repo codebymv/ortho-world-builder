@@ -1,5 +1,5 @@
 import type { MapDefinition } from '@/data/mapGenerator';
-import { cityBlocks } from './cityBlocks';
+import { cityBlocks, cityFences } from './cityBlocks';
 
 // GUILRHYM ROAD NETWORK — the deliberate, inter-connecting streets (granite setts).
 // Buildings are kept OFF these (keepClear) and they're laid as walkable road_setts, so
@@ -49,7 +49,8 @@ const ROAD_RECTS = GUILRHYM_ROADS.map(r => ({ x0: r.x, y0: r.y, x1: r.x + r.widt
 // STREET GAPS between them — not by carving streets out of solid blocks.
 //
 // FIXED ANCHORS (kept in lockstep with external files — do not move casually):
-//   spawn (150,286); Oliver manor near tile (135,268) ↔ RuntimeConfig oliver;
+//   spawn (150,286); Oliver at tile (159,275)=world(9,125) ↔ RuntimeConfig oliver
+//   (his manor building stays at tile 128,259);
 //   bonfires (150,272)/(200,198)/(95,110)/(150,55) ↔ bonfires.ts;
 //   fog gate y45 x147-153 + lever gates ↔ RuntimeMapFlow.syncGuilrhymBossState;
 //   wells/sign/lever interactionIds ↔ dialogues.ts.
@@ -499,6 +500,46 @@ export const guilrhymDef: MapDefinition = {
     { x: 156, y: 32, type: 'bloodstain', walkable: true },
 
     // =========================================================================
+    // BURNING BARRICADES — the population's last defence. Piled carts/crates set
+    // alight across SECONDARY streets to wall off side-routes (reinforcing the
+    // dogleg) and to tell the story of a city that tried to hold the dead back.
+    // Each cluster is a short side-by-side run so it spans the 3-wide street.
+    // Placed on roads/plazas the dense-fill keeps clear, so they read cleanly.
+    // =========================================================================
+    // Gate plaza — barricades sealing the west & east residential streets (steer to centre/dogleg)
+    { x: 57, y: 250, type: 'burning_barricade', walkable: false },
+    { x: 58, y: 250, type: 'burning_barricade', walkable: false },
+    { x: 59, y: 250, type: 'burning_barricade', walkable: false },
+    { x: 241, y: 250, type: 'burning_barricade', walkable: false },
+    { x: 242, y: 250, type: 'burning_barricade', walkable: false },
+    { x: 243, y: 250, type: 'burning_barricade', walkable: false },
+    // North bank — wall off the eastward lane so the player is steered WEST into the Undercroft
+    { x: 244, y: 160, type: 'burning_barricade', walkable: false },
+    { x: 245, y: 160, type: 'burning_barricade', walkable: false },
+    { x: 246, y: 160, type: 'burning_barricade', walkable: false },
+    // Market square — an overturned, burning stall barricade (last stand among the commerce)
+    { x: 220, y: 210, type: 'burning_barricade', walkable: false },
+    { x: 221, y: 210, type: 'burning_barricade', walkable: false },
+    { x: 222, y: 210, type: 'burning_barricade', walkable: false },
+    // Reliquary cloister approach — a final desperate barricade flanking the nave mouth
+    // (centre x144–156 left open for the candle-trail critical path).
+    { x: 132, y: 94, type: 'burning_barricade', walkable: false },
+    { x: 136, y: 94, type: 'burning_barricade', walkable: false },
+    { x: 164, y: 94, type: 'burning_barricade', walkable: false },
+    { x: 168, y: 94, type: 'burning_barricade', walkable: false },
+
+    // =========================================================================
+    // VICTORIAN LANDMARKS — dispersed civic monuments so districts read as a city
+    // with character, not a grid of houses. The Tolbooth clocktower (above) anchors
+    // the gate; these memorial columns + memorial statues punctuate the other quarters.
+    // =========================================================================
+    { x: 236, y: 200, type: 'memorial_column', walkable: false }, // market quarter monument
+    { x: 120, y: 160, type: 'memorial_column', walkable: false }, // riverside (north bank) monument
+    { x: 84, y: 100, type: 'memorial_column', walkable: false },  // the Heights — survivors' rallying monument
+    { x: 128, y: 90, type: 'statue', walkable: false },           // cloister flank memorial (west)
+    { x: 170, y: 90, type: 'statue', walkable: false },           // cloister flank memorial (east)
+
+    // =========================================================================
     // DENSE-BY-DEFAULT FILL — pack districts with tenement lands and carve a
     // winding street/close network (the forest's "fill + carve", Yharnam-tight).
     // =========================================================================
@@ -535,22 +576,46 @@ export const guilrhymDef: MapDefinition = {
       const COMMON = ['tenement_facade', 'tenement_facade', 'tenement_facade', 'townhouse_facade'] as const;
       const SLUM = ['tenement_facade', 'tenement_facade', 'tenement_facade', 'warehouse_facade', 'townhouse_facade'] as const;
       const m = (a: readonly string[]) => [...a] as import('@/lib/game/World').TileType[];
+      // Buildings must never land on the GUILRHYM_ROADS grid — fold ROAD_RECTS into every
+      // district's keepClear so the street network reads as actual streets BETWEEN blocks
+      // (not facades stamped across a road). This is the source of "roads through houses".
+      const KC = [...S, ...ROAD_RECTS];
+      // Fences want to SIT on road frontages, so their keepClear is only the dogleg + loot
+      // (not the road grid) — that punches gate-openings where the path/chests cross.
+      const fenceKC = [...S, ...chests];
+      const fo = { gateEvery: 11, gateWidth: 2, keepClear: fenceKC };
       return [
         // WEST RESIDENTIAL — mostly townhouses
-        ...cityBlocks({ ...o, seed: 101, types: m(RES), x0: 26, y0: 186, x1: 136, y1: 236, streetRows: [205, 223], keepClear: [...S, ...chests] }),
+        ...cityBlocks({ ...o, seed: 101, types: m(RES), x0: 26, y0: 186, x1: 136, y1: 236, streetRows: [205, 223], keepClear: [...KC, ...chests] }),
         // EAST DOCKS — mostly warehouses, tighter denser blocks
-        ...cityBlocks({ ...o, seed: 202, blockW: 34, blockH: 20, streetW: 2, alleyW: 2, types: m(IND), x0: 246, y0: 184, x1: 282, y1: 238, streetRows: [205], keepClear: S }),
+        ...cityBlocks({ ...o, seed: 202, blockW: 34, blockH: 20, streetW: 2, alleyW: 2, types: m(IND), x0: 246, y0: 184, x1: 282, y1: 238, streetRows: [205], keepClear: KC }),
         // UPPER CITY (the Heights) — residential mix
-        ...cityBlocks({ ...o, seed: 303, types: m(RES), x0: 16, y0: 92, x1: 56, y1: 146, streetRows: [112, 130], keepClear: S }),
-        ...cityBlocks({ ...o, seed: 313, types: m(RES), x0: 104, y0: 122, x1: 140, y1: 146, streetRows: [], keepClear: S }),
+        ...cityBlocks({ ...o, seed: 303, types: m(RES), x0: 16, y0: 92, x1: 56, y1: 146, streetRows: [112, 130], keepClear: KC }),
+        ...cityBlocks({ ...o, seed: 313, types: m(RES), x0: 104, y0: 122, x1: 140, y1: 146, streetRows: [], keepClear: KC }),
         // UPPER-EAST INDUSTRIAL — warehouses (the old warren region)
-        ...cityBlocks({ ...o, seed: 404, blockW: 34, blockH: 20, streetW: 2, alleyW: 2, types: m(IND), x0: 158, y0: 96, x1: 282, y1: 146, streetRows: [112, 130], keepClear: S }),
+        ...cityBlocks({ ...o, seed: 404, blockW: 34, blockH: 20, streetW: 2, alleyW: 2, types: m(IND), x0: 158, y0: 96, x1: 282, y1: 146, streetRows: [112, 130], keepClear: KC }),
         // CATHEDRAL APPROACH flanks — tight slum wynds
-        ...cityBlocks({ ...o, seed: 505, blockW: 22, alleyW: 2, courtChance: 0.16, types: m(SLUM), x0: 16, y0: 48, x1: 104, y1: 92, streetRows: [70], keepClear: S }),
-        ...cityBlocks({ ...o, seed: 515, blockW: 22, alleyW: 2, courtChance: 0.16, types: m(SLUM), x0: 192, y0: 48, x1: 282, y1: 92, streetRows: [70], keepClear: S }),
+        ...cityBlocks({ ...o, seed: 505, blockW: 22, alleyW: 2, courtChance: 0.16, types: m(SLUM), x0: 16, y0: 48, x1: 104, y1: 92, streetRows: [70], keepClear: KC }),
+        ...cityBlocks({ ...o, seed: 515, blockW: 22, alleyW: 2, courtChance: 0.16, types: m(SLUM), x0: 192, y0: 48, x1: 282, y1: 92, streetRows: [70], keepClear: KC }),
         // GATE OUTSKIRTS flanks — common mix
-        ...cityBlocks({ ...o, seed: 606, types: m(COMMON), x0: 16, y0: 248, x1: 126, y1: 290, streetRows: [268], keepClear: S }),
-        ...cityBlocks({ ...o, seed: 616, types: m(COMMON), x0: 178, y0: 248, x1: 282, y1: 290, streetRows: [268], keepClear: S }),
+        ...cityBlocks({ ...o, seed: 606, types: m(COMMON), x0: 16, y0: 248, x1: 126, y1: 290, streetRows: [268], keepClear: KC }),
+        ...cityBlocks({ ...o, seed: 616, types: m(COMMON), x0: 178, y0: 248, x1: 282, y1: 290, streetRows: [268], keepClear: KC }),
+
+        // ── COMPOUND FENCING ──────────────────────────────────────────────────
+        // An iron-fence perimeter around each housing compound, with periodic gates.
+        // This walls the districts off from the streets so the road network becomes the
+        // controlled way through (gate routes off by closing a gate). The dogleg + loot
+        // (S + chests) punch openings, so the critical path is never sealed. Fence
+        // perimeters sit on each block region's edge; gates fall on the road frontages.
+        ...cityFences({ ...fo, seed: 1101, x0: 26, y0: 186, x1: 136, y1: 236 }),  // west residential
+        ...cityFences({ ...fo, seed: 1202, x0: 246, y0: 184, x1: 282, y1: 238 }), // east docks
+        ...cityFences({ ...fo, seed: 1303, x0: 16, y0: 92, x1: 56, y1: 146 }),    // upper city / Heights
+        ...cityFences({ ...fo, seed: 1313, x0: 104, y0: 122, x1: 140, y1: 146 }), // upper-city pocket
+        ...cityFences({ ...fo, seed: 1404, x0: 158, y0: 96, x1: 282, y1: 146 }),  // upper-east industrial
+        ...cityFences({ ...fo, seed: 1505, x0: 16, y0: 48, x1: 104, y1: 92 }),    // cathedral approach (west)
+        ...cityFences({ ...fo, seed: 1515, x0: 192, y0: 48, x1: 282, y1: 92 }),   // cathedral approach (east)
+        ...cityFences({ ...fo, seed: 1606, x0: 16, y0: 248, x1: 126, y1: 290 }),  // gate outskirts (west)
+        ...cityFences({ ...fo, seed: 1616, x0: 178, y0: 248, x1: 282, y1: 290 }), // gate outskirts (east)
       ];
     })(),
   ],

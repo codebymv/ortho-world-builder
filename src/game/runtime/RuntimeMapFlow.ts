@@ -919,7 +919,7 @@ export function createRuntimeMapFlow({
     const REVENANT_CHEST_SITES = [
       { clearedFlag: 'ritual_revenant_west_cleared', interactionId: 'revenant_west_terminus_chest', anchorX: 18, anchorY: 147 },
       { clearedFlag: 'ritual_revenant_precipice_cleared', interactionId: 'revenant_precipice_terminus_chest', anchorX: 227, anchorY: 12 },
-      { clearedFlag: 'ridge_revenant_defeated', interactionId: 'revenant_east_terminus_chest', anchorX: 262, anchorY: 140 },
+      { clearedFlag: 'ridge_revenant_defeated', interactionId: 'revenant_east_terminus_chest', anchorX: 260, anchorY: 142 },
     ] as const;
     for (const site of REVENANT_CHEST_SITES) {
       const row = map.tiles[site.anchorY];
@@ -2013,6 +2013,7 @@ export function createRuntimeMapFlow({
           attackRange: bp.attackRange,
           chaseRange: bp.chaseRange,
           essenceReward: bp.essenceReward,
+          goldReward: bp.goldReward,
           telegraphDuration: bp.telegraphDuration,
           recoverDuration: bp.recoverDuration,
           poise: bp.poise,
@@ -2083,6 +2084,7 @@ export function createRuntimeMapFlow({
             attackRange: reaverBp.attackRange,
             chaseRange: reaverBp.chaseRange,
             essenceReward: reaverBp.essenceReward,
+            goldReward: reaverBp.goldReward,
             telegraphDuration: reaverBp.telegraphDuration,
             recoverDuration: reaverBp.recoverDuration,
             poise: reaverBp.poise,

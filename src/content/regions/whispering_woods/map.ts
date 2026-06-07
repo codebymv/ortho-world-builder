@@ -975,8 +975,8 @@ export const forestDef: MapDefinition = {
     { x: 115, y: 106, interactionId: 'forest_chest_hollow_approach' },
     // Observatory compound ??? hidden reward corner at world (59, -60).
     { x: 209, y: 90, interactionId: 'observatory_chest' },
-    // East Ridge summoning site — appears after Ridge Revenant is defeated; gives Terminus Scythe early.
-    { x: 262, y: 140, interactionId: 'revenant_east_terminus_chest' },
+    // East Ridge terminus chest is materialised at runtime by syncRevenantTerminusChestState
+    // (at the glyph tile 260,142) after the Ridge Revenant is defeated — NOT pre-placed here.
     // Hunter gate ??? tucked in the east cliff notch just past the iron fence. World (6, 48).
     { x: 156, y: 198, interactionId: 'forest_southern_chest' },
     // Hunter cliff shelf ? reward inside the secluded shelf (world ~17, 49).
@@ -1030,8 +1030,8 @@ export const forestDef: MapDefinition = {
     // back south they pull the lever to open the shortcut home to the Ranger Outpost.
     { x: 127, y: 196, type: 'shortcut_lever', walkable: false, interactionId: 'forest_shortcut_lever' },
     { x: 146, y: 240, type: 'stump', walkable: false },
-    { x: 100, y: 100, type: 'stump', walkable: false },
-    { x: 200, y: 90, type: 'stump', walkable: false },
+    { x: 100, y: 100, type: 'stump_b', walkable: false },
+    { x: 200, y: 90, type: 'stump_c', walkable: false },
     { x: 170, y: 182, type: 'mushroom', walkable: true },
     { x: 35, y: 250, type: 'campfire_remains', walkable: false },
     { x: 275, y: 270, type: 'well', walkable: false, interactionId: 'well' },
@@ -1075,7 +1075,7 @@ export const forestDef: MapDefinition = {
     // === SOUTH ENTRY CORRIDOR ? moss-covered milestone before the spine bridge (world ~-3, 132).
     { x: 147, y: 282, type: 'sign', walkable: false, interactionId: 'forest_milestone' },
     // Carved marker on the path ? a ranger-carved note, east of the main trail so it reads as optional.
-    { x: 157, y: 283, type: 'stump', walkable: false },
+    { x: 157, y: 283, type: 'fallen_log', walkable: false },
 
     // === ABANDONED HOMESTEAD SURROUNDS ===
     // Windmill, hay bales and stump are pure decoration.
@@ -1083,7 +1083,7 @@ export const forestDef: MapDefinition = {
     { x: 224, y: 127, type: 'windmill', walkable: false },
     { x: 234, y: 131, type: 'barrel', walkable: false, interactionId: 'homestead_container_1' },
     { x: 235, y: 132, type: 'crate', walkable: false, interactionId: 'homestead_container_2' },
-    { x: 234, y: 134, type: 'stump', walkable: false },
+    { x: 234, y: 134, type: 'stump_b', walkable: false },
     { x: 223, y: 128, type: 'hay_bale', walkable: false },
     { x: 225, y: 128, type: 'hay_bale', walkable: false },
     { x: 227, y: 134, type: 'barrel', walkable: false, interactionId: 'homestead_container_3' },
@@ -1183,7 +1183,7 @@ export const forestDef: MapDefinition = {
     { x: 160, y: 50, type: 'bloodstain', walkable: true },
     { x: 150, y: 48, type: 'rubble', walkable: true },
     { x: 162, y: 42, type: 'statue', walkable: false },
-    { x: 148, y: 54, type: 'dead_tree', walkable: false },
+    { x: 148, y: 54, type: 'dead_tree_b', walkable: false },
     { x: 95, y: 38, type: 'bones_pile', walkable: true },
     { x: 157, y: 34, type: 'mossy_stone', walkable: false },
     // Ruined stagecoach scene near world (52, -93), just outside the north fort.
@@ -1206,7 +1206,7 @@ export const forestDef: MapDefinition = {
     // pop-up. Bloodstains + bones tell the player that something bad happened here recently.
     { x: 150, y: 289, type: 'bloodstain', walkable: true },
     { x: 145, y: 285, type: 'bones', walkable: true },
-    { x: 156, y: 282, type: 'dead_tree', walkable: false },
+    { x: 156, y: 282, type: 'dead_tree_c', walkable: false },
     { x: 143, y: 280, type: 'bones_pile', walkable: true },
     { x: 160, y: 278, type: 'bloodstain', walkable: true },
     // Mid-corridor lantern ? keeps the northward trail readable between bonfires.
@@ -1218,8 +1218,8 @@ export const forestDef: MapDefinition = {
     { x: 144, y: 262, type: 'crate', walkable: false },
     { x: 158, y: 262, type: 'barrel', walkable: false },
     { x: 160, y: 262, type: 'crate', walkable: false },
-    { x: 140, y: 256, type: 'stump', walkable: false },
-    { x: 160, y: 256, type: 'stump', walkable: false },
+    { x: 140, y: 256, type: 'fallen_log_v', walkable: false },
+    { x: 160, y: 256, type: 'stump_c', walkable: false },
     { x: 146, y: 238, type: 'lantern', walkable: false },
     { x: 146, y: 222, type: 'lantern', walkable: false },
     // Northward spine ??? ranger line of march (packed path ~146???154 x); keeps manuscript progression readable
@@ -1228,7 +1228,7 @@ export const forestDef: MapDefinition = {
     { x: 152, y: 132, type: 'lantern', walkable: false },
     { x: 152, y: 112, type: 'lantern', walkable: false },
     { x: 74, y: 40, type: 'bones_pile', walkable: true },
-    { x: 82, y: 38, type: 'dead_tree', walkable: false },
+    { x: 82, y: 38, type: 'dead_tree_b', walkable: false },
     { x: 84, y: 42, type: 'cage', walkable: false },
     { x: 56, y: 152, type: 'dead_tree', walkable: false },
     { x: 62, y: 150, type: 'bones_pile', walkable: true },
@@ -1368,7 +1368,7 @@ export const forestDef: MapDefinition = {
     { x: 200, y: 182, type: 'crate', walkable: false },
     { x: 203, y: 181, type: 'bones_pile', walkable: true },
     { x: 207, y: 176, type: 'bloodstain', walkable: true },
-    { x: 209, y: 179, type: 'dead_tree', walkable: false },
+    { x: 209, y: 179, type: 'dead_tree_c', walkable: false },
 
     // === BRANCH TEASES ? visible landmarks at fork points to draw the eye toward optional paths.
     // East ridge tease ? tall statue visible from east end of the artery, suggests "something there".
@@ -1380,7 +1380,7 @@ export const forestDef: MapDefinition = {
     // === SE FORGOTTEN SHRINE ATMOSPHERE ===
     // Surrounds the hidden shrine with overgrowth and decay ? communicates "lost place" without text.
     { x: 247, y: 247, type: 'dead_tree', walkable: false },
-    { x: 263, y: 248, type: 'dead_tree', walkable: false },
+    { x: 263, y: 248, type: 'dead_tree_b', walkable: false },
     { x: 251, y: 260, type: 'mossy_stone', walkable: false },
     { x: 261, y: 261, type: 'mossy_stone', walkable: false },
     { x: 254, y: 251, type: 'bones_pile', walkable: true },
@@ -1395,11 +1395,11 @@ export const forestDef: MapDefinition = {
     { x: 68, y: 162, type: 'chain', walkable: false },
     { x: 88, y: 162, type: 'lantern', walkable: false },
     { x: 96, y: 162, type: 'stump', walkable: false },
-    { x: 104, y: 162, type: 'dead_tree', walkable: false },
+    { x: 104, y: 162, type: 'dead_tree_c', walkable: false },
     // Wolf shelf below the rim (unreachable until a gate opens) ??? visible tease beyond the fence.
     { x: 72, y: 168, type: 'bones_pile', walkable: true },
-    { x: 84, y: 170, type: 'dead_tree', walkable: false },
-    { x: 92, y: 169, type: 'stump', walkable: false },
+    { x: 84, y: 170, type: 'dead_tree_b', walkable: false },
+    { x: 92, y: 169, type: 'fallen_log_b', walkable: false },
     { x: 66, y: 158, type: 'wagon', walkable: false },
     { x: 70, y: 160, type: 'barrel', walkable: false },
     { x: 72, y: 160, type: 'crate', walkable: false },
@@ -1441,7 +1441,7 @@ export const forestDef: MapDefinition = {
     { x: 116, y: 191, type: 'rock', walkable: false },
     // Floor variety inside the corridor.
     { x: 108, y: 190, type: 'tall_grass', walkable: true },
-    { x: 112, y: 189, type: 'tall_grass', walkable: true },
+    { x: 112, y: 189, type: 'tall_grass_b', walkable: true },
     { x: 110, y: 191, type: 'bones', walkable: true },
     // Dead tree on the north approach ??? silhouette before the cliff mouth.
     { x: 106, y: 175, type: 'dead_tree', walkable: false },
@@ -1453,12 +1453,12 @@ export const forestDef: MapDefinition = {
     { x: 134, y: 191, type: 'bloodstain', walkable: true },
     { x: 150, y: 222, type: 'bones_pile', walkable: true },
     { x: 156, y: 225, type: 'cage', walkable: false },
-    { x: 146, y: 208, type: 'dead_tree', walkable: false },
+    { x: 146, y: 208, type: 'dead_tree_c', walkable: false },
     { x: 118, y: 224, type: 'dead_tree', walkable: false },
     { x: 116, y: 200, type: 'bones_pile', walkable: true },
     { x: 124, y: 207, type: 'lantern', walkable: false },
-    { x: 142, y: 189, type: 'dead_tree', walkable: false },
-    { x: 148, y: 190, type: 'dead_tree', walkable: false },
+    { x: 142, y: 189, type: 'dead_tree_b', walkable: false },
+    { x: 148, y: 190, type: 'dead_tree_c', walkable: false },
     { x: 132, y: 187, type: 'bones_pile', walkable: true },
     { x: 140, y: 186, type: 'bones_pile', walkable: true },
     { x: 130, y: 190, type: 'lantern', walkable: false },
@@ -1469,18 +1469,18 @@ export const forestDef: MapDefinition = {
     { x: 210, y: 221, type: 'lantern', walkable: false },
     { x: 234, y: 224, type: 'lantern', walkable: false },
     { x: 124, y: 191, type: 'stump', walkable: false },
-    { x: 150, y: 192, type: 'stump', walkable: false },
+    { x: 150, y: 192, type: 'stump_b', walkable: false },
 
     // === HUNTER CLIFF SHELF props ===
     // Lantern at the stairway base ? draws the player's eye toward the cliff face.
     { x: 164, y: 213, type: 'lantern', walkable: false },
     // Secluded shelf atmosphere: old hunter's lookout, long abandoned.
-    { x: 163, y: 197, type: 'stump', walkable: false },
+    { x: 163, y: 197, type: 'stump_c', walkable: false },
     { x: 169, y: 198, type: 'rock', walkable: false },
     { x: 162, y: 201, type: 'bones', walkable: true },
     { x: 169, y: 200, type: 'lantern', walkable: false },
     // East cliff grass patch props ? same abandoned-hunter vibe as the secluded shelf.
-    { x: 179, y: 197, type: 'stump', walkable: false },
+    { x: 179, y: 197, type: 'fallen_log', walkable: false },
     { x: 183, y: 199, type: 'rock', walkable: false },
     { x: 180, y: 201, type: 'bones', walkable: true },
     { x: 182, y: 197, type: 'lantern', walkable: false },
@@ -1505,8 +1505,8 @@ export const forestDef: MapDefinition = {
     { x: 123, y: 196, type: 'bones_pile', walkable: true },
     { x: 131, y: 201, type: 'bones_pile', walkable: true },
     { x: 134, y: 206, type: 'bones_pile', walkable: true },
-    { x: 141, y: 204, type: 'dead_tree', walkable: false },
-    { x: 146, y: 201, type: 'stump', walkable: false },
+    { x: 141, y: 204, type: 'dead_tree_b', walkable: false },
+    { x: 146, y: 201, type: 'stump_b', walkable: false },
     { x: 152, y: 205, type: 'barrel', walkable: false },
     { x: 155, y: 208, type: 'crate', walkable: false },
     { x: 160, y: 214, type: 'bones_pile', walkable: true },
@@ -1517,22 +1517,22 @@ export const forestDef: MapDefinition = {
     { x: 214, y: 47, type: 'barrel', walkable: false },
     { x: 218, y: 47, type: 'crate', walkable: false },
     { x: 222, y: 52, type: 'lantern', walkable: false },
-    { x: 233, y: 130, type: 'stump', walkable: false },
+    { x: 233, y: 130, type: 'fallen_log_v', walkable: false },
     { x: 237, y: 132, type: 'barrel', walkable: false },
     { x: 239, y: 132, type: 'crate', walkable: false },
-    { x: 174, y: 88, type: 'stump', walkable: false },
+    { x: 174, y: 88, type: 'stump_c', walkable: false },
     { x: 88, y: 181, type: 'stump', walkable: false },
     { x: 92, y: 182, type: 'barrel', walkable: false },
-    { x: 176, y: 180, type: 'stump', walkable: false },
+    { x: 176, y: 180, type: 'fallen_log_b', walkable: false },
     { x: 181, y: 182, type: 'stump', walkable: false },
     { x: 188, y: 183, type: 'lantern', walkable: false },
     { x: 191, y: 187, type: 'bones_pile', walkable: true },
-    { x: 108, y: 181, type: 'dead_tree', walkable: false },
+    { x: 108, y: 181, type: 'dead_tree_c', walkable: false },
     { x: 114, y: 176, type: 'bones_pile', walkable: true },
     { x: 118, y: 179, type: 'dead_tree', walkable: false },
-    { x: 156, y: 120, type: 'dead_tree', walkable: false },
-    { x: 160, y: 122, type: 'dead_tree', walkable: false },
-    { x: 164, y: 124, type: 'dead_tree', walkable: false },
+    { x: 156, y: 120, type: 'dead_tree_b', walkable: false },
+    { x: 160, y: 122, type: 'dead_tree_c', walkable: false },
+    { x: 164, y: 124, type: 'dead_tree_b', walkable: false },
     { x: 96, y: 110, type: 'lantern', walkable: false },
     { x: 202, y: 258, type: 'crate', walkable: false },
     { x: 206, y: 258, type: 'barrel', walkable: false },
@@ -1548,12 +1548,12 @@ export const forestDef: MapDefinition = {
     { x: 142, y: 276, type: 'bones_pile', walkable: true },
 
     // === MAIN SPINE ??? stumps and mushroom rings ===
-    { x: 144, y: 230, type: 'stump', walkable: false },
-    { x: 156, y: 200, type: 'stump', walkable: false },
-    { x: 144, y: 180, type: 'stump', walkable: false },
-    { x: 156, y: 150, type: 'stump', walkable: false },
-    { x: 144, y: 140, type: 'stump', walkable: false },
-    { x: 156, y: 110, type: 'stump', walkable: false },
+    { x: 144, y: 230, type: 'stump_b', walkable: false },
+    { x: 156, y: 200, type: 'stump_c', walkable: false },
+    { x: 144, y: 180, type: 'fallen_log', walkable: false },
+    { x: 156, y: 150, type: 'stump_b', walkable: false },
+    { x: 144, y: 140, type: 'fallen_log_v', walkable: false },
+    { x: 156, y: 110, type: 'stump_c', walkable: false },
     { x: 153, y: 243, type: 'mushroom', walkable: true },
     { x: 155, y: 244, type: 'mushroom', walkable: true },
     { x: 154, y: 246, type: 'mushroom', walkable: true },
@@ -1594,9 +1594,9 @@ export const forestDef: MapDefinition = {
     { x: 134, y: 194, type: 'flower', walkable: true },
     { x: 136, y: 194, type: 'flower', walkable: true },
     { x: 138, y: 194, type: 'flower', walkable: true },
-    { x: 132, y: 192, type: 'tall_grass', walkable: true },
+    { x: 132, y: 192, type: 'tall_grass_c', walkable: true },
     { x: 131, y: 191, type: 'tall_grass', walkable: true },
-    { x: 133, y: 193, type: 'tall_grass', walkable: true },
+    { x: 133, y: 193, type: 'tall_grass_b', walkable: true },
 
     // === WITCH COTTAGE ??? altar prop ===
     { x: 230, y: 140, type: 'altar', walkable: false },
@@ -1620,11 +1620,11 @@ export const forestDef: MapDefinition = {
     // Mossy waystone marker on the path edge
     // Nature reclaiming the ruins
     { x: 190, y: 172, type: 'dead_tree', walkable: false },
-    { x: 207, y: 170, type: 'dead_tree', walkable: false },
+    { x: 207, y: 170, type: 'dead_tree_c', walkable: false },
     { x: 193, y: 171, type: 'mushroom', walkable: true },
     { x: 205, y: 168, type: 'mushroom', walkable: true },
     { x: 206, y: 173, type: 'stump', walkable: false },
-    { x: 192, y: 174, type: 'stump', walkable: false },
+    { x: 192, y: 174, type: 'fallen_log_b', walkable: false },
     // Spilled cargo from the overturned wagon
     { x: 197, y: 175, type: 'barrel', walkable: false },
     { x: 199, y: 175, type: 'crate', walkable: false },
@@ -1649,10 +1649,10 @@ export const forestDef: MapDefinition = {
     { x: 180, y: 44, type: 'flower', walkable: true },
     { x: 182, y: 44, type: 'flower', walkable: true },
     { x: 184, y: 44, type: 'flower', walkable: true },
-    { x: 176, y: 42, type: 'tall_grass', walkable: true },
+    { x: 176, y: 42, type: 'tall_grass_c', walkable: true },
     { x: 178, y: 42, type: 'tall_grass', walkable: true },
-    { x: 180, y: 42, type: 'tall_grass', walkable: true },
-    { x: 182, y: 42, type: 'tall_grass', walkable: true },
+    { x: 180, y: 42, type: 'tall_grass_b', walkable: true },
+    { x: 182, y: 42, type: 'tall_grass_c', walkable: true },
 
     // === FORT INTERIOR DETAIL ===
     { x: 140, y: 130, type: 'campfire_remains', walkable: false },
@@ -1678,7 +1678,7 @@ export const forestDef: MapDefinition = {
     { x: 287, y: 136, type: 'stump', walkable: false },
     { x: 298, y: 118, type: 'rock', walkable: false },
     { x: 296, y: 140, type: 'rock', walkable: false },
-    { x: 284, y: 142, type: 'stump', walkable: false },
+    { x: 284, y: 142, type: 'stump_b', walkable: false },
 
     // === ABANDONED OBSERVATORY COMPOUND ??? off-the-beaten-path encounter SE of North Fort ===
     // Observatory tower ??? the area's visual anchor (world ~72, -59)
@@ -1697,15 +1697,15 @@ export const forestDef: MapDefinition = {
     { x: 226, y: 95, type: 'barrel', walkable: false },
     // Dead trees marking the area as distinct
     { x: 216, y: 91, type: 'dead_tree', walkable: false },
-    { x: 228, y: 91, type: 'dead_tree', walkable: false },
-    { x: 230, y: 99, type: 'dead_tree', walkable: false },
+    { x: 228, y: 91, type: 'dead_tree_b', walkable: false },
+    { x: 230, y: 99, type: 'dead_tree_c', walkable: false },
     // Cold campfire near the faction fight ??? failed camp
     { x: 229, y: 97, type: 'campfire_remains', walkable: false },
     // Broken wagon near the chest corner
     { x: 210, y: 93, type: 'wagon', walkable: false },
     // Stumps around the perimeter
-    { x: 214, y: 97, type: 'stump', walkable: false },
-    { x: 228, y: 103, type: 'stump', walkable: false },
+    { x: 214, y: 97, type: 'stump_c', walkable: false },
+    { x: 228, y: 103, type: 'fallen_log', walkable: false },
     // Bloodstain breadcrumbs leading from the main trail toward the observatory
     { x: 218, y: 89, type: 'bloodstain', walkable: true },
     { x: 220, y: 93, type: 'bloodstain', walkable: true },
@@ -1722,7 +1722,7 @@ export const forestDef: MapDefinition = {
     { x: 220, y: 219, type: 'quarry_rubble', walkable: true },
     { x: 214, y: 220, type: 'rock', walkable: false },            // unworked boulders at the shelf rim
     { x: 222, y: 213, type: 'rock', walkable: false },
-    { x: 218, y: 221, type: 'stump', walkable: false },
+    { x: 218, y: 221, type: 'stump_b', walkable: false },
 
     // --- Cliff corridor ladder ??? gate prop removed; stairway now carves through the cliff ---
     // Lantern at the base of the cliff to draw the player's eye upward
@@ -1750,7 +1750,7 @@ export const forestDef: MapDefinition = {
     // Southern opening where the east ridge cliff ends ??? ruins spill out
     { x: 282, y: 152, type: 'tombstone', walkable: false },
     { x: 284, y: 154, type: 'tombstone', walkable: false },
-    { x: 283, y: 157, type: 'stump', walkable: false },
+    { x: 283, y: 157, type: 'fallen_log_v', walkable: false },
     { x: 285, y: 150, type: 'rock', walkable: false },
     { x: 280, y: 159, type: 'bones_pile', walkable: false },
 
@@ -1784,7 +1784,7 @@ export const forestDef: MapDefinition = {
     { x: 231, y: 213, type: 'quarry_rubble', walkable: true },
     { x: 241, y: 207, type: 'rock', walkable: false },             // unworked boulders at the rough rim
     { x: 229, y: 211, type: 'rock', walkable: false },
-    { x: 236, y: 206, type: 'stump', walkable: false },
+    { x: 236, y: 206, type: 'stump_c', walkable: false },
 
     // --- Old well clearing props ---
     { x: 192, y: 122, type: 'well', walkable: false },
@@ -1794,41 +1794,41 @@ export const forestDef: MapDefinition = {
 
     // --- South-west stumps and rocks (near entry approach) ---
     { x: 112, y: 274, type: 'rock', walkable: false },
-    { x: 116, y: 276, type: 'stump', walkable: false },
+    { x: 116, y: 276, type: 'fallen_log_b', walkable: false },
     { x: 108, y: 278, type: 'rock', walkable: false },
     { x: 174, y: 276, type: 'rock', walkable: false },
     { x: 178, y: 278, type: 'stump', walkable: false },
 
     // --- Creek-side vegetation (south-east creek) ---
     { x: 202, y: 230, type: 'tall_grass', walkable: true },
-    { x: 206, y: 230, type: 'tall_grass', walkable: true },
+    { x: 206, y: 230, type: 'tall_grass_b', walkable: true },
     { x: 210, y: 230, type: 'flower', walkable: true },
-    { x: 226, y: 236, type: 'tall_grass', walkable: true },
+    { x: 226, y: 236, type: 'tall_grass_c', walkable: true },
     { x: 230, y: 236, type: 'flower', walkable: true },
     { x: 232, y: 250, type: 'tall_grass', walkable: true },
-    { x: 236, y: 250, type: 'tall_grass', walkable: true },
+    { x: 236, y: 250, type: 'tall_grass_b', walkable: true },
     { x: 246, y: 252, type: 'flower', walkable: true },
 
     // --- West creek vegetation ---
-    { x: 36, y: 214, type: 'tall_grass', walkable: true },
+    { x: 36, y: 214, type: 'tall_grass_c', walkable: true },
     { x: 40, y: 216, type: 'tall_grass', walkable: true },
     { x: 42, y: 218, type: 'flower', walkable: true },
-    { x: 36, y: 226, type: 'tall_grass', walkable: true },
+    { x: 36, y: 226, type: 'tall_grass_b', walkable: true },
     { x: 38, y: 228, type: 'flower', walkable: true },
 
     // --- Far south creek vegetation ---
-    { x: 112, y: 270, type: 'tall_grass', walkable: true },
+    { x: 112, y: 270, type: 'tall_grass_c', walkable: true },
     { x: 118, y: 270, type: 'tall_grass', walkable: true },
     { x: 124, y: 274, type: 'flower', walkable: true },
-    { x: 136, y: 274, type: 'tall_grass', walkable: true },
-    { x: 172, y: 271, type: 'tall_grass', walkable: true },
+    { x: 136, y: 274, type: 'tall_grass_b', walkable: true },
+    { x: 172, y: 271, type: 'tall_grass_c', walkable: true },
     { x: 178, y: 271, type: 'flower', walkable: true },
     { x: 190, y: 275, type: 'tall_grass', walkable: true },
 
     // --- Logging camp detail ---
-    { x: 166, y: 238, type: 'stump', walkable: false },
-    { x: 168, y: 238, type: 'stump', walkable: false },
-    { x: 170, y: 240, type: 'stump', walkable: false },
+    { x: 166, y: 238, type: 'stump_b', walkable: false },
+    { x: 168, y: 238, type: 'stump_c', walkable: false },
+    { x: 170, y: 240, type: 'fallen_log', walkable: false },
     { x: 172, y: 236, type: 'barrel', walkable: false },
     { x: 174, y: 238, type: 'crate', walkable: false },
 
@@ -1842,7 +1842,7 @@ export const forestDef: MapDefinition = {
     { x: 24, y: 170, type: 'flower', walkable: true },
     { x: 26, y: 174, type: 'flower', walkable: true },
     { x: 20, y: 174, type: 'mushroom', walkable: true },
-    { x: 28, y: 176, type: 'tall_grass', walkable: true },
+    { x: 28, y: 176, type: 'tall_grass_b', walkable: true },
 
     // --- Ruined shrine props ---
     { x: 80, y: 280, type: 'statue', walkable: false },
@@ -1869,11 +1869,11 @@ export const forestDef: MapDefinition = {
     { x: 266, y: 172, type: 'rock', walkable: false },
     { x: 268, y: 176, type: 'rock', walkable: false },
     { x: 270, y: 180, type: 'rock', walkable: false },
-    { x: 266, y: 184, type: 'tall_grass', walkable: true },
+    { x: 266, y: 184, type: 'tall_grass_c', walkable: true },
 
     // --- Large central grass zone scatter (x:160-200, y:100-130) ---
     { x: 176, y: 108, type: 'rock', walkable: false },
-    { x: 180, y: 112, type: 'stump', walkable: false },
+    { x: 180, y: 112, type: 'stump_b', walkable: false },
     { x: 184, y: 106, type: 'mushroom', walkable: true },
     { x: 188, y: 114, type: 'rock', walkable: false },
     { x: 182, y: 118, type: 'flower', walkable: true },
@@ -1882,14 +1882,14 @@ export const forestDef: MapDefinition = {
     // --- South-central empty zone scatter (x:100-140, y:230-250) ---
     // Override: remove noise-generated stump at (128,227) ??? no interaction exists there
     { x: 128, y: 227, type: 'grass', walkable: true },
-    { x: 100, y: 236, type: 'stump', walkable: false },
+    { x: 100, y: 236, type: 'fallen_log_v', walkable: false },
     { x: 104, y: 240, type: 'rock', walkable: false },
-    { x: 108, y: 244, type: 'stump', walkable: false },
+    { x: 108, y: 244, type: 'stump_c', walkable: false },
 
     // --- Rocky ford detail (east) ---
     { x: 260, y: 230, type: 'rock', walkable: false },
     { x: 262, y: 232, type: 'rock', walkable: false },
-    { x: 264, y: 234, type: 'tall_grass', walkable: true },
+    { x: 264, y: 234, type: 'tall_grass_b', walkable: true },
     { x: 258, y: 234, type: 'flower', walkable: true },
 
     // --- Central-south path variety (between paths y:220-240) ---
@@ -1901,7 +1901,7 @@ export const forestDef: MapDefinition = {
     // --- Far-east midfield scatter (x:285-295, y:200-240) ---
     { x: 288, y: 204, type: 'rock', walkable: false },
     { x: 290, y: 210, type: 'rock', walkable: false },
-    { x: 286, y: 216, type: 'stump', walkable: false },
+    { x: 286, y: 216, type: 'fallen_log_b', walkable: false },
     { x: 292, y: 222, type: 'rock', walkable: false },
     { x: 288, y: 230, type: 'rock', walkable: false },
     { x: 290, y: 236, type: 'stump', walkable: false },
@@ -1913,11 +1913,11 @@ export const forestDef: MapDefinition = {
     { x: 76, y: 181, type: 'rock', walkable: false },
     { x: 62, y: 183, type: 'rock', walkable: false },
     { x: 74, y: 184, type: 'rock', walkable: false },
-    { x: 67, y: 182, type: 'stump', walkable: false },
-    { x: 71, y: 185, type: 'stump', walkable: false },
+    { x: 67, y: 182, type: 'stump_b', walkable: false },
+    { x: 71, y: 185, type: 'stump_c', walkable: false },
     { x: 77, y: 179, type: 'bones', walkable: true },
     { x: 61, y: 181, type: 'bones', walkable: true },
-    { x: 75, y: 183, type: 'tall_grass', walkable: true },
+    { x: 75, y: 183, type: 'tall_grass_c', walkable: true },
     { x: 65, y: 179, type: 'tall_grass', walkable: true },
 
     // --- Inner sanctum (x:64-79, y:190-197) ---
@@ -1959,7 +1959,7 @@ export const forestDef: MapDefinition = {
     // === RUINED RANGER CHECKPOINT props ??? world ~(53, 7) ===
     { x: 208, y: 134, type: 'destroyed_house', walkable: false },
     { x: 205, y: 133, type: 'campfire_remains', walkable: false },
-    { x: 212, y: 133, type: 'stump', walkable: false },
+    { x: 212, y: 133, type: 'fallen_log', walkable: false },
     { x: 213, y: 136, type: 'barrel', walkable: false },
     { x: 211, y: 138, type: 'barrel', walkable: false },
     { x: 209, y: 140, type: 'bones_pile', walkable: true },
@@ -1976,11 +1976,11 @@ export const forestDef: MapDefinition = {
     { x: 200, y: 158, type: 'bones_pile', walkable: true },
     { x: 201, y: 156, type: 'bloodstain', walkable: true },
     { x: 203, y: 153, type: 'bones', walkable: true },
-    { x: 205, y: 153, type: 'stump', walkable: false },
+    { x: 205, y: 153, type: 'stump_b', walkable: false },
     { x: 177, y: 152, type: 'bones_pile', walkable: true },
     { x: 163, y: 151, type: 'bloodstain', walkable: true },
     { x: 155, y: 152, type: 'rock', walkable: false },
-    { x: 172, y: 152, type: 'stump', walkable: false },
+    { x: 172, y: 152, type: 'fallen_log_v', walkable: false },
   ],
   secretAreas: [],
   elevationZones: [

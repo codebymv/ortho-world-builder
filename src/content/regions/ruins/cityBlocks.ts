@@ -103,3 +103,63 @@ export function cityBlocks(o: CityBlockOpts): CityBlockProp[] {
   }
   return out;
 }
+
+export interface CityFenceOpts {
+  /** Compound rectangle to fence (tile coords, inclusive). */
+  x0: number; y0: number; x1: number; y1: number;
+  /** Which edges to fence. Default all four. */
+  sides?: Array<'n' | 's' | 'e' | 'w'>;
+  /** Cadence of gate openings along an edge (a gate roughly every N tiles). */
+  gateEvery?: number;
+  /** Width of each gate opening, in tiles. */
+  gateWidth?: number;
+  /** Fence / gate kits. */
+  fenceType?: TileType;
+  gateType?: TileType;
+  /** Per-compound seed so gate phases differ between districts. */
+  seed?: number;
+  /** Tiles left open (the dogleg path, POIs, chests) — fence skips these, leaving a natural opening. */
+  keepClear?: Rect[];
+}
+
+/**
+ * Iron-fence PERIMETER around a housing compound, with periodic gate openings and any
+ * keepClear tiles left open. Combined with cityBlocks this turns each district into a
+ * walled compound whose only ways in are gates on the roads — the structurality needed to
+ * gate routes off. Fences are unwalkable; gate tiles are walkable. The dogleg/POIs (passed
+ * via keepClear) punch natural openings so the critical path is never sealed.
+ */
+export function cityFences(o: CityFenceOpts): CityBlockProp[] {
+  const sides = o.sides ?? ['n', 's', 'e', 'w'];
+  const gateEvery = Math.max(4, o.gateEvery ?? 11);
+  const gateWidth = Math.max(1, o.gateWidth ?? 2);
+  const fenceType = o.fenceType ?? 'iron_fence';
+  const gateType = o.gateType ?? 'gate';
+  const seed = o.seed ?? 991;
+  const out: CityBlockProp[] = [];
+
+  const rnd = (a: number, b: number) => {
+    let h = (Math.imul(a | 0, 73856093) ^ Math.imul(b | 0, 19349663) ^ Math.imul(seed, 83492791)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 0xffffffff;
+  };
+  // pad 2 so a fence never butts hard against a protected path/POI tile
+  const blocked = (xi: number, yi: number) =>
+    o.keepClear?.some(r => xi >= r.x0 - 2 && xi <= r.x1 + 2 && yi >= r.y0 - 2 && yi <= r.y1 + 2) ?? false;
+
+  const run = (pts: Array<{ x: number; y: number }>, edgeKey: number) => {
+    const phase = Math.floor(rnd(edgeKey, 7) * gateEvery);
+    for (let i = 0; i < pts.length; i++) {
+      const { x, y } = pts[i];
+      if (blocked(x, y)) continue; // path/POI crossing → natural opening
+      const inGate = ((i + phase) % gateEvery) < gateWidth;
+      out.push({ x, y, type: inGate ? gateType : fenceType, walkable: inGate });
+    }
+  };
+
+  if (sides.includes('n')) { const p = []; for (let x = o.x0; x <= o.x1; x++) p.push({ x, y: o.y0 }); run(p, o.y0 * 31 + 1); }
+  if (sides.includes('s')) { const p = []; for (let x = o.x0; x <= o.x1; x++) p.push({ x, y: o.y1 }); run(p, o.y1 * 31 + 2); }
+  if (sides.includes('w')) { const p = []; for (let y = o.y0; y <= o.y1; y++) p.push({ x: o.x0, y }); run(p, o.x0 * 17 + 3); }
+  if (sides.includes('e')) { const p = []; for (let y = o.y0; y <= o.y1; y++) p.push({ x: o.x1, y }); run(p, o.x1 * 17 + 4); }
+  return out;
+}

@@ -598,11 +598,11 @@ export function createRuntimeSfx({
     processAudioElement,
   });
 
-  const boulderRollLoopSfx = createLoopingAudio('./audio/boulder_roll_loop.mp3', 0.47, 1, 180);
+  const boulderRollLoopSfx = createLoopingAudio('./audio/boulder_roll_loop.mp3', 0.88, 1, 180);
 
   const boulderImpactSfx = createSequentialAudioPool({
     src: './audio/boulder_impact.mp3',
-    volume: 0.60,
+    volume: 0.92,
     poolSize: SMALL_SFX_POOL,
     processAudioElement,
   });

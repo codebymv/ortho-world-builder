@@ -203,6 +203,10 @@ const MINIMAP_TILE_COLOR: Partial<Record<TileType, string>> & Record<string, str
   warehouse_facade: '#4A3A34',
   baby_carriage: '#33384A',
   stagecoach: '#5A342A',
+  burning_barricade: '#C0431F',
+  memorial_column: '#B7AE9C',
+  ritual_candle: '#E8B25A',
+  campfire_remains: '#555049',
   street_sign: '#3A5A4A',
   road_setts: '#5E6168',
   cobble_grand: '#9C968A',
@@ -323,6 +327,8 @@ const LANDMARK_ICON_SIZES: Partial<Record<string, number>> = {
   stagecoach:       3,
   street_sign:      3,
   baby_carriage:    2,
+  memorial_column:  4, // a dispersed civic landmark, between a statue and the Tolbooth
+  burning_barricade: 2, // small map dressing
   // House variants — sized to read alongside the observatory/windmill
   house:                        5,
   house_entry:                  5,

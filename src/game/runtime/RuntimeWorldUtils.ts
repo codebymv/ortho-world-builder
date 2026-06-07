@@ -289,6 +289,7 @@ export function spawnEnemiesFromMapZones(
           attackRange: blueprint.attackRange,
           chaseRange: blueprint.chaseRange,
           essenceReward: blueprint.essenceReward,
+          goldReward: blueprint.goldReward,
           telegraphDuration: blueprint.telegraphDuration,
           recoverDuration: blueprint.recoverDuration,
           poise: blueprint.poise,

@@ -1,5 +1,5 @@
-import { memo, useMemo } from 'react';
-import { Coins, Sparkles, Package, Sword, Heart, Shield, Check } from 'lucide-react';
+import React, { memo, useMemo, useState } from 'react';
+import { Coins, Sparkles, Package, Sword, Heart, User, Check, Key, Circle } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { GameState, Item } from '@/lib/game/GameState';
@@ -16,6 +16,44 @@ interface VendorModalProps {
   itemsRegistry: Record<string, Item>;
   onPurchase: (vendorId: string, vendorItem: VendorItem, item: Item) => void;
 }
+
+// ─── Merchant icon (person + $ badge, mirrors BonfireMenu) ────────────────────
+
+const MerchantHeaderIcon = () => (
+  <span className="relative inline-block leading-none text-[#DAA520] flex-shrink-0">
+    <User className="h-5 w-5" strokeWidth={2.2} />
+    <span
+      className="absolute bottom-[-2px] right-[-3px] flex items-center justify-center w-[10px] h-[10px] rounded-full bg-[#120A08] text-[#DAA520] text-[9px] font-black leading-none"
+      style={{ border: '1px solid #DAA520' }}
+    >
+      $
+    </span>
+  </span>
+);
+
+// ─── Meta chip ────────────────────────────────────────────────────────────────
+
+const CHIP_VARIANTS = {
+  muted:  'text-[#8B7355]  border-[#3A2215]/80 bg-[#1A0F0A]/40',
+  green:  'text-[#8FBC8F]  border-[#2e5e2e]/50 bg-[#1e2e1e]/40',
+  violet: 'text-violet-300 border-violet-500/30 bg-violet-900/20',
+  amber:  'text-[#DAA520]  border-[#DAA520]/40  bg-[#DAA520]/10',
+  red:    'text-red-400    border-red-500/30    bg-red-900/20',
+} as const;
+
+const MetaChip = ({ icon, label, variant }: {
+  icon?: React.ReactNode;
+  label: string;
+  variant: keyof typeof CHIP_VARIANTS;
+}) => (
+  <span className={cn(
+    'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm border text-[9px] font-bold uppercase tracking-wide leading-none',
+    CHIP_VARIANTS[variant],
+  )}>
+    {icon}
+    {label}
+  </span>
+);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -79,25 +117,66 @@ const VendorItemCard = memo(({
           )}
         </div>
         <p className="text-[10px] text-[#C9B8A8] leading-snug line-clamp-2">{item.description}</p>
-        {stockRemaining != null && !soldOut && !alreadyOwned && (
-          <p className="text-[10px] text-[#A1887F] mt-0.5">{stockRemaining} left in stock</p>
-        )}
-        {/* Weapon stats */}
-        {isWeapon && item.stats && (
-          <div className="flex items-center gap-3 mt-1 text-[10px] text-[#A1887F]">
-            {item.stats.damage != null && (
-              <span className="flex items-center gap-0.5">
-                <Sword className="w-3 h-3 text-[#DAA520]" />
-                <span className="text-[#F5DEB3] font-bold">{item.stats.damage}</span> ATK
-              </span>
-            )}
-            {item.stats.range != null && (
-              <span className="flex items-center gap-0.5">
-                <span className="text-[#F5DEB3] font-bold">{item.stats.range.toFixed(2)}</span> Range
-              </span>
-            )}
-          </div>
-        )}
+
+        {/* Metadata chips — always rendered */}
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {/* Stock — always shown */}
+          {alreadyOwned ? (
+            <MetaChip icon={<Check className="w-2.5 h-2.5" />} label="owned" variant="green" />
+          ) : vendorItem.unique ? (
+            <MetaChip label="unique" variant="amber" />
+          ) : soldOut ? (
+            <MetaChip label="sold out" variant="red" />
+          ) : stockRemaining === null ? (
+            <MetaChip label="∞ stock" variant="muted" />
+          ) : (
+            <MetaChip
+              label={`${stockRemaining} / ${vendorItem.stock} left`}
+              variant={stockRemaining <= 2 ? 'amber' : 'muted'}
+            />
+          )}
+
+          {/* Consumable effects */}
+          {item.healAmount != null && (
+            <MetaChip
+              icon={<Heart className="w-2.5 h-2.5" />}
+              label={`+${item.healAmount} hp`}
+              variant="red"
+            />
+          )}
+          {item.essenceAmount != null && (
+            <MetaChip
+              icon={<Sparkles className="w-2.5 h-2.5" />}
+              label={`+${item.essenceAmount} essence`}
+              variant="violet"
+            />
+          )}
+          {item.buffType === 'berserker' && item.buffDuration != null && (
+            <MetaChip label={`berserker ${item.buffDuration}s`} variant="red" />
+          )}
+          {item.buffType === 'stealth' && item.buffDuration != null && (
+            <MetaChip label={`stealth ${item.buffDuration}s`} variant="muted" />
+          )}
+          {item.buffType === 'last_breath' && (
+            <MetaChip label="revive on death" variant="amber" />
+          )}
+
+          {/* Weapon stats */}
+          {isWeapon && item.stats && (
+            <>
+              {item.stats.damage != null && (
+                <MetaChip
+                  icon={<Sword className="w-2.5 h-2.5" />}
+                  label={`${item.stats.damage} atk`}
+                  variant="amber"
+                />
+              )}
+              {item.stats.range != null && (
+                <MetaChip label={`${item.stats.range.toFixed(2)} range`} variant="muted" />
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Price + buy */}
@@ -143,6 +222,17 @@ const VendorItemCard = memo(({
   );
 });
 
+// ─── Tab config ───────────────────────────────────────────────────────────────
+
+type VendorTabId = 'weapons' | 'rings' | 'consumables' | 'key_items';
+
+const VENDOR_TAB_CONFIG: { id: VendorTabId; label: string; icon: React.ReactNode; types: string[] }[] = [
+  { id: 'weapons',     label: 'Weapons',     icon: <Sword   className="w-3.5 h-3.5" />, types: ['equipment'] },
+  { id: 'rings',       label: 'Rings',       icon: <Circle  className="w-3.5 h-3.5" />, types: ['ring']      },
+  { id: 'consumables', label: 'Consumables', icon: <Heart   className="w-3.5 h-3.5" />, types: ['consumable'] },
+  { id: 'key_items',   label: 'Key Items',   icon: <Key     className="w-3.5 h-3.5" />, types: ['key', 'quest'] },
+];
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export const VendorModal = memo(function VendorModal({
@@ -161,6 +251,33 @@ export const VendorModal = memo(function VendorModal({
       .filter(({ item }) => !!item);
   }, [vendor, itemsRegistry]);
 
+  const visibleTabs = useMemo(() =>
+    VENDOR_TAB_CONFIG.filter(tab =>
+      resolvedItems.some(({ item }) => tab.types.includes(item.type))
+    ),
+  [resolvedItems]);
+
+  const [activeTab, setActiveTab] = useState<VendorTabId>('consumables');
+
+  // Reset to first available tab whenever the vendor changes
+  const effectiveTab = visibleTabs.some(t => t.id === activeTab)
+    ? activeTab
+    : (visibleTabs[0]?.id ?? 'consumables');
+
+  const tabItems = useMemo(() => {
+    const tab = VENDOR_TAB_CONFIG.find(t => t.id === effectiveTab);
+    if (!tab) return resolvedItems;
+    return resolvedItems.filter(({ item }) => tab.types.includes(item.type));
+  }, [resolvedItems, effectiveTab]);
+
+  const tabCounts = useMemo(() => {
+    const counts = {} as Record<VendorTabId, number>;
+    for (const tab of VENDOR_TAB_CONFIG) {
+      counts[tab.id] = resolvedItems.filter(({ item }) => tab.types.includes(item.type)).length;
+    }
+    return counts;
+  }, [resolvedItems]);
+
   if (!vendor) return null;
 
   return (
@@ -177,10 +294,9 @@ export const VendorModal = memo(function VendorModal({
         <div className="flex flex-shrink-0 items-end justify-between gap-2 border-b border-[#5C3A21]/60 px-5 py-3 pr-12">
           <div>
             <h2 className="font-bold uppercase tracking-[0.2em] text-[#DAA520] flex items-center gap-2">
-              <Shield className="w-5 h-5" />
+              <MerchantHeaderIcon />
               {vendor.name}
             </h2>
-            <p className="mt-0.5 text-xs text-[#A1887F] italic">"{vendor.greeting}"</p>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
             <div className="flex items-center gap-1.5">
@@ -194,6 +310,38 @@ export const VendorModal = memo(function VendorModal({
           </div>
         </div>
 
+        {/* ── Tabs ── */}
+        {visibleTabs.length > 1 && (
+          <div className="flex flex-shrink-0 border-b border-[#5C3A21]/40 px-4">
+            {visibleTabs.map(tab => {
+              const isActive = tab.id === effectiveTab;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-colors',
+                    isActive
+                      ? 'border-[#DAA520] text-[#DAA520]'
+                      : 'border-transparent text-[#8B7355] hover:text-[#C9A36B]',
+                  )}
+                >
+                  {tab.icon}
+                  {tab.label}
+                  {tabCounts[tab.id] > 0 && (
+                    <span className={cn(
+                      'ml-0.5 rounded-sm px-1 py-px text-[9px] font-bold',
+                      isActive ? 'bg-[#DAA520]/20 text-[#DAA520]' : 'bg-[#3A2215] text-[#8B7355]',
+                    )}>
+                      {tabCounts[tab.id]}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* ── Items ── */}
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {resolvedItems.length === 0 ? (
@@ -203,7 +351,7 @@ export const VendorModal = memo(function VendorModal({
             </div>
           ) : (
             <div className="space-y-2">
-              {resolvedItems.map(({ vendorItem, item }) => {
+              {tabItems.map(({ vendorItem, item }) => {
                 const playerBalance = vendorItem.currency === 'gold'
                   ? gameState.player.gold
                   : gameState.player.essence;

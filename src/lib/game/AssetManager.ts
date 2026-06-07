@@ -463,6 +463,288 @@ export class AssetManager {
     return this.createSpriteTexture(pixels, 4, spriteId);
   }
 
+  // ---------------------------------------------------------------------------
+  // Forest prop kit variant generators
+  // Each function takes the base sprite array and a variant integer (1, 2…) and
+  // returns a deterministically-modified texture so the forest never shows the
+  // same asset copy-pasted identically throughout.
+  // ---------------------------------------------------------------------------
+
+  createDeadTreeVariantTexture(
+    baseSprite: readonly (readonly number[])[],
+    variant: number,
+  ): THREE.Texture {
+    const C      = 0;
+    const TRUNK  = 0x5D4037;
+    const TRUNK_S = 0x3E2723;
+    const SCAR   = 0x4E342E; // mid-dark bark scar tone
+
+    const pixels: number[][] = baseSprite.map(row => [...row]);
+    const H = pixels.length;
+    const W = pixels[0]?.length ?? 0;
+
+    let seed = (Math.imul(variant + 13, 1664525) + 1013904223) >>> 0;
+    const rand = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 0xffffffff; };
+    const inB  = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H;
+    const get  = (x: number, y: number): number => inB(x, y) ? pixels[y][x] : C;
+    const set  = (x: number, y: number, c: number) => { if (inB(x, y)) pixels[y][x] = c; };
+
+    if (variant === 1) {
+      // dead_tree_b — lost its left limb; right-heavy asymmetric crown.
+      // Clear the left branch arm (rows 0-2, cols 0-3).
+      for (let row = 0; row <= 2; row++) {
+        for (let col = 0; col <= 3; col++) {
+          if (get(col, row) !== C) set(col, row, C);
+        }
+      }
+      if (get(3, 3) !== C) set(3, 3, C); // clear left merge point on row 3
+      // Broken-off stub scar where the arm was removed.
+      set(2, 3, TRUNK_S);
+      set(1, 4, TRUNK_S);
+      // Slightly wider root spread.
+      set(3, 6, TRUNK_S);
+    } else if (variant === 2) {
+      // dead_tree_c — struck by lightning; sparse crown, dominant low-left branch.
+      // Clear crown row entirely.
+      for (let col = 0; col < W; col++) set(col, 0, C);
+      // Trim far outer branches on row 1-2.
+      set(1, 1, C);
+      set(8, 2, C);
+      // Add a hard-left branch jutting from mid-trunk.
+      set(2, 4, TRUNK);
+      set(1, 4, TRUNK_S);
+      set(0, 5, TRUNK_S);
+      // Bark crack scar running down the trunk center.
+      for (let row = 5; row < H; row++) {
+        if (get(4, row) === TRUNK) set(4, row, SCAR);
+      }
+    }
+
+    // Shared: scatter 2-3 bark grain spots per variant for texture uniqueness.
+    for (let i = 0; i < 3; i++) {
+      const row = 4 + Math.floor(rand() * Math.max(1, H - 4));
+      const col = 3 + Math.floor(rand() * 4);
+      if (get(col, row) === TRUNK) set(col, row, TRUNK_S);
+    }
+
+    return this.createSpriteTexture(pixels, 4);
+  }
+
+  createStumpVariantTexture(
+    baseSprite: readonly (readonly number[])[],
+    variant: number,
+  ): THREE.Texture {
+    const C    = 0;
+    const LIGHT = 0xBCAAA4; // cut-end highlight
+    const MID   = 0x795548; // mid-tone bark
+    const DARK  = 0x5D4037; // shadow bark
+    const ROT   = 0x3E2723; // rotted heartwood
+    const MOSS  = 0x6B8E3A; // moss green
+
+    const pixels: number[][] = baseSprite.map(row => [...row]);
+    const H = pixels.length;
+    const W = pixels[0]?.length ?? 0;
+    const inB = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H;
+    const set  = (x: number, y: number, c: number) => { if (inB(x, y)) pixels[y][x] = c; };
+
+    if (variant === 1) {
+      // stump_b — old mossy stump; rot at center, moss patches on the rim.
+      set(1, 0, MOSS);   // left moss patch
+      set(5, 0, MOSS);   // right moss patch
+      set(2, 0, ROT);    // rotting heartwood left of center
+      set(3, 0, ROT);    // rotting heartwood center
+      set(2, 1, ROT);
+      set(4, 1, ROT);
+      set(1, 1, DARK);   // darker body — older wood
+      set(5, 1, DARK);
+    } else if (variant === 2) {
+      // stump_c — freshly cut; bright pale face, pronounced outer ring.
+      // Lighten the entire cut face.
+      for (let col = 1; col <= 5; col++) {
+        if (pixels[0][col] === MID) pixels[0][col] = LIGHT;
+      }
+      // Bold dark center ring.
+      set(2, 0, DARK);
+      set(3, 0, DARK);
+      set(2, 1, DARK);
+      set(4, 1, DARK);
+      // Slightly thicker outer bark edge.
+      void (MID); // used in base, silence lint
+      set(0, 1, MID);
+      set(6, 1, MID);
+    }
+
+    return this.createSpriteTexture(pixels, 4);
+  }
+
+  createTallGrassVariantTexture(
+    baseSprite: readonly (readonly number[])[],
+    variant: number,
+  ): THREE.Texture {
+    const X     = 0;
+    const TG_DK = 0x1F5C24; // shaded base blade
+    const TG_MD = 0x388E3C; // mid green
+    const TG_LT = 0x5BB85A; // lit blade
+    const TG_TP = 0x8FD98A; // pale tip
+
+    const pixels: number[][] = baseSprite.map(row => [...row]);
+    const H = pixels.length;
+    const W = pixels[0]?.length ?? 0;
+
+    let seed = (Math.imul(variant + 3, 1664525) + 1013904223) >>> 0;
+    const rand = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 0xffffffff; };
+    const inB = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H;
+    const get  = (x: number, y: number): number => inB(x, y) ? pixels[y][x] : X;
+    const set  = (x: number, y: number, c: number) => { if (inB(x, y)) pixels[y][x] = c; };
+
+    if (variant === 1) {
+      // tall_grass_b — gentle left lean: primary tip shifts one pixel left.
+      set(7, 0, X);  set(6, 0, TG_TP); // tip 1 pixel left
+      set(7, 1, TG_LT); set(6, 1, TG_TP); // secondary tip follows
+      set(10, 2, TG_LT); set(9, 2, TG_TP); // right secondary blade nudged
+      // Two micro body swaps for subtle density difference.
+      for (let i = 0; i < 2; i++) {
+        const row = 5 + Math.floor(rand() * 5);
+        const col = 4 + Math.floor(rand() * 7);
+        if (get(col, row) === TG_LT) set(col, row, TG_MD);
+      }
+    } else if (variant === 2) {
+      // tall_grass_c — gentle right lean: tip shifts one pixel right, extra left blade.
+      set(7, 0, X);  set(8, 0, TG_TP); // tip 1 pixel right
+      set(8, 1, TG_LT); set(7, 1, TG_TP); // secondary tip stays centre
+      set(11, 2, TG_TP); set(10, 2, TG_LT); // right secondary blade more spread
+      set(4, 5, TG_TP); set(4, 6, TG_LT);  // extra left blade sprout
+      // Two micro base darkening spots for density variation.
+      for (let i = 0; i < 2; i++) {
+        const row = 10 + Math.floor(rand() * 4);
+        const col = 4 + Math.floor(rand() * 8);
+        if (get(col, row) === TG_MD) set(col, row, TG_DK);
+      }
+    }
+
+    // Suppress lint on unused colour refs — they are used in base + are referenced
+    // implicitly via the pixel array above.
+    void (TG_DK); void (H); void (W);
+    return this.createSpriteTexture(pixels, 4);
+  }
+
+  createLiveTreeVariantTexture(
+    baseSprite: readonly (readonly number[])[],
+    variant: number,
+  ): THREE.Texture {
+    const C      = 0;
+    const LEAF   = 0x2E7D32;
+    const LEAF_H = 0x66BB6A;
+    const LEAF_S = 0x1B5E20;
+
+    const pixels: number[][] = baseSprite.map(row => [...row]);
+    const H = pixels.length;
+    const W = pixels[0]?.length ?? 0;
+
+    let seed = (Math.imul(variant + 5, 1664525) + 1013904223) >>> 0;
+    const rand = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 0xffffffff; };
+    const inB = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H;
+    const get  = (x: number, y: number): number => inB(x, y) ? pixels[y][x] : C;
+    const set  = (x: number, y: number, c: number) => { if (inB(x, y)) pixels[y][x] = c; };
+
+    if (variant === 1) {
+      // tree_b — dense spreading canopy; rounder, fuller oak silhouette.
+      // Convert the LEAF_S outer corners on the widest rows into solid LEAF.
+      set(0, 4, LEAF); set(11, 4, LEAF);
+      set(0, 5, LEAF); set(11, 5, LEAF);
+      // Lighten the mid-crown shadow pixels for denser appearance.
+      for (let row = 4; row <= 6; row++) {
+        for (let col = 1; col < W - 1; col++) {
+          if (get(col, row) === LEAF_S && rand() > 0.35) set(col, row, LEAF);
+        }
+      }
+      // Add bright highlight specks to the upper crown for a sun-lit look.
+      for (let row = 0; row <= 3; row++) {
+        for (let col = 2; col < W - 2; col++) {
+          if (get(col, row) === LEAF && rand() > 0.55) set(col, row, LEAF_H);
+        }
+      }
+    } else if (variant === 2) {
+      // tree_c — slender young tree; narrower, more tapered crown.
+      // Clip the outer columns of the widest rows so the crown thins at the base.
+      for (const col of [0, 1, 10, 11]) {
+        for (let row = 4; row <= 6; row++) {
+          if (get(col, row) !== C) set(col, row, C);
+        }
+      }
+      // Narrow the bottom crown row to a tighter band.
+      for (let col = 0; col < W; col++) {
+        const px = get(col, 8);
+        if ((px === LEAF || px === LEAF_S) && (col < 3 || col > 8)) set(col, 8, C);
+      }
+      // Reduce highlights — uniform muted canopy of a younger tree.
+      for (let row = 0; row <= 8; row++) {
+        for (let col = 0; col < W; col++) {
+          if (get(col, row) === LEAF_H && rand() > 0.45) set(col, row, LEAF);
+        }
+      }
+    }
+
+    // Shared: micro leaf texture variation — 4 random swaps per variant.
+    for (let i = 0; i < 4; i++) {
+      const row = Math.floor(rand() * 9);
+      const col = 2 + Math.floor(rand() * Math.max(1, W - 4));
+      if (get(col, row) === LEAF) set(col, row, rand() > 0.5 ? LEAF_H : LEAF_S);
+    }
+
+    return this.createSpriteTexture(pixels, 4);
+  }
+
+  createFallenLogVariantTexture(
+    baseSprite: readonly (readonly number[])[],
+    variant: number,
+  ): THREE.Texture {
+    const C     = 0;
+    const TRUNK = 0x5D4037;
+    const TRUNK_S = 0x3E2723;
+    const MOSS  = 0x6B8E3A;
+
+    const pixels: number[][] = baseSprite.map(row => [...row]);
+    const H = pixels.length;
+    const W = pixels[0]?.length ?? 0;
+    const inB = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H;
+    const set  = (x: number, y: number, c: number) => { if (inB(x, y)) pixels[y][x] = c; };
+
+    if (variant === 1) {
+      // Shorter broken piece — clear one end of the log so it reads as a snapped section.
+      if (H > W) {
+        // Horizontal log (tall canvas): clear leftmost 3 cols.
+        for (let row = 0; row < H; row++) {
+          pixels[row][0] = C;
+          pixels[row][1] = C;
+          pixels[row][2] = C;
+        }
+        // Expose a cut-end face at the new left edge (col 3).
+        for (let row = 6; row <= 10; row++) {
+          if (pixels[row][3] !== C) set(3, row, TRUNK_S);
+        }
+      } else {
+        // Vertical log (wide canvas): clear top 3 rows.
+        for (let col = 0; col < W; col++) {
+          pixels[0][col] = C;
+          pixels[1][col] = C;
+          pixels[2][col] = C;
+        }
+        // Expose cut-end face at row 3.
+        for (let col = 5; col <= 11; col++) {
+          if (pixels[3][col] !== C) set(col, 3, TRUNK_S);
+        }
+      }
+      // Add moss patches along the body.
+      set(5, 7, MOSS);
+      set(8, 8, MOSS);
+      void (TRUNK); // silence lint — used in base
+      void (TRUNK_S);
+    }
+
+    return this.createSpriteTexture(pixels, 4);
+  }
+
   // Supersamples a hand-authored facade base 2× on each axis (so a 16×28 design becomes
   // 32×56). The authored layout is the design source of truth; this doubles the logical
   // resolution so each cell covers a quarter of the on-screen area at the building's
@@ -4662,7 +4944,7 @@ export class AssetManager {
       const TG_LT = 0x5BB85A; // lit blade
       const TG_TP = 0x8FD98A; // pale tip
       const X = C;
-      this.registerTexture('tall_grass', () => this.createSpriteTexture([
+      const BASE_TALL_GRASS = [
         [X,    X,    X,    X,    X,    X,    X,    TG_TP,X,    X,    X,    X,    X,    X,    X,    X    ],
         [X,    X,    X,    X,    X,    X,    TG_LT,TG_TP,TG_LT,X,    X,    X,    X,    X,    X,    X    ],
         [X,    X,    X,    X,    X,    X,    TG_LT,TG_MD,TG_LT,X,    TG_TP,X,    X,    X,    X,    X    ],
@@ -4679,7 +4961,10 @@ export class AssetManager {
         [X,    X,    X,    TG_DK,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_DK,X,    X,    X    ],
         [X,    X,    X,    TG_DK,TG_DK,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_MD,TG_DK,TG_DK,X,    X,    X    ],
         [X,    X,    X,    X,    TG_DK,TG_DK,TG_DK,TG_DK,TG_DK,TG_DK,TG_DK,TG_DK,X,    X,    X,    X    ],
-      ], 4, 'tall_grass'));
+      ] as const;
+      this.registerTexture('tall_grass', () => this.createSpriteTexture(BASE_TALL_GRASS, 4, 'tall_grass'));
+      this.registerTexture('tall_grass_b', () => this.createTallGrassVariantTexture(BASE_TALL_GRASS, 1));
+      this.registerTexture('tall_grass_c', () => this.createTallGrassVariantTexture(BASE_TALL_GRASS, 2));
     }
     registerColorTexture('sand', 0xF5DEB3, 32, 32, 'noise');
     registerColorTexture('swamp', 0x556B2F, 32, 32, 'noise');
@@ -5246,8 +5531,8 @@ export class AssetManager {
     const LEAF_H = 0x66BB6A;
     const LEAF_S = 0x1B5E20;
 
-    // Tree - bigger, more detailed (12x14)
-    registerSpriteTexture('tree', [
+    // Tree — base sprite extracted so the live-tree variant generator can reference it.
+    const BASE_TREE = [
       [C,     C,     C,     C,     LEAF_H,LEAF,  LEAF_H,LEAF,  C,     C,     C,     C],
       [C,     C,     C,     LEAF,  LEAF_H,LEAF,  LEAF,  LEAF_H,LEAF,  C,     C,     C],
       [C,     C,     LEAF,  LEAF_H,LEAF,  LEAF_H,LEAF,  LEAF,  LEAF_H,LEAF,  C,     C],
@@ -5262,10 +5547,13 @@ export class AssetManager {
       [C,     C,     C,     C,     C,     TRUNK, TRUNK_S,C,    C,     C,     C,     C],
       [C,     C,     C,     C,     TRUNK_S,TRUNK,TRUNK_S,TRUNK,C,     C,     C,     C],
       [C,     C,     C,     TRUNK_S,TRUNK, TRUNK,TRUNK, TRUNK_S,C,    C,     C,     C],
-    ]);
+    ] as const;
+    registerSpriteTexture('tree', BASE_TREE);
+    this.registerTexture('tree_b', () => this.createLiveTreeVariantTexture(BASE_TREE, 1));
+    this.registerTexture('tree_c', () => this.createLiveTreeVariantTexture(BASE_TREE, 2));
 
-    // Dead tree
-    registerSpriteTexture('dead_tree', [
+    // Dead tree — base sprite extracted so variant generator can reference it.
+    const BASE_DEAD_TREE = [
       [C,     C,     C,     TRUNK, C,     C,     TRUNK, C,     C,     C],
       [C,     C,     TRUNK, TRUNK_S,C,    C,     TRUNK_S,TRUNK, C,    C],
       [C,     TRUNK, C,     TRUNK, C,     TRUNK, C,     C,     TRUNK, C],
@@ -5274,7 +5562,10 @@ export class AssetManager {
       [C,     C,     C,     C,     TRUNK, TRUNK_S,C,     C,     C,     C],
       [C,     C,     C,     C,     TRUNK_S,TRUNK, C,     C,     C,     C],
       [C,     C,     C,     TRUNK_S,TRUNK, TRUNK_S,TRUNK, C,     C,     C],
-    ]);
+    ] as const;
+    registerSpriteTexture('dead_tree', BASE_DEAD_TREE);
+    this.registerTexture('dead_tree_b', () => this.createDeadTreeVariantTexture(BASE_DEAD_TREE, 1));
+    this.registerTexture('dead_tree_c', () => this.createDeadTreeVariantTexture(BASE_DEAD_TREE, 2));
 
     // Statue
     const STATUE = 0x9E9E9E;
@@ -6640,19 +6931,19 @@ export class AssetManager {
       [C,     C,     TS_D,  TS_D,  TS_D,  TS_D,  C,     C    ],  // base
     ]);
 
-    registerSpriteTexture('stump', [
-      [C,       0xBCAAA4,0x795548,0xBCAAA4,0x795548,0xBCAAA4,C],
-      [0x795548, 0xBCAAA4,0x5D4037,0xBCAAA4,0x5D4037,0xBCAAA4,0x795548],
-      [0x5D4037,0x795548,0x5D4037,0x795548,0x5D4037,0x795548,0x5D4037],
-      [C,       0x5D4037,0x5D4037,0x5D4037,0x5D4037,0x5D4037,C],
-    ]);
+    const BASE_STUMP = [
+      [C,        0xBCAAA4, 0x795548, 0xBCAAA4, 0x795548, 0xBCAAA4, C      ],
+      [0x795548, 0xBCAAA4, 0x5D4037, 0xBCAAA4, 0x5D4037, 0xBCAAA4, 0x795548],
+      [0x5D4037, 0x795548, 0x5D4037, 0x795548, 0x5D4037, 0x795548, 0x5D4037],
+      [C,        0x5D4037, 0x5D4037, 0x5D4037, 0x5D4037, 0x5D4037, C      ],
+    ] as const;
+    registerSpriteTexture('stump', BASE_STUMP);
+    this.registerTexture('stump_b', () => this.createStumpVariantTexture(BASE_STUMP, 1));
+    this.registerTexture('stump_c', () => this.createStumpVariantTexture(BASE_STUMP, 2));
 
-    // Fallen log — dead_tree sprite rotated 90° and elongated. Uses ONLY TRUNK / TRUNK_S
-    // to match the dead trees in the hollow.
-    // 11 cols × 17 rows → content silhouette (rows 6–11) renders ~2.8× wider than tall
-    // on a square tile plane. Long horizontal trunk with broken branch stubs sticking
-    // up and down at multiple points along its length.
-    registerSpriteTexture('fallen_log', [
+    // Fallen log — base sprite extracted for variant generator.
+    // 11 cols × 17 rows → horizontal trunk with branch stubs up (rows 4-5) and down (row 11).
+    const BASE_FALLEN_LOG = [
       [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],  // row 0
       [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],  // row 1
       [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],  // row 2
@@ -6670,13 +6961,12 @@ export class AssetManager {
       [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],  // row 14
       [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],  // row 15
       [C,       C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],  // row 16
-    ]);
+    ] as const;
+    registerSpriteTexture('fallen_log', BASE_FALLEN_LOG);
+    this.registerTexture('fallen_log_b', () => this.createFallenLogVariantTexture(BASE_FALLEN_LOG, 1));
 
-    // Fallen log (vertical) — same trunk rotated 90° CCW. 17 cols × 11 rows.
-    // Content silhouette occupies cols 4–11 (8 cols) × all 11 rows, rendering as
-    // ~2.5× taller than wide on a square plane. Lit on the left side (was horizontal
-    // log's top); shadow on the right (was horizontal log's bottom).
-    registerSpriteTexture('fallen_log_v', [
+    // Fallen log (vertical) — 17 cols × 11 rows.
+    const BASE_FALLEN_LOG_V = [
       [C, C, C, C, C,       C,       TRUNK,   TRUNK,   TRUNK,   TRUNK_S, TRUNK_S, C,       C, C, C, C, C],  // row 0
       [C, C, C, C, C,       TRUNK,   TRUNK_S, TRUNK_S, TRUNK,   TRUNK,   TRUNK_S, C,       C, C, C, C, C],  // row 1
       [C, C, C, C, C,       C,       TRUNK,   TRUNK,   TRUNK,   TRUNK_S, TRUNK_S, TRUNK_S, C, C, C, C, C],  // row 2
@@ -6688,7 +6978,9 @@ export class AssetManager {
       [C, C, C, C, C,       C,       TRUNK,   TRUNK,   TRUNK,   TRUNK_S, TRUNK_S, TRUNK_S, C, C, C, C, C],  // row 8
       [C, C, C, C, TRUNK,   TRUNK_S, TRUNK,   TRUNK,   TRUNK_S, TRUNK,   TRUNK_S, C,       C, C, C, C, C],  // row 9
       [C, C, C, C, C,       TRUNK,   C,       TRUNK,   TRUNK,   TRUNK_S, TRUNK_S, C,       C, C, C, C, C],  // row 10
-    ]);
+    ] as const;
+    registerSpriteTexture('fallen_log_v', BASE_FALLEN_LOG_V);
+    this.registerTexture('fallen_log_v_b', () => this.createFallenLogVariantTexture(BASE_FALLEN_LOG_V, 1));
 
     // Ridge lumberyard remains — run-down log shed: gabled roof, plank walls, dark doorway, woodpiles.
     const LY_B = 0x5D4037;   // log bark
@@ -7613,6 +7905,60 @@ export class AssetManager {
       [CH_BRICK, CH_BRICK_H,CH_MORTAR,CH_BRICK, CH_BRICK_H,CH_BRICK],
       [CH_BRICK_H,CH_BRICK, CH_BRICK_H,CH_MORTAR,CH_BRICK, CH_BRICK_H],
       [CH_BRICK, CH_MORTAR,CH_BRICK_H,CH_BRICK, CH_MORTAR,CH_BRICK],
+    ]);
+
+    // Burning barricade — overturned carts, planks, crates and barrels piled across a
+    // street and set alight. The citizens of Guilrhym tried to hold the dead back here.
+    // Static silhouette (flame is baked into the pixels, matching campfire/wall_torch).
+    const BB_FT = 0xFFEB3B; // flame tip (yellow)
+    const BB_FM = 0xFF9800; // flame mid (orange)
+    const BB_FD = 0xFF5722; // flame deep (red-orange)
+    const BB_SM = 0x6F6F6F; // smoke
+    const BB_SL = 0x9E9E9E; // smoke light
+    const BB_WD = 0x5D4037; // wood
+    const BB_WH = 0x8D6E63; // wood highlight
+    const BB_WS = 0x3E2723; // wood shadow
+    const BB_PL = 0x795548; // plank
+    const BB_IR = 0x546E7A; // iron band / cart rim
+    const BB_CH = 0x212121; // charred
+    registerSpriteTexture('burning_barricade', [
+      [C,    BB_SL, C,     C,     BB_SM, C,     C,     BB_SL, C,     C,     C    ],
+      [C,    C,     BB_SM, C,     BB_FT, C,     BB_SM, C,     C,     C,     C    ],
+      [C,    C,     BB_FT, BB_FM, BB_FT, BB_FM, C,     BB_FT, C,     C,     C    ],
+      [C,    BB_FM, BB_FM, BB_FD, BB_FM, BB_FD, BB_FM, BB_FM, BB_FM, C,     C    ],
+      [C,    BB_FD, BB_FM, BB_FD, BB_FD, BB_FM, BB_FD, BB_FM, BB_FD, BB_FM, C    ],
+      [BB_WS,BB_PL, BB_WD, BB_CH, BB_PL, BB_WH, BB_PL, BB_CH, BB_WD, BB_PL, BB_WS],
+      [BB_WD,BB_IR, BB_PL, BB_WH, BB_IR, BB_WD, BB_PL, BB_WH, BB_IR, BB_WD, BB_WH],
+      [BB_PL,BB_WD, BB_WH, BB_PL, BB_WD, BB_WS, BB_WH, BB_PL, BB_WD, BB_WH, BB_PL],
+      [BB_WS,BB_IR, BB_WD, BB_WH, BB_PL, BB_WD, BB_WH, BB_IR, BB_WD, BB_WS, BB_WD],
+      [C,    BB_WS, BB_WD, BB_WS, BB_CH, BB_WS, BB_WD, BB_WS, BB_WD, BB_WS, C    ],
+    ]);
+
+    // Memorial column — a tall Victorian civic monument: a bronze figure / urn finial on a
+    // pale-stone column rising from a stepped plinth. A vertical landmark to break the rooftops.
+    const MC_ST = 0x9E9384; // civic stone
+    const MC_SH = 0xC4BBA8; // stone highlight
+    const MC_SS = 0x6E665A; // stone shadow
+    const MC_DK = 0x4E483F; // deep shadow
+    const MC_BZ = 0x7A6033; // bronze
+    const MC_BH = 0x9A7D45; // bronze highlight
+    registerSpriteTexture('memorial_column', [
+      [C,    C,     MC_BZ, MC_BH, MC_BZ, C,     C    ],
+      [C,    MC_BZ, MC_BH, MC_BZ, MC_BH, MC_BZ, C    ],
+      [C,    C,     MC_BZ, MC_BZ, MC_BZ, C,     C    ],
+      [C,    MC_SH, MC_ST, MC_SH, MC_ST, MC_SH, C    ],
+      [C,    C,     MC_ST, MC_SH, MC_ST, C,     C    ],
+      [C,    C,     MC_SS, MC_ST, MC_SH, C,     C    ],
+      [C,    C,     MC_ST, MC_SH, MC_ST, C,     C    ],
+      [C,    C,     MC_SS, MC_ST, MC_SH, C,     C    ],
+      [C,    C,     MC_ST, MC_SH, MC_ST, C,     C    ],
+      [C,    C,     MC_SS, MC_ST, MC_SH, C,     C    ],
+      [C,    C,     MC_ST, MC_SH, MC_ST, C,     C    ],
+      [C,    MC_SH, MC_ST, MC_SH, MC_ST, MC_SH, C    ],
+      [C,    MC_SS, MC_ST, MC_ST, MC_ST, MC_SS, C    ],
+      [MC_SH,MC_ST, MC_SH, MC_ST, MC_SH, MC_ST, MC_SH],
+      [MC_SS,MC_ST, MC_ST, MC_ST, MC_ST, MC_ST, MC_SS],
+      [MC_DK,MC_SS, MC_ST, MC_ST, MC_ST, MC_SS, MC_DK],
     ]);
   }
 }

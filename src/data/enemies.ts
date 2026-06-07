@@ -98,6 +98,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     recoverDuration: 0.5,
     poise: 80,
     staggerDuration: 1.0,
+    essenceReward: 42,
     goldReward: 5,
     behaviorOverrides: {
       chainAttack: true,
