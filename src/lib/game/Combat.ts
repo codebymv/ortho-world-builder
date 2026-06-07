@@ -42,6 +42,15 @@ const ENEMY_STUCK_FRAME_LIMIT = 6;
 const ENEMY_PATH_RECOVERY_DURATION = 0.85;
 const ENEMY_PATH_RECOVERY_BLEND = 0.28;
 const ENEMY_PATH_HARD_STUCK_FRAMES = ENEMY_STUCK_FRAME_LIMIT * 2;
+/** Trace interval (tiles) for the cheap aggro line-of-sight check. Coarser than the melee
+ *  trace so detection is inexpensive even against large enemy populations. */
+const AGGRO_TRACE_STEP = 0.5;
+/** Elevation delta (tiers) allowed across the aggro LoS ray. Wider than the melee tolerance
+ *  so gentle slopes don't break detection, but cliffs still block it. */
+const AGGRO_ELEVATION_TOLERANCE = 1.5;
+/** Seconds of continuous blocked movement while chasing before the enemy gives up and
+ *  returns to patrol. Prevents enemies from grinding against geometry they can never cross. */
+const ENEMY_CHASE_GIVE_UP_DURATION = 2.5;
 const BACKSTAB_FACING_DOT = 0.5;
 /** While chasing, disengage only beyond chaseRange * this linear multiplier (squared in leash checks). */
 export const ACTIVE_COMBAT_LEASH_RANGE_MULT = 1.5;
@@ -571,6 +580,13 @@ export interface Enemy {
   pathRecoveryTimer: number;
   /** Preferred side for temporary obstacle recovery. Flips when the chosen side is also hard blocked. */
   pathRecoverySide: -1 | 1;
+  /**
+   * Accumulated seconds of continuous blocked movement while chasing. Increments every frame
+   * that `tryEnemyChaseMove` returns no movement; resets on any successful step. Once it
+   * exceeds `ENEMY_CHASE_GIVE_UP_DURATION` the enemy returns to idle — this prevents endless
+   * grinding against geometry the enemy can never cross.
+   */
+  noProgressTimer: number;
   /** Cooldown for amphibious splash particles when crossing water/shore. */
   waterSplashCooldown: number;
   /** Last sampled water/shore state for amphibious transition effects. */
@@ -613,6 +629,35 @@ function canEnemyMeleeReachPlayer(
     if (Math.abs(sampleElevation - enemyElevation) > MELEE_ELEVATION_TOLERANCE) return false;
   }
 
+  return true;
+}
+
+/**
+ * Cheap aggro-range line-of-sight check. Uses a coarser trace step and a wider elevation
+ * tolerance than the melee variant — false negatives (enemy can't see player through a wide
+ * gap) are acceptable; the goal is to stop enemies aggroing through solid walls or across
+ * impassable cliffs. Faction alerts and no-world (test) contexts bypass this check.
+ */
+function hasAggroLineOfSight(
+  world: World,
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+): boolean {
+  const fromElev = world.getElevationAt(fromX, fromY);
+  const toElev   = world.getElevationAt(toX, toY);
+  if (Math.abs(fromElev - toElev) > AGGRO_ELEVATION_TOLERANCE) return false;
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+  const distance = Math.hypot(dx, dy);
+  const steps = Math.max(1, Math.ceil(distance / AGGRO_TRACE_STEP));
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const tile = world.getTile(fromX + dx * t, fromY + dy * t);
+    if (!tile || (!tile.walkable && !tile.transition)) return false;
+    if (Math.abs((tile.elevation ?? 0) - fromElev) > AGGRO_ELEVATION_TOLERANCE) return false;
+  }
   return true;
 }
 
@@ -816,6 +861,7 @@ export class CombatSystem {
       stuckFrames: 0,
       pathRecoveryTimer: 0,
       pathRecoverySide: Math.random() < 0.5 ? -1 : 1,
+      noProgressTimer: 0,
       waterSplashCooldown: 0,
       lastWaterState: null,
       waterDiveTimer: 0,
@@ -1155,11 +1201,13 @@ export class CombatSystem {
             updateMovementVisuals(enemy, 0, 0, false, 0);
           }
 
-          // Start chasing if target is in range. For faction enemies, also engage immediately
-          // when a faction target has been detected (regardless of exact distance).
+          // Start chasing if target is in range. Faction targets bypass the LoS check because
+          // a nearby ally already has eyes on the player. No-world (test) contexts also bypass.
+          // For normal detection: require a clear sightline so enemies don't aggro through walls.
           if (
             !playerInBonfireSanctuary &&
-            (distSq <= chaseRangeSq || enemy.factionTarget !== null)
+            (distSq <= chaseRangeSq || enemy.factionTarget !== null) &&
+            (enemy.factionTarget !== null || !world || hasAggroLineOfSight(world, enemy.position.x, enemy.position.y, playerPosition.x, playerPosition.y))
           ) {
             enemy.state = 'chasing';
           }
@@ -1177,6 +1225,8 @@ export class CombatSystem {
           }
           if (distSq > leashRangeSq) {
             enemy.state = 'idle';
+            enemy.playerAggroed = false; // stealth re-applies on re-approach after kiting
+            enemy.noProgressTimer = 0;
             updateMovementVisuals(enemy, 0, 0, false, 0);
             break;
           }
@@ -1311,6 +1361,7 @@ export class CombatSystem {
               const step = tryEnemyChaseMove(world, enemy, nvx, nvy, moveSpeed, ENEMY_MOVE_RADIUS);
               if (step.moved) {
                 enemy.stuckFrames = 0;
+                enemy.noProgressTimer = 0;
                 enemy.pathRecoveryTimer = step.usedRecovery
                   ? Math.max(enemy.pathRecoveryTimer, ENEMY_PATH_RECOVERY_DURATION)
                   : 0;
@@ -1320,6 +1371,17 @@ export class CombatSystem {
                 updateMovementVisuals(enemy, step.vx, step.vy, true, sprintMult > 1 ? 16 : 10);
               } else {
                 enemy.stuckFrames++;
+                enemy.noProgressTimer += deltaTime;
+                if (enemy.noProgressTimer >= ENEMY_CHASE_GIVE_UP_DURATION) {
+                  // Completely unreachable target — stop grinding against the geometry and
+                  // resume patrol. The enemy will re-aggro if the player comes back into view.
+                  enemy.state = 'idle';
+                  enemy.stuckFrames = 0;
+                  enemy.pathRecoveryTimer = 0;
+                  enemy.noProgressTimer = 0;
+                  updateMovementVisuals(enemy, 0, 0, false, 0);
+                  break;
+                }
                 if (enemy.stuckFrames === ENEMY_STUCK_FRAME_LIMIT) {
                   enemy.pathRecoverySide = enemy.pathRecoverySide === 1 ? -1 : 1;
                   enemy.pathRecoveryTimer = Math.max(enemy.pathRecoveryTimer, ENEMY_PATH_RECOVERY_DURATION);

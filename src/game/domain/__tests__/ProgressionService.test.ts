@@ -351,3 +351,64 @@ describe('handleDialogueResponse — healer/apothecary heal action', () => {
     expect(state.player.health).toBe(100);
   });
 });
+
+describe('handleDialogueResponse — Petra golem hearts', () => {
+  it('pays 250 gold per heart up to three then marks Petra departed', () => {
+    const state = makeState();
+    state.currentDialogue = 'petra_ashveil';
+    const refreshActiveNpcs = vi.fn();
+    const { service, spies } = makeService(state, { refreshActiveNpcs });
+
+    for (let i = 0; i < 3; i++) {
+      state.addItem({ ...itemCatalog.golem_heart });
+      service.handleDialogueResponse({
+        state,
+        currentDialogue: { node: { id: 'deliver_heart', text: '', responses: [] }, npcName: 'Petra' },
+        nextId: 'end',
+      });
+    }
+
+    expect(state.player.gold).toBe(750);
+    expect(state.getFlagNumber('petra_hearts_sold')).toBe(3);
+    expect(state.getFlagBool('petra_departed')).toBe(true);
+    expect(refreshActiveNpcs).toHaveBeenCalledTimes(1);
+    expect(state.hasItem('golem_heart')).toBe(false);
+    expect(spies.notify).toHaveBeenCalledWith(
+      'Golem Heart Sold!',
+      expect.objectContaining({ id: 'petra-heart-sold' }),
+    );
+  });
+
+  it('does not pay for a fourth heart after quota is full', () => {
+    const state = makeState();
+    state.currentDialogue = 'petra_ashveil';
+    state.setFlag('petra_hearts_sold', 3);
+    state.setFlag('petra_departed', true);
+    state.addItem({ ...itemCatalog.golem_heart });
+    const { service, spies } = makeService(state);
+
+    service.handleDialogueResponse({
+      state,
+      currentDialogue: { node: { id: 'deliver_heart', text: '', responses: [] }, npcName: 'Petra' },
+      nextId: 'end',
+    });
+
+    expect(state.player.gold).toBe(0);
+    expect(state.hasItem('golem_heart')).toBe(true);
+    expect(spies.notify).not.toHaveBeenCalledWith('Golem Heart Sold!', expect.anything());
+  });
+});
+
+describe('selectDialogueStartNode — Petra', () => {
+  it('returns null when Petra has departed', () => {
+    const state = makeState();
+    state.setFlag('petra_departed', true);
+    const { service, dialogues } = makeService(state);
+    dialogues.petra_ashveil = makeDialogue('petra_ashveil', [
+      { id: 'start', text: 'Hello' },
+      { id: 'after_delivery', text: 'Done' },
+    ]);
+
+    expect(service.selectDialogueStartNode(state, 'petra_ashveil')).toBeNull();
+  });
+});

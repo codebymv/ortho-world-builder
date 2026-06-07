@@ -470,6 +470,17 @@ export const forestDef: MapDefinition = {
     // Small cemetery on hunter shelf — must be after y=204–219 path strips or dirt overwrites gate (walkable) and nibbles the back fence.
     // eastOpenDY=9 opens a 3-tile gap in the east fence at dy=8–10 (tile y=214–216, world ~10,64–66) as a second entrance.
     { x: 144, y: 206, width: 16, height: 14, type: 'cemetery', eastOpenDY: 9, eastOpenHalf: 1 },
+
+    // === IRON GATE PROGRESSION SPINES — west bypass → lever + Disparaged Cottage ===
+    // North spur to the shortcut lever (127,196). Stops at y=198; gate row (y=199–202) is runtime-synced.
+    { x: 122, y: 190, width: 8, height: 9, type: 'path', fill: 'dirt' },
+    // Links the cliff inlet / west stair descent into the lever spur (visible right after the dead ranger).
+    { x: 98, y: 192, width: 26, height: 6, type: 'path', fill: 'dirt' },
+    // Westward fork off the Iron Gate plateau — steers away from the east fort artery at y=178.
+    { x: 106, y: 200, width: 26, height: 5, type: 'path', fill: 'dirt' },
+    // Disparaged Cottage (236,227): southeast spur from the bypass loop, below the cemetery fence.
+    { x: 148, y: 221, width: 90, height: 4, type: 'path', fill: 'dirt' },
+    { x: 232, y: 221, width: 8, height: 10, type: 'path', fill: 'dirt' },
     // === NE RIDGE DESCENT CORRIDOR ??? links mid-zone stairway to eastern spine ===
     // North-south spur from stairway base (y???123) south to the east-west artery at y=178.
     // The existing path {x:154,y:178,w:80} already covers the full horizontal span so no
@@ -1460,6 +1471,11 @@ export const forestDef: MapDefinition = {
     { x: 140, y: 186, type: 'bones_pile', walkable: true },
     { x: 130, y: 190, type: 'lantern', walkable: false },
     { x: 144, y: 190, type: 'lantern', walkable: false },
+    { x: 124, y: 191, type: 'lantern', walkable: false },
+    { x: 108, y: 200, type: 'lantern', walkable: false },
+    { x: 170, y: 221, type: 'lantern', walkable: false },
+    { x: 210, y: 221, type: 'lantern', walkable: false },
+    { x: 234, y: 224, type: 'lantern', walkable: false },
     { x: 124, y: 191, type: 'stump', walkable: false },
     { x: 150, y: 192, type: 'stump', walkable: false },
 
@@ -2224,16 +2240,17 @@ export const forestDef: MapDefinition = {
     { x: 146, y: 181, width: 6, height: 4, enemyType: 'wolf', count: 3 },
     // AUTHORED ENCOUNTER POD 2 ??? river crossing approach handled by the undead guard above.
     // AUTHORED ENCOUNTER POD 3 ??? hollow approach: shades stalk the corridor to the fog gate
-    { x: 116, y: 33, width: 10, height: 8, enemyType: 'shadow_lurker', count: 1 },
+    { x: 116, y: 33, width: 10, height: 8, enemyType: 'shadow_lurker', count: 1, patrolRadius: 1.0 },
     // Hollow approach west shelf ? stone golem at world (-122, -40).
     { x: 28, y: 110, width: 1, height: 1, enemyType: 'golem', count: 1 },
     // Lake overlook east shelf ? lone stone golem watching the high-water bridge approach.
     { x: 289, y: 180, width: 1, height: 1, enemyType: 'golem', count: 1 },
-    // Hollow Shades - staged along the bonfire-to-gate corridor (y:72 -> y:18)
-    { x: 118, y: 62, width: 10, height: 8, enemyType: 'shadow_lurker', count: 2 },
-    { x: 116, y: 50, width: 12, height: 8, enemyType: 'shadow_lurker', count: 2 },
-    { x: 118, y: 34, width: 10, height: 8, enemyType: 'shadow_lurker', count: 3 },
-    { x: 116, y: 21, width: 12, height: 8, enemyType: 'shadow_lurker', count: 3 },
+    // Hollow Shades - staged along the bonfire-to-gate corridor (y:72 -> y:18).
+    // South pods sit below the iron gate (y:51+) so patrols never sweep the Deep Hollow flame yard.
+    { x: 118, y: 67, width: 10, height: 8, enemyType: 'shadow_lurker', count: 2, patrolRadius: 1.0 },
+    { x: 116, y: 60, width: 12, height: 8, enemyType: 'shadow_lurker', count: 2, patrolRadius: 1.0 },
+    { x: 118, y: 34, width: 10, height: 8, enemyType: 'shadow_lurker', count: 3, patrolRadius: 1.0 },
+    { x: 116, y: 21, width: 12, height: 8, enemyType: 'shadow_lurker', count: 3, patrolRadius: 1.0 },
 
     // Hollow Reavers ? ranged sister enemies of the Shades. Throw scythe-blade projectiles.
     // Kept sparse in the open Hollow flats so ranged pressure reads as dread, not off-screen spam.

@@ -3096,6 +3096,18 @@ export class AssetManager {
       [SPIDER_LEG, C,         C,          C,          C,          C,          C,         SPIDER_LEG,C,       C],
     ], 4, 'enemy_spider_walk_3'));
 
+    // Stagger — legs yanked inward, body tilted off-balance
+    this.registerTexture('enemy_spider_stagger', () => this.createSpriteTexture([
+      [C,          SPIDER_LEG, SPIDER_LEG, C,          C,          C,          SPIDER_LEG, C,          C,         C],
+      [C,          SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY_H,SPIDER_BODY,C,       SPIDER_LEG, C,         C],
+      [SPIDER_LEG, SPIDER_BODY,SPIDER_EYE, SPIDER_BODY,SPIDER_BODY,SPIDER_EYE, SPIDER_BODY,C,          C,         C],
+      [C,          SPIDER_BODY,SPIDER_FANG,SPIDER_BODY_H,SPIDER_BODY,SPIDER_FANG,SPIDER_BODY,SPIDER_LEG,C,        C],
+      [C,          SPIDER_BODY_H,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY,SPIDER_BODY_H,C,        C,        C],
+      [SPIDER_LEG, C,          SPIDER_LEG, SPIDER_BODY_H,SPIDER_BODY,C,          SPIDER_LEG, C,          C,        C],
+      [C,          SPIDER_LEG, C,          C,          SPIDER_BODY, C,          C,          SPIDER_LEG, C,         C],
+      [C,          C,          SPIDER_LEG, C,          C,          SPIDER_LEG, C,          C,          C,         C],
+    ], 4, 'enemy_spider_stagger'));
+
     // ========== NEW ENEMY: Slime ==========
     const SLIME_BODY = 0x4CAF50;
     const SLIME_H = 0x66BB6A;
@@ -3129,6 +3141,16 @@ export class AssetManager {
       [C,          SLIME_S,   SLIME_BODY,SLIME_S,   SLIME_BODY,SLIME_S,   C,          C],
     ], 4, 'enemy_slime_attack'));
 
+    // Stagger — squashed flat by impact, body wide and low
+    this.registerTexture('enemy_slime_stagger', () => this.createSpriteTexture([
+      [C,          C,          C,          C,          C,          C,          C,          C         ],
+      [SLIME_S,    SLIME_H,    SLIME_SHINE,SLIME_H,    SLIME_H,    SLIME_H,    SLIME_S,    C         ],
+      [SLIME_S,    SLIME_BODY, SLIME_EYE,  SLIME_BODY, SLIME_EYE,  SLIME_BODY, SLIME_S,    C         ],
+      [SLIME_S,    SLIME_BODY, SLIME_PUPIL,SLIME_BODY, SLIME_PUPIL,SLIME_BODY, SLIME_S,    C         ],
+      [SLIME_S,    SLIME_BODY, SLIME_BODY, SLIME_BODY, SLIME_BODY, SLIME_BODY, SLIME_S,    C         ],
+      [SLIME_S,    SLIME_S,    SLIME_BODY, SLIME_BODY, SLIME_BODY, SLIME_S,    SLIME_S,    C         ],
+    ], 4, 'enemy_slime_stagger'));
+
     const WSLIME_BODY = 0x46B8D8;
     const WSLIME_H = 0x7EDCFF;
     const WSLIME_S = 0x1F6FA0;
@@ -3161,6 +3183,16 @@ export class AssetManager {
       [C,           WSLIME_BODY, WSLIME_BODY, WSLIME_SHELL,WSLIME_BODY,  WSLIME_BODY,C,           C],
       [C,           WSLIME_DEEP, WSLIME_FOAM, WSLIME_DEEP, WSLIME_FOAM,  WSLIME_DEEP,C,           C],
     ], 4, 'enemy_water_slime_attack'));
+
+    // Stagger — squashed flat, water splashing at base
+    this.registerTexture('enemy_water_slime_stagger', () => this.createSpriteTexture([
+      [C,           C,           C,           C,           C,           C,           C,           C          ],
+      [WSLIME_S,    WSLIME_H,    WSLIME_FOAM, WSLIME_H,    WSLIME_H,    WSLIME_FOAM, WSLIME_S,    C          ],
+      [WSLIME_S,    WSLIME_BODY, SLIME_EYE,   WSLIME_BODY, SLIME_EYE,   WSLIME_BODY, WSLIME_S,    C          ],
+      [WSLIME_S,    WSLIME_BODY, SLIME_PUPIL, WSLIME_BODY, SLIME_PUPIL, WSLIME_BODY, WSLIME_S,    C          ],
+      [WSLIME_S,    WSLIME_BODY, WSLIME_BODY, WSLIME_BODY, WSLIME_BODY, WSLIME_BODY, WSLIME_S,    C          ],
+      [WSLIME_DEEP, WSLIME_S,    WSLIME_FOAM, WSLIME_BODY, WSLIME_FOAM, WSLIME_S,    WSLIME_DEEP, C          ],
+    ], 4, 'enemy_water_slime_stagger'));
 
     // ========== CORRUPTED GIANT ==========
     this.registerTexture('enemy_corrupted_giant', () => this.createCorruptedGiant('enemy_corrupted_giant'));
@@ -3254,6 +3286,18 @@ export class AssetManager {
       [C,        WOLF_FUR_S,C,       C,        WOLF_FUR_S,C,       WOLF_FUR_S,C,       C,        C],
     ], 4, 'enemy_wolf_walk_3'));
 
+    // Stagger — head lowered, both eyes wide/dazed, legs buckled and splayed
+    this.registerTexture('enemy_wolf_stagger', () => this.createSpriteTexture([
+      [C,         C,         WOLF_FUR,   WOLF_FUR_H, WOLF_FUR_H,  WOLF_FUR_H,  WOLF_FUR_H, WOLF_FUR,   C,         C],
+      [C,         WOLF_FUR,  WOLF_FUR_H, WOLF_FUR,   WOLF_EYE,    WOLF_EYE,    WOLF_FUR,   WOLF_FUR_H, WOLF_FUR,  C],
+      [C,         C,         WOLF_FUR,   WOLF_SNOUT, WOLF_SNOUT,  WOLF_SNOUT,  WOLF_SNOUT, WOLF_FUR,   C,         C],
+      [C,         C,         WOLF_FANG,  WOLF_SNOUT, WOLF_SNOUT,  WOLF_SNOUT,  WOLF_FANG,  C,          C,         C],
+      [WOLF_FUR_S,WOLF_FUR_S,WOLF_FUR,   WOLF_FUR_H, WOLF_FUR_S,  WOLF_FUR_H,  WOLF_FUR,   WOLF_FUR_S, WOLF_FUR_S,C],
+      [C,         WOLF_FUR_S,WOLF_FUR,   WOLF_FUR_S, WOLF_FUR,    WOLF_FUR_S,  WOLF_FUR,   WOLF_FUR_S, C,         C],
+      [WOLF_FUR_S,C,         WOLF_FUR_S, C,          C,           C,           WOLF_FUR_S, C,          WOLF_FUR_S,C],
+      [C,         C,         C,          C,          C,           C,           C,          C,          C,         C],
+    ], 4, 'enemy_wolf_stagger'));
+
     // Armored wolf â€” darker fur with iron plate accents
     const AW_FUR  = 0x3E3E3E;
     const AW_FUR_H = 0x505050;
@@ -3340,6 +3384,18 @@ export class AssetManager {
       [C,       AW_FUR_S,AW_PLATE,AW_FUR,   AW_FUR_S, AW_FUR,  AW_PLATE,AW_FUR_S,C,       C],
       [C,       AW_FUR_S,C,       C,        AW_FUR_S, C,       AW_FUR_S,C,       C,       C],
     ], 4, 'enemy_armored_wolf_walk_3'));
+
+    // Stagger — head low with dazed eyes, plated body compact, legs splayed
+    this.registerTexture('enemy_armored_wolf_stagger', () => this.createSpriteTexture([
+      [C,       C,       AW_FUR,  AW_FUR_H,  AW_FUR_H,  AW_FUR_H, AW_FUR_H, AW_FUR,  C,       C],
+      [C,       AW_FUR,  AW_FUR_H,AW_FUR,    AW_EYE,    AW_EYE,   AW_FUR,   AW_FUR_H,AW_FUR,  C],
+      [C,       C,       AW_FUR,  AW_SNOUT,  AW_SNOUT,  AW_SNOUT, AW_SNOUT, AW_FUR,  C,       C],
+      [C,       C,       AW_FANG, AW_SNOUT,  AW_SNOUT,  AW_SNOUT, AW_FANG,  C,       C,       C],
+      [AW_FUR_S,AW_FUR_S,AW_PLATE,AW_PLATE_H,AW_FUR_S,  AW_PLATE_H,AW_PLATE,AW_FUR_S,AW_FUR_S,C],
+      [C,       AW_FUR_S,AW_PLATE,AW_FUR_S,  AW_PLATE,  AW_FUR_S, AW_PLATE, AW_FUR_S,C,       C],
+      [AW_FUR_S,C,       AW_FUR_S,C,         C,         C,        AW_FUR_S, C,       AW_FUR_S,C],
+      [C,       C,       C,       C,         C,         C,        C,        C,       C,       C],
+    ], 4, 'enemy_armored_wolf_stagger'));
 
     // Stone Sentinel â€” imposing stone-armored beast with layered rock plates, glowing
     // crystal eyes, heavy pauldrons, and thick legs. 12x10 grid at scale 4 for detail.
@@ -3483,6 +3539,18 @@ export class AssetManager {
       [C,       VW_WISP,  C,        C,        VW_WISP,  C,        C,       VW_WISP,  C,      C],
     ], 4, 'enemy_void_wisp_attack'));
 
+    // Stagger — energy dispersing outward, core fragmented, wisps scattered to edges
+    this.registerTexture('enemy_void_wisp_stagger', () => this.createSpriteTexture([
+      [VW_WISP,  C,        C,        VW_BODY_H,VW_BODY_H,VW_BODY_H,C,        C,        VW_WISP, C],
+      [C,        VW_BODY_S,C,        VW_EYE,   VW_BODY,  VW_EYE,   C,        VW_BODY_S,C,       C],
+      [C,        C,        VW_BODY,  VW_BODY_S,VW_GLOW,  VW_BODY_S,VW_BODY,  C,        C,       C],
+      [VW_WISP,  VW_BODY_S,C,        VW_BODY_S,VW_BODY,  VW_BODY_S,C,        VW_BODY_S,VW_WISP, C],
+      [C,        C,        VW_BODY_S,C,        VW_BODY,  VW_BODY,  C,        VW_BODY_S,C,       C],
+      [C,        VW_WISP,  C,        VW_BODY_S,C,        C,        VW_BODY_S,C,        VW_WISP, C],
+      [VW_WISP,  C,        C,        C,        VW_BODY_S,VW_BODY_S,C,        C,        C,       VW_WISP],
+      [C,        VW_WISP,  C,        C,        C,        C,        C,        VW_WISP,  C,       C],
+    ], 4, 'enemy_void_wisp_stagger'));
+
     // ========== SHADOW REAPER â€” tall hooded figure, skull mask, curved scythe ==========
     // Sprite: 10 wide Ã— 12 tall @ 4px/cell.
     //
@@ -3589,6 +3657,22 @@ export class AssetManager {
       [RK_WSP,  C,       C,       RK_WSP,  C,       RK_WSP,  C,       C,       RK_WSP,  C      ],
     ], 4, 'enemy_shadow_attack'));
 
+    // Stagger — body hunched/doubled over, scythe dropped, cloak billowing wide
+    this.registerTexture('enemy_shadow_stagger', () => this.createSpriteTexture([
+      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RK_CKH,  RK_CKH,  C,       C,       C,       C      ],
+      [C,       C,       C,       RK_CKS,  RK_CK,   RK_HD,   RK_CKS,  C,       C,       C      ],
+      [C,       C,       RK_CKS,  RK_CK,   RK_SKH,  RK_EYE,  RK_CK,   RK_CKS,  C,       C      ],
+      [C,       RK_HN,   RK_ARS,  RK_ARM,  RK_CK,   RK_CK,   RK_ARM,  RK_ARS,  RK_HN,   C      ],
+      [RK_HN,   RK_BL,   RK_BLS,  RK_CK,   RK_CK,   RK_RUST, RK_CK,   RK_BLS,  RK_BL,   RK_HN  ],
+      [RK_BLS,  C,       RK_CKS,  RK_ARM,  RK_CK,   RK_CK,   RK_ARM,  RK_CKS,  C,       RK_BLS ],
+      [C,       RK_BLS,  RK_CKS,  RK_CK,   RK_CK,   RK_CK,   RK_CKS,  RK_BLS,  C,       C      ],
+      [C,       C,       RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKS,  C,       C,       C      ],
+      [C,       RK_WSP,  RK_WSP,  RK_CKS,  RK_CK,   RK_CKS,  RK_WSP,  RK_WSP,  C,       C      ],
+      [RK_WSP,  C,       RK_WSP,  C,       RK_WSP,  RK_WSP,  C,       RK_WSP,  C,       C      ],
+      [C,       RK_WSP,  C,       RK_WSP,  C,       C,       RK_WSP,  C,       RK_WSP,  C      ],
+    ], 4, 'enemy_shadow_stagger'));
+
     // ========== HOLLOW REAVER — ranged shade that throws scythe-blades ==========
     // Sister to the Hollow Shade but recognisably distinct: violet palette,
     // hood pulled lower over a single magenta eye, blade held aloft in a throwing pose,
@@ -3667,6 +3751,22 @@ export class AssetManager {
       [RK_WSP,  C,       C,       RK_WSP,  C,       C,       RK_WSP,  C,       C,       RK_WSP ],
       [C,       C,       C,       RK_CHG,  C,       RK_SLH,  RK_CHG,  C,       C,       C      ],
     ], 4, 'enemy_hollow_reaver_attack'));
+
+    // Stagger — blade dropped (empty rows 0-1), body hunched, eye still glowing
+    this.registerTexture('enemy_hollow_reaver_stagger', () => this.createSpriteTexture([
+      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C      ],
+      [C,       C,       C,       C,       RK_HN,   RK_HN,   C,       C,       C,       C      ],
+      [C,       C,       C,       RK_WSP,  RK_CKH,  RK_CKH,  RK_WSP,  C,       C,       C      ],
+      [C,       C,       RK_WSP,  RK_CK,   RK_HD,   RK_HD,   RK_CK,   RK_WSP,  C,       C      ],
+      [C,       C,       RK_CKS,  RK_CK,   RK_EYE,  RK_HD,   RK_CK,   RK_CKS,  C,       C      ],
+      [C,       RK_WSP,  RK_ARS,  RK_ARM,  RK_CK,   RK_CK,   RK_ARM,  RK_ARS,  RK_WSP,  C      ],
+      [RK_HN,   RK_ARM,  RK_CK,   RK_RUST, RK_CK,   RK_CK,   RK_RUST, RK_CK,   RK_ARM,  RK_HN  ],
+      [RK_WSP,  RK_CKS,  C,       RK_CK,   RK_CK,   RK_CK,   RK_CK,   C,       RK_CKS,  RK_WSP ],
+      [C,       RK_WSP,  RK_CKS,  RK_CK,   RK_CKS,  RK_CK,   RK_CKS,  RK_WSP,  C,       C      ],
+      [C,       C,       RK_WSP,  C,       RV_MSH,  RK_WSP,  C,       RK_WSP,  C,       C      ],
+      [RK_WSP,  C,       C,       RK_WSP,  C,       C,       RK_WSP,  C,       C,       RK_WSP ],
+    ], 4, 'enemy_hollow_reaver_stagger'));
 
     // ========== PROJECTILE: thrown scythe-blade ==========
     // 8×8 sprite — a curved blade with handle stub. Renders with rotation in flight.
@@ -3888,6 +3988,18 @@ export class AssetManager {
       [VINE_S,  C,       VINE_S,  C,       VINE,    VINE,    VINE_S,  C,       VINE_S,  C],
       [C,       VINE_S,  C,       VINE_S,  C,       VINE_S,  VINE_S,  VINE_S,  C,       C],
     ], 4, 'enemy_plant_walk_3'));
+
+    // Stagger — petals drooped over sides, stems bowed inward from impact
+    this.registerTexture('enemy_plant_stagger', () => this.createSpriteTexture([
+      [C,       C,       C,       C,       C,       C,       C,       C,       C,       C],
+      [C,       PETAL_E, PETAL_EH,C,       C,       C,       PETAL_EH,PETAL_E, C,       C],
+      [VINE_S,  VINE,    PETAL_E, PETAL_EH,PETAL_E, PETAL_E, VINE,    VINE_S,  C,       C],
+      [C,       VINE_S,  VINE,    BULB,    BULB_S,  VINE,    VINE_S,  C,       C,       C],
+      [THORN,   VINE,    VINE_H,  VINE_S,  VINE_S,  VINE_H,  VINE,    THORN,   C,       C],
+      [C,       THORN,   VINE_S,  VINE,    VINE,    VINE_S,  THORN,   C,       C,       C],
+      [C,       C,       VINE,    THORN,   VINE,    VINE,    VINE_S,  C,       C,       C],
+      [C,       VINE_S,  C,       VINE_S,  C,       VINE_S,  C,       VINE_S,  C,       C],
+    ], 4, 'enemy_plant_stagger'));
 
     // ========== NEW ENEMY: Skeleton Warrior ==========
     const skeletonPalette = {
@@ -7250,6 +7362,42 @@ export class AssetManager {
       /* 5 */ [LB_BS, LB_BS, LB_B,  LB_R,  LB_R,  LB_B,  LB_BS, LB_BS],
       /* 6 */ [C,     LB_BS, LB_BD, LB_B,  LB_B,  LB_BD, LB_BS, C    ],
       /* 7 */ [C,     C,     LB_BD, LB_BS, LB_BS, LB_BD, C,     C    ],
+    ]);
+
+    // Sundered Essence — congealed violet soul-light. Tier I: a single mote.
+    const SE_D  = 0x4A148C;  // deep violet core
+    const SE_M  = 0x7B1FA2;  // mid violet
+    const SE_H  = 0xBA68C8;  // violet highlight
+    const SE_G  = 0xE1BEE7;  // pale glow
+    const SE_C  = 0xF3E5F5;  // bright core
+
+    registerSpriteTexture('sundered_essence_i', [
+      //       0      1      2      3      4      5
+      /* 0 */ [C,     C,     C,     SE_G,  C,     C    ],
+      /* 1 */ [C,     C,     SE_G,  SE_H,  SE_G,  C    ],
+      /* 2 */ [C,     SE_G,  SE_H,  SE_C,  SE_H,  SE_G ],
+      /* 3 */ [C,     SE_H,  SE_C,  SE_C,  SE_M,  SE_H ],
+      /* 4 */ [SE_G,  SE_H,  SE_C,  SE_M,  SE_M,  SE_H ],
+      /* 5 */ [SE_G,  SE_M,  SE_M,  SE_M,  SE_D,  SE_G ],
+      /* 6 */ [C,     SE_G,  SE_M,  SE_D,  SE_D,  C    ],
+      /* 7 */ [C,     C,     SE_G,  SE_D,  SE_G,  C    ],
+      /* 8 */ [C,     C,     C,     SE_G,  C,     C    ],
+    ]);
+
+    // Sundered Essence II — twin coils, denser and brighter.
+    registerSpriteTexture('sundered_essence_ii', [
+      //       0      1      2      3      4      5      6      7
+      /* 0 */ [C,     SE_G,  C,     C,     C,     C,     SE_G,  C    ],
+      /* 1 */ [SE_G,  SE_H,  SE_G,  C,     C,     SE_G,  SE_H,  SE_G ],
+      /* 2 */ [SE_H,  SE_C,  SE_H,  SE_G,  SE_G,  SE_H,  SE_C,  SE_H ],
+      /* 3 */ [SE_C,  SE_C,  SE_M,  SE_H,  SE_H,  SE_M,  SE_C,  SE_C ],
+      /* 4 */ [SE_H,  SE_M,  SE_M,  SE_C,  SE_C,  SE_M,  SE_M,  SE_H ],
+      /* 5 */ [SE_G,  SE_M,  SE_D,  SE_M,  SE_M,  SE_D,  SE_M,  SE_G ],
+      /* 6 */ [SE_H,  SE_C,  SE_M,  SE_D,  SE_D,  SE_M,  SE_C,  SE_H ],
+      /* 7 */ [SE_C,  SE_C,  SE_M,  SE_H,  SE_H,  SE_M,  SE_C,  SE_C ],
+      /* 8 */ [SE_H,  SE_M,  SE_G,  SE_G,  SE_G,  SE_G,  SE_M,  SE_H ],
+      /* 9 */ [SE_G,  SE_D,  C,     C,     C,     C,     SE_D,  SE_G ],
+      /* 10*/ [C,     SE_G,  C,     C,     C,     C,     SE_G,  C    ],
     ]);
 
     const TG_WRAP = 0x8D6E63;

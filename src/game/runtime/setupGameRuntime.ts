@@ -9,11 +9,13 @@ import { getPrimaryObjectiveText, MapMarker, isNpcObjectiveTarget } from '@/lib/
 import { SaveManager } from '@/lib/game/SaveManager';
 import { preloadMap, subscribeMapHotReload } from '@/data/maps';
 import { getStaggerDamageMultiplier } from '@/data/balance';
+import { getMoveset } from '@/data/weaponMovesets';
 import type { DialogueNode } from '@/data/dialogues';
 import { hasDialogueId } from '@/data/dialogueIds';
 import { notify } from '@/lib/game/notificationBus';
 import type { Item } from '@/lib/game/GameState';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
+import type { RewardBundle } from '@/game/domain/rewardDisplay';
 import { createRuntimeMapFlow } from '@/game/runtime/RuntimeMapFlow';
 import { applyMapEntryProgression, isPortalDestinationUnlocked, MAP_BIOMES } from '@/game/runtime/RuntimeMapRules';
 import { createRuntimeVisualSubsystems } from '@/game/runtime/RuntimeVisualSubsystems';
@@ -156,6 +158,7 @@ export interface RuntimeCallbacks {
   switchMusicTrack: (mapId: string) => void;
   processAudioElement: (audio: HTMLAudioElement) => void;
   showHeroOverlay: (title: string, subtitle?: string) => void;
+  showRewardBundle: (bundle: RewardBundle) => void;
   openBonfireMenu: () => void;
 }
 
@@ -251,6 +254,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       switchMusicTrack: rawSwitchMusicTrack,
       processAudioElement,
       showHeroOverlay,
+      showRewardBundle,
       openBonfireMenu,
     },
   } = options;
@@ -432,11 +436,8 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     const DRINK_DURATION = 0.65; // seconds to use a consumable (Souls-style brief root)
     const ATTACK_FRAME_DURATION = 0.15;
 
-    // Combo chain constants
-    // Each element corresponds to combo step 0 (light), 1 (follow-up), 2 (finisher).
-    const COMBO_FRAME_MULTIPLIERS: [number, number, number] = [1.0, 0.85, 0.72];
-    const COMBO_DAMAGE_MULTIPLIERS: [number, number, number] = [1.0, 1.0, 1.2];
-    const COMBO_WINDOW_DURATION = 0.30; // seconds after a swing completes to chain the next hit
+    // Combo chain timing/damage are now per-weapon and live in @/data/weaponMovesets.
+    // ATTACK_FRAME_DURATION (above) is the base swing frame time; movesets scale it.
 
     // Charge attack state
     const CHARGE_TIME_MIN = 0.4;
@@ -790,6 +791,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           musicRef,
           musicStarted,
           showHeroOverlay,
+          showRewardBundle,
           particleSystem,
           combatSystem,
           floatingText,
@@ -853,8 +855,6 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           chargeDamageMult: CHARGE_DAMAGE_MULT,
           dodgeIFrameDuration: DODGE_IFRAME_DURATION,
           dodgeStaminaCost: 26,
-          comboFrameMultipliers: COMBO_FRAME_MULTIPLIERS,
-          comboDamageMultipliers: COMBO_DAMAGE_MULTIPLIERS,
           lungeDistMin: LUNGE_DIST_MIN,
           lungeDistMax: LUNGE_DIST_MAX,
           lungeSpeedBase: LUNGE_SPEED_BASE,
@@ -1122,8 +1122,16 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           },
           dodgeIFrameDuration: DODGE_IFRAME_DURATION,
           triggerComboChain,
-          comboWindowDuration: COMBO_WINDOW_DURATION,
-          getComboFrameDuration: (step: number) => ATTACK_FRAME_DURATION * (COMBO_FRAME_MULTIPLIERS[step] ?? 1),
+          comboWindowDuration: getMoveset(state.equippedWeaponId).comboWindow,
+          getComboFrameDuration: (step: number) => {
+            const ms = getMoveset(state.equippedWeaponId);
+            return ATTACK_FRAME_DURATION * (ms.steps[step]?.frameMult ?? 1);
+          },
+          comboStepCount: getMoveset(state.equippedWeaponId).steps.length,
+          getComboRecovery: (step: number) => {
+            const ms = getMoveset(state.equippedWeaponId);
+            return (ms.steps[step] ?? ms.steps[ms.steps.length - 1])?.recovery ?? 0.35;
+          },
           completeConsumableUse,
           textureCache: textureCacheRef.current,
           playerBaseScale: PLAYER_BASE_SCALE,

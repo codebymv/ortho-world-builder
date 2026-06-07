@@ -16,6 +16,7 @@ import {
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
 import { revealAllTilesForMap } from '@/lib/game/visitedTiles';
 import { getStaggerDamageMultiplier } from '@/data/balance';
+import { getMoveset } from '@/data/weaponMovesets';
 import { SaveManager } from '@/lib/game/SaveManager';
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
@@ -168,8 +169,6 @@ interface RuntimeCombatActionOptions {
   getComboInputBuffered: () => boolean;
   setComboInputBuffered: (value: boolean) => void;
   getPlayerAnimState: () => string;
-  comboFrameMultipliers: readonly [number, number, number];
-  comboDamageMultipliers: readonly [number, number, number];
   // Lunge attack (broadsword)
   lungeDistMin: number;
   lungeDistMax: number;
@@ -236,8 +235,6 @@ export function createRuntimeCombatActions({
   setComboWindowTimer,
   setComboInputBuffered,
   getPlayerAnimState,
-  comboFrameMultipliers,
-  comboDamageMultipliers,
   lungeDistMin,
   lungeDistMax,
   lungeSpeedBase,
@@ -454,7 +451,10 @@ export function createRuntimeCombatActions({
   };
 
   const _applyAttackDamage = (step: number) => {
-    const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, state.player.attackRange, _scratchEnemies);
+    const moveset = getMoveset(state.equippedWeaponId);
+    const stepDef = moveset.steps[step] ?? moveset.steps[moveset.steps.length - 1];
+    const stepRange = state.player.attackRange * (stepDef?.rangeMult ?? 1);
+    const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, stepRange, _scratchEnemies);
     const direction = dir8to4(getCurrentDir8()) as Direction4;
     const target = getForwardMeleeTarget(enemiesInRange, state.player.position, direction, world);
     if (!target) {
@@ -462,11 +462,11 @@ export function createRuntimeCombatActions({
       const attackX = state.player.position.x + off.x;
       const attackY = state.player.position.y + off.y;
       particleSystem.emitAt(attackX, attackY, 0.3, 4, 0xffffff, 0.3, 1, 1);
-      breakTilesInRadius(world, world.getCurrentMap(), attackX, attackY, state.player.attackRange, particleSystem, {
+      breakTilesInRadius(world, world.getCurrentMap(), attackX, attackY, stepRange, particleSystem, {
         generic: playPropBreak,
         tallGrass: playTallGrassBreak,
       });
-      const altarsDestroyed = damageHeresyAltarsInRadius(state, world, world.getCurrentMap(), attackX, attackY, state.player.attackRange, particleSystem, {
+      const altarsDestroyed = damageHeresyAltarsInRadius(state, world, world.getCurrentMap(), attackX, attackY, stepRange, particleSystem, {
         hit: playHeresyAltarHit ?? playPropBreak,
         destroy: playHeresyAltarBreak ?? playPropBreak,
       }, notify);
@@ -477,7 +477,7 @@ export function createRuntimeCombatActions({
     }
 
     const parryBonus = state.player.parryBonusTimer > 0 ? 1.25 : 1;
-    const stepDamageMult = comboDamageMultipliers[step] ?? 1;
+    const stepDamageMult = stepDef?.damageMult ?? 1;
     const baseDamage = Math.floor(state.player.attackDamage * parryBonus * stepDamageMult * state.player.berserkerDamageMult);
 
     const result = combatSystem.playerAttack(target, baseDamage, state.player.position, state.player.direction);
@@ -534,7 +534,9 @@ export function createRuntimeCombatActions({
     setSwooshTimer(swooshDuration);
     setSwooshFacing(dir8to4(getCurrentDir8()));
 
-    const frameDuration = attackFrameDuration * (comboFrameMultipliers[step] ?? 1);
+    const moveset = getMoveset(state.equippedWeaponId);
+    const stepFrameMult = moveset.steps[step]?.frameMult ?? 1;
+    const frameDuration = attackFrameDuration * stepFrameMult;
     const attackAnimationDuration = frameDuration * 3;
 
     state.player.lastAttackTime = currentTime;
@@ -574,7 +576,8 @@ export function createRuntimeCombatActions({
     if (state.player.stamina < attackStaminaCost) return;
 
     // In combo window: chain immediately to the next step
-    if (getComboWindowTimer() > 0 && step < 2) {
+    const lastStep = getMoveset(state.equippedWeaponId).steps.length - 1;
+    if (getComboWindowTimer() > 0 && step < lastStep) {
       const nextStep = step + 1;
       setComboStep(nextStep);
       setComboWindowTimer(0);
@@ -600,7 +603,8 @@ export function createRuntimeCombatActions({
     if (state.player.isDodging || state.player.isClimbing) return null;
     if (state.player.stamina < attackStaminaCost) return null;
 
-    const nextStep = step >= 2 ? 0 : step + 1;
+    const lastStep = getMoveset(state.equippedWeaponId).steps.length - 1;
+    const nextStep = step >= lastStep ? 0 : step + 1;
     setComboStep(nextStep);
     setComboInputBuffered(false);
 

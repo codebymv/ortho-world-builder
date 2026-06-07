@@ -8,7 +8,8 @@ import { ENEMY_BLUEPRINTS, DEFAULT_ENEMY } from '@/data/enemies';
 import type { EnemyBlueprint } from '@/data/enemies';
 import {
   evictEnemiesFromBonfireSafeZones,
-  isPositionInBonfireSafeZone,
+  evictEnemiesFromBonfireRestZones,
+  isPositionInBonfireSpawnExclusionZone,
 } from '@/game/runtime/bonfireCombatGuard';
 import type { Item } from '@/lib/game/GameState';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
@@ -166,7 +167,7 @@ function pickEnemySpawnInZone(
     const ex = bx + Math.random() * subW - mapWorld.width / 2;
     const ey = by + Math.random() * subH - mapWorld.height / 2;
     if (
-      !isPositionInBonfireSafeZone(mapKey, ex, ey, gameFlags) &&
+      !isPositionInBonfireSpawnExclusionZone(mapKey, ex, ey) &&
       world.canEnemyMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)
     ) {
       return { x: ex, y: ey };
@@ -176,7 +177,7 @@ function pickEnemySpawnInZone(
     const ex = zone.x + Math.random() * zone.width - mapWorld.width / 2;
     const ey = zone.y + Math.random() * zone.height - mapWorld.height / 2;
     if (
-      !isPositionInBonfireSafeZone(mapKey, ex, ey, gameFlags) &&
+      !isPositionInBonfireSpawnExclusionZone(mapKey, ex, ey) &&
       world.canEnemyMoveTo(ex, ey, ex, ey, SPAWN_BODY_R)
     ) {
       return { x: ex, y: ey };
@@ -215,7 +216,7 @@ function pickWaterSlimeSpawnInZone(
       const tile = row[tx];
       if (!tile) continue;
       const pos = tileToWorldCenter(mapWorld, tx, ty);
-      if (isPositionInBonfireSafeZone(mapKey, pos.x, pos.y, gameFlags)) continue;
+      if (isPositionInBonfireSpawnExclusionZone(mapKey, pos.x, pos.y)) continue;
       if (WATER_SLIME_SPAWN_TILES.has(tile.type)) {
         waterCandidates.push(pos);
       } else if (world.canEnemyMoveTo(pos.x, pos.y, pos.x, pos.y, SPAWN_BODY_R)) {
@@ -301,4 +302,5 @@ export function spawnEnemiesFromMapZones(
     }
   }
   evictEnemiesFromBonfireSafeZones(combatSystem, mapKey, gameFlags);
+  evictEnemiesFromBonfireRestZones(combatSystem, mapKey);
 }

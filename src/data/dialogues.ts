@@ -1143,7 +1143,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'has_heart',
-        text: "Is that... a __Golem Heart__? That crystallised core — the density, the faint resonance — that's *exactly* what I came here for. I can offer you **2,000 essence** for it right now. The academy will reimburse me. Eventually.",
+        text: "Is that... a __Golem Heart__? That crystallised core — the density, the faint resonance — that's *exactly* what I came here for. The academy will reimburse **250 gold** per specimen, and I can only carry **three** back to Ashfen. I'll take it off your hands right now if you're willing.",
         responses: [
           { text: "Deal. Take it.", nextId: 'deliver_heart' },
           { text: "I'll hold onto it.", nextId: 'end' },
@@ -1166,12 +1166,12 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'deliver_heart',
-        text: "Remarkable. The crystalline lattice alone — this will rewrite three chapters of the Compendium. **2,000 essence**, as agreed. Safe travels out there, and if anyone asks, you found it in a river bed.",
+        text: "Remarkable. The crystalline lattice alone — this will rewrite three chapters of the Compendium. **250 gold**, as agreed. If you find more cores before I leave, bring them — I have room for two more specimens.",
         responses: [{ text: "Pleasure doing business.", nextId: 'end' }],
       },
       {
         id: 'after_delivery',
-        text: "I'll need three pack mules just to get this back to Ashfen. Worth every step. The Compendium thanks you.",
+        text: "That's one specimen catalogued. The academy only funded three slots — if you find more cores, I'll pay **250 gold** each until my quota's full. After that I need pack mules, not conversation.",
         responses: [{ text: "Good luck.", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },

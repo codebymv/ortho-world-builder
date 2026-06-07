@@ -65,4 +65,24 @@ describe('bonfire sanctuary', () => {
     expect(map.mapKey).toBe('village');
     expect(map.tiles[104]?.[121]?.enemyBlocked).toBe(true);
   });
+
+  it('keeps Deep Hollow south corridor lurkers outside the rest disc', () => {
+    const { x: bx, y: by } = bonfireTileWorldPosition('forest', 126, 46);
+    const patrolSlack = 1.0;
+    const minClearance = BONFIRE_REST_HOSTILE_RADIUS + patrolSlack + 0.5;
+
+    const southCorridorZones = [
+      { x: 116, y: 60, width: 12, height: 8 },
+      { x: 118, y: 67, width: 10, height: 8 },
+    ];
+
+    for (const zone of southCorridorZones) {
+      const nearestX = Math.max(zone.x, Math.min(126, zone.x + zone.width - 1));
+      const nearestY = zone.y;
+      const { x: wx, y: wy } = bonfireTileWorldPosition('forest', nearestX, nearestY);
+      const dx = wx - bx;
+      const dy = wy - by;
+      expect(Math.hypot(dx, dy)).toBeGreaterThanOrEqual(minClearance);
+    }
+  });
 });

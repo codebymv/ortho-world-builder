@@ -159,6 +159,24 @@ export const items: Record<string, Item> = {
     buffDuration: 10,
   },
 
+  sundered_essence_i: {
+    id: 'sundered_essence_i',
+    name: 'Sundered Essence I',
+    description: 'A cold knot of soul-light, prised from something that died in these woods and never moved on. Crush it and the essence floods into you — enough to feel the weight of a life half-spent. Grants 50 essence when consumed.',
+    type: 'consumable',
+    sprite: 'sundered_essence_i',
+    essenceAmount: 50,
+  },
+
+  sundered_essence_ii: {
+    id: 'sundered_essence_ii',
+    name: 'Sundered Essence II',
+    description: 'A denser coil of stolen soul-light, the kind that only gathers where the corruption runs deep — past the river, beneath the dead bridge. It burns colder and gives far more. Grants 150 essence when consumed.',
+    type: 'consumable',
+    sprite: 'sundered_essence_ii',
+    essenceAmount: 150,
+  },
+
   last_breath_charm: {
     id: 'last_breath_charm',
     name: 'Last Breath Charm',

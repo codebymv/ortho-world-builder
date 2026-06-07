@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import type { GameState, Item } from '@/lib/game/GameState';
 import type { AssetManager } from '@/lib/game/AssetManager';
 import type { VendorDef, VendorItem } from '@/data/vendors';
+import { getVendorStockRemaining } from '@/data/vendors';
 
 interface VendorModalProps {
   open: boolean;
@@ -13,7 +14,7 @@ interface VendorModalProps {
   gameState: GameState;
   assetManager: AssetManager | null;
   itemsRegistry: Record<string, Item>;
-  onPurchase: (vendorItem: VendorItem, item: Item) => void;
+  onPurchase: (vendorId: string, vendorItem: VendorItem, item: Item) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -40,6 +41,8 @@ const VendorItemCard = memo(({
   assetManager,
   canAfford,
   alreadyOwned,
+  soldOut,
+  stockRemaining,
   onBuy,
 }: {
   vendorItem: VendorItem;
@@ -47,6 +50,8 @@ const VendorItemCard = memo(({
   assetManager: AssetManager | null;
   canAfford: boolean;
   alreadyOwned: boolean;
+  soldOut: boolean;
+  stockRemaining: number | null;
   onBuy: () => void;
 }) => {
   const isWeapon = item.type === 'equipment' && item.stats;
@@ -74,6 +79,9 @@ const VendorItemCard = memo(({
           )}
         </div>
         <p className="text-[10px] text-[#C9B8A8] leading-snug line-clamp-2">{item.description}</p>
+        {stockRemaining != null && !soldOut && !alreadyOwned && (
+          <p className="text-[10px] text-[#A1887F] mt-0.5">{stockRemaining} left in stock</p>
+        )}
         {/* Weapon stats */}
         {isWeapon && item.stats && (
           <div className="flex items-center gap-3 mt-1 text-[10px] text-[#A1887F]">
@@ -102,7 +110,7 @@ const VendorItemCard = memo(({
           }
           <span className={cn(
             'text-sm font-bold',
-            alreadyOwned ? 'text-[#8FBC8F]' : canAfford ? 'text-[#F5DEB3]' : 'text-red-400',
+            alreadyOwned ? 'text-[#8FBC8F]' : soldOut ? 'text-[#6B5344]' : canAfford ? 'text-[#F5DEB3]' : 'text-red-400',
           )}>
             {vendorItem.price}
           </span>
@@ -111,6 +119,10 @@ const VendorItemCard = memo(({
         {alreadyOwned ? (
           <span className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#8FBC8F] border border-[#2e5e2e]/60 rounded-sm flex items-center gap-1">
             <Check className="w-3 h-3" /> Owned
+          </span>
+        ) : soldOut ? (
+          <span className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#6B5344] border border-[#5C3A21]/30 rounded-sm">
+            Sold Out
           </span>
         ) : (
           <button
@@ -197,6 +209,12 @@ export const VendorModal = memo(function VendorModal({
                   : gameState.player.essence;
                 const canAfford = playerBalance >= vendorItem.price;
                 const alreadyOwned = vendorItem.unique === true && gameState.hasItem(vendorItem.itemId);
+                const stockRemaining = getVendorStockRemaining(
+                  gameState.gameFlags as Record<string, boolean | number>,
+                  vendor.id,
+                  vendorItem,
+                );
+                const soldOut = stockRemaining != null && stockRemaining <= 0;
 
                 return (
                   <VendorItemCard
@@ -206,7 +224,9 @@ export const VendorModal = memo(function VendorModal({
                     assetManager={assetManager}
                     canAfford={canAfford}
                     alreadyOwned={alreadyOwned}
-                    onBuy={() => onPurchase(vendorItem, item)}
+                    soldOut={soldOut}
+                    stockRemaining={stockRemaining}
+                    onBuy={() => onPurchase(vendor.id, vendorItem, item)}
                   />
                 );
               })}

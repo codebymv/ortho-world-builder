@@ -18,6 +18,7 @@ interface CreateRuntimeNpcVisualsOptions {
   scene: THREE.Scene;
   assetManager: AssetManager;
   npcData: NPC[];
+  shouldHideNpc?: (npc: NPC) => boolean;
   shadowGeometry: THREE.BufferGeometry;
   shadowMaterial: THREE.MeshBasicMaterial;
   createOutlineMesh: (geometry: THREE.BufferGeometry, texture: THREE.Texture | null) => THREE.Mesh;
@@ -32,6 +33,7 @@ export function createRuntimeNpcVisuals({
   scene,
   assetManager,
   npcData,
+  shouldHideNpc,
   shadowGeometry,
   shadowMaterial,
   createOutlineMesh,
@@ -127,7 +129,9 @@ export function createRuntimeNpcVisuals({
 
       for (let i = 0; i < npcData.length; i++) {
         const npc = npcData[i];
-        const isActive = !npc.mapId || npc.mapId === currentMap;
+        const isActive =
+          (!npc.mapId || npc.mapId === currentMap) &&
+          !(shouldHideNpc?.(npc) ?? false);
 
         const npcMesh = npcMeshes[i];
         if (npcMesh) npcMesh.visible = isActive;

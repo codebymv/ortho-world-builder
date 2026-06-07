@@ -92,6 +92,7 @@ function resolveUsableItem(state: GameState, triggerUIUpdate: () => void) {
     i.buffType !== 'last_breath' &&
     (
       (typeof i.healAmount === 'number' && i.healAmount > 0) ||
+      (typeof i.essenceAmount === 'number' && i.essenceAmount > 0) ||
       i.buffType === 'stealth' ||
       i.buffType === 'berserker'
     );
@@ -144,12 +145,34 @@ function beginConsumableUse(
 }
 
 export function applyHealthPotionAction(options: PotionActionOptions) {
-  const { state, notify, triggerUIUpdate, getIsConsuming } = options;
+  const { state, particleSystem, notify, triggerUIUpdate, getIsConsuming } = options;
 
   if (getIsConsuming?.()) return;
 
   const activeItem = resolveUsableItem(state, triggerUIUpdate);
   if (!activeItem) return;
+
+  // Soul-items resolve instantly — no drink animation, like absorbing essence in Souls games.
+  if (typeof activeItem.essenceAmount === 'number' && activeItem.essenceAmount > 0) {
+    const gained = activeItem.essenceAmount;
+    const itemId = activeItem.id;
+    const itemName = activeItem.name;
+    options.playPotionDrink?.();
+    state.addEssence(gained);
+    state.removeItem(itemId);
+    if (state.activeItemIndex >= state.inventory.length) {
+      state.activeItemIndex = Math.max(0, state.inventory.length - 1);
+    }
+    particleSystem.emitHeal(new THREE.Vector3(state.player.position.x, state.player.position.y, 0.3));
+    notify(`Used ${itemName}`, {
+      id: `used-${itemId}`,
+      type: 'success',
+      description: `Absorbed ${gained} essence.`,
+      duration: 2000,
+    });
+    triggerUIUpdate();
+    return;
+  }
 
   if (activeItem.buffType === 'berserker') {
     beginConsumableUse(activeItem, options);

@@ -40,6 +40,7 @@ interface ProgressionServiceContext {
   syncBlightedRootState?: () => void;
   syncRangerWolfRingChestState?: () => void;
   syncManuscriptCheckpointGateState?: () => void;
+  refreshActiveNpcs?: () => void;
 }
 
 interface DialogueResponseResult {
@@ -50,6 +51,15 @@ interface DialogueResponseResult {
 }
 
 const CHECKMARK = '\u2713';
+const PETRA_MAX_HEARTS = 3;
+const PETRA_HEART_GOLD = 250;
+
+function getPetraHeartsSold(state: GameState): number {
+  const sold = state.getFlagNumber('petra_hearts_sold');
+  if (sold > 0) return Math.min(sold, PETRA_MAX_HEARTS);
+  if (state.getFlagBool('petra_heart_delivered')) return 1;
+  return 0;
+}
 
 export function createProgressionService(context: ProgressionServiceContext) {
   const selectVillageReactivityNode = (
@@ -143,10 +153,16 @@ export function createProgressionService(context: ProgressionServiceContext) {
     }
 
     if (dialogueId === 'petra_ashveil') {
-      if (state.getFlag('petra_heart_delivered')) {
+      const heartsSold = getPetraHeartsSold(state);
+      if (state.getFlagBool('petra_departed')) {
+        return null;
+      }
+      if (heartsSold >= PETRA_MAX_HEARTS) {
         startNode = dialogue.nodes.find(node => node.id === 'after_delivery') ?? startNode;
       } else if (state.hasItem('golem_heart')) {
         startNode = dialogue.nodes.find(node => node.id === 'has_heart') ?? startNode;
+      } else if (heartsSold > 0) {
+        startNode = dialogue.nodes.find(node => node.id === 'after_delivery') ?? startNode;
       }
     }
 
@@ -451,16 +467,26 @@ export function createProgressionService(context: ProgressionServiceContext) {
     }
 
     if (state.currentDialogue === 'petra_ashveil' && nextId === 'end' && currentDialogue.node.id === 'deliver_heart') {
-      if (!state.getFlag('petra_heart_delivered') && state.hasItem('golem_heart')) {
+      const heartsSold = getPetraHeartsSold(state);
+      if (heartsSold < PETRA_MAX_HEARTS && state.hasItem('golem_heart')) {
         state.removeItem('golem_heart');
-        state.addEssence(2000);
+        state.addGold(PETRA_HEART_GOLD);
+        const newCount = heartsSold + 1;
+        state.setFlag('petra_hearts_sold', newCount);
         state.setFlag('petra_heart_delivered', true);
+        const remaining = PETRA_MAX_HEARTS - newCount;
         context.notify('Golem Heart Sold!', {
           id: 'petra-heart-sold',
           type: 'success',
-          description: 'Petra Ashveil paid 2,000 essence for the Golem Heart.',
+          description: remaining > 0
+            ? `Petra paid ${PETRA_HEART_GOLD} gold. She'll take ${remaining} more specimen${remaining === 1 ? '' : 's'}.`
+            : `Petra paid ${PETRA_HEART_GOLD} gold for the last specimen she can carry. She packs up to leave.`,
           duration: 4000,
         });
+        if (newCount >= PETRA_MAX_HEARTS) {
+          state.setFlag('petra_departed', true);
+          context.refreshActiveNpcs?.();
+        }
         context.triggerUIUpdate();
         shouldSave = true;
       }

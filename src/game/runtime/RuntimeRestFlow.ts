@@ -12,6 +12,7 @@ import {
   areHostilesNearBonfire,
   BONFIRE_HOSTILES_NEAR_MESSAGE,
   evictEnemiesFromBonfireSafeZones,
+  evictEnemiesFromBonfireRestZones,
 } from '@/game/runtime/bonfireCombatGuard';
 import {
   clearWestFortNorthLogCover,
@@ -56,6 +57,7 @@ export function createBonfireRestAction({
   openBonfireMenu,
 }: CreateBonfireRestActionOptions) {
   const hostilesBlockBonfire = (tileX: number, tileY: number): boolean => {
+    evictEnemiesFromBonfireRestZones(combatSystem, state.currentMap);
     if (!areHostilesNearBonfire(combatSystem, state.currentMap, tileX, tileY)) return false;
     notify(BONFIRE_HOSTILES_NEAR_MESSAGE, {
       id: 'bonfire-hostiles-near',
@@ -185,6 +187,7 @@ export function createBonfireRestAction({
   };
 
   const travelToBonfire = (entry: BonfireEntry) => {
+    evictEnemiesFromBonfireRestZones(combatSystem, entry.mapId);
     if (areHostilesNearBonfire(combatSystem, entry.mapId, entry.tileX, entry.tileY)) {
       notify(BONFIRE_HOSTILES_NEAR_MESSAGE, {
         id: 'bonfire-travel-hostiles-near',
@@ -206,6 +209,7 @@ export function createBonfireRestAction({
     state.killedEnemyIds.clear();
     respawnEnemiesForCurrentMap(state.currentMap, map);
     evictEnemiesFromBonfireSafeZones(combatSystem, entry.mapId, state.gameFlags as Record<string, boolean | number>);
+    evictEnemiesFromBonfireRestZones(combatSystem, entry.mapId);
     showTransitionOverlay(map.name, map.subtitle);
     playBonfireRestore();
     notify('Arrived at bonfire', {

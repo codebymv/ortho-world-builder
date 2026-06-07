@@ -10,6 +10,7 @@ import type { CombatSystem, Enemy } from '@/lib/game/Combat';
 import type { FloatingTextSystem } from '@/lib/game/FloatingText';
 import type { ScreenShake } from '@/lib/game/ScreenShake';
 import type { ParticleSystem } from '@/lib/game/ParticleSystem';
+import type { RewardBundle } from '@/game/domain/rewardDisplay';
 import { createRuntimeSfx } from '@/game/runtime/RuntimeSfx';
 import { createBonfireRestAction } from '@/game/runtime/RuntimeRestFlow';
 import { createPerformDodgeAction } from '@/game/runtime/RuntimePlayerActions';
@@ -32,6 +33,7 @@ interface RuntimeActionPhaseOptions {
   musicRef: MutableRefObject<HTMLAudioElement | null>;
   musicStarted: MutableRefObject<boolean>;
   showHeroOverlay: (title: string, subtitle?: string) => void;
+  showRewardBundle: (bundle: RewardBundle) => void;
   particleSystem: ParticleSystem;
   combatSystem: CombatSystem;
   floatingText: FloatingTextSystem;
@@ -113,6 +115,7 @@ export function setupRuntimeActionPhase({
   musicRef,
   musicStarted,
   showHeroOverlay,
+  showRewardBundle,
   particleSystem,
   combatSystem,
   floatingText,
@@ -237,6 +240,9 @@ export function setupRuntimeActionPhase({
     runtimeSession.animation.isChargingAttack = false;
     runtimeSession.animation.chargeTimer = 0;
     runtimeSession.animation.chargeLevel = 0;
+    if (runtimeSession.animation.playerAnimState === 'charge') {
+      runtimeSession.animation.playerAnimState = 'idle';
+    }
   };
 
   const performDodge = createPerformDodgeAction({
@@ -386,6 +392,7 @@ export function setupRuntimeActionPhase({
     notify,
     triggerSave,
     triggerUIUpdate,
+    showRewardBundle,
     performBonfireRest,
     syncOpenedChestState,
     syncHarvestedTempestGrassState,

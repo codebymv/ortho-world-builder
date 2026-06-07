@@ -355,6 +355,20 @@ export const InventoryModal = memo(function InventoryModal({
       return;
     }
 
+    if (typeof item.essenceAmount === 'number' && item.essenceAmount > 0) {
+      playPotionDrink?.();
+      gameState.addEssence(item.essenceAmount);
+      gameState.removeItem(item.id);
+      notify(`Used ${item.name}`, {
+        id: `used-${item.id}`,
+        type: 'success',
+        description: `Absorbed ${item.essenceAmount} essence.`,
+        duration: 2000,
+      });
+      triggerUIUpdate();
+      return;
+    }
+
     if (typeof item.healAmount === 'number' && item.healAmount > 0) {
       const atFullHealth = gameState.player.health >= gameState.player.maxHealth;
       const atFullStamina = gameState.player.stamina >= gameState.player.maxStamina;

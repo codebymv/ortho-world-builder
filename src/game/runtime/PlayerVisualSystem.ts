@@ -3,6 +3,7 @@ import type { AssetManager } from '@/lib/game/AssetManager';
 import type { GameState } from '@/lib/game/GameState';
 import type { ParticleSystem } from '@/lib/game/ParticleSystem';
 import type { ScreenShake } from '@/lib/game/ScreenShake';
+import { getComboSpriteStep } from '@/data/weaponMovesets';
 
 let _lastDamageFlashActive = false;
 let _lastHeldItemSprite = '';
@@ -429,8 +430,10 @@ export function resolvePlayerTexture({
   } else if (playerAnimState === 'charge') {
     textureKey = getPlayerTextureName(currentDir8, 'charge', Math.min(animFrame, 2));
   } else if (playerAnimState === 'attack') {
-    // Use combo-step-specific texture: attack_0, attack_1, attack_2
-    textureKey = getPlayerTextureName(currentDir8, `attack_${comboStep}`, Math.min(attackFrame, 2));
+    // Map the logical combo step to an available attack pose (attack_0/1/2). Movesets
+    // with >3 steps or heavy 2-hit weapons can remap via `spriteStep` until bespoke art exists.
+    const spriteStep = getComboSpriteStep(state.equippedWeaponId, comboStep);
+    textureKey = getPlayerTextureName(currentDir8, `attack_${spriteStep}`, Math.min(attackFrame, 2));
   } else if (playerAnimState === 'dodge') {
     textureKey = getPlayerTextureName(currentDir8, 'walk', animFrame);
   } else if (playerAnimState === 'climb') {

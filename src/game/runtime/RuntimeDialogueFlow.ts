@@ -3,6 +3,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { DialogueNode } from '@/data/dialogues';
 import type { GameState, Item } from '@/lib/game/GameState';
 import { createInteractionSystem } from '@/game/domain/InteractionSystem';
+import type { RewardBundle } from '@/game/domain/rewardDisplay';
 
 interface DialogueProgressionLike {
   selectDialogueStartNode: (state: GameState, dialogueId: string) => DialogueNode | null | undefined;
@@ -33,6 +34,7 @@ interface CreateRuntimeDialogueFlowOptions {
     emitHeal: (position: THREE.Vector3) => void;
   };
   notify: (message: string, options?: { id?: string; type?: 'success' | 'info' | 'error'; description?: string; duration?: number }) => void;
+  showRewardBundle: (bundle: RewardBundle) => void;
   triggerSave: () => void;
   triggerUIUpdate: () => void;
   performBonfireRest: (tileX: number, tileY: number) => void;
@@ -91,6 +93,7 @@ export function createRuntimeDialogueFlow({
   playLadderClimb,
   particleSystem,
   notify,
+  showRewardBundle,
   triggerSave,
   triggerUIUpdate,
   performBonfireRest,
@@ -180,6 +183,7 @@ export function createRuntimeDialogueFlow({
       particleSystem.emitHeal(position);
     },
     notify,
+    showRewardBundle,
     triggerSave,
     triggerUIUpdate,
     performBonfireRest,

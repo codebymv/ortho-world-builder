@@ -392,6 +392,10 @@ interface UpdatePlayerSimulationOptions {
   comboInputBuffered: boolean;
   comboWindowDuration: number;
   getComboFrameDuration: (step: number) => number;
+  /** Number of combo steps for the equipped weapon's moveset. */
+  comboStepCount: number;
+  /** Post-swing recovery lockout (seconds) if the combo ends on the given step. */
+  getComboRecovery: (step: number) => number;
   triggerComboChain: () => { frameDuration: number } | null;
   completeConsumableUse?: () => void;
 }
@@ -469,6 +473,8 @@ export function updatePlayerSimulation({
   comboInputBuffered,
   comboWindowDuration,
   getComboFrameDuration,
+  comboStepCount,
+  getComboRecovery,
   triggerComboChain,
   completeConsumableUse,
 }: UpdatePlayerSimulationOptions): PlayerSimulationResult {
@@ -520,6 +526,13 @@ export function updatePlayerSimulation({
       );
       playerAnimState = 'charge';
     }
+  }
+
+  // Stale-charge guard: if performAttack() returned early without updating anim state,
+  // isChargingAttack was cleared externally but playerAnimState is still 'charge'.
+  // Clears the deadlock so walk/idle can resume on the next movement check.
+  if (playerAnimState === 'charge' && !isChargingAttack) {
+    playerAnimState = 'idle';
   }
 
   if (isDialogueActive) {
@@ -872,22 +885,23 @@ export function updatePlayerSimulation({
         // If input was buffered during the swing, chain immediately.
         // After a finisher (step >= 2) triggerComboChain wraps back to step 0
         // so the player keeps swinging instead of dropping the press.
+        const lastStep = Math.max(0, comboStepCount - 1);
         if (comboInputBuffered) {
           comboInputBuffered = false;
           const chainResult = triggerComboChain();
           if (chainResult) {
-            comboStep = comboStep >= 2 ? 0 : comboStep + 1; // mirror triggerComboChain's wrap-or-advance
+            comboStep = comboStep >= lastStep ? 0 : comboStep + 1; // mirror triggerComboChain's wrap-or-advance
             attackFrame = 0;
             attackFrameTimer = chainResult.frameDuration;
             playerAnimState = 'attack';
             comboWindowTimer = 0;
           } else {
             // Chain failed (hurt/no stamina) — enforce post-swing recovery lockout.
-            state.player.attackRecoveryTimer = comboStep >= 2 ? 0.50 : 0.35;
+            state.player.attackRecoveryTimer = getComboRecovery(comboStep);
           }
         } else {
           // No input buffered — enforce recovery so rapid-fire mashing is blocked.
-          state.player.attackRecoveryTimer = comboStep >= 2 ? 0.50 : 0.35;
+          state.player.attackRecoveryTimer = getComboRecovery(comboStep);
         }
       } else {
         attackFrameTimer = getComboFrameDuration(comboStep);

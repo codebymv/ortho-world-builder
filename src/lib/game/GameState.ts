@@ -38,6 +38,8 @@ export type KnownGameFlag =
   | 'manuscript_fragment_collected'
   | 'north_fort_gate_open'
   | 'petra_heart_delivered'
+  | 'petra_hearts_sold'
+  | 'petra_departed'
   | 'village_after_manuscript'
   | 'village_after_reaver'
   | 'whispering_woods_shortcut_open'
@@ -148,6 +150,8 @@ export interface Item {
   type: 'consumable' | 'key' | 'quest' | 'equipment' | 'ring';
   sprite: string;
   healAmount?: number;
+  /** Essence granted when consumed (soul-item style — e.g. Sundered Essence). */
+  essenceAmount?: number;
   buffType?: 'stealth' | 'berserker' | 'last_breath';
   buffDuration?: number;
   stats?: {
@@ -319,7 +323,7 @@ export class GameState {
     this.seenItemIds.add(items.meek_short_sword.id);
   }
 
-  addItem(item: Item) {
+  addItem(item: Item, options: { notify?: boolean } = {}) {
     if (item.type === 'consumable') {
       const lastMatchingIndex = this.inventory.reduce((lastIndex, inventoryItem, index) => (
         inventoryItem.id === item.id ? index : lastIndex
@@ -339,7 +343,9 @@ export class GameState {
     }
     const isFirstTime = !this.seenItemIds.has(item.id);
     if (isFirstTime) this.seenItemIds.add(item.id);
-    this.onItemAdded?.(item, isFirstTime);
+    if (options.notify !== false) {
+      this.onItemAdded?.(item, isFirstTime);
+    }
     if (item.type === 'equipment') {
       this.tryAddWeaponToLoadout(item.id);
       if (!this.equippedWeaponId) {

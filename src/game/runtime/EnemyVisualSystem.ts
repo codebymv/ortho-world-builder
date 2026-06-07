@@ -117,6 +117,7 @@ function resolveSpriteKey(enemy: Enemy, enemyType: string, walkFrame: number, ch
     if (enemy.moveBlend > 0.25) return `enemy_ridge_revenant_walk_${walkFrame}`;
     return 'enemy_ridge_revenant';
   }
+  if (enemy.state === 'staggered') return `${enemy.sprite}_stagger`;
   if (enemy.state === 'telegraphing') return `${enemy.sprite}_telegraph`;
   if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return `${enemy.sprite}_attack`;
   if (enemy.moveBlend > 0.25 && ENEMY_WALK_ANIMATIONS[enemyType]) {
@@ -252,8 +253,15 @@ export function applyEnemyVisuals({
       mat.opacity = 1.0;
     }
   } else if (enemy.state === 'staggered') {
-    // Hit-result feedback (player broke poise), not an attack telegraph — kept.
-    mat.color.setHex(0xaaaaee);
+    // Stagger sprite handles pose storytelling for all non-atlas enemies.
+    // Atlas-based enemies (skeleton/bandit variants) have no dedicated stagger
+    // frame, so a decaying opacity pulse gives hit-reaction feedback without
+    // a sustained cryptic colour shift.
+    const isAtlasBased = enemyType === 'bandit' || enemyType === 'skeleton' || enemyType === 'skeleton_captain';
+    mat.color.setHex(0xffffff);
+    mat.opacity = isAtlasBased
+      ? 0.7 + Math.abs(fastSin(enemy.staggerTimer * 12)) * 0.3
+      : 1.0;
   } else if (enemy.state === 'slamming') {
     const novaTimer = enemy.novaSlamTimer ?? 0;
     const novaDuration = enemy.currentAttackType === 'hail_mary' ? 2.2 : 0.5;
@@ -439,6 +447,20 @@ export function applyEnemyVisuals({
     finalEnemyX += fastSin(currentTime / 10 + seed) * shakeAmt;
     finalEnemyY += fastCos(currentTime / 12 + seed) * shakeAmt;
     finalEnemyY += fastSin(novaProgress * Math.PI * 3) * 0.04;
+  } else if (enemy.state === 'staggered') {
+    // Decaying micro-shake: rapid at the moment of poise break, fading as the
+    // enemy recovers. Reads as physical impact rather than a cryptic colour cue.
+    const staggerPhase = enemy.staggerTimer / enemy.staggerDuration; // 1→0
+    const shakeDecay = staggerPhase * staggerPhase;
+    const shakeAmt = 0.045 * shakeDecay;
+    finalEnemyX += fastSin(currentTime / 18 + seed) * shakeAmt;
+    finalEnemyY += fastCos(currentTime / 22 + seed) * shakeAmt * 0.6;
+    // Brief squash on the initial impact frame
+    if (staggerPhase > 0.75) {
+      const impactSquash = (staggerPhase - 0.75) / 0.25;
+      scaleX *= 1 + impactSquash * 0.1;
+      scaleY *= 1 - impactSquash * 0.08;
+    }
   } else {
     const breathe = fastSin(currentTime / 800 + seed * 3);
     if (enemyType === 'hollow_guardian') {

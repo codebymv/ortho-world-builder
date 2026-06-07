@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { isRingRewardChestInteractionId } from '@/data/specialChests';
 import type { GameState, Item } from '@/lib/game/GameState';
+import type { RewardBundleEntry } from '@/game/domain/rewardDisplay';
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
 
 type NotificationType = 'success' | 'info' | 'error';
@@ -32,6 +33,7 @@ interface InteractionSystemContext {
   emitSparkles: (position: THREE.Vector3) => void;
   emitHeal: (position: THREE.Vector3) => void;
   notify: (message: string, options?: NotificationOptions) => void;
+  showRewardBundle?: (bundle: { id: string; title: string; entries: RewardBundleEntry[] }) => void;
   triggerSave: () => void;
   triggerUIUpdate: () => void;
   performBonfireRest: (tileX: number, tileY: number) => void;
@@ -249,6 +251,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
     context.state.addGold(goldAmount);
     context.playGoldPickup();
+    const rewardEntries: RewardBundleEntry[] = [{ kind: 'gold', amount: goldAmount }];
 
     // Per-chest consumable override. Chests not listed here fall through to
     // the default Ephemeral Extract so we keep healing potions broadly available.
@@ -264,17 +267,35 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       // Reward for besting the western fort's Ridge Revenant.
       west_fort_chest: 'last_breath_charm',
     };
+    // Sundered Essence soul-items replace the (plentiful) default Extract in chests chosen
+    // by zone/flow. Tier I sits along the southern + peripheral early routes; Tier II only
+    // past the river crossing (Riverside Grove / Corrupted Bridge) where corruption deepens.
+    const CHEST_ESSENCE_OVERRIDES: Record<string, string> = {
+      // Tier I — pre-river exploration loop (south, southwest, southeast, central).
+      forest_south_entry_chest: 'sundered_essence_i',   // south river peninsula (entry)
+      rocky_hill_chest: 'sundered_essence_i',           // SW cliff-top plateau
+      spider_chest: 'sundered_essence_i',               // SW spider grounds
+      destroyed_town_chest: 'sundered_essence_i',       // west ruined settlement
+      forest_lake_chest: 'sundered_essence_i',          // SE lake shelf
+      forest_woodcutter_chest: 'sundered_essence_i',    // central woodcutter ruin
+      // Tier II — north of the river, the Hollow approach and beyond.
+      forest_chest_hollow_approach: 'sundered_essence_ii', // ridge over the decayed bridge lane
+      observatory_chest: 'sundered_essence_ii',            // observatory compound (NE)
+      waterfall_hidden_chest: 'sundered_essence_ii',       // hidden reward behind the north falls
+    };
+
     // Chests that yield multiple Ephemeral Extracts instead of the usual single one.
     const TRIPLE_EXTRACT_CHESTS = new Set(['start_extract_chest']);
     const extractCount = TRIPLE_EXTRACT_CHESTS.has(interactionId) ? 3 : 1;
 
-    const overrideItemId = CHEST_CONSUMABLE_OVERRIDES[interactionId];
+    const overrideItemId = CHEST_ESSENCE_OVERRIDES[interactionId] ?? CHEST_CONSUMABLE_OVERRIDES[interactionId];
     const consumableItem = overrideItemId ? context.items[overrideItemId] : context.items.health_potion;
     let consumableLabel = extractCount > 1 ? `${extractCount}× Ephemeral Extract` : 'an Ephemeral Extract';
     if (consumableItem) {
       for (let i = 0; i < extractCount; i++) {
-        context.state.addItem({ ...consumableItem });
+        context.state.addItem({ ...consumableItem }, { notify: false });
       }
+      rewardEntries.push({ kind: 'item', item: { ...consumableItem }, quantity: extractCount });
       context.playItemGrab();
       if (overrideItemId) {
         // Article matches the item name's first vowel sound.
@@ -285,19 +306,23 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
     let bonusDescription = '';
     if (interactionId === 'ancient_chest' && context.items.shadow_blade) {
-      context.state.addItem({ ...context.items.shadow_blade });
+      context.state.addItem({ ...context.items.shadow_blade }, { notify: false });
+      rewardEntries.push({ kind: 'item', item: { ...context.items.shadow_blade } });
       bonusDescription = ' and a Shadow Blade';
     } else if (interactionId === 'boss_arena_chest' && context.items.crystal_greatsword) {
-      context.state.addItem({ ...context.items.crystal_greatsword });
+      context.state.addItem({ ...context.items.crystal_greatsword }, { notify: false });
+      rewardEntries.push({ kind: 'item', item: { ...context.items.crystal_greatsword } });
       bonusDescription = ' and a Crystal Greatsword';
     } else if (interactionId === 'forest_river_chest' && context.items.ornamental_broadsword) {
-      context.state.addItem({ ...context.items.ornamental_broadsword });
+      context.state.addItem({ ...context.items.ornamental_broadsword }, { notify: false });
+      rewardEntries.push({ kind: 'item', item: { ...context.items.ornamental_broadsword } });
       bonusDescription = ' and an Ornamental Broadsword';
     } else if (
       (interactionId === 'revenant_west_terminus_chest' || interactionId === 'revenant_precipice_terminus_chest') &&
       context.items.terminus_scythe
     ) {
-      context.state.addItem({ ...context.items.terminus_scythe });
+      context.state.addItem({ ...context.items.terminus_scythe }, { notify: false });
+      rewardEntries.push({ kind: 'item', item: { ...context.items.terminus_scythe } });
       context.state.setFlag('terminus_scythe_early_obtained', true);
       bonusDescription = ' and the Terminus Scythe';
     } else if (
@@ -305,13 +330,19 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       context.items.terminus_scythe &&
       !context.state.getFlag('terminus_scythe_early_obtained')
     ) {
-      context.state.addItem({ ...context.items.terminus_scythe });
+      context.state.addItem({ ...context.items.terminus_scythe }, { notify: false });
+      rewardEntries.push({ kind: 'item', item: { ...context.items.terminus_scythe } });
       bonusDescription = ' and the Terminus Scythe';
     }
 
     context.state.setFlag(`${interactionId}_opened`, true);
     context.syncOpenedChestState();
     context.emitSparkles(new THREE.Vector3(px, py, 0.3));
+    context.showRewardBundle?.({
+      id: `chest-${interactionId}-${Date.now()}`,
+      title: 'Chest Rewards',
+      entries: rewardEntries,
+    });
     context.notify('Chest Opened!', {
       id: 'chest-open',
       type: 'success',

@@ -74,6 +74,7 @@ export function createKeyboardInputController({
     item.buffType !== 'last_breath' &&
     (
       (typeof item.healAmount === 'number' && item.healAmount > 0) ||
+      (typeof item.essenceAmount === 'number' && item.essenceAmount > 0) ||
       item.buffType === 'stealth' ||
       item.buffType === 'berserker'
     );

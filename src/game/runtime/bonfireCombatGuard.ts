@@ -16,6 +16,12 @@ export const BONFIRE_COMBAT_SAFE_RADIUS = 6;
 /** Wider disc used to block rest / fast travel when hostiles are still nearby. */
 export const BONFIRE_REST_HOSTILE_RADIUS = 12;
 
+const BONFIRE_REST_HOSTILE_RADIUS_SQ =
+  BONFIRE_REST_HOSTILE_RADIUS * BONFIRE_REST_HOSTILE_RADIUS;
+
+/** Margin beyond the rest disc when nudging patrols after spawn / travel / interact. */
+const BONFIRE_REST_NUDGE_RADIUS = BONFIRE_REST_HOSTILE_RADIUS + 1.25;
+
 /** @deprecated Use BONFIRE_COMBAT_SAFE_RADIUS or BONFIRE_REST_HOSTILE_RADIUS. */
 export const BONFIRE_SAFE_RADIUS = BONFIRE_COMBAT_SAFE_RADIUS;
 
@@ -50,6 +56,21 @@ export function isPositionInBonfireSafeZone(
     const dx = worldX - c.x;
     const dy = worldY - c.y;
     if (dx * dx + dy * dy <= BONFIRE_COMBAT_SAFE_RADIUS_SQ) return true;
+  }
+  return false;
+}
+
+/** Spawn exclusion — keep enemy origins outside the rest disc for every authored bonfire tile. */
+export function isPositionInBonfireSpawnExclusionZone(
+  mapId: string,
+  worldX: number,
+  worldY: number,
+): boolean {
+  for (const entry of getBonfiresForMap(mapId)) {
+    const c = bonfireEntryWorldPosition(entry);
+    const dx = worldX - c.x;
+    const dy = worldY - c.y;
+    if (dx * dx + dy * dy <= BONFIRE_REST_HOSTILE_RADIUS_SQ) return true;
   }
   return false;
 }
@@ -121,6 +142,47 @@ export function nudgeEnemyOutOfBonfireSanctuary(
   }
 }
 
+export function nudgeEnemyOutOfBonfireRestZone(
+  enemy: Enemy,
+  mapId: string,
+): void {
+  if (enemy.state === 'dead') return;
+  let x = enemy.position.x;
+  let y = enemy.position.y;
+  let changed = false;
+
+  for (const entry of getBonfiresForMap(mapId)) {
+    const c = bonfireEntryWorldPosition(entry);
+    const dx = x - c.x;
+    const dy = y - c.y;
+    const distSq = dx * dx + dy * dy;
+    if (distSq >= BONFIRE_REST_HOSTILE_RADIUS_SQ) continue;
+    const dist = Math.sqrt(distSq);
+    const push = BONFIRE_REST_NUDGE_RADIUS;
+    if (dist < 0.05) {
+      x = c.x + push;
+      y = c.y;
+    } else {
+      const scale = push / dist;
+      x = c.x + dx * scale;
+      y = c.y + dy * scale;
+    }
+    changed = true;
+  }
+
+  if (changed) {
+    enemy.position.x = x;
+    enemy.position.y = y;
+    enemy.patrolOrigin = { x, y };
+    if (enemy.state === 'chasing' || enemy.state === 'telegraphing' || enemy.state === 'recovering') {
+      enemy.state = 'idle';
+    }
+    enemy.playerAggroed = false;
+    enemy.factionTarget = null;
+    enemy.attackLockedTarget = null;
+  }
+}
+
 export function evictEnemiesFromBonfireSafeZones(
   combatSystem: CombatSystem,
   mapId: string,
@@ -130,6 +192,17 @@ export function evictEnemiesFromBonfireSafeZones(
     if (enemy.state === 'dead') continue;
     if (!isPositionInBonfireSafeZone(mapId, enemy.position.x, enemy.position.y, gameFlags)) continue;
     nudgeEnemyOutOfBonfireSanctuary(enemy, mapId, gameFlags);
+  }
+}
+
+/** Push live enemies out of the rest disc around every authored bonfire on this map. */
+export function evictEnemiesFromBonfireRestZones(
+  combatSystem: CombatSystem,
+  mapId: string,
+): void {
+  for (const enemy of combatSystem.getAllEnemies()) {
+    if (enemy.state === 'dead') continue;
+    nudgeEnemyOutOfBonfireRestZone(enemy, mapId);
   }
 }
 

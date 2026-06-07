@@ -93,6 +93,9 @@ export function createPointerInputController({
     setIsChargingAttack(false);
     setChargeTimer(0);
     setChargeLevel(0);
+    if (getPlayerAnimState() === 'charge') {
+      setPlayerAnimState('idle');
+    }
   };
 
   const releaseBlock = () => {

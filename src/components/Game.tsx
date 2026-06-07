@@ -8,7 +8,11 @@ import { MapMarker, extractMarkersFromText } from '@/lib/game/MapMarkers';
 import { SaveManager } from '@/lib/game/SaveManager';
 import { preloadMap } from '@/data/maps';
 import type { DialogueNode } from '@/data/dialogues';
-import type { VendorItem } from '@/data/vendors';
+import {
+  getVendorPurchaseFlagKey,
+  getVendorStockRemaining,
+  type VendorItem,
+} from '@/data/vendors';
 import type { CurrencyGain, Item } from '@/lib/game/GameState';
 import { DialogueBox } from './game/DialogueBox';
 import { GameUI } from './game/GameUI';
@@ -20,12 +24,14 @@ import { DeathOverlay } from './game/DeathOverlay';
 import { BonfireOverlay } from './game/BonfireOverlay';
 import { BonfireMenu } from './game/BonfireMenu';
 import { WeaponAcquiredOverlay } from './game/WeaponAcquiredOverlay';
+import { RewardBundleOverlay } from './game/RewardBundleOverlay';
 import { DevFooter } from './game/DevFooter';
 import { PerfOverlay } from './game/PerfOverlay';
 import { notify } from '@/lib/game/notificationBus';
 import { createProgressionService } from '@/game/domain/ProgressionService';
 import { createAudioProcessor } from '@/game/domain/AudioDirector';
 import type { BonfireEntry } from '@/data/bonfires';
+import type { RewardBundle } from '@/game/domain/rewardDisplay';
 import type {
   RuntimeCallbacks,
   RuntimeContent,
@@ -250,6 +256,7 @@ const Game = () => {
   const [bossHud, setBossHud] = useState<BossHudSnapshot>(null);
   /** Queue of first-time pickups awaiting the acquisition overlay (one at a time). */
   const [acquiredItemQueue, setAcquiredItemQueue] = useState<Item[]>([]);
+  const [rewardBundleQueue, setRewardBundleQueue] = useState<RewardBundle[]>([]);
   const [bonfireMenuOpen, setBonfireMenuOpen] = useState(false);
   const bonfireOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const justPickedUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -565,6 +572,9 @@ const Game = () => {
       syncManuscriptCheckpointGateState: () => {
         syncManuscriptCheckpointGateStateRef.current?.();
       },
+      refreshActiveNpcs: () => {
+        syncVillageReactivityRef.current?.();
+      },
     });
   };
   const closeDialogueSession = (stateToClose?: GameState | null) => {
@@ -821,13 +831,33 @@ const Game = () => {
     }
   };
 
-  const handleVendorPurchase = useCallback((vendorItem: VendorItem, item: Item) => {
+  const handleVendorPurchase = useCallback((vendorId: string, vendorItem: VendorItem, item: Item) => {
     if (!gameState) return;
+
+    const stockRemaining = getVendorStockRemaining(
+      gameState.gameFlags as Record<string, boolean | number>,
+      vendorId,
+      vendorItem,
+    );
+    if (stockRemaining != null && stockRemaining <= 0) {
+      notify('Sold out!', { id: 'vendor-sold-out', type: 'error', duration: 2000 });
+      return;
+    }
+
+    if (vendorItem.unique === true && gameState.hasItem(vendorItem.itemId)) {
+      notify('Already owned!', { id: 'vendor-already-owned', type: 'error', duration: 2000 });
+      return;
+    }
     
     if (vendorItem.currency === 'gold') {
       if (gameState.player.gold >= vendorItem.price) {
         gameState.spendGold(vendorItem.price);
         gameState.addItem({ ...item });
+        if (vendorItem.stock != null) {
+          const flagKey = getVendorPurchaseFlagKey(vendorId, vendorItem.itemId);
+          const purchased = gameState.getFlagNumber(flagKey);
+          gameState.setFlag(flagKey, purchased + 1);
+        }
         playVendorPurchaseRef.current?.();
         notify(`Purchased ${item.name}!`, {
           type: 'success',
@@ -842,6 +872,11 @@ const Game = () => {
       if (gameState.player.essence >= vendorItem.price) {
         gameState.spendEssence(vendorItem.price);
         gameState.addItem({ ...item });
+        if (vendorItem.stock != null) {
+          const flagKey = getVendorPurchaseFlagKey(vendorId, vendorItem.itemId);
+          const purchased = gameState.getFlagNumber(flagKey);
+          gameState.setFlag(flagKey, purchased + 1);
+        }
         playVendorPurchaseRef.current?.();
         notify(`Purchased ${item.name}!`, {
           type: 'success',
@@ -955,6 +990,9 @@ const Game = () => {
     switchMusicTrack,
     processAudioElement,
     showHeroOverlay,
+    showRewardBundle: (bundle: RewardBundle) => {
+      setRewardBundleQueue(q => [...q, bundle]);
+    },
     openBonfireMenu: () => {
       pausedRef.current = true;
       setBonfireMenuOpen(true);
@@ -1268,6 +1306,11 @@ const Game = () => {
       <TransitionOverlay active={transitionActive} mapName={transitionMapName} mapSubtitle={transitionMapSubtitle} />
       <DeathOverlay active={deathActive} essenceLost={deathEssenceLost} onComplete={handleDeathComplete} />
       <BonfireOverlay active={bonfireOverlayActive} title={bonfireOverlayTitle} subtitle={bonfireOverlaySubtitle ?? undefined} />
+      <RewardBundleOverlay
+        bundle={rewardBundleQueue[0] ?? null}
+        assetManager={assetManagerRef.current}
+        onDismiss={() => setRewardBundleQueue(q => q.slice(1))}
+      />
 
       {bonfireMenuOpen && gameState && (
         <BonfireMenu

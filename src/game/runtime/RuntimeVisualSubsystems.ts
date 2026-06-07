@@ -6,6 +6,7 @@ import { createEnemyVisualRegistry } from '@/game/runtime/EnemyVisualRegistry';
 import { createRuntimeSceneObjects } from '@/game/runtime/RuntimeSceneObjects';
 import { createRuntimePlayerVisuals } from '@/game/runtime/RuntimePlayerVisuals';
 import { createRuntimeNpcVisuals } from '@/game/runtime/RuntimeNpcVisuals';
+import { isNpcHiddenByFlags } from '@/game/runtime/npcVisibility';
 
 interface CreateRuntimeVisualSubsystemsOptions {
   scene: THREE.Scene;
@@ -56,6 +57,7 @@ export function createRuntimeVisualSubsystems({
     scene,
     assetManager,
     npcData,
+    shouldHideNpc: npc => isNpcHiddenByFlags(state, npc),
     shadowGeometry: playerVisuals.shadowGeometry,
     shadowMaterial: playerVisuals.shadowMaterial,
     createOutlineMesh,
