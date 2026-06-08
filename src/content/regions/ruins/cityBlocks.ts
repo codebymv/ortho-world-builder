@@ -131,10 +131,10 @@ export interface CityFenceOpts {
  */
 export function cityFences(o: CityFenceOpts): CityBlockProp[] {
   const sides = o.sides ?? ['n', 's', 'e', 'w'];
+  // "gate" cadence now defines plain GAPS in the fence (bare walkable ground), not gate sprites.
   const gateEvery = Math.max(4, o.gateEvery ?? 11);
   const gateWidth = Math.max(1, o.gateWidth ?? 2);
   const fenceType = o.fenceType ?? 'iron_fence';
-  const gateType = o.gateType ?? 'gate';
   const seed = o.seed ?? 991;
   const out: CityBlockProp[] = [];
 
@@ -152,8 +152,9 @@ export function cityFences(o: CityFenceOpts): CityBlockProp[] {
     for (let i = 0; i < pts.length; i++) {
       const { x, y } = pts[i];
       if (blocked(x, y)) continue; // path/POI crossing → natural opening
-      const inGate = ((i + phase) % gateEvery) < gateWidth;
-      out.push({ x, y, type: inGate ? gateType : fenceType, walkable: inGate });
+      const inGap = ((i + phase) % gateEvery) < gateWidth;
+      if (inGap) continue; // leave a plain GAP in the fence (bare ground), not a gate sprite
+      out.push({ x, y, type: fenceType, walkable: false });
     }
   };
 

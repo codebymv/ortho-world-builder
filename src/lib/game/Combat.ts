@@ -1549,6 +1549,7 @@ export class CombatSystem {
                   enemy.staggerTimer = enemy.staggerDuration;
                   enemy.damageFlashTimer = enemy.staggerDuration;
                   player.parryBonusTimer = 1.0;
+                  this.gameState.registerPerfectParry();
                   player.iFrameTimer = Math.max(player.iFrameTimer, 0.5);
                   parried = true; parryEnemyId = enemy.id;
                 } else {
@@ -2137,6 +2138,7 @@ export class CombatSystem {
         sourceEnemy.damageFlashTimer = sourceEnemy.staggerDuration;
       }
       player.parryBonusTimer = 1.0;
+      this.gameState.registerPerfectParry();
       player.iFrameTimer = Math.max(player.iFrameTimer, 0.5);
       return { parried: true };
     }
@@ -2179,6 +2181,7 @@ export class CombatSystem {
       enemy.staggerTimer = enemy.staggerDuration;
       enemy.damageFlashTimer = enemy.staggerDuration;
       player.parryBonusTimer = 1.0;
+      this.gameState.registerPerfectParry();
       player.iFrameTimer = Math.max(player.iFrameTimer, 0.5);
       return { parried: true };
     }
@@ -2642,6 +2645,7 @@ export class CombatSystem {
     if (isParry) {
       // Parry deflects the projectile cleanly — short i-frames, no damage.
       player.parryBonusTimer = 1.0;
+      this.gameState.registerPerfectParry();
       player.iFrameTimer = Math.max(player.iFrameTimer, 0.4);
       return { outcome: this.reflectProjectile(projectile) ? 'reflected' : 'blocked', parried: true };
     }

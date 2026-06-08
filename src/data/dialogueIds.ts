@@ -47,6 +47,7 @@ export const dialogueIds = new Set<string>([
   'guilrhym_guard_orders',
   'guilrhym_cathedral_inscription',
   'guilrhym_reaver_plaque',
+  'guilrhym_west_seal',
   'campfire',
   'blacksmith',
   'healer',

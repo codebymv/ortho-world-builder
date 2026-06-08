@@ -222,6 +222,12 @@ export const guilrhymDef: MapDefinition = {
     { x: 28, y: 90, width: 10, height: 10, type: 'watchtower' },
     // Heights → cloister connector street (center-north)
     { x: 120, y: 96, width: 36, height: 6, type: 'clearing', fill: 'cobblestone' },
+    // THE HEIGHTS RAMPART — a carved walkable deck along the north edge, raised to
+    // elevation 1 (see elevationZones). The "rooftops" Oliver warns about, realised as a
+    // wall-walk: a vantage + slight shortcut OVER the streets. Its south retaining cliff
+    // lands at y93–95 (north of the dogleg's y96+ travel), so the critical path is unaffected.
+    // East edge stops at x108 — the cloister west wall begins at x110.
+    { x: 66, y: 88, width: 43, height: 5, type: 'clearing', fill: 'cobblestone' },
 
     // =========================================================================
     // ZONE D — RELIQUARY CLOISTER & CATHEDRAL APPROACH (center-north, y: 44–95)
@@ -274,7 +280,7 @@ export const guilrhymDef: MapDefinition = {
     { x: 82, y: 152, interactionId: 'guilrhym_drain_chest' },
     // --- The Heights (3) ---
     { x: 72, y: 100, interactionId: 'guilrhym_heights_chest' },
-    { x: 104, y: 100, interactionId: 'guilrhym_rooftop_chest' },
+    { x: 104, y: 90, interactionId: 'guilrhym_rooftop_chest' }, // now actually on the Heights rampart
     { x: 30, y: 94, interactionId: 'guilrhym_terrace_hidden_chest' }, // 'hidden'
     // --- Reliquary Cloister (4) ---
     { x: 219, y: 129, interactionId: 'guilrhym_warren_chest' }, // upper-city warren courtyard nook
@@ -311,10 +317,12 @@ export const guilrhymDef: MapDefinition = {
     { x: 150, y: 90, type: 'sign', walkable: false, interactionId: 'guilrhym_church_altar' },
     { x: 206, y: 216, type: 'sign', walkable: false, interactionId: 'guilrhym_market_ledger' },
     { x: 184, y: 226, type: 'sign', walkable: false, interactionId: 'guilrhym_inn_notice' },
-    { x: 90, y: 104, type: 'sign', walkable: false, interactionId: 'guilrhym_rooftop_journal' },
+    { x: 84, y: 90, type: 'sign', walkable: false, interactionId: 'guilrhym_rooftop_journal' }, // on the rampart deck
     { x: 70, y: 138, type: 'sign', walkable: false, interactionId: 'guilrhym_guard_orders' },
     { x: 150, y: 48, type: 'sign', walkable: false, interactionId: 'guilrhym_cathedral_inscription' },
     { x: 156, y: 47, type: 'sign', walkable: false, interactionId: 'guilrhym_reaver_plaque' },
+    // Notice beside the sealed west gate (foreshadows the West Quarter as a later zone)
+    { x: 128, y: 273, type: 'sign', walkable: false, interactionId: 'guilrhym_west_seal' },
 
     // --- Campfire remains (atmosphere) ---
     { x: 60, y: 256, type: 'campfire_remains', walkable: false },
@@ -342,14 +350,20 @@ export const guilrhymDef: MapDefinition = {
     { x: 244, y: 166, width: 38, height: 22, elevation: 1 },
     // Heights watchtower — OFF the critical path (optional vantage/loot).
     { x: 26, y: 88, width: 14, height: 14, elevation: 1 },
-    // NOTE: The Heights terrace itself is kept at elevation 0 so the critical
-    // path (Undercroft → Heights → Cloister) has no elevation seam to block it.
+    // Heights rampart — the north-edge wall-walk (vantage + shortcut). Only the north
+    // strip (y88–92) rises; the dogleg's plaza travel (y96+) stays at elevation 0, so the
+    // auto retaining cliff at y93–95 walls the rampart WITHOUT cutting the critical path.
+    { x: 66, y: 88, width: 43, height: 5, elevation: 1 },
   ],
   stairways: [
     // Onto the cemetery rise (from the market plaza side)
     { x: 248, y: 186, width: 4, height: 3, elevation: 1 },
     // Watchtower
     { x: 30, y: 100, width: 3, height: 3, elevation: 1 },
+    // Heights rampart — climb up (west) and descend (east) into the plaza; both landings
+    // fall in open plaza gaps (clear of the x70-81 / x100-111 buildings).
+    { x: 66, y: 92, width: 3, height: 5, elevation: 1 },
+    { x: 96, y: 92, width: 3, height: 5, elevation: 1 },
   ],
   enemyZones: [
     // --- Zone A Outskirts (light) ---
@@ -374,6 +388,8 @@ export const guilrhymDef: MapDefinition = {
     // --- The Heights (heavy) ---
     { x: 64, y: 90, width: 62, height: 28, enemyType: 'shadow_lurker', count: 4 },
     { x: 64, y: 90, width: 62, height: 28, enemyType: 'skeleton_captain', count: 2 },
+    // Rampart snipers — the "rooftops are watched" beat Oliver warns about.
+    { x: 70, y: 88, width: 38, height: 4, enemyType: 'shadow_lurker', count: 2 },
 
     // --- Zone D Reliquary Cloister (boss approach — staged ramp toward fog gate) ---
     { x: 122, y: 84, width: 56, height: 10, enemyType: 'shadow', count: 4 },
@@ -571,10 +587,13 @@ export const guilrhymDef: MapDefinition = {
         { x0: 88, y0: 200, x1: 88, y1: 200 },
       ];
       // District = a FREQUENCY mix of forms (colours jumble per-building via the kit palette).
+      // ESTATE = wealthy west: townhouses + the occasional grand manor. SLUM now reads
+      // abandoned: frequent boarded-up frontages among the tenements.
+      const ESTATE = ['townhouse_facade', 'townhouse_facade', 'manor_facade', 'tenement_facade'] as const;
       const RES = ['townhouse_facade', 'townhouse_facade', 'townhouse_facade', 'tenement_facade'] as const;
       const IND = ['warehouse_facade', 'warehouse_facade', 'warehouse_facade', 'tenement_facade'] as const;
       const COMMON = ['tenement_facade', 'tenement_facade', 'tenement_facade', 'townhouse_facade'] as const;
-      const SLUM = ['tenement_facade', 'tenement_facade', 'tenement_facade', 'warehouse_facade', 'townhouse_facade'] as const;
+      const SLUM = ['tenement_facade', 'tenement_facade', 'boarded_facade', 'boarded_facade', 'warehouse_facade'] as const;
       const m = (a: readonly string[]) => [...a] as import('@/lib/game/World').TileType[];
       // Buildings must never land on the GUILRHYM_ROADS grid — fold ROAD_RECTS into every
       // district's keepClear so the street network reads as actual streets BETWEEN blocks
@@ -585,8 +604,8 @@ export const guilrhymDef: MapDefinition = {
       const fenceKC = [...S, ...chests];
       const fo = { gateEvery: 11, gateWidth: 2, keepClear: fenceKC };
       return [
-        // WEST RESIDENTIAL — mostly townhouses
-        ...cityBlocks({ ...o, seed: 101, types: m(RES), x0: 26, y0: 186, x1: 136, y1: 236, streetRows: [205, 223], keepClear: [...KC, ...chests] }),
+        // WEST RESIDENTIAL — wealthy estates: townhouses + occasional manors
+        ...cityBlocks({ ...o, seed: 101, types: m(ESTATE), x0: 26, y0: 186, x1: 136, y1: 236, streetRows: [205, 223], keepClear: [...KC, ...chests] }),
         // EAST DOCKS — mostly warehouses, tighter denser blocks
         ...cityBlocks({ ...o, seed: 202, blockW: 34, blockH: 20, streetW: 2, alleyW: 2, types: m(IND), x0: 246, y0: 184, x1: 282, y1: 238, streetRows: [205], keepClear: KC }),
         // UPPER CITY (the Heights) — residential mix
@@ -601,22 +620,131 @@ export const guilrhymDef: MapDefinition = {
         ...cityBlocks({ ...o, seed: 606, types: m(COMMON), x0: 16, y0: 248, x1: 126, y1: 290, streetRows: [268], keepClear: KC }),
         ...cityBlocks({ ...o, seed: 616, types: m(COMMON), x0: 178, y0: 248, x1: 282, y1: 290, streetRows: [268], keepClear: KC }),
 
-        // ── COMPOUND FENCING ──────────────────────────────────────────────────
-        // An iron-fence perimeter around each housing compound, with periodic gates.
-        // This walls the districts off from the streets so the road network becomes the
-        // controlled way through (gate routes off by closing a gate). The dogleg + loot
-        // (S + chests) punch openings, so the critical path is never sealed. Fence
-        // perimeters sit on each block region's edge; gates fall on the road frontages.
-        ...cityFences({ ...fo, seed: 1101, x0: 26, y0: 186, x1: 136, y1: 236 }),  // west residential
-        ...cityFences({ ...fo, seed: 1202, x0: 246, y0: 184, x1: 282, y1: 238 }), // east docks
-        ...cityFences({ ...fo, seed: 1303, x0: 16, y0: 92, x1: 56, y1: 146 }),    // upper city / Heights
-        ...cityFences({ ...fo, seed: 1313, x0: 104, y0: 122, x1: 140, y1: 146 }), // upper-city pocket
-        ...cityFences({ ...fo, seed: 1404, x0: 158, y0: 96, x1: 282, y1: 146 }),  // upper-east industrial
-        ...cityFences({ ...fo, seed: 1505, x0: 16, y0: 48, x1: 104, y1: 92 }),    // cathedral approach (west)
-        ...cityFences({ ...fo, seed: 1515, x0: 192, y0: 48, x1: 282, y1: 92 }),   // cathedral approach (east)
-        ...cityFences({ ...fo, seed: 1606, x0: 16, y0: 248, x1: 126, y1: 290 }),  // gate outskirts (west)
-        ...cityFences({ ...fo, seed: 1616, x0: 178, y0: 248, x1: 282, y1: 290 }), // gate outskirts (east)
+        // ── COMPOUND FENCING (district-specific) ───────────────────────────────
+        // A fence perimeter around each housing compound, with periodic gates, in each
+        // district's OWN material: dressed stone walls round the west estates, iron
+        // post-and-chain along the docks/industrial quays, rough timber palisades in the
+        // slum wynds, civic iron round the gate outskirts. The road network stays the
+        // controlled way through (gate routes off by closing a gate); the dogleg + loot
+        // (S + chests) punch openings so the critical path is never sealed.
+        ...cityFences({ ...fo, seed: 1101, fenceType: 'stone_low_wall', x0: 26, y0: 186, x1: 136, y1: 236 }),  // west estates
+        ...cityFences({ ...fo, seed: 1202, fenceType: 'chain_fence', x0: 246, y0: 184, x1: 282, y1: 238 }),    // east docks
+        ...cityFences({ ...fo, seed: 1303, fenceType: 'stone_low_wall', x0: 16, y0: 92, x1: 56, y1: 146 }),    // upper city / Heights
+        ...cityFences({ ...fo, seed: 1313, fenceType: 'stone_low_wall', x0: 104, y0: 122, x1: 140, y1: 146 }), // upper-city pocket
+        ...cityFences({ ...fo, seed: 1404, fenceType: 'chain_fence', x0: 158, y0: 96, x1: 282, y1: 146 }),     // upper-east industrial
+        ...cityFences({ ...fo, seed: 1505, fenceType: 'timber_palisade', x0: 16, y0: 48, x1: 104, y1: 92 }),   // cathedral approach (west slum)
+        ...cityFences({ ...fo, seed: 1515, fenceType: 'timber_palisade', x0: 192, y0: 48, x1: 282, y1: 92 }),  // cathedral approach (east slum)
+        ...cityFences({ ...fo, seed: 1606, x0: 16, y0: 248, x1: 126, y1: 290 }),  // gate outskirts (west) — civic iron
+        // gate outskirts (east) — civic iron; west edge OPENED from tile y259-275 (world y109-125)
+        // where the boundary was relocated west to x169.
+        ...cityFences({ ...fo, seed: 1616, x0: 178, y0: 248, x1: 282, y1: 290, keepClear: [...fenceKC, { x0: 178, y0: 261, x1: 178, y1: 273 }] }),
       ];
+    })(),
+
+    // ── HARD STREET BLOCKERS ──────────────────────────────────────────────────
+    // Chunky impassable masses — the city's answer to Whispering Woods' hills/water.
+    // Collapsed masonry (3-wide footprint) chokes off-dogleg side streets so the open
+    // route reads as THE way and the alleys behind them feel like earned detours.
+    // Caved-in buildings add the same hard-mass language as district scenery.
+    // All sit OFF the dogleg corridors (S); the reachability probe confirms the path holds.
+    // Placed LAST so they win over the dense fill on their tiles.
+    { x: 44, y: 232, type: 'collapsed_masonry', walkable: false },  // west estates side street
+    { x: 96, y: 214, type: 'collapsed_masonry', walkable: false },  // west pocket cross-lane
+    { x: 262, y: 224, type: 'collapsed_masonry', walkable: false }, // east docks lane
+    { x: 40, y: 100, type: 'collapsed_masonry', walkable: false },  // upper-city west
+    { x: 250, y: 132, type: 'collapsed_masonry', walkable: false }, // upper-east industrial
+    { x: 44, y: 72, type: 'collapsed_masonry', walkable: false },   // cathedral approach (west slum)
+    { x: 236, y: 72, type: 'collapsed_masonry', walkable: false },  // cathedral approach (east slum)
+    { x: 250, y: 200, type: 'collapsed_masonry', walkable: false }, // east docks lower
+    // Caved-in buildings (atmosphere + soft blocks)
+    { x: 70, y: 196, type: 'destroyed_house', walkable: false },         // collapsed manor (estates)
+    { x: 256, y: 210, type: 'destroyed_house_rubble', walkable: false }, // collapsed warehouse (docks)
+    { x: 224, y: 116, type: 'destroyed_house', walkable: false },        // upper-east ruin
+    { x: 50, y: 64, type: 'destroyed_house_rubble', walkable: false },   // slum ruin (cathedral west)
+    { x: 232, y: 64, type: 'destroyed_house', walkable: false },         // slum ruin (cathedral east)
+
+    // ── LEADING LIGHTS ────────────────────────────────────────────────────────
+    // The city can't show a distant spire (top-down ortho), so it DRAWS the player
+    // with light. Lit lamps/torches form a breadcrumb down the dogleg and beacon the
+    // decision points (the wall gap, the bridge, the gaps). The alleys are left dark —
+    // so the lit route reads as THE way and the dark detours feel optional / earned.
+    // Lamps sit at corridor EDGES so they never block the through-line.
+
+    // 1) Gate spine → the forced EAST turn at the inner wall
+    { x: 144, y: 258, type: 'street_lamp', walkable: false },
+    { x: 156, y: 258, type: 'street_lamp', walkable: false },
+    { x: 144, y: 250, type: 'street_lamp', walkable: false },
+    { x: 156, y: 250, type: 'street_lamp', walkable: false },
+    // wall-front lead east toward the gap (x200–228)
+    { x: 170, y: 249, type: 'street_lamp', walkable: false },
+    { x: 182, y: 249, type: 'street_lamp', walkable: false },
+    { x: 194, y: 249, type: 'street_lamp', walkable: false },
+    // gap beacon — torches on the flanking gatehouses
+    { x: 199, y: 243, type: 'wall_torch', walkable: false },
+    { x: 227, y: 243, type: 'wall_torch', walkable: false },
+    { x: 214, y: 236, type: 'street_lamp', walkable: false }, // through the gap into the market
+
+    // 2) Market → the Toll Bridge (the only canal crossing)
+    { x: 206, y: 186, type: 'street_lamp', walkable: false },
+    { x: 202, y: 177, type: 'street_lamp', walkable: false }, // bridge mouth (south)
+    { x: 212, y: 177, type: 'street_lamp', walkable: false },
+    { x: 202, y: 167, type: 'wall_torch', walkable: false },  // bridge beacon (north bank)
+    { x: 212, y: 167, type: 'wall_torch', walkable: false },
+
+    // 3) North bank — lead WEST along the canal side toward the Undercroft gap
+    { x: 190, y: 164, type: 'street_lamp', walkable: false },
+    { x: 170, y: 164, type: 'street_lamp', walkable: false },
+    { x: 150, y: 164, type: 'street_lamp', walkable: false },
+    { x: 130, y: 164, type: 'street_lamp', walkable: false },
+    { x: 110, y: 164, type: 'street_lamp', walkable: false },
+
+    // 4) Undercroft → climb to the Heights bonfire (the dark stretch gets just a thread)
+    { x: 88, y: 150, type: 'street_lamp', walkable: false },
+    { x: 88, y: 138, type: 'street_lamp', walkable: false },
+    { x: 90, y: 122, type: 'street_lamp', walkable: false },
+    { x: 90, y: 114, type: 'street_lamp', walkable: false },
+
+    // 5) Heights → cloister connector (hands off to the existing candle trail north)
+    { x: 124, y: 98, type: 'street_lamp', walkable: false },
+    { x: 138, y: 98, type: 'street_lamp', walkable: false },
+    { x: 152, y: 98, type: 'street_lamp', walkable: false },
+    // Heights rampart — lit braziers mark the vantage (and read as a beacon from below)
+    { x: 74, y: 89, type: 'wall_torch', walkable: false },
+    { x: 102, y: 89, type: 'wall_torch', walkable: false },
+
+    // ── GATE-PLAZA FENCE EXTENSION (authored request) ─────────────────────────
+    // Extend the east-outskirts iron fence: its bottom edge runs WEST along tile y290
+    // (world y140) to tile x169 (world x19), then turns and runs NORTH up to tile y259
+    // (world y109). Pushes the east compound's south-west corner out across the plaza edge.
+    ...(() => {
+      const f: { x: number; y: number; type: 'iron_fence'; walkable: false }[] = [];
+      for (let x = 169; x <= 177; x++) f.push({ x, y: 290, type: 'iron_fence', walkable: false }); // west along y290 to x169
+      for (let y = 259; y <= 289; y++) {
+        if (y >= 270 && y <= 272) continue; // plain gap (no fence) at world y120-122 — bare ground
+        f.push({ x: 169, y, type: 'iron_fence', walkable: false });
+      }
+      return f;
+    })(),
+    // Override the lone gate sprite the west-frontage iron_fence_border stamps at its
+    // centre — make it plain fence so no gate textures remain on the map's railings.
+    { x: 125, y: 255, type: 'iron_fence', walkable: false },
+    // Solid west gate-plaza boundary fence (authored request): tile x126, y257-290
+    // (world x-24, y107-140) — continuous, NO breaks. A 2-tile section is a SEALED iron
+    // gate (still unwalkable) — the foreshadowed seam to the future West Quarter zone.
+    ...(() => {
+      const f: { x: number; y: number; type: 'iron_fence' | 'door_iron'; walkable: false }[] = [];
+      for (let y = 257; y <= 290; y++) {
+        const sealedGate = y >= 272 && y <= 273; // locked western seam (opens later)
+        f.push({ x: 126, y, type: sealedGate ? 'door_iron' : 'iron_fence', walkable: false });
+      }
+      return f;
+    })(),
+    // Extend the west-frontage railing east to tile x169 (world x19) along its two rows
+    // y254-255 (world y104-105). Authored request.
+    ...(() => {
+      const f: { x: number; y: number; type: 'iron_fence'; walkable: false }[] = [];
+      for (let x = 142; x <= 169; x++) { f.push({ x, y: 254, type: 'iron_fence', walkable: false }); f.push({ x, y: 255, type: 'iron_fence', walkable: false }); }
+      return f;
     })(),
   ],
 };

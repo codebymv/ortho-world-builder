@@ -55,6 +55,9 @@ function formatRingBonus(item: Item): string | null {
   if (item.stats?.moveSpeedMult && item.stats.moveSpeedMult > 1) {
     return `+${Math.round((item.stats.moveSpeedMult - 1) * 100)}% movement speed`;
   }
+  if (item.stats?.revealRadiusBonus && item.stats.revealRadiusBonus > 0) {
+    return 'Parry grows map discovery';
+  }
   return null;
 }
 

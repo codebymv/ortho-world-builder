@@ -364,7 +364,9 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     speed: 0.033,
     attackRange: 1.8,
     chaseRange: 10,
-    telegraphDuration: 0.7,
+    // Big punish hit (42 dmg ≈ 2.4-hit kill) needs a readable wind-up — was 0.7s, too fast
+    // for the damage; 1.0s keeps it a hard "don't greed the chest" wall you CAN react to.
+    telegraphDuration: 1.0,
     recoverDuration: 0.55,
     poise: 250,
     staggerDuration: 1.2,

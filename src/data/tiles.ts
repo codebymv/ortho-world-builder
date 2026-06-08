@@ -163,6 +163,17 @@ const MEMORIAL_COLUMN_FOUNDATION: TileMetadata['foundation'] = {
   ],
 };
 
+// Collapsed masonry — a wide rubble mass that seals a street. Blocks a 3-wide × 2-deep
+// footprint at its base so a single placement chokes a thoroughfare on its own.
+const COLLAPSED_MASONRY_FOUNDATION: TileMetadata['foundation'] = {
+  walkable: false,
+  rows: [
+    { y: -1, xMin: -1, xMax: 1 },
+    { y: 0, xMin: -1, xMax: 1 },
+    { y: 1, xMin: -1, xMax: 1 },
+  ],
+};
+
 export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   tree:   { isOverlay: true, baseTile: 'grass', scale: 2.25, sortTrim: 0.12 },
   tree_b: { isOverlay: true, baseTile: 'grass', scale: 2.55, sortTrim: 0.13 }, // denser spreading oak
@@ -315,6 +326,16 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   burning_barricade: { isOverlay: true, baseTile: 'cobblestone', scale: 1.7, sortTrim: 0.14, yOffset: 0.12 },
   // Memorial column — tall civic landmark; plinth blocks, shaft renders over the player.
   memorial_column: { isOverlay: true, baseTile: 'cobblestone', scale: 3.4, sortTrim: 0.32, yOffset: 2.2, foundation: MEMORIAL_COLUMN_FOUNDATION },
+  // District fencing kits — each a single-tile fence segment (collision via the cityFences
+  // prop entry, like iron_fence). Slums / estates / docks read distinctly from civic iron.
+  timber_palisade: { isOverlay: true, baseTile: 'cobblestone', scale: 1.15, sortTrim: 0.22, yOffset: 0.05 },
+  stone_low_wall: { isOverlay: true, baseTile: 'cobblestone', scale: 1.05, sortTrim: 0.2 },
+  chain_fence: { isOverlay: true, baseTile: 'cobblestone', scale: 1.05, sortTrim: 0.22 },
+  // Collapsed masonry — a hard street-sealing rubble mass; footprint blocks a 3-wide span.
+  collapsed_masonry: { isOverlay: true, baseTile: 'cobblestone', scale: 2.4, sortTrim: 0.16, yOffset: 0.3, foundation: COLLAPSED_MASONRY_FOUNDATION },
+  // New Victorian building kits (share the tenement footprint; tall facades render over player).
+  manor_facade: { isOverlay: true, baseTile: 'cobblestone', scale: 7.0, sortTrim: 0.34, yOffset: 2.9, foundation: TENEMENT_FOUNDATION },
+  boarded_facade: { isOverlay: true, baseTile: 'cobblestone', scale: 7.0, sortTrim: 0.34, yOffset: 2.9, foundation: TENEMENT_FOUNDATION },
   chimney: { isOverlay: true, baseTile: 'roof_tile', scale: 1.0, sortTrim: 0.14 },
   observatory: {
     isOverlay: true,

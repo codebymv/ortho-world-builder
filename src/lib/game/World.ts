@@ -28,12 +28,15 @@ export type TileType =
   | 'cobble_grand' | 'cobble_market' | 'cobble_residential' | 'waterlogged_cobble' | 'flood_silt' | 'ashen_cobble'
   // Guilrhym bespoke architecture — tall Victorian overlay structures (see AssetManager + tiles.ts)
   | 'tenement_facade' | 'townhouse_facade' | 'cathedral_facade' | 'clocktower' | 'warehouse_facade'
+  | 'manor_facade' | 'boarded_facade'
   // Guilrhym street life + paving (props + a proper paved-road ground tile)
   | 'baby_carriage' | 'stagecoach' | 'street_sign' | 'road_setts'
   | 'street_lamp' | 'iron_railing' | 'fountain' | 'pillar' | 'sewer_grate' | 'hanging_sign' | 'wall_torch' | 'awning'
   | 'rubble' | 'broken_stall' | 'crate_stack' | 'barrel_stack' | 'chimney'
   // Guilrhym fallen-city dressing — a burning street barricade + a civic memorial column landmark
   | 'burning_barricade' | 'memorial_column'
+  // Guilrhym district fencing kits + a hard street-sealing collapse mass
+  | 'timber_palisade' | 'stone_low_wall' | 'chain_fence' | 'collapsed_masonry'
   | 'cottage_shed'
   | 'blighted_stump'
   | 'observatory'
@@ -154,8 +157,17 @@ export interface CollisionAuditResult {
   probes: CollisionDebugProbe[];
 }
 
-const RENDER_RADIUS = 32;
-const CULL_RADIUS = 42;
+// The ortho camera (frustumSize 12) shows ~12 tiles tall and ~12*aspect wide — a visible
+// half-span of ~6 vertical and ~11–14 horizontal even on ultrawide. RENDER_RADIUS only needs
+// to cover that PLUS a movement margin; rendering far beyond it just meshes off-screen tiles.
+// 22 covers a 21:9 viewport's wide half-span (~14) with ~8 tiles of margin, ~11 on 16:9.
+// (Was 32 → a 65² window, ~4–5× the visible area. 22 ≈ a 45² window: ~half the active objects,
+//  on every map, with faster map-enter streaming too.)
+// INVARIANT: CULL_RADIUS must be ≥ RENDER_RADIUS + PRELOAD_EXTRA (tiles are added out to that
+// in the move direction), or just-preloaded tiles get culled next frame → flicker. Original
+// set CULL = RENDER + PRELOAD exactly (42 = 32+10); we keep that: 34 = 22+12.
+const RENDER_RADIUS = 22;
+const CULL_RADIUS = 34;
 const MAX_TILES_PER_FRAME = 200; // steady-state budget while moving
 const INITIAL_LOAD_TILES_PER_FRAME = 320; // smoother initial/after-rebuild streaming without one-frame spikes
 const TILE_KEY_STRIDE = 65536;
@@ -173,6 +185,7 @@ const OVERLAY_CULL_EXEMPT_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'cottage_house', 'cottage_house_entry', 'cottage_house_forest', 'cottage_house_forest_ruined',
   'cottage_house_ranger', 'cottage_shed',
   'tenement_facade', 'townhouse_facade', 'cathedral_facade', 'clocktower', 'warehouse_facade',
+  'manor_facade', 'boarded_facade', 'collapsed_masonry', 'memorial_column',
   'windmill', 'ridge_lumberyard', 'observatory',
   'heresy_altar', 'heresy_altar_cracked', 'summoning_ritual', 'summoning_ritual_dud',
   'shortcut_lever',
@@ -245,6 +258,8 @@ const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'cathedral_facade',
   'clocktower',
   'warehouse_facade',
+  'manor_facade',
+  'boarded_facade',
 ]);
 const OVERWORLD_STRUCTURE_SCALE_MULTIPLIER = 1.18;
 const BLOODSTAIN_VARIANT_COUNT = 16;
@@ -252,6 +267,8 @@ const RUINED_FOREST_COTTAGE_VARIANT_COUNT = 12;
 const GUILRHYM_TENEMENT_VARIANT_COUNT = 18;
 const GUILRHYM_TOWNHOUSE_VARIANT_COUNT = 18;
 const GUILRHYM_WAREHOUSE_VARIANT_COUNT = 18;
+const GUILRHYM_MANOR_VARIANT_COUNT = 18;
+const GUILRHYM_BOARDED_VARIANT_COUNT = 18;
 
 function packTileKey(tileX: number, tileY: number): number {
   return tileY * TILE_KEY_STRIDE + tileX;
@@ -309,6 +326,16 @@ function getGuilrhymWarehouseTextureId(tileX: number, tileY: number): string {
   return `warehouse_facade_variant_${Math.min(GUILRHYM_WAREHOUSE_VARIANT_COUNT - 1, variant)}`;
 }
 
+function getGuilrhymManorTextureId(tileX: number, tileY: number): string {
+  const variant = Math.floor(tileHash(tileX, tileY, 631) * GUILRHYM_MANOR_VARIANT_COUNT);
+  return `manor_facade_variant_${Math.min(GUILRHYM_MANOR_VARIANT_COUNT - 1, variant)}`;
+}
+
+function getGuilrhymBoardedTextureId(tileX: number, tileY: number): string {
+  const variant = Math.floor(tileHash(tileX, tileY, 641) * GUILRHYM_BOARDED_VARIANT_COUNT);
+  return `boarded_facade_variant_${Math.min(GUILRHYM_BOARDED_VARIANT_COUNT - 1, variant)}`;
+}
+
 function getOverlayTextureId(tileType: TileType, tileX: number | undefined, tileY: number | undefined): string {
   if (tileX === undefined || tileY === undefined) return tileType;
   if (tileType === 'bloodstain') return getBloodstainTextureId(tileX, tileY);
@@ -316,6 +343,8 @@ function getOverlayTextureId(tileType: TileType, tileX: number | undefined, tile
   if (tileType === 'tenement_facade') return getGuilrhymTenementTextureId(tileX, tileY);
   if (tileType === 'townhouse_facade') return getGuilrhymTownhouseTextureId(tileX, tileY);
   if (tileType === 'warehouse_facade') return getGuilrhymWarehouseTextureId(tileX, tileY);
+  if (tileType === 'manor_facade') return getGuilrhymManorTextureId(tileX, tileY);
+  if (tileType === 'boarded_facade') return getGuilrhymBoardedTextureId(tileX, tileY);
   return tileType;
 }
 
@@ -335,7 +364,9 @@ export class World {
   private lastChunkCenter: { x: number; y: number } = { x: -9999, y: -9999 };
   private lastMoveDir: { x: number; y: number } = { x: 0, y: 0 };
   private readonly CHUNK_UPDATE_THRESHOLD = 2;
-  private readonly PRELOAD_EXTRA = 10; // extra tiles in movement direction
+  // Slightly more lookahead than before, to keep the (now smaller) render window's leading
+  // edge ahead of fast movement/dashes so tiles stream in before they're on screen.
+  private readonly PRELOAD_EXTRA = 12; // extra tiles in movement direction
   private readonly sortedRenderOffsets = createSortedRenderOffsets(RENDER_RADIUS + this.PRELOAD_EXTRA);
   private pendingTiles: Array<{ x: number; y: number; key: number }> = [];
   private isInitialLoad: boolean = true;

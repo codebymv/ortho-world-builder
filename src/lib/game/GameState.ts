@@ -115,6 +115,8 @@ export interface PlayerState {
   berserkerSpeedMult: number;
   /** Set when Last Breath Charm triggers; cleared on bonfire rest or true death. */
   lastBreathUsedThisLife: boolean;
+  /** Perfect parries landed this life — feeds the Ironbark Band's growing reveal bonus. Reset on death. */
+  ironbarkParryStacks: number;
   level: number;
   vitality: number;
   endurance: number;
@@ -161,6 +163,8 @@ export interface Item {
     staminaRegenMult?: number;
     recoverySpeedMult?: number;
     moveSpeedMult?: number;
+    /** Extra tiles of fog-of-war reveal radius while this ring is equipped (utility rings). */
+    revealRadiusBonus?: number;
   };
 }
 
@@ -302,6 +306,7 @@ export class GameState {
       berserkerDamageMult: 1.0,
       berserkerSpeedMult: 1.0,
       lastBreathUsedThisLife: false,
+      ironbarkParryStacks: 0,
       level: 1,
       vitality: 1,
       endurance: 1,
@@ -550,6 +555,35 @@ export class GameState {
 
   getStaminaRegenDelay(): number {
     return Math.max(0.1, this.player.staminaRegenDelay - (this.player.endurance - 1) * 0.03);
+  }
+
+  /** Max reveal-radius the Ironbark Band's perfect-parry stacks can add this life. */
+  static readonly IRONBARK_PARRY_REVEAL_CAP = 6;
+
+  /** Extra fog-of-war reveal radius (in tiles) from equipped utility rings (e.g. Ironbark Band). */
+  getRevealRadiusBonus(): number {
+    let bonus = 0;
+    let ironbarkEquipped = false;
+    for (const ringId of this.equippedRingIds) {
+      if (!ringId) continue;
+      if (ringId === 'ironbark_ring') ironbarkEquipped = true;
+      const ring = this.inventory.find(item => item.id === ringId && item.type === 'ring');
+      if (ring?.stats?.revealRadiusBonus) bonus += ring.stats.revealRadiusBonus; // base
+    }
+    // Ironbark Band combat tie-in: every perfect parry this life widens the reveal further (capped).
+    if (ironbarkEquipped) {
+      bonus += Math.min(GameState.IRONBARK_PARRY_REVEAL_CAP, this.player.ironbarkParryStacks);
+    }
+    return bonus;
+  }
+
+  /** Called on every perfect parry — grows the Ironbark Band's reveal bonus (only while it's worn). */
+  registerPerfectParry(): void {
+    if (!this.equippedRingIds.includes('ironbark_ring')) return;
+    this.player.ironbarkParryStacks = Math.min(
+      GameState.IRONBARK_PARRY_REVEAL_CAP,
+      this.player.ironbarkParryStacks + 1,
+    );
   }
 
   getVitalityDamageAbsorption(): number {

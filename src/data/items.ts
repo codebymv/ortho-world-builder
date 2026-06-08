@@ -259,6 +259,20 @@ export const items: Record<string, Item> = {
     },
   },
 
+  ironbark_ring: {
+    id: 'ironbark_ring',
+    name: 'Ironbark Band',
+    description: "A ring of fused ironbark and grey stone, prised from the knuckle of the thing that wades the dead pools. The land leans in around its wearer — and leans in further with each blow turned aside: every clean parry seems to peel back a little more of the woods, until death takes the knowing away again.",
+    type: 'ring',
+    // NOTE: reuses the gravebound ring icon for now — give it a bespoke sprite later.
+    sprite: 'gravebound_ring',
+    stats: {
+      // Utility ring: a small BASE fog-of-war reveal bonus, grown by perfect parries this
+      // life (GameState.registerPerfectParry, capped at IRONBARK_PARRY_REVEAL_CAP, reset on death).
+      revealRadiusBonus: 3,
+    },
+  },
+
   heretical_essence_apparition: {
     id: 'heretical_essence_apparition',
     name: 'Heretical Essence of the Apparition',

@@ -33,10 +33,16 @@ function formatMovementSpeedBonus(mult?: number): string | null {
   return `+${Math.round((mult - 1) * 100)}% movement speed`;
 }
 
+function formatRevealRadiusBonus(bonus?: number): string | null {
+  if (!bonus || bonus <= 0) return null;
+  return 'Parry grows map discovery';
+}
+
 function formatRingBonus(item: Item): string | null {
   return formatStaminaRegenBonus(item.stats?.staminaRegenMult)
     ?? formatRecoverySpeedBonus(item.stats?.recoverySpeedMult)
-    ?? formatMovementSpeedBonus(item.stats?.moveSpeedMult);
+    ?? formatMovementSpeedBonus(item.stats?.moveSpeedMult)
+    ?? formatRevealRadiusBonus(item.stats?.revealRadiusBonus);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

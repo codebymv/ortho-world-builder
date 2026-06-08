@@ -1086,6 +1086,9 @@ export function runEnemyLoop({
       state.droppedEssence = null;
     }
 
+    // Per-life reset: the Ironbark Band's parry-built reveal bonus is lost on death.
+    state.player.ironbarkParryStacks = 0;
+
     return {
       playerDied: true,
       lostEssence,

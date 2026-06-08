@@ -11,6 +11,7 @@ const SPECIAL_CHEST_INTERACTION_IDS = new Set<string>([
   'hunter_cliff_shelf_chest',
   'ranger_wolf_ring_chest',
   'north_fort_wayfarer_ring_chest',
+  'forest_ironbark_ring_chest',
 ]);
 
 /** Chests that grant only a ring (no gold or default consumable). */
@@ -18,6 +19,7 @@ export const RING_REWARD_CHEST_IDS = new Set<string>([
   'hunter_cliff_shelf_chest',
   'ranger_wolf_ring_chest',
   'north_fort_wayfarer_ring_chest',
+  'forest_ironbark_ring_chest',
 ]);
 
 export function isRingRewardChestInteractionId(interactionId: string): boolean {

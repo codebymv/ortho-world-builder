@@ -993,6 +993,8 @@ export const forestDef: MapDefinition = {
     { x: 105, y: 247, interactionId: 'forest_shore_divide_chest' },
     // North fort approach ??? Wayfarer Ring (special chest) at world (-63, 99).
     { x: 87, y: 249, interactionId: 'north_fort_wayfarer_ring_chest' },
+    // Ironbark Band — guarded by the east-edge Corrupted Giant (world 143,93 = tile 293,243).
+    { x: 293, y: 243, interactionId: 'forest_ironbark_ring_chest' },
     // Broken west lake bridge reward at world (46,109), default Ephemeral Extract.
     { x: 196, y: 259, interactionId: 'broken_west_lake_bridge_chest' },
   ],
@@ -2300,5 +2302,8 @@ export const forestDef: MapDefinition = {
     // Weaker than the Hollow Guardian but hits harder than anything else in the open world.
     // Scales to a regular field encounter in later maps.
     { x: 68, y: 68, width: 6, height: 6, enemyType: 'corrupted_giant', count: 1 },
+    // East-edge field boss — guards the Ironbark Band chest at tile (293,243) = world (143,93).
+    // Converts a reachable but empty edge clearing into a "should I risk it?" detour.
+    { x: 280, y: 232, width: 16, height: 16, enemyType: 'corrupted_giant', count: 1 },
   ],
 };

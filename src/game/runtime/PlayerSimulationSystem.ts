@@ -61,9 +61,9 @@ let activeLadderDismount: { targetX: number; targetY: number; facing: Direction8
 
 let _lastRevealTileX = -999999;
 let _lastRevealTileY = -999999;
-let _cachedViewHalfW = 0;
+let _cachedRevealAspect = 0; // window aspect, cached; width derives from the (possibly ring-boosted) height
 if (typeof window !== 'undefined') {
-  window.addEventListener('resize', () => { _cachedViewHalfW = 0; });
+  window.addEventListener('resize', () => { _cachedRevealAspect = 0; });
 }
 const _scratchLungeEnemies: Enemy[] = [];
 
@@ -492,10 +492,12 @@ export function updatePlayerSimulation({
 }: UpdatePlayerSimulationOptions): PlayerSimulationResult {
   const revealVisibleTiles = () => {
     const currentMap = world.getCurrentMap();
-    const viewHalfH = 7;
-    if (_cachedViewHalfW === 0) {
-      _cachedViewHalfW = Math.ceil(viewHalfH * (window.innerWidth / window.innerHeight));
+    // Base reveal radius + any utility-ring bonus (e.g. Ironbark Band widens map discovery).
+    const viewHalfH = 7 + state.getRevealRadiusBonus();
+    if (_cachedRevealAspect === 0) {
+      _cachedRevealAspect = window.innerWidth / window.innerHeight;
     }
+    const viewHalfW = Math.ceil(viewHalfH * _cachedRevealAspect);
     const centerTileX = Math.floor(state.player.position.x + currentMap.width / 2);
     const centerTileY = Math.floor(state.player.position.y + currentMap.height / 2);
 
@@ -506,7 +508,7 @@ export function updatePlayerSimulation({
     let newTilesRevealed = false;
 
     for (let dy = -viewHalfH; dy <= viewHalfH; dy++) {
-      for (let dx = -_cachedViewHalfW; dx <= _cachedViewHalfW; dx++) {
+      for (let dx = -viewHalfW; dx <= viewHalfW; dx++) {
         const tx = centerTileX + dx;
         const ty = centerTileY + dy;
         if (tx >= 0 && tx < currentMap.width && ty >= 0 && ty < currentMap.height) {

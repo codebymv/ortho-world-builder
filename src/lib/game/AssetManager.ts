@@ -5417,6 +5417,78 @@ export class AssetManager {
       }
     }
 
+    // --- MANOR kit (grand west-estate townhouse) — broad ashlar front, tall paired
+    // windows, a pedimented portico with columns over the entrance, balustrade roofline.
+    // Reads as the wealthy quarter's distinct, statelier form. Shares the variant generator. ---
+    {
+      const C = 0;
+      const MW = 0x6b4a3a, MWD = 0x533829, MWL = 0x7d5a48;          // walls (generator remaps)
+      const TW = 0x171b22, TWG = 0x39434f, TWF = 0x241a14;          // windows (generator targets TWG)
+      const TS = 0x9a9182;                                          // pale ashlar stone band
+      const TR = 0x3a3a44, TRD = 0x2a2a32, CHM = 0x4a3530;
+      const COL = 0x8a8278, PED = 0xa39a8a, DR = 0x241814;          // portico columns, pediment, door
+      const balus = [TS, MWL, TS, MWL, TS, MWL, TS, MWL, TS, MWL, TS, MWL, TS, MWL, TS, TS]; // roofline balustrade
+      const roof  = [TRD, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TR, TRD];
+      const corn  = [TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS];
+      const lintel = [MWD, MW, TWF, TWF, TWF, MWD, MW, MWL, TWF, TWF, TWF, MW, MWD, MW, MW, MWD];
+      const win    = [MWD, MW, TW, TWG, TW, MWD, MW, MWL, TW, TWG, TW, MW, MWD, MW, MW, MWD];
+      const sill   = [MWD, MW, TS, TS, TS, MWD, MW, MWL, TS, TS, TS, MW, MWD, MW, MW, MWD];
+      const wall   = [MWD, MW, MW, MWL, MW, MWD, MW, MWL, MWL, MW, MW, MW, MWD, MW, MW, MWD];
+      const pedi   = [MW, MW, MW, MW, PED, PED, PED, PED, PED, PED, PED, PED, MW, MW, MW, MW];   // portico pediment
+      const colR   = [MW, MW, MW, MW, COL, MW, MW, DR, DR, MW, MW, COL, MW, MW, MW, MW];          // columns flanking door
+      const baseR  = [TS, TS, COL, TS, COL, TS, DR, DR, DR, DR, TS, COL, TS, COL, TS, TS];        // stylobate + steps
+      const manorBase: number[][] = [
+        [C, C, C, C, C, C, C, C, C, C, C, C, CHM, CHM, C, C],
+        roof, roof, balus, corn,
+        lintel, win, sill, wall,
+        lintel, win, sill, wall,
+        lintel, win, sill, wall,
+        corn,
+        pedi, colR, colR, baseR, baseR, baseR,
+      ].map(r => [...r]);
+      const manorHi = this.upscaleFacadeBase(manorBase, TWG, TW, TWF, [MW, MWL], MWD);
+      registerSpriteTexture('manor_facade', manorHi, 4);
+      for (let v = 0; v < 18; v++) {
+        const id = `manor_facade_variant_${v}`;
+        this.registerTexture(id, () => this.createGuilrhymBuildingVariant(manorHi, v, id));
+      }
+    }
+
+    // --- BOARDED kit (abandoned slum tenement) — planks nailed across windows + door,
+    // cracked render, a sagging roofline. The "fled and barricaded" frontage. ---
+    {
+      const C = 0;
+      const BW = 0x6b4a3a, BWD = 0x533829, BWL = 0x7d5a48;
+      const TW = 0x171b22, TWG = 0x39434f, TWF = 0x241a14;          // generator targets TWG
+      const TS = 0x6e665a;                                          // grimy sill
+      const TR = 0x33333c, TRD = 0x232329, CHM = 0x4a3530;
+      const PK = 0x6d5038, PKL = 0x82603f, PKD = 0x402b1c;          // nailed planks
+      // Windows are boarded: TWG core kept (so the generator still recolours), planks crossed over.
+      const lintel = [BWD, BW, TWF, TWF, TWF, BWD, BW, BWL, TWF, TWF, TWF, BW, BWD, BW, BW, BWD];
+      const boardW = [BWD, BW, PK, TWG, PKL, BWD, BW, BWL, PKL, TWG, PK, BW, BWD, BW, BW, BWD]; // planks over window
+      const boardX = [BWD, BW, PKL, PKD, PK, BWD, BW, BWL, PK, PKD, PKL, BW, BWD, BW, BW, BWD]; // diagonal plank
+      const wall   = [BWD, BW, BW, BWL, BW, BWD, BW, BWL, BWL, BW, BW, BW, BWD, BW, BW, BWD];
+      const corn   = [TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS, TS];
+      const roof   = [TRD, TR, TR, TRD, TR, TR, TR, TRD, TR, TR, TRD, TR, TR, TR, TR, TRD];      // sagging/patchy
+      const doorB  = [BWD, BW, BW, BW, BW, PK, PKL, PK, PKL, PK, BW, BW, BW, BW, BW, BWD];        // boarded door
+      const baseR  = [BWD, BW, BW, BWL, BW, PKD, PK, PKD, PK, PKD, BW, BWL, BW, BW, BW, BWD];
+      const boardedBase: number[][] = [
+        [C, C, C, C, C, C, C, C, C, C, C, C, CHM, CHM, C, C],
+        roof, roof, roof, corn,
+        lintel, boardW, boardX, wall,
+        lintel, boardW, boardX, wall,
+        lintel, boardW, boardX, wall,
+        corn,
+        doorB, doorB, baseR, baseR, baseR, baseR,
+      ].map(r => [...r]);
+      const boardedHi = this.upscaleFacadeBase(boardedBase, TWG, TW, TWF, [BW, BWL], BWD);
+      registerSpriteTexture('boarded_facade', boardedHi, 4);
+      for (let v = 0; v < 18; v++) {
+        const id = `boarded_facade_variant_${v}`;
+        this.registerTexture(id, () => this.createGuilrhymBuildingVariant(boardedHi, v, id));
+      }
+    }
+
     // --- Guilrhym TOLBOOTH CLOCKTOWER — the civic landmark spire (12x28 @ 4px):
     // pointed slate spire, crenellated parapet, clock stage, arched belfry, lancet
     // shaft, plinth with an arched door. Towers over the tenements as the orienting POI.
@@ -7960,5 +8032,55 @@ export class AssetManager {
       [MC_SS,MC_ST, MC_ST, MC_ST, MC_ST, MC_ST, MC_SS],
       [MC_DK,MC_SS, MC_ST, MC_ST, MC_ST, MC_SS, MC_DK],
     ]);
+
+    // ── DISTRICT FENCING KITS + HARD BLOCKER ─────────────────────────────────
+    // Block-scoped so the local colour consts don't collide with method-scope names.
+    {
+    // Timber palisade — rough lashed stakes (slum / cathedral-approach wynds).
+    const TP_W = 0x6D4C41, TP_H = 0x8D6E63, TP_S = 0x4E342E, TP_P = 0x795548, TP_T = 0x3E2723;
+    registerSpriteTexture('timber_palisade', [
+      [TP_S, C,    TP_W, C,    TP_S, C,    TP_W, C   ], // ragged pointed tops
+      [TP_W, TP_S, TP_H, TP_S, TP_W, TP_S, TP_H, TP_S],
+      [TP_H, TP_W, TP_P, TP_W, TP_H, TP_W, TP_P, TP_W],
+      [TP_T, TP_W, TP_T, TP_W, TP_T, TP_W, TP_T, TP_W], // lashing band
+      [TP_W, TP_P, TP_W, TP_P, TP_W, TP_P, TP_W, TP_P],
+      [TP_S, TP_W, TP_S, TP_W, TP_S, TP_W, TP_S, TP_W],
+    ]);
+    // Low stone wall — dressed coursed stone with a capstone (west estates / civic gardens).
+    const SW_S = 0x8A8A8A, SW_H = 0xAEAEAE, SW_D = 0x6E6E6E, SW_M = 0x5A5A5A, SW_C = 0xB0A89A;
+    registerSpriteTexture('stone_low_wall', [
+      [SW_C, SW_C, SW_C, SW_C, SW_C, SW_C, SW_C, SW_C], // capstone course
+      [SW_S, SW_H, SW_M, SW_S, SW_H, SW_M, SW_S, SW_H],
+      [SW_M, SW_S, SW_S, SW_M, SW_S, SW_S, SW_M, SW_S],
+      [SW_S, SW_H, SW_M, SW_S, SW_H, SW_M, SW_S, SW_H],
+      [SW_D, SW_M, SW_D, SW_D, SW_M, SW_D, SW_D, SW_M],
+    ]);
+    // Iron post-and-chain — slack chains slung between posts (east docks / quays).
+    const CF_P = 0x37474F, CF_H = 0x546E7A, CF_C = 0x607D8B;
+    registerSpriteTexture('chain_fence', [
+      [CF_H, C,    C,    C,    C,    C,    C,    CF_H],
+      [CF_P, C,    C,    C,    C,    C,    C,    CF_P],
+      [CF_P, CF_C, CF_C, CF_C, CF_C, CF_C, CF_C, CF_P], // top chain
+      [CF_P, C,    CF_C, C,    CF_C, C,    CF_C, CF_P], // sag
+      [CF_P, CF_C, CF_C, CF_C, CF_C, CF_C, CF_C, CF_P], // lower chain
+      [CF_P, C,    C,    C,    C,    C,    C,    CF_P],
+    ]);
+
+    // ── HARD STREET BLOCKER ──────────────────────────────────────────────────
+    // Collapsed masonry — a caved-in mound of broken stone blocks, mortar and snapped
+    // timber that seals a street outright (the city's answer to a hill or river).
+    const CM_S = 0x78909C, CM_D = 0x546E7A, CM_K = 0x37474F, CM_W = 0x6D4C41, CM_L = 0x90A4AE, CM_M = 0xB0A89A;
+    registerSpriteTexture('collapsed_masonry', [
+      [C,    C,    C,    CM_S, C,    CM_S, C,    C,    CM_S, C,    C,    C   ],
+      [C,    C,    CM_S, CM_L, CM_S, CM_D, CM_S, CM_S, CM_D, CM_S, C,    C   ],
+      [C,    CM_D, CM_S, CM_M, CM_S, CM_S, CM_L, CM_S, CM_S, CM_D, CM_S, C   ],
+      [CM_S, CM_S, CM_L, CM_S, CM_W, CM_S, CM_S, CM_M, CM_S, CM_S, CM_D, CM_S],
+      [CM_D, CM_S, CM_S, CM_D, CM_S, CM_K, CM_S, CM_S, CM_L, CM_S, CM_S, CM_D],
+      [CM_S, CM_L, CM_S, CM_S, CM_W, CM_S, CM_M, CM_S, CM_S, CM_D, CM_S, CM_S],
+      [CM_K, CM_S, CM_D, CM_S, CM_S, CM_D, CM_S, CM_K, CM_S, CM_S, CM_D, CM_K],
+      [CM_S, CM_D, CM_S, CM_K, CM_S, CM_S, CM_K, CM_S, CM_D, CM_S, CM_K, CM_S],
+      [CM_D, CM_K, CM_S, CM_D, CM_K, CM_S, CM_D, CM_K, CM_S, CM_D, CM_K, CM_D],
+    ]);
+    }
   }
 }

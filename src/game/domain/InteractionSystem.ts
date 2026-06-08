@@ -181,7 +181,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
           ? context.items.wolf_ring
           : interactionId === 'north_fort_wayfarer_ring_chest'
             ? context.items.wayfarer_ring
-            : undefined;
+            : interactionId === 'forest_ironbark_ring_chest'
+              ? context.items.ironbark_ring
+              : undefined;
     if (!ringItem) return false;
 
     context.playChestUnlock();
@@ -191,6 +193,8 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       context.state.setFlag('gravebound_ring_received', true);
     } else if (interactionId === 'ranger_wolf_ring_chest') {
       context.state.setFlag('wolf_ring_received', true);
+    } else if (interactionId === 'forest_ironbark_ring_chest') {
+      context.state.setFlag('ironbark_ring_received', true);
     } else {
       context.state.setFlag('wayfarer_ring_received', true);
     }
@@ -202,7 +206,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
           ? 'Gravebound Ring equipped (+22% stamina recovery).'
           : interactionId === 'ranger_wolf_ring_chest'
             ? 'Wolf Ring equipped (faster hit recovery).'
-            : 'Wayfarer Ring equipped (+15% movement speed).';
+            : interactionId === 'forest_ironbark_ring_chest'
+              ? 'Ironbark Band equipped (map discovery widens with each perfect parry).'
+              : 'Wayfarer Ring equipped (+15% movement speed).';
     }
 
     context.state.setFlag(`${interactionId}_opened`, true);

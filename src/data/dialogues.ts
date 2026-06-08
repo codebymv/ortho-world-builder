@@ -515,6 +515,10 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'guilrhym_fallen_guard',
     nodes: [{ id: 'start', text: "A memorial plaque on a broken wall: '**Commander Aldric** — Faithful servant of Guilrhym, Captain of the City Guard, Shield of the People.' Below, someone has carved: '__He did not fall. He was taken.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
+  guilrhym_west_seal: {
+    id: 'guilrhym_west_seal',
+    nodes: [{ id: 'start', text: "A heavy iron gate, barred from the far side — one of the Watch's old district locks. A notice is nailed to it: '__This gate is shut; reach the estates by the market road if you must. But the **Drowned Ward** beneath them — where the canal broke through and swallowed the lowest streets — stays sealed by order of the Court. The release winch was struck from its housing and carried up to the cathedral district. Whatever rose out of the flood is not to be let out.__' The estates, you can still walk. What lies beneath them is another matter.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
   guilrhym_church_altar: {
     id: 'guilrhym_church_altar',
     nodes: [{ id: 'start', text: "The church altar is cracked down the middle. A faded text reads: '__Saint Velmara, patron of Guilrhym, guide us through the dark.__ The cathedral was built above her final resting place — where she sealed the **Wellspring of Souls** a thousand years ago.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
