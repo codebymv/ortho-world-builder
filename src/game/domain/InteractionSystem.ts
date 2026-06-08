@@ -236,7 +236,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
     context.playChestUnlock();
 
-    const goldAmount = interactionId.includes('ancient')
+    const goldAmount = interactionId.includes('surveyors_hollow')
+      ? 500 // the surveyor's hoard — a deliberate one-off, biggest gold drop in the game
+      : interactionId.includes('ancient')
       ? 100
       : interactionId.includes('guilrhym')
       ? 85

@@ -515,6 +515,10 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'guilrhym_fallen_guard',
     nodes: [{ id: 'start', text: "A memorial plaque on a broken wall: '**Commander Aldric** — Faithful servant of Guilrhym, Captain of the City Guard, Shield of the People.' Below, someone has carved: '__He did not fall. He was taken.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
+  surveyors_hollow_journal: {
+    id: 'surveyors_hollow_journal',
+    nodes: [{ id: 'start', text: "The surveyor's field journal, its last pages water-warped: '__The ironbark bands let us walk the deep woods without losing ourselves — but the maps keep changing. Every survey the blight has crept further south; clearings I charted last spring are dead ground now. I marked the source and started back, but my legs would not carry me the last mile. If you are reading this, the woods are worse than the day I died. Take the ring's lesson — keep moving, keep mapping. And do not go north.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
   guilrhym_west_seal: {
     id: 'guilrhym_west_seal',
     nodes: [{ id: 'start', text: "A heavy iron gate, barred from the far side — one of the Watch's old district locks. A notice is nailed to it: '__This gate is shut; reach the estates by the market road if you must. But the **Drowned Ward** beneath them — where the canal broke through and swallowed the lowest streets — stays sealed by order of the Court. The release winch was struck from its housing and carried up to the cathedral district. Whatever rose out of the flood is not to be let out.__' The estates, you can still walk. What lies beneath them is another matter.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],

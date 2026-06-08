@@ -131,3 +131,53 @@ export const interiorHunterCottageDef: MapDefinition = {
     { x: 6, y: 6, type: 'rug', walkable: true },
   ],
 };
+
+// The Surveyor's Den — a hidden cliff cave (entered via a cave_mouth on the west cliff).
+// An L: the entry arm (mouth + sign + the surveyor's camp) bends DOWN-right into the dangerous
+// chamber (his 500g hoard, guarded by shadows). Cave-floor earth, stone walls, rock formations.
+// Door-free: the mouth itself is the step-on exit (cave_mouth, no portal/door tile).
+export const interiorSurveyorsHollowDef: MapDefinition = {
+  name: "Surveyor's Den",
+  width: 22,
+  height: 18,
+  spawnPoint: { x: 5, y: 5 },
+  seed: 4517,
+  baseTerrain: 'dungeon',
+  borderTile: 'stone',
+  autoRoads: false,
+  features: [
+    // Whole cave is solid rock; the L-floor is carved out of it (so walls read as rock, not a box).
+    { x: 0, y: 0, width: 22, height: 18, type: 'wall', fill: 'stone' },
+    // L floor — packed cave earth. Entry arm (top-left) + dangerous chamber (down-right), joined at the corner.
+    { x: 2, y: 3, width: 7, height: 5, type: 'clearing', fill: 'cave_floor' },   // entry arm
+    { x: 7, y: 7, width: 13, height: 9, type: 'clearing', fill: 'cave_floor' },  // chamber
+    // The cave mouth IS the exit — a step-on cave_mouth (no door) punched through the entry-arm wall.
+    { x: 4, y: 2, width: 1, height: 1, type: 'cave_mouth', caveStepExit: true, interiorMap: 'forest', interiorSpawnX: 45, interiorSpawnY: 113 },
+  ],
+  portals: [], // door-free: the cave_mouth feature above is the exit (step-on)
+  chests: [{ x: 17, y: 13, interactionId: 'surveyors_hollow_chest' }], // 500g hoard, far end of the chamber
+  interactables: [
+    { x: 7, y: 4, type: 'sign', walkable: false, interactionId: 'surveyors_hollow_journal' }, // beside the mouth
+  ],
+  enemyZones: [
+    { x: 9, y: 8, width: 10, height: 7, enemyType: 'shadow', count: 3 }, // shadows hold the chamber
+  ],
+  props: [
+    // The surveyor's camp — the safe entry arm
+    { x: 3, y: 4, type: 'bed', walkable: false },              // bedroll
+    { x: 6, y: 3, type: 'lantern', walkable: false },          // guttered lantern
+    { x: 3, y: 6, type: 'campfire_remains', walkable: false }, // long-cold fire
+    { x: 7, y: 5, type: 'bones', walkable: true },             // his remains
+    { x: 6, y: 6, type: 'bloodstain', walkable: true },
+    // Cave formations through the L (rock-driven)
+    { x: 8, y: 8, type: 'rock', walkable: false },
+    { x: 11, y: 10, type: 'rock', walkable: false },
+    { x: 15, y: 9, type: 'volcanic_rock', walkable: false },
+    { x: 13, y: 14, type: 'rock', walkable: false },
+    { x: 18, y: 11, type: 'volcanic_rock', walkable: false },
+    { x: 10, y: 13, type: 'rock', walkable: false },
+    { x: 16, y: 8, type: 'rock', walkable: false },
+    { x: 17, y: 14, type: 'crate', walkable: false },
+    { x: 14, y: 12, type: 'bones', walkable: true },
+  ],
+};

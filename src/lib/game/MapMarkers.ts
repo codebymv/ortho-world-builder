@@ -64,6 +64,7 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
 
   { keywords: ['ranger outpost'], tileX: 140, tileY: 170, map: 'forest', label: 'Ranger Outpost', type: 'poi', color: '#8FBC8F' },
   { keywords: ['ranger cottage'], tileX: 236, tileY: 227, map: 'forest', label: 'Ranger Cottage', type: 'poi', color: '#9370DB' },
+  { keywords: ['surveyor', 'surveyors den', 'surveyors hollow', 'cave mouth'], tileX: 45, tileY: 114, map: 'forest', label: "Surveyor's Den", type: 'poi', color: '#8B6914' },
   // Fort gate key — use "chapel ruins" only (not plain "chapel") so village chapel dialogue does not ping the woods.
   // Points at the actual chapel_dead_ranger remains (forest map x:65,y:183); the old (55,114) was ~70 tiles off.
   { keywords: ['chapel ruins'], tileX: 65, tileY: 183, map: 'forest', label: 'Chapel Ruins (ranger remains)', type: 'poi', color: '#A1887F' },

@@ -43,10 +43,10 @@ export class DayNightCycle {
   getPhase(): TimeOfDay { return this.currentPhase; }
   getNormalizedTime(): number { return this.time; }
 
-  setIndoor(isIndoor: boolean) {
+  setIndoor(isIndoor: boolean, backgroundColor?: number) {
     this._isIndoor = isIndoor;
     if (isIndoor) {
-      this.sceneBackground.setHex(INDOOR_BG_COLOR);
+      this.sceneBackground.setHex(backgroundColor ?? INDOOR_BG_COLOR);
       (this.overlay.material as THREE.MeshBasicMaterial).opacity = 0;
     }
   }

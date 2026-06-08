@@ -5583,6 +5583,8 @@ export class AssetManager {
     registerColorTexture('quarry_floor', 0x9097A0, 32, 32, 'cobblestone_grid');
     // Rough quarry bedrock rim — mottled granite speckle (replaces the banded 'stone' gradient here).
     registerColorTexture('quarry_bedrock', 0x767E86, 32, 32, 'bedrock');
+    // Packed cave earth — reddish-brown floor distinct from outdoor dirt spines.
+    registerColorTexture('cave_floor', 0x5C4A38, 32, 32, 'noise');
     registerColorTexture('brick', 0x8B4513, 32, 32, 'noise');
     registerColorTexture('roof_tile', 0x4A4A52, 32, 32, 'gradient');
     registerColorTexture('timber_wall', 0x5C4033, 32, 32, 'gradient');
@@ -8080,6 +8082,24 @@ export class AssetManager {
       [CM_K, CM_S, CM_D, CM_S, CM_S, CM_D, CM_S, CM_K, CM_S, CM_S, CM_D, CM_K],
       [CM_S, CM_D, CM_S, CM_K, CM_S, CM_S, CM_K, CM_S, CM_D, CM_S, CM_K, CM_S],
       [CM_D, CM_K, CM_S, CM_D, CM_K, CM_S, CM_D, CM_K, CM_S, CM_D, CM_K, CM_D],
+    ]);
+
+    // ── CAVE MOUTH ───────────────────────────────────────────────────────────
+    // A dark opening in a mossy rock face — the bespoke cliff cave entrance/exit.
+    const CV_R = 0x6E6E6E, CV_H = 0x8A8A8A, CV_S = 0x4E4E4E, CV_D = 0x3A3A3A;
+    const CV_V = 0x141414, CV_VD = 0x0A0A0A, CV_M = 0x4A5C3A;
+    registerSpriteTexture('cave_mouth', [
+      [C,    C,    CV_S, CV_R, CV_R, CV_H, CV_H, CV_R, CV_R, CV_S, C,    C   ],
+      [C,    CV_S, CV_R, CV_H, CV_R, CV_M, CV_R, CV_R, CV_H, CV_R, CV_S, C   ],
+      [CV_S, CV_R, CV_H, CV_M, CV_V, CV_V, CV_V, CV_V, CV_M, CV_H, CV_R, CV_S],
+      [CV_R, CV_H, CV_M, CV_V, CV_VD,CV_VD,CV_VD,CV_VD,CV_V, CV_M, CV_H, CV_R],
+      [CV_R, CV_S, CV_V, CV_VD,CV_VD,CV_VD,CV_VD,CV_VD,CV_VD,CV_V, CV_S, CV_R],
+      [CV_R, CV_S, CV_V, CV_VD,CV_VD,CV_VD,CV_VD,CV_VD,CV_VD,CV_V, CV_S, CV_R],
+      [CV_R, CV_S, CV_V, CV_VD,CV_VD,CV_VD,CV_VD,CV_VD,CV_VD,CV_V, CV_S, CV_R],
+      [CV_S, CV_R, CV_S, CV_V, CV_VD,CV_VD,CV_VD,CV_VD,CV_V, CV_S, CV_R, CV_S],
+      [CV_D, CV_S, CV_R, CV_S, CV_V, CV_VD,CV_VD,CV_V, CV_S, CV_R, CV_S, CV_D],
+      [C,    CV_D, CV_S, CV_R, CV_S, CV_V, CV_V, CV_S, CV_R, CV_S, CV_D, C   ],
+      [C,    C,    CV_D, CV_S, CV_R, CV_R, CV_R, CV_R, CV_S, CV_D, C,    C   ],
     ]);
     }
   }

@@ -17,7 +17,7 @@ import type { Item } from '@/lib/game/GameState';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
 import type { RewardBundle, ShowRewardBundleOptions } from '@/game/domain/rewardDisplay';
 import { createRuntimeMapFlow } from '@/game/runtime/RuntimeMapFlow';
-import { applyMapEntryProgression, isPortalDestinationUnlocked, MAP_BIOMES } from '@/game/runtime/RuntimeMapRules';
+import { applyMapEntryProgression, isPortalDestinationUnlocked, MAP_BIOMES, MAP_INDOOR_BACKGROUNDS } from '@/game/runtime/RuntimeMapRules';
 import { createRuntimeVisualSubsystems } from '@/game/runtime/RuntimeVisualSubsystems';
 import { createGameRuntime } from '@/game/runtime/GameRuntime';
 import {
@@ -467,7 +467,10 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
 
     // Set biome and day/night mode for loaded map
     biomeAmbience.setBiome(MAP_BIOMES[startMap] || 'grassland');
-    dayNightCycle.setIndoor(startMap.startsWith('interior_'));
+    dayNightCycle.setIndoor(
+      startMap.startsWith('interior_'),
+      MAP_INDOOR_BACKGROUNDS[startMap],
+    );
 
     // Align BGM with the bootstrapped map. useGameMusic's effect runs before this setup (hook order)
     // and initializes audio with `village` while gameStateRef is still null, so loads that restore
@@ -655,7 +658,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       showTransitionOverlay: showTransitionOverlay,
       setBiomeForMap: (mapId: string) => {
         biomeAmbience.setBiome(MAP_BIOMES[mapId] || 'grassland');
-        dayNightCycle.setIndoor(mapId.startsWith('interior_'));
+        dayNightCycle.setIndoor(mapId.startsWith('interior_'), MAP_INDOOR_BACKGROUNDS[mapId]);
       },
       switchMusicTrack,
       triggerSave,

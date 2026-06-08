@@ -37,13 +37,16 @@ export type TileType =
   | 'burning_barricade' | 'memorial_column'
   // Guilrhym district fencing kits + a hard street-sealing collapse mass
   | 'timber_palisade' | 'stone_low_wall' | 'chain_fence' | 'collapsed_masonry'
+  // A bespoke cliff cave-mouth — interactable entrance into a cave interior (and its step-out exit)
+  | 'cave_mouth'
   | 'cottage_shed'
   | 'blighted_stump'
   | 'observatory'
   | 'fallen_log' | 'fallen_log_b'
   | 'fallen_log_v' | 'fallen_log_v_b'
   | 'ridge_lumberyard'
-  | 'quarry_floor' | 'quarry_bedrock' | 'quarry_crane' | 'cut_stone_blocks' | 'quarry_cart' | 'quarry_rubble' | 'quarry_tools';
+  | 'quarry_floor' | 'quarry_bedrock' | 'quarry_crane' | 'cut_stone_blocks' | 'quarry_cart' | 'quarry_rubble' | 'quarry_tools'
+  | 'cave_floor';
 
 /** Pass as `getInteractableNear` radius from gameplay so gates / chunky facades stay in scan + reach.
  * Must be >= every `getInteractableReach` value so the min() cap does not shrink large reaches. */
@@ -2315,6 +2318,9 @@ export class World {
   getAutoTransitionAt(x: number, y: number): { targetMap: string; targetX: number; targetY: number } | null {
     const tile = this.getTile(x, y);
     if (tile?.type === 'portal' && tile.transition) return tile.transition;
+    // Cave-mouth EXITS step-warp like a portal (no door). Cave-mouth ENTRANCES are interactable
+    // (interact-to-enter), so they're excluded here and won't auto-trigger on step.
+    if (tile?.type === 'cave_mouth' && tile.transition && !tile.interactable) return tile.transition;
     return null;
   }
 

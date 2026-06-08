@@ -86,7 +86,7 @@ export interface MapFeature {
   y: number;
   width: number;
   height: number;
-  type: 'building' | 'inn_building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'bridge_corrupted' | 'bridge_decay_blend' | 'secret_cave' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano' | 'boss_arena' | 'abandoned_camp' | 'cemetery' | 'cliff_face' | 'farm' | 'iron_fence_border' | 'hedge_maze' | 'cobble_plaza' | 'forest_grove' | 'fort' | 'enchanted_grove' | 'church' | 'ruined_fort' | 'cottage' | 'watchtower' | 'broken_wagon' | 'market_stall_row';
+  type: 'building' | 'inn_building' | 'lake' | 'clearing' | 'path' | 'wall' | 'ruins' | 'camp' | 'garden' | 'graveyard' | 'bridge' | 'bridge_corrupted' | 'bridge_decay_blend' | 'secret_cave' | 'cave_mouth' | 'destroyed_town' | 'temple' | 'waterfall' | 'volcano' | 'boss_arena' | 'abandoned_camp' | 'cemetery' | 'cliff_face' | 'farm' | 'iron_fence_border' | 'hedge_maze' | 'cobble_plaza' | 'forest_grove' | 'fort' | 'enchanted_grove' | 'church' | 'ruined_fort' | 'cottage' | 'watchtower' | 'broken_wagon' | 'market_stall_row';
   tiles?: Partial<Record<string, Tile>>; // specific tile overrides by "dx,dy"
   fill?: TileType;
   border?: TileType;
@@ -94,10 +94,12 @@ export interface MapFeature {
   eastOpenDY?: number;
   eastOpenHalf?: number;
   interactionId?: string;
-  /** Door becomes a portal into this map (inn_building / optional cottage) */
+  /** Door becomes a portal into this map (inn_building / optional cottage / cave_mouth) */
   interiorMap?: string;
   interiorSpawnX?: number;
   interiorSpawnY?: number;
+  /** cave_mouth only: when true the mouth is a STEP-ON exit (no interact) instead of an interact entrance. */
+  caveStepExit?: boolean;
 }
 
 export interface MapDefinition {
@@ -517,6 +519,9 @@ function placeFeatures(tiles: Tile[][], def: MapDefinition) {
         break;
       case 'cliff_face':
         placeCliffFace(tiles, feature);
+        break;
+      case 'cave_mouth':
+        placeCaveMouth(tiles, feature);
         break;
       case 'farm':
         placeFarm(tiles, feature);
@@ -1985,6 +1990,25 @@ function placeFarm(tiles: Tile[][], f: MapFeature) {
   }
 }
 
+// Bespoke cave mouth: stamps a single walkable cave-mouth tile at the feature centre carrying
+// the interior transition. Default = interact-to-enter (cottage 'building_entrance' pattern, with
+// the press-to-enter cue and no visible portal). With caveStepExit it's a step-on transition out.
+function placeCaveMouth(tiles: Tile[][], f: MapFeature) {
+  if (!f.interiorMap || f.interiorSpawnX === undefined || f.interiorSpawnY === undefined) return;
+  const cx = f.x + Math.floor(f.width / 2);
+  const cy = f.y + Math.floor(f.height / 2);
+  if (cy < 0 || cy >= tiles.length || cx < 0 || cx >= tiles[0].length) return;
+  const existing = tiles[cy][cx];
+  const transition = { targetMap: f.interiorMap, targetX: f.interiorSpawnX, targetY: f.interiorSpawnY };
+  tiles[cy][cx] = createTile('cave_mouth', true, {
+    elevation: existing.elevation,
+    transition,
+    ...(f.caveStepExit
+      ? {}
+      : { interactable: true, interactionId: 'building_entrance' }),
+  });
+}
+
 function placeIronFenceBorder(tiles: Tile[][], f: MapFeature) {
   for (let dy = 0; dy < f.height; dy++) {
     for (let dx = 0; dx < f.width; dx++) {
@@ -2629,6 +2653,8 @@ function validateMapTransitions(tiles: Tile[][], def: MapDefinition) {
   for (const f of def.features) {
     const hasInterior = !!(f.interiorMap && f.interiorSpawnX !== undefined && f.interiorSpawnY !== undefined);
     if (!hasInterior) continue;
+    // Step-on cave-mouth EXITS intentionally have no interact 'building_entrance' tile.
+    if (f.type === 'cave_mouth' && f.caveStepExit) continue;
 
     let foundEntrance = false;
     for (let y = 0; y < def.height && !foundEntrance; y++) {

@@ -132,8 +132,11 @@ const MINIMAP_TILE_COLOR: Partial<Record<TileType, string>> & Record<string, str
   // --- Base terrain (AssetManager) ---
   grass: '#4CAF50',
   tall_grass: '#388E3C',
+  tall_grass_b: '#357A38',
+  tall_grass_c: '#3B9440',
   dark_grass: '#2E7D32',
   dirt: '#8D6E63',
+  cave_floor: '#5C4A38',
   sand: '#E8D4B0',
   stone: '#6E7B85',
   wood: '#795548',
@@ -213,6 +216,7 @@ const MINIMAP_TILE_COLOR: Partial<Record<TileType, string>> & Record<string, str
   stone_low_wall: '#8A8A8A',
   chain_fence: '#546E7A',
   collapsed_masonry: '#6E7A82',
+  cave_mouth: '#1B1B1B',
   street_sign: '#3A5A4A',
   road_setts: '#5E6168',
   cobble_grand: '#9C968A',
@@ -372,9 +376,18 @@ const LANDMARK_ICON_SIZES: Partial<Record<string, number>> = {
   // World transitions — always rendered as a visible landmark so portals read on the map
   portal:               5,
   fog_gate:             5,
+  cave_mouth:           4,
   // Lit bonfires (rest sites) — visible once discovered
   bonfire:              5,
 };
+
+/** Overlay / variant tile types that share a parent landmark sprite on the map. */
+const MINIMAP_LANDMARK_ALIASES: Record<string, string> = {};
+
+function resolveMinimapLandmarkType(type: string): string | null {
+  const resolved = MINIMAP_LANDMARK_ALIASES[type] ?? type;
+  return resolved in LANDMARK_ICON_SIZES ? resolved : null;
+}
 
 const HERESY_ALTAR_DESTROYED_FLAG_PREFIX = 'altar_destroyed_';
 const HERESY_ALTAR_DESTROYED_LANDMARK_TYPE: TileType = 'heresy_altar_cracked';
@@ -383,7 +396,7 @@ let _destroyedAltarCache: Set<string> = new Set();
 
 /** Tile types that get a downscaled sprite landmark on the minimap / full map. */
 export function isMinimapLandmarkTile(type: string): boolean {
-  return type in LANDMARK_ICON_SIZES;
+  return resolveMinimapLandmarkType(type) !== null;
 }
 
 function destroyedHeresyAltarKey(tx: number, ty: number): string {
@@ -500,7 +513,8 @@ function drawHollowBlightMinimapCell(
 function isWhisperingWoodsHollowTransitionCell(mapName: string, tileY: number, tileType: string): boolean {
   if (mapName !== 'Whispering Woods') return false;
   if (tileY < 59 || tileY > 74) return false;
-  return tileType === 'dark_grass' || tileType === 'grass' || tileType === 'tall_grass';
+  return tileType === 'dark_grass' || tileType === 'grass' || tileType === 'tall_grass'
+    || tileType === 'tall_grass_b' || tileType === 'tall_grass_c';
 }
 
 /** Softer than full hollow_blight — keeps map green-forward, faint violet specks ramping northward. */
@@ -793,7 +807,7 @@ export function drawMinimapTerrain(p: DrawMinimapTerrainParams): void {
   const drawLandmark = (tx: number, ty: number, overrideType?: TileType, destroyed = false) => {
     const tile = tiles[ty]?.[tx];
     if (!tile && !overrideType) return;
-    const landmarkType = overrideType ?? tile?.type;
+    const landmarkType = resolveMinimapLandmarkType(overrideType ?? tile?.type ?? '');
     if (!landmarkType) return;
     const iconPx = LANDMARK_ICON_SIZES[landmarkType];
     if (!iconPx) return;

@@ -336,6 +336,8 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   // New Victorian building kits (share the tenement footprint; tall facades render over player).
   manor_facade: { isOverlay: true, baseTile: 'cobblestone', scale: 7.0, sortTrim: 0.34, yOffset: 2.9, foundation: TENEMENT_FOUNDATION },
   boarded_facade: { isOverlay: true, baseTile: 'cobblestone', scale: 7.0, sortTrim: 0.34, yOffset: 2.9, foundation: TENEMENT_FOUNDATION },
+  // Cave mouth — a dark opening in a rock face; walkable threshold (collision set by the placer).
+  cave_mouth: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.18, yOffset: 0.5 },
   chimney: { isOverlay: true, baseTile: 'roof_tile', scale: 1.0, sortTrim: 0.14 },
   observatory: {
     isOverlay: true,

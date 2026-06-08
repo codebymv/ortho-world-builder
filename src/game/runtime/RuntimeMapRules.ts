@@ -8,6 +8,11 @@ export const MAP_BIOMES: Record<string, string> = {
   guilrhym: 'city',
 };
 
+/** Per-interior scene backdrop (hex). Default indoor void is set in DayNightCycle. */
+export const MAP_INDOOR_BACKGROUNDS: Record<string, number> = {
+  interior_surveyors_hollow: 0x3A3228,
+};
+
 // Ship-readiness note: portal routes stay open until design review decides
 // whether to add real locks or remove locked-route messaging.
 export function isPortalDestinationUnlocked(_state: GameState, _targetMap: string): boolean {

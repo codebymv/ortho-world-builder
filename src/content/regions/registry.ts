@@ -19,7 +19,7 @@ export const regionContentRegistry: RegionContentEntry[] = [
     label: 'Whispering Woods',
     summary: 'First-act wilderness investigation, ranger route, cottage trail, and Hollow boss arc.',
     mapIds: ['forest'],
-    interiorIds: ['interior_cottage_forest', 'interior_ranger_cabin', 'interior_woodcutter_cottage', 'interior_hunter_cottage', 'interior_hollow_arena'],
+    interiorIds: ['interior_cottage_forest', 'interior_ranger_cabin', 'interior_woodcutter_cottage', 'interior_hunter_cottage', 'interior_surveyors_hollow', 'interior_hollow_arena'],
   },
   {
     id: 'guilrhym',

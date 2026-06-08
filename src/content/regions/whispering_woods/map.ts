@@ -942,6 +942,10 @@ export const forestDef: MapDefinition = {
     { x: 177, y: 193, width: 44, height: 3, type: 'cliff_face' },
     { x: 205, y: 196, width: 16, height: 16, type: 'cliff_face' },
     { x: 177, y: 202, width: 44, height: 10, type: 'cliff_face' },
+    // THE SURVEYOR'S DEN — a bespoke cave mouth carved into the western cliff at tile
+    // (45,114)=world(-105,-36). Interact to enter the cave interior. Placed LAST so it carves
+    // through the cliff_face; it survives the cliff auto-stamp because the tile is interactable.
+    { x: 45, y: 114, width: 1, height: 1, type: 'cave_mouth', interactionId: 'surveyors_hollow_entrance', interiorMap: 'interior_surveyors_hollow', interiorSpawnX: 5, interiorSpawnY: 5 },
   ],
   portals: [
     { x: 150, y: 291, targetMap: 'village', targetX: 120, targetY: 8 },
@@ -994,7 +998,7 @@ export const forestDef: MapDefinition = {
     // North fort approach ??? Wayfarer Ring (special chest) at world (-63, 99).
     { x: 87, y: 249, interactionId: 'north_fort_wayfarer_ring_chest' },
     // Ironbark Band — guarded by the east-edge Corrupted Giant (world 143,93 = tile 293,243).
-    { x: 293, y: 243, interactionId: 'forest_ironbark_ring_chest' },
+    { x: 245, y: 282, interactionId: 'forest_ironbark_ring_chest' }, // south-woods cliff's edge (world 95,132)
     // Broken west lake bridge reward at world (46,109), default Ephemeral Extract.
     { x: 196, y: 259, interactionId: 'broken_west_lake_bridge_chest' },
   ],
@@ -2304,6 +2308,6 @@ export const forestDef: MapDefinition = {
     { x: 68, y: 68, width: 6, height: 6, enemyType: 'corrupted_giant', count: 1 },
     // East-edge field boss — guards the Ironbark Band chest at tile (293,243) = world (143,93).
     // Converts a reachable but empty edge clearing into a "should I risk it?" detour.
-    { x: 280, y: 232, width: 16, height: 16, enemyType: 'corrupted_giant', count: 1 },
+    { x: 231, y: 268, width: 18, height: 16, enemyType: 'corrupted_giant', count: 1 }, // guards the cliff-edge Ironbark chest
   ],
 };

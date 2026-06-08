@@ -133,8 +133,8 @@ export function createMapTransitionService(context: TransitionContext) {
       context.state.player.position = { x: safeTarget.x, y: safeTarget.y };
       context.syncPlayerSpatialState(targetMap, safeTarget.x, safeTarget.y);
 
+      context.setBiomeForMap(targetMap);
       if (!targetMap.startsWith('interior_')) {
-        context.setBiomeForMap(targetMap);
         context.switchMusicTrack(targetMap);
       }
 
