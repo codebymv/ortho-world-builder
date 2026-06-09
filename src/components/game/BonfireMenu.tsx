@@ -8,13 +8,17 @@ import {
   EPHEMERAL_EXTRACT_POTENCY_PER_UPGRADE,
 } from '@/data/balance';
 import {
+  formatVestigeCostLabel,
+  getVestigeCostForUpgradeLevel,
+} from '@/lib/game/vestigeProgression';
+import {
   type BonfireEntry,
   bonfireEntryWorldPosition,
   getKindledBonfiresForMap,
   isPlayerAtBonfireEntry,
 } from '@/data/bonfires';
 
-// Inline essence icon — matches the HUD's violet-300 sparkle (`size` bumps cost readouts)
+// Inline essence icon - matches the HUD's violet-300 sparkle (`size` bumps cost readouts)
 const EssenceIcon = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
   <Sparkles
     className={`inline-block text-violet-300 relative -top-px ml-0.5 ${size === 'md' ? 'w-4 h-4' : 'w-3 h-3'}`}
@@ -145,8 +149,12 @@ export const BonfireMenu = ({ gameState, assetManager, onRest, onClose, onLevelU
     if (onLevelUp(stat)) { bump(); triggerUIUpdate(); }
   };
 
-  const vestigeCount = gameState.inventory.filter(i => i.id === 'radiant_vestige').length;
-  const canIncreaseHealing = vestigeCount > 0;
+  const vestigeCount = gameState.countItem('radiant_vestige');
+  const healingUpgradeLevel = gameState.getEphemeralExtractUpgradeLevel();
+  const nextVestigeCost = getVestigeCostForUpgradeLevel(healingUpgradeLevel);
+  const healingMaxed = gameState.isEphemeralExtractUpgradeMaxed();
+  const canAffordHealingUpgrade = gameState.canUpgradeEphemeralExtract();
+  const canOpenIncreaseHealing = !healingMaxed && vestigeCount > 0;
   const handleIncreaseHealing = () => {
     if (onIncreaseHealing()) { bump(); triggerUIUpdate(); }
   };
@@ -183,7 +191,7 @@ export const BonfireMenu = ({ gameState, assetManager, onRest, onClose, onLevelU
             </div>
           </div>
 
-          {/* Stat rows — all labels share the same muted-amber tone */}
+          {/* Stat rows - all labels share the same muted-amber tone */}
           <div className="space-y-[2px] mb-5">
             {(['vitality', 'endurance', 'strength'] as const).map(stat => {
               const info = STAT_INFO[stat];
@@ -215,7 +223,7 @@ export const BonfireMenu = ({ gameState, assetManager, onRest, onClose, onLevelU
             })}
           </div>
 
-          {/* Current stat readout — horizontal dividers, no colored labels */}
+          {/* Current stat readout - horizontal dividers, no colored labels */}
           <div className="flex items-center justify-around px-3 py-2.5 border border-[#3A2215] bg-[#120806] mb-5">
             {[
               { label: 'HP',      value: p.maxHealth     },
@@ -355,9 +363,18 @@ export const BonfireMenu = ({ gameState, assetManager, onRest, onClose, onLevelU
             )}
             <div className="mt-2 text-sm font-bold text-[#E1BEE7] uppercase tracking-wider">Radiant Vestige</div>
             <p className="mt-2 text-center text-[11px] leading-relaxed text-[#A1887F] max-w-xs">
-              Offer a Radiant Vestige to the flame to deepen its gift. Each one carries another
-              draught of Ephemeral Extract and steepens every draught&apos;s restoration.
+              Offer Radiant Vestiges to the flame to deepen its gift. Each offering adds another
+              draught of Ephemeral Extract and steepens every draught&apos;s restoration. Later
+              offerings demand more vestiges.
             </p>
+          </div>
+
+          {/* Cost readout */}
+          <div className="flex items-center justify-between px-3 py-2.5 border border-[#3A2215] bg-[#120806] mb-4">
+            <span className="text-[10px] uppercase tracking-wider text-[#8B7355]">Cost</span>
+            <span className={`text-sm font-bold ${canAffordHealingUpgrade ? 'text-[#DAA520]' : 'text-[#5C4033]'}`}>
+              {formatVestigeCostLabel(nextVestigeCost)}
+            </span>
           </div>
 
           {/* Before → after readout */}
@@ -377,17 +394,21 @@ export const BonfireMenu = ({ gameState, assetManager, onRest, onClose, onLevelU
             </div>
           </div>
 
-          {/* Confirm — consumes one vestige */}
+          {/* Confirm - consumes tiered vestiges */}
           <button
-            disabled={!canIncreaseHealing}
-            onClick={canIncreaseHealing ? handleIncreaseHealing : undefined}
+            disabled={!canAffordHealingUpgrade}
+            onClick={canAffordHealingUpgrade ? handleIncreaseHealing : undefined}
             className={`w-full py-3 mb-2 text-sm font-bold uppercase tracking-[0.18em] border transition-colors ${
-              canIncreaseHealing
+              canAffordHealingUpgrade
                 ? 'border-[#5C3A21] text-[#DAA520] hover:bg-[#3D2B21] hover:border-[#DAA520]'
                 : 'border-[#2A1A0F] text-[#6B5344] cursor-not-allowed'
             }`}
           >
-            {canIncreaseHealing ? 'Use 1 Radiant Vestige' : 'No Radiant Vestige'}
+            {canAffordHealingUpgrade
+              ? `Use ${formatVestigeCostLabel(nextVestigeCost)}`
+              : vestigeCount > 0
+                ? `Need ${formatVestigeCostLabel(nextVestigeCost)}`
+                : 'No Radiant Vestige'}
           </button>
 
           {/* Back */}
@@ -423,7 +444,7 @@ export const BonfireMenu = ({ gameState, assetManager, onRest, onClose, onLevelU
 
         <div className="border-t border-[#3A2215] mb-4" />
 
-        {/* Menu items — styled as text-list selections, not colored buttons */}
+        {/* Menu items - styled as text-list selections, not colored buttons */}
         <div className="space-y-[2px] mb-4">
           <button
             onClick={() => { onRest(); onClose(); }}
@@ -441,20 +462,24 @@ export const BonfireMenu = ({ gameState, assetManager, onRest, onClose, onLevelU
             </span>
           </button>
           <button
-            disabled={!canIncreaseHealing}
-            onClick={canIncreaseHealing ? () => setView('increase-healing') : undefined}
+            disabled={!canOpenIncreaseHealing}
+            onClick={canOpenIncreaseHealing ? () => setView('increase-healing') : undefined}
             className={
-              canIncreaseHealing
+              canOpenIncreaseHealing
                 ? 'w-full text-left px-4 py-3 border border-[#3A2215] text-[#F5DEB3] text-sm font-bold uppercase tracking-wider hover:bg-[#2D1B11] hover:border-[#8B5A2B] hover:text-[#FFD98A] transition-colors'
                 : 'w-full text-left px-4 py-3 border border-[#2A1A0F] text-[#5C4033] text-sm font-bold uppercase tracking-wider cursor-not-allowed'
             }
           >
             Increase Healing
-            {canIncreaseHealing && (
-              <span className="ml-2 inline-flex items-center text-xs font-semibold text-[#B8A590] normal-case tracking-normal">
-                ({vestigeCount} Radiant Vestige{vestigeCount === 1 ? '' : 's'})
+            {healingMaxed ? (
+              <span className="ml-2 inline-flex items-center text-xs font-semibold text-[#5C4033] normal-case tracking-normal">
+                (maxed)
               </span>
-            )}
+            ) : canOpenIncreaseHealing ? (
+              <span className="ml-2 inline-flex items-center text-xs font-semibold text-[#B8A590] normal-case tracking-normal">
+                ({formatVestigeCostLabel(nextVestigeCost)} · {vestigeCount} held)
+              </span>
+            ) : null}
           </button>
           <button
             onClick={() => setView('fast-travel')}
@@ -466,7 +491,7 @@ export const BonfireMenu = ({ gameState, assetManager, onRest, onClose, onLevelU
 
         <div className="border-t border-[#2A1A0F] mb-3" />
 
-        {/* Leave — muted, at bottom */}
+        {/* Leave - muted, at bottom */}
         <button
           onClick={onClose}
           className="w-full py-2 text-[#5C4033] hover:text-[#8B7355] text-xs font-bold uppercase tracking-[0.2em] transition-colors"

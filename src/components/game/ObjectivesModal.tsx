@@ -58,7 +58,7 @@ const QuestCard = memo(({
 
   return (
     <div className={cn('border rounded-sm transition-colors', statusColor)}>
-      {/* Header — always visible, clickable to toggle */}
+      {/* Header - always visible, clickable to toggle */}
       <button
         type="button"
         onClick={() => setExpanded(e => !e)}
@@ -79,7 +79,7 @@ const QuestCard = memo(({
         {statusBadge}
       </button>
 
-      {/* Body — collapsible */}
+      {/* Body - collapsible */}
       {expanded && (
         <div className="px-3 pb-3 space-y-2.5">
           <p className={cn(

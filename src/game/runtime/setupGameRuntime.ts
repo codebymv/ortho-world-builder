@@ -493,7 +493,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       SaveManager.save(state, mapMarkersRef.current, visitedTilesRef.current);
     };
 
-    // Kill tracker for quests — synced to ref so ProgressionService can snapshot baselines
+    // Kill tracker for quests - synced to ref so ProgressionService can snapshot baselines
     let killCount = killCountRef.current;
 
     const getPlayerTextureName = (dir: string, animState: string, frame: number): string => {
@@ -624,6 +624,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       syncWhisperingWoodsShortcutState,
       syncGroveShelfShortcutState,
       syncQuarryBankShortcutState,
+      syncWestLakeBridgePlankState,
       syncWestCliffGateState,
       syncRiversideBridgeShortcutState,
       syncHollowShortcutState,
@@ -818,6 +819,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncWhisperingWoodsShortcutState,
           syncGroveShelfShortcutState,
           syncQuarryBankShortcutState,
+          syncWestLakeBridgePlankState,
           syncWestCliffGateState,
           syncRiversideBridgeShortcutState,
           syncHollowShortcutState,
@@ -1091,7 +1093,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             floatingText.spawnDamage(enemy.position.x, enemy.position.y, actualDamage, true);
             screenShake.shake(0.12, 0.12);
             particleSystem.emitDamageAt(enemy.position.x, enemy.position.y, 0.3);
-            // Corruption hit spark — dark void burst at point of contact
+            // Corruption hit spark - dark void burst at point of contact
             particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.3, 3, 0x6A0DAD, 0.3, 0.8, 0.6);
             if (result.killed) {
               onEnemyKilled(enemy);
@@ -1121,7 +1123,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             return result;
           },
           onLungeEnd: () => {
-            // Recovery complete — no additional SFX needed (swing played at lunge start)
+            // Recovery complete - no additional SFX needed (swing played at lunge start)
           },
           dodgeIFrameDuration: DODGE_IFRAME_DURATION,
           triggerComboChain,

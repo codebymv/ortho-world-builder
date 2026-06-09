@@ -12,7 +12,7 @@ export const CHECKMARK = '\u2713';
  * `(questId, index)` so re-entering a trigger area does not re-spam.
  *
  * `silent: true` should be used when a quest-complete toast will fire on the
- * same frame — the step toast would otherwise be redundant.
+ * same frame - the step toast would otherwise be redundant.
  */
 export function markObjectiveDone(
   quest: Quest,

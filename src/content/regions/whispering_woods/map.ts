@@ -22,10 +22,10 @@ export const forestDef: MapDefinition = {
     { x: 48, y: 146, width: 20, height: 20, type: 'clearing', fill: 'dirt' },
     { x: 250, y: 50, width: 20, height: 16, type: 'clearing', fill: 'grass' },
     { x: 150, y: 50, width: 30, height: 20, type: 'clearing', fill: 'grass' },
-    // Failed ritual glyph — world (-16, -17); opens the tree cover for the decor ring.
+    // Failed ritual glyph - world (-16, -17); opens the tree cover for the decor ring.
     { x: 130, y: 129, width: 9, height: 9, type: 'clearing', fill: 'grass' },
     { x: 138, y: 246, width: 24, height: 18, type: 'clearing', fill: 'dirt' },
-    // Explorer Ulmund's teaching ritual circle — world (5,93) / tile (155,243). Paved as
+    // Explorer Ulmund's teaching ritual circle - world (5,93) / tile (155,243). Paved as
     // dirt spine so the dud glyph reads as part of the entry path (not a stray grass island)
     // and so the clearing fill clears the procedural tree Ulmund would otherwise snag on.
     { x: 147, y: 234, width: 18, height: 18, type: 'clearing', fill: 'dirt' },
@@ -33,13 +33,13 @@ export const forestDef: MapDefinition = {
     { x: 126, y: 156, width: 48, height: 16, type: 'clearing', fill: 'dirt' },
     { x: 116, y: 192, width: 48, height: 24, type: 'clearing', fill: 'dirt' },
     { x: 126, y: 180, width: 26, height: 14, type: 'clearing', fill: 'dirt' },
-    // === TALL GRASS GATE — Western Fort approach corridor ===
+    // === TALL GRASS GATE - Western Fort approach corridor ===
     // A dense 7-wide grass corridor (world x:-109..-103, y:-26..12; tiles x41-47, y124-162)
     // running from the cliff at y=-26 up to the grove-rim fence. Slows movement 50% unless
     // chopped, softly gating the western fort so the area reads as secluded / earned to reach.
     { x: 41, y: 124, width: 7, height: 39, type: 'clearing', fill: 'tall_grass' },
 
-    // === RANGER OUTPOST (overgrown ruin — real cabin relocated to SE hills) ===
+    // === RANGER OUTPOST (overgrown ruin - real cabin relocated to SE hills) ===
     { x: 136, y: 164, width: 6, height: 6, type: 'cottage', interactionId: 'ranger_cabin_ruin' },
     // South of cabin: sit below the y=178 east???west artery so the approach stays mostly grass.
     { x: 156, y: 180, width: 12, height: 10, type: 'camp', interactionId: 'ranger_camp' },
@@ -471,16 +471,16 @@ export const forestDef: MapDefinition = {
     { x: 120, y: 212, width: 10, height: 4, type: 'path', fill: 'dirt' },
     { x: 126, y: 218, width: 22, height: 4, type: 'path', fill: 'dirt' },
     { x: 146, y: 214, width: 4, height: 18, type: 'path', fill: 'dirt' },
-    // Small cemetery on hunter shelf — must be after y=204–219 path strips or dirt overwrites gate (walkable) and nibbles the back fence.
+    // Small cemetery on hunter shelf - must be after y=204–219 path strips or dirt overwrites gate (walkable) and nibbles the back fence.
     // eastOpenDY=9 opens a 3-tile gap in the east fence at dy=8–10 (tile y=214–216, world ~10,64–66) as a second entrance.
     { x: 144, y: 206, width: 16, height: 14, type: 'cemetery', eastOpenDY: 9, eastOpenHalf: 1 },
 
-    // === IRON GATE PROGRESSION SPINES — west bypass → lever + Disparaged Cottage ===
+    // === IRON GATE PROGRESSION SPINES - west bypass → lever + Disparaged Cottage ===
     // North spur to the shortcut lever (127,196). Stops at y=197 so world y=48 stays cliff face.
     { x: 122, y: 190, width: 8, height: 8, type: 'path', fill: 'dirt' },
-    // Links the west stair inlet into the shelf — stops at x=105 so it never cuts the cliff east face (106+).
+    // Links the west stair inlet into the shelf - stops at x=105 so it never cuts the cliff east face (106+).
     { x: 99, y: 196, width: 6, height: 2, type: 'path', fill: 'dirt' },
-    // Westward fork off the Iron Gate plateau — steers away from the east fort artery at y=178.
+    // Westward fork off the Iron Gate plateau - steers away from the east fort artery at y=178.
     // Dirt only east of cliff-1 (x≥122); x=106–121 stays cliff_face like pre-spine layout.
     { x: 122, y: 200, width: 10, height: 5, type: 'path', fill: 'dirt' },
     // Restore cliff shelf east face (world ~-44..-33, y~40–45 and ~50–53). Stops at y=195 so
@@ -655,8 +655,10 @@ export const forestDef: MapDefinition = {
     { x: 184, y: 248, width: 12, height: 5, type: 'wall', fill: 'water' },
     // Broken west lake bridge: visual route from world (32,109) to (51,109),
     // with a missing middle span so it stays non-functional.
-    { x: 182, y: 258, width: 7, height: 3, type: 'bridge' },
-    { x: 195, y: 258, width: 7, height: 3, type: 'bridge' },
+    // West stub extended 1 tile east (now x:182–189); east stub extended 2 tiles west (now x:193–201).
+    // This narrows the gap to x:190–192 (3 tiles) so the plank shortcut reads believably.
+    { x: 182, y: 258, width: 8, height: 3, type: 'bridge' },
+    { x: 193, y: 258, width: 9, height: 3, type: 'bridge' },
     // Stair-top picket run ? touches the north stair edge and continues west to the map edge.
     { x: 6, y: 192, width: 54, height: 1, type: 'wall', fill: 'fence' },
     // Connector below the stair-top run ? world (-91,43), still north of the stair tiles.
@@ -778,7 +780,7 @@ export const forestDef: MapDefinition = {
     // === ROCKY OUTCROPS & STONE CLEARINGS ===
     // ============================================================
 
-    // --- Quarry — lower west shelf (one continuous dig site with the main pit; abuts its west rim at x228) ---
+    // --- Quarry - lower west shelf (one continuous dig site with the main pit; abuts its west rim at x228) ---
     { x: 212, y: 212, width: 16, height: 10, type: 'clearing', fill: 'quarry_bedrock' },
     { x: 214, y: 214, width: 11, height: 6, type: 'clearing', fill: 'quarry_floor' },
     { x: 216, y: 215, width: 6, height: 3, type: 'clearing', fill: 'cobblestone' },
@@ -827,7 +829,7 @@ export const forestDef: MapDefinition = {
     { x: 280, y: 160, width: 6, height: 6, type: 'cottage', interactionId: 'collapsed_cottage' },
     { x: 276, y: 158, width: 14, height: 10, type: 'clearing', fill: 'grass' },
 
-    // --- Stone quarry (south-east, x:230, y:205) — nested terraces: rough rim → worked floor → cut pit ---
+    // --- Stone quarry (south-east, x:230, y:205) - nested terraces: rough rim → worked floor → cut pit ---
     { x: 228, y: 205, width: 16, height: 12, type: 'clearing', fill: 'quarry_bedrock' },
     { x: 231, y: 207, width: 11, height: 8, type: 'clearing', fill: 'quarry_floor' },
     { x: 233, y: 209, width: 6, height: 4, type: 'clearing', fill: 'cobblestone' },
@@ -946,11 +948,11 @@ export const forestDef: MapDefinition = {
     { x: 177, y: 193, width: 44, height: 3, type: 'cliff_face' },
     { x: 205, y: 196, width: 16, height: 16, type: 'cliff_face' },
     { x: 177, y: 202, width: 44, height: 10, type: 'cliff_face' },
-    // THE SURVEYOR'S DEN — a bespoke cave mouth carved into the western cliff at tile
+    // THE SURVEYOR'S DEN - a bespoke cave mouth carved into the western cliff at tile
     // (45,114)=world(-105,-36). Interact to enter the cave interior. Placed LAST so it carves
     // through the cliff_face; it survives the cliff auto-stamp because the tile is interactable.
     { x: 45, y: 114, width: 1, height: 1, type: 'cave_mouth', interactionId: 'surveyors_hollow_entrance', interiorMap: 'interior_surveyors_hollow', interiorSpawnX: 5, interiorSpawnY: 5 },
-    // TRAVELER'S INLET — cave mouth on the eastern cliff at tile (258,96)=world(108,-54).
+    // TRAVELER'S INLET - cave mouth on the eastern cliff at tile (258,96)=world(108,-54).
     { x: 258, y: 96, width: 1, height: 1, type: 'cave_mouth', interactionId: 'travelers_inlet_entrance', interiorMap: 'interior_travelers_inlet', interiorSpawnX: 12, interiorSpawnY: 5 },
   ],
   portals: [
@@ -960,7 +962,7 @@ export const forestDef: MapDefinition = {
     { x: 266, y: 45, targetMap: 'guilrhym', targetX: 150, targetY: 292 },
   ],
   chests: [
-    // Hollow corridor gate — last_breath_charm, earned before the boss approach
+    // Hollow corridor gate - last_breath_charm, earned before the boss approach
     { x: 128, y: 55, interactionId: 'hollow_gate_chest' },
     { x: 33, y: 135, interactionId: 'hidden_grove_chest' },
     // Former interior_woodcutter_cottage loot (exterior prop only now).
@@ -973,7 +975,7 @@ export const forestDef: MapDefinition = {
     { x: 268, y: 28, interactionId: 'volcano_chest' },
     // One grove chest (deepest grove exploration reward)
     { x: 58, y: 268, interactionId: 'enchanted_chest_3' },
-    // West Fort boss reward — tucked in the north yard (off the gate walkway), near the Ridge Revenant.
+    // West Fort boss reward - tucked in the north yard (off the gate walkway), near the Ridge Revenant.
     { x: 21, y: 144, interactionId: 'west_fort_chest' },
     { x: 111, y: 220, interactionId: 'forest_river_chest' },
     { x: 218, y: 183, interactionId: 'golem_arena_chest' },
@@ -986,7 +988,7 @@ export const forestDef: MapDefinition = {
     // Observatory compound ??? hidden reward corner at world (59, -60).
     { x: 209, y: 90, interactionId: 'observatory_chest' },
     // East Ridge terminus chest is materialised at runtime by syncRevenantTerminusChestState
-    // (at the glyph tile 260,142) after the Ridge Revenant is defeated — NOT pre-placed here.
+    // (at the glyph tile 260,142) after the Ridge Revenant is defeated - NOT pre-placed here.
     // Hunter gate ??? tucked in the east cliff notch just past the iron fence. World (6, 48).
     { x: 156, y: 198, interactionId: 'forest_southern_chest' },
     // Hunter cliff shelf ? reward inside the secluded shelf (world ~17, 49).
@@ -1001,11 +1003,11 @@ export const forestDef: MapDefinition = {
     { x: 123, y: 285, interactionId: 'forest_south_entry_chest' },
     // Rocky-shore sand divide ? west of fence at world (-45, 97).
     { x: 105, y: 247, interactionId: 'forest_shore_divide_chest' },
-    // North fort approach ??? Wayfarer Ring (special chest) at world (-63, 99).
+    // North fort approach — Wayfarer Ring + Radiant Vestige (ranger cache) at world (-63, 99).
     { x: 87, y: 249, interactionId: 'north_fort_wayfarer_ring_chest' },
-    // Ironbark Band — guarded by the east-edge Corrupted Giant (world 143,93 = tile 293,243).
+    // Ironbark Band - guarded by the east-edge Corrupted Giant (world 143,93 = tile 293,243).
     { x: 245, y: 282, interactionId: 'forest_ironbark_ring_chest' }, // south-woods cliff's edge (world 95,132)
-    // NE ridge heresy altar pocket — Radiant Vestige (bonfire flask upgrade). World (85,-104), altar at (85,-105).
+    // NE ridge heresy altar pocket - Radiant Vestige (bonfire flask upgrade). World (85,-104), altar at (85,-105).
     { x: 235, y: 46, interactionId: 'east_ridge_vestige_chest' },
     // Broken west lake bridge reward at world (46,109), default Ephemeral Extract.
     { x: 196, y: 259, interactionId: 'broken_west_lake_bridge_chest' },
@@ -1017,9 +1019,9 @@ export const forestDef: MapDefinition = {
     { x: 156, y: 154, type: 'bonfire', walkable: false, interactionId: 'bonfire_hollow' },
     // Riverside Grove drawbridge lever - reachable from the bonfire side after the long route.
     { x: 154, y: 153, type: 'shortcut_lever', walkable: false, interactionId: 'riverside_bridge_shortcut_lever' },
-  // Hollow corridor gate lever — north of the iron gate row at world (~-32,-102) / tile (118,48).
+  // Hollow corridor gate lever - north of the iron gate row at world (~-32,-102) / tile (118,48).
     { x: 118, y: 48, type: 'shortcut_lever', walkable: false, interactionId: 'hollow_shortcut_lever' },
-    // East hollow route gate lever — north of fence row at world (~86,-95) / tile (236,55).
+    // East hollow route gate lever - north of fence row at world (~86,-95) / tile (236,55).
     { x: 236, y: 55, type: 'shortcut_lever', walkable: false, interactionId: 'east_hollow_route_gate_lever' },
     // Quarry-bank shortcut lever - on the quarry side of the west-bank picket cordon.
     { x: 207, y: 220, type: 'shortcut_lever', walkable: false, interactionId: 'quarry_bank_shortcut_lever' },
@@ -1035,9 +1037,9 @@ export const forestDef: MapDefinition = {
     { x: 261, y: 107, type: 'bonfire', walkable: false, interactionId: 'bonfire_east_ridge_overlook' },
     { x: 126, y: 46, type: 'bonfire', walkable: false, interactionId: 'bonfire_deep_hollow' },
     { x: 256, y: 45, type: 'bonfire', walkable: false, interactionId: 'bonfire_guilrhym_threshold' },
-    // West fort — world ~(-130, 5), north of the sealed garrison (logs smother until cleared).
+    // West fort - world ~(-130, 5), north of the sealed garrison (logs smother until cleared).
     { x: 20, y: 155, type: 'bonfire', walkable: false, interactionId: 'bonfire_west_fort_north' },
-    // West fort ritual hall — world ~(-127, 0), beside the summoning glyph.
+    // West fort ritual hall - world ~(-127, 0), beside the summoning glyph.
     { x: 23, y: 150, type: 'bonfire', walkable: false, interactionId: 'bonfire_west_fort_ritual' },
     // Lever is on the NORTH side of the ranger gate (y=199-202) so the player must first
     // navigate the long way around through the forest to reach the cottage, then on the way
@@ -1060,7 +1062,7 @@ export const forestDef: MapDefinition = {
     { x: 22, y: 66, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 210, y: 108, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 148, y: 162, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
-    // (85,225) removed — that tile sits on an inaccessible cliff face
+    // (85,225) removed - that tile sits on an inaccessible cliff face
     { x: 225, y: 225, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 48, y: 148, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     { x: 255, y: 65, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
@@ -1093,7 +1095,7 @@ export const forestDef: MapDefinition = {
 
     // === ABANDONED HOMESTEAD SURROUNDS ===
     // Windmill, hay bales and stump are pure decoration.
-    // The barrels and crate are searchable (Press E) — small coin finds.
+    // The barrels and crate are searchable (Press E) - small coin finds.
     { x: 224, y: 127, type: 'windmill', walkable: false },
     { x: 234, y: 131, type: 'barrel', walkable: false, interactionId: 'homestead_container_1' },
     { x: 235, y: 132, type: 'crate', walkable: false, interactionId: 'homestead_container_2' },
@@ -1103,16 +1105,16 @@ export const forestDef: MapDefinition = {
     { x: 227, y: 134, type: 'barrel', walkable: false, interactionId: 'homestead_container_3' },
 
     // === SHORTCUT LEVER HINTS ===
-    // Gate-side blood trail lives in props (PROGRESSION BLOOD TRAILS — iron gate cluster).
+    // Gate-side blood trail lives in props (PROGRESSION BLOOD TRAILS - iron gate cluster).
     // Sign on the bonfire plateau ??? visible after the player hits the gate and looks around.
     // === FORT INTERIOR ===
-    // Grove shelf shortcut lever — north of the iron gate, west of the gap (x=56–60).
+    // Grove shelf shortcut lever - north of the iron gate, west of the gap (x=56–60).
     { x: 55, y: 162, type: 'shortcut_lever', walkable: false, interactionId: 'grove_shelf_shortcut_lever' },
 
-    // West cliff shelf gate lever — set back on the WEST (far/shortcut) side, clear of the gate
+    // West cliff shelf gate lever - set back on the WEST (far/shortcut) side, clear of the gate
     // entrance at x:87, y:58-59. Classic "doesn't open from this side": the gate tile itself
-    // reports sealed when faced from the EAST (approach) side; this lever — only reachable from
-    // the WEST — opens it. Proximity-based interaction still picks the lever from the west and the
+    // reports sealed when faced from the EAST (approach) side; this lever - only reachable from
+    // the WEST - opens it. Proximity-based interaction still picks the lever from the west and the
     // gate's sealed message from the east.
     { x: 84, y: 55, type: 'shortcut_lever', walkable: false, interactionId: 'west_cliff_gate_lever' },
 
@@ -1124,11 +1126,11 @@ export const forestDef: MapDefinition = {
     { x: 260, y: 142, type: 'summoning_ritual', walkable: true }, // East Ridge Ascent summit (world ~110,-8)
     { x: 18, y: 147, type: 'summoning_ritual', walkable: true },  // West Fort interior (world ~-132,-3)
     { x: 227, y: 12, type: 'summoning_ritual', walkable: true },  // Precipice west lip (world ~77,-138)
-    // Failed ritual (dud) — SE hills; decor ring applied at runtime (RevenantRituals dud hint).
+    // Failed ritual (dud) - SE hills; decor ring applied at runtime (RevenantRituals dud hint).
     { x: 273, y: 259, type: 'summoning_ritual_dud', walkable: true }, // world (123, 109)
     { x: 134, y: 133, type: 'summoning_ritual_dud', walkable: true }, // world (-16, -17)
     { x: 285, y: 162, type: 'summoning_ritual_dud', walkable: true }, // world (135, 12)
-    // Ritual rings — east placed at map gen; west ring is re-stamped after the fort overlay loads.
+    // Ritual rings - east placed at map gen; west ring is re-stamped after the fort overlay loads.
     { x: 257, y: 139, type: 'ritual_candle_knocked', walkable: true },
     { x: 263, y: 139, type: 'ritual_candle_knocked', walkable: true },
     { x: 264, y: 142, type: 'ritual_candle', walkable: true },
@@ -1142,11 +1144,11 @@ export const forestDef: MapDefinition = {
     { x: 34, y: 259, type: 'heresy_altar', walkable: false }, // world (-116, 109) ? far SW dirt plot
     { x: 235, y: 45, type: 'heresy_altar', walkable: false }, // world (85, -105) ? NE ridge clearing
     { x: 277, y: 205, type: 'heresy_altar', walkable: false }, // world (127, 55) ? east ranger outpost flank
-    { x: 58, y: 155, type: 'heresy_altar', walkable: false }, // world (-92, 5) — west grove shelf approach
+    { x: 58, y: 155, type: 'heresy_altar', walkable: false }, // world (-92, 5) - west grove shelf approach
     { x: 177, y: 182, type: 'heresy_altar', walkable: false }, // world (27, 32) ? final cliff lookout
     { x: 107, y: 54, type: 'heresy_altar', walkable: false }, // world (-43, -96) ? corrupted west-cliff stair shelf
     { x: 279, y: 72, type: 'heresy_altar', walkable: false }, // world (129, -78) ? eastern Hollow edge grove
-    { x: 263, y: 231, type: 'ridge_lumberyard', walkable: false }, // world (~113, 81) — ridge lumberyard remains
+    { x: 263, y: 231, type: 'ridge_lumberyard', walkable: false }, // world (~113, 81) - ridge lumberyard remains
     { x: 278, y: 90, type: 'sign', walkable: false, interactionId: 'east_ridge_lumberyard_sign' },
     { x: 276, y: 162, type: 'bones_pile', walkable: false },
     { x: 280, y: 158, type: 'barrel', walkable: false },
@@ -1234,6 +1236,10 @@ export const forestDef: MapDefinition = {
     { x: 160, y: 262, type: 'crate', walkable: false },
     { x: 140, y: 256, type: 'fallen_log_v', walkable: false },
     { x: 160, y: 256, type: 'stump_c', walkable: false },
+    // Broken west lake bridge — plank pile on the east stub gap edge (south row y:260, where the
+    // player naturally walks). The dynamic loose_plank tease tile at (192,260) sticks out from
+    // this pile into the water gap and carries the interactionId.
+    { x: 193, y: 260, type: 'plank_pile', walkable: true },
     { x: 146, y: 238, type: 'lantern', walkable: false },
     { x: 146, y: 222, type: 'lantern', walkable: false },
     // Northward spine ??? ranger line of march (packed path ~146???154 x); keeps manuscript progression readable
@@ -1263,7 +1269,7 @@ export const forestDef: MapDefinition = {
     { x: 224, y: 175, type: 'bloodstain', walkable: true },
 
     // === PROGRESSION BLOOD TRAILS ===
-    // Environmental breadcrumbs toward critical pickups — no dialogue, just a dragged patrol read.
+    // Environmental breadcrumbs toward critical pickups - no dialogue, just a dragged patrol read.
 
     // --- Iron key: south-bank artery west toward chapel dead ranger (65, 183) ---
     { x: 130, y: 179, type: 'bloodstain', walkable: true },
@@ -1727,7 +1733,7 @@ export const forestDef: MapDefinition = {
     { x: 228, y: 98, type: 'bloodstain', walkable: true },
     { x: 226, y: 93, type: 'bloodstain', walkable: true },
     { x: 215, y: 95, type: 'bloodstain', walkable: true },
-    // --- Quarry lower shelf — cut blocks staged for haulage, a spare cart, spoil and tools ---
+    // --- Quarry lower shelf - cut blocks staged for haulage, a spare cart, spoil and tools ---
     { x: 215, y: 214, type: 'cut_stone_blocks', walkable: false },
     { x: 223, y: 218, type: 'cut_stone_blocks', walkable: false },
     { x: 225, y: 216, type: 'quarry_cart', walkable: false },     // cart on the haul-out track west
@@ -1788,7 +1794,7 @@ export const forestDef: MapDefinition = {
     // Weathered lantern at the clearing edge
     { x: 285, y: 143, type: 'lantern', walkable: false },
 
-    // --- Stone quarry — worked dig site: timber hoist, cut blocks, mine cart, spoil ---
+    // --- Stone quarry - worked dig site: timber hoist, cut blocks, mine cart, spoil ---
     { x: 230, y: 207, type: 'quarry_crane', walkable: false },     // shear-legs hoist over the pit (NW edge)
     { x: 237, y: 208, type: 'cut_stone_blocks', walkable: false }, // freshly-cut blocks stacked for haulage
     { x: 234, y: 213, type: 'cut_stone_blocks', walkable: false },
@@ -2065,7 +2071,7 @@ export const forestDef: MapDefinition = {
     { x: 38, y: 71, width: 6, height: 4, elevation: 1 },
     // NE fortress ridge (east temple terrace el1): zone {x:240,y:132,h:62}, south_face=193
     { x: 248, y: 193, width: 6, height: 4, elevation: 1 },
-    // Second NE temple-ridge access at x=228 removed — stray stairs at world (~80,44) / tile
+    // Second NE temple-ridge access at x=228 removed - stray stairs at world (~80,44) / tile
     // (228-233,193-196); south face stays sealed here like the main-trail stair removal.
     // West hidden grove (y=163): no stair ??? cliff runs the full shelf/Grove???plateau seam so this
     // cannot shortcut the Disparaged Cottage / ranger-gate arc.
@@ -2166,8 +2172,8 @@ export const forestDef: MapDefinition = {
 
     // Central ??? east of ranger plateau / inn (avoids fort footprint ~130???152, 120???138)
     // Lifted north (y148->138, h18->14) off the central water-slime ford band (y154-166) so the
-    // crossing reads as two sequential beats — dodge ranged slime fire while crossing, THEN fight
-    // the wolves on dry land — instead of a ranged+chain gank-stack at the ford's east shoulder.
+    // crossing reads as two sequential beats - dodge ranged slime fire while crossing, THEN fight
+    // the wolves on dry land - instead of a ranged+chain gank-stack at the ford's east shoulder.
     // count kept at 4 (intended stiff pack); flag for playtest since it sits on the main route.
     { x: 166, y: 138, width: 18, height: 14, enemyType: 'wolf', count: 4 },
     // Hollow approach stair landing ? armored wolves on the grass shelf (world ~-38,-38).
@@ -2180,7 +2186,7 @@ export const forestDef: MapDefinition = {
     // Faces south (cliff wall) by default. A dripfeed of the Hollow section.
     { x: 107, y: 190, width: 6, height: 2, enemyType: 'shadow_lurker', count: 1 },
 
-    // The two Ridge Revenants are no longer placed as static zones — they are SUMMONED from
+    // The two Ridge Revenants are no longer placed as static zones - they are SUMMONED from
     // heresy glyphs (props: summoning_ritual at tile 260,142 and 18,147) when a player holding
     // 3+ cursed sediment on a ritual glyph summons the revenant. Logic: RevenantRituals.ts.
 
@@ -2214,7 +2220,7 @@ export const forestDef: MapDefinition = {
     { x: 90, y: 94, width: 24, height: 18, enemyType: 'wolf', count: 4 },
     { x: 198, y: 106, width: 24, height: 16, enemyType: 'wolf', count: 4 },
 
-    // Far E / SE coverage — east void consolidated into authored mini-POIs below.
+    // Far E / SE coverage - east void consolidated into authored mini-POIs below.
     { x: 216, y: 68, width: 22, height: 16, enemyType: 'wolf', count: 3 },
     { x: 195, y: 256, width: 16, height: 14, enemyType: 'wolf', count: 3 },
     { x: 55, y: 266, width: 18, height: 14, enemyType: 'spider', count: 2 },
@@ -2230,10 +2236,10 @@ export const forestDef: MapDefinition = {
     { x: 110, y: 200, width: 14, height: 12, enemyType: 'skeleton', count: 2 },
     { x: 142, y: 210, width: 18, height: 14, enemyType: 'wolf', count: 2 },
 
-    // EAST VOID POI 1 — Consumed Ridge Camp (world ~126, 10): undead overtook a supply cache
+    // EAST VOID POI 1 - Consumed Ridge Camp (world ~126, 10): undead overtook a supply cache
     { x: 274, y: 158, width: 12, height: 10, enemyType: 'shadow', count: 2 },
     { x: 276, y: 162, width: 10, height: 8, enemyType: 'skeleton', count: 2 },
-    // EAST VOID POI 2 — Ridge Lumberyard Remains (world ~128, -62): shadow patrol at the old cut
+    // EAST VOID POI 2 - Ridge Lumberyard Remains (world ~128, -62): shadow patrol at the old cut
     { x: 276, y: 88, width: 14, height: 12, enemyType: 'shadow', count: 2 },
     { x: 280, y: 92, width: 10, height: 8, enemyType: 'skeleton', count: 2 },
 
@@ -2279,27 +2285,27 @@ export const forestDef: MapDefinition = {
     // approach (world ~20,93 / tile 170,243) so Explorer Ulmund's teaching beat isn't
     // delivered mid-fight; pack now guards the camp proper deeper in.
     { x: 176, y: 220, width: 18, height: 12, enemyType: 'wolf', count: 3 },
-    // Collapsed cottage spiders removed — east void consolidated into Consumed Ridge Camp POI.
+    // Collapsed cottage spiders removed - east void consolidated into Consumed Ridge Camp POI.
     // Hollow-side bridge water stretch around world (-51,64): first water-slime test pocket,
     // safely below the y=105 cutoff and away from the start portal river.
     { x: 88, y: 208, width: 30, height: 18, enemyType: 'water_slime', count: 1 },
     // Southern lake connector just below world y=105. Spawns prefer water, with shore fallback
     // only if the local generated water shape leaves no valid water tile in the zone.
     { x: 180, y: 244, width: 24, height: 12, enemyType: 'water_slime', count: 1 },
-    // === WATER SLIMES — every sizable water body south of the north portal river ===
-    // Eastern overlook lake + channel — world (~100, 39).
+    // === WATER SLIMES - every sizable water body south of the north portal river ===
+    // Eastern overlook lake + channel - world (~100, 39).
     { x: 240, y: 180, width: 20, height: 16, enemyType: 'water_slime', count: 2 },
-    // West forest lake — world (~-110, 50).
+    // West forest lake - world (~-110, 50).
     { x: 40, y: 200, width: 16, height: 12, enemyType: 'water_slime', count: 1 },
-    // Central golem-ford river (broken-bridge crossing) — world (~-30, 8).
+    // Central golem-ford river (broken-bridge crossing) - world (~-30, 8).
     { x: 120, y: 154, width: 100, height: 12, enemyType: 'water_slime', count: 2 },
-    // South-east creek system — world (~75, 98).
+    // South-east creek system - world (~75, 98).
     { x: 200, y: 232, width: 50, height: 32, enemyType: 'water_slime', count: 1 },
-    // Southern river bend — world (~0, 124).
+    // Southern river bend - world (~0, 124).
     { x: 118, y: 270, width: 64, height: 8, enemyType: 'water_slime', count: 1 },
-    // SW rocky pond — world (~-122, 132).
+    // SW rocky pond - world (~-122, 132).
     { x: 28, y: 278, width: 12, height: 8, enemyType: 'water_slime', count: 1 },
-    // East small pond — world (~130, 75).
+    // East small pond - world (~130, 75).
     { x: 275, y: 220, width: 10, height: 8, enemyType: 'water_slime', count: 1 },
     // Ruined shrine ??? shadows guard the ancient stones
     { x: 76, y: 276, width: 14, height: 12, enemyType: 'shadow', count: 2 },
@@ -2307,7 +2313,7 @@ export const forestDef: MapDefinition = {
     // Moved from y:284 (too close to spawn) to y:255 so it's a mid-exploration threat, not a
     // spawn-adjacent death trap for first-time players exploring off the main path.
     { x: 70, y: 255, width: 12, height: 8, enemyType: 'golem', count: 1 },
-    // Rocky ford wolf filler removed — east void consolidated into authored POIs.
+    // Rocky ford wolf filler removed - east void consolidated into authored POIs.
 
     // === OBSERVATORY COMPOUND ??? hidden encounter SE of North Fort ===
     // Stone Sentinels guarding the observatory entrance
@@ -2320,7 +2326,7 @@ export const forestDef: MapDefinition = {
     // Weaker than the Hollow Guardian but hits harder than anything else in the open world.
     // Scales to a regular field encounter in later maps.
     { x: 68, y: 68, width: 6, height: 6, enemyType: 'corrupted_giant', count: 1 },
-    // East-edge field boss — guards the Ironbark Band chest at tile (293,243) = world (143,93).
+    // East-edge field boss - guards the Ironbark Band chest at tile (293,243) = world (143,93).
     // Converts a reachable but empty edge clearing into a "should I risk it?" detour.
     { x: 231, y: 268, width: 18, height: 16, enemyType: 'corrupted_giant', count: 1 }, // guards the cliff-edge Ironbark chest
   ],

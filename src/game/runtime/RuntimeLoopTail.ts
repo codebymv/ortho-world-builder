@@ -6,7 +6,7 @@ import type { PerfProfiler } from '@/game/runtime/PerfProfiler';
 const CAMP_SMOKE_REFRESH_MS = 900;
 // Y thresholds for the forest hollow-region music + corruption-filter
 // transition. Exported so `useGameMusic` can pick the correct initial track
-// on page load — without that, refreshing in the hollow starts wood_theme and
+// on page load - without that, refreshing in the hollow starts wood_theme and
 // immediately crossfades to guilrhym_theme, briefly playing both songs at once.
 //
 // The ENTER point is the midpoint of the bridge crossing into the hollow side
@@ -190,9 +190,11 @@ export function runRuntimeLoopTail({
   if (profilePhases) {
     perfProfiler!.measure('world', () => {
       world.updateChunks(playerPosition.x, playerPosition.y);
+      world.tickAmbientDecals(currentTime);
     });
   } else {
     world.updateChunks(playerPosition.x, playerPosition.y);
+    world.tickAmbientDecals(currentTime);
   }
 
   const nextNpcScreenUpdate = profilePhases
@@ -245,13 +247,15 @@ export function runRuntimeLoopTail({
     biomeAmbience.update(deltaTime, playerPosition.x, playerPosition.y, campSmokeSources);
   }
 
+  const isInterior = state.currentMap.startsWith('interior_');
+
   if (playThunder) weatherSystem.onLightningFlash = playThunder;
   if (profilePhases) {
     perfProfiler!.measure('weather', () => {
-      weatherSystem.update(deltaTime, playerPosition.x, playerPosition.y, currentBiome);
+      weatherSystem.update(deltaTime, playerPosition.x, playerPosition.y, currentBiome, isInterior);
     });
   } else {
-    weatherSystem.update(deltaTime, playerPosition.x, playerPosition.y, currentBiome);
+    weatherSystem.update(deltaTime, playerPosition.x, playerPosition.y, currentBiome, isInterior);
   }
 
   const isStorm = weatherSystem.getActiveWeather() === 'storm';
@@ -261,7 +265,6 @@ export function runRuntimeLoopTail({
     stopStormLoop?.();
   }
 
-  const isInterior = state.currentMap.startsWith('interior_');
   const outdoorsLoopBaseScale = isInterior ? OUTDOORS_LOOP_INSIDE_SCALE : OUTDOORS_LOOP_OUTSIDE_SCALE;
   const outdoorsLoopStormScale = isStorm ? OUTDOORS_LOOP_STORM_DUCK_SCALE : 1;
   setOutdoorsLoopState?.(
@@ -272,7 +275,7 @@ export function runRuntimeLoopTail({
   if (state.currentMap !== 'forest') {
     forestMusicRegion = 'woods';
   } else if (forestMusicRegion === null) {
-    // First frame in the forest map — sync the tracked region to the actual
+    // First frame in the forest map - sync the tracked region to the actual
     // player position AND self-heal the music track. The `switchMusicTrack`
     // call is a no-op if the right track is already loaded, but it acts as a
     // safety net if `useGameMusic`'s initial resolve missed (e.g. SaveManager
@@ -287,10 +290,10 @@ export function runRuntimeLoopTail({
     switchMusicTrack('forest');
   }
 
-  // Hollow-side corruption filter — full-screen violet grade. Tied to the
+  // Hollow-side corruption filter - full-screen violet grade. Tied to the
   // same hysteresis state (`forestMusicRegion`) that drives the music
   // crossfade so the visual and audio transitions happen at the exact same
-  // boundary crossing. Single binary target (on/off) — once the player is
+  // boundary crossing. Single binary target (on/off) - once the player is
   // past the ENTER threshold the filter holds at full strength; no biome-
   // depth gradient that could fluctuate as the player wanders the hollow.
   // Runs AFTER the music block so it reads the freshly-updated region this

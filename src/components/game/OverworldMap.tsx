@@ -20,7 +20,7 @@ interface OverworldMapProps {
   currentMapId: string;
   gameStateRef: MutableRefObject<GameState | null>;
   refreshToken: number;
-  /** Pixel size of the region map canvas — overworld matches this exactly. */
+  /** Pixel size of the region map canvas - overworld matches this exactly. */
   displayWidth: number;
   displayHeight: number;
   className?: string;
@@ -37,7 +37,7 @@ const REGION_LABEL: Record<string, string> = Object.fromEntries(
  * Everything else uses the shared minimap palette.
  */
 const OVERWORLD_COLOR_OVERRIDE: Record<string, string> = {
-  water: '#1a4f7a',     // Ocean blue — clearly water, not black
+  water: '#1a4f7a',     // Ocean blue - clearly water, not black
   waterfall: '#2878c8', // Bright river blue for inland water
 };
 

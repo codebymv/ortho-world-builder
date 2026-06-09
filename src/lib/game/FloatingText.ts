@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 const ATLAS_W = 2048;
-const ATLAS_H = 2016; // 42 rows × 48px — closest multiple to 2048
+const ATLAS_H = 2016; // 42 rows × 48px - closest multiple to 2048
 const CELL_W = 128;
 const CELL_H = 48;
 const COLS = Math.floor(ATLAS_W / CELL_W); // 16
@@ -91,7 +91,7 @@ export class FloatingTextSystem {
       this.renderToCell(idx, String(n), '#FF4444', 22);
       this.glyphMap.set(this.cacheKey(String(n), '#FF4444', 22), idx);
     }
-    // Common labels — parries are intentionally NOT pre-rendered: parry
+    // Common labels - parries are intentionally NOT pre-rendered: parry
     // feedback is purely immersive (camera kick, freeze-frame, sparks).
     const labels: Array<[string, string, number]> = [
       ['STAGGER!', '#88AAFF', 20],

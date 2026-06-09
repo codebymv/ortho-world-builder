@@ -1,6 +1,6 @@
 import type { MapDefinition } from '@/data/mapGenerator';
 
-// The Ashen Reaver's arena — the corrupted cathedral nave beneath Guilrhym.
+// The Ashen Reaver's arena - the corrupted cathedral nave beneath Guilrhym.
 // Modeled on interiorHollowArenaDef. The victory portal, chests, and bonfire are
 // injected at runtime by syncGuilrhymArenaVictoryPortalState once the Reaver falls;
 // the boss and its adds are spawned by the map-transition handler in RuntimeMapFlow.
@@ -23,7 +23,7 @@ export const interiorGuilrhymCathedralDef: MapDefinition = {
     { x: 33, y: 3, width: 3, height: 30, type: 'wall', fill: 'stone' },
     // Nave floor
     { x: 3, y: 3, width: 30, height: 30, type: 'clearing', fill: 'cobblestone' },
-    // Corrupted sanctum at the centre — the broken Wellspring seal
+    // Corrupted sanctum at the centre - the broken Wellspring seal
     { x: 9, y: 9, width: 18, height: 18, type: 'clearing', fill: 'ruins_floor' },
     { x: 13, y: 13, width: 10, height: 10, type: 'clearing', fill: 'ash' },
     // Altar dais at the head of the nave (north)
@@ -33,7 +33,7 @@ export const interiorGuilrhymCathedralDef: MapDefinition = {
   chests: [],
   interactables: [],
   props: [
-    // Colonnade — pillars lining the nave
+    // Colonnade - pillars lining the nave
     { x: 8, y: 8, type: 'pillar', walkable: false },
     { x: 27, y: 8, type: 'pillar', walkable: false },
     { x: 8, y: 27, type: 'pillar', walkable: false },

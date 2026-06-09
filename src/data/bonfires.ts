@@ -8,7 +8,7 @@ export interface BonfireEntry {
   tileY: number;
 }
 
-/** World-space center of a bonfire tile — must match RuntimeRestFlow / World tile placement. */
+/** World-space center of a bonfire tile - must match RuntimeRestFlow / World tile placement. */
 export function bonfireTileWorldPosition(mapId: string, tileX: number, tileY: number): { x: number; y: number } {
   const def = mapDefinitions[mapId];
   if (!def) {
@@ -29,7 +29,7 @@ const BONFIRE_HERE_RADIUS = 1.5;
 
 /**
  * True when the player is close enough to this registry bonfire to show “(here)” in fast travel.
- * Uses tile center (same as travel/kindle) — not raw lastBonfire coords, so slight walk-up offset still matches.
+ * Uses tile center (same as travel/kindle) - not raw lastBonfire coords, so slight walk-up offset still matches.
  */
 export function isPlayerAtBonfireEntry(
   mapId: string,
@@ -45,7 +45,7 @@ export function isPlayerAtBonfireEntry(
 }
 
 /**
- * Fast-travel list order for Whispering Woods — south-to-north / story progression
+ * Fast-travel list order for Whispering Woods - south-to-north / story progression
  * (Forest Clearing → Iron Gate → Riverside Grove → Cliff Cemetery → Corrupted Bridge).
  */
 const FOREST_BONFIRE_LIST_ORDER: readonly string[] = [
@@ -75,20 +75,20 @@ function sortBonfiresByMapProgression(mapId: string, entries: BonfireEntry[]): B
 
 export const BONFIRE_REGISTRY: BonfireEntry[] = [
   { id: 'bonfire_village',           name: 'Village Square',      mapId: 'village',       tileX: 120, tileY: 104 },
-  // Must match maps.ts tile coords — unlock flag is bonfire_first_<mapId>_<x>_<y>
+  // Must match maps.ts tile coords - unlock flag is bonfire_first_<mapId>_<x>_<y>
   { id: 'bonfire_hollow',            name: 'Riverside Grove',     mapId: 'forest',        tileX: 156, tileY: 154 },
   { id: 'bonfire_eastern_fort_passage', name: 'Eastern Fort Passage', mapId: 'forest',     tileX: 228, tileY: 158 },
   { id: 'bonfire_forest_fort',       name: 'Corrupted Bridge',    mapId: 'forest',        tileX: 124, tileY: 77  },
   { id: 'bonfire_forest_clearing',   name: 'Forest Clearing',     mapId: 'forest',        tileX: 150, tileY: 250 },
-  // World ~(-15.5, 58.5) — slightly NE of old (130,206); legacy 130_206 still unlocks (see getKindledBonfiresForMap)
+  // World ~(-15.5, 58.5) - slightly NE of old (130,206); legacy 130_206 still unlocks (see getKindledBonfiresForMap)
   { id: 'bonfire_forest_south',      name: 'Iron Gate',           mapId: 'forest',        tileX: 134, tileY: 208 },
   { id: 'bonfire_cliff_ledge_approach', name: 'Cliff Ledge Approach', mapId: 'forest',     tileX: 193, tileY: 192 },
   { id: 'bonfire_cliff_cemetery',    name: 'Cliff Cemetery',      mapId: 'forest',        tileX: 291, tileY: 145 },
   { id: 'bonfire_east_ridge_overlook', name: 'East Ridge Overlook', mapId: 'forest',       tileX: 261, tileY: 107 },
   { id: 'bonfire_deep_hollow',       name: 'Deep Hollow',         mapId: 'forest',        tileX: 126, tileY: 46  },
   { id: 'bonfire_guilrhym_threshold', name: 'Precipice Reserve',   mapId: 'forest',        tileX: 256, tileY: 45  },
-  { id: 'bonfire_west_fort_north',   name: 'West Fort — North Yard', mapId: 'forest',     tileX: 20,  tileY: 155 },
-  { id: 'bonfire_west_fort_ritual',  name: 'West Fort — Ritual Hall', mapId: 'forest',    tileX: 23,  tileY: 150 },
+  { id: 'bonfire_west_fort_north',   name: 'West Fort: North Yard', mapId: 'forest',     tileX: 20,  tileY: 155 },
+  { id: 'bonfire_west_fort_ritual',  name: 'West Fort: Ritual Hall', mapId: 'forest',    tileX: 23,  tileY: 150 },
   { id: 'bonfire_guilrhym_gate',       name: 'Gate Plaza',          mapId: 'guilrhym',       tileX: 150, tileY: 272 },
   { id: 'bonfire_guilrhym_market',     name: 'Market Square',       mapId: 'guilrhym',       tileX: 200, tileY: 198 },
   { id: 'bonfire_guilrhym_heights',    name: 'The Heights',         mapId: 'guilrhym',       tileX: 95,  tileY: 110 },

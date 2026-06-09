@@ -225,7 +225,7 @@ export function runGameplayPrelude({
       state.player.lastStaminaUseTime = nowSec;
     }
   } else if (state.player.parryWindowTimer > 0) {
-    // Not blocking anymore — close the window immediately so the shimmer doesn't
+    // Not blocking anymore - close the window immediately so the shimmer doesn't
     // linger on an idle blade.
     state.player.parryWindowTimer = 0;
   }

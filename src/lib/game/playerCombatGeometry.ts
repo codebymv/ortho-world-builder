@@ -17,7 +17,7 @@
 export const PLAYER_MOVE_RADIUS = 0.2;
 
 /**
- * Player "hurtbox" radius — how far an incoming hit centre can be from the player
+ * Player "hurtbox" radius - how far an incoming hit centre can be from the player
  * centre and still connect. Projectiles already padded by this; Phase 2 extends it
  * to melee/AoE so all incoming damage reads consistently.
  */

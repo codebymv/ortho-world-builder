@@ -192,7 +192,7 @@ export class BiomeAmbience {
         }
         break;
       case 'forest_hollow_deep':
-        // Thicker purple fog, fewer embers — reads as corruption pressing in past world y ≈ -91.
+        // Thicker purple fog, fewer embers - reads as corruption pressing in past world y ≈ -91.
         if (Math.random() > 0.25) {
           color = Math.random() > 0.35 ? 0x6A1B9A : 0x7E57C2;
           size = 0.35 + Math.random() * 0.45;

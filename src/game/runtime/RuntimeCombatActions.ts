@@ -57,7 +57,7 @@ const getForwardMeleeTarget = (
   for (const enemy of enemies) {
     const dot = getEnemyForwardDot(enemy, playerPosition, direction);
     if (dot < PLAYER_MELEE_CONE_DOT) continue;
-    // Don't connect through walls or across cliff tiers — mirrors enemy melee LOS.
+    // Don't connect through walls or across cliff tiers - mirrors enemy melee LOS.
     if (!hasPlayerMeleeLineOfSight(world, playerPosition.x, playerPosition.y, enemy.position.x, enemy.position.y)) continue;
     const dx = enemy.position.x - playerPosition.x;
     const dy = enemy.position.y - playerPosition.y;
@@ -374,7 +374,7 @@ export function createRuntimeCombatActions({
              ritualSite.clearedFlag === 'ritual_revenant_precipice_cleared') &&
             !state.getFlag('terminus_scythe_early_obtained')
           ) {
-            // Chest materialises at the anchor — same burst the revenant was summoned with.
+            // Chest materialises at the anchor - same burst the revenant was summoned with.
             const wx = ritualSite.tileX - map.width / 2 + 0.5;
             const wy = ritualSite.tileY - map.height / 2 + 0.5;
             particleSystem.emitAt(wx, wy, 0.4, 30, 0x7C4DFF, 0.5, 2.4, 1.6);
@@ -567,7 +567,7 @@ export function createRuntimeCombatActions({
 
     // During active swing: buffer the next press regardless of combo step.
     // For step < 2 the buffer chains into the next combo hit; for step 2
-    // (finisher) it starts a fresh combo from step 0 once the swing ends —
+    // (finisher) it starts a fresh combo from step 0 once the swing ends -
     // either way the player's input is honored instead of silently dropped.
     if (animState === 'attack') {
       setComboInputBuffered(true);
@@ -689,7 +689,7 @@ export function createRuntimeCombatActions({
     state.player.attackAnimationTimer = 0.6;
     clearChargeState();
 
-    // Softer than the default spin charge (2.5×) — the traveling wave already hits many targets.
+    // Softer than the default spin charge (2.5×) - the traveling wave already hits many targets.
     const SCYTHE_CHARGE_DAMAGE_MULT = 1.85;
     const damageMultiplier = 1 + (SCYTHE_CHARGE_DAMAGE_MULT - 1) * level;
     const arcDamage = Math.floor(state.player.attackDamage * damageMultiplier * state.player.berserkerDamageMult);
@@ -700,7 +700,7 @@ export function createRuntimeCombatActions({
     const dx = direction === 'right' ? 1 : direction === 'left' ? -1 : 0;
     const dy = direction === 'up' ? 1 : direction === 'down' ? -1 : 0;
 
-    // Launch the traveling wave — damage is deferred to per-frame hit detection in
+    // Launch the traveling wave - damage is deferred to per-frame hit detection in
     // PlayerSimulationSystem.ts (arcWave update), so enemies take damage as the wave
     // actually reaches them instead of all dying on the release frame.
     arcWave.active = true;
@@ -712,7 +712,7 @@ export function createRuntimeCombatActions({
     arcWave.damage = arcDamage;
     arcWave.hitIds.clear();
 
-    // Tile-breaking along the arc path — stays instant (environmental, not combat).
+    // Tile-breaking along the arc path - stays instant (environmental, not combat).
     // Visual wave is handled by the traveling spinSwooshMesh in RuntimePlayerFrame.ts.
     const steps = 6;
     for (let i = 1; i <= steps; i++) {
@@ -725,7 +725,7 @@ export function createRuntimeCombatActions({
       });
     }
 
-    // Corruption wave release burst — dark void erupts at the scythe's release point.
+    // Corruption wave release burst - dark void erupts at the scythe's release point.
     // The traveling wave front is rendered by the spinSwooshMesh over the next 0.65 s.
     const bx = state.player.position.x + dx * 0.55;
     const by = state.player.position.y + dy * 0.55;
@@ -733,7 +733,7 @@ export function createRuntimeCombatActions({
     particleSystem.emitAt(bx, by, 0.3, 4, 0x6A0DAD, 0.30, 1.1, 0.9);   // purple burst
     particleSystem.emitAt(state.player.position.x, state.player.position.y, 0.3, 3, 0x1A0E2E, 0.55, 0.5, 0.5); // black wisps
 
-    // SCYTHE_WAVE_DURATION = 0.65 — must match the constant in RuntimePlayerFrame.ts
+    // SCYTHE_WAVE_DURATION = 0.65 - must match the constant in RuntimePlayerFrame.ts
     setSpinSwooshTimer(0.65);
   };
 
@@ -799,7 +799,7 @@ export function createRuntimeCombatActions({
 
     for (const target of enemiesInRange) {
       // The charge sweep is radial, but it still shouldn't punch through walls or
-      // hit enemies a tier up/down — same LOS gate as the standard combo.
+      // hit enemies a tier up/down - same LOS gate as the standard combo.
       if (!hasPlayerMeleeLineOfSight(world, state.player.position.x, state.player.position.y, target.position.x, target.position.y)) {
         continue;
       }

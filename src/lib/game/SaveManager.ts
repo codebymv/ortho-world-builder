@@ -55,7 +55,7 @@ export interface BossAttemptCheckpointData extends BossAttemptCheckpointMetadata
   save: SaveData;
 }
 
-// Loose shape used during migration — every field optional so we can defensively
+// Loose shape used during migration - every field optional so we can defensively
 // fill anything older saves don't carry. Only `player.position` etc. are needed
 // at runtime; missing ones get filled by `normalizeSave`.
 type RawSave = Partial<Omit<SaveData, 'player' | 'version'>> & {
@@ -260,7 +260,7 @@ function normalizeSave(raw: RawSave): SaveData {
     worldItems,
     quests: migrateQuests(Array.isArray(raw.quests) ? (raw.quests as Quest[]) : []),
     gameFlags,
-    // Strip portal-type markers on load — they are always regenerated fresh
+    // Strip portal-type markers on load - they are always regenerated fresh
     // from the current objective, so persisting them causes stale labels/colours.
     // Also drop any removed legend entries (e.g. Whispering Woods) from old saves.
     // Finally, reconcile each discovered location marker's position/colour/type
@@ -351,7 +351,7 @@ export class SaveManager {
     }
 
     // Versions 1-4 (and any unset/future) all go through the same defensive
-    // normalizer — it tolerates missing fields and fills them with safe defaults.
+    // normalizer - it tolerates missing fields and fills them with safe defaults.
     return normalizeSave(parsed as RawSave);
   }
 

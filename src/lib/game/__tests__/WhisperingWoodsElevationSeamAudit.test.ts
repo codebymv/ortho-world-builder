@@ -259,7 +259,7 @@ describe('Whispering Woods elevation seam audit', () => {
     expect(west.type).toBe('hollow_blight');
     expect(east.type).toBe('hollow_blight');
     expect(canCrossSpinePathElevation(west, east)).toBe(true);
-    // Authored cliff_face corridor wall (y=46-53) must stay intact — not flattened to dirt.
+    // Authored cliff_face corridor wall (y=46-53) must stay intact - not flattened to dirt.
     expect(map.tiles[50][148].type).toMatch(/cliff/);
     expect(map.tiles[50][148].walkable).toBe(false);
   });

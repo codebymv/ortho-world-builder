@@ -517,7 +517,7 @@ export const dialogues: Record<string, Dialogue> = {
   },
   travelers_inlet_journal: {
     id: 'travelers_inlet_journal',
-    nodes: [{ id: 'start', text: "A traveler's note scratched into the cliff-side sign: '__Stopped here to wait out the fog on the east ridge. The inlet is dry and the fire still holds a little warmth — good enough for one night. Buried a **Radiant Vestige** in the west alcove; too precious to carry over the cliffs with the shadows moving. If you find it, consider it payment for the shelter. Do not linger after dark.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A traveler's note scratched into the cliff-side sign: '__Stopped here to wait out the fog on the east ridge. The inlet is dry and the fire still holds a little warmth, good enough for one night. Buried a **Radiant Vestige** in the west alcove; too precious to carry over the cliffs with the shadows moving. If you find it, consider it payment for the shelter. Do not linger after dark.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   guilrhym_west_seal: {
     id: 'guilrhym_west_seal',

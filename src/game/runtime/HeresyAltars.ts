@@ -86,7 +86,7 @@ export function damageHeresyAltarsInRadius(
 
       const alreadyHit = state.getFlag(hitFlagKey(mapId, tx, ty));
       if (!alreadyHit) {
-        // First hit — crack the altar visually.
+        // First hit - crack the altar visually.
         state.setFlag(hitFlagKey(mapId, tx, ty), true);
         map.tiles[ty][tx] = {
           type: 'heresy_altar_cracked' as TileType,
@@ -100,7 +100,7 @@ export function damageHeresyAltarsInRadius(
         continue;
       }
 
-      // Second hit — destroy.
+      // Second hit - destroy.
       map.tiles[ty][tx] = {
         type: 'hollow_blight' as TileType,
         walkable: true,

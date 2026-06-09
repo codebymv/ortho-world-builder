@@ -6,7 +6,7 @@ export const villageDef: MapDefinition = {
   width: 240,
   height: 160,
   spawnPoint: { x: 120, y: 110 },
-  // Main quest spine only — stops carveRoads from wiring every feature center together.
+  // Main quest spine only - stops carveRoads from wiring every feature center together.
   roadAnchors: [
     { x: 119, y: 74 }, // plaza crossroads
     { x: 119, y: 56 }, // north gate threshold
@@ -19,7 +19,7 @@ export const villageDef: MapDefinition = {
     // ====== CENTRAL VILLAGE SQUARE (dirt clearing with grass border) ======
     { x: 95, y: 68, width: 50, height: 34, type: 'clearing', fill: 'dirt' },
 
-    // ====== TOWN HALL (plaza east of the main N-S road — was x=110 overlapping the spine at world ~-1,-21) ======
+    // ====== TOWN HALL (plaza east of the main N-S road - was x=110 overlapping the spine at world ~-1,-21) ======
     { x: 122, y: 86, width: 14, height: 10, type: 'building', interactionId: 'town_hall' },
 
     // ====== NON-ENTERABLE BUILDINGS INSIDE SQUARE (small houses for density) ======
@@ -121,7 +121,7 @@ export const villageDef: MapDefinition = {
     // Fence border around training grounds
     { x: 169, y: 19, width: 26, height: 18, type: 'iron_fence_border', fill: 'dirt' },
 
-    // ====== ELDER'S GARDEN (fenced, north of plaza — ends west of the N-S dirt spine) ======
+    // ====== ELDER'S GARDEN (fenced, north of plaza - ends west of the N-S dirt spine) ======
     { x: 105, y: 42, width: 10, height: 12, type: 'garden' },
 
     // ====== PARKS & GREEN SPACES filling gaps ======

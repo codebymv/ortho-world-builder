@@ -74,7 +74,7 @@ const REGION_BY_MAP_ID = new Map<string, OverworldRegion>(
   OVERWORLD_REGIONS.flatMap(region => region.mapIds.map(mapId => [mapId, region] as const)),
 );
 
-/** Direct discovery only — no “later region implies earlier” chain. */
+/** Direct discovery only - no “later region implies earlier” chain. */
 function isOverworldRegionDirectlyDiscovered(
   region: OverworldRegion,
   state: GameState,

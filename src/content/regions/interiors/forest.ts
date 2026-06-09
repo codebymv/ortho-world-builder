@@ -132,10 +132,10 @@ export const interiorHunterCottageDef: MapDefinition = {
   ],
 };
 
-// The Surveyor's Den — a hidden cliff cave (entered via a cave_mouth on the west cliff).
+// The Surveyor's Den - a hidden cliff cave (entered via a cave_mouth on the west cliff).
 // An L: the entry arm (mouth + sign + the surveyor's camp) bends DOWN-right into the dangerous
 // chamber (his 500g hoard, guarded by shadows). Cave-floor earth, stone walls, rock formations.
-// Door-free: the mouth itself is the step-on exit (cave_mouth, no portal/door tile).
+// Door-free: the mouth itself is the exit (cave_mouth), exited by interacting like the entrance.
 export const interiorSurveyorsHollowDef: MapDefinition = {
   name: "Surveyor's Den",
   width: 22,
@@ -148,13 +148,13 @@ export const interiorSurveyorsHollowDef: MapDefinition = {
   features: [
     // Whole cave is solid rock; the L-floor is carved out of it (so walls read as rock, not a box).
     { x: 0, y: 0, width: 22, height: 18, type: 'wall', fill: 'stone' },
-    // L floor — packed cave earth. Entry arm (top-left) + dangerous chamber (down-right), joined at the corner.
+    // L floor - packed cave earth. Entry arm (top-left) + dangerous chamber (down-right), joined at the corner.
     { x: 2, y: 3, width: 7, height: 5, type: 'clearing', fill: 'cave_floor' },   // entry arm
     { x: 7, y: 7, width: 13, height: 9, type: 'clearing', fill: 'cave_floor' },  // chamber
-    // The cave mouth IS the exit — a step-on cave_mouth (no door) punched through the entry-arm wall.
-    { x: 4, y: 2, width: 1, height: 1, type: 'cave_mouth', caveStepExit: true, interiorMap: 'forest', interiorSpawnX: 45, interiorSpawnY: 113 },
+    // The cave mouth IS the exit - an interact-to-exit cave_mouth punched through the entry-arm wall.
+    { x: 4, y: 2, width: 1, height: 1, type: 'cave_mouth', caveExit: true, interiorMap: 'forest', interiorSpawnX: 45, interiorSpawnY: 113 },
   ],
-  portals: [], // door-free: the cave_mouth feature above is the exit (step-on)
+  portals: [], // door-free: the cave_mouth feature above is the exit (interact to leave)
   chests: [{ x: 17, y: 13, interactionId: 'surveyors_hollow_chest' }], // 500g hoard, far end of the chamber
   interactables: [
     { x: 7, y: 4, type: 'sign', walkable: false, interactionId: 'surveyors_hollow_journal' }, // beside the mouth
@@ -163,7 +163,7 @@ export const interiorSurveyorsHollowDef: MapDefinition = {
     { x: 9, y: 8, width: 10, height: 7, enemyType: 'shadow', count: 3 }, // shadows hold the chamber
   ],
   props: [
-    // The surveyor's camp — the safe entry arm
+    // The surveyor's camp - the safe entry arm
     { x: 3, y: 4, type: 'bed', walkable: false },              // bedroll
     { x: 6, y: 3, type: 'lantern', walkable: false },          // guttered lantern
     { x: 3, y: 6, type: 'campfire_remains', walkable: false }, // long-cold fire
@@ -182,7 +182,7 @@ export const interiorSurveyorsHollowDef: MapDefinition = {
   ],
 };
 
-// Traveler's Inlet — a cliff cave on the eastern ridge (entered via a cave_mouth on the east cliff).
+// Traveler's Inlet - a cliff cave on the eastern ridge (entered via a cave_mouth on the east cliff).
 // Y-shaped fork: entry terrace splits west (chest alcove + lone reaper) and east (spider nest).
 export const interiorTravelersInletDef: MapDefinition = {
   name: "Traveler's Inlet",
@@ -195,18 +195,19 @@ export const interiorTravelersInletDef: MapDefinition = {
   autoRoads: false,
   features: [
     { x: 0, y: 0, width: 26, height: 22, type: 'wall', fill: 'stone' },
-    // Entry terrace — mouth opens onto the top-center lip.
+    // Entry terrace - mouth opens onto the top-center lip.
     { x: 9, y: 2, width: 8, height: 6, type: 'clearing', fill: 'cave_floor' },
     // Fork junction beneath the terrace.
     { x: 8, y: 7, width: 10, height: 3, type: 'clearing', fill: 'cave_floor' },
-    // West arm — narrow alcove where the traveler hid their purse.
+    // West arm - narrow alcove where the traveler hid their purse.
     { x: 2, y: 8, width: 11, height: 11, type: 'clearing', fill: 'cave_floor' },
-    // East arm — wide nest chamber, silk and skittering legs.
+    // East arm - wide nest chamber, silk and skittering legs.
     { x: 13, y: 7, width: 11, height: 14, type: 'clearing', fill: 'cave_floor' },
-    { x: 12, y: 1, width: 1, height: 1, type: 'cave_mouth', caveStepExit: true, interiorMap: 'forest', interiorSpawnX: 258, interiorSpawnY: 95 },
+    // Interact-to-exit cave mouth on the terrace lip (matches the entrance's interact-to-enter).
+    { x: 12, y: 1, width: 1, height: 1, type: 'cave_mouth', caveExit: true, interiorMap: 'forest', interiorSpawnX: 258, interiorSpawnY: 95 },
   ],
   portals: [],
-  chests: [{ x: 4, y: 15, interactionId: 'travelers_inlet_chest' }], // special chest — Radiant Vestige
+  chests: [{ x: 4, y: 15, interactionId: 'travelers_inlet_chest' }], // special chest - Radiant Vestige
   interactables: [
     { x: 14, y: 4, type: 'sign', walkable: false, interactionId: 'travelers_inlet_journal' },
   ],
@@ -221,11 +222,11 @@ export const interiorTravelersInletDef: MapDefinition = {
     { x: 10, y: 6, type: 'campfire_remains', walkable: false },
     { x: 11, y: 5, type: 'crate', walkable: false },
     { x: 12, y: 5, type: 'barrel', walkable: false },
-    // West alcove — picked clean except the buried chest
+    // West alcove - picked clean except the buried chest
     { x: 5, y: 10, type: 'bones', walkable: true },
     { x: 7, y: 12, type: 'rock', walkable: false },
     { x: 3, y: 14, type: 'rock', walkable: false },
-    // East nest — webbed clutter
+    // East nest - webbed clutter
     { x: 16, y: 10, type: 'rock', walkable: false },
     { x: 20, y: 12, type: 'volcanic_rock', walkable: false },
     { x: 17, y: 17, type: 'rock', walkable: false },

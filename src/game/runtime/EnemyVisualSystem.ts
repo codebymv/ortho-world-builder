@@ -212,7 +212,7 @@ export function applyEnemyVisuals({
   const isStoneSentinel = enemyType === 'stone_sentinel';
 
   if (isGolem || isStoneSentinel) {
-    // Distinct sprite frames handle all state cues — no color tinting
+    // Distinct sprite frames handle all state cues - no color tinting
     if (enemy.poiseAbsorbFlashTimer > 0) {
       enemy.poiseAbsorbFlashTimer -= deltaTime;
       const pulse = Math.abs(fastSin(enemy.poiseAbsorbFlashTimer * 18)) * 0.35 + 0.65;
@@ -351,7 +351,7 @@ export function applyEnemyVisuals({
         break;
       }
       case 'hollow_guardian':
-        // Shade-like ethereal float — glides rather than stomps
+        // Shade-like ethereal float - glides rather than stomps
         finalEnemyY += fastSin(currentTime / 200 + seed) * 0.06;
         finalEnemyX += fastCos(currentTime / 250 + seed) * 0.03;
         scaleX *= 1 + stride * 0.02;
@@ -359,7 +359,7 @@ export function applyEnemyVisuals({
         rotation *= 0.3;
         break;
       case 'ridge_revenant':
-        // Bound wraith — drifts on a gentle hover with a slow figure-eight sway
+        // Bound wraith - drifts on a gentle hover with a slow figure-eight sway
         // and a faint robe billow, NOT a side-to-side PNG rock. Kill the lateral
         // lean entirely so it reads as gliding, not tipping.
         finalEnemyY += fastSin(currentTime / 190 + seed) * 0.07;
@@ -464,7 +464,7 @@ export function applyEnemyVisuals({
   } else {
     const breathe = fastSin(currentTime / 800 + seed * 3);
     if (enemyType === 'hollow_guardian') {
-      // Deep, slow ethereal float — like a giant shade hovering
+      // Deep, slow ethereal float - like a giant shade hovering
       finalEnemyY += breathe * 0.06;
       finalEnemyX += fastCos(currentTime / 700 + seed) * 0.025;
       scaleX *= 1 + breathe * 0.018;
@@ -482,7 +482,7 @@ export function applyEnemyVisuals({
       scaleY *= 1 - breathe * 0.018;
       rotation = fastSin(currentTime / 850 + seed) * 0.014;
     } else if (enemyType === 'ridge_revenant') {
-      // Suspended hover at rest — slow vertical bob and a faint robe billow.
+      // Suspended hover at rest - slow vertical bob and a faint robe billow.
       finalEnemyY += breathe * 0.07;
       finalEnemyX += fastCos(currentTime / 760 + seed) * 0.03;
       scaleX *= 1 + breathe * 0.012;

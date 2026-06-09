@@ -126,7 +126,7 @@ export class ParticleSystem {
   }
 
   /**
-   * Numeric-args variant of {@link emit} for hot-path callers — avoids the
+   * Numeric-args variant of {@link emit} for hot-path callers - avoids the
    * `new THREE.Vector3(...)` allocation that combat/AI loops were paying on
    * every hit. Behaviorally identical to `emit`.
    */
@@ -179,7 +179,7 @@ export class ParticleSystem {
     this.emitAt(x, y, z, 5, 0xcccccc, 0.4, 1, 1.5);
   }
 
-  /** Weapon-clash burst when a melee attack is parried — bright, short-lived sparks. */
+  /** Weapon-clash burst when a melee attack is parried - bright, short-lived sparks. */
   emitParryClashSparkAt(x: number, y: number, z: number = 0.38) {
     this.emitAt(x, y, z, 5, 0xffffff, 0.7, 3.2, 0.32);
     this.emitAt(x, y, z + 0.02, 10, 0xffe566, 0.55, 2.4, 0.48);
@@ -233,7 +233,7 @@ export class ParticleSystem {
 
   update(deltaTime: number) {
     if (this.activeCount === 0) {
-      // Nothing live — make sure the instanced meshes don't keep rendering
+      // Nothing live - make sure the instanced meshes don't keep rendering
       // stale instances from the last burst, then bail before touching the pool.
       if (this.meshesDirty) {
         for (const mesh of this.particleMeshes) {

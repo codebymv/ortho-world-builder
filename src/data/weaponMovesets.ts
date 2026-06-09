@@ -61,7 +61,7 @@ export const WEAPON_MOVESETS: Record<string, WeaponMoveset> = {
     ],
   },
 
-  // Balanced soldier's sword — the baseline cadence.
+  // Balanced soldier's sword - the baseline cadence.
   iron_sword: {
     comboWindow: 0.3,
     steps: [
@@ -82,7 +82,7 @@ export const WEAPON_MOVESETS: Record<string, WeaponMoveset> = {
     ],
   },
 
-  // Heavy ceremonial blade — slow, weighty 2-hit with a forgiving window and big reach.
+  // Heavy ceremonial blade - slow, weighty 2-hit with a forgiving window and big reach.
   ornamental_broadsword: {
     comboWindow: 0.42,
     steps: [
@@ -91,7 +91,7 @@ export const WEAPON_MOVESETS: Record<string, WeaponMoveset> = {
     ],
   },
 
-  // Sweeping reaper combo — long reach, wide arcs, 3 deliberate hits.
+  // Sweeping reaper combo - long reach, wide arcs, 3 deliberate hits.
   terminus_scythe: {
     comboWindow: 0.36,
     steps: [
@@ -101,7 +101,7 @@ export const WEAPON_MOVESETS: Record<string, WeaponMoveset> = {
     ],
   },
 
-  // Greatsword — slowest, heaviest 2-hit. Massive commitment, massive payoff.
+  // Greatsword - slowest, heaviest 2-hit. Massive commitment, massive payoff.
   crystal_greatsword: {
     comboWindow: 0.5,
     steps: [

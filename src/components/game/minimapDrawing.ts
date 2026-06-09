@@ -317,7 +317,7 @@ const WALKABLE_FALLBACK = '#4CAF50';
 /**
  * Landmark tile types that are always drawn on the map regardless of fog-of-war,
  * rendered as a proportionally-sized icon rather than a raw 1px tile so they read
- * clearly at minimap scale. Stone collision tiles are intentionally excluded — only
+ * clearly at minimap scale. Stone collision tiles are intentionally excluded - only
  * the meaningful asset anchors appear.
  *
  * icon size = pixels drawn per tile (centered). At scale=1 a raw tile is 1px,
@@ -327,7 +327,7 @@ const LANDMARK_ICON_SIZES: Partial<Record<string, number>> = {
   // Large towers
   observatory: 6,
   windmill:    5,
-  // Guilrhym — the Tolbooth reads as the big civic landmark; tenements as a dense
+  // Guilrhym - the Tolbooth reads as the big civic landmark; tenements as a dense
   // built-up mass; street props as small map dressing.
   clocktower:       6,
   cathedral_facade: 6,
@@ -342,7 +342,7 @@ const LANDMARK_ICON_SIZES: Partial<Record<string, number>> = {
   baby_carriage:    2,
   memorial_column:  4, // a dispersed civic landmark, between a statue and the Tolbooth
   burning_barricade: 2, // small map dressing
-  // House variants — sized to read alongside the observatory/windmill
+  // House variants - sized to read alongside the observatory/windmill
   house:                        5,
   house_entry:                  5,
   house_blue:                   5,
@@ -367,17 +367,17 @@ const LANDMARK_ICON_SIZES: Partial<Record<string, number>> = {
   quarry_crane: 4,
   special_chest: 3,
   special_chest_opened: 3,
-  // Corrupted shrines — same landmark treatment as windmills / cottages
+  // Corrupted shrines - same landmark treatment as windmills / cottages
   heresy_altar:         5,
   heresy_altar_cracked: 5,
-  // Revenant summoning sigils — active (purple) and failed/dud (ash) read as landmarks once found
+  // Revenant summoning sigils - active (purple) and failed/dud (ash) read as landmarks once found
   summoning_ritual:     5,
   summoning_ritual_dud: 5,
-  // World transitions — always rendered as a visible landmark so portals read on the map
+  // World transitions - always rendered as a visible landmark so portals read on the map
   portal:               5,
   fog_gate:             5,
   cave_mouth:           4,
-  // Lit bonfires (rest sites) — visible once discovered
+  // Lit bonfires (rest sites) - visible once discovered
   bonfire:              5,
 };
 
@@ -466,7 +466,7 @@ function collectLandmarkProbeTiles(
 }
 
 
-/** Deterministic 0..1 noise per map cell — stable across frames. */
+/** Deterministic 0..1 noise per map cell - stable across frames. */
 function minimapTileHash(tx: number, ty: number): number {
   let n = Math.imul(tx, 92837111) ^ Math.imul(ty, 689287499);
   n = Math.imul(n ^ (n >>> 13), 1597334677);
@@ -475,7 +475,7 @@ function minimapTileHash(tx: number, ty: number): number {
 
 /**
  * Deep Hollow floor on the map: stay rooted in forest greens, with mauve/violet “rot” blotches
- * (same language as corrupted bridge) — avoids a uniform beige desert read at small scale.
+ * (same language as corrupted bridge) - avoids a uniform beige desert read at small scale.
  */
 function drawHollowBlightMinimapCell(
   ctx: CanvasRenderingContext2D,
@@ -492,7 +492,7 @@ function drawHollowBlightMinimapCell(
   ctx.fillStyle = bases[(Math.floor(u * 4) + ty) % 4];
   ctx.fillRect(px, py, scale, scale);
 
-  // Wider violet wash — ~half the cells get visible corruption (blotchy, not a solid tan field)
+  // Wider violet wash - ~half the cells get visible corruption (blotchy, not a solid tan field)
   if (u2 > 0.45) {
     ctx.fillStyle = u2 > 0.88 ? 'rgba(125, 78, 158, 0.48)' : 'rgba(72, 48, 96, 0.34)';
     const pad = Math.max(0, Math.min(scale - 1, Math.floor(scale * 0.12)));
@@ -509,7 +509,7 @@ function drawHollowBlightMinimapCell(
   }
 }
 
-/** Whispering Woods: tileY 59–74 ⇒ world y &gt; ~-91 — south of deep hollow, still “sick” grass (bridge corridor). */
+/** Whispering Woods: tileY 59–74 ⇒ world y &gt; ~-91 - south of deep hollow, still “sick” grass (bridge corridor). */
 function isWhisperingWoodsHollowTransitionCell(mapName: string, tileY: number, tileType: string): boolean {
   if (mapName !== 'Whispering Woods') return false;
   if (tileY < 59 || tileY > 74) return false;
@@ -517,7 +517,7 @@ function isWhisperingWoodsHollowTransitionCell(mapName: string, tileY: number, t
     || tileType === 'tall_grass_b' || tileType === 'tall_grass_c';
 }
 
-/** Softer than full hollow_blight — keeps map green-forward, faint violet specks ramping northward. */
+/** Softer than full hollow_blight - keeps map green-forward, faint violet specks ramping northward. */
 function drawHollowTransitionMinimapCell(
   ctx: CanvasRenderingContext2D,
   tileX: number,
@@ -771,7 +771,7 @@ export function drawMinimapTerrain(p: DrawMinimapTerrainParams): void {
     }
   }
 
-  // Landmark pass — draws each known structure as a downscaled sprite centered on its
+  // Landmark pass - draws each known structure as a downscaled sprite centered on its
   // anchor tile so landmarks read like miniature versions of the in-world asset. Only
   // runs for tiles the player has already seen (visited set, or full reveal mode), so
   // landmarks don't leak unexplored areas. Falls back to a solid color block when the
@@ -926,7 +926,7 @@ export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
       : (marker.type === 'quest' || marker.type === 'poi') ? '#8FBC8F' : marker.color;
 
     // Optional / skippable content (side quests, POIs, optional field bosses) renders
-    // HOLLOW so it visibly recedes from the solid pulsing primary objective — the player
+    // HOLLOW so it visibly recedes from the solid pulsing primary objective - the player
     // reads it as "you may detour here", not "you missed a turn". NPC and portal markers
     // keep their solid read (they're people / navigation, not opt-in destinations).
     const isOptional = !isObjectiveMarker
@@ -1066,7 +1066,7 @@ export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
   const playerY = Math.floor(playerPosition.y + h / 2);
   const px = playerX * scale + scale / 2;
   const py = (h - 1 - playerY) * scale + scale / 2;
-  // Player marker on the minimap / full map — sized to read at roughly the
+  // Player marker on the minimap / full map - sized to read at roughly the
   // same prominence as bonfire landmark sprites (~9 × scale) so the player's
   // dot doesn't get lost next to discovered landmarks on busy maps.
   const playerMarkerSize = Math.max(scale * 7.5, scale >= 6 ? 26 : 18);

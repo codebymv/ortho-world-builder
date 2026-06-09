@@ -117,7 +117,7 @@ export function createPointerInputController({
         const playerAnimState = getPlayerAnimState();
 
         // Mid-swing: call performAttack directly so it can set comboInputBuffered.
-        // Bypass the charge system entirely — the combo chain handles its own timing.
+        // Bypass the charge system entirely - the combo chain handles its own timing.
         if (playerAnimState === 'attack') {
           performAttack();
           return;
@@ -162,7 +162,7 @@ export function createPointerInputController({
       if (!getIsBlocking() && !state.player.isDodging && !state.player.isClimbing && state.player.stamina > 0) {
         setIsBlocking(true);
         setBlockStartTime(performance.now() / 1000);
-        // Open the parry window — visualized by the blade-overlay shimmer.
+        // Open the parry window - visualized by the blade-overlay shimmer.
         // Decremented in the gameplay prelude; matches PARRY_WINDOW in Combat.ts.
         state.player.parryWindowTimer = 0.25;
         playBlock();

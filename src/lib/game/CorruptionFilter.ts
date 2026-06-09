@@ -5,7 +5,7 @@ import * as THREE from 'three';
  * pinned to the camera at the highest renderOrder so it composites over
  * everything after the world is drawn.
  *
- * The shader is a STATIC uniform tint — flat across the screen, no breathing,
+ * The shader is a STATIC uniform tint - flat across the screen, no breathing,
  * no vignette, no scanline, no time-driven modulation. Identical to dropping
  * a partially-transparent violet layer in Photoshop on top of the scene.
  * Slight by design: hollow areas should feel like a different photographic
@@ -13,7 +13,7 @@ import * as THREE from 'three';
  *
  * Strength is set per-frame by the biome resolver and only ever sits at 0 or
  * 1. The class smooth-lerps the rendered value across that step (~2s) so the
- * region transition parallels the music crossfade — once the player is past
+ * region transition parallels the music crossfade - once the player is past
  * the threshold the tint is pinned at its static level with no fluctuation.
  *
  * Zero strength = the overlay is invisible (mesh skipped to save draw cost).
@@ -37,7 +37,7 @@ const FRAG = /* glsl */ `
 
   void main() {
     // === Static uniform color grade ===
-    // A flat, slight photographic filter — no breathing, no throb, no
+    // A flat, slight photographic filter - no breathing, no throb, no
     // scanline, no time-based modulation of any kind. Strength only ramps
     // during the ~2s ENTER/EXIT crossfade and is otherwise pinned at 1.0 or
     // 0.0. Think Instagram filter intensity, not "the corruption is alive".
@@ -59,7 +59,7 @@ export class CorruptionFilter {
   private scene: THREE.Scene;
   private targetStrength = 0;
   private currentStrength = 0;
-  // Per-second exponential lerp rate — ~2s to fully reach target. Roughly
+  // Per-second exponential lerp rate - ~2s to fully reach target. Roughly
   // matches the music crossfade pacing (equal-power, ~1.6s) so the audio and
   // visual transitions feel paired.
   private static readonly LERP_RATE = 1.6;
@@ -130,7 +130,7 @@ export class CorruptionFilter {
   }
 
   update(deltaTime: number, _currentTimeSeconds?: number): void {
-    // Exponential approach — smooth ramp during the ~2s ENTER/EXIT transition,
+    // Exponential approach - smooth ramp during the ~2s ENTER/EXIT transition,
     // pinned at target value once it settles. `_currentTimeSeconds` is kept
     // in the signature for backward compatibility with callers but isn't
     // used now that the shader is static.
@@ -143,7 +143,7 @@ export class CorruptionFilter {
       }
     }
     this.material.uniforms.strength.value = this.currentStrength;
-    // Skip the draw entirely when fully off — saves a transparent pass on the
+    // Skip the draw entirely when fully off - saves a transparent pass on the
     // common path (every map that isn't the hollow side of the forest).
     this.mesh.visible = this.currentStrength > 0.001;
   }

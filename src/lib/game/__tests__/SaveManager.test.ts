@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { SaveManager, type SaveData } from '../SaveManager';
 import { GameState } from '../GameState';
 
-// Minimal in-memory localStorage shim — vitest runs in node, so global
+// Minimal in-memory localStorage shim - vitest runs in node, so global
 // localStorage isn't defined by default.
 class MemoryStorage {
   private store = new Map<string, string>();
@@ -27,7 +27,7 @@ function writeRaw(payload: unknown) {
   localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
 }
 
-describe('SaveManager.load — corruption handling', () => {
+describe('SaveManager.load - corruption handling', () => {
   it('returns null when no save exists', () => {
     expect(SaveManager.load()).toBeNull();
   });
@@ -54,7 +54,7 @@ describe('SaveManager.load — corruption handling', () => {
   });
 });
 
-describe('SaveManager.load — defaults for missing v5 fields', () => {
+describe('SaveManager.load - defaults for missing v5 fields', () => {
   it('fills mapMarkers, visitedTiles, quests, gameFlags, worldItems, inventory as empty', () => {
     writeRaw({
       version: 2,
@@ -220,7 +220,7 @@ describe('SaveManager boss attempt checkpoints', () => {
   });
 });
 
-describe('SaveManager.load — v7 ring migration', () => {
+describe('SaveManager.load - v7 ring migration', () => {
   it('migrates cursed_idol inventory, flags, and auto-equips wolf_ring from Olwen path', () => {
     writeRaw({
       version: 6,

@@ -170,7 +170,7 @@ export const DialogueBox = ({
         } else if (!hasResponses) {
           onClose();
         } else if (node.responses!.length === 1) {
-          // Single response — advance immediately
+          // Single response - advance immediately
           const r = node.responses![0];
           advanceDialogue(r.nextId, r.givesQuest, r.opensVendor);
         }
@@ -232,7 +232,7 @@ export const DialogueBox = ({
         </div>
       </div>
 
-      {/* Response panel — bottom of screen */}
+      {/* Response panel - bottom of screen */}
       {!isTyping && (
         <div
           ref={containerRef}

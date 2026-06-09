@@ -1,7 +1,7 @@
 import type { TileType, World, WorldMap } from '@/lib/game/World';
 import { FOREST_DUD_RITUAL_ANCHORS } from '@/game/runtime/ritualSiteConstants';
 
-/** Decorative tiles placed around summoning glyphs — preserved when forts are stamped. */
+/** Decorative tiles placed around summoning glyphs - preserved when forts are stamped. */
 export const RITUAL_DECOR_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'ritual_candle',
   'ritual_candle_knocked',

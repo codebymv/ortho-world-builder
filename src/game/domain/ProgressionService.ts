@@ -223,14 +223,14 @@ export function createProgressionService(context: ProgressionServiceContext) {
       if (state.getFlag('wolf_ring_received')) {
         startNode = dialogue.nodes.find(node => node.id === 'after_ring') ?? startNode;
       } else if (state.getFlag('olwen_ranger_cabin_hint')) {
-        // Player heard the hint but hasn't found the ring yet — remind them.
+        // Player heard the hint but hasn't found the ring yet - remind them.
         startNode = dialogue.nodes.find(node => node.id === 'take_ring') ?? startNode;
       }
     }
 
     if (dialogueId === 'mysterious_man') {
       // Real dialogue unlocks once the Hollow Apparition is dead. Until then he
-      // stays dismissive — same cold-shoulder node every time so the player learns
+      // stays dismissive - same cold-shoulder node every time so the player learns
       // to come back later rather than fishing for content that isn't there yet.
       if (state.getFlag('hollow_guardian_defeated')) {
         startNode = dialogue.nodes.find(node => node.id === 'unlocked') ?? startNode;
@@ -273,12 +273,12 @@ export function createProgressionService(context: ProgressionServiceContext) {
     const quest = { ...questTemplate, objectives: [...questTemplate.objectives], active: true };
     state.addQuest(quest);
     announceQuestAccepted(quest);
-    // Stop any NPC markers on this map from pulsing — the player just spoke to the quest-giver
+    // Stop any NPC markers on this map from pulsing - the player just spoke to the quest-giver
     // and is now heading somewhere else, so quest-giver NPC dots should not keep blinking.
     context.clearNpcMarkerPulse(state.currentMap);
 
     context.addMarkersFromText(quest.description, state.currentMap);
-    // Only scan the first objective for markers — later objectives (e.g. "Return to the elder")
+    // Only scan the first objective for markers - later objectives (e.g. "Return to the elder")
     // get their markers created at the correct time by the progression system, so we don't
     // pre-create markers that make past/future NPCs glow when they aren't the active target.
     if (quest.objectives.length > 0) {
@@ -442,7 +442,7 @@ export function createProgressionService(context: ProgressionServiceContext) {
         context.syncBlightedRootState?.();
       }
       let blightedRootProgress = false;
-      // Grant the quest item whenever it is still missing (decoupled from flag — avoids softlocks).
+      // Grant the quest item whenever it is still missing (decoupled from flag - avoids softlocks).
       if (context.items.blighted_root_shard && !state.hasItem('blighted_root_shard')) {
         state.addItem({ ...context.items.blighted_root_shard });
         context.notify('Blighted Root Destroyed', {

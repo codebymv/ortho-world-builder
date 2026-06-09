@@ -29,7 +29,7 @@ export interface CityBlockOpts {
   streetHalfWidth?: number;
   /** Building kit to stamp (single type). */
   type?: TileType;
-  /** Weighted mix of kits — repeat an entry to make it more frequent. A district is
+  /** Weighted mix of kits - repeat an entry to make it more frequent. A district is
    *  defined by this FREQUENCY of forms, not a uniform colour (colours mix per-building). */
   types?: TileType[];
   /** Rectangles left open (bonfires, POIs, the critical path, plazas, the canal). */
@@ -41,11 +41,11 @@ export interface CityBlockOpts {
 }
 
 /**
- * Dense Victorian fill that reads as an ORGANIC, grown city — not a stiff grid.
+ * Dense Victorian fill that reads as an ORGANIC, grown city - not a stiff grid.
  * Thinks in BLOCKS (solid continuous terraces) separated by narrow streets/alleys, but
  * every block's WIDTH, DEPTH, the alley/street widths, the row start offset, and the bay
  * phase are jittered from a per-district seed, rows are staggered, and a few blocks are
- * dropped as courts. So block edges don't line up column-to-column and streets wander —
+ * dropped as courts. So block edges don't line up column-to-column and streets wander -
  * the Booth-map grain. Run a walkability BFS after; keepClear protects the dogleg + POIs.
  */
 export function cityBlocks(o: CityBlockOpts): CityBlockProp[] {
@@ -118,14 +118,14 @@ export interface CityFenceOpts {
   gateType?: TileType;
   /** Per-compound seed so gate phases differ between districts. */
   seed?: number;
-  /** Tiles left open (the dogleg path, POIs, chests) — fence skips these, leaving a natural opening. */
+  /** Tiles left open (the dogleg path, POIs, chests) - fence skips these, leaving a natural opening. */
   keepClear?: Rect[];
 }
 
 /**
  * Iron-fence PERIMETER around a housing compound, with periodic gate openings and any
  * keepClear tiles left open. Combined with cityBlocks this turns each district into a
- * walled compound whose only ways in are gates on the roads — the structurality needed to
+ * walled compound whose only ways in are gates on the roads - the structurality needed to
  * gate routes off. Fences are unwalkable; gate tiles are walkable. The dogleg/POIs (passed
  * via keepClear) punch natural openings so the critical path is never sealed.
  */

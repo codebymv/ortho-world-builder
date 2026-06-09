@@ -46,7 +46,7 @@ export function useGameMusic({
    * Resolve the *initial* music key for a fresh load, accounting for the
    * hollow sub-region inside the forest map. Without this, refreshing in the
    * hollow loads wood_theme first and the loop tail immediately crossfades to
-   * the Guilrhym theme — you hear both songs overlap for the fade duration.
+   * the Guilrhym theme - you hear both songs overlap for the fade duration.
    *
    * Critically: this hook's mount effect fires BEFORE `setupGameRuntime`
    * populates `gameStateRef.current`, so on first load the ref is null. We

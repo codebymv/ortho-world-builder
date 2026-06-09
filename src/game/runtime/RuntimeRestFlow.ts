@@ -176,7 +176,7 @@ export function createBonfireRestAction({
     const alreadyKindled = state.getFlag(firstKey);
 
     if (alreadyKindled) {
-      // Bonfire is already lit — kindle updates respawn point then open the menu.
+      // Bonfire is already lit - kindle updates respawn point then open the menu.
       kindleBonfire(tileX, tileY);
       evictEnemiesFromBonfireSafeZones(combatSystem, state.currentMap, state.gameFlags as Record<string, boolean | number>);
       openBonfireMenu();

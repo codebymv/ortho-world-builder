@@ -64,7 +64,7 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   { keywords: ['ranger cottage'], tileX: 236, tileY: 227, map: 'forest', label: 'Ranger Cottage', type: 'poi', color: '#9370DB' },
   { keywords: ['surveyor', 'surveyors den', 'surveyors hollow', 'cave mouth'], tileX: 45, tileY: 114, map: 'forest', label: "Surveyor's Den", type: 'poi', color: '#8B6914' },
   { keywords: ['traveler', 'travelers inlet', 'traveler inlet'], tileX: 258, tileY: 96, map: 'forest', label: "Traveler's Inlet", type: 'poi', color: '#8B6914' },
-  // Fort gate key — use "chapel ruins" only (not plain "chapel") so village chapel dialogue does not ping the woods.
+  // Fort gate key - use "chapel ruins" only (not plain "chapel") so village chapel dialogue does not ping the woods.
   // Points at the actual chapel_dead_ranger remains (forest map x:65,y:183); the old (55,114) was ~70 tiles off.
   { keywords: ['chapel ruins'], tileX: 65, tileY: 183, map: 'forest', label: 'Chapel Ruins (ranger remains)', type: 'poi', color: '#A1887F' },
   { keywords: ['disparaged cottage', 'hunter cottage', 'old shack', 'shack', 'run down old shack'], tileX: 137, tileY: 184, map: 'forest', label: 'Disparaged Cottage', type: 'quest', color: '#FFD700' },
@@ -163,7 +163,7 @@ export function isPrimaryObjectiveMarker(
   return false;
 }
 
-// ─── Manuscript quest — dynamic primary objective marker ──────────────────────
+// ─── Manuscript quest - dynamic primary objective marker ──────────────────────
 
 export const MANUSCRIPT_PRIMARY_MARKER_ID = 'manuscript_primary_objective';
 
@@ -173,10 +173,10 @@ export const MANUSCRIPT_PRIMARY_MARKER_ID = 'manuscript_primary_objective';
  * collects fragments and opens gates.  Returns null when the quest is not
  * active, already completed, or no longer needs a map pin.
  *
- * Stage 1 — initial:                  Disparaged Cottage (tile 137, 184)
- * Stage 2 — fragment collected:        Manuscript Gate Guard (tile 230, 154)
- * Stage 3 — checkpoint gate open:      Commander's Evacuation Order (tile 213, 70)
- * Stage 4 — second manuscript in hand: Hollow fog-gate entrance (tile 122, 18)
+ * Stage 1 - initial:                  Disparaged Cottage (tile 137, 184)
+ * Stage 2 - fragment collected:        Manuscript Gate Guard (tile 230, 154)
+ * Stage 3 - checkpoint gate open:      Commander's Evacuation Order (tile 213, 70)
+ * Stage 4 - second manuscript in hand: Hollow fog-gate entrance (tile 122, 18)
  */
 export function getManuscriptPrimaryObjectiveMarker(state: GameState): MapMarker | null {
   const quest = state.quests.find(q => q.id === 'find_hunter' && !q.completed);
@@ -201,7 +201,7 @@ export function getManuscriptPrimaryObjectiveMarker(state: GameState): MapMarker
   if (state.getFlag('hunters_manuscript_collected') && !state.getFlag('hollow_guardian_defeated')) {
     return { ...base, tileX: 122, tileY: 18 };
   }
-  // Boss defeated — quest is wrapping up; no forest pin needed
+  // Boss defeated - quest is wrapping up; no forest pin needed
   if (state.getFlag('hollow_guardian_defeated')) return null;
 
   // Stage 3: checkpoint gate open → collect the fort evacuation order
@@ -216,7 +216,7 @@ export function getManuscriptPrimaryObjectiveMarker(state: GameState): MapMarker
   return { ...base, tileX: 137, tileY: 184 };
 }
 
-// ─── Village — dynamic primary objective marker ────────────────────────────────
+// ─── Village - dynamic primary objective marker ────────────────────────────────
 
 export const VILLAGE_PRIMARY_MARKER_ID = 'village_primary_objective';
 
@@ -224,15 +224,15 @@ export const VILLAGE_PRIMARY_MARKER_ID = 'village_primary_objective';
  * Computes the "Primary" objective marker shown in Greenleaf Village for the
  * find_hunter quest.
  *
- * Stage 1 — quest not yet given:  Village Elder (tile 124, 100)
- * Stage 2 — quest active:         Forest portal (tile 120, 8)
+ * Stage 1 - quest not yet given:  Village Elder (tile 124, 100)
+ * Stage 2 - quest active:         Forest portal (tile 120, 8)
  */
 export function getVillagePrimaryObjectiveMarker(state: GameState): MapMarker | null {
   const quest = state.quests.find(q => q.id === 'find_hunter');
 
   // Quest fully completed → no village pin needed
   if (quest?.completed) return null;
-  // Player has already progressed into the forest — the static "Village Elder"
+  // Player has already progressed into the forest - the static "Village Elder"
   // marker handles the "return to report" stage on its own.
   if (state.getFlag('manuscript_fragment_collected')) return null;
 
@@ -257,7 +257,7 @@ export function getVillagePrimaryObjectiveMarker(state: GameState): MapMarker | 
   return { ...base, tileX: 124, tileY: 100 };
 }
 
-// ─── Ring hint — dynamic secondary marker ────────────────────────────────────
+// ─── Ring hint - dynamic secondary marker ────────────────────────────────────
 
 export const RING_HINT_MARKER_ID = 'ring_hint_ranger_cottage';
 const STORED_RING_HINT_MARKER_IDS = new Set(['forest_Ranger Cottage', 'forest_Ranger Outpost']);
@@ -288,7 +288,7 @@ export function shouldHideStoredRingHintMarker(
   //
   // We hide on EITHER flag: `olwen_ranger_cabin_hint` covers the live quest path,
   // while `wolf_ring_received` covers migrated/loaded saves (see SaveManager) that
-  // can set the ring flag without ever setting the hint flag — otherwise a stale
+  // can set the ring flag without ever setting the hint flag - otherwise a stale
   // "Secondary" ranger pin would survive on those saves.
   return Boolean(
     isStoredRangerObjectiveMarker &&
@@ -308,7 +308,7 @@ export function shouldHideCompletedObjectiveMarker(
 ): boolean {
   // The Disparaged Cottage is the manuscript quest's Stage 1 POI. Once the first
   // fragment is collected (the cottage has been looted) it is no longer a relevant
-  // destination — the later stages point elsewhere and never return here.
+  // destination - the later stages point elsewhere and never return here.
   return Boolean(
     STORED_DONE_MARKER_IDS.has(marker.id) && state.getFlag('manuscript_fragment_collected'),
   );

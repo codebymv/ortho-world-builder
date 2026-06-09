@@ -32,7 +32,7 @@ export const TALL_GRASS_SPEED_MULT = 0.5;
 const CLIMB_MOVE_RADIUS = 0;
 /**
  * Exponential lerp rate (per second) for sliding onto the ladder rail or off onto
- * a landing tile. ~12/s gives ~85% smoothing in ~150ms — fast enough to feel
+ * a landing tile. ~12/s gives ~85% smoothing in ~150ms - fast enough to feel
  * responsive, slow enough to read as a smooth glide instead of a teleport.
  */
 const LADDER_SNAP_RATE = 12;
@@ -118,14 +118,14 @@ function resolveVerticalLadderColumnX(
   if (map.name === 'Whispering Woods' && tileX === 239) {
     // A tile sprite renders centered at world-x (tileX - hw); the ladder overlay adds a +0.06
     // east mesh shift and the climb pose draws the sprite 0.07 west. Net flush position lands at
-    // ~0.13 — matching the generic west-hug value the other (flush) vertical ladders use.
+    // ~0.13 - matching the generic west-hug value the other (flush) vertical ladders use.
     return tileX - hw + 0.13;
   }
   if (westWalls >= eastWalls) return tileX - hw + 0.15;
   return tileX - hw + 0.85;
 }
 
-/** Stand flush on the ladder rails — hug the adjacent wall rather than tile center. */
+/** Stand flush on the ladder rails - hug the adjacent wall rather than tile center. */
 function snapToLadderAxis(world: World, px: number, py: number): { x: number; y: number } {
   const map = world.getCurrentMap();
   const hw = map.width / 2;
@@ -308,7 +308,7 @@ export type Direction8 =
 
 export type CardinalDirection = 'up' | 'down' | 'left' | 'right';
 
-/** Attack locomotion timer can expire before frame state clears — snap to walk/idle so movement isn't a frozen attack pose. */
+/** Attack locomotion timer can expire before frame state clears - snap to walk/idle so movement isn't a frozen attack pose. */
 export function resolveStaleAttackAnimState(
   playerAnimState: PlayerAnimState,
   attackAnimationTimer: number,
@@ -327,7 +327,7 @@ export function attackBlocksLocomotion(
   return playerAnimState === 'attack' && attackAnimationTimer > 0;
 }
 
-/** Souls-style consumable use — root the player until the drink/chew animation resolves. */
+/** Souls-style consumable use - root the player until the drink/chew animation resolves. */
 export function consumableUseBlocksLocomotion(
   _playerAnimState: PlayerAnimState,
   drinkTimer: number,
@@ -573,7 +573,7 @@ export function updatePlayerSimulation({
 
   revealVisibleTiles();
 
-  // Knockback integration — runs before input movement so the player gets shoved
+  // Knockback integration - runs before input movement so the player gets shoved
   // and can recover with WASD in the same frame. Slide stops on wall collision
   // (no clipping through cliffs); decays exponentially so impacts feel weighty
   // for ~0.3s then ease out.
@@ -592,7 +592,7 @@ export function updatePlayerSimulation({
       state.player.position.y = kbY;
       state.player.knockbackVelX = 0;
     } else {
-      // Wall-stop — bleed the impulse so we don't stay stuck pushing.
+      // Wall-stop - bleed the impulse so we don't stay stuck pushing.
       state.player.knockbackVelX = 0;
       state.player.knockbackVelY = 0;
     }
@@ -706,7 +706,7 @@ export function updatePlayerSimulation({
     climbingSideDismount = Boolean(resolved.sideDismount);
     moved = moveX !== 0 || moveY !== 0;
 
-    // Smoothly ease the player onto the ladder rail rather than hard-snapping —
+    // Smoothly ease the player onto the ladder rail rather than hard-snapping -
     // a sudden lateral jump of ~0.35 units on the first climb frame reads as a
     // teleport. Dismount handles its own glide further below.
     if (!climbingDismount) {
@@ -726,7 +726,7 @@ export function updatePlayerSimulation({
     const newDodgeY = state.player.position.y + state.player.dodgeDirection.y * dodgeFrameSpeed;
 
     // Mirror the exact four corner probes that canMoveTo(PLAYER_MOVE_RADIUS) uses
-    // so we break whichever tile blocks the roll — radius checks against tile
+    // so we break whichever tile blocks the roll - radius checks against tile
     // centers are unreliable when the player straddles a tile boundary.
     const dodgeMap = world.getCurrentMap();
     const DR = PLAYER_MOVE_RADIUS;
@@ -786,8 +786,11 @@ export function updatePlayerSimulation({
     const climbAdjusted = state.player.isClimbing ? baseSpeed * CLIMB_SPEED_MULT : baseSpeed;
     const snareAdjusted = state.player.snareTimer > 0 ? climbAdjusted * state.player.snareSpeedMult : climbAdjusted;
     // Tall grass: trudging through unchopped grass halves movement speed.
-    const onTallGrass = world.getTile(state.player.position.x, state.player.position.y)?.type === 'tall_grass';
-    const grassAdjusted = onTallGrass ? snareAdjusted * TALL_GRASS_SPEED_MULT : snareAdjusted;
+    const standingTile = world.getTile(state.player.position.x, state.player.position.y);
+    const onTallGrass = standingTile?.type === 'tall_grass';
+    const onSlowWalk = standingTile?.slowWalk === true;
+    let grassAdjusted = onTallGrass ? snareAdjusted * TALL_GRASS_SPEED_MULT : snareAdjusted;
+    if (onSlowWalk) grassAdjusted *= TALL_GRASS_SPEED_MULT;
     const currentSpeed = grassAdjusted * state.player.berserkerSpeedMult * state.getMovementSpeedMultiplier();
 
     if (wantsSprint) {
@@ -890,7 +893,7 @@ export function updatePlayerSimulation({
     if (attackFrameTimer <= 0) {
       attackFrame++;
       if (attackFrame >= 3) {
-        // Swing complete — open the combo chain window
+        // Swing complete - open the combo chain window
         playerAnimState = moved ? 'walk' : 'idle';
         attackFrame = 0;
         state.player.attackAnimationTimer = 0;
@@ -910,11 +913,11 @@ export function updatePlayerSimulation({
             playerAnimState = 'attack';
             comboWindowTimer = 0;
           } else {
-            // Chain failed (hurt/no stamina) — enforce post-swing recovery lockout.
+            // Chain failed (hurt/no stamina) - enforce post-swing recovery lockout.
             state.player.attackRecoveryTimer = getComboRecovery(comboStep);
           }
         } else {
-          // No input buffered — enforce recovery so rapid-fire mashing is blocked.
+          // No input buffered - enforce recovery so rapid-fire mashing is blocked.
           state.player.attackRecoveryTimer = getComboRecovery(comboStep);
         }
       } else {
@@ -973,7 +976,7 @@ export function updatePlayerSimulation({
     const nearby = combatSystem.getEnemiesInRange(state.player.position, hitRadius, _scratchLungeEnemies);
     const { dirX, dirY } = lungeState;
     const LUNGE_POST_HIT_LOCK = 0.42;
-    // Fixed push distances from the player's current position — independent of
+    // Fixed push distances from the player's current position - independent of
     // how much lunge travel remains, so enemies always land well clear.
     const KNOCKBACK_DISTANCES = [3.2, 2.8, 2.4, 2.0];
 
@@ -1027,7 +1030,7 @@ export function updatePlayerSimulation({
       onLungeEnd();
 
       // Auto-retreat: kick the player backward out of the lunge so there is
-      // separation before enemies can retaliate. Free — no stamina cost.
+      // separation before enemies can retaliate. Free - no stamina cost.
       if (!state.player.isDodging) {
         state.player.isDodging = true;
         state.player.dodgeTimer = state.player.dodgeDuration;

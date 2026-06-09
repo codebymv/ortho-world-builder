@@ -504,7 +504,7 @@ export const GameUI = ({
 
   return (
     <>
-      {/* Top bar — flex layout (no absolute center) so FlashCore's ~16:9 iframe doesn't overlap */}
+      {/* Top bar - flex layout (no absolute center) so FlashCore's ~16:9 iframe doesn't overlap */}
       <div className="fixed top-0 left-0 right-0 h-12 bg-[#1A0F0A]/85 backdrop-blur-sm border-b border-[#5C3A21] z-50 px-2 min-[900px]:px-3 min-[1280px]:px-4 pointer-events-auto shadow-md">
         <div className="flex h-full items-center gap-2 min-w-0">
           <div className="flex shrink-0 items-center min-w-0">
@@ -540,7 +540,7 @@ export const GameUI = ({
             )}
           </div>
 
-          {/* Right nav — icon-only below 1280px; extra right margin clears FlashCore fullscreen control */}
+          {/* Right nav - icon-only below 1280px; extra right margin clears FlashCore fullscreen control */}
           <div className="ml-auto flex shrink-0 items-center gap-0.5 mr-10 min-[1280px]:mr-8">
             <div ref={volumePanelRef} className="relative">
               <Button

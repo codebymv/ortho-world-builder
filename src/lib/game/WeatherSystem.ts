@@ -268,7 +268,38 @@ export class WeatherSystem {
     };
   }
 
-  update(deltaTime: number, playerX: number, playerY: number, biome: string) {
+  /**
+   * Caves and other interiors are sealed from the sky: clear any live weather instantly so rain,
+   * snow, fog and lightning can't bleed indoors. Cheap to call every frame — once the particles
+   * are drained it early-outs on the sync.
+   */
+  private suppressForIndoors(playerX: number, playerY: number) {
+    this.currentWeather = 'clear';
+    this.targetWeather = 'clear';
+    this.transitionTimer = 0;
+    this.weatherTimer = 0;
+    this.lightningBurstRemaining = 0;
+    let hadActive = false;
+    for (const p of this.particles) {
+      if (p.active) { p.active = false; hadActive = true; }
+    }
+    if (hadActive || this.renderedParticleCount !== 0) {
+      this.syncParticleInstances('clear');
+    }
+    if (this.overlay) {
+      const mat = this.overlay.material as THREE.MeshBasicMaterial;
+      mat.color.setHex(0x000000);
+      mat.opacity = 0;
+      this.overlay.position.x = playerX;
+      this.overlay.position.y = playerY;
+    }
+  }
+
+  update(deltaTime: number, playerX: number, playerY: number, biome: string, indoors = false) {
+    if (indoors) {
+      this.suppressForIndoors(playerX, playerY);
+      return;
+    }
     // Weather change timer
     this.weatherTimer += deltaTime;
     if (this.weatherTimer >= this.nextWeatherChange) {
@@ -311,7 +342,7 @@ export class WeatherSystem {
       if (this.lightningBurstRemaining < 0) this.lightningBurstRemaining = 0;
     }
 
-    // Atmospheric overlay (must reset color when clear — lightning used to leave 0xFFFFFF and caused white flashes)
+    // Atmospheric overlay (must reset color when clear - lightning used to leave 0xFFFFFF and caused white flashes)
     if (this.overlay) {
       const mat = this.overlay.material as THREE.MeshBasicMaterial;
       const baseOpacity = cfg.bgOpacity > 0 ? cfg.bgOpacity * fadeProgress : 0;

@@ -22,7 +22,7 @@ export const interiorHollowArenaDef: MapDefinition = {
   ],
   portals: [],
   chests: [
-    // Post-boss reward — Terminus Scythe, but ONLY if the player did not already claim it
+    // Post-boss reward - Terminus Scythe, but ONLY if the player did not already claim it
     // early from a Ridge Revenant. If they did, InteractionSystem pre-opens this chest so it
     // renders as already-looted and the Apparition drops only essence. East side of the inner
     // ruins, reachable after the boss (the arena exit gates on hollow_guardian_defeated).
@@ -42,13 +42,13 @@ export const interiorHollowArenaDef: MapDefinition = {
     { x: 28, y: 12, type: 'bones', walkable: true },
     { x: 16, y: 28, type: 'bones', walkable: true },
     { x: 20, y: 6, type: 'bones', walkable: true },
-    // Spent ritual — the Apparition was created here
+    // Spent ritual - the Apparition was created here
     { x: 18, y: 14, type: 'heresy_altar_cracked', walkable: true },
     { x: 18, y: 8,  type: 'tombstone_broken',     walkable: true },
     // Corruption creeping from the north wall
     { x: 5,  y: 5,  type: 'dead_tree',   walkable: false },
     { x: 30, y: 5,  type: 'dead_tree',   walkable: false },
-    // Ritual bone arrangements — deliberate, not random scatter
+    // Ritual bone arrangements - deliberate, not random scatter
     { x: 15, y: 11, type: 'bones', walkable: true },
     { x: 21, y: 11, type: 'bones', walkable: true },
     { x: 12, y: 18, type: 'bones', walkable: true },

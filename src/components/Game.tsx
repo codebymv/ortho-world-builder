@@ -20,6 +20,7 @@ import { Minimap } from './game/Minimap';
 import { NotificationFeed } from './game/NotificationFeed';
 import { PauseMenu } from './game/PauseMenu';
 import { MainMenu } from './game/MainMenu';
+import { GameBootLoadingOverlay } from './game/GameBootLoadingOverlay';
 import { TransitionOverlay } from './game/TransitionOverlay';
 import { DeathOverlay } from './game/DeathOverlay';
 import { BonfireOverlay } from './game/BonfireOverlay';
@@ -49,6 +50,11 @@ import {
   applyMasterGainMute,
   applyElementMute,
 } from '@/game/domain/audioMutePreference';
+import {
+  resetGameBootProgress,
+  setGameBootProgress,
+  subscribeGameBootProgress,
+} from '@/lib/game/gameBootProgress';
 
 type InteractionPrompt = string | null;
 type BossHudSnapshot = {
@@ -68,7 +74,7 @@ type CombatDebugEnemy = {
   elevation: number;
   /** Absolute elevation difference between this enemy and the player. */
   elevDelta: number;
-  /** False when elevDelta > MELEE_ELEVATION_TOLERANCE (0.55) — enemy cannot reach player. */
+  /** False when elevDelta > MELEE_ELEVATION_TOLERANCE (0.55) - enemy cannot reach player. */
   elevOk: boolean;
 };
 type CombatDebugSnapshot = {
@@ -253,6 +259,8 @@ const Game = () => {
   // Main Menu and Save States
   const [isInMainMenu, setIsInMainMenu] = useState(true);
   const [isBootingGame, setIsBootingGame] = useState(false);
+  const [bootExiting, setBootExiting] = useState(false);
+  const [bootTargetProgress, setBootTargetProgress] = useState(0);
   const [bootMessage, setBootMessage] = useState('Kindling the bonfire...');
   const [gameKey, setGameKey] = useState(0);
   const [volume, setVolume] = useState(() => getAudioVolume());
@@ -677,6 +685,12 @@ const Game = () => {
   }, [isPaused]);
 
   useEffect(() => {
+    return subscribeGameBootProgress(({ target }) => {
+      setBootTargetProgress(target);
+    });
+  }, []);
+
+  useEffect(() => {
     const preloadMenuChunks = () => {
       void loadInventoryModal();
       void loadPlayerModal();
@@ -685,22 +699,24 @@ const Game = () => {
       preloadGameBoot();
     };
 
+    preloadMenuChunks();
+
     const ric = (window as Window).requestIdleCallback as Window['requestIdleCallback'] | undefined;
     if (typeof ric === 'function') {
-      const idleId = ric.call(window, preloadMenuChunks, { timeout: 2000 });
+      const idleId = ric.call(window, preloadMenuChunks, { timeout: 1500 });
       return () => window.cancelIdleCallback(idleId);
     }
 
-    const timeoutId = window.setTimeout(preloadMenuChunks, 1200);
+    const timeoutId = window.setTimeout(preloadMenuChunks, 400);
     return () => window.clearTimeout(timeoutId);
   }, []);
 
-  // Map modal is opened frequently — load its chunk immediately.
+  // Map modal is opened frequently - load its chunk immediately.
   useEffect(() => {
     void loadMapModal();
   }, []);
 
-  // Unified menu modal sound effect — plays open/close for map, inventory, or objectives.
+  // Unified menu modal sound effect - plays open/close for map, inventory, or objectives.
   const anyMenuModalOpen = mapModalOpen || inventoryModalOpen || objectivesModalOpen || playerModalOpen;
   useEffect(() => {
     if (previousMenuModalOpenRef.current !== anyMenuModalOpen) {
@@ -1085,10 +1101,13 @@ const Game = () => {
     let disposed = false;
     let cleanup: void | (() => void);
 
+    setGameBootProgress(14, 'Loading world data...');
+
     void loadInteractionContent()
       .then(loadedInteractionContent => {
         if (disposed) return;
         interactionContentRef.current = loadedInteractionContent;
+        setGameBootProgress(24, 'Loading world data...');
       })
       .catch(error => {
         console.error('[Game] Failed to load interaction content', error);
@@ -1099,6 +1118,7 @@ const Game = () => {
         if (disposed) return;
 
         runtimeContentRef.current = loadedRuntimeContent;
+        setGameBootProgress(38, 'Kindling the bonfire...');
         cleanup = setupGameRuntimeEffect({
           refs: { ...runtimeRefs, mountElement },
           ui: runtimeUi,
@@ -1108,10 +1128,12 @@ const Game = () => {
           } satisfies RuntimeContent,
           callbacks: runtimeCallbacks,
         });
+        setGameBootProgress(52, 'Sculpting the land...');
       })
       .catch(error => {
         console.error('[Game] Failed to load runtime setup', error);
         setBootMessage('The bonfire failed to kindle. Refresh and try again.');
+        setGameBootProgress(100);
       });
 
     return () => {
@@ -1125,12 +1147,51 @@ const Game = () => {
   }, [isInMainMenu, gameKey]);
 
   useEffect(() => {
-    if (!isBootingGame || !gameState || isInMainMenu) return;
-    const timeoutId = window.setTimeout(() => {
-      setIsBootingGame(false);
-    }, 180);
-    return () => window.clearTimeout(timeoutId);
-  }, [gameState, isBootingGame, isInMainMenu]);
+    if (!isBootingGame || isInMainMenu || !gameState) return;
+
+    const bootStart = performance.now();
+    const MIN_BOOT_MS = 650;
+    const MAX_BOOT_MS = 12000;
+    let raf = 0;
+    let finished = false;
+
+    const finishBoot = () => {
+      if (finished) return;
+      finished = true;
+      setGameBootProgress(100, 'Enter the world');
+      setBootExiting(true);
+      window.setTimeout(() => {
+        setIsBootingGame(false);
+        setBootExiting(false);
+      }, 480);
+    };
+
+    const tick = () => {
+      const elapsed = performance.now() - bootStart;
+      const world = worldRef.current;
+      const pending = world?.getPerformanceStats().pendingTiles;
+      const hasRenderer = rendererRef.current != null;
+
+      if (pending != null) {
+        if (pending > 0) {
+          const streamed = 52 + (1 - Math.min(1, pending / 180)) * 38;
+          setGameBootProgress(streamed, 'Sculpting the land...');
+        } else {
+          setGameBootProgress(92, 'Opening the way...');
+        }
+      }
+
+      const ready = hasRenderer && gameStateRef.current && pending === 0 && elapsed >= MIN_BOOT_MS;
+      if (ready || elapsed >= MAX_BOOT_MS) {
+        finishBoot();
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [isBootingGame, isInMainMenu, gameState]);
 
   const activeQuests = gameState?.quests.filter(q => q.active && !q.completed) ?? [];
   const activeQuestTitle = activeQuests[0]?.title;
@@ -1146,6 +1207,7 @@ const Game = () => {
     pausedRef.current = false;
     setIsPaused(false);
     setIsBootingGame(false);
+    setBootExiting(false);
     setIsInMainMenu(true);
   }, []);
 
@@ -1177,45 +1239,63 @@ const Game = () => {
 
   const prepareGameplayBoot = useCallback((message: string) => {
     preloadGameBoot();
+    resetGameBootProgress(message);
     setBootMessage(message);
+    setBootExiting(false);
     setIsBootingGame(true);
-    setGameState(null);
-    gameStateRef.current = null;
-    worldRef.current = null;
-    combatSystemRef.current = null;
-    setMapMarkers([]);
-    mapMarkersRef.current = [];
-    visitedTilesRef.current = new Set();
-    setCurrentDialogue(null);
-    setNpcScreenPos(null);
-    setMapModalOpen(false);
-    setInventoryModalOpen(false);
-    setObjectivesModalOpen(false);
-    setVendorModalOpen(false);
-    setPlayerModalOpen(false);
-    setBonfireMenuOpen(false);
-    setDeathActive(false);
-    pausedRef.current = false;
-    playerDeadRef.current = false;
-    setIsPaused(false);
-    setIsInMainMenu(false);
+
+    // Show the loading veil over the menu first, then swap to the canvas underneath.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setGameState(null);
+        gameStateRef.current = null;
+        worldRef.current = null;
+        combatSystemRef.current = null;
+        setMapMarkers([]);
+        mapMarkersRef.current = [];
+        visitedTilesRef.current = new Set();
+        setCurrentDialogue(null);
+        setNpcScreenPos(null);
+        setMapModalOpen(false);
+        setInventoryModalOpen(false);
+        setObjectivesModalOpen(false);
+        setVendorModalOpen(false);
+        setPlayerModalOpen(false);
+        setBonfireMenuOpen(false);
+        setDeathActive(false);
+        pausedRef.current = false;
+        playerDeadRef.current = false;
+        setIsPaused(false);
+        setIsInMainMenu(false);
+      });
+    });
   }, []);
 
   if (isInMainMenu) {
     return (
-      <MainMenu
-        onContinue={() => prepareGameplayBoot('Restoring your last bonfire...')}
-        onNewGame={() => {
-          SaveManager.clearSave();
-          setGameKey(prev => prev + 1);
-          prepareGameplayBoot('Kindling a new bonfire...');
-        }}
-        onLoadGame={() => prepareGameplayBoot('Loading your saved adventure...')}
-        volume={volume}
-        onVolumeChange={handleVolumeChange}
-        isMuted={isMuted}
-        onMuteToggle={handleMuteToggle}
-      />
+      <>
+        <MainMenu
+          onContinue={() => prepareGameplayBoot('Restoring your last bonfire...')}
+          onNewGame={() => {
+            SaveManager.clearSave();
+            setGameKey(prev => prev + 1);
+            prepareGameplayBoot('Kindling a new bonfire...');
+          }}
+          onLoadGame={() => prepareGameplayBoot('Loading your saved adventure...')}
+          onBootPreload={preloadGameBoot}
+          volume={volume}
+          onVolumeChange={handleVolumeChange}
+          isMuted={isMuted}
+          onMuteToggle={handleMuteToggle}
+        />
+        {isBootingGame && (
+          <GameBootLoadingOverlay
+            message={bootMessage}
+            targetProgress={bootTargetProgress}
+            exiting={bootExiting}
+          />
+        )}
+      </>
     );
   }
 
@@ -1224,24 +1304,11 @@ const Game = () => {
       <div ref={mountRef} className="w-full h-full" />
 
       {isBootingGame && (
-        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-[#07030d]/92 text-[#E8DBF5] pointer-events-auto">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(116,65,190,0.24)_0%,rgba(7,3,13,0.78)_38%,rgba(0,0,0,0.98)_100%)]" />
-          <div className="relative flex flex-col items-center gap-5 px-8 text-center">
-            <div className="relative h-16 w-16">
-              <div className="absolute inset-0 rounded-full border border-[#8f67d6]/35" />
-              <div className="absolute inset-2 rounded-full border-t-2 border-[#d8c6f4] border-r-2 border-r-[#8f67d6] animate-spin" />
-              <div className="absolute inset-[1.35rem] rounded-full bg-[#ff8a2a] shadow-[0_0_24px_rgba(255,120,32,0.75)]" />
-            </div>
-            <div>
-              <p className="font-['Cinzel'] text-sm font-bold uppercase tracking-[0.35em] text-[#d8c6f4] drop-shadow-[0_0_14px_rgba(150,90,220,0.7)]">
-                {bootMessage}
-              </p>
-              <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-[#9f8ac4]">
-                Preparing the world
-              </p>
-            </div>
-          </div>
-        </div>
+        <GameBootLoadingOverlay
+          message={bootMessage}
+          targetProgress={bootTargetProgress}
+          exiting={bootExiting}
+        />
       )}
       
       {gameState && (

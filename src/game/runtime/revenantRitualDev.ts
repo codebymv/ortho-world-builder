@@ -7,7 +7,7 @@ import { resetRevenantRitualForDev } from '@/game/runtime/RevenantRituals';
 import { RANGER_APPROACH_DUD_RITUAL } from '@/game/runtime/ritualSiteConstants';
 import { items } from '@/data/items';
 
-/** Guilrhym gate landing — matches the forest→guilrhym gate portal target. */
+/** Guilrhym gate landing - matches the forest→guilrhym gate portal target. */
 const GUILRHYM_GATE_TILE = { x: 150, y: 292 } as const;
 
 export interface SoulsSlopDevApi {
@@ -58,7 +58,7 @@ function runReset(host: RevenantRitualDevHost, target: 'west' | 'east' | 'all'):
   const combat = host.getCombat();
   const world = host.getWorld();
   if (!state || !combat || !world) {
-    console.warn('[soulsSlopDev] Game not ready — load into the world first.');
+    console.warn('[soulsSlopDev] Game not ready - load into the world first.');
     return;
   }
   if (state.currentMap !== 'forest') {
@@ -83,7 +83,7 @@ function runReset(host: RevenantRitualDevHost, target: 'west' | 'east' | 'all'):
 function grantTerminusScythe(host: RevenantRitualDevHost): boolean {
   const state = host.getState();
   if (!state) {
-    console.warn('[soulsSlopDev] Game not ready — load into the world first.');
+    console.warn('[soulsSlopDev] Game not ready - load into the world first.');
     return false;
   }
   const scythe = items.terminus_scythe;
@@ -140,9 +140,9 @@ export function registerRevenantRitualDevCommands(host: RevenantRitualDevHost): 
       const dudWorldY = DUD_TILE_Y - map.height / 2;
       console.log(
         `[soulsSlopDev] Dud ritual at world (${dudWorldX},${dudWorldY}) / tile (${DUD_TILE_X},${DUD_TILE_Y}): ` +
-          `map=${tileType}, mesh=${meshType}${remeshed ? ' — remeshed' : ''}.\n` +
+          `map=${tileType}, mesh=${meshType}${remeshed ? ' - remeshed' : ''}.\n` +
           `  player world = (${Math.round(state.player.position.x)},${Math.round(state.player.position.y)}), ${dist} tiles away.` +
-          (dist > 4 ? ' You are NOT on the glyph — run soulsSlopDev.gotoDudRitual().' : ''),
+          (dist > 4 ? ' You are NOT on the glyph - run soulsSlopDev.gotoDudRitual().' : ''),
       );
     },
     gotoDudRitual: () => {
@@ -198,7 +198,7 @@ export function registerRevenantRitualDevCommands(host: RevenantRitualDevHost): 
       host.transitionTo('guilrhym', tileX, tileY);
       console.log(
         `[soulsSlopDev] Warping to Guilrhym at tile (${tileX}, ${tileY})` +
-          (granted ? ' with the Terminus Scythe equipped.' : ' (scythe grant failed — see warning above).'),
+          (granted ? ' with the Terminus Scythe equipped.' : ' (scythe grant failed - see warning above).'),
       );
     },
   };

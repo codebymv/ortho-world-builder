@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 
 /**
  * HUD pixel-sprite renderer. Same visual language as the world tiles and
- * landmark icons — every glyph in the navigation bar is hand-authored on an
+ * landmark icons - every glyph in the navigation bar is hand-authored on an
  * 8×8 grid using readable color cells, then upscaled with crisp-edge pixel
  * rendering. No lucide / no SVGs: the UI matches the game's art style.
  *
@@ -11,7 +11,7 @@ import { useEffect, useRef } from 'react';
  * both 12px inline contexts and 48px modal headers without re-authoring.
  */
 
-const TRANSPARENT = 0xFFFFFFFF; // sentinel for "skip this cell" — readable in grids below
+const TRANSPARENT = 0xFFFFFFFF; // sentinel for "skip this cell" - readable in grids below
 
 export interface HudSpriteSpec {
   /** Square grid of hex colors. `null` cells are transparent. */
@@ -71,7 +71,7 @@ export function HudSprite({ spec, size = 16, className, title }: HudSpriteProps)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Color palette — kept in one place so the HUD reads as a coherent set rather
+// Color palette - kept in one place so the HUD reads as a coherent set rather
 // than a bag of one-offs. Hue families align with their gameplay meaning:
 //   gold/amber = wealth + warning
 //   violet     = essence + corruption
@@ -122,7 +122,7 @@ const C = {
   mute:      0xE53935,
 } as const;
 
-const _ = null; // shorthand for transparent cells — keeps the grids readable
+const _ = null; // shorthand for transparent cells - keeps the grids readable
 
 /**
  * Gold coin. Round bevel with a bright NW highlight and a SE rim shadow so it
@@ -143,7 +143,7 @@ export const SPRITE_COIN: HudSpriteSpec = {
 };
 
 /**
- * Essence sigil — four-point star with a glowing center, reads as an arcane
+ * Essence sigil - four-point star with a glowing center, reads as an arcane
  * insignia / inscription rather than a generic sparkle. Same purple family as
  * the corruption tint and hollow ambience particles.
  */
@@ -161,7 +161,7 @@ export const SPRITE_ESSENCE: HudSpriteSpec = {
 };
 
 /**
- * Cursed sediment — jagged crystalline shard. Reads as something "pulled from
+ * Cursed sediment - jagged crystalline shard. Reads as something "pulled from
  * a heresy altar": broken, glowing edges, asymmetric silhouette.
  */
 export const SPRITE_CURSED_SHARD: HudSpriteSpec = {
@@ -178,7 +178,7 @@ export const SPRITE_CURSED_SHARD: HudSpriteSpec = {
 };
 
 /**
- * Speaker with sound waves — replaces the lucide `Volume2` icon. Volume is
+ * Speaker with sound waves - replaces the lucide `Volume2` icon. Volume is
  * shown via three crescent waves on the right; the mute variant drops the
  * waves and overlays a red strike line.
  */
@@ -209,7 +209,7 @@ export const SPRITE_VOLUME_MUTE: HudSpriteSpec = {
 };
 
 /**
- * Hooded traveler bust — character sheet / loadout nav icon. Matches the
+ * Hooded traveler bust - character sheet / loadout nav icon. Matches the
  * in-world chibi silhouette without pulling a live sprite texture into the HUD.
  */
 export const SPRITE_PLAYER: HudSpriteSpec = {
@@ -226,7 +226,7 @@ export const SPRITE_PLAYER: HudSpriteSpec = {
 };
 
 /**
- * Inventory satchel. Leather pouch with a brass buckle in the center — pairs
+ * Inventory satchel. Leather pouch with a brass buckle in the center - pairs
  * thematically with the cottage chest and quest item iconography.
  */
 export const SPRITE_INVENTORY: HudSpriteSpec = {
@@ -260,7 +260,7 @@ export const SPRITE_MAP: HudSpriteSpec = {
 };
 
 /**
- * Objectives target — concentric rings with a gold bullseye center. Reads as
+ * Objectives target - concentric rings with a gold bullseye center. Reads as
  * a quest tracker / waypoint reticle.
  */
 export const SPRITE_OBJECTIVES: HudSpriteSpec = {

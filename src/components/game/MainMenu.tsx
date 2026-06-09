@@ -9,6 +9,8 @@ interface MainMenuProps {
   onContinue: () => void;
   onNewGame: () => void;
   onLoadGame: () => void;
+  /** Warm boot chunks while the player hovers a start action. */
+  onBootPreload?: () => void;
   volume: number;
   onVolumeChange: (vol: number) => void;
   isMuted: boolean;
@@ -36,6 +38,7 @@ export const MainMenu = ({
   onContinue,
   onNewGame,
   onLoadGame,
+  onBootPreload,
   volume,
   onVolumeChange,
   isMuted,
@@ -54,6 +57,14 @@ export const MainMenu = ({
       setSaveData(SaveManager.load());
     }
   }, []);
+
+  useEffect(() => {
+    onBootPreload?.();
+  }, [onBootPreload]);
+
+  const handleBootHover = () => {
+    onBootPreload?.();
+  };
 
   const handleNewGameClick = () => {
     if (hasSave) {
@@ -152,12 +163,17 @@ export const MainMenu = ({
                 <button
                   key={entry.id}
                   onClick={entry.onClick}
-                  onMouseEnter={() => setHovered(entry.id)}
+                  onMouseEnter={() => {
+                    setHovered(entry.id);
+                    if (entry.id === 'continue' || entry.id === 'new' || entry.id === 'load') {
+                      handleBootHover();
+                    }
+                  }}
                   onMouseLeave={() => setHovered(null)}
                   className="group relative w-full max-w-[19rem] py-3 flex items-center justify-center transition-all duration-200"
                   style={{ fontFamily: "'Cinzel', serif" }}
                 >
-                  {/* selection backing — subtle so the art stays visible */}
+                  {/* selection backing - subtle so the art stays visible */}
                   <span
                     className={`absolute inset-0 rounded-sm border transition-all duration-200 ${
                       isHover
@@ -245,6 +261,7 @@ export const MainMenu = ({
                 <div className="flex gap-3">
                   <Button
                     onClick={onLoadGame}
+                    onMouseEnter={handleBootHover}
                     className="flex-1 bg-gradient-to-r from-[#5a3499] to-[#7b4bc7] hover:from-[#6b3fa0] hover:to-[#8d5bd8] text-white font-bold py-3 border border-[#7b4bc7] uppercase tracking-wider flex items-center justify-center gap-2 rounded-sm"
                   >
                     <Play className="w-4 h-4 fill-current" /> Load Save

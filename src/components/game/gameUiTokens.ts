@@ -14,5 +14,5 @@ export const UI_TEXT = {
   micro: 'text-[10px]',
 } as const;
 
-/** Notification fade floor — never drop below ~65% opacity while visible. */
+/** Notification fade floor - never drop below ~65% opacity while visible. */
 export const NOTIF_MIN_OPACITY = 0.65;

@@ -234,7 +234,7 @@ export function createKeyboardInputController({
     if (pausedRef.current || mapModalOpenRef.current || playerDeadRef.current) return;
 
     const lk = e.key.toLowerCase();
-    // Movement is WASD only — arrow keys cycle quick-slot items; Q/E cycle weapons.
+    // Movement is WASD only - arrow keys cycle quick-slot items; Q/E cycle weapons.
     if (lk !== 'arrowleft' && lk !== 'arrowright' && lk !== 'arrowup' && lk !== 'arrowdown') {
       keys[lk] = true;
     }

@@ -235,7 +235,7 @@ export const PlayerModal = memo(({
 
         <div className="px-5 py-4">
           <div className="grid grid-cols-[minmax(168px,200px)_1fr] gap-5 items-start">
-            {/* Left — portrait + stats */}
+            {/* Left - portrait + stats */}
             <div className="space-y-3">
               <div className="flex flex-col items-center rounded-sm border border-[#5C3A21]/50 bg-[#1A0F0A]/60 p-3">
                 <PlayerPreviewSprite
@@ -270,7 +270,7 @@ export const PlayerModal = memo(({
               </div>
             </div>
 
-            {/* Right — loadout panels side by side */}
+            {/* Right - loadout panels side by side */}
             <div className="grid grid-cols-[1fr_minmax(200px,240px)] gap-4 min-w-0">
               {/* Weapons */}
               <section className="min-w-0">

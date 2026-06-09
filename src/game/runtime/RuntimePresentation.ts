@@ -227,7 +227,7 @@ export function updateInteractionIndicator({
     indicatorMaterial.color.setHex(
       indicatorIsWorldItem ? 0xffd966 : 0xffffff,
     );
-    // Objective NPCs use the same standard indicator — no extra rings.
+    // Objective NPCs use the same standard indicator - no extra rings.
     objectiveIndicatorRingMesh.visible = false;
     objectiveIndicatorOuterMesh.visible = false;
   } else {

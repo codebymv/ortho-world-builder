@@ -41,7 +41,7 @@ function normalizeFindHunterBossLabel(line: string): string {
 
 /**
  * Marks the find_hunter quest complete once the manuscript is recovered and the
- * Hollow Apparition is defeated. Idempotent — safe to call after either milestone.
+ * Hollow Apparition is defeated. Idempotent - safe to call after either milestone.
  */
 export function tryCompleteFindHunterQuest(state: GameState, notify?: NotifyFn, showHeroOverlay?: ShowHeroOverlayFn): boolean {
   const quest = state.quests.find(q => q.id === 'find_hunter' && q.active && !q.completed);

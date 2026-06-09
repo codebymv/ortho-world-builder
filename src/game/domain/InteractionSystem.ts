@@ -54,6 +54,7 @@ interface InteractionSystemContext {
   syncWhisperingWoodsShortcutState: () => void;
   syncGroveShelfShortcutState: () => void;
   syncQuarryBankShortcutState: () => void;
+  syncWestLakeBridgePlankState: () => void;
   syncWestCliffGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
@@ -189,6 +190,12 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playChestUnlock();
     context.state.addItem({ ...ringItem });
 
+    const vestige = context.items.radiant_vestige;
+    const includesVestige = interactionId === 'north_fort_wayfarer_ring_chest' && !!vestige;
+    if (includesVestige) {
+      context.state.addItem({ ...vestige! });
+    }
+
     if (interactionId === 'hunter_cliff_shelf_chest') {
       context.state.setFlag('gravebound_ring_received', true);
     } else if (interactionId === 'ranger_wolf_ring_chest') {
@@ -199,7 +206,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       context.state.setFlag('wayfarer_ring_received', true);
     }
 
-    let description = `Found ${ringItem.name}.`;
+    let description = includesVestige
+      ? `Found ${ringItem.name} and ${vestige!.name}.`
+      : `Found ${ringItem.name}.`;
     if (context.state.tryAutoEquipRing(ringItem.id)) {
       description =
         interactionId === 'hunter_cliff_shelf_chest'
@@ -208,7 +217,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
             ? 'Wolf Ring equipped (faster hit recovery).'
             : interactionId === 'forest_ironbark_ring_chest'
               ? 'Ironbark Band equipped (map discovery widens with each perfect parry).'
-              : 'Wayfarer Ring equipped (+15% movement speed).';
+              : includesVestige
+                ? 'Wayfarer Ring equipped (+15% movement speed). Also found a Radiant Vestige.'
+                : 'Wayfarer Ring equipped (+15% movement speed).';
     }
 
     context.state.setFlag(`${interactionId}_opened`, true);
@@ -224,6 +235,8 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.triggerUIUpdate();
     if (interactionId === 'ranger_wolf_ring_chest') {
       context.triggerMinimapUpdate?.(true);
+      context.triggerSave();
+    } else if (interactionId === 'north_fort_wayfarer_ring_chest') {
       context.triggerSave();
     }
     return true;
@@ -261,7 +274,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playChestUnlock();
 
     const goldAmount = interactionId.includes('surveyors_hollow')
-      ? 500 // the surveyor's hoard — a deliberate one-off, biggest gold drop in the game
+      ? 500 // the surveyor's hoard - a deliberate one-off, biggest gold drop in the game
       : interactionId.includes('ancient')
       ? 100
       : interactionId.includes('guilrhym')
@@ -334,7 +347,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       forest_shore_divide_chest: 'berserker_draught',
       forgotten_shrine_chest: 'last_breath_charm',
       wolf_den_chest: 'last_breath_charm',
-      // In front of the hollow corridor gate — "you'll need this" before the Hollow proper.
+      // In front of the hollow corridor gate - "you'll need this" before the Hollow proper.
       hollow_gate_chest: 'last_breath_charm',
       cliff_corridor_chest: 'last_breath_charm',
       // Reward for besting the western fort's Ridge Revenant.
@@ -344,14 +357,14 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     // by zone/flow. Tier I sits along the southern + peripheral early routes; Tier II only
     // past the river crossing (Riverside Grove / Corrupted Bridge) where corruption deepens.
     const CHEST_ESSENCE_OVERRIDES: Record<string, string> = {
-      // Tier I — pre-river exploration loop (south, southwest, southeast, central).
+      // Tier I - pre-river exploration loop (south, southwest, southeast, central).
       forest_south_entry_chest: 'sundered_essence_i',   // south river peninsula (entry)
       rocky_hill_chest: 'sundered_essence_i',           // SW cliff-top plateau
       spider_chest: 'sundered_essence_i',               // SW spider grounds
       destroyed_town_chest: 'sundered_essence_i',       // west ruined settlement
       forest_lake_chest: 'sundered_essence_i',          // SE lake shelf
       forest_woodcutter_chest: 'sundered_essence_i',    // central woodcutter ruin
-      // Tier II — north of the river, the Hollow approach and beyond.
+      // Tier II - north of the river, the Hollow approach and beyond.
       forest_chest_hollow_approach: 'sundered_essence_ii', // ridge over the decayed bridge lane
       observatory_chest: 'sundered_essence_ii',            // observatory compound (NE)
       waterfall_hidden_chest: 'sundered_essence_ii',       // hidden reward behind the north falls
@@ -527,7 +540,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
   };
 
   const tryHandleWestCliffGateLever = (interactionId: string): boolean => {
-    // Right-side sealed face — player bumped into it from the wrong side.
+    // Right-side sealed face - player bumped into it from the wrong side.
     if (interactionId === 'west_cliff_gate_sealed') {
       context.playGateLockedHeavy();
       context.notify('Must open another way.', { id: 'west-cliff-gate-sealed', duration: 2000 });
@@ -597,6 +610,28 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.startCameraPan?.(55, 72, 750);
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
+  const tryHandleWestLakeBridgePlank = (interactionId: string): boolean => {
+    if (interactionId !== 'west_lake_bridge_plank') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('west_lake_bridge_plank_extended')) {
+      context.notify('The plank crossing is already in place.', { id: 'west-lake-plank-open', duration: 1800 });
+      return true;
+    }
+
+    context.playLeverPull();
+    context.state.setFlag('west_lake_bridge_plank_extended', true);
+    context.syncWestLakeBridgePlankState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateOpenHeavy();
+    context.playGateShortcut();
+    context.showHeroOverlay('Plank Crossing Complete');
+    context.startCameraPan?.(38, 109, 750);
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -867,7 +902,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     if (interactionId !== 'manuscript_checkpoint_gate') return false;
     if (context.state.currentMap !== 'forest') return true;
 
-    // Gate can only be opened by the guard through dialogue — never auto-opens here.
+    // Gate can only be opened by the guard through dialogue - never auto-opens here.
     // Route all interactions to the guard so the player must speak with him.
     context.startDialogue('manuscript_gate_guard');
     return true;
@@ -1036,6 +1071,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleForestShortcutLever,
     tryHandleGroveShelfShortcutLever,
     tryHandleQuarryBankShortcutLever,
+    tryHandleWestLakeBridgePlank,
     tryHandleWestCliffGateLever,
     tryHandleRiversideBridgeShortcutLever,
     tryHandleHollowShortcutLever,

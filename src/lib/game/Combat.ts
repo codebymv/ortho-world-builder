@@ -55,7 +55,7 @@ const BACKSTAB_FACING_DOT = 0.5;
 /** While chasing, disengage only beyond chaseRange * this linear multiplier (squared in leash checks). */
 export const ACTIVE_COMBAT_LEASH_RANGE_MULT = 1.5;
 
-/** Squared active-combat leash — must match `chasing` disengage so recovery/retreat do not drop aggro early. */
+/** Squared active-combat leash - must match `chasing` disengage so recovery/retreat do not drop aggro early. */
 export function getActiveCombatLeashRangeSq(chaseRangeSq: number): number {
   return chaseRangeSq * ACTIVE_COMBAT_LEASH_RANGE_MULT * ACTIVE_COMBAT_LEASH_RANGE_MULT;
 }
@@ -265,7 +265,7 @@ function tryEnemyChaseMove(
   // Direct toward player is ALWAYS tried first, even mid-recovery. The old
   // logic deferred direct to last while `pathRecoveryTimer > 0`, which meant
   // any successful side-step refreshed the timer and locked the enemy into
-  // perpetual sideways drift — visible as fast spiders spazzing along walls.
+  // perpetual sideways drift - visible as fast spiders spazzing along walls.
   // If the path is genuinely clear we want to take it immediately and exit
   // recovery mode; if it's blocked, the side candidates below still handle
   // navigation around the obstacle in the preferred direction.
@@ -300,7 +300,7 @@ function tryEnemyChaseMove(
   for (const side of sideOrder) {
     const sideVx = -vy * side;
     const sideVy = vx * side;
-    // Blended (28% forward + 100% sideways) tried before pure side — gives the
+    // Blended (28% forward + 100% sideways) tried before pure side - gives the
     // enemy a diagonal slide along the wall that still drifts toward the
     // player, instead of pure perpendicular movement.
     const blended = normalizeMoveVector(vx * ENEMY_PATH_RECOVERY_BLEND + sideVx, vy * ENEMY_PATH_RECOVERY_BLEND + sideVy);
@@ -408,7 +408,7 @@ function pickBigEnemyAttackType(
         return 'revenant_rush';
       }
       if (midBand) {
-        // At mid range the Revenant favors its summoned blade array — you cannot
+        // At mid range the Revenant favors its summoned blade array - you cannot
         // simply back off to safety; the storm punishes spacing.
         if (roll < 0.45) return 'revenant_bladestorm';
         if (roll < 0.72) return 'revenant_rush';
@@ -423,7 +423,7 @@ function pickBigEnemyAttackType(
 
 /**
  * Tile/sec advance speed of a committed dash attack mid-telegraph. Bigger
- * enemies hit harder but also commit further — souls-like spacing tension.
+ * enemies hit harder but also commit further - souls-like spacing tension.
  */
 function dashTileSpeedFor(enemy: Enemy): number {
   switch (enemy.type) {
@@ -555,7 +555,7 @@ export interface Enemy {
    * When an attack involves a committed dash/lunge during the telegraph,
    * this is the world-space target locked in at telegraph start. Used by
    * giant_lunge / reaver_rush / golem_grab to commit to a strike path the
-   * player can sidestep — the heart of souls-like spacing.
+   * player can sidestep - the heart of souls-like spacing.
    */
   attackLockedTarget: { x: number; y: number } | null;
   /**
@@ -585,7 +585,7 @@ export interface Enemy {
   /**
    * Accumulated seconds of continuous blocked movement while chasing. Increments every frame
    * that `tryEnemyChaseMove` returns no movement; resets on any successful step. Once it
-   * exceeds `ENEMY_CHASE_GIVE_UP_DURATION` the enemy returns to idle — this prevents endless
+   * exceeds `ENEMY_CHASE_GIVE_UP_DURATION` the enemy returns to idle - this prevents endless
    * grinding against geometry the enemy can never cross.
    */
   noProgressTimer: number;
@@ -636,7 +636,7 @@ function canEnemyMeleeReachPlayer(
 
 /**
  * Cheap aggro-range line-of-sight check. Uses a coarser trace step and a wider elevation
- * tolerance than the melee variant — false negatives (enemy can't see player through a wide
+ * tolerance than the melee variant - false negatives (enemy can't see player through a wide
  * gap) are acceptable; the goal is to stop enemies aggroing through solid walls or across
  * impassable cliffs. Faction alerts and no-world (test) contexts bypass this check.
  */
@@ -718,7 +718,7 @@ export interface AttackResult {
 /**
  * Emitted when the player parries any incoming attack (melee, AoE, projectile,
  * hazard). Carries the world-space position the runtime should anchor immersive
- * feedback to (screen shake, particles, hit-stop). No text — purely visual/audio.
+ * feedback to (screen shake, particles, hit-stop). No text - purely visual/audio.
  */
 export interface ParryFeedbackEvent {
   x: number;
@@ -783,7 +783,7 @@ export class CombatSystem {
   private _cachedLiveEnemies: Enemy[] = [];
   private _enemiesDirty: boolean = true;
   private spatialHash: SpatialHash<Enemy>;
-  /** Monotonic counter for unique enemy ids — replaces the old Date.now()+Math.random() pair that could collide on rapid double-spawns. */
+  /** Monotonic counter for unique enemy ids - replaces the old Date.now()+Math.random() pair that could collide on rapid double-spawns. */
   private _nextEnemyIdSeq: number = 0;
   private _nextProjectileIdSeq: number = 0;
   private _nextFallingScytheIdSeq: number = 0;
@@ -1017,14 +1017,14 @@ export class CombatSystem {
         continue;
       }
 
-      // Faction target resolution — find the nearest alive enemy from a different faction.
+      // Faction target resolution - find the nearest alive enemy from a different faction.
       // Only runs when the enemy has a faction and the player hasn't aggroed it yet.
       let dx: number;
       let dy: number;
       let distSq: number;
 
       if (enemy.faction && !enemy.playerAggroed && playerDistSq <= FACTION_FIGHT_WAKE_SQ) {
-        // Player is close enough — resolve faction targeting so the fight begins.
+        // Player is close enough - resolve faction targeting so the fight begins.
         // Throttle the spatial-hash search: once a target is found we keep it
         // until it dies; if none was found we wait factionTargetSearchTimer
         // seconds before scanning again instead of paying the cost every frame.
@@ -1085,7 +1085,7 @@ export class CombatSystem {
         enemy.phaseElapsed += deltaTime;
       }
 
-      // Stone Golem phase 2 at 50% HP — cracks appear, becomes faster and more aggressive
+      // Stone Golem phase 2 at 50% HP - cracks appear, becomes faster and more aggressive
       if (enemy.type === 'golem' && !enemy.phaseTransitioned && enemy.health <= enemy.maxHealth * 0.5) {
         enemy.phase = 2;
         enemy.phaseTransitioned = true;
@@ -1094,14 +1094,14 @@ export class CombatSystem {
         enemy.recoverDuration *= 0.75;
         enemy.damage = Math.round(enemy.damage * 1.2);
         enemy.attackRange *= 1.15;
-        // Shorter snare on the cracked golem — still punishing but not as oppressive
+        // Shorter snare on the cracked golem - still punishing but not as oppressive
         if (enemy.behaviorOverrides.snareDuration) {
           enemy.behaviorOverrides = { ...enemy.behaviorOverrides, snareDuration: 0.5, chainChance: 0.6 };
         }
         if (onPhaseChange) onPhaseChange(enemy, 2);
       }
 
-      // Corrupted Giant enrage at 50% HP — corruption veins rupture, becomes relentless
+      // Corrupted Giant enrage at 50% HP - corruption veins rupture, becomes relentless
       if (enemy.type === 'corrupted_giant' && !enemy.phaseTransitioned && enemy.health <= enemy.maxHealth * 0.5) {
         enemy.phase = 2;
         enemy.phaseTransitioned = true;
@@ -1109,12 +1109,12 @@ export class CombatSystem {
         enemy.telegraphDuration *= 0.80;
         enemy.recoverDuration *= 0.75;
         enemy.damage = Math.round(enemy.damage * 1.20);
-        // Chain chance spikes hard — feels relentless vs the methodical golem cadence
+        // Chain chance spikes hard - feels relentless vs the methodical golem cadence
         enemy.behaviorOverrides = { ...enemy.behaviorOverrides, chainChance: 0.75, snareDuration: 0.6 };
         if (onPhaseChange) onPhaseChange(enemy, 2);
       }
 
-      // Phase 2 transition for the Hollow Apparition at 50% HP — gains speed and aggression
+      // Phase 2 transition for the Hollow Apparition at 50% HP - gains speed and aggression
       if (enemy.type === 'hollow_guardian' && !enemy.phaseTransitioned && enemy.health <= enemy.maxHealth * 0.5) {
         enemy.phase = 2;
         enemy.phaseTransitioned = true;
@@ -1127,7 +1127,7 @@ export class CombatSystem {
         enemy.comboHitsRemaining = 0;
         if (onPhaseChange) onPhaseChange(enemy, 2);
       }
-      // Phase 3 transition at 25% HP — second summon wave, final enrage
+      // Phase 3 transition at 25% HP - second summon wave, final enrage
       if (enemy.type === 'hollow_guardian' && enemy.phase === 2 && enemy.health <= enemy.maxHealth * 0.25) {
         enemy.phase = 3;
         enemy.speed *= 1.2;
@@ -1263,7 +1263,7 @@ export class CombatSystem {
 
           // Big-enemy mid-range commitment: when not yet in melee range, sometimes
           // commit to a long-windup attack (lunge/slab/stomp) telegraphed from
-          // outside attack range — locks the strike point so a sidestep beats it.
+          // outside attack range - locks the strike point so a sidestep beats it.
           if (isBigType && enemy.attackWindupLockTimer <= 0 && distSq > attackRangeSq
               && distSq <= attackRangeSq * 4) {
             // Per-frame chance accumulates over time; ~25% per second at mid range.
@@ -1290,7 +1290,7 @@ export class CombatSystem {
                 updateMovementVisuals(enemy, 0, 0, false, 0);
                 break;
               }
-              // Fell through to 'normal' — keep chasing.
+              // Fell through to 'normal' - keep chasing.
               enemy.currentAttackType = 'normal';
             }
           }
@@ -1327,7 +1327,7 @@ export class CombatSystem {
             break;
           }
 
-          // Sprint-burst reposition — short aggressive dash for big enemies.
+          // Sprint-burst reposition - short aggressive dash for big enemies.
           // Fires occasionally when player is mid-range and the cooldown is
           // ready, giving the chase a non-uniform "the boss noticed you stepped
           // back" feel.
@@ -1376,7 +1376,7 @@ export class CombatSystem {
                 enemy.stuckFrames++;
                 enemy.noProgressTimer += deltaTime;
                 if (enemy.noProgressTimer >= ENEMY_CHASE_GIVE_UP_DURATION) {
-                  // Completely unreachable target — stop grinding against the geometry and
+                  // Completely unreachable target - stop grinding against the geometry and
                   // resume patrol. The enemy will re-aggro if the player comes back into view.
                   enemy.state = 'idle';
                   enemy.stuckFrames = 0;
@@ -1417,7 +1417,7 @@ export class CombatSystem {
           }
           enemy.telegraphTimer -= deltaTime;
 
-          // Mid-telegraph dash for committed attacks — the enemy actually moves
+          // Mid-telegraph dash for committed attacks - the enemy actually moves
           // during the windup so a sidestep beats the strike. This is what makes
           // big enemies READ as souls-like: they're chasing you DURING the wind-up,
           // and your job is to read the lock point and step off it.
@@ -1483,12 +1483,12 @@ export class CombatSystem {
             if (isSweep) enemy.damage = Math.floor(enemy.damage * 0.7);
 
             const eBo = enemy.behaviorOverrides;
-            // Ranged projectile path — release a thrown blade aimed at the player's current position.
+            // Ranged projectile path - release a thrown blade aimed at the player's current position.
             // Skip the melee damage check entirely; the projectile resolves its own hit in updateProjectiles.
             const rangedDistSq = distSq;
             const rangedMaxSq = (eBo.rangedRange ?? 3.0) * (eBo.rangedRange ?? 3.0) * 4;
             if (isGolemStomp) {
-              // Stone Golem stomp — wide AoE around the golem's feet. Cracks
+              // Stone Golem stomp - wide AoE around the golem's feet. Cracks
               // tiles like the nova slam, knocks the player back hard, and is
               // fully parryable via applyAreaHitToPlayer.
               const stompRadius = 2.6;
@@ -1506,7 +1506,7 @@ export class CombatSystem {
                 if (result.parried) { parried = true; parryEnemyId = enemy.id; }
               }
             } else if (isGolemGrab) {
-              // Stone Golem grab — tighter range than stomp but very high damage,
+              // Stone Golem grab - tighter range than stomp but very high damage,
               // and the dash during telegraph already closed the gap. On connect:
               // snare the player AND launch them backward like the grip was
               // ripped off them.
@@ -1528,7 +1528,7 @@ export class CombatSystem {
                 }
               }
             } else if (isSentinelSlab) {
-              // Stone Sentinel slab — the sentinel slams its fist down and a
+              // Stone Sentinel slab - the sentinel slams its fist down and a
               // rising rock pillar erupts at the locked target tile. Lethal if
               // you don't sidestep the lock point during the windup. Big
               // outward knockback on connect.
@@ -1572,7 +1572,7 @@ export class CombatSystem {
                 }
               }
             } else if (isGiantLunge || isReaverRush) {
-              // Giant lunge + Reaver rush — committed dash strikes that the
+              // Giant lunge + Reaver rush - committed dash strikes that the
               // mid-telegraph movement already advanced. Resolve a wide front
               // arc at the enemy's current position with extra reach.
               const reach = isReaverRush ? 2.0 : 2.2;
@@ -1588,7 +1588,7 @@ export class CombatSystem {
                 if (result.parried) { parried = true; parryEnemyId = enemy.id; }
               }
             } else if (isRevenantCrusher) {
-              // Ridge Revenant overhead crusher — wide shockwave, unblockable.
+              // Ridge Revenant overhead crusher - wide shockwave, unblockable.
               // Must out-space; short swords cannot poke safely from inside the radius.
               const crushRadius = 3.0;
               const crushCenter = enemy.attackLockedTarget ?? enemy.position;
@@ -1609,7 +1609,7 @@ export class CombatSystem {
                 this.applyKnockbackFromSource(crushCenter.x, crushCenter.y, 8.0);
               }
             } else if (isRevenantRush) {
-              // Ridge Revenant gap-closer — snaring grab after the dash commits.
+              // Ridge Revenant gap-closer - snaring grab after the dash commits.
               const rushRadius = 1.6;
               const rdx = playerPosition.x - enemy.position.x;
               const rdy = playerPosition.y - enemy.position.y;
@@ -1627,7 +1627,7 @@ export class CombatSystem {
                 }
               }
             } else if (isRevenantBladestorm) {
-              // Spectral Blade Array — the wraith sweeps its hand and the summoned
+              // Spectral Blade Array - the wraith sweeps its hand and the summoned
               // blades behind it launch as a wide fan aimed at the player. Each blade
               // does modest damage; the threat is the spread, which forces a clean
               // dodge or a parry of an individual blade. Parried blades reflect.
@@ -2095,7 +2095,7 @@ export class CombatSystem {
     const dy = player.position.y - sourceY;
     const len = Math.hypot(dx, dy);
     if (len < 0.001) {
-      // Source is on top of the player — push in the player's facing direction
+      // Source is on top of the player - push in the player's facing direction
       // so they don't stay glued in place.
       const facing = player.direction;
       const fx = facing === 'left' ? -1 : facing === 'right' ? 1 : 0;
@@ -2114,11 +2114,11 @@ export class CombatSystem {
    * Returns `parried` so callers can stagger the source enemy and trigger the
    * shared immersive feedback (shake / hit-stop / sparks). Heavy boss attacks
    * (nova slam, charge slam, combo finisher AoE, eclipse hazards) all funnel
-   * through here so they can be parried like any melee strike — there is no
+   * through here so they can be parried like any melee strike - there is no
    * "unparryable" attack outside of pure environmental hazards with no source.
    *
    * `knockbackMagnitude` shoves the player away from `sourceEnemy` (or the
-   * given fallback position) on a non-parried connect — purely physical impact.
+   * given fallback position) on a non-parried connect - purely physical impact.
    */
   private applyAreaHitToPlayer(
     damage: number,
@@ -2219,7 +2219,7 @@ export class CombatSystem {
     playerPosition?: { x: number; y: number },
     playerDirection?: string,
     /** Fraction of damage applied to poise (default 1.0). Pass <1 for hits that should
-     *  deal full HP damage but only graze poise — e.g. the scythe arc wave, which should
+     *  deal full HP damage but only graze poise - e.g. the scythe arc wave, which should
      *  wound enemies without CC-locking everything it touches. */
     poiseMult: number = 1.0,
   ): AttackResult {
@@ -2407,7 +2407,7 @@ export class CombatSystem {
         const dy = playerPosition.y - hazard.position.y;
         if (dx * dx + dy * dy <= paddedPlayerHitSq(hazard.radius)) {
           hazard.hitPlayer = true;
-          // Hazards have a remote source (guardian) — parry staggers the boss
+          // Hazards have a remote source (guardian) - parry staggers the boss
           // so the player is rewarded for nailing scythe timing in their face.
           const result = this.applyAreaHitToPlayer(hazard.damage, playerBlocking, blockStartTime, now, guardian);
           if (result.parried && !parryEvent) {
@@ -2576,7 +2576,7 @@ export class CombatSystem {
       const nextX = p.position.x + p.velocity.x * deltaTime;
       const nextY = p.position.y + p.velocity.y * deltaTime;
 
-      // Wall collision — fizzle if the terrain cannot carry this projectile.
+      // Wall collision - fizzle if the terrain cannot carry this projectile.
       if (world && !this.canProjectileMoveTo(world, p, nextX, nextY)) {
         p.alive = false;
         continue;
@@ -2643,7 +2643,7 @@ export class CombatSystem {
     const isParry = isBlocking && (now - blockStartTime) < PARRY_WINDOW;
 
     if (isParry) {
-      // Parry deflects the projectile cleanly — short i-frames, no damage.
+      // Parry deflects the projectile cleanly - short i-frames, no damage.
       player.parryBonusTimer = 1.0;
       this.gameState.registerPerfectParry();
       player.iFrameTimer = Math.max(player.iFrameTimer, 0.4);

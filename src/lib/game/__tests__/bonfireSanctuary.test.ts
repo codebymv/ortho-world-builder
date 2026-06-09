@@ -43,7 +43,7 @@ describe('bonfire sanctuary', () => {
   });
 
   it('keeps the cliff ledge approach path outside combat sanctuary', () => {
-    // Minimap HUD shows world coords — ~(34, 39) is the grass shelf fight before the bonfire.
+    // Minimap HUD shows world coords - ~(34, 39) is the grass shelf fight before the bonfire.
     expect(isPositionInBonfireSafeZone('forest', 34, 39)).toBe(false);
     expect(BONFIRE_REST_HOSTILE_RADIUS).toBeGreaterThan(BONFIRE_COMBAT_SAFE_RADIUS);
   });

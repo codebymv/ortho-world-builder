@@ -177,7 +177,7 @@ export function createRuntimeSfx({
     processAudioElement,
   });
 
-  /** Boss telegraph wind-up — same clip as the player swing, slightly louder. */
+  /** Boss telegraph wind-up - same clip as the player swing, slightly louder. */
   const bossAttackTelegraphSfx = createSequentialAudioPool({
     src: './audio/sword_swing.mp3',
     volume: 0.36,

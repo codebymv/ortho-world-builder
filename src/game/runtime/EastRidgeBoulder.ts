@@ -27,7 +27,7 @@ export interface EastRidgeBoulderContext {
   playPropBreak?: () => void;
 }
 
-// East Ridge Ascent — scripted boulder encounter on the long C4 boulder lane.
+// East Ridge Ascent - scripted boulder encounter on the long C4 boulder lane.
 //
 // Layout (world-space; forest map 300×300, world = tile − 150):
 //   Lane runs x 91-94, y −14 → 0  (tile C4: x241-244, y136-150).
@@ -40,7 +40,7 @@ export interface EastRidgeBoulderContext {
 // Trigger: player enters the southern third of the lane (y −2 → 2) so they have
 // ~2.5 s to react before the boulder reaches them.
 
-// Trigger band — southern mouth of the lane.
+// Trigger band - southern mouth of the lane.
 const TRIGGER_MIN_X = 90.5;
 const TRIGGER_MAX_X = 94.5;
 const TRIGGER_MIN_Y = -2;
@@ -56,7 +56,7 @@ const ROLL_VELOCITY = { x: 0, y: 7.0 };
 // Delay between skeleton smash and boulder launch (ms).
 const LAUNCH_DELAY_MS = 380;
 
-// Module-level state — tracks the pending delayed launch across frames.
+// Module-level state - tracks the pending delayed launch across frames.
 let _pendingLaunch = false;
 let _launchAt = -1;
 
@@ -76,7 +76,7 @@ export function updateEastRidgeBoulder(ctx: EastRidgeBoulderContext): void {
     if (performance.now() < _launchAt) return; // still waiting
     _pendingLaunch = false;
 
-    // Launch the boulder — bigger hitRadius and heavier damage than a thrown projectile.
+    // Launch the boulder - bigger hitRadius and heavier damage than a thrown projectile.
     combatSystem.spawnProjectile({
       position: { ...BOULDER_SPAWN },
       velocity: { ...ROLL_VELOCITY },
@@ -103,7 +103,7 @@ export function updateEastRidgeBoulder(ctx: EastRidgeBoulderContext): void {
   if (p.x < TRIGGER_MIN_X || p.x > TRIGGER_MAX_X) return;
   if (p.y < TRIGGER_MIN_Y || p.y > TRIGGER_MAX_Y) return;
 
-  // Mark immediately — prevents re-triggering even mid-launch.
+  // Mark immediately - prevents re-triggering even mid-launch.
   state.setFlag('east_ridge_boulder_seen', true);
 
   // ── Spawn the containment-breaking skeleton at the summit ─────────────────
@@ -130,7 +130,7 @@ export function updateEastRidgeBoulder(ctx: EastRidgeBoulderContext): void {
     );
   }
 
-  // Snap of breaking wood/rope — lighter shake at skeleton position.
+  // Snap of breaking wood/rope - lighter shake at skeleton position.
   screenShake.shake(0.35, 0.25);
   particleSystem.emitAt(SKELETON_SPAWN.x, SKELETON_SPAWN.y, 0.3, 16, 0xc0a870, 0.12, 1.8, 0.8);
 

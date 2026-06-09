@@ -88,12 +88,12 @@ export function createDefaultNpcData(): NPC[] {
     { id: 'manuscript_gate_guard', name: 'Ranger Gatekeeper', mapId: 'forest', position: { x: 80, y: 4 }, dialogueId: 'manuscript_gate_guard', sprite: 'npc_guard' },
     { id: 'fort_quartermaster', name: 'Listless Merchant', mapId: 'forest', position: { x: 80, y: 13 }, dialogueId: 'fort_quartermaster', sprite: 'npc_merchant' },
     { id: 'grove_warden', name: 'Warden Callum', mapId: 'forest', position: { x: -7, y: -1 }, dialogueId: 'grove_warden', sprite: 'npc_grove_warden', questGiver: true },
-    // Explorer Ulmund — south entry teaching beat beside a dud summoning circle (world 5,93).
+    // Explorer Ulmund - south entry teaching beat beside a dud summoning circle (world 5,93).
     // Sits on the main spine so first-time players can't miss him. Names the two stone types
     // and gives the Shatter the Shrines quest, teaching the altar -> sediment -> live-glyph -> summon loop.
     { id: 'explorer_ulmund', name: 'Explorer Ulmund', mapId: 'forest', position: { x: 5, y: 93 }, dialogueId: 'explorer_ulmund', sprite: 'npc_ulmund', questGiver: true },
     { id: 'petra_ashveil', name: 'Petra the Researcher', mapId: 'forest', position: { x: 12, y: -37 }, dialogueId: 'petra_ashveil', sprite: 'npc_petra' },
-    // Olwen — displaced grove hermit now tending the eastern cliff cemetery near Bonfire 5.
+    // Olwen - displaced grove hermit now tending the eastern cliff cemetery near Bonfire 5.
     // Hands the player the Cursed Idol once, then settles into a quiet reflective state.
     { id: 'mountain_hermit', name: 'Olwen, Mountain Hermit', mapId: 'forest', position: { x: 143, y: -8 }, dialogueId: 'mountain_hermit', sprite: 'npc_olwen' },
     // Unnamed Hollow figure on the north bank of the corrupted river. Dismissive until

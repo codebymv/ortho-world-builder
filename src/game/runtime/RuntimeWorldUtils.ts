@@ -120,6 +120,9 @@ export function getInteractionPromptLabel(
   if (interactionId === 'quarry_bank_shortcut_lever') {
     return state.getFlag('quarry_bank_shortcut_open') ? 'Shortcut Unlocked' : 'Unbar Quarry Gate';
   }
+  if (interactionId === 'west_lake_bridge_plank') {
+    return state.getFlag('west_lake_bridge_plank_extended') ? 'Plank Crossing' : 'Extend Plank';
+  }
   if (interactionId === 'quarry_bank_gate_sealed') {
     return 'Must open another way';
   }
@@ -172,7 +175,7 @@ export function getInteractionPromptLabel(
   if (interactionId === 'witch_altar') return 'Inspect Altar';
   if (interactionId === 'forest_fort_gate') {
     if (state.getFlag('forest_fort_gate_open')) return 'Fort Gate (Open)';
-    return state.hasItem('fort_gate_key') ? 'Unlock Fort Gate' : 'Fort Gate (Locked — Key Required)';
+    return state.hasItem('fort_gate_key') ? 'Unlock Fort Gate' : 'Fort Gate (Locked, Key Required)';
   }
   if (interactionId === 'manuscript_checkpoint_gate') {
     if (state.getFlag('manuscript_checkpoint_gate_open')) return 'Checkpoint Gate (Open)';

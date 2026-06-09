@@ -5,12 +5,18 @@ import {
   EPHEMERAL_EXTRACT_CHARGES_PER_UPGRADE,
   EPHEMERAL_EXTRACT_POTENCY_PER_UPGRADE,
 } from '../../data/balance';
+import {
+  canAffordEphemeralExtractUpgrade,
+  getEphemeralExtractUpgradeLevel,
+  getVestigeCostForUpgradeLevel,
+  isEphemeralExtractUpgradeMaxed,
+} from './vestigeProgression';
 
 /**
  * Hand-curated names of game flags set anywhere in the codebase.
  *
- * Adding a flag here is optional — `setFlag`/`getFlag` still accept any
- * `string` — but listing it unlocks autocomplete and a "find references"
+ * Adding a flag here is optional - `setFlag`/`getFlag` still accept any
+ * `string` - but listing it unlocks autocomplete and a "find references"
  * starting point. Dynamic keys (e.g. `tempest_grass_${map}_${x}_${y}`,
  * `${interactionId}_opened`) are intentionally not listed.
  */
@@ -25,6 +31,7 @@ export type KnownGameFlag =
   | 'forest_kill_count'
   | 'grove_shelf_shortcut_open'
   | 'quarry_bank_shortcut_open'
+  | 'west_lake_bridge_plank_extended'
   | 'west_cliff_gate_open'
   | 'ritual_revenant_west_cleared'
   | 'ritual_revenant_precipice_cleared'
@@ -97,7 +104,7 @@ export interface PlayerState {
   parryBonusTimer: number;
   /**
    * Counts down from PARRY_WINDOW (0.25s) the instant the player starts blocking.
-   * While > 0, the parry window is open and the blade renders a primed shimmer —
+   * While > 0, the parry window is open and the blade renders a primed shimmer -
    * a purely visual cue with no text. Decremented each frame in the gameplay
    * prelude; cleared if the player stops blocking.
    */
@@ -120,7 +127,7 @@ export interface PlayerState {
   berserkerSpeedMult: number;
   /** Set when Last Breath Charm triggers; cleared on bonfire rest or true death. */
   lastBreathUsedThisLife: boolean;
-  /** Perfect parries landed this life — feeds the Ironbark Band's growing reveal bonus. Reset on death. */
+  /** Perfect parries landed this life - feeds the Ironbark Band's growing reveal bonus. Reset on death. */
   ironbarkParryStacks: number;
   level: number;
   vitality: number;
@@ -135,7 +142,7 @@ export interface PlayerState {
   /**
    * Seconds remaining in post-swing recovery lockout (Souls-style attack recovery frames).
    * While > 0: fresh attacks are blocked. Does NOT block natural combo chains.
-   * Dodge-cancelable — cleared the moment isDodging becomes true.
+   * Dodge-cancelable - cleared the moment isDodging becomes true.
    */
   attackRecoveryTimer: number;
   /**
@@ -165,7 +172,7 @@ export interface Item {
   type: 'consumable' | 'key' | 'quest' | 'equipment' | 'ring';
   sprite: string;
   healAmount?: number;
-  /** Essence granted when consumed (soul-item style — e.g. Sundered Essence). */
+  /** Essence granted when consumed (soul-item style - e.g. Sundered Essence). */
   essenceAmount?: number;
   buffType?: 'stealth' | 'berserker' | 'last_breath';
   buffDuration?: number;
@@ -238,7 +245,7 @@ export class GameState {
   equippedWeaponId: string | null;
   equippedRingIds: EquippedRingIds;
   weaponLoadout: WeaponLoadout;
-  /** Last rested bonfire — respawn point */
+  /** Last rested bonfire - respawn point */
   lastBonfire: LastBonfire | null;
   /** Bloodstain left on death */
   droppedEssence: DroppedEssence | null;
@@ -359,14 +366,37 @@ export class GameState {
     }
   }
 
+  getEphemeralExtractUpgradeLevel(): number {
+    return getEphemeralExtractUpgradeLevel(this.player.maxEphemeralExtractCharges);
+  }
+
+  getNextEphemeralExtractUpgradeCost(): number {
+    return getVestigeCostForUpgradeLevel(this.getEphemeralExtractUpgradeLevel());
+  }
+
+  canUpgradeEphemeralExtract(): boolean {
+    return canAffordEphemeralExtractUpgrade(
+      this.countItem('radiant_vestige'),
+      this.getEphemeralExtractUpgradeLevel(),
+    );
+  }
+
+  isEphemeralExtractUpgradeMaxed(): boolean {
+    return isEphemeralExtractUpgradeMaxed(this.getEphemeralExtractUpgradeLevel());
+  }
+
   /**
-   * Consume one Radiant Vestige to upgrade the flask: +1 max charge and +potency to each
-   * draught, then top the flask off so the new charge is immediately available. Returns false
-   * if the player holds no Radiant Vestige.
+   * Spend tiered Radiant Vestiges to upgrade the flask: +1 max charge and +potency to each
+   * draught, then top the flask off so the new charge is immediately available.
    */
   upgradeEphemeralExtract(): boolean {
-    if (!this.hasItem('radiant_vestige')) return false;
-    this.removeItem('radiant_vestige');
+    const upgradeLevel = this.getEphemeralExtractUpgradeLevel();
+    const cost = getVestigeCostForUpgradeLevel(upgradeLevel);
+    if (!Number.isFinite(cost) || this.countItem('radiant_vestige') < cost) return false;
+
+    for (let i = 0; i < cost; i++) {
+      this.removeItem('radiant_vestige');
+    }
     this.player.maxEphemeralExtractCharges += EPHEMERAL_EXTRACT_CHARGES_PER_UPGRADE;
     this.player.ephemeralExtractPotency += EPHEMERAL_EXTRACT_POTENCY_PER_UPGRADE;
     this.refillEphemeralExtract();
@@ -469,6 +499,10 @@ export class GameState {
 
   hasItem(itemId: string): boolean {
     return this.inventory.some(item => item.id === itemId);
+  }
+
+  countItem(itemId: string): number {
+    return this.inventory.filter(item => item.id === itemId).length;
   }
 
   addQuest(quest: Quest) {
@@ -626,7 +660,7 @@ export class GameState {
     return bonus;
   }
 
-  /** Called on every perfect parry — grows the Ironbark Band's reveal bonus (only while it's worn). */
+  /** Called on every perfect parry - grows the Ironbark Band's reveal bonus (only while it's worn). */
   registerPerfectParry(): void {
     if (!this.equippedRingIds.includes('ironbark_ring')) return;
     this.player.ironbarkParryStacks = Math.min(
@@ -703,7 +737,7 @@ export class GameState {
   /**
    * Returns the raw stored value (boolean or number) or `false` when unset.
    *
-   * Prefer {@link getFlagBool} or {@link getFlagNumber} at call sites — the
+   * Prefer {@link getFlagBool} or {@link getFlagNumber} at call sites - the
    * union return type forces every caller to narrow, and the legacy `||`
    * fallback collapses a stored `0` to `false`, which can hide real state for
    * numeric counters. Kept for back-compat with `if (state.getFlag(x))` usage.

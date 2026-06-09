@@ -118,9 +118,9 @@ const VendorItemCard = memo(({
         </div>
         <p className="text-[10px] text-[#C9B8A8] leading-snug line-clamp-2">{item.description}</p>
 
-        {/* Metadata chips — always rendered */}
+        {/* Metadata chips - always rendered */}
         <div className="flex flex-wrap gap-1 mt-1.5">
-          {/* Stock — always shown */}
+          {/* Stock - always shown */}
           {alreadyOwned ? (
             <MetaChip icon={<Check className="w-2.5 h-2.5" />} label="owned" variant="green" />
           ) : vendorItem.unique ? (

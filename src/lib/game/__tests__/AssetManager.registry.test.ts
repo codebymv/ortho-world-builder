@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-// These tests are intentionally static — they parse AssetManager source text
+// These tests are intentionally static - they parse AssetManager source text
 // rather than executing the class, so they survive any future file split
 // (sprite extraction into art/sprites/*.ts) as long as the tests are updated
 // to read the same set of source files.

@@ -152,7 +152,7 @@ export function applyHealthPotionAction(options: PotionActionOptions) {
   const activeItem = resolveUsableItem(state, triggerUIUpdate);
   if (!activeItem) return;
 
-  // Soul-items resolve instantly — no drink animation, like absorbing essence in Souls games.
+  // Soul-items resolve instantly - no drink animation, like absorbing essence in Souls games.
   if (typeof activeItem.essenceAmount === 'number' && activeItem.essenceAmount > 0) {
     const gained = activeItem.essenceAmount;
     const itemId = activeItem.id;
@@ -308,7 +308,7 @@ export function runInteractionCheck({
   const checkX = state.player.position.x;
   const checkY = state.player.position.y;
 
-  // Passive world item pickup — always runs first, no keypress needed
+  // Passive world item pickup - always runs first, no keypress needed
   interactionSystem.tryPickupWorldItems(checkX, checkY);
 
   if (interactionSystem.tryReclaimDroppedEssence(checkX, checkY)) {
@@ -370,6 +370,7 @@ export function runInteractionCheck({
     if (interactionSystem.tryHandleForestShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleGroveShelfShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleQuarryBankShortcutLever(interactionId)) return;
+    if (interactionSystem.tryHandleWestLakeBridgePlank(interactionId)) return;
     if (interactionSystem.tryHandleWestCliffGateLever(interactionId)) return;
     if (interactionSystem.tryHandleRiversideBridgeShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleHollowShortcutLever(interactionId)) return;

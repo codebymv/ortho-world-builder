@@ -9,7 +9,7 @@ import {
 
 /**
  * Tight disc around the flame where combat is suppressed (player invuln, enemy nudge, spawn block).
- * Kept small so approach paths — e.g. Cliff Ledge at world ~(34, 39) — stay fightable.
+ * Kept small so approach paths - e.g. Cliff Ledge at world ~(34, 39) - stay fightable.
  */
 export const BONFIRE_COMBAT_SAFE_RADIUS = 6;
 
@@ -46,7 +46,7 @@ export function isPositionInBonfireSafeZone(
 ): boolean {
   // When flags are supplied, only *kindled* bonfires emit a combat sanctuary.
   // Interior boss arenas register a post-victory bonfire tile long before the
-  // player ever rests there — treating it as active would silently block scripted
+  // player ever rests there - treating it as active would silently block scripted
   // boss spawns at the nave centre and grant spawn-point invulnerability.
   const entries = gameFlags
     ? getKindledBonfiresForMap(mapId, gameFlags)
@@ -60,7 +60,7 @@ export function isPositionInBonfireSafeZone(
   return false;
 }
 
-/** Spawn exclusion — keep enemy origins outside the rest disc for every authored bonfire tile. */
+/** Spawn exclusion - keep enemy origins outside the rest disc for every authored bonfire tile. */
 export function isPositionInBonfireSpawnExclusionZone(
   mapId: string,
   worldX: number,
@@ -234,4 +234,4 @@ export function enforceBonfireSanctuaryTiles(
   }
 }
 
-export const BONFIRE_HOSTILES_NEAR_MESSAGE = 'Enemies draw near — the flame will not answer.';
+export const BONFIRE_HOSTILES_NEAR_MESSAGE = 'Enemies draw near. The flame will not answer.';

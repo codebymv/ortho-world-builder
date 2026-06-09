@@ -277,9 +277,9 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       chainAttack: true,
       chainChance: 0.4,
       chainTelegraph: 1.1,
-      // First poise break is absorbed — reinforced stone shell
+      // First poise break is absorbed - reinforced stone shell
       poiseImmunityFirstHit: true,
-      // Snares the player briefly on hit — crushing weight
+      // Snares the player briefly on hit - crushing weight
       snareOnHit: true,
       snareDuration: 0.8,
       snareSpeedMult: 0.45,
@@ -364,7 +364,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     speed: 0.033,
     attackRange: 1.8,
     chaseRange: 10,
-    // Big punish hit (42 dmg ≈ 2.4-hit kill) needs a readable wind-up — was 0.7s, too fast
+    // Big punish hit (42 dmg ≈ 2.4-hit kill) needs a readable wind-up - was 0.7s, too fast
     // for the damage; 1.0s keeps it a hard "don't greed the chest" wall you CAN react to.
     telegraphDuration: 1.0,
     recoverDuration: 0.55,
@@ -469,15 +469,15 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     essenceReward: 180,
     goldReward: 32,
     behaviorOverrides: {
-      // Relentless chain pressure — 50% follow-up before phase 2, ramps to 75% after
+      // Relentless chain pressure - 50% follow-up before phase 2, ramps to 75% after
       chainAttack: true,
       chainChance: 0.5,
       chainTelegraph: 1.0,
-      // Crushing weight — roots the player briefly on every clean hit
+      // Crushing weight - roots the player briefly on every clean hit
       snareOnHit: true,
       snareDuration: 0.9,
       snareSpeedMult: 0.4,
-      // First stagger is absorbed — corruption-hardened flesh
+      // First stagger is absorbed - corruption-hardened flesh
       poiseImmunityFirstHit: true,
       knockbackResistance: 0.25,
     },

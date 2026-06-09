@@ -36,11 +36,11 @@ export interface RevenantRitualContext {
 
 /**
  * Heresy summoning rituals: the two Ridge Revenants are no longer placed as static
- * enemy zones — instead a summoning glyph sits at each site, and the wraith is dragged
+ * enemy zones - instead a summoning glyph sits at each site, and the wraith is dragged
  * back only for a player steeped in heresy. If the player holds at least three cursed
  * sediment ("heretical cores") and steps onto a glyph, the ritual fires a brief charge
  * animation and materializes the revenant, which immediately attacks. Below the
- * threshold the glyph is inert — nothing happens.
+ * threshold the glyph is inert - nothing happens.
  *
  * Gate-only (cores are a threshold, not a cost). One revenant per ritual: the site is
  * marked cleared when its revenant dies (see RuntimeCombatActions), so it never re-summons
@@ -56,11 +56,11 @@ export interface RitualSite {
 }
 
 const RITUAL_SITES: RitualSite[] = [
-  // East Ridge Ascent summit (world ~110,-8) — yields the Tempered Core on defeat.
+  // East Ridge Ascent summit (world ~110,-8) - yields the Tempered Core on defeat.
   { mapId: 'forest', tileX: 260, tileY: 142, clearedFlag: 'ridge_revenant_defeated' },
-  // West Fort interior (world ~-132,-3) — yields the west-fort chest on defeat.
+  // West Fort interior (world ~-132,-3) - yields the west-fort chest on defeat.
   { mapId: 'forest', tileX: 18, tileY: 147, clearedFlag: 'ritual_revenant_west_cleared' },
-  // Precipice west lip (world ~77,-138) — outdoor ritual like the fort glyph.
+  // Precipice west lip (world ~77,-138) - outdoor ritual like the fort glyph.
   { mapId: 'forest', tileX: 227, tileY: 12, clearedFlag: 'ritual_revenant_precipice_cleared' },
 ];
 
@@ -103,16 +103,16 @@ const ACTIVE_RADIUS_SQ = 16 * 16;
 const RR_VIOLET = 0xCC44FF;
 const RR_TEAL = 0x40FFEE;
 
-// Per-site charge timer (in-memory only — resets on map change; a summon in progress
+// Per-site charge timer (in-memory only - resets on map change; a summon in progress
 // when you leave simply doesn't complete).
 const _charging = new Map<string, number>();
 const _hintedInsufficient = new Set<string>();
 const _hintedDud = new Set<string>();
-/** Sites whose summon could not materialize this session — never re-arm (prevents toast spam). */
+/** Sites whose summon could not materialize this session - never re-arm (prevents toast spam). */
 const _summonFailed = new Set<string>();
 let _lastMap = '';
 
-/** Failed ritual circles — visual only; never summon (wrong elevation, chaotic rite, etc.). */
+/** Failed ritual circles - visual only; never summon (wrong elevation, chaotic rite, etc.). */
 interface DudRitualSite {
   mapId: string;
   tileX: number;
@@ -127,7 +127,7 @@ const DUD_RITUAL_SITES: DudRitualSite[] = FOREST_DUD_RITUAL_ANCHORS.map(anchor =
   tileY: anchor.tileY,
   title: 'The sigil will not hold',
   description:
-    'Cursed sediment fizzles in the cracked ring and dies. Whoever tried this rite chose the wrong ground — the elevation shifts, or the working was simply too chaotic to bind.',
+    'Cursed sediment fizzles in the cracked ring and dies. Whoever tried this rite chose the wrong ground. The elevation shifts, or the working was simply too chaotic to bind.',
 }));
 
 function siteKey(site: RitualSite): string {
@@ -148,7 +148,7 @@ function spawnRitualRevenant(combatSystem: CombatSystem, x: number, y: number): 
     behaviorOverrides: bp.behaviorOverrides,
     faction: bp.faction,
     // Several ritual glyphs (e.g. West Fort, tile 18,147) sit inside a bonfire
-    // sanctuary. A scripted summon must materialize anyway — otherwise spawnEnemy
+    // sanctuary. A scripted summon must materialize anyway - otherwise spawnEnemy
     // drops it and the glyph re-arms forever ("the glyph drinks your heresy" loop).
     ignoreBonfireSanctuary: true,
   });
@@ -191,7 +191,7 @@ export function updateRevenantRituals(ctx: RevenantRitualContext): void {
     }
 
     // A summon that could not materialize this session is treated as spent until
-    // the player leaves and returns — prevents the re-arm/toast loop.
+    // the player leaves and returns - prevents the re-arm/toast loop.
     if (_summonFailed.has(key) && _charging.get(key) === undefined) {
       continue;
     }
@@ -212,7 +212,7 @@ export function updateRevenantRituals(ctx: RevenantRitualContext): void {
         _charging.delete(key);
         const summoned = spawnRitualRevenant(combatSystem, wx, wy);
         if (!summoned) {
-          // Spawn was suppressed for some reason — do not re-arm, or the glyph
+          // Spawn was suppressed for some reason - do not re-arm, or the glyph
           // would re-fire the summon toast every charge cycle. Flag the site spent.
           _summonFailed.add(key);
           continue;
@@ -244,7 +244,7 @@ export function updateRevenantRituals(ctx: RevenantRitualContext): void {
           description:
             cores === 0
               ? `You need at least ${MIN_CURSED_SEDIMENT} cursed sediment to wake this circle. Shatter heresy altars in the woods to gather it.`
-              : `You carry ${cores} cursed sediment — the glyph needs ${MIN_CURSED_SEDIMENT}+. Destroy more heresy altars.`,
+              : `You carry ${cores} cursed sediment. The glyph needs ${MIN_CURSED_SEDIMENT}+. Destroy more heresy altars.`,
           duration: 4500,
         });
       }

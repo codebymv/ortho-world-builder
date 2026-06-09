@@ -17,12 +17,21 @@ export const SURVIVABILITY_TARGETS = {
 export const MAX_EPHEMERAL_EXTRACT_CHARGES = 5;
 
 /**
- * Radiant Vestige upgrade (the merged Estus Shard + Undead Bone Shard of this game). Consuming
- * one at a bonfire's "Increase Healing" raises the flask's max charges and its heal potency.
+ * Radiant Vestige upgrade (the merged Estus Shard + Undead Bone Shard of this game). Each bonfire
+ * "Increase Healing" raises the flask's max charges and its heal potency; cost scales by tier.
  */
 export const EPHEMERAL_EXTRACT_CHARGES_PER_UPGRADE = 1;
-/** +15% Ephemeral Extract heal per Radiant Vestige consumed (additive: 1.0 -> 1.15 -> 1.30 ...). */
+/** +15% Ephemeral Extract heal per upgrade (additive: 1.0 -> 1.15 -> 1.30 ...). */
 export const EPHEMERAL_EXTRACT_POTENCY_PER_UPGRADE = 0.15;
+
+/** Max bonfire flask upgrades from Radiant Vestiges. */
+export const MAX_EPHEMERAL_EXTRACT_UPGRADES = 10;
+
+/**
+ * Vestiges required per upgrade, indexed by how many upgrades are already applied.
+ * First two cost 1, next two cost 2, then 3 each — extend the array as more areas add vestiges.
+ */
+export const VESTIGE_COST_BY_UPGRADE_LEVEL: readonly number[] = [1, 1, 2, 2, 3, 3, 3, 3, 3, 3];
 
 /** Stagger burst multiplier when hitting a staggered enemy. */
 export const STAGGER_DAMAGE_MULT = 1.4;

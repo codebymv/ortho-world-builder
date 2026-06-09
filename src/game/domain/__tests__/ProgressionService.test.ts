@@ -15,7 +15,7 @@ import type { Dialogue, DialogueNode } from '@/data/dialogues';
 const CHECKMARK = '✓';
 
 function makeState(): GameState {
-  // ProgressionService never touches scene/camera methods — pass empty stubs.
+  // ProgressionService never touches scene/camera methods - pass empty stubs.
   const scene = {} as unknown as THREE.Scene;
   const camera = {} as unknown as THREE.OrthographicCamera;
   return new GameState(scene, camera);
@@ -125,7 +125,7 @@ describe('selectDialogueStartNode', () => {
   });
 });
 
-describe('handleDialogueResponse — quest acceptance', () => {
+describe('handleDialogueResponse - quest acceptance', () => {
   it('accepting a quest via givesQuest adds it to state and notifies', () => {
     const state = makeState();
     state.currentDialogue = 'elder';
@@ -188,7 +188,7 @@ describe('handleDialogueResponse — quest acceptance', () => {
   });
 });
 
-describe('handleDialogueResponse — chapel key pickup', () => {
+describe('handleDialogueResponse - chapel key pickup', () => {
   it('grants the fort gate key once and sets the flag', () => {
     const state = makeState();
     state.currentDialogue = 'chapel_dead_ranger';
@@ -222,7 +222,7 @@ describe('handleDialogueResponse — chapel key pickup', () => {
   });
 });
 
-describe('handleDialogueResponse — guard_duty turn-in', () => {
+describe('handleDialogueResponse - guard_duty turn-in', () => {
   it('completes guard_duty when the kill objective is checked and player turns in', () => {
     const state = makeState();
     state.currentDialogue = 'guard';
@@ -272,7 +272,7 @@ describe('handleDialogueResponse — guard_duty turn-in', () => {
   });
 });
 
-describe('handleDialogueResponse — vendor open short-circuits', () => {
+describe('handleDialogueResponse - vendor open short-circuits', () => {
   it('opening a vendor closes dialogue and returns the vendor id', () => {
     const state = makeState();
     state.currentDialogue = 'merchant';
@@ -291,7 +291,7 @@ describe('handleDialogueResponse — vendor open short-circuits', () => {
   });
 });
 
-describe('handleDialogueResponse — Olwen ring hint', () => {
+describe('handleDialogueResponse - Olwen ring hint', () => {
   it('adds the ranger cottage hint when the player does not already have the Wolf Ring', () => {
     const state = makeState();
     state.currentDialogue = 'mountain_hermit';
@@ -334,7 +334,7 @@ describe('handleDialogueResponse — Olwen ring hint', () => {
   });
 });
 
-describe('handleDialogueResponse — healer/apothecary heal action', () => {
+describe('handleDialogueResponse - healer/apothecary heal action', () => {
   it('heals the player to max when ending the heal node', () => {
     const state = makeState();
     state.currentDialogue = 'healer';
@@ -352,7 +352,7 @@ describe('handleDialogueResponse — healer/apothecary heal action', () => {
   });
 });
 
-describe('handleDialogueResponse — Petra golem hearts', () => {
+describe('handleDialogueResponse - Petra golem hearts', () => {
   it('pays 250 gold per heart up to three then marks Petra departed', () => {
     const state = makeState();
     state.currentDialogue = 'petra_ashveil';
@@ -399,7 +399,7 @@ describe('handleDialogueResponse — Petra golem hearts', () => {
   });
 });
 
-describe('selectDialogueStartNode — Petra', () => {
+describe('selectDialogueStartNode - Petra', () => {
   it('returns null when Petra has departed', () => {
     const state = makeState();
     state.setFlag('petra_departed', true);

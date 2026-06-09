@@ -50,7 +50,7 @@ describe('fog-gate boss spawn', () => {
       attackRange: bp.attackRange,
       chaseRange: bp.chaseRange,
     });
-    // At combat radius 6 the nave centre is outside the kindled disc — still spawns.
+    // At combat radius 6 the nave centre is outside the kindled disc - still spawns.
     expect(combat.getEnemies().some(e => e.type === 'hollow_guardian')).toBe(true);
   });
 

@@ -188,12 +188,12 @@ export const Minimap = memo(
       };
     }, [assetManager, currentMap, currentMapId, gameStateRef, mapMarkersRef, refreshToken, scale, visitedTilesRef, perfProfiler]);
 
-    // All markers drawn on this map's overlay — no recency filter, so the HUD legend
+    // All markers drawn on this map's overlay - no recency filter, so the HUD legend
     // matches the dots actually visible on the minimap. Objective first, others after.
     // refreshToken is a dep so the list re-evaluates whenever game state changes.
     const visibleMarkers = useMemo(() => {
       const state = gameStateRef.current;
-      // Resolve the primary only for THIS map — prevents a forest marker from
+      // Resolve the primary only for THIS map - prevents a forest marker from
       // accidentally hiding village markers while on the village minimap.
       const dynamicPrimary = state
         ? ([getManuscriptPrimaryObjectiveMarker(state), getVillagePrimaryObjectiveMarker(state)]

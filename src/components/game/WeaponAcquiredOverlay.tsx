@@ -4,13 +4,13 @@ import type { AssetManager } from '@/lib/game/AssetManager';
 
 interface ItemAcquiredOverlayProps {
   item: Item | null;
-  /** Currently equipped weapon — only used when the acquired item is equipment, for the stat compare. */
+  /** Currently equipped weapon - only used when the acquired item is equipment, for the stat compare. */
   currentWeapon: Item | null;
   assetManager?: AssetManager | null;
   /** Equip handler for weapons and rings. Ignored for other item types. */
   onEquip: (itemId: string) => void;
   onDismiss: () => void;
-  /** When false, weapon is in inventory reserve — prompt Player (P) instead of equip. */
+  /** When false, weapon is in inventory reserve - prompt Player (P) instead of equip. */
   canEquipActive?: boolean;
 }
 
@@ -89,7 +89,7 @@ function formatRingBonus(item: Item): string | null {
 }
 
 /**
- * Renamed from WeaponAcquiredOverlay — now fires for any first-time pickup so the
+ * Renamed from WeaponAcquiredOverlay - now fires for any first-time pickup so the
  * player sees real fanfare the first time they find a potion, charm, key, or weapon.
  * Game.tsx is responsible for only invoking this with first-time items (tracked via
  * GameState.seenItemIds); the overlay itself just renders whatever it's handed.
@@ -243,7 +243,7 @@ export const WeaponAcquiredOverlay = ({
           {item.name}
         </h2>
 
-        {/* Type chip (non-equipment only — equipment header already says "Weapon") */}
+        {/* Type chip (non-equipment only - equipment header already says "Weapon") */}
         {!isEquipment && (
           <span className={`mb-2 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-sm ${chrome.border} border bg-black/30 text-[#F5DEB3]`}>
             {chrome.chip}
@@ -259,7 +259,7 @@ export const WeaponAcquiredOverlay = ({
           <p className="text-sm font-bold text-violet-300 mb-5 tabular-nums">{ringBonus}</p>
         )}
 
-        {/* Stat comparison — equipment only */}
+        {/* Stat comparison - equipment only */}
         {isEquipment && (
           <div className="flex items-stretch gap-6 mb-6">
             {/* Current weapon */}

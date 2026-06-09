@@ -264,7 +264,7 @@ export function createRuntimeMapFlow({
     world.refreshMapTileRegion(55, 162, 61, 164);
   };
 
-  // West cliff fence gate — a 2-tile opening at x:87, y:58-59 (world ~-63, -91/-92) inside the
+  // West cliff fence gate - a 2-tile opening at x:87, y:58-59 (world ~-63, -91/-92) inside the
   // vertical iron-fence wall. The player travels E-W through it.
   //
   // Closed: a `gate` tile (distinct gate texture so it reads as openable, unlike the plain
@@ -292,6 +292,66 @@ export function createRuntimeMapFlow({
           };
     }
     world.refreshMapTileRegion(204, 218, 206, 225);
+  };
+
+  /**
+   * Broken west lake bridge plank shortcut (world ~45,110 → ~32,109). Closed: gap stays open water
+   * with a loose_plank tease tile at the east gap edge (south row). Open: a single-tile rickety bridge span
+   * across the gap — slow for the player, enemy-blocked so wolves cannot follow.
+   *
+   * Gap is x:190–192 (3 tiles) after both stubs were extended.
+   * West stub now ends at x:189; east stub starts at x:193.
+   * Tease plank is at (192,260) — south row, directly adjacent to the plank_pile prop at (193,260).
+   * When extended the span runs straight across at y:260: (192,260)→(191,260)→(190,260),
+   * connecting east stub at (193,260) to west stub at (189,260) in a single horizontal line.
+   */
+  const WEST_LAKE_PLANK_SPAN = [
+    { x: 192, y: 260 },
+    { x: 191, y: 260 },
+    { x: 190, y: 260 },
+  ] as const;
+
+  // Single tease plank at the south-row gap edge, beside the plank_pile prop.
+  // Carries interactionId so pressing E on the plank itself triggers the crossing.
+  const WEST_LAKE_PLANK_TEASE = new Set(['192,260']);
+
+  const syncWestLakeBridgePlankState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const extended = state.getFlag('west_lake_bridge_plank_extended');
+    for (const { x, y } of WEST_LAKE_PLANK_SPAN) {
+      const existing = map.tiles[y]?.[x];
+      if (!existing) continue;
+      const elevation = existing.elevation ?? 0;
+      if (extended) {
+        // Center tile: use plank_crossing overlay (same sprite as loose_plank, widthScale 4.8)
+        // so it reads as one long plank spanning the full gap from a single tile.
+        // Flanking tiles: plain walkable bridge so the player can step on them without visual clutter.
+        const isCenterTile = x === 191 && y === 260;
+        map.tiles[y][x] = isCenterTile
+          ? {
+              type: 'plank_crossing' as TileType,
+              walkable: true,
+              elevation,
+              enemyBlocked: true,
+              slowWalk: true,
+            }
+          : {
+              type: 'bridge' as TileType,
+              walkable: true,
+              elevation,
+              enemyBlocked: true,
+              slowWalk: true,
+            };
+      } else if (existing.type !== 'bridge') {
+        // Show cut-lumber tease props at the east-gap positions so the player can see
+        // that someone started laying planks here; plain water everywhere else in the gap.
+        map.tiles[y][x] = WEST_LAKE_PLANK_TEASE.has(`${x},${y}`)
+          ? { type: 'loose_plank' as TileType, walkable: false, elevation, interactable: true, interactionId: 'west_lake_bridge_plank' }
+          : { type: 'water' as TileType, walkable: false, elevation };
+      }
+    }
+    world.refreshMapTileRegion(189, 257, 194, 261);
   };
 
   const syncWestCliffGateState = () => {
@@ -337,7 +397,7 @@ export function createRuntimeMapFlow({
     world.refreshMapTileRegion(145, 154, 154, 162);
   };
 
-  // Hollow corridor iron gate — horizontal picket row at x:116-129, y:50-51 (world ~-34..-21, -100).
+  // Hollow corridor iron gate - horizontal picket row at x:116-129, y:50-51 (world ~-34..-21, -100).
   // Closed: iron_fence end caps with a five-tile gate panel centered in the row. Open: dirt spine.
   const applyIronFenceGateBand = (
     map: ReturnType<typeof world.getCurrentMap>,
@@ -415,7 +475,7 @@ export function createRuntimeMapFlow({
   const syncHollowCorridorGateState = () => syncHollowShortcutState();
 
   // Permanent iron fence blocking the dirt-spine entrance to the hollow-approach ridge
-  // (world ~-4,-37 / tile x=145, y=112-113). Vertical picket at the grass/dirt boundary —
+  // (world ~-4,-37 / tile x=145, y=112-113). Vertical picket at the grass/dirt boundary -
   // perpendicular to the horizontal hollow corridor gate at y=50-51.
   // Reopens the hollow-approach stair landing shelf at runtime (world ~-38,-38 / x=110-118, y=111-112).
   const syncHollowApproachOverlookShelfState = () => {
@@ -521,11 +581,11 @@ export function createRuntimeMapFlow({
           map.tiles[ty][gateX] = { type: 'ladder' as TileType, walkable: true, elevation: 0 };
         }
       }
-      // Top rung at the overlook edge (y=107, elevation 1) — step off onto the overlook.
+      // Top rung at the overlook edge (y=107, elevation 1) - step off onto the overlook.
       if (map.tiles[107]?.[gateX]) {
         map.tiles[107][gateX] = { type: 'ladder' as TileType, walkable: true, elevation: 1 };
       }
-      // Overlook dismount tile (y=106) — ensure it is walkable as the step-off point.
+      // Overlook dismount tile (y=106) - ensure it is walkable as the step-off point.
       const topExit = map.tiles[106]?.[gateX];
       if (topExit) {
         map.tiles[106][gateX] = { ...topExit, walkable: true, enemyBlocked: true };
@@ -918,7 +978,7 @@ export function createRuntimeMapFlow({
     // Anchor tile coords and per-site chest ids for the two early-unlock ritual sites.
     const REVENANT_CHEST_SITES = [
       { clearedFlag: 'ritual_revenant_west_cleared', interactionId: 'revenant_west_terminus_chest', anchorX: 18, anchorY: 147 },
-      { clearedFlag: 'ritual_revenant_precipice_cleared', interactionId: 'revenant_precipice_terminus_chest', anchorX: 227, anchorY: 12 },
+      { clearedFlag: 'ritual_revenant_precipice_cleared', interactionId: 'revenant_precipice_terminus_chest', anchorX: 227, anchorY: 20 },
       { clearedFlag: 'ridge_revenant_defeated', interactionId: 'revenant_east_terminus_chest', anchorX: 260, anchorY: 142 },
     ] as const;
     for (const site of REVENANT_CHEST_SITES) {
@@ -930,10 +990,10 @@ export function createRuntimeMapFlow({
       const cleared = state.getFlag(site.clearedFlag);
       const opened = state.getFlag(`${site.interactionId}_opened`);
       if (cleared && !opened && !earlyObtained) {
-        // Chest hasn't been claimed yet — materialise special_chest over the dud glyph.
+        // Chest hasn't been claimed yet - materialise special_chest over the dud glyph.
         row[site.anchorX] = { type: 'special_chest' as TileType, walkable: true, elevation: el, interactable: true, interactionId: site.interactionId };
       } else {
-        // Chest claimed or scythe already obtained — restore the dud glyph so the spent
+        // Chest claimed or scythe already obtained - restore the dud glyph so the spent
         // ritual site still reads correctly.  Only overwrite if the tile is currently a
         // chest type (avoids clobbering other authored tiles that happen to share coords).
         if (existing.type === 'special_chest' || existing.type === 'special_chest_opened') {
@@ -1187,7 +1247,7 @@ export function createRuntimeMapFlow({
           continue;
         }
 
-        // North wall passage — owned by syncManuscriptCheckpointGateState, skip here.
+        // North wall passage - owned by syncManuscriptCheckpointGateState, skip here.
         if (ty === FORT_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
           continue;
         }
@@ -1220,7 +1280,7 @@ export function createRuntimeMapFlow({
           continue;
         }
 
-        // Third ring at gate passage — open when gate is open so no iron bar blocks the walkway
+        // Third ring at gate passage - open when gate is open so no iron bar blocks the walkway
         if (isThird && !isOuter && !isSecond && gateOpen && dy === FORT_H - 3 && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
           row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
           continue;
@@ -1239,7 +1299,7 @@ export function createRuntimeMapFlow({
       }
     }
 
-    // Exterior gatehouse frame (row south of fort) — open style matches north exit when key used
+    // Exterior gatehouse frame (row south of fort) - open style matches north exit when key used
     const frameY = FORT_Y + FORT_H;
     if (frameY < map.tiles.length) {
       const frameRow = map.tiles[frameY];
@@ -1354,7 +1414,7 @@ export function createRuntimeMapFlow({
           continue;
         }
 
-        // Third ring at gate passage — clear to cobblestone when open
+        // Third ring at gate passage - clear to cobblestone when open
         if (isThird && !isOuter && !isSecond && gateOpen && dy === FORT_H - 3 && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
           row[tx] = { type: 'cobblestone' as TileType, walkable: true, elevation: el };
           continue;
@@ -1519,7 +1579,7 @@ export function createRuntimeMapFlow({
           continue;
         }
 
-        // ── Interior — cobblestone, but keep authored chests (e.g. Wayfarer Ring) and
+        // ── Interior - cobblestone, but keep authored chests (e.g. Wayfarer Ring) and
         //    the summoning glyph (the west-fort Revenant ritual lives on the floor here) ──
         const interiorTile = row[tx];
         if (
@@ -1535,7 +1595,7 @@ export function createRuntimeMapFlow({
       }
     }
 
-    // Exterior frames — both sides show pillar+lantern when locked, lantern+cobblestone when open
+    // Exterior frames - both sides show pillar+lantern when locked, lantern+cobblestone when open
     const southFrameRow = map.tiles[FORT_Y + FORT_H];
     applyExteriorFrame(southFrameRow, gateOpen);
     const northFrameRow = map.tiles[FORT_Y - 1];
@@ -1544,7 +1604,7 @@ export function createRuntimeMapFlow({
     world.rebuildChunks();
   };
 
-  /** Failed summoning circles (dud sites) — re-stamp glyph + pad + decor after late map-gen passes. */
+  /** Failed summoning circles (dud sites) - re-stamp glyph + pad + decor after late map-gen passes. */
   const syncForestDudRitualSites = () => {
     if (state.currentMap !== 'forest') return;
     ensureForestDudRitualSites(world, state.currentMap, {
@@ -1556,7 +1616,7 @@ export function createRuntimeMapFlow({
 
   const syncWestFortGateState = () => {
     if (state.currentMap !== 'forest') return;
-    // Western fort — moved +10 y from original placement, fully sealed (dual gates)
+    // Western fort - moved +10 y from original placement, fully sealed (dual gates)
     buildOptionalFort('west_fort_gate_open', 'west_fort_gate', 12, 141, 14, 14);
     const map = world.getCurrentMap();
     applyRevenantRitualDecor(map, 18, 147);
@@ -1566,7 +1626,7 @@ export function createRuntimeMapFlow({
 
   const syncGolemFortGateState = () => {
     if (state.currentMap !== 'forest') return;
-    // Northern (golem) fort — fully sealed (dual gates)
+    // Northern (golem) fort - fully sealed (dual gates)
     buildOptionalFort('golem_fort_gate_open', 'golem_fort_gate', 80, 242, 14, 14);
   };
 
@@ -1654,7 +1714,7 @@ export function createRuntimeMapFlow({
       { x: 30, y: 5, interactionId: 'hollow_arena_chest_ne' },
       { x: 5, y: 30, interactionId: 'hollow_arena_chest_sw' },
     ];
-    // Center special chest — materialises at the boss's fall point after the guardian dies.
+    // Center special chest - materialises at the boss's fall point after the guardian dies.
     // Placed 3 tiles south of the portal (same column, still on ruins_floor) so it is visible
     // from both the portal and the bonfire without overlapping either.
     const TERMINUS_CHEST_X = 18;
@@ -1693,7 +1753,7 @@ export function createRuntimeMapFlow({
           interactionId: chest.interactionId,
         };
       }
-      // Terminus Scythe special chest — appears at the boss's fallen position.
+      // Terminus Scythe special chest - appears at the boss's fallen position.
       const terminusRow = map.tiles[TERMINUS_CHEST_Y];
       if (terminusRow) {
         const tEl = terminusRow[TERMINUS_CHEST_X]?.elevation ?? 0;
@@ -1870,9 +1930,9 @@ export function createRuntimeMapFlow({
     // Closed: a solid iron gate; open: walkable cobblestone. These collapse the long
     // detour loops back onto the bonfire spine once the player finds the lever.
     const shortcutGates: Array<{ flag: string; y0: number; y1: number; x0: number; x1: number; openType: TileType; closedType: TileType }> = [
-      // Lever 1 — the winch portcullis on the direct upper-city ascent (the Heights gate).
+      // Lever 1 - the winch portcullis on the direct upper-city ascent (the Heights gate).
       { flag: 'guilrhym_shortcut_lever_1_open', y0: 116, y1: 118, x0: 146, x1: 154, openType: 'cobblestone', closedType: 'gate' },
-      // Lever 2 — the central canal sluice gate, opening a straight crossing back onto the spine.
+      // Lever 2 - the central canal sluice gate, opening a straight crossing back onto the spine.
       { flag: 'guilrhym_shortcut_lever_2_open', y0: 169, y1: 175, x0: 146, x1: 154, openType: 'bridge', closedType: 'water' },
     ];
     for (const gate of shortcutGates) {
@@ -1902,7 +1962,7 @@ export function createRuntimeMapFlow({
       { x: 29, y: 6, interactionId: 'guilrhym_arena_chest_ne' },
       { x: 6, y: 29, interactionId: 'guilrhym_arena_chest_sw' },
     ];
-    // Reaver's reward — a special chest at the boss's fall point, 3 tiles south of the portal.
+    // Reaver's reward - a special chest at the boss's fall point, 3 tiles south of the portal.
     const REAVER_CHEST_X = 18;
     const REAVER_CHEST_Y = 21;
     const row = map.tiles[portalY];
@@ -1972,6 +2032,7 @@ export function createRuntimeMapFlow({
     syncWhisperingWoodsShortcutState();
     syncGroveShelfShortcutState();
     syncQuarryBankShortcutState();
+    syncWestLakeBridgePlankState();
     syncWestCliffGateState();
     syncRiversideBridgeShortcutState();
     syncHollowShortcutState();
@@ -2075,13 +2136,13 @@ export function createRuntimeMapFlow({
           poise: bp.poise,
           staggerDuration: bp.staggerDuration,
           behaviorOverrides: bp.behaviorOverrides,
-          // Scripted boss — must appear even if sanctuary radius overlaps the nave
+          // Scripted boss - must appear even if sanctuary radius overlaps the nave
           // (registry post-victory bonfire at tile 18,28 used to silently drop the spawn).
           ignoreBonfireSanctuary: true,
         });
       }
 
-      // Two Hollow Reavers at the far (north) corners on arena entry — they anchor to the
+      // Two Hollow Reavers at the far (north) corners on arena entry - they anchor to the
       // boss side so the player faces ranged pressure from the same direction as the boss.
       // A second pair spawns via the phase-2 summon in RuntimeEnemyLoop when the boss
       // crosses 50% HP, giving the player a moment to read the fight before full crossfire.
@@ -2195,6 +2256,7 @@ export function createRuntimeMapFlow({
     syncWhisperingWoodsShortcutState,
     syncGroveShelfShortcutState,
     syncQuarryBankShortcutState,
+    syncWestLakeBridgePlankState,
     syncWestCliffGateState,
     syncRiversideBridgeShortcutState,
     syncHollowShortcutState,

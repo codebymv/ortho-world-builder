@@ -104,7 +104,7 @@ export function createWorldItemRenderer(scene: THREE.Scene) {
     currentMap: string,
     assetManager: AssetManager,
     currentTime: number,
-    /** Match player/NPCs and interaction diamond — raw item.y ignores map elevation. */
+    /** Match player/NPCs and interaction diamond - raw item.y ignores map elevation. */
     getVisualYAt: (x: number, y: number) => number,
     options: WorldItemUpdateOptions,
   ) {

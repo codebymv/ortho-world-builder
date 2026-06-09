@@ -5,7 +5,7 @@ import * as THREE from 'three';
  * a clip-space quad pinned over the scene at the highest render order, with a time-lerped
  * strength so it fades in/out as the player enters/leaves a high-mountain zone.
  *
- * Deliberately VERY subtle — a faint cool blue-white wash plus a soft edge vignette that
+ * Deliberately VERY subtle - a faint cool blue-white wash plus a soft edge vignette that
  * thickens toward the screen corners, faking thin air and distant haze so the surroundings
  * read as far below / far away. No blur (too costly in this ortho pipeline), no motion.
  */

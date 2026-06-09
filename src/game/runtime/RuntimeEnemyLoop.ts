@@ -337,7 +337,7 @@ export function runEnemyLoop({
       if (enemy.type === 'corrupted_giant' && phase === 2) {
         screenShake.shake(1.0, 0.55);
         screenShake.hitStop(0.4);
-        // Violet corruption burst — veins rupture outward
+        // Violet corruption burst - veins rupture outward
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.6, 70, 0x7B3FA0, 0.14, 3.0, 2.0);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.3, 30, 0xCC6EF0, 0.08, 2.0, 1.4);
         return;
@@ -358,7 +358,7 @@ export function runEnemyLoop({
         for (const off of [{ x: -2.5, y: -1.5 }, { x: 2.5, y: 1.5 }]) {
           spawnShade(off);
         }
-        // Two Reavers spawn at the south (player-entry) corners — flanks the player's
+        // Two Reavers spawn at the south (player-entry) corners - flanks the player's
         // retreat line and forces them to fight toward the boss to clear the pressure.
         for (const corner of REAVER_CORNERS_PHASE2) {
           particleSystem.emitAt(corner.x, corner.y, 0.4, 10, 0xCC44FF, 0.1, 1.4, 1.0);
@@ -377,7 +377,7 @@ export function runEnemyLoop({
         screenShake.shake(0.8, 0.4);
         screenShake.hitStop(0.4);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 35, 0x44FFEE, 0.12, 2.2, 1.5);
-        // Two Reavers at NW + SE — diagonal crossfire that forces the player off any
+        // Two Reavers at NW + SE - diagonal crossfire that forces the player off any
         // safe axis they've been using, raising stakes for the final phase.
         for (const corner of REAVER_CORNERS_PHASE3) {
           particleSystem.emitAt(corner.x, corner.y, 0.4, 14, 0xCC44FF, 0.12, 1.6, 1.2);
@@ -415,7 +415,7 @@ export function runEnemyLoop({
   }
 
   /**
-   * Fire fully immersive parry feedback at a world position. No floating text —
+   * Fire fully immersive parry feedback at a world position. No floating text -
    * the player reads parries from the camera kick, the freeze-frame, the gold
    * spark burst on their blade, and the boss's stagger pose.
    *
@@ -487,7 +487,7 @@ export function runEnemyLoop({
     }
     particleSystem.emitAt(clashX, clashY, 0.4, goldCount, 0xFFD700, 0.55, goldSpeed, 1.0);
     if (ringCount > 0) {
-      // Thin ring of bright sparks at the impact point — reads as the deflected
+      // Thin ring of bright sparks at the impact point - reads as the deflected
       // edge of the strike spraying outward.
       particleSystem.emitAt(clashX, clashY, 0.42, ringCount, ringColor, 0.4, goldSpeed * 1.3, 1.6);
     }
@@ -598,7 +598,7 @@ export function runEnemyLoop({
       }
     }
 
-    // Committed-attack lock indicator — paints the impact tile with rising
+    // Committed-attack lock indicator - paints the impact tile with rising
     // dust so the player can read where to sidestep. Throttled to ~once per
     // 4 frames to keep particle count reasonable.
     if (eDistSq <= FULL_VISUAL_RANGE_SQ &&
@@ -619,7 +619,7 @@ export function runEnemyLoop({
         particleSystem.emitAt(t.x, t.y, 0.1, 4, color, 0.35, 0.9, 0.6, { important: false });
       }
     }
-    // Dash-attack motion trail — leaves a streak behind committed dashes so
+    // Dash-attack motion trail - leaves a streak behind committed dashes so
     // the slide reads as kinetic rather than a snap teleport.
     if (eDistSq <= FULL_VISUAL_RANGE_SQ &&
         enemy.state === 'telegraphing' &&
@@ -746,7 +746,7 @@ export function runEnemyLoop({
       getVisualYAt,
       getActorRenderOrder,
     }) || auxHandled;
-    // Ridge Revenant summoned blade array — during the bladestorm cast an arc of
+    // Ridge Revenant summoned blade array - during the bladestorm cast an arc of
     // spectral blades materializes behind the wraith, lifts overhead, points at
     // the player, and converges into firing position as the telegraph completes.
     // The aura is torn down the instant the cast resolves (the real projectiles
@@ -774,7 +774,7 @@ export function runEnemyLoop({
           scene.add(bladeMesh);
           aura.push(bladeMesh);
         }
-        // Casting arm overlay — sweeps up toward the aim as the cast charges (the hand-wave).
+        // Casting arm overlay - sweeps up toward the aim as the cast charges (the hand-wave).
         const armMesh = new THREE.Mesh(SharedGeometry.enemy, new THREE.MeshBasicMaterial({
           map: assetManager.getTexture('fx_revenant_cast_arm'),
           transparent: true,
@@ -818,7 +818,7 @@ export function runEnemyLoop({
 
       // Casting arm: anchored at the wraith's shoulder, it eases from a lowered rest pose
       // up to a fully-extended point toward the aim, with a sharp forward "flick" right
-      // before release — selling the gesture that looses the storm.
+      // before release - selling the gesture that looses the storm.
       const armMesh = aura[ARM_INDEX];
       if (armMesh) {
         const shoulderX = ex + Math.cos(baseAngle) * 0.22;
@@ -832,7 +832,7 @@ export function runEnemyLoop({
         armMesh.position.y = shoulderY + Math.sin(armAngle) * armLen * 0.5;
         armMesh.position.z = 0.24;
         armMesh.rotation.z = armAngle;
-        // Rotation alone aims the +X-pointing arm sprite in any direction — no mirror needed.
+        // Rotation alone aims the +X-pointing arm sprite in any direction - no mirror needed.
         const armScale = 0.85 + progress * 0.2;
         armMesh.scale.set(armScale, armScale, 1);
         const armMat = armMesh.material as THREE.MeshBasicMaterial;
@@ -1050,7 +1050,7 @@ export function runEnemyLoop({
   }
 
   if (state.player.health <= 0 && !isPlayerDead) {
-    // Last Breath Charm — auto-consume to pull the player back from a killing blow.
+    // Last Breath Charm - auto-consume to pull the player back from a killing blow.
     // Hard cap of one revive per life (cleared on bonfire rest or true death). Without
     // the cap, a stacked inventory of charms would trivialise mortality entirely.
     const charmIdx = state.player.lastBreathUsedThisLife

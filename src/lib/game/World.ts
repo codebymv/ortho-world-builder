@@ -2,6 +2,15 @@ import * as THREE from 'three';
 import { AssetManager } from './AssetManager';
 import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
 import { isPositionInBonfireSafeZone } from '@/game/runtime/bonfireCombatGuard';
+import { GroundInstanceLayer } from './GroundInstanceLayer';
+import { TransientTileDecalField } from './TransientTileDecals';
+
+/**
+ * Experimental: batch flat base-ground quads into per-texture InstancedMeshes to cut draw calls.
+ * Default OFF — the proven per-mesh path is unchanged when false. Flip to true to A/B test in-game
+ * (F8 to watch drawCalls). Only pure ground tiles (no shadow/decal/seam/overlay) are instanced.
+ */
+const USE_INSTANCED_GROUND: boolean = false;
 
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'water_corrupted' | 'stone' | 'wood' 
@@ -26,24 +35,27 @@ export type TileType =
   | 'cobblestone_dark' | 'brick' | 'roof_tile' | 'timber_wall'
   // Guilrhym district pavers + canal ground (authored district identity; see AssetManager)
   | 'cobble_grand' | 'cobble_market' | 'cobble_residential' | 'waterlogged_cobble' | 'flood_silt' | 'ashen_cobble'
-  // Guilrhym bespoke architecture — tall Victorian overlay structures (see AssetManager + tiles.ts)
+  // Guilrhym bespoke architecture - tall Victorian overlay structures (see AssetManager + tiles.ts)
   | 'tenement_facade' | 'townhouse_facade' | 'cathedral_facade' | 'clocktower' | 'warehouse_facade'
   | 'manor_facade' | 'boarded_facade'
   // Guilrhym street life + paving (props + a proper paved-road ground tile)
   | 'baby_carriage' | 'stagecoach' | 'street_sign' | 'road_setts'
   | 'street_lamp' | 'iron_railing' | 'fountain' | 'pillar' | 'sewer_grate' | 'hanging_sign' | 'wall_torch' | 'awning'
   | 'rubble' | 'broken_stall' | 'crate_stack' | 'barrel_stack' | 'chimney'
-  // Guilrhym fallen-city dressing — a burning street barricade + a civic memorial column landmark
+  // Guilrhym fallen-city dressing - a burning street barricade + a civic memorial column landmark
   | 'burning_barricade' | 'memorial_column'
   // Guilrhym district fencing kits + a hard street-sealing collapse mass
   | 'timber_palisade' | 'stone_low_wall' | 'chain_fence' | 'collapsed_masonry'
-  // A bespoke cliff cave-mouth — interactable entrance into a cave interior (and its step-out exit)
+  // A bespoke cliff cave-mouth - interactable entrance into a cave interior (and its step-out exit)
   | 'cave_mouth'
   | 'cottage_shed'
   | 'blighted_stump'
   | 'observatory'
   | 'fallen_log' | 'fallen_log_b'
   | 'fallen_log_v' | 'fallen_log_v_b'
+  | 'loose_plank'
+  | 'plank_pile'
+  | 'plank_crossing'
   | 'ridge_lumberyard'
   | 'quarry_floor' | 'quarry_bedrock' | 'quarry_crane' | 'cut_stone_blocks' | 'quarry_cart' | 'quarry_rubble' | 'quarry_tools'
   | 'cave_floor';
@@ -67,7 +79,7 @@ export interface Tile {
   linkedTo?: string;
   pushable?: boolean;
   activated?: boolean;
-  /** Set for `stairs` when map stairways use `axis: 'ew'` — treads run east–west. */
+  /** Set for `stairs` when map stairways use `axis: 'ew'` - treads run east–west. */
   stairAxis?: 'ns' | 'ew';
   /** Optional fixed backing drawn beneath overlay/height art when neighbor sampling would show seams. */
   baseTile?: TileType;
@@ -75,6 +87,8 @@ export interface Tile {
   spinePath?: boolean;
   /** When true, enemies cannot stand on or path onto this tile (e.g. ladder landings). */
   enemyBlocked?: boolean;
+  /** When true, the player moves at reduced speed (rickety plank crossings, etc.). */
+  slowWalk?: boolean;
 }
 
 export interface WorldMap {
@@ -90,7 +104,7 @@ export interface WorldMap {
   coastalSouthBackdrop?: boolean;
   /** When true, deep-ocean planes also extend past the north, east, and west map edges (matches coastalBorderAllSides generation). */
   coastalBorderAllSides?: boolean;
-  /** Runtime map key (village, forest, …) — used for bonfire sanctuary collision. */
+  /** Runtime map key (village, forest, …) - used for bonfire sanctuary collision. */
   mapKey?: string;
 }
 
@@ -160,7 +174,7 @@ export interface CollisionAuditResult {
   probes: CollisionDebugProbe[];
 }
 
-// The ortho camera (frustumSize 12) shows ~12 tiles tall and ~12*aspect wide — a visible
+// The ortho camera (frustumSize 12) shows ~12 tiles tall and ~12*aspect wide - a visible
 // half-span of ~6 vertical and ~11–14 horizontal even on ultrawide. RENDER_RADIUS only needs
 // to cover that PLUS a movement margin; rendering far beyond it just meshes off-screen tiles.
 // 22 covers a 21:9 viewport's wide half-span (~14) with ~8 tiles of margin, ~11 on 16:9.
@@ -217,7 +231,7 @@ export function canCrossSpinePathElevation(fromTile: Tile | null, toTile: Tile |
   return isSpinePathElevationTile(fromTile) && isSpinePathElevationTile(toTile);
 }
 
-/** Tile types enemies treat as solid — mirrors ladder/gate art and vertical traversal the player can use. */
+/** Tile types enemies treat as solid - mirrors ladder/gate art and vertical traversal the player can use. */
 const ENEMY_BLOCKED_TILE_TYPES: ReadonlySet<TileType> = new Set(['ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open', 'stairs']);
 const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'bones',
@@ -238,6 +252,12 @@ const WATER_BRIDGE_TILES: ReadonlySet<TileType> = new Set<TileType>([
   'bridge_corrupted',
   'bridge_folded',
   'bridge_decay_blend',
+] as TileType[]);
+/** Tiles that can host an idle wave-crest ripple (open water only — not bridges/docks). */
+const WATER_RIPPLE_TILES: ReadonlySet<TileType> = new Set<TileType>(['water', 'water_corrupted'] as TileType[]);
+/** Grassy/leafy ground that can host an idle wind gust (open vegetation, not structures/paths). */
+const WIND_GUST_TILES: ReadonlySet<TileType> = new Set<TileType>([
+  'grass', 'dark_grass', 'tall_grass', 'tall_grass_b', 'tall_grass_c', 'wheat', 'farmland',
 ] as TileType[]);
 const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'house',
@@ -399,6 +419,13 @@ export class World {
   private shadowGeometry: THREE.PlaneGeometry;
   private detailTextures: Map<string, THREE.Texture> = new Map();
 
+  private readonly groundInstances: GroundInstanceLayer;
+  /** Pool of empty placeholder nodes that stand in `activeMeshes` for instanced ground tiles. */
+  private readonly groundPlaceholderPool: THREE.Object3D[] = [];
+  /** Idle ambience: sparse transient decals stamped on random visible water / grass tiles. */
+  private readonly waterRipples: TransientTileDecalField;
+  private readonly windGusts: TransientTileDecalField;
+
   constructor(scene: THREE.Scene, assetManager: AssetManager, map: WorldMap) {
     this.scene = scene;
     this.assetManager = assetManager;
@@ -406,6 +433,27 @@ export class World {
     this.map.revision = this.mapRevision;
     this.detailGeometry = new THREE.PlaneGeometry(0.3, 0.3);
     this.shadowGeometry = new THREE.PlaneGeometry(1, 1);
+    this.groundInstances = new GroundInstanceLayer(scene);
+    this.waterRipples = new TransientTileDecalField(
+      scene,
+      {
+        maxConcurrent: 5, lifeMs: 1500, minGapMs: 320, maxGapMs: 950,
+        size: 0.9, renderOrder: 56000, z: 0.03, peakOpacity: 0.7,
+        scaleFrom: 0.85, scaleTo: 1.25, driftX: 0, driftY: 0.07,
+        jitter: 0.5, rotationJitter: 0.6,
+      },
+      () => this.assetManager.getTexture('water_ripple') ?? null,
+    );
+    this.windGusts = new TransientTileDecalField(
+      scene,
+      {
+        maxConcurrent: 4, lifeMs: 1300, minGapMs: 520, maxGapMs: 1600,
+        size: 1.5, renderOrder: 100, z: 0.04, peakOpacity: 0.42,
+        scaleFrom: 0.75, scaleTo: 1.3, driftX: 0.6, driftY: 0.12,
+        jitter: 0.6, rotationJitter: 0.3,
+      },
+      () => this.assetManager.getTexture('wind_gust') ?? null,
+    );
     this.generateDetailTextures();
     this.rebuildSouthCoastBackdrop();
   }
@@ -501,7 +549,7 @@ export class World {
       ctx.fillRect(0, h - 2, w, 2);
     }));
 
-    // Whispering Woods — hollow approach band (world y > ~-91, tileY 59–74): faint violet rot on grass,
+    // Whispering Woods - hollow approach band (world y > ~-91, tileY 59–74): faint violet rot on grass,
     // same family as corrupted bridge / deep hollow, weaker than full hollow_blight floor.
     this.detailTextures.set('detail_corruption_mote', makeCanvas(ctx => {
       const g = ctx.createRadialGradient(8, 8, 0, 8, 8, 7.5);
@@ -650,6 +698,40 @@ export class World {
       visualSignature: this.getTileVisualSignature(this.map.tiles[tileY][tileX], tileX, tileY),
       isOverlayObject: isOverlay,
     };
+    // Instanced ground placeholder: register the quad in the instanced layer at this tile's world
+    // position (matching the per-mesh base quad: z = -0.5). The placeholder itself renders nothing.
+    if (USE_INSTANCED_GROUND && object.userData.instancedGround) {
+      const groundType = object.userData.groundType as TileType;
+      const texture = this.assetManager.getTexture(groundType);
+      if (texture) {
+        const matKey = `base_${groundType}`;
+        const material = this.getCachedMaterial(texture, matKey);
+        const placed = this.groundInstances.set(
+          key,
+          matKey,
+          this.sharedTileGeometry,
+          material,
+          worldOffsetX + tileX * this.tileSize,
+          worldOffsetY + tileY * this.tileSize + visualYOffset,
+          -0.5,
+        );
+        if (placed) {
+          object.userData.instancedGroundKey = key;
+        } else {
+          // Capacity overflow — fall back to a real per-tile quad so nothing goes missing.
+          object.userData.instancedGround = false;
+          const fallback = this.createPlaneMesh(texture, baseZ - 0.5, matKey);
+          fallback.position.set(
+            worldOffsetX + tileX * this.tileSize,
+            worldOffsetY + tileY * this.tileSize + visualYOffset,
+            -0.5,
+          );
+          fallback.updateMatrix();
+          this.scene.add(fallback);
+          object.userData.instancedFallbackMesh = fallback;
+        }
+      }
+    }
     if (isOverlay) {
       const sortAnchorY = object.userData?.sortAnchorY ?? 0;
       const worldY = worldOffsetY + tileY * this.tileSize + visualYOffset + sortAnchorY;
@@ -782,7 +864,7 @@ export class World {
 
   /**
    * Between the river / bridge approach and the full deep-hollow floor (tileY < 59, world y about -91 and north):
-   * sparse purple corruption motes on grass — gradual ramp toward `hollow_blight`.
+   * sparse purple corruption motes on grass - gradual ramp toward `hollow_blight`.
    */
   private createHollowTransitionCorruptionDecals(tileX: number, tileY: number, tileType: TileType): THREE.Group | null {
     if (this.map.name !== 'Whispering Woods') return null;
@@ -865,7 +947,7 @@ export class World {
     const group = new THREE.Group();
     group.matrixAutoUpdate = false;
 
-    // Broad veil underneath — covers the altar base
+    // Broad veil underneath - covers the altar base
     const veilMat = makeMat('veil', 0.38);
     const veil = this.acquireMesh(this.detailGeometry, veilMat);
     veil.frustumCulled = true;
@@ -900,7 +982,7 @@ export class World {
     return group;
   }
 
-  /** @deprecated No longer used — aura now renders on the altar itself via createHeresyAltarSelfAura */
+  /** @deprecated No longer used - aura now renders on the altar itself via createHeresyAltarSelfAura */
   private createHeresyAltarAuraDecals(_tileX: number, _tileY: number): THREE.Group | null {
     return null;
   }
@@ -1006,29 +1088,55 @@ export class World {
       Math.abs(tileY - this.renderCenter.y) > DECORATIVE_OVERLAY_NEAR_RADIUS;
   }
 
-  private getTileVisualSignature(tile: Tile, tileX: number, tileY: number): string {
+  // FNV-1a 32-bit folding helpers. A trailing field-separator fold mirrors the old '|' join so
+  // distinct field boundaries can't collide (e.g. "ab"+"c" vs "a"+"bc").
+  private hashFoldStr(h: number, s: string): number {
+    for (let i = 0; i < s.length; i++) {
+      h = Math.imul(h ^ s.charCodeAt(i), 0x01000193) >>> 0;
+    }
+    return Math.imul(h ^ 0x7c /* '|' */, 0x01000193) >>> 0;
+  }
+
+  private hashFoldNum(h: number, n: number): number {
+    h = Math.imul(h ^ (n | 0), 0x01000193) >>> 0;
+    return Math.imul(h ^ 0x7c, 0x01000193) >>> 0;
+  }
+
+  /**
+   * Numeric visual signature for a tile. Previously this built a 12-element array and joined it
+   * into a string on every call; that ran for every active mesh on every full chunk update
+   * (every 2 tiles of movement), allocating thousands of strings/arrays per second while moving
+   * and driving GC stutter. This folds the identical inputs into an allocation-free 32-bit hash.
+   * Collision risk (~1/2^32 per comparison) is negligible and its only effect would be a tile
+   * keeping a stale visual until its next genuine change.
+   */
+  private getTileVisualSignature(tile: Tile, tileX: number, tileY: number): number {
     const overlayCulled = this.shouldCullDecorativeOverlay(tile, tileX, tileY);
     const overlayTextureId = getOverlayTextureId(tile.type, tileX, tileY);
     const baseType = this.isOverlayTileType(tile.type)
       ? tile.baseTile ?? this.resolveBaseTileType(tileX, tileY, TILE_METADATA[tile.type]?.baseTile ?? 'grass')
       : tile.type;
-    const transition = tile.transition
-      ? `${tile.transition.targetMap}:${tile.transition.targetX}:${tile.transition.targetY}`
-      : '';
-    return [
-      tile.type,
-      tile.walkable ? 1 : 0,
-      tile.elevation ?? 0,
-      tile.baseTile ?? '',
-      tile.stairAxis ?? '',
-      tile.interactable ? 1 : 0,
-      tile.interactionId ?? '',
-      transition,
-      tile.hidden ? 1 : 0,
-      overlayTextureId,
-      baseType,
-      overlayCulled ? 1 : 0,
-    ].join('|');
+
+    let h = 0x811c9dc5;
+    h = this.hashFoldStr(h, tile.type);
+    h = this.hashFoldNum(h, tile.walkable ? 1 : 0);
+    h = this.hashFoldNum(h, tile.elevation ?? 0);
+    h = this.hashFoldStr(h, tile.baseTile ?? '');
+    h = this.hashFoldStr(h, tile.stairAxis ?? '');
+    h = this.hashFoldNum(h, tile.interactable ? 1 : 0);
+    h = this.hashFoldStr(h, tile.interactionId ?? '');
+    if (tile.transition) {
+      h = this.hashFoldStr(h, tile.transition.targetMap);
+      h = this.hashFoldNum(h, tile.transition.targetX);
+      h = this.hashFoldNum(h, tile.transition.targetY);
+    } else {
+      h = this.hashFoldNum(h, 0);
+    }
+    h = this.hashFoldNum(h, tile.hidden ? 1 : 0);
+    h = this.hashFoldStr(h, overlayTextureId);
+    h = this.hashFoldStr(h, baseType);
+    h = this.hashFoldNum(h, overlayCulled ? 1 : 0);
+    return h >>> 0;
   }
 
   private resolveBaseTileType(tileX: number, tileY: number, fallback: TileType = 'dirt'): TileType {
@@ -1318,7 +1426,7 @@ export class World {
       if (tileY <= 0) return;
       const nb = this.map.tiles[tileY - 1]?.[tileX];
       if (!nb) return;
-      // Do NOT skip when the north neighbour is water at higher elevation — that gap must be
+      // Do NOT skip when the north neighbour is water at higher elevation - that gap must be
       // filled with terrain seam texture to avoid sky showing through below the water surface.
       // (The symmetric south-bank case: cliff tiles use the water-bridge skip in addSouth, which
       //  is intentional since the cliff sprite already covers that face.)
@@ -1522,6 +1630,15 @@ export class World {
           hollowRot.updateMatrix();
           group.add(hollowRot);
         }
+        // Pure flat ground tile (no seams/decals/shadow) → hand its quad to the instanced layer
+        // and stand a placeholder in its place so the existing chunk lifecycle still tracks it.
+        if (USE_INSTANCED_GROUND && group.children.length === 1) {
+          this.recycleObject(group); // returns the base quad + group to their pools
+          const placeholder = this.groundPlaceholderPool.pop() ?? new THREE.Object3D();
+          placeholder.matrixAutoUpdate = false;
+          placeholder.userData = { instancedGround: true, groundType: tile.type, tileType: tile.type };
+          return placeholder;
+        }
         return group;
       }
 
@@ -1611,8 +1728,9 @@ export class World {
       overlayMesh.position.x = (tileHash(tileX, tileY, 934) - 0.5) * 0.1;
       overlayMesh.position.y = yOffset + (tileHash(tileX, tileY, 935) - 0.5) * 0.08;
       overlayMesh.rotation.z = Math.floor(tileHash(tileX, tileY, 936) * 4) * (Math.PI / 2);
-    } else if (scale !== 1.0) {
-      overlayMesh.scale.set(scale, scale, 1);
+    } else if (scale !== 1.0 || (metadata?.widthScale ?? 1) !== 1) {
+      const effectiveWidthScale = metadata?.widthScale ?? 1;
+      overlayMesh.scale.set(scale * effectiveWidthScale, scale, 1);
       overlayMesh.position.y = yOffset;
     }
     baseMesh.updateMatrix();
@@ -1633,6 +1751,20 @@ export class World {
   }
 
   private recycleObject(object: THREE.Object3D) {
+    // Instanced-ground placeholder: free its instance slot (and any capacity-overflow fallback
+    // mesh), then return the placeholder to its pool. Caller already removed it from the scene.
+    if (object.userData?.instancedGround) {
+      const instKey = object.userData.instancedGroundKey;
+      if (typeof instKey === 'number') this.groundInstances.remove(instKey);
+      const fallback = object.userData.instancedFallbackMesh;
+      if (fallback instanceof THREE.Mesh) {
+        this.scene.remove(fallback);
+        this.releaseMesh(fallback);
+      }
+      object.userData = {};
+      this.groundPlaceholderPool.push(object);
+      return;
+    }
     if (object instanceof THREE.Group) {
       const meshes: THREE.Mesh[] = [];
       object.traverse(child => {
@@ -1648,7 +1780,7 @@ export class World {
     if (object instanceof THREE.Mesh) {
       this.releaseMesh(object);
     }
-    // Meshes with shared materials just get removed from scene — no disposal needed
+    // Meshes with shared materials just get removed from scene - no disposal needed
   }
 
   private disposeSouthCoastBackdrop() {
@@ -1751,6 +1883,45 @@ export class World {
 
     this.scene.add(group);
     this.southCoastBackdrop = group;
+  }
+
+  /**
+   * Idle environmental ambience as occasional, transient decals rather than a constant per-tile
+   * loop: wave crests laps across open water, soft gusts rustle across grass/trees. Both pick a
+   * random visible host tile at random intervals (capped), fade a quad in and back out, then
+   * recycle it — a few transparent quads per frame, no per-tile work.
+   */
+  tickAmbientDecals(currentTime: number): void {
+    this.waterRipples.tick(currentTime, () => this.pickRandomVisibleTileCenter(WATER_RIPPLE_TILES));
+    this.windGusts.tick(currentTime, () => this.pickRandomVisibleTileCenter(WIND_GUST_TILES));
+  }
+
+  /**
+   * Reservoir-sample a streamed-in tile whose type is in `tiles`, returning its world-space centre
+   * (elevation included). Null when none of that kind are on screen. No per-spawn allocation beyond
+   * the single returned point.
+   */
+  private pickRandomVisibleTileCenter(tiles: ReadonlySet<TileType>): { worldX: number; worldY: number } | null {
+    let chosenX = 0;
+    let chosenY = 0;
+    let seen = 0;
+    for (const [, object] of this.activeMeshes) {
+      const tx = object.userData?.tileX as number | undefined;
+      const ty = object.userData?.tileY as number | undefined;
+      if (tx === undefined || ty === undefined) continue;
+      const type = this.map.tiles[ty]?.[tx]?.type;
+      if (type === undefined || !tiles.has(type)) continue;
+      seen++;
+      if (Math.random() < 1 / seen) { chosenX = tx; chosenY = ty; }
+    }
+    if (seen === 0) return null;
+    const worldOffsetX = -this.map.width / 2;
+    const worldOffsetY = -this.map.height / 2;
+    const visualYOffset = (this.map.tiles[chosenY]?.[chosenX]?.elevation ?? 0) * World.ELEVATION_Y_OFFSET;
+    return {
+      worldX: worldOffsetX + chosenX * this.tileSize,
+      worldY: worldOffsetY + chosenY * this.tileSize + visualYOffset,
+    };
   }
 
   updateChunks(playerWorldX: number, playerWorldY: number) {
@@ -1859,11 +2030,14 @@ export class World {
     this.map.revision = this.mapRevision;
     this.interactableCache = null;
     this.disposeSouthCoastBackdrop();
+    this.waterRipples.clear();
+    this.windGusts.clear();
     for (const [, object] of this.activeMeshes) {
       this.scene.remove(object);
       this.recycleObject(object);
     }
     this.activeMeshes.clear();
+    this.groundInstances.clear(); // safety net: per-placeholder recycle already freed each slot
     this.activeOverlayObjectCount = 0;
     this.activeDecorativeOverlayCullCount = 0;
     this.pendingTiles = [];
@@ -2051,7 +2225,7 @@ export class World {
       return this.canEnemyMovePoint(fromX, fromY, toX, toY);
     }
 
-    // 4 corners + 4 edge midpoints = 8-point hull — catches obstacles that straddle
+    // 4 corners + 4 edge midpoints = 8-point hull - catches obstacles that straddle
     // the diagonal between two corners and gives tighter clearance from cliff edges.
     return this.canEnemyMovePoint(fromX - r, fromY - r, toX - r, toY - r) &&
            this.canEnemyMovePoint(fromX + r, fromY - r, toX + r, toY - r) &&
@@ -2395,7 +2569,7 @@ export class World {
     // Coiled gate-ladders (fort ridge, cliff corridor) are released from the shelf
     // tiles east of the gate. The interactable's stored point omits the +0.5 tile
     // centre, so a player standing one tile diagonally out (e.g. world 90,23 vs a
-    // gate at 89,22) sits ~2.12 units away — out of a tighter reach. Use a radius
+    // gate at 89,22) sits ~2.12 units away - out of a tighter reach. Use a radius
     // that comfortably covers both the adjacent (distSq≈2.5) and diagonal
     // (distSq≈4.5) approach tiles so the release fires wherever you're correctly
     // perched on the ledge. Wrong-side (fort) players are still rejected by the
@@ -2421,10 +2595,14 @@ export class World {
     if (tile.type === 'ranger_remains' || tile.type === 'ranger_remains_scattered' || tile.type === 'bones_pile') {
       return 1.5;
     }
+    // Allow interaction from any adjacent tile including diagonal (sqrt(2) ≈ 1.41).
+    if (tile.type === 'loose_plank') {
+      return 1.6;
+    }
     return 1.4;
   }
 
-  /** Clears `hidden` on tiles in range after e.g. a puzzle reveal. Tiles still render while hidden — see `placeSecretAreas` — so the map never shows void. */
+  /** Clears `hidden` on tiles in range after e.g. a puzzle reveal. Tiles still render while hidden - see `placeSecretAreas` - so the map never shows void. */
   revealHiddenArea(centerX: number, centerY: number, radius: number = 3) {
     const tileX = Math.floor(centerX + this.map.width / 2);
     const tileY = Math.floor(centerY + this.map.height / 2);
@@ -2486,6 +2664,8 @@ export class World {
 
   dispose() {
     this.disposeSouthCoastBackdrop();
+    this.waterRipples.dispose();
+    this.windGusts.dispose();
     for (const [, object] of this.activeMeshes) {
       this.scene.remove(object);
     }

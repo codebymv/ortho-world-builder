@@ -4,6 +4,9 @@ export interface TileMetadata {
   isOverlay: boolean;
   baseTile?: TileType;
   scale?: number;
+  /** Multiplies the overlay mesh width independently of scale, giving non-square aspect ratios.
+   *  widthScale:3.5 with scale:0.65 renders the overlay 3.5× wider than it is tall. */
+  widthScale?: number;
   sortTrim?: number;
   yOffset?: number;
   foundation?: {
@@ -82,7 +85,7 @@ const COTTAGE_SHED_FOUNDATION: TileMetadata['foundation'] = {
   ],
 };
 
-// Guilrhym tenement — a tall Victorian block. The prop anchor sits at the building's
+// Guilrhym tenement - a tall Victorian block. The prop anchor sits at the building's
 // south base; the mass rises north. Blocks a 4-wide x 3-deep footprint, street in front.
 // Collision follows the building's ground footprint (its lower storeys), like the
 // observatory: the tall facade above renders OVER the player but does not block the
@@ -104,7 +107,7 @@ const TENEMENT_FOUNDATION: TileMetadata['foundation'] = {
   ],
 };
 
-// Tolbooth clocktower — a slender tower; collision is just the stone shaft base, the
+// Tolbooth clocktower - a slender tower; collision is just the stone shaft base, the
 // spire/clock above render over the player (observatory-style silhouette mask).
 const CLOCKTOWER_FOUNDATION: TileMetadata['foundation'] = {
   walkable: false,
@@ -152,7 +155,7 @@ const QUARRY_CRANE_FOUNDATION: TileMetadata['foundation'] = {
   ],
 };
 
-// Memorial column — only the plinth blocks; the slender shaft + finial render OVER the
+// Memorial column - only the plinth blocks; the slender shaft + finial render OVER the
 // player (clocktower-style silhouette mask) so it reads tall without a fat footprint.
 const MEMORIAL_COLUMN_FOUNDATION: TileMetadata['foundation'] = {
   walkable: false,
@@ -163,7 +166,7 @@ const MEMORIAL_COLUMN_FOUNDATION: TileMetadata['foundation'] = {
   ],
 };
 
-// Collapsed masonry — a wide rubble mass that seals a street. Blocks a 3-wide × 2-deep
+// Collapsed masonry - a wide rubble mass that seals a street. Blocks a 3-wide × 2-deep
 // footprint at its base so a single placement chokes a thoroughfare on its own.
 const COLLAPSED_MASONRY_FOUNDATION: TileMetadata['foundation'] = {
   walkable: false,
@@ -227,8 +230,19 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   fallen_log_b:   { isOverlay: true, baseTile: 'grass', scale: 1.35, sortTrim: 0.16 }, // shorter broken piece
   fallen_log_v:   { isOverlay: true, baseTile: 'grass', scale: 1.6,  sortTrim: 0.18 },
   fallen_log_v_b: { isOverlay: true, baseTile: 'grass', scale: 1.35, sortTrim: 0.16 }, // shorter vertical piece
+  // Bridge-construction lumber: 2 sawn planks, rendered as a long horizontal strip over water.
+  // widthScale stretches the overlay ~2.5× wider than tall → genuine plank proportions (4–5:1).
+  // No fixed baseTile: resolveBaseTileType samples neighbours, giving bridge under pile props
+  // and water under the gap tease tile automatically.
+  loose_plank: { isOverlay: true, scale: 0.65, widthScale: 2.5, sortTrim: 0.06 },
+  // Extended crossing: same sprite as loose_plank but a single tile stretched wide enough to
+  // span the whole 3-tile gap from the center position, reading as one long plank.
+  plank_crossing: { isOverlay: true, baseTile: 'bridge', scale: 0.65, widthScale: 4.8, sortTrim: 0.06 },
+  // Disorganised bundle of 3 planks in varying lengths — sits on the bridge surface as a decorative prop.
+  // baseTile 'bridge' since it is always placed on bridge tiles.
+  plank_pile: { isOverlay: true, baseTile: 'bridge', scale: 1.15, sortTrim: 0.1 },
   ridge_lumberyard: { isOverlay: true, baseTile: 'grass', scale: 4.7, sortTrim: 0.26, yOffset: 0.72, foundation: RIDGE_LUMBERYARD_FOUNDATION },
-  // Stone quarry asset set — cut-stone props anchored on stone/quarry_floor ground.
+  // Stone quarry asset set - cut-stone props anchored on stone/quarry_floor ground.
   quarry_crane: { isOverlay: true, baseTile: 'quarry_floor', scale: 3.3, sortTrim: 0.24, yOffset: 0.66, foundation: QUARRY_CRANE_FOUNDATION },
   cut_stone_blocks: { isOverlay: true, baseTile: 'quarry_bedrock', scale: 1.25, sortTrim: 0.18 },
   quarry_cart: { isOverlay: true, baseTile: 'quarry_bedrock', scale: 1.5, sortTrim: 0.14 },
@@ -292,7 +306,7 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   heresy_altar_cracked: { isOverlay: true, baseTile: 'hollow_blight', scale: 1.45, sortTrim: 0.1, yOffset: 0.08 },
   // Large flat summoning glyph on the ground; high sortTrim keeps it behind actors like a decal.
   summoning_ritual: { isOverlay: true, baseTile: 'hollow_blight', scale: 3.6, sortTrim: 0.32, yOffset: 0 },
-  /** Failed / abandoned summoning circle — cosmetic only (no RevenantRituals binding). */
+  /** Failed / abandoned summoning circle - cosmetic only (no RevenantRituals binding). */
   summoning_ritual_dud: { isOverlay: true, baseTile: 'grass', scale: 3.6, sortTrim: 0.32, yOffset: 0 },
   ritual_candle: { isOverlay: true, baseTile: 'cobblestone', scale: 0.85, sortTrim: 0.18, yOffset: 0.02 },
   ritual_candle_knocked: { isOverlay: true, baseTile: 'cobblestone', scale: 0.8, sortTrim: 0.2, yOffset: 0.01 },
@@ -321,22 +335,22 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   broken_stall: { isOverlay: true, baseTile: 'cobblestone', scale: 1.8, sortTrim: 0.12 },
   crate_stack: { isOverlay: true, baseTile: 'cobblestone', scale: 1.2, sortTrim: 0.1 },
   barrel_stack: { isOverlay: true, baseTile: 'cobblestone', scale: 1.2, sortTrim: 0.1 },
-  // Burning barricade — a low, wide pile; collision is the single placed tile (walkable:false
+  // Burning barricade - a low, wide pile; collision is the single placed tile (walkable:false
   // in the prop entry), so authors span a street by placing a short run of them side by side.
   burning_barricade: { isOverlay: true, baseTile: 'cobblestone', scale: 1.7, sortTrim: 0.14, yOffset: 0.12 },
-  // Memorial column — tall civic landmark; plinth blocks, shaft renders over the player.
+  // Memorial column - tall civic landmark; plinth blocks, shaft renders over the player.
   memorial_column: { isOverlay: true, baseTile: 'cobblestone', scale: 3.4, sortTrim: 0.32, yOffset: 2.2, foundation: MEMORIAL_COLUMN_FOUNDATION },
-  // District fencing kits — each a single-tile fence segment (collision via the cityFences
+  // District fencing kits - each a single-tile fence segment (collision via the cityFences
   // prop entry, like iron_fence). Slums / estates / docks read distinctly from civic iron.
   timber_palisade: { isOverlay: true, baseTile: 'cobblestone', scale: 1.15, sortTrim: 0.22, yOffset: 0.05 },
   stone_low_wall: { isOverlay: true, baseTile: 'cobblestone', scale: 1.05, sortTrim: 0.2 },
   chain_fence: { isOverlay: true, baseTile: 'cobblestone', scale: 1.05, sortTrim: 0.22 },
-  // Collapsed masonry — a hard street-sealing rubble mass; footprint blocks a 3-wide span.
+  // Collapsed masonry - a hard street-sealing rubble mass; footprint blocks a 3-wide span.
   collapsed_masonry: { isOverlay: true, baseTile: 'cobblestone', scale: 2.4, sortTrim: 0.16, yOffset: 0.3, foundation: COLLAPSED_MASONRY_FOUNDATION },
   // New Victorian building kits (share the tenement footprint; tall facades render over player).
   manor_facade: { isOverlay: true, baseTile: 'cobblestone', scale: 7.0, sortTrim: 0.34, yOffset: 2.9, foundation: TENEMENT_FOUNDATION },
   boarded_facade: { isOverlay: true, baseTile: 'cobblestone', scale: 7.0, sortTrim: 0.34, yOffset: 2.9, foundation: TENEMENT_FOUNDATION },
-  // Cave mouth — a dark opening in a rock face; walkable threshold (collision set by the placer).
+  // Cave mouth - a dark opening in a rock face; walkable threshold (collision set by the placer).
   cave_mouth: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.18, yOffset: 0.5 },
   chimney: { isOverlay: true, baseTile: 'roof_tile', scale: 1.0, sortTrim: 0.14 },
   observatory: {
@@ -357,7 +371,7 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
         { y: 6, xMin: -4, xMax: 4 },
       ],
       // Only the lower dome/base (rows y=-2..+4) carries ground collision. Everything above that
-      // is the elevated spire + upper dome — it renders over the player (high draw order) but must
+      // is the elevated spire + upper dome - it renders over the player (high draw order) but must
       // NOT block the ground, so the player can walk a generous river-bank shore lane "behind" the
       // tower instead of dead-ending against an invisible wall that reaches all the way to the water.
       rows: [

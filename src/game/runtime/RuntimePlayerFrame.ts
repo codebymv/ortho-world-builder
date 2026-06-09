@@ -212,7 +212,7 @@ export function runPlayerFramePhase({
     }
   }
 
-  // Tall-grass rustle — green motes kick up at the feet while wading through unchopped grass.
+  // Tall-grass rustle - green motes kick up at the feet while wading through unchopped grass.
   if (state.player.isMoving
       && world.getTile(state.player.position.x, state.player.position.y)?.type === 'tall_grass'
       && Math.random() < 0.4) {
@@ -382,7 +382,7 @@ export function runPlayerFramePhase({
     const isScytheWave = state.equippedWeaponId === 'terminus_scythe';
 
     if (isScytheWave) {
-      // ─── Corruption wave — travels outward in the attack direction over 0.65 s ──
+      // ─── Corruption wave - travels outward in the attack direction over 0.65 s ──
       // Duration must match SCYTHE_WAVE_DURATION in RuntimeCombatActions.ts.
       const SCYTHE_WAVE_DURATION = 0.65;
       const progress = Math.max(0, Math.min(1, 1 - spinSwooshTimer / SCYTHE_WAVE_DURATION));
@@ -407,14 +407,14 @@ export function runPlayerFramePhase({
       meshes.spinSwooshMaterial.color.setHex(0x5500AA);
       meshes.spinSwooshMaterial.opacity = opacity;
 
-      // Shape: crescent/wall — thin along travel axis, expanding perpendicular.
+      // Shape: crescent/wall - thin along travel axis, expanding perpendicular.
       // The ring geometry looks like a thin vertical bar when scaled (thinFactor, wideFactor).
       const thinFactor = 0.12;
       const wideFactor = 0.65 + eased * 0.55;   // 0.65 → 1.2 as wave travels
       const scaleX = wDx !== 0 ? thinFactor : wideFactor;
       const scaleY = wDy !== 0 ? thinFactor : wideFactor;
       meshes.spinSwooshMesh.scale.set(scaleX, scaleY, 1);
-      meshes.spinSwooshMesh.rotation.z = 0; // no spin — static crescent shape
+      meshes.spinSwooshMesh.rotation.z = 0; // no spin - static crescent shape
       meshes.spinSwooshMesh.position.set(waveX, waveY, 0.3);
 
       // Per-frame corruption tendrils trailing behind the wave front.
