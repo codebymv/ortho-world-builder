@@ -485,7 +485,11 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
   ridge_revenant: {
     type: 'ridge_revenant',
     name: 'Ridge Revenant',
-    hp: 680,
+    // 680 -> 560 (-18%): an OPTIONAL early field boss whose appeal is rewarding aggression.
+    // Its offense is the real skill check (38 dmg ~3-hit kill, 0.35s chain telegraph, snare),
+    // so the HP pool comes down to stop a perfectly-dodged fight being a 20+ hit slog with the
+    // broadsword. Stays clearly tankier than the Corrupted Giant (480), below the Hollow boss (800).
+    hp: 560,
     damage: 38,
     sprite: 'enemy_ridge_revenant',
     speed: 0.025,

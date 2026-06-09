@@ -25,6 +25,10 @@ export const forestDef: MapDefinition = {
     // Failed ritual glyph — world (-16, -17); opens the tree cover for the decor ring.
     { x: 130, y: 129, width: 9, height: 9, type: 'clearing', fill: 'grass' },
     { x: 138, y: 246, width: 24, height: 18, type: 'clearing', fill: 'dirt' },
+    // Explorer Ulmund's teaching ritual circle — world (5,93) / tile (155,243). Paved as
+    // dirt spine so the dud glyph reads as part of the entry path (not a stray grass island)
+    // and so the clearing fill clears the procedural tree Ulmund would otherwise snag on.
+    { x: 147, y: 234, width: 18, height: 18, type: 'clearing', fill: 'dirt' },
     // Ends at y=171 so the ranger cabin approach (172+) can stay grass until the y=175 artery.
     { x: 126, y: 156, width: 48, height: 16, type: 'clearing', fill: 'dirt' },
     { x: 116, y: 192, width: 48, height: 24, type: 'clearing', fill: 'dirt' },
@@ -946,6 +950,8 @@ export const forestDef: MapDefinition = {
     // (45,114)=world(-105,-36). Interact to enter the cave interior. Placed LAST so it carves
     // through the cliff_face; it survives the cliff auto-stamp because the tile is interactable.
     { x: 45, y: 114, width: 1, height: 1, type: 'cave_mouth', interactionId: 'surveyors_hollow_entrance', interiorMap: 'interior_surveyors_hollow', interiorSpawnX: 5, interiorSpawnY: 5 },
+    // TRAVELER'S INLET — cave mouth on the eastern cliff at tile (258,96)=world(108,-54).
+    { x: 258, y: 96, width: 1, height: 1, type: 'cave_mouth', interactionId: 'travelers_inlet_entrance', interiorMap: 'interior_travelers_inlet', interiorSpawnX: 12, interiorSpawnY: 5 },
   ],
   portals: [
     { x: 150, y: 291, targetMap: 'village', targetX: 120, targetY: 8 },
@@ -999,6 +1005,8 @@ export const forestDef: MapDefinition = {
     { x: 87, y: 249, interactionId: 'north_fort_wayfarer_ring_chest' },
     // Ironbark Band — guarded by the east-edge Corrupted Giant (world 143,93 = tile 293,243).
     { x: 245, y: 282, interactionId: 'forest_ironbark_ring_chest' }, // south-woods cliff's edge (world 95,132)
+    // NE ridge heresy altar pocket — Radiant Vestige (bonfire flask upgrade). World (85,-104), altar at (85,-105).
+    { x: 235, y: 46, interactionId: 'east_ridge_vestige_chest' },
     // Broken west lake bridge reward at world (46,109), default Ephemeral Extract.
     { x: 196, y: 259, interactionId: 'broken_west_lake_bridge_chest' },
   ],
@@ -1046,7 +1054,7 @@ export const forestDef: MapDefinition = {
     { x: 65, y: 183, type: 'ranger_remains', walkable: true, interactionId: 'chapel_dead_ranger' },
     { x: 89, y: 190, type: 'ranger_remains_scattered', walkable: true },
     { x: 262, y: 25, type: 'sign', walkable: false, interactionId: 'volcano_warning' },
-    { x: 22, y: 248, type: 'cage', walkable: false, interactionId: 'spider_cocoon' },
+    { x: 22, y: 248, type: 'cage', walkable: false },
     // Potion pickups in forest clearings and paths
     // West of Hollow river seal strip (was 68,65 ??? flooded by north-west water seal).
     { x: 22, y: 66, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
@@ -1316,7 +1324,7 @@ export const forestDef: MapDefinition = {
     { x: 78, y: 153, type: 'bloodstain', walkable: true },
     { x: 83, y: 152, type: 'bloodstain', walkable: true },
 
-    // --- Second manuscript: spine north from Riverside Grove toward north fort shelf (~213, 70) ---
+    // --- Fort evacuation order: spine north from Riverside Grove toward north fort shelf (~213, 70) ---
     { x: 148, y: 140, type: 'bloodstain', walkable: true },
     { x: 150, y: 125, type: 'bloodstain', walkable: true },
     { x: 152, y: 110, type: 'bloodstain', walkable: true },
@@ -2157,7 +2165,11 @@ export const forestDef: MapDefinition = {
     { x: 156, y: 104, width: 6, height: 4, enemyType: 'shadow', count: 1 },
 
     // Central ??? east of ranger plateau / inn (avoids fort footprint ~130???152, 120???138)
-    { x: 166, y: 148, width: 18, height: 18, enemyType: 'wolf', count: 4 },
+    // Lifted north (y148->138, h18->14) off the central water-slime ford band (y154-166) so the
+    // crossing reads as two sequential beats — dodge ranged slime fire while crossing, THEN fight
+    // the wolves on dry land — instead of a ranged+chain gank-stack at the ford's east shoulder.
+    // count kept at 4 (intended stiff pack); flag for playtest since it sits on the main route.
+    { x: 166, y: 138, width: 18, height: 14, enemyType: 'wolf', count: 4 },
     // Hollow approach stair landing ? armored wolves on the grass shelf (world ~-38,-38).
     { x: 106, y: 111, width: 9, height: 2, enemyType: 'armored_wolf', count: 2, patrolRadius: 0.8 },
     { x: 86, y: 116, width: 20, height: 14, enemyType: 'wolf', count: 3 },
@@ -2263,8 +2275,10 @@ export const forestDef: MapDefinition = {
     // Stone quarry ??? skeletons among the rubble (main pit + lower west shelf of the same dig)
     { x: 228, y: 205, width: 16, height: 12, enemyType: 'skeleton', count: 4 },
     { x: 213, y: 213, width: 13, height: 8, enemyType: 'skeleton', count: 2 },
-    // Logging camp ??? wolves prowl the cleared area
-    { x: 162, y: 234, width: 18, height: 12, enemyType: 'wolf', count: 3 },
+    // Logging camp ??? wolves prowl the cleared area. Pushed NE off the south entry
+    // approach (world ~20,93 / tile 170,243) so Explorer Ulmund's teaching beat isn't
+    // delivered mid-fight; pack now guards the camp proper deeper in.
+    { x: 176, y: 220, width: 18, height: 12, enemyType: 'wolf', count: 3 },
     // Collapsed cottage spiders removed — east void consolidated into Consumed Ridge Camp POI.
     // Hollow-side bridge water stretch around world (-51,64): first water-slime test pocket,
     // safely below the y=105 cutoff and away from the start portal river.

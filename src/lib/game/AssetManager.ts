@@ -3287,6 +3287,21 @@ export class AssetManager {
     };
     this.registerTexture('npc_petra', () => this.createChibiCharacter('down', 'idle', 0, petraPalette, 'npc_petra', false, false));
 
+    // Explorer Ulmund — same chibi human build as the player, his own look via palette:
+    // storm-grey oilskin coat, ochre trim, greying ginger hair, blue eyes, sun-darkened
+    // skin, weathered brown legs/boots. No sword (he's an explorer, not a fighter).
+    const ulmundPalette = {
+      hair: 0xB5683A, hairLight: 0xCE8350, hairDark: 0x7A4424,
+      skin: 0xC79A6E, skinLight: 0xDCB184, skinShadow: 0xA37A52,
+      eyeIris: 0x4A6B8A, eyeIrisDark: 0x30485E,
+      tunicMain: 0x4C545C, tunicLight: 0x646E78, tunicDark: 0x343A40,
+      trimColor: 0xC8923A, trimLight: 0xE6B453,
+      capeMain: 0x6B5A44, capeDark: 0x4A3D2C,
+      pantColor: 0x4A4036, pantDark: 0x322A22,
+      bootColor: 0x3A2A1C, bootDark: 0x261A10,
+    };
+    this.registerTexture('npc_ulmund', () => this.createChibiCharacter('down', 'idle', 0, ulmundPalette, 'npc_ulmund', false, false));
+
     // Olwen — fully custom sprite (hooded hermit with long beard and gnarled staff).
     // Intentionally NOT a chibi palette swap so the player recognises him as a
     // distinct character, not a recolour of the villagers.
@@ -6748,12 +6763,26 @@ export class AssetManager {
       if (baseUrl) this.textureDataUrls.set('hunters_manuscript', baseUrl);
       return baseTexture;
     });
-    this.registerTexture('evacuation_order', () => {
-      const baseTexture = this.getTexture('loose_pages')!;
-      const baseUrl = this.textureDataUrls.get('loose_pages');
-      if (baseUrl) this.textureDataUrls.set('evacuation_order', baseUrl);
-      return baseTexture;
-    });
+
+    // Commander's Evacuation Order — folded dispatch with broken wax seal and a charred corner.
+    const EO_P = 0xF2E8C9;
+    const EO_PH = 0xFFF7DD;
+    const EO_PS = 0xCDBE96;
+    const EO_INK = 0x4E342E;
+    const EO_CHAR = 0x3E2723;
+    const EO_SEAL = 0xB71C1C;
+    const EO_SEALH = 0xE53935;
+    const EO_SEALS = 0x7F0000;
+    registerSpriteTexture('evacuation_order', [
+      [C,       C,       EO_CHAR, EO_P,    EO_PH,   EO_P,    C,       C      ],
+      [C,       EO_CHAR, EO_P,    EO_INK,  EO_INK,  EO_P,    EO_PS,   C      ],
+      [EO_CHAR, EO_P,    EO_INK,  EO_P,    EO_P,    EO_INK,  EO_P,    EO_PS  ],
+      [EO_P,    EO_INK,  EO_P,    EO_SEALH,EO_SEAL, EO_P,    EO_INK,  EO_P   ],
+      [EO_P,    EO_P,    EO_P,    EO_SEAL, EO_SEALS,EO_P,    EO_P,    EO_P   ],
+      [EO_PS,   EO_P,    EO_INK,  EO_P,    EO_P,    EO_INK,  EO_P,    C      ],
+      [C,       EO_PS,   EO_P,    EO_P,    EO_INK,  EO_P,    EO_CHAR, C      ],
+      [C,       C,       EO_PS,   EO_P,    EO_P,    EO_PS,   C,       C      ],
+    ], 4);
 
     // Blighted Root Shard â€” gnarled dark bark fragment with pulsing green corruption veins
     const BR_BARK  = 0x3E2723;   // dark bark
@@ -6792,6 +6821,28 @@ export class AssetManager {
       [GH_STONE_H,GH_CRACK,  GH_EMBER,  GH_GLOW_H, GH_GLOW,   GH_STONE,  GH_STONE,  GH_STONE_D],
       [C,         GH_STONE,  GH_STONE_D,GH_CRACK,  GH_STONE,  GH_STONE_D,GH_STONE,  C        ],
       [C,         C,         GH_STONE_D,GH_STONE,  GH_STONE,  GH_STONE_D,C,         C        ],
+    ], 4);
+
+    // Radiant Vestige â€” a teardrop shard of dawn-light with a violet radiant core threaded through
+    // gold facets. The purple ties it to the game's essence/flame motif and makes it instantly
+    // recognisable among the warmer steel/stone relics; a bright magenta spark gives it a glint.
+    const RV_EDGE  = 0xB26A1E;  // dark amber base edge
+    const RV_GOLD  = 0xFFB300;  // gold facet
+    const RV_LGOLD = 0xFFD740;  // light gold
+    const RV_CORE  = 0xFFF8E1;  // warm near-white core
+    const RV_WHITE = 0xFFFFFF;  // white glint
+    const RV_PUR   = 0x7C4DFF;  // violet radiance (game theme)
+    const RV_PURL  = 0xB388FF;  // light violet
+    const RV_PURB  = 0xEA80FC;  // bright magenta spark
+    registerSpriteTexture('radiant_vestige', [
+      [C,        C,        C,        RV_CORE,  RV_WHITE, C,        C,        C       ],
+      [C,        C,        RV_GOLD,  RV_LGOLD, RV_LGOLD, RV_GOLD,  C,        C       ],
+      [C,        RV_GOLD,  RV_LGOLD, RV_WHITE, RV_PURL,  RV_LGOLD, RV_GOLD,  C       ],
+      [C,        RV_GOLD,  RV_PURL,  RV_CORE,  RV_WHITE, RV_PUR,   RV_GOLD,  C       ],
+      [RV_GOLD,  RV_LGOLD, RV_WHITE, RV_PUR,   RV_PURL,  RV_CORE,  RV_LGOLD, RV_GOLD ],
+      [C,        RV_GOLD,  RV_LGOLD, RV_PURB,  RV_PUR,   RV_LGOLD, RV_GOLD,  C       ],
+      [C,        RV_EDGE,  RV_GOLD,  RV_LGOLD, RV_LGOLD, RV_GOLD,  RV_EDGE,  C       ],
+      [C,        C,        RV_EDGE,  RV_GOLD,  RV_GOLD,  RV_EDGE,  C,        C       ],
     ], 4);
 
     // Tempered Core â€” folded steel ingot with molten seams glowing along the folds.

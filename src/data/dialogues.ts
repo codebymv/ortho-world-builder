@@ -44,14 +44,14 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'quest_active_fragment',
-        text: "A fragment? There must be more — the hunter wouldn't have stopped there. Whatever he found past that river, it was enough to keep him going. Find it.",
+        text: "A fragment? There must be more. The hunter wouldn't have stopped there. Whatever he found past that river, it was enough to keep him going. Find it.",
         responses: [
           { text: "I'll cross the river and find it.", nextId: 'end' },
         ],
       },
       {
         id: 'quest_complete',
-        text: "This order never reached us. Weeks ago — and no one came. The **Ashen Court**. That name is in __Guilrhym__. Whatever they fractured, it started there, and the Hollow is what it left behind. Press on. Don't turn back now.",
+        text: "This order never reached us. Weeks ago. And no one came. The **Ashen Court**. That name is in __Guilrhym__. Whatever they fractured, it started there, and the Hollow is what it left behind. Press on. Don't turn back now.",
         responses: [
           { text: "I'll follow the trail.", nextId: 'end' },
         ],
@@ -101,7 +101,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'after_reaver',
-        text: "Word travels fast — you broke the **Ashen Court's** hold on **Guilrhym**. Trade caravans are already talking about reopening the eastern road. Anything you need is yours at a fair price.",
+        text: "Word travels fast. You broke the **Ashen Court's** hold on **Guilrhym**. Trade caravans are already talking about reopening the eastern road. Anything you need is yours at a fair price.",
         responses: [
           { text: "Show me your goods.", nextId: 'end', opensVendor: 'merchant' },
           { text: "Still looking for rare herbs?", nextId: 'merchant_herb_pitch' },
@@ -156,7 +156,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'after_reaver',
-        text: "The **Reaver** is down. I heard it from three different scouts before breakfast. The night watch has been quieter already — fewer shadows on the tree line. You've earned every torch we kept lit for you.",
+        text: "The **Reaver** is down. I heard it from three different scouts before breakfast. The night watch has been quieter already. Fewer shadows on the tree line. You've earned every torch we kept lit for you.",
         responses: [
           { text: "How bad is it beyond the walls?", nextId: 'dangers' },
           { text: "Stay sharp.", nextId: 'end' },
@@ -269,11 +269,11 @@ export const dialogues: Record<string, Dialogue> = {
   // === MAP INTERACTABLES ===
   ranger_sign: {
     id: 'ranger_sign',
-    nodes: [{ id: 'start', text: "A weathered sign reads: '**Ranger Outpost** — Rest, resupply, and keep the fire lit. Follow the __blood-dark trail west__ for the **Disparaged Cottage**. __Northwest__ paths lead into wolf country.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "A weathered sign reads: '**Ranger Outpost**. Rest, resupply, and keep the fire lit. Follow the __blood-dark trail west__ for the **Disparaged Cottage**. __Northwest__ paths lead into wolf country.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   forest_shortcut_lever: {
     id: 'forest_shortcut_lever',
-    nodes: [{ id: 'start', text: "A heavy **iron gate lever** set into a mossy stone pillar. Someone has scratched an arrow into the post pointing south — toward the **Ranger Outpost**. Pull this and the barred gate below opens, cutting the long way back short.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "A heavy **iron gate lever** set into a mossy stone pillar. Someone has scratched an arrow into the post pointing south. Toward the **Ranger Outpost**. Pull this and the barred gate below opens, cutting the long way back short.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   danger_sign: {
     id: 'danger_sign',
@@ -281,11 +281,11 @@ export const dialogues: Record<string, Dialogue> = {
   },
   village_approach_sign: {
     id: 'village_approach_sign',
-    nodes: [{ id: 'start', text: "A waypost stands at the trail junction, letters still readable through the weather: __\"Greenleaf Village — ahead.\"__ Below, in a smaller hand: _\"Mountain range — further south.\"_", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "A waypost stands at the trail junction, letters still readable through the weather: __\"Greenleaf Village. Ahead.\"__ Below, in a smaller hand: _\"Mountain range. Further south.\"_", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   north_gate_sign: {
     id: 'north_gate_sign',
-    nodes: [{ id: 'start', text: "A weathered post marks the village boundary: __\"Northern Trail — Whispering Woods Ahead.\"__ Below, in smaller letters: _\"Travel with caution. Report sightings to the Elder.\"_", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "A weathered post marks the village boundary: __\"Northern Trail. Whispering Woods Ahead.\"__ Below, in smaller letters: _\"Slimes gather in the north plains. Travel with caution.\"_", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   forest_farewell_sign: {
     id: 'forest_farewell_sign',
@@ -304,7 +304,7 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       { 
         id: 'start', 
-        text: "Torn **manuscript pages** rest on the stand, but many are missing. The hunter's scrawl reads: '**Only a fragment** of the text survived the journey. The corruption runs deeper — I pressed north past the river, following it to its source. If these pages are found, follow the trail north. The rest of the manuscript lies beyond the **Hollow**...' Loose pages are scattered across the cottage floor.",
+        text: "Torn **manuscript pages** rest on the stand, but many are missing. The hunter's scrawl reads: '**Only a fragment** of the text survived the journey. The corruption runs deeper. I pressed north past the river, following it to its source. If these pages are found, follow the trail north. The rest of the manuscript lies beyond the **Hollow**...' Loose pages are scattered across the cottage floor.",
         responses: [{ text: "[Continue]", nextId: 'end' }]
       },
       { id: 'end', text: "", responses: [] }
@@ -358,7 +358,7 @@ export const dialogues: Record<string, Dialogue> = {
 
   hollow_hunter_camp_1: {
     id: 'hollow_hunter_camp_1',
-    nodes: [{ id: 'start', text: "An abandoned campsite. Supplies scattered, a torn bedroll. The hunter rested here — but not for long. Claw marks score the nearby trees.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "An abandoned campsite. Supplies scattered, a torn bedroll. The hunter rested here. But not for long. Claw marks score the nearby trees.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
 
   hollow_hunter_camp_2: {
@@ -380,7 +380,7 @@ export const dialogues: Record<string, Dialogue> = {
   },
   highland_garrison_remains: {
     id: 'highland_garrison_remains',
-    nodes: [{ id: 'start', text: "A ranger in heavy plate, crumpled at the tree line. The armour is cracked clean through the chestpiece — not cut, **crushed**. A garrison patch is still pinned at the shoulder. No others survived to carry him back.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A ranger in heavy plate, crumpled at the tree line. The armour is cracked clean through the chestpiece. Not cut, **crushed**. A garrison patch is still pinned at the shoulder. No others survived to carry him back.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   old_chapel_altar: {
     id: 'old_chapel_altar',
@@ -397,14 +397,10 @@ export const dialogues: Record<string, Dialogue> = {
   chapel_dead_ranger: {
     id: 'chapel_dead_ranger',
     nodes: [
-      { id: 'start', text: "A ranger slumped against the chapel steps. Dead for days — armour torn, a heavy **iron key** on his belt. A torn note in his hand reads: '__Fort overrun. Lock the gate. Don't let them inside the walls.__'", responses: [{ text: "Take the key.", nextId: 'take_key' }, { text: "Leave him.", nextId: 'end' }] },
+      { id: 'start', text: "A ranger slumped against the chapel steps. Dead for days. Armour torn, a heavy **iron key** on his belt. A torn note in his hand reads: '__Fort overrun. Lock the gate. Don't let them inside the walls.__'", responses: [{ text: "Take the key.", nextId: 'take_key' }, { text: "Leave him.", nextId: 'end' }] },
       { id: 'take_key', text: "You pull the key free. The crest on its bow matches the fort banner to the east.", responses: [{ text: "[Continue]", nextId: 'end' }] },
       { id: 'end', text: '', responses: [] },
     ],
-  },
-  spider_cocoon: {
-    id: 'spider_cocoon',
-    nodes: [{ id: 'start', text: "The cocoon twitches once when you draw near, then hangs still. Strands of cloth and old mail are woven into the silk like warning flags.", responses: [{ text: "[Step back]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   ancient_well: {
     id: 'ancient_well',
@@ -427,7 +423,7 @@ export const dialogues: Record<string, Dialogue> = {
   },
   market_sign: {
     id: 'market_sign',
-    nodes: [{ id: 'start', text: "**The Market District** — Finest wares in all of __Greenleaf Village__!", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
+    nodes: [{ id: 'start', text: "**The Market District**. Finest wares in all of __Greenleaf Village__!", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
   },
   // ========== GILRHYM DIALOGUES ==========
   oliver: {
@@ -444,7 +440,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'what_happened',
-        text: "\"The __Ashen Court__ — a rogue faction beneath the cathedral. They cracked open seals that were never meant to be broken. The dead **rose**. The forests **turned**. Every wolf, skeleton, and shade you fought getting here — that's their doing. It all radiates outward from this city.\"",
+        text: "\"The __Ashen Court__. A rogue faction beneath the cathedral. They cracked open seals that were never meant to be broken. The dead **rose**. The forests **turned**. Every wolf, skeleton, and shade you fought getting here. That's their doing. It all radiates outward from this city.\"",
         responses: [
           { text: "Who leads them?", nextId: 'faction' },
           { text: "Have you seen a hunter pass through?", nextId: 'hunter' },
@@ -453,7 +449,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'faction',
-        text: "\"I don't know their leader's name. Only their **sigil** — a cracked seal dripping black flame. The worst of it... they turned our **captain**. Commander Aldric. They call him the __Ashen Reaver__ now. He guards the cathedral plaza.\"",
+        text: "\"I don't know their leader's name. Only their **sigil**. A cracked seal dripping black flame. The worst of it... they turned our **captain**. Commander Aldric. They call him the __Ashen Reaver__ now. He guards the cathedral plaza.\"",
         responses: [
           { text: "Have you seen a hunter pass through?", nextId: 'hunter' },
           { text: "Any advice for getting through?", nextId: 'warning' },
@@ -469,7 +465,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'warning',
-        text: "\"The outskirts are manageable — slimes and a few skeletons. Past the **cemetery** things get worse. The **market district** is crawling with shadows and skeletal captains. And the upper city...\" He winces. \"The **rooftops** can be safer than the streets up there. Stone sentinels patrol below. If you make it to the cathedral plaza... that's where __the Reaver__ waits. Be ready for a fight you won't forget.\"",
+        text: "\"The outskirts are manageable. Slimes and a few skeletons. Past the **cemetery** things get worse. The **market district** is crawling with shadows and skeletal captains. And the upper city...\" He winces. \"The **rooftops** can be safer than the streets up there. Stone sentinels patrol below. If you make it to the cathedral plaza... that's where __the Reaver__ waits. Be ready for a fight you won't forget.\"",
         responses: [
           { text: "I'll end this.", nextId: 'end', givesQuest: 'heretical_pursuit' },
         ],
@@ -493,15 +489,15 @@ export const dialogues: Record<string, Dialogue> = {
   },
   guilrhym_gate_sign: {
     id: 'guilrhym_gate_sign',
-    nodes: [{ id: 'start', text: "A cracked stone plaque beside the broken gate reads: '**Welcome to Guilrhym** — __Jewel of the Eastern Trade Routes__.' Below, someone has scratched in desperate letters: 'TURN BACK.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A cracked stone plaque beside the broken gate reads: '**Welcome to Guilrhym**. __Jewel of the Eastern Trade Routes__.' Below, someone has scratched in desperate letters: 'TURN BACK.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   guilrhym_notice_board: {
     id: 'guilrhym_notice_board',
-    nodes: [{ id: 'start', text: "A notice board covered in torn papers. One intact posting reads: '__BY ORDER OF THE ASHEN COURT__ — All citizens are to surrender themselves to the cathedral for **purification**. Resistance will be met with absolute force. The age of the living is over. The age of the __eternal__ begins.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A notice board covered in torn papers. One intact posting reads: '__BY ORDER OF THE ASHEN COURT__. All citizens are to surrender themselves to the cathedral for **purification**. Resistance will be met with absolute force. The age of the living is over. The age of the __eternal__ begins.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   guilrhym_hunter_trace: {
     id: 'guilrhym_hunter_trace',
-    nodes: [{ id: 'start', text: "A torn strip of leather is caught on a broken iron railing, along with a few scattered supplies — dried meat, a flint striker, and an empty quiver. Someone passed through here recently, heading **north** into the city.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A torn strip of leather is caught on a broken iron railing, along with a few scattered supplies. Dried meat, a flint striker, and an empty quiver. Someone passed through here recently, heading **north** into the city.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   guilrhym_cemetery_marker: {
     id: 'guilrhym_cemetery_marker',
@@ -513,19 +509,23 @@ export const dialogues: Record<string, Dialogue> = {
   },
   guilrhym_fallen_guard: {
     id: 'guilrhym_fallen_guard',
-    nodes: [{ id: 'start', text: "A memorial plaque on a broken wall: '**Commander Aldric** — Faithful servant of Guilrhym, Captain of the City Guard, Shield of the People.' Below, someone has carved: '__He did not fall. He was taken.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A memorial plaque on a broken wall: '**Commander Aldric**. Faithful servant of Guilrhym, Captain of the City Guard, Shield of the People.' Below, someone has carved: '__He did not fall. He was taken.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   surveyors_hollow_journal: {
     id: 'surveyors_hollow_journal',
-    nodes: [{ id: 'start', text: "The surveyor's field journal, its last pages water-warped: '__The ironbark bands let us walk the deep woods without losing ourselves — but the maps keep changing. Every survey the blight has crept further south; clearings I charted last spring are dead ground now. I marked the source and started back, but my legs would not carry me the last mile. If you are reading this, the woods are worse than the day I died. Take the ring's lesson — keep moving, keep mapping. And do not go north.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "The surveyor's field journal, its last pages water-warped: '__The ironbark bands let us walk the deep woods without losing ourselves. But the maps keep changing. Every survey the blight has crept further south; clearings I charted last spring are dead ground now. I marked the source and started back, but my legs would not carry me the last mile. If you are reading this, the woods are worse than the day I died. Take the ring's lesson. Keep moving, keep mapping. And do not go north.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+  travelers_inlet_journal: {
+    id: 'travelers_inlet_journal',
+    nodes: [{ id: 'start', text: "A traveler's note scratched into the cliff-side sign: '__Stopped here to wait out the fog on the east ridge. The inlet is dry and the fire still holds a little warmth — good enough for one night. Buried a **Radiant Vestige** in the west alcove; too precious to carry over the cliffs with the shadows moving. If you find it, consider it payment for the shelter. Do not linger after dark.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   guilrhym_west_seal: {
     id: 'guilrhym_west_seal',
-    nodes: [{ id: 'start', text: "A heavy iron gate, barred from the far side — one of the Watch's old district locks. A notice is nailed to it: '__This gate is shut; reach the estates by the market road if you must. But the **Drowned Ward** beneath them — where the canal broke through and swallowed the lowest streets — stays sealed by order of the Court. The release winch was struck from its housing and carried up to the cathedral district. Whatever rose out of the flood is not to be let out.__' The estates, you can still walk. What lies beneath them is another matter.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A heavy iron gate, barred from the far side. One of the Watch's old district locks. A notice is nailed to it: '__This gate is shut; reach the estates by the market road if you must. But the **Drowned Ward** beneath them. Where the canal broke through and swallowed the lowest streets. Stays sealed by order of the Court. The release winch was struck from its housing and carried up to the cathedral district. Whatever rose out of the flood is not to be let out.__' The estates, you can still walk. What lies beneath them is another matter.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   guilrhym_church_altar: {
     id: 'guilrhym_church_altar',
-    nodes: [{ id: 'start', text: "The church altar is cracked down the middle. A faded text reads: '__Saint Velmara, patron of Guilrhym, guide us through the dark.__ The cathedral was built above her final resting place — where she sealed the **Wellspring of Souls** a thousand years ago.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "The church altar is cracked down the middle. A faded text reads: '__Saint Velmara, patron of Guilrhym, guide us through the dark.__ The cathedral was built above her final resting place. Where she sealed the **Wellspring of Souls** a thousand years ago.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   guilrhym_market_ledger: {
     id: 'guilrhym_market_ledger',
@@ -537,11 +537,11 @@ export const dialogues: Record<string, Dialogue> = {
   },
   guilrhym_rooftop_journal: {
     id: 'guilrhym_rooftop_journal',
-    nodes: [{ id: 'start', text: "A rain-damaged journal wedged under a roof tile: '__Day 12. The streets below are impossible now. Sentinels patrol in pairs. We've been moving across the rooftops — jumping between buildings, using old wooden walkways the builders left. It's the only way through the upper city.__ Day 15. Maren didn't make the last jump. I'm alone now.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A rain-damaged journal wedged under a roof tile: '__Day 12. The streets below are impossible now. Sentinels patrol in pairs. We've been moving across the rooftops. Jumping between buildings, using old wooden walkways the builders left. It's the only way through the upper city.__ Day 15. Maren didn't make the last jump. I'm alone now.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   guilrhym_guard_orders: {
     id: 'guilrhym_guard_orders',
-    nodes: [{ id: 'start', text: "Guard orders nailed to a post: '__ALL UNITS — Fall back to the cathedral perimeter. Commander Aldric has been... compromised. Do NOT engage the entity in the plaza.__ Repeat: the creature wearing the Commander's armor is NOT Commander Aldric. Retreat south. This is our last transmission.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "Guard orders nailed to a post: '__ALL UNITS. Fall back to the cathedral perimeter. Commander Aldric has been... compromised. Do NOT engage the entity in the plaza.__ Repeat: the creature wearing the Commander's armor is NOT Commander Aldric. Retreat south. This is our last transmission.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   guilrhym_cathedral_inscription: {
     id: 'guilrhym_cathedral_inscription',
@@ -549,7 +549,7 @@ export const dialogues: Record<string, Dialogue> = {
   },
   guilrhym_reaver_plaque: {
     id: 'guilrhym_reaver_plaque',
-    nodes: [{ id: 'start', text: "A guard's memorial, defaced with dark symbols: '**In honor of the Guilrhym Guard, who stood against the dark.** Only one remains — bound in servitude to those he swore to destroy.' Below, in a different hand: '__The Reaver serves. The Reaver endures. The Reaver will not fall.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A guard's memorial, defaced with dark symbols: '**In honor of the Guilrhym Guard, who stood against the dark.** Only one remains. Bound in servitude to those he swore to destroy.' Below, in a different hand: '__The Reaver serves. The Reaver endures. The Reaver will not fall.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   campfire: {
     id: 'campfire',
@@ -579,7 +579,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'after_reaver',
-        text: "The guard brought back a piece of the **Reaver's** armour. I've never seen metal like it — warped by something worse than fire. Whatever you fought in **Guilrhym**, it left a mark on the steel itself.",
+        text: "The guard brought back a piece of the **Reaver's** armour. I've never seen metal like it. Warped by something worse than fire. Whatever you fought in **Guilrhym**, it left a mark on the steel itself.",
         responses: [
           { text: "Can you improve my weapons?", nextId: 'weapons' },
           { text: "Heard any rumors lately?", nextId: 'rumors' },
@@ -678,7 +678,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'after_reaver',
-        text: "The air changed the night you brought that thing down. Cleaner, somehow. I've moved the strongest tinctures back behind the counter — people aren't buying them in bulk anymore. That's as close to good news as an apothecary gets.",
+        text: "The air changed the night you brought that thing down. Cleaner, somehow. I've moved the strongest tinctures back behind the counter. People aren't buying them in bulk anymore. That's as close to good news as an apothecary gets.",
         responses: [
           { text: "Could you mix a restorative?", nextId: 'heal' },
           { text: "What are people buying lately?", nextId: 'stock' },
@@ -734,7 +734,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'after_reaver',
-        text: "The cots are emptying and the candle wax lasts longer now. Whatever you did out east, the village feels it — people sleep with their doors open again. That's no small thing.",
+        text: "The cots are emptying and the candle wax lasts longer now. Whatever you did out east, the village feels it. People sleep with their doors open again. That's no small thing.",
         responses: [
           { text: "How's the chapel holding up?", nextId: 'chapel' },
           { text: "How is the village taking all this?", nextId: 'watch' },
@@ -782,7 +782,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'after_reaver',
-        text: "The slimes have thinned out since whatever you did in the east. I even got a full day's harvest in without anything trying to eat my turnips. Don't get used to the gratitude — I'm still watching you near my crops.",
+        text: "The slimes have thinned out since whatever you did in the east. I even got a full day's harvest in without anything trying to eat my turnips. Don't get used to the gratitude. I'm still watching you near my crops.",
         responses: [
           { text: "Sorry about that. Need any help?", nextId: 'help' },
           { text: "Seen anything strange around here?", nextId: 'strange' },
@@ -877,7 +877,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'after_reaver',
-        text: "The common room's full again — not with wounded, but with folk buying rounds and telling stories about the stranger who walked into **Guilrhym** and walked back out. That's you, in case the modesty hasn't worn off yet.",
+        text: "The common room's full again. Not with wounded, but with folk buying rounds and telling stories about the stranger who walked into **Guilrhym** and walked back out. That's you, in case the modesty hasn't worn off yet.",
         responses: [
           { text: "How's the inn holding up?", nextId: 'inn_talk' },
           { text: "Heard anything lately?", nextId: 'rumors' },
@@ -1031,7 +1031,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'corruption',
-        text: "They're not just turning hostile — they're __transforming__. Those wolves? Some of them were animals a season ago. The heavier ones, with the plated shoulders? I watched one form from a **boulder** on the ridge. Not grow from it. *Form from it.* The dead in the old cemeteries don't stay dead either — the heresy reaches into the ground and pulls them back up wearing their own bones like a coat. Something is rewriting what lives here. Takes whatever's natural — stone, water, dead flesh — and **bends it into a soldier**. I stopped trying to make sense of it.",
+        text: "They're not just turning hostile. They're __transforming__. Those wolves? Some of them were animals a season ago. The heavier ones, with the plated shoulders? I watched one form from a **boulder** on the ridge. Not grow from it. *Form from it.* The dead in the old cemeteries don't stay dead either. The heresy reaches into the ground and pulls them back up wearing their own bones like a coat. Something is rewriting what lives here. Takes whatever's natural. Stone, water, dead flesh. And **bends it into a soldier**. I stopped trying to make sense of it.",
         responses: [
           { text: "How does something like that work?", nextId: 'heresy_detail' },
           { text: "That's enough for me.", nextId: 'end' },
@@ -1039,7 +1039,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'heresy_detail',
-        text: "Old texts call it __ritual binding__. Someone uses a heretical formula to fuse unnatural intent into a natural vessel. The slimes in the river? Heretically animated water — the water is still water, it just *wants* something now. I found three of those carved **stone markers** in the woods. Every time I went back, there were more bodies near them. I left them alone after that.",
+        text: "Old texts call it __ritual binding__. Someone uses a heretical formula to fuse unnatural intent into a natural vessel. The slimes in the river? Heretically animated water. The water is still water, it just *wants* something now. I found three of those carved **stone markers** in the woods. Every time I went back, there were more bodies near them. I left them alone after that.",
         responses: [
           { text: "Show me what you've got.", nextId: 'end', opensVendor: 'fort_quartermaster' },
           { text: "Noted.", nextId: 'end' },
@@ -1049,10 +1049,10 @@ export const dialogues: Record<string, Dialogue> = {
     ],
   },
 
-  // === WHISPERING WOODS — NEW ENVIRONMENT LORE ===
+  // === WHISPERING WOODS. NEW ENVIRONMENT LORE ===
   forest_milestone: {
     id: 'forest_milestone',
-    nodes: [{ id: 'start', text: "A weathered milestone: '__Whispering Mountain Woodlands__' — below it, a second line: _'Riverside village further south, nearest fortress —'_ The sign is broken from there.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A weathered milestone: '__Whispering Mountain Woodlands__'. Below it, a second line: _'Riverside village further south, nearest fortress. '_ The sign is broken from there.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   hollow_dead_ranger: {
     id: 'hollow_dead_ranger',
@@ -1060,47 +1060,84 @@ export const dialogues: Record<string, Dialogue> = {
   },
   dead_ranger_shortcut_note: {
     id: 'dead_ranger_shortcut_note',
-    nodes: [{ id: 'start', text: "A dead ranger slumped against the bars. A crumpled note reads: '__The gate won't budge from this side — lever is on the other side of the wall. Tried the cliff face to the west. Narrow trail but it loops around behind the cottage.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A dead ranger slumped against the bars. A crumpled note reads: '__The gate won't budge from this side. Lever is on the other side of the wall. Tried the cliff face to the west. Narrow trail but it loops around behind the cottage.__'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   cliff_trail_sign: {
     id: 'cliff_trail_sign',
-    nodes: [{ id: 'start', text: "A rough board nailed to a stump. Words are burned into the wood: '**CLIFF TRAIL — WEST FACE.** Gate won't open from here. Trail circles the cliff and comes up __behind the Disparaged Cottage__.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A rough board nailed to a stump. Words are burned into the wood: '**CLIFF TRAIL. WEST FACE.** Gate won't open from here. Trail circles the cliff and comes up __behind the Disparaged Cottage__.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   logging_camp: {
     id: 'logging_camp',
-    nodes: [{ id: 'start', text: "A clearing of fresh stumps and rusted axes. The loggers left in a hurry — half-sawn trunks still lean against each other, and boot prints trail into the undergrowth. Whatever drove them off, they didn't stop to collect their pay.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A clearing of fresh stumps and rusted axes. The loggers left in a hurry. Half-sawn trunks still lean against each other, and boot prints trail into the undergrowth. Whatever drove them off, they didn't stop to collect their pay.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
 
   collapsed_cottage: {
     id: 'collapsed_cottage',
-    nodes: [{ id: 'start', text: "The roof has caved in, and ivy has claimed what the fire didn't. Through the rubble you can see a hearth still blackened with soot. Someone lived here once — the spiders live here now.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "The roof has caved in, and ivy has claimed what the fire didn't. Through the rubble you can see a hearth still blackened with soot. Someone lived here once. The spiders live here now.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   river_east_waypost: {
     id: 'river_east_waypost',
-    nodes: [{ id: 'start', text: "A ranger waypost near the stone sentinels. Scratched below the rot line: '**FORTRESS GATE AHEAD.** Garrison locked the river crossing. Key is at the old chapel — west along the south bank.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A ranger waypost near the stone sentinels. Scratched below the rot line: '**FORTRESS GATE AHEAD.** Garrison locked the river crossing. Key is at the old chapel. West along the south bank.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   fort_north_waypost: {
     id: 'fort_north_waypost',
-    nodes: [{ id: 'start', text: "A ranger waypost just outside the fort's north gate. An arrow carved deep into the post points west. Below it: '**RIDGE PATH — WEST.** Follow the lanterns to the stairway gap. The Hollow lies beyond.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A ranger waypost just outside the fort's north gate. An arrow carved deep into the post points west. Below it: '**RIDGE PATH. WEST.** Follow the lanterns to the stairway gap. The Hollow lies beyond.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   cliff_inlet_marker: {
     id: 'cliff_inlet_marker',
-    nodes: [{ id: 'start', text: "A weathered post with a carved arrow pointing south. Burned letters below read: '**GATE PASSAGE.** Ranger outpost — half a league south. Gate is locked. Find another way or turn back.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A weathered post with a carved arrow pointing south. Burned letters below read: '**GATE PASSAGE.** Ranger outpost. Half a league south. Gate is locked. Find another way or turn back.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   east_ridge_lumberyard_sign: {
     id: 'east_ridge_lumberyard_sign',
-    nodes: [{ id: 'start', text: "A splintered signpost marks the old **ridge lumberyard**. The cut is long abandoned. Fresh claw marks score the wood — something still patrols the timber stacks.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A splintered signpost marks the old **ridge lumberyard**. The cut is long abandoned. Fresh claw marks score the wood. Something still patrols the timber stacks.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   consumed_ridge_camp_sign: {
     id: 'consumed_ridge_camp_sign',
-    nodes: [{ id: 'start', text: "A supply crate lid, nailed to a post: '**Ridge cache — do not open after dusk.**' The camp beyond is overturned. Bones, barrels, and the stink of old blood. Whatever took this place did not leave hungry.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+    nodes: [{ id: 'start', text: "A supply crate lid, nailed to a post: '**Ridge cache. Do not open after dusk.**' The camp beyond is overturned. Bones, barrels, and the stink of old blood. Whatever took this place did not leave hungry.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
+  explorer_ulmund: {
+    id: 'explorer_ulmund',
+    nodes: [
+      {
+        id: 'start',
+        text: "Hold there. I know these marks. Someone in this forest is working forbidden magic, and it's twisting the beasts and the dead along with it. If you're heading deeper, hear me first.",
+        responses: [
+          { text: "What are these marks?", nextId: 'marks' },
+          { text: "I'll be careful.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'marks',
+        text: "Two kinds of stone out here. The **altars** feed the corruption. Smash every one you find. The **summoning circles** are worse. But the filth off those altars clings to you, and a circle that still holds will answer to it. Step onto a live one carrying enough, and you'll drag back whatever they were calling. Kill it, and its power is yours.",
+        responses: [
+          { text: "I'll shatter the altars.", nextId: 'end', givesQuest: 'shattered_altars' },
+          { text: "I'll keep my distance.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'quest_active',
+        text: "Still standing, good. Keep at the altars. Every one you break is one less leash on this place. And remember the live circles. That residue you're carrying is a weapon, if you've the nerve to use it.",
+        responses: [
+          { text: "I'm on it.", nextId: 'end' },
+        ],
+      },
+      {
+        id: 'after_quest',
+        text: "Every altar down. The woods breathe a little easier for it. You did what the rangers couldn't. Watch yourself past the river.",
+        responses: [
+          { text: "Take care, Ulmund.", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: "", responses: [] },
+    ],
+  },
+
   grove_warden: {
     id: 'grove_warden',
     nodes: [
       {
         id: 'start',
-        text: "Don't mind the bandages. I earned them the hard way. Name's **Callum** — ranger, or what's left of one. I went into that grove to the west thinking I'd thin the growth. The growth thinned me instead.",
+        text: "Don't mind the bandages. I earned them the hard way. Name's **Callum**. Ranger, or what's left of one. I went into that grove to the west thinking I'd thin the growth. The growth thinned me instead.",
         responses: [
           { text: "What grove?", nextId: 'grove_info' },
           { text: "What happened to you?", nextId: 'wounds' },
@@ -1109,7 +1146,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'grove_info',
-        text: "The **enchanted grove**, southwest of here. Used to be flowers and mushroom rings — scholars loved the place. Now something's __rotting__ it from the inside. A **Blighted Root** pushed up through the center. Since then the plants have turned vicious. They don't just grow anymore. They *hunt*.",
+        text: "The **enchanted grove**, southwest of here. Used to be flowers and mushroom rings. Scholars loved the place. Now something's __rotting__ it from the inside. A **Blighted Root** pushed up through the center. Since then the plants have turned vicious. They don't just grow anymore. They *hunt*.",
         responses: [
           { text: "Can it be stopped?", nextId: 'offer' },
           { text: "Sounds like your problem.", nextId: 'end' },
@@ -1125,7 +1162,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'offer',
-        text: "Find the **Blighted Root** at the heart of the grove and destroy it. Tear out a shard as proof. The plants will fight you for it, but you look harder to kill than I was. Bring me the shard and I'll brew you something from the purified sap — a **Verdant Tonic**. Stronger than anything the apothecary stocks.",
+        text: "Find the **Blighted Root** at the heart of the grove and destroy it. Tear out a shard as proof. The plants will fight you for it, but you look harder to kill than I was. Bring me the shard and I'll brew you something from the purified sap. A **Verdant Tonic**. Stronger than anything the apothecary stocks.",
         responses: [
           { text: "I'll clear the grove.", nextId: 'end', givesQuest: 'blighted_heart' },
           { text: "Not now.", nextId: 'end' },
@@ -1133,17 +1170,17 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'quest_active',
-        text: "The grove's still sick. I can feel it from here — the air tastes like copper and rotting leaves. Head **southwest**. Follow the fence line past the danger sign. The **Blighted Root** is at the center of the grove, where the flowers used to be thickest.",
+        text: "The grove's still sick. I can feel it from here. The air tastes like copper and rotting leaves. Head **southwest**. Follow the fence line past the danger sign. The **Blighted Root** is at the center of the grove, where the flowers used to be thickest.",
         responses: [{ text: "I'm working on it.", nextId: 'end' }],
       },
       {
         id: 'quest_turnin',
-        text: "That shard… you actually tore it out. The air's already lighter — can you feel it? Give it here. I know how to render this down.",
+        text: "That shard… you actually tore it out. The air's already lighter. Can you feel it? Give it here. I know how to render this down.",
         responses: [{ text: "Here. It's yours.", nextId: 'reward' }],
       },
       {
         id: 'reward',
-        text: "Three vials of **Verdant Tonic**, brewed fresh from the purified sap. Each one hits harder than an Ephemeral Extract. And take this gold — the ranger fund owes you more than it can pay. The grove will heal now. Slowly, but it will heal.",
+        text: "Three vials of **Verdant Tonic**, brewed fresh from the purified sap. Each one hits harder than an Ephemeral Extract. And take this gold. The ranger fund owes you more than it can pay. The grove will heal now. Slowly, but it will heal.",
         responses: [{ text: "Thanks, Callum.", nextId: 'end' }],
       },
       {
@@ -1159,7 +1196,7 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       {
         id: 'start',
-        text: "These cliff formations are extraordinary — and that rumbling I heard last night... I've been camped here since dawn. Name's **Petra Ashveil**, field researcher out of the Ashfen Academy. If you're heading further in, keep an eye out for stone-core fragments. A genuine golem remain would be worth a great deal to the right people.",
+        text: "These cliff formations are extraordinary. And that rumbling I heard last night... I've been camped here since dawn. Name's **Petra Ashveil**, field researcher out of the Ashfen Academy. If you're heading further in, keep an eye out for stone-core fragments. A genuine golem remain would be worth a great deal to the right people.",
         responses: [
           { text: "What are you looking for?", nextId: 'research' },
           { text: "Have you seen a Stone Golem?", nextId: 'golem_seen' },
@@ -1168,7 +1205,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'has_heart',
-        text: "Is that... a __Golem Heart__? That crystallised core — the density, the faint resonance — that's *exactly* what I came here for. The academy will reimburse **250 gold** per specimen, and I can only carry **three** back to Ashfen. I'll take it off your hands right now if you're willing.",
+        text: "Is that... a __Golem Heart__? That crystallised core. The density, the faint resonance. That's *exactly* what I came here for. The academy will reimburse **250 gold** per specimen, and I can only carry **three** back to Ashfen. I'll take it off your hands right now if you're willing.",
         responses: [
           { text: "Deal. Take it.", nextId: 'deliver_heart' },
           { text: "I'll hold onto it.", nextId: 'end' },
@@ -1176,7 +1213,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'research',
-        text: "Stone golems leave behind a mineralised core when they fall — we call it a **Golem Heart**. Dense, warm to the touch, faintly luminous. The last confirmed specimen was recovered __four decades ago__. If one of those constructs still walks these highlands, it's the find of a generation. The academy has been waiting for proof.",
+        text: "Stone golems leave behind a mineralised core when they fall. We call it a **Golem Heart**. Dense, warm to the touch, faintly luminous. The last confirmed specimen was recovered __four decades ago__. If one of those constructs still walks these highlands, it's the find of a generation. The academy has been waiting for proof.",
         responses: [
           { text: "I may have encountered one.", nextId: 'golem_seen' },
           { text: "Good luck with that.", nextId: 'end' },
@@ -1184,19 +1221,19 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'golem_seen',
-        text: "You've *seen* one? Alive? Then the old survey maps were right — this highland shelf matches every description. They're drawn to elevated granite deposits. If you manage to bring it down, the **core** it leaves behind would be worth more than most people earn in a year. Bring it to me and we'll settle on a fair price.",
+        text: "You've *seen* one? Alive? Then the old survey maps were right. This highland shelf matches every description. They're drawn to elevated granite deposits. If you manage to bring it down, the **core** it leaves behind would be worth more than most people earn in a year. Bring it to me and we'll settle on a fair price.",
         responses: [
           { text: "I'll keep that in mind.", nextId: 'end' },
         ],
       },
       {
         id: 'deliver_heart',
-        text: "Remarkable. The crystalline lattice alone — this will rewrite three chapters of the Compendium. **250 gold**, as agreed. If you find more cores before I leave, bring them — I have room for two more specimens.",
+        text: "Remarkable. The crystalline lattice alone. This will rewrite three chapters of the Compendium. **250 gold**, as agreed. If you find more cores before I leave, bring them. I have room for two more specimens.",
         responses: [{ text: "Pleasure doing business.", nextId: 'end' }],
       },
       {
         id: 'after_delivery',
-        text: "That's one specimen catalogued. The academy only funded three slots — if you find more cores, I'll pay **250 gold** each until my quota's full. After that I need pack mules, not conversation.",
+        text: "That's one specimen catalogued. The academy only funded three slots. If you find more cores, I'll pay **250 gold** each until my quota's full. After that I need pack mules, not conversation.",
         responses: [{ text: "Good luck.", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },
@@ -1208,7 +1245,7 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       {
         id: 'start',
-        text: "A coiled rope ladder hangs from the cliff edge above, its rungs bound tight. The anchor is bolted into the rock on the far side — you'd need to reach the top to kick it loose.",
+        text: "A coiled rope ladder hangs from the cliff edge above, its rungs bound tight. The anchor is bolted into the rock on the far side. You'd need to reach the top to kick it loose.",
         responses: [{ text: "[Step back]", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },
@@ -1220,7 +1257,7 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       {
         id: 'start',
-        text: "A rope ladder dangles from the ridge above, its rungs coiled tight against the cliff face. The release pin is bolted into the rock at the top — there's no way to reach it from down here.",
+        text: "A rope ladder dangles from the ridge above, its rungs coiled tight against the cliff face. The release pin is bolted into the rock at the top. There's no way to reach it from down here.",
         responses: [{ text: "[Step back]", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },
@@ -1232,7 +1269,7 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       {
         id: 'start',
-        text: "A rope ladder is lashed to the cliff wall above the approach, its release pin bolted into the rock at the overlook's edge. You can't reach it from down here — you'd need to be up on the ridge ledge to the east.",
+        text: "A rope ladder is lashed to the cliff wall above the approach, its release pin bolted into the rock at the overlook's edge. You can't reach it from down here. You'd need to be up on the ridge ledge to the east.",
         responses: [{ text: "[Step back]", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },
@@ -1244,7 +1281,7 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       {
         id: 'start',
-        text: "The iron gate is sealed tight — heavy chains loop through the bars, held fast by a rusted lock. Scratched markings along the stone frame point west, toward the chapel ruins.",
+        text: "The iron gate is sealed tight. Heavy chains loop through the bars, held fast by a rusted lock. Scratched markings along the stone frame point west, toward the chapel ruins.",
         responses: [{ text: "[Step back]", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },
@@ -1256,7 +1293,7 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       {
         id: 'start',
-        text: "The southern fort's gate is bound shut with iron chains. The lock bears the same crest as the eastern fort — the same key should work here.",
+        text: "The southern fort's gate is bound shut with iron chains. The lock bears the same crest as the eastern fort. The same key should work here.",
         responses: [{ text: "[Step back]", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },
@@ -1314,7 +1351,7 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       {
         id: 'start',
-        text: "The root pulses violently as you approach — dark tendrils lash outward, fed by the corrupted life surrounding it. The grove must be purged before you can tear out the shard.",
+        text: "The root pulses violently as you approach. Dark tendrils lash outward, fed by the corrupted life surrounding it. The grove must be purged before you can tear out the shard.",
         responses: [{ text: "[Step back]", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },
@@ -1334,7 +1371,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'destroy',
-        text: "You drive your blade into the root and wrench free a **Blighted Root Shard**. The growth shudders violently. Dark ichor sprays from the wound as the tendrils convulse and begin to wither. The grove groans — a sound like a held breath finally released.",
+        text: "You drive your blade into the root and wrench free a **Blighted Root Shard**. The growth shudders violently. Dark ichor sprays from the wound as the tendrils convulse and begin to wither. The grove groans. A sound like a held breath finally released.",
         responses: [{ text: "[Take the shard]", nextId: 'end' }],
       },
       {
@@ -1351,7 +1388,7 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       {
         id: 'start',
-        text: "Mind the headstones. Most of them are honest folk. — I'm **Olwen**. Used to keep a hut in the **enchanted grove** west of here, before the vines turned and made a charnel house of the place. Now I tend graves and wait for my hands to stop shaking.",
+        text: "Mind the headstones. Most of them are honest folk. I'm **Olwen**. Used to keep a hut in the **enchanted grove** west of here, before the vines turned and made a charnel house of the place. Now I tend graves and wait for my hands to stop shaking.",
         responses: [
           { text: "The grove turned on you?", nextId: 'grove_lost' },
           { text: "You keep this cemetery?", nextId: 'caretaker' },
@@ -1360,7 +1397,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'grove_lost',
-        text: "Overnight. One evening the mushrooms were singing and the moss was warm under my feet; by dawn the **thorns had teeth**. I left with what I could carry on my back. If you meet a **ranger named Callum** down the trail — tell him an old man wishes him better luck than I had. He means to put it right. Maybe he can.",
+        text: "Overnight. One evening the mushrooms were singing and the moss was warm under my feet; by dawn the **thorns had teeth**. I left with what I could carry on my back. If you meet a **ranger named Callum** down the trail. Tell him an old man wishes him better luck than I had. He means to put it right. Maybe he can.",
         responses: [
           { text: "What did you carry out?", nextId: 'offer_ring' },
           { text: "Stay safe, Olwen.", nextId: 'end' },
@@ -1376,7 +1413,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'offer_ring',
-        text: "On the southeast trail past the lake — there's a **ranger cottage**, easy to miss. I left an **iron wolf-ring** in a **special chest** in the far corner, opposite the door. Pulled it from a turned grave. Tried to throw it twice — back on my finger by morning, both times. If you want it, it's yours. I won't be going back.",
+        text: "On the southeast trail past the lake. There's a **ranger cottage**, easy to miss. I left an **iron wolf-ring** in a **special chest** in the far corner, opposite the door. Pulled it from a turned grave. Tried to throw it twice. Back on my finger by morning, both times. If you want it, it's yours. I won't be going back.",
         responses: [
           { text: "I'll find the cottage.", nextId: 'take_ring' },
           { text: "Sounds like trouble. I'll pass.", nextId: 'refuse_ring' },
@@ -1384,7 +1421,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'take_ring',
-        text: "Southeast from here, past the lake, the shrine, and the old ridge lumberyard. The cottage has a **ranger crest** on the door — you'll know it when you see it. The ring chest sits in the **southeast corner** of the room, away from the hearth. Whatever that ring does, it stopped clawing at me the moment I set it down. Maybe it picks its owners. Maybe it just got bored of an old man.",
+        text: "Southeast from here, past the lake, the shrine, and the old ridge lumberyard. The cottage has a **ranger crest** on the door. You'll know it when you see it. The ring chest sits in the **southeast corner** of the room, away from the hearth. Whatever that ring does, it stopped clawing at me the moment I set it down. Maybe it picks its owners. Maybe it just got bored of an old man.",
         responses: [{ text: "I'll find it.", nextId: 'end' }],
       },
       {
@@ -1394,7 +1431,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'after_ring',
-        text: "You found the cottage, then. And the ring. I sleep through the night again, first time since the grove. Whatever it does — or doesn't — it's your burden now. The dead and I are grateful.",
+        text: "You found the cottage, then. And the ring. I sleep through the night again, first time since the grove. Whatever it does. Or doesn't. It's your burden now. The dead and I are grateful.",
         responses: [{ text: "Rest well, Olwen.", nextId: 'end' }],
       },
       { id: 'end', text: '', responses: [] },
@@ -1406,12 +1443,12 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       {
         id: 'start',
-        text: "…Not yet. Not while the **Apparition** still breathes. Come back when the fog above the gate has lifted, and we will see what is left to say. *Until then — keep walking.*",
+        text: "…Not yet. Not while the **Apparition** still breathes. Come back when the fog above the gate has lifted, and we will see what is left to say. *Until then. Keep walking.*",
         responses: [{ text: "[Leave]", nextId: 'end' }],
       },
       {
         id: 'unlocked',
-        text: "So. You did it. The fog is gone from the gate and the air has stopped tasting of iron. I owed you a conversation; here it is. — I am no one in particular. I came north a long time ago looking for an answer, and I have been standing here ever since waiting for someone to come back __from__ that gate instead of through it. You are the first.",
+        text: "So. You did it. The fog is gone from the gate and the air has stopped tasting of iron. I owed you a conversation; here it is. I am no one in particular. I came north a long time ago looking for an answer, and I have been standing here ever since waiting for someone to come back __from__ that gate instead of through it. You are the first.",
         responses: [
           { text: "Who are you?", nextId: 'who' },
           { text: "Why were you waiting?", nextId: 'why_wait' },
@@ -1420,7 +1457,7 @@ export const dialogues: Record<string, Dialogue> = {
       },
       {
         id: 'who',
-        text: "A name would only make me easier to find. Call me a witness — that is closer than most truths. Whatever I was before I came to the Hollow is buried under it now, and I would not dig it up for you or anyone.",
+        text: "A name would only make me easier to find. Call me a witness. That is closer than most truths. Whatever I was before I came to the Hollow is buried under it now, and I would not dig it up for you or anyone.",
         responses: [
           { text: "Why were you waiting?", nextId: 'why_wait' },
           { text: "Understood.", nextId: 'end' },

@@ -432,6 +432,7 @@ export function setupRuntimeActionPhase({
     onWorldItemPickup: (itemId: string) => {
       if (
         itemId === 'manuscript_fragment' ||
+        itemId === 'evacuation_order' ||
         itemId === 'hunters_manuscript' ||
         itemId === 'wolf_ring' ||
         itemId === 'gravebound_ring'

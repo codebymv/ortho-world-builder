@@ -323,7 +323,7 @@ export const WeaponAcquiredOverlay = ({
 
         {phase === 'ready' && isEquipment && !canEquipActive && (
           <p className="text-xs text-[#C9B8A8] text-center max-w-xs leading-relaxed">
-            Loadout full — open{' '}
+            Loadout full. Open{' '}
             <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">P</kbd>{' '}
             to swap a weapon into your active set.
           </p>
@@ -331,7 +331,7 @@ export const WeaponAcquiredOverlay = ({
 
         {phase === 'ready' && isRing && !canEquipActive && (
           <p className="text-xs text-[#C9B8A8] text-center max-w-xs leading-relaxed">
-            Ring slots full — open{' '}
+            Ring slots full. Open{' '}
             <kbd className="rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]">P</kbd>{' '}
             to swap rings.
           </p>

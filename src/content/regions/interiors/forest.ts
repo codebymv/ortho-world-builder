@@ -181,3 +181,58 @@ export const interiorSurveyorsHollowDef: MapDefinition = {
     { x: 14, y: 12, type: 'bones', walkable: true },
   ],
 };
+
+// Traveler's Inlet — a cliff cave on the eastern ridge (entered via a cave_mouth on the east cliff).
+// Y-shaped fork: entry terrace splits west (chest alcove + lone reaper) and east (spider nest).
+export const interiorTravelersInletDef: MapDefinition = {
+  name: "Traveler's Inlet",
+  width: 26,
+  height: 22,
+  spawnPoint: { x: 12, y: 5 },
+  seed: 5321,
+  baseTerrain: 'dungeon',
+  borderTile: 'stone',
+  autoRoads: false,
+  features: [
+    { x: 0, y: 0, width: 26, height: 22, type: 'wall', fill: 'stone' },
+    // Entry terrace — mouth opens onto the top-center lip.
+    { x: 9, y: 2, width: 8, height: 6, type: 'clearing', fill: 'cave_floor' },
+    // Fork junction beneath the terrace.
+    { x: 8, y: 7, width: 10, height: 3, type: 'clearing', fill: 'cave_floor' },
+    // West arm — narrow alcove where the traveler hid their purse.
+    { x: 2, y: 8, width: 11, height: 11, type: 'clearing', fill: 'cave_floor' },
+    // East arm — wide nest chamber, silk and skittering legs.
+    { x: 13, y: 7, width: 11, height: 14, type: 'clearing', fill: 'cave_floor' },
+    { x: 12, y: 1, width: 1, height: 1, type: 'cave_mouth', caveStepExit: true, interiorMap: 'forest', interiorSpawnX: 258, interiorSpawnY: 95 },
+  ],
+  portals: [],
+  chests: [{ x: 4, y: 15, interactionId: 'travelers_inlet_chest' }], // special chest — Radiant Vestige
+  interactables: [
+    { x: 14, y: 4, type: 'sign', walkable: false, interactionId: 'travelers_inlet_journal' },
+  ],
+  enemyZones: [
+    { x: 3, y: 10, width: 8, height: 7, enemyType: 'shadow', count: 1 },
+    { x: 15, y: 9, width: 8, height: 10, enemyType: 'spider', count: 3 },
+  ],
+  props: [
+    // Traveler's camp on the entry terrace
+    { x: 10, y: 3, type: 'bed', walkable: false },
+    { x: 15, y: 3, type: 'lantern', walkable: false },
+    { x: 10, y: 6, type: 'campfire_remains', walkable: false },
+    { x: 11, y: 5, type: 'crate', walkable: false },
+    { x: 12, y: 5, type: 'barrel', walkable: false },
+    // West alcove — picked clean except the buried chest
+    { x: 5, y: 10, type: 'bones', walkable: true },
+    { x: 7, y: 12, type: 'rock', walkable: false },
+    { x: 3, y: 14, type: 'rock', walkable: false },
+    // East nest — webbed clutter
+    { x: 16, y: 10, type: 'rock', walkable: false },
+    { x: 20, y: 12, type: 'volcanic_rock', walkable: false },
+    { x: 17, y: 17, type: 'rock', walkable: false },
+    { x: 22, y: 10, type: 'bones', walkable: true },
+    { x: 19, y: 18, type: 'bones', walkable: true },
+    { x: 18, y: 11, type: 'cage', walkable: false },
+    { x: 21, y: 15, type: 'cage', walkable: false },
+    { x: 21, y: 13, type: 'barrel', walkable: false },
+  ],
+};

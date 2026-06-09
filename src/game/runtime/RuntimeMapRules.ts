@@ -11,6 +11,7 @@ export const MAP_BIOMES: Record<string, string> = {
 /** Per-interior scene backdrop (hex). Default indoor void is set in DayNightCycle. */
 export const MAP_INDOOR_BACKGROUNDS: Record<string, number> = {
   interior_surveyors_hollow: 0x3A3228,
+  interior_travelers_inlet: 0x3A3228,
 };
 
 // Ship-readiness note: portal routes stay open until design review decides

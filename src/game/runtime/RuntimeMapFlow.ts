@@ -1753,6 +1753,14 @@ export function createRuntimeMapFlow({
     return before !== state.worldItems.length;
   };
 
+  const purgeLegacyHuntersManuscriptPickups = () => {
+    const before = state.worldItems.length;
+    state.worldItems = state.worldItems.filter(
+      wi => !(wi.itemId === 'hunters_manuscript' && wi.mapId === 'forest'),
+    );
+    return before !== state.worldItems.length;
+  };
+
   const syncRangerWolfRingChestState = () => {
     purgeLegacyRangerWolfRingPickups();
 
@@ -1803,6 +1811,11 @@ export function createRuntimeMapFlow({
 
   const syncPreplacedWorldItems = () => {
     purgeLegacyRangerWolfRingPickups();
+    purgeLegacyHuntersManuscriptPickups();
+
+    if (state.getFlag('hunters_manuscript_collected') && !state.getFlag('evacuation_order_collected')) {
+      state.setFlag('evacuation_order_collected', true);
+    }
 
     const PREPLACED: Array<{ itemId: string; collectedFlag: string; mapId: string; x: number; y: number; prerequisiteFlag?: string }> = [
       { itemId: 'manuscript_fragment', collectedFlag: 'manuscript_fragment_collected', mapId: 'interior_hunter_cottage', x: 0.5, y: -0.5 },

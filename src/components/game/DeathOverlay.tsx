@@ -58,7 +58,7 @@ export const DeathOverlay = ({ active, essenceLost, onComplete }: DeathOverlayPr
         You Died
       </h2>
       <p className="text-sm text-[#D7CCC8] max-w-md text-center px-6 mb-2">
-        You return to the last bonfire. Your essence remains where you fell—recover it before it is lost again.
+        You return to the last bonfire. Your essence remains where you fell. Recover it before it is lost again.
       </p>
       {essenceLost > 0 && (
         <p className="text-lg text-[#F5DEB3]">

@@ -254,7 +254,13 @@ export function completePendingConsumableUse({
     return;
   }
 
-  state.player.health = Math.min(state.player.maxHealth, state.player.health + (pending.healAmount ?? 0));
+  // Ephemeral Extract (the Estus flask) is scaled by the player's potency, raised by Radiant
+  // Vestige upgrades. Other heals (e.g. Tempest Grass) use their flat amount.
+  const baseHeal = pending.healAmount ?? 0;
+  const healAmount = pending.itemId === 'health_potion'
+    ? Math.round(baseHeal * state.player.ephemeralExtractPotency)
+    : baseHeal;
+  state.player.health = Math.min(state.player.maxHealth, state.player.health + healAmount);
   if (pending.itemId === 'tempest_grass') {
     state.player.stamina = state.player.maxStamina;
   }
@@ -267,7 +273,7 @@ export function completePendingConsumableUse({
   notify(`Used ${pending.name}`, {
     id: `used-${pending.itemId}`,
     type: 'success',
-    description: `Restored ${pending.healAmount} health.${staminaNote}`,
+    description: `Restored ${healAmount} health.${staminaNote}`,
     duration: 2000,
   });
   triggerUIUpdate();

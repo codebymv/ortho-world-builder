@@ -9,6 +9,21 @@ export const SURVIVABILITY_TARGETS = {
   bossHitsToKill: { min: 2, max: 4 },
 } as const;
 
+/**
+ * Ephemeral Extract is an Estus-style flask, not a stacking consumable: the player holds a
+ * capped number of charges that refill on bonfire rest / death-respawn. Chests and vendors no
+ * longer dispense it, so this cap is the entire heal supply between fires.
+ */
+export const MAX_EPHEMERAL_EXTRACT_CHARGES = 5;
+
+/**
+ * Radiant Vestige upgrade (the merged Estus Shard + Undead Bone Shard of this game). Consuming
+ * one at a bonfire's "Increase Healing" raises the flask's max charges and its heal potency.
+ */
+export const EPHEMERAL_EXTRACT_CHARGES_PER_UPGRADE = 1;
+/** +15% Ephemeral Extract heal per Radiant Vestige consumed (additive: 1.0 -> 1.15 -> 1.30 ...). */
+export const EPHEMERAL_EXTRACT_POTENCY_PER_UPGRADE = 0.15;
+
 /** Stagger burst multiplier when hitting a staggered enemy. */
 export const STAGGER_DAMAGE_MULT = 1.4;
 export const STAGGER_DAMAGE_MULT_BOSS = 2.0;

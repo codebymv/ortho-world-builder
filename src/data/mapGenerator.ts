@@ -112,6 +112,15 @@ export interface MapDefinition {
   baseTerrain: 'grassland' | 'forest' | 'swamp' | 'ruins' | 'dungeon' | 'city';
   borderTile: TileType;
   autoRoads?: boolean;
+  /**
+   * When provided, carveRoads connects ONLY these anchor points instead of
+   * auto-connecting every feature. With `roadHub`, each anchor is carved from the hub
+   * (hub-and-spoke). Without `roadHub`, anchors chain sequentially from spawn (spine).
+   * Requires autoRoads !== false.
+   */
+  roadAnchors?: Array<{ x: number; y: number }>;
+  /** Optional plaza/hub for roadAnchors; spokes radiate from here instead of chaining. */
+  roadHub?: { x: number; y: number };
   /** When false, south map edge uses normal borderTile (e.g. inn rooms). Default: large overworld maps use sea cliff + ocean on the south edge. */
   coastalSouthBorder?: boolean;
   /** When true (and map is large), all four edges use the same sea cliff + deep water band as the south coast (Greenleaf-style rim on every side). */
@@ -367,7 +376,30 @@ function generateBaseTerrain(def: MapDefinition): Tile[][] {
 }
 
 function carveRoads(tiles: Tile[][], def: MapDefinition) {
-  // Carve paths between portals and spawn, and between features
+  // Authored mode: deliberate network instead of auto-connecting every feature center.
+  if (def.roadAnchors && def.roadAnchors.length > 0) {
+    const hub = def.roadHub ?? def.spawnPoint;
+
+    if (hub.x !== def.spawnPoint.x || hub.y !== def.spawnPoint.y) {
+      carvePath(tiles, def.spawnPoint.x, def.spawnPoint.y, hub.x, hub.y, 'dirt', 2);
+    }
+
+    if (def.roadHub) {
+      for (const anchor of def.roadAnchors) {
+        carvePath(tiles, hub.x, hub.y, anchor.x, anchor.y, 'dirt', 2);
+      }
+    } else {
+      const points = [def.spawnPoint, ...def.roadAnchors];
+      for (let i = 0; i < points.length - 1; i++) {
+        const from = points[i];
+        const to = points[i + 1];
+        carvePath(tiles, from.x, from.y, to.x, to.y, 'dirt', 2);
+      }
+    }
+    return;
+  }
+
+  // Default mode: carve paths between portals and spawn, and between features
   const points = [
     def.spawnPoint,
     ...def.portals.map(p => ({ x: p.x, y: p.y })),
@@ -3733,6 +3765,129 @@ function enforceGreenleafUpperRidgeDetour(tiles: Tile[][], def: MapDefinition) {
   }
 }
 
+function enforceGreenleafNorthRidgeCliffWall(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Greenleaf Village') return;
+
+  // Keep the north-ridge stairway and intentional market approach as the only breaks
+  // in this cliff wall. Authored path/cleanup passes can otherwise visually bleed
+  // dirt into the cliff seam, so restore these bands after all late path passes.
+  const cliffBands = [
+    { minX: 98, maxX: 115 },
+    { minX: 122, maxX: 147 },
+    { minX: 162, maxX: 198 },
+  ];
+
+  for (let ty = 45; ty <= 48; ty++) {
+    for (const band of cliffBands) {
+      for (let tx = band.minX; tx <= band.maxX; tx++) {
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        const existing = tiles[ty][tx];
+        if (!existing || existing.transition || existing.interactable) continue;
+        tiles[ty][tx] = createTile(ty === 45 ? 'cliff_edge' : 'cliff', false, {
+          elevation: ty === 45 ? 1 : 0,
+        });
+      }
+    }
+  }
+}
+
+function enforceGreenleafDirtSpineWalkway(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Greenleaf Village') return;
+
+  // Garden borders and other decor can land on the authored N-S spine because
+  // placePath refuses to overwrite fence tiles. Clear blockers on the spine bands
+  // so the main north corridor stays fully walkable.
+  const SPINE_BLOCKERS: Set<TileType> = new Set(['fence', 'iron_fence', 'hedge']);
+  const spineBands = [
+    { minY: 8, maxY: 45 },
+    { minY: 49, maxY: 68 },
+    { minY: 96, maxY: 139 },
+  ];
+  const minX = 116;
+  const maxX = 121;
+
+  for (const band of spineBands) {
+    for (let ty = band.minY; ty <= band.maxY; ty++) {
+      for (let tx = minX; tx <= maxX; tx++) {
+        if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+        const t = tiles[ty][tx];
+        if (!t || t.transition || t.interactable) continue;
+        if (!SPINE_BLOCKERS.has(t.type)) continue;
+        tiles[ty][tx] = createTile('dirt', true, {
+          elevation: t.elevation,
+          spinePath: true,
+        });
+      }
+    }
+  }
+}
+
+function enforceGreenleafNorthEastVerticalCliff(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Greenleaf Village') return;
+
+  // Vertical cliff: world (27,-74) → (27,-42), 3 tiles wide at tile x=146–148, y=5–37.
+  for (let ty = 5; ty <= 37; ty++) {
+    for (let tx = 146; tx <= 148; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const existing = tiles[ty][tx];
+      if (!existing || existing.transition || existing.interactable) continue;
+      const elev = existing.elevation ?? 1;
+      tiles[ty][tx] = createTile(tx === 146 ? 'cliff_edge' : 'cliff', false, { elevation: elev });
+    }
+  }
+}
+
+function enforceGreenleafEastRidgeStairConnector(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Greenleaf Village') return;
+
+  // World (-1,-55) → (16,-54): keep the east-ridge dirt tie-in and stair mouth walkable
+  // after cliff/detour passes (horizontal y=24–26, stair column x=136–141 y=25–33).
+  for (let ty = 24; ty <= 33; ty++) {
+    const minX = ty <= 26 ? 119 : 136;
+    const maxX = ty <= 26 ? 136 : 141;
+    for (let tx = minX; tx <= maxX; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'stairs') continue;
+      if (t.type === 'dirt' || t.type === 'grass' || t.type === 'cobblestone') {
+        tiles[ty][tx] = { ...t, walkable: true, spinePath: true };
+      }
+    }
+  }
+}
+
+function enforceGreenleafEastMarketWestSeam(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Greenleaf Village') return;
+
+  // World x=28, y=-30..-5 => tile x=148, y=49..74. This is the west edge
+  // of the east market plateau. Mark both sides of the vertical elevation seam
+  // so the authored open ground can be crossed without needing a stair every row.
+  for (let ty = 49; ty <= 74; ty++) {
+    for (const tx of [147, 148]) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'grass' || t.type === 'dirt' || t.type === 'cobblestone') {
+        tiles[ty][tx] = { ...t, walkable: true, spinePath: true };
+      }
+    }
+  }
+
+  // East market stair step-off apron. World (29,-29) => tile (149,50) sits
+  // just south of the stair tiles; keep this mouth clear for player corner probes.
+  for (let ty = 49; ty <= 52; ty++) {
+    for (let tx = 148; tx <= 151; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (!t || t.transition || t.interactable) continue;
+      if (t.type === 'grass' || t.type === 'dirt' || t.type === 'cobblestone') {
+        tiles[ty][tx] = { ...t, walkable: true, spinePath: true };
+      }
+    }
+  }
+}
+
 // Clears the enclosed landing and exit of the traditional cliff-corridor stairway at x=260-262.
 // The main cliff_face (x=238-267, y=118-173) stamps cliff tiles across the stairway's exit
 // row. placeStairways handles y=118-130, but the upper overlook beside the ladder stays
@@ -4877,6 +5032,11 @@ export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
   enforceHighlandPassageCorridor(tiles, def);
   applyAuthoredSpinePathFlags(tiles, def);
   enforceWalkableElevationSeamCrossings(tiles, def);
+  enforceGreenleafNorthRidgeCliffWall(tiles, def);
+  enforceGreenleafDirtSpineWalkway(tiles, def);
+  enforceGreenleafNorthEastVerticalCliff(tiles, def);
+  enforceGreenleafEastRidgeStairConnector(tiles, def);
+  enforceGreenleafEastMarketWestSeam(tiles, def);
   scrubWhisperingWoodsWestHollowSpineSeamArt(tiles, def);
   enforceWhisperingWoodsDeepHollowBonfireApron(tiles, def);
 

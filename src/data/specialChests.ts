@@ -12,6 +12,14 @@ const SPECIAL_CHEST_INTERACTION_IDS = new Set<string>([
   'ranger_wolf_ring_chest',
   'north_fort_wayfarer_ring_chest',
   'forest_ironbark_ring_chest',
+  'east_ridge_vestige_chest',
+  'travelers_inlet_chest',
+]);
+
+/** Chests that grant only a Radiant Vestige (no gold or default consumable). */
+export const VESTIGE_REWARD_CHEST_IDS = new Set<string>([
+  'east_ridge_vestige_chest',
+  'travelers_inlet_chest',
 ]);
 
 /** Chests that grant only a ring (no gold or default consumable). */
@@ -24,6 +32,10 @@ export const RING_REWARD_CHEST_IDS = new Set<string>([
 
 export function isRingRewardChestInteractionId(interactionId: string): boolean {
   return RING_REWARD_CHEST_IDS.has(interactionId);
+}
+
+export function isVestigeRewardChestInteractionId(interactionId: string): boolean {
+  return VESTIGE_REWARD_CHEST_IDS.has(interactionId);
 }
 
 export function isSpecialChestInteractionId(interactionId: string): boolean {

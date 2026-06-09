@@ -208,6 +208,15 @@ export function createProgressionService(context: ProgressionServiceContext) {
       }
     }
 
+    if (dialogueId === 'explorer_ulmund') {
+      const altarQuest = state.quests.find(q => q.id === 'shattered_altars');
+      if (altarQuest?.completed) {
+        startNode = dialogue.nodes.find(node => node.id === 'after_quest') ?? startNode;
+      } else if (altarQuest?.active) {
+        startNode = dialogue.nodes.find(node => node.id === 'quest_active') ?? startNode;
+      }
+    }
+
     if (dialogueId === 'mountain_hermit') {
       // Once the ring has been picked up from the ranger cottage, Olwen
       // acknowledges it and settles into his post-gift reflection.

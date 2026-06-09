@@ -4,13 +4,14 @@ import { CONTROL_GROUPS } from './controlBindings';
 
 interface PauseMenuProps {
   onResume: () => void;
+  onBackToMainMenu: () => void;
   /** Title of the player's primary active quest, e.g. "The Missing Hunter". */
   questTitle?: string;
   /** Active (un-checked) objective step under that quest, e.g. "Find the Disparaged Cottage". */
   questObjective?: string;
 }
 
-export const PauseMenu = ({ onResume, questTitle, questObjective }: PauseMenuProps) => {
+export const PauseMenu = ({ onResume, onBackToMainMenu, questTitle, questObjective }: PauseMenuProps) => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto">
       <div className="bg-[#1A0F0A]/95 border-2 border-[#8B5A2B] rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl animate-scale-in">
@@ -58,12 +59,20 @@ export const PauseMenu = ({ onResume, questTitle, questObjective }: PauseMenuPro
           ))}
         </div>
 
-        <Button
-          onClick={onResume}
-          className="w-full bg-[#8B5A2B] hover:bg-[#A0522D] text-white font-bold py-3 border border-[#5C3A21] uppercase tracking-wider"
-        >
-          Resume
-        </Button>
+        <div className="flex flex-col gap-3">
+          <Button
+            onClick={onResume}
+            className="w-full bg-[#8B5A2B] hover:bg-[#A0522D] text-white font-bold py-3 border border-[#5C3A21] uppercase tracking-wider"
+          >
+            Resume
+          </Button>
+          <Button
+            onClick={onBackToMainMenu}
+            className="w-full bg-transparent hover:bg-[#2D1B11] text-[#D3D3D3] hover:text-[#DAA520] font-bold py-3 border border-[#5C3A21] uppercase tracking-wider transition-all duration-200"
+          >
+            Back to Main Menu
+          </Button>
+        </div>
       </div>
     </div>
   );

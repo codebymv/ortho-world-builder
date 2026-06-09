@@ -288,7 +288,7 @@ export const VendorModal = memo(function VendorModal({
           'z-[85] flex max-h-[min(92vh,680px)] w-[min(96vw,540px)] max-w-[min(96vw,540px)] flex-col gap-0 border-2 border-[#5C3A21] bg-[#120A08]/97 p-0 text-left shadow-2xl backdrop-blur-md sm:rounded-sm',
         )}
       >
-        <DialogTitle className="sr-only">{vendor.name} — Shop</DialogTitle>
+        <DialogTitle className="sr-only">{vendor.name}: Shop</DialogTitle>
 
         {/* ── Header ── */}
         <div className="flex flex-shrink-0 items-end justify-between gap-2 border-b border-[#5C3A21]/60 px-5 py-3 pr-12">

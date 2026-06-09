@@ -310,7 +310,7 @@ export const PlayerModal = memo(({
                               <span className="text-[10px] font-bold text-[#F5DEB3] text-center line-clamp-2 leading-tight w-full px-0.5">
                                 {weapon.name}
                               </span>
-                              <span className="text-[9px] text-[#C9B8A8]">ATK {weapon.stats?.damage ?? '—'}</span>
+                              <span className="text-[9px] text-[#C9B8A8]">ATK {weapon.stats?.damage ?? '-'}</span>
                             </>
                           ) : (
                             <span className="text-[10px] text-[#C9B8A8]">Empty</span>
@@ -355,7 +355,7 @@ export const PlayerModal = memo(({
                             {getItemIcon(weapon, 'w-5 h-5', assetManager)}
                           </div>
                           <span className="text-[10px] font-bold text-[#F5DEB3] truncate max-w-[140px]">{weapon.name}</span>
-                          <span className="text-[9px] text-[#C9B8A8] flex-shrink-0">ATK {weapon.stats?.damage ?? '—'}</span>
+                          <span className="text-[9px] text-[#C9B8A8] flex-shrink-0">ATK {weapon.stats?.damage ?? '-'}</span>
                         </button>
                       ))}
                     </div>

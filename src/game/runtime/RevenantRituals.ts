@@ -258,7 +258,7 @@ export function updateRevenantRituals(ctx: RevenantRitualContext): void {
     notify('The glyph drinks your heresy', {
       id: `revenant-ritual-${key}`,
       type: 'info',
-      description: 'The cursed sediment in your pack flares — something is being dragged back.',
+      description: 'The cursed sediment in your pack flares. Something is being dragged back.',
       duration: 2800,
     });
   }

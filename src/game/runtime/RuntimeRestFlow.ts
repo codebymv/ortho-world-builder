@@ -132,6 +132,7 @@ export function createBonfireRestAction({
     state.player.health = state.player.maxHealth;
     state.player.stamina = state.player.maxStamina;
     state.player.lastBreathUsedThisLife = false;
+    state.refillEphemeralExtract();
     playBonfireRestore();
     const map = world.getCurrentMap();
     state.killedEnemyIds.clear();
@@ -139,7 +140,7 @@ export function createBonfireRestAction({
     notify('Rested at bonfire', {
       id: 'bonfire',
       type: 'success',
-      description: 'Health and stamina restored. Enemies have respawned.',
+      description: 'Health, stamina, and Ephemeral Extract restored. Enemies have respawned.',
       duration: 2500,
     });
     triggerSave();
@@ -161,7 +162,7 @@ export function createBonfireRestAction({
       notify('Timber cleared', {
         id: 'west-fort-bonfire-logs-cleared',
         type: 'success',
-        description: 'You drag the fallen logs aside. The cold hearth lies bare — kindle it when the yard is safe.',
+        description: 'You drag the fallen logs aside. The cold hearth lies bare. Kindle it when the yard is safe.',
         duration: 4200,
       });
       triggerSave();
@@ -192,7 +193,7 @@ export function createBonfireRestAction({
       notify(BONFIRE_HOSTILES_NEAR_MESSAGE, {
         id: 'bonfire-travel-hostiles-near',
         type: 'error',
-        description: 'That flame is surrounded — deal with the nearby threats first.',
+        description: 'That flame is surrounded. Deal with the nearby threats first.',
         duration: 3200,
       });
       return;
@@ -204,6 +205,7 @@ export function createBonfireRestAction({
     state.player.position = { x: worldX, y: worldY };
     state.player.health = state.player.maxHealth;
     state.player.stamina = state.player.maxStamina;
+    state.refillEphemeralExtract();
     state.lastBonfire = { mapId: entry.mapId, x: worldX, y: worldY };
 
     state.killedEnemyIds.clear();
@@ -215,7 +217,7 @@ export function createBonfireRestAction({
     notify('Arrived at bonfire', {
       id: 'bonfire-travel',
       type: 'success',
-      description: 'Health and stamina restored. Enemies have respawned.',
+      description: 'Health, stamina, and Ephemeral Extract restored. Enemies have respawned.',
       duration: 2500,
     });
     triggerSave();

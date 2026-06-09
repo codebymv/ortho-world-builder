@@ -87,7 +87,7 @@ export function setupRuntimeInputPhase({
   const TRACKED_KEYS = ['w', 'a', 's', 'd', 'shift'];
 
   const resetInputState = () => {
-    for (const key of TRACKED_KEYS) {
+    for (const key of Object.keys(keys)) {
       keys[key] = false;
     }
 

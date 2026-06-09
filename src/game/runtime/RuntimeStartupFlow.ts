@@ -65,12 +65,8 @@ export function createDeathRespawnHandler({
       state.player.attackRecoveryTimer = 0;
       state.player.lastBreathUsedThisLife = false;
 
-      const potionCount = state.inventory.filter(i => i.id === 'health_potion').length;
-      if (potionCount < 2) {
-        while (state.inventory.filter(i => i.id === 'health_potion').length < 2) {
-          state.addItem({ ...items.health_potion });
-        }
-      }
+      // Death sends the player back to a bonfire, so the Estus-style flask refills to full.
+      state.refillEphemeralExtract();
 
       let bonfire = state.lastBonfire;
       if (!bonfire) {

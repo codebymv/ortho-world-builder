@@ -10,9 +10,11 @@ interface UseGameMusicOptions {
   processAudioElement: (audio: HTMLAudioElement) => void;
   cleanupAudioProcessor: () => void;
   resumeAudioProcessor: () => void | Promise<void>;
+  isInMainMenu?: boolean;
 }
 
 const MAP_MUSIC_MAP: Record<string, string> = {
+  menu: './audio/gilrhym_theme.mp3',
   village: './audio/ortho_loop2.mp3',
   forest: './audio/wood_theme.mp3',
   forest_hollow: './audio/gilrhym_theme.mp3',
@@ -28,6 +30,7 @@ export function useGameMusic({
   processAudioElement,
   cleanupAudioProcessor,
   resumeAudioProcessor,
+  isInMainMenu = false,
 }: UseGameMusicOptions) {
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const musicStarted = useRef(false);
@@ -53,6 +56,7 @@ export function useGameMusic({
    * sync path which can fire much later).
    */
   const resolveInitialMapKey = useCallback((state: GameState | null): string => {
+    if (isInMainMenu) return 'menu';
     let mapId = state?.currentMap;
     let playerY = state?.player.position.y;
 
@@ -66,7 +70,7 @@ export function useGameMusic({
       return 'forest_hollow';
     }
     return mapId;
-  }, []);
+  }, [isInMainMenu]);
 
   const musicDirectorRef = useRef<ReturnType<typeof createMusicDirector> | null>(null);
   if (!musicDirectorRef.current) {
@@ -172,6 +176,12 @@ export function useGameMusic({
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [cleanupAudioProcessor, gameStateRef, musicDirector, resolveMusicTrack, resolveInitialMapKey, resumeAudioProcessor]);
+
+  useEffect(() => {
+    if (!musicStarted.current) return;
+    const correctKey = resolveInitialMapKey(gameStateRef.current);
+    switchMusicTrack(correctKey);
+  }, [isInMainMenu, resolveInitialMapKey, switchMusicTrack, gameStateRef]);
 
   return {
     musicRef,

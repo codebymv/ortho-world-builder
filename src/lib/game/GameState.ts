@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import { items } from '../../data/items';
+import {
+  MAX_EPHEMERAL_EXTRACT_CHARGES,
+  EPHEMERAL_EXTRACT_CHARGES_PER_UPGRADE,
+  EPHEMERAL_EXTRACT_POTENCY_PER_UPGRADE,
+} from '../../data/balance';
 
 /**
  * Hand-curated names of game flags set anywhere in the codebase.
@@ -133,6 +138,13 @@ export interface PlayerState {
    * Dodge-cancelable — cleared the moment isDodging becomes true.
    */
   attackRecoveryTimer: number;
+  /**
+   * Estus-style Ephemeral Extract flask. `maxEphemeralExtractCharges` is the flask cap
+   * (refilled at bonfires); `ephemeralExtractPotency` multiplies each draught's heal amount.
+   * Both rise when a Radiant Vestige is consumed via the bonfire's "Increase Healing".
+   */
+  maxEphemeralExtractCharges: number;
+  ephemeralExtractPotency: number;
 }
 
 export interface NPC {
@@ -273,6 +285,8 @@ export class GameState {
       gold: 0,
       essence: 0,
       cursedSediment: 0,
+      maxEphemeralExtractCharges: MAX_EPHEMERAL_EXTRACT_CHARGES,
+      ephemeralExtractPotency: 1,
       attackDamage: 20,
       attackRange: 2,
       lastAttackTime: 0,
@@ -315,7 +329,11 @@ export class GameState {
       attackRecoveryTimer: 0,
     };
 
-    this.inventory = [{ ...items.meek_short_sword }];
+    // New game starts with a full Ephemeral Extract flask (Estus-style); it refills at bonfires.
+    this.inventory = [
+      { ...items.meek_short_sword },
+      ...Array.from({ length: MAX_EPHEMERAL_EXTRACT_CHARGES }, () => ({ ...items.health_potion })),
+    ];
     this.activeItemIndex = 0;
     this.equippedWeaponId = items.meek_short_sword.id;
     this.equippedRingIds = [...EMPTY_EQUIPPED_RING_IDS];
@@ -329,7 +347,38 @@ export class GameState {
     this.seenItemIds.add(items.meek_short_sword.id);
   }
 
+  /** Current Ephemeral Extract flask charges = count of health_potion instances in inventory. */
+  get ephemeralExtractCharges(): number {
+    return this.inventory.reduce((n, i) => (i.id === 'health_potion' ? n + 1 : n), 0);
+  }
+
+  /** Refill the Estus-style flask to its cap. Called on bonfire rest, fast-travel, and death-respawn. */
+  refillEphemeralExtract() {
+    while (this.ephemeralExtractCharges < this.player.maxEphemeralExtractCharges) {
+      this.addItem({ ...items.health_potion }, { notify: false });
+    }
+  }
+
+  /**
+   * Consume one Radiant Vestige to upgrade the flask: +1 max charge and +potency to each
+   * draught, then top the flask off so the new charge is immediately available. Returns false
+   * if the player holds no Radiant Vestige.
+   */
+  upgradeEphemeralExtract(): boolean {
+    if (!this.hasItem('radiant_vestige')) return false;
+    this.removeItem('radiant_vestige');
+    this.player.maxEphemeralExtractCharges += EPHEMERAL_EXTRACT_CHARGES_PER_UPGRADE;
+    this.player.ephemeralExtractPotency += EPHEMERAL_EXTRACT_POTENCY_PER_UPGRADE;
+    this.refillEphemeralExtract();
+    return true;
+  }
+
   addItem(item: Item, options: { notify?: boolean } = {}) {
+    // Ephemeral Extract is an Estus-style flask: charges are capped and refilled at bonfires,
+    // never stockpiled. At the cap, extra Extract is discarded rather than added.
+    if (item.id === 'health_potion' && this.ephemeralExtractCharges >= this.player.maxEphemeralExtractCharges) {
+      return;
+    }
     if (item.type === 'consumable') {
       const lastMatchingIndex = this.inventory.reduce((lastIndex, inventoryItem, index) => (
         inventoryItem.id === item.id ? index : lastIndex

@@ -211,7 +211,7 @@ const ConsumableCard = memo(({
       {isLastBreath ? (
         <div
           title={isDimmed
-            ? 'Reserve already spent this life — rest at a bonfire to restore.'
+            ? 'Reserve already spent this life. Rest at a bonfire to restore.'
             : 'Spent automatically when a killing blow lands.'}
           className={`flex-shrink-0 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-sm border ${
             isDimmed

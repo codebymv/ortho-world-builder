@@ -22,6 +22,9 @@ export function bindRuntimeDomEvents({
   const handleWindowBlur = () => {
     resetInputState();
   };
+  const handleWindowFocus = () => {
+    resetInputState();
+  };
   const handleVisibilityChange = () => {
     if (document.hidden) {
       resetInputState();
@@ -31,6 +34,7 @@ export function bindRuntimeDomEvents({
   window.addEventListener('keydown', handleKeyDown);
   window.addEventListener('keyup', handleKeyUp);
   window.addEventListener('blur', handleWindowBlur);
+  window.addEventListener('focus', handleWindowFocus);
   document.addEventListener('visibilitychange', handleVisibilityChange);
   window.addEventListener('resize', handleResize);
   rendererDomElement.addEventListener('mousedown', handleMouseDown);
@@ -41,6 +45,7 @@ export function bindRuntimeDomEvents({
     window.removeEventListener('keydown', handleKeyDown);
     window.removeEventListener('keyup', handleKeyUp);
     window.removeEventListener('blur', handleWindowBlur);
+    window.removeEventListener('focus', handleWindowFocus);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     window.removeEventListener('resize', handleResize);
     rendererDomElement.removeEventListener('mousedown', handleMouseDown);

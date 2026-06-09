@@ -38,12 +38,10 @@ export interface PortalLink {
 }
 
 export const PORTAL_LINKS: PortalLink[] = [
-  // Village portals
+  // Village → Whispering Woods (north gate)
   { fromMap: 'village', toMap: 'forest', portalTileX: 120, portalTileY: 4 },
-  { fromMap: 'village', toMap: 'forest', portalTileX: 237, portalTileY: 80 },
-  // Forest portals
+  // Forest → Greenleaf (south return)
   { fromMap: 'forest', toMap: 'village', portalTileX: 150, portalTileY: 294 },
-  { fromMap: 'forest', toMap: 'village', portalTileX: 4, portalTileY: 150 },
 ];
 
 export const KNOWN_LOCATIONS: KnownLocation[] = [
@@ -65,6 +63,7 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   { keywords: ['ranger outpost'], tileX: 140, tileY: 170, map: 'forest', label: 'Ranger Outpost', type: 'poi', color: '#8FBC8F' },
   { keywords: ['ranger cottage'], tileX: 236, tileY: 227, map: 'forest', label: 'Ranger Cottage', type: 'poi', color: '#9370DB' },
   { keywords: ['surveyor', 'surveyors den', 'surveyors hollow', 'cave mouth'], tileX: 45, tileY: 114, map: 'forest', label: "Surveyor's Den", type: 'poi', color: '#8B6914' },
+  { keywords: ['traveler', 'travelers inlet', 'traveler inlet'], tileX: 258, tileY: 96, map: 'forest', label: "Traveler's Inlet", type: 'poi', color: '#8B6914' },
   // Fort gate key — use "chapel ruins" only (not plain "chapel") so village chapel dialogue does not ping the woods.
   // Points at the actual chapel_dead_ranger remains (forest map x:65,y:183); the old (55,114) was ~70 tiles off.
   { keywords: ['chapel ruins'], tileX: 65, tileY: 183, map: 'forest', label: 'Chapel Ruins (ranger remains)', type: 'poi', color: '#A1887F' },
@@ -83,7 +82,7 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
 
   // Enemies
   { keywords: ['wolf', 'wolves'], tileX: 85, tileY: 15, map: 'village', label: 'Wolf Territory', type: 'danger', color: '#808080' },
-  { keywords: ['slime', 'slimes'], tileX: 55, tileY: 118, map: 'village', label: 'Slime Infestation', type: 'danger', color: '#32CD32' },
+  { keywords: ['slime', 'slimes'], tileX: 104, tileY: 30, map: 'village', label: 'North Plains Slimes', type: 'danger', color: '#32CD32' },
   { keywords: ['bandit', 'bandits'], tileX: 223, tileY: 14, map: 'village', label: 'Bandit Camp', type: 'danger', color: '#8B0000' },
   { keywords: ['skeleton', 'undead'], tileX: 15, tileY: 25, map: 'village', label: 'Undead', type: 'danger', color: '#D3D3D3' },
   { keywords: ['spider', 'spiders'], tileX: 214, tileY: 123, map: 'village', label: 'Spider Nest', type: 'danger', color: '#800080' },
@@ -176,7 +175,7 @@ export const MANUSCRIPT_PRIMARY_MARKER_ID = 'manuscript_primary_objective';
  *
  * Stage 1 — initial:                  Disparaged Cottage (tile 137, 184)
  * Stage 2 — fragment collected:        Manuscript Gate Guard (tile 230, 154)
- * Stage 3 — checkpoint gate open:      Second manuscript location (tile 213, 70)
+ * Stage 3 — checkpoint gate open:      Commander's Evacuation Order (tile 213, 70)
  * Stage 4 — second manuscript in hand: Hollow fog-gate entrance (tile 122, 18)
  */
 export function getManuscriptPrimaryObjectiveMarker(state: GameState): MapMarker | null {
@@ -205,7 +204,7 @@ export function getManuscriptPrimaryObjectiveMarker(state: GameState): MapMarker
   // Boss defeated — quest is wrapping up; no forest pin needed
   if (state.getFlag('hollow_guardian_defeated')) return null;
 
-  // Stage 3: checkpoint gate open → go collect the second manuscript piece
+  // Stage 3: checkpoint gate open → collect the fort evacuation order
   if (state.getFlag('manuscript_checkpoint_gate_open')) {
     return { ...base, tileX: 213, tileY: 70 };
   }

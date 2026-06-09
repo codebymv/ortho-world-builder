@@ -22,10 +22,11 @@ export const interiorHollowArenaDef: MapDefinition = {
   ],
   portals: [],
   chests: [
-    // Post-boss reward — Crystal Greatsword. East side of the inner ruins area, reachable
-    // after the Apparition falls. No flag gate needed: the arena exit portal only opens on
-    // hollow_guardian_defeated, so the player cannot leave without killing the boss.
-    { x: 24, y: 16, interactionId: 'boss_arena_chest' },
+    // Post-boss reward — Terminus Scythe, but ONLY if the player did not already claim it
+    // early from a Ridge Revenant. If they did, InteractionSystem pre-opens this chest so it
+    // renders as already-looted and the Apparition drops only essence. East side of the inner
+    // ruins, reachable after the boss (the arena exit gates on hollow_guardian_defeated).
+    { x: 24, y: 16, interactionId: 'hollow_terminus_chest' },
   ],
   interactables: [],
   props: [

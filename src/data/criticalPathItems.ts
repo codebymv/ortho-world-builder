@@ -24,15 +24,4 @@ export const criticalPathItems: Record<string, CriticalPathItemVisual> = {
     bobAmplitude: 0.06,
     hoverHeight: 0.56,
   },
-  hollow_manuscript: {
-    interactionId: 'hollow_manuscript',
-    itemId: 'hunters_manuscript',
-    collectedFlag: 'hunters_manuscript_collected',
-    glowColor: 0xce93d8,
-    haloColor: 0xf3e5f5,
-    spriteScale: 0.68,
-    haloScale: 0.98,
-    bobAmplitude: 0.07,
-    hoverHeight: 0.6,
-  },
 };

@@ -1,7 +1,7 @@
 import type { GameState } from '@/lib/game/GameState';
 import type { CombatSystem } from '@/lib/game/Combat';
 import { World } from '@/lib/game/World';
-import type { WorldMap } from '@/lib/game/World';
+import type { Tile, WorldMap } from '@/lib/game/World';
 import { dialogues } from '@/data/dialogues';
 import { mapDefinitions } from '@/data/maps';
 import { ENEMY_BLUEPRINTS, DEFAULT_ENEMY } from '@/data/enemies';
@@ -17,6 +17,66 @@ import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
 export const SPAWN_BODY_R = 0.3;
 const WATER_SLIME_MAX_TILE_Y = 255;
 const WATER_SLIME_SPAWN_TILES = new Set(['water', 'water_corrupted', 'waterfall']);
+/** Minimum tile distance from an auto-warp portal when arriving via map transition. */
+const PORTAL_ARRIVAL_MIN_TILE_DISTANCE = 3;
+const PORTAL_ARRIVAL_SEARCH_RADIUS = 6;
+
+function isAutoWarpPortalTile(tile: Tile | undefined): boolean {
+  if (!tile?.transition) return false;
+  if (tile.type === 'portal') return true;
+  if (tile.type === 'door_interior') return true;
+  if (tile.type === 'cave_mouth' && !tile.interactable) return true;
+  return false;
+}
+
+function tileCoordToWorld(mapWorld: WorldMap, tileX: number, tileY: number): { x: number; y: number } {
+  return { x: tileX - mapWorld.width / 2, y: tileY - mapWorld.height / 2 };
+}
+
+function resolvePortalArrivalTile(
+  world: World,
+  mapWorld: WorldMap,
+  targetTileX: number,
+  targetTileY: number,
+): { x: number; y: number } {
+  const targetTile = mapWorld.tiles[targetTileY]?.[targetTileX];
+  if (!isAutoWarpPortalTile(targetTile)) {
+    return { x: targetTileX, y: targetTileY };
+  }
+
+  const candidates: Array<{ x: number; y: number; dist: number }> = [];
+  for (let dy = -PORTAL_ARRIVAL_SEARCH_RADIUS; dy <= PORTAL_ARRIVAL_SEARCH_RADIUS; dy++) {
+    for (let dx = -PORTAL_ARRIVAL_SEARCH_RADIUS; dx <= PORTAL_ARRIVAL_SEARCH_RADIUS; dx++) {
+      const dist = Math.max(Math.abs(dx), Math.abs(dy));
+      if (dist < PORTAL_ARRIVAL_MIN_TILE_DISTANCE) continue;
+
+      const tx = targetTileX + dx;
+      const ty = targetTileY + dy;
+      if (tx < 0 || ty < 0 || tx >= mapWorld.width || ty >= mapWorld.height) continue;
+
+      const tile = mapWorld.tiles[ty]?.[tx];
+      if (!tile || isAutoWarpPortalTile(tile)) continue;
+
+      const worldPos = tileCoordToWorld(mapWorld, tx, ty);
+      if (!world.canMoveTo(worldPos.x, worldPos.y, worldPos.x, worldPos.y, SPAWN_BODY_R)) continue;
+
+      candidates.push({ x: tx, y: ty, dist });
+    }
+  }
+
+  candidates.sort((a, b) => {
+    if (a.dist !== b.dist) return a.dist - b.dist;
+    // Step off the portal toward the map interior (south) when distances tie.
+    if (a.y !== b.y) return b.y - a.y;
+    return Math.abs(a.x - mapWorld.width / 2) - Math.abs(b.x - mapWorld.width / 2);
+  });
+
+  if (candidates.length > 0) {
+    return { x: candidates[0].x, y: candidates[0].y };
+  }
+
+  return { x: targetTileX, y: targetTileY };
+}
 
 export function getMapDisplayName(mapId: string): string {
   return mapDefinitions[mapId]?.name ?? mapId.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
@@ -125,7 +185,6 @@ export function getInteractionPromptLabel(
     return state.getFlag('ashen_reaver_defeated') ? 'The Fog Has Lifted' : 'Approach the Fog';
   }
   if (interactionId === 'old_chapel_altar') return 'Inspect Altar';
-  if (interactionId === 'spider_cocoon') return 'Inspect Cocoon';
   if (interactionId === 'temple_inscription') return 'Read Inscription';
   if (interactionId === 'forest_fort_banner') return 'Inspect Banner';
   if (interactionId === 'volcano_warning') return 'Read Warning';
@@ -236,8 +295,9 @@ export function resolveSafeTransitionPosition(
   targetX: number,
   targetY: number,
 ): { x: number; y: number } {
-  const baseX = targetX - mapWorld.width / 2;
-  const baseY = targetY - mapWorld.height / 2;
+  const arrivalTile = resolvePortalArrivalTile(world, mapWorld, targetX, targetY);
+  const baseX = arrivalTile.x - mapWorld.width / 2;
+  const baseY = arrivalTile.y - mapWorld.height / 2;
 
   if (world.canMoveTo(baseX, baseY, baseX, baseY, SPAWN_BODY_R)) {
     return { x: baseX, y: baseY };

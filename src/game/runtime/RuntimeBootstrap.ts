@@ -91,6 +91,8 @@ export function bootstrapRuntimeState(context: BootstrapContext) {
     state.player.vitality = savedData.player.vitality ?? 1;
     state.player.endurance = savedData.player.endurance ?? 1;
     state.player.strength = savedData.player.strength ?? 1;
+    state.player.maxEphemeralExtractCharges = savedData.player.maxEphemeralExtractCharges ?? state.player.maxEphemeralExtractCharges;
+    state.player.ephemeralExtractPotency = savedData.player.ephemeralExtractPotency ?? state.player.ephemeralExtractPotency;
     state.inventory = savedData.inventory;
 
     stripDeprecatedLoadout(state);

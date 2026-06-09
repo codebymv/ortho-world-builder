@@ -597,9 +597,9 @@ export const GameUI = ({
               label="Objectives (O)"
               title={
                 activeObjectiveHint
-                  ? `Objectives (O) — ${activeObjectiveHint}`
+                  ? `Objectives (O): ${activeObjectiveHint}`
                   : activeQuestCount > 0
-                    ? `Objectives (O) — ${activeQuestCount} active`
+                    ? `Objectives (O): ${activeQuestCount} active`
                     : 'Objectives (O)'
               }
               onClick={onOpenObjectives}

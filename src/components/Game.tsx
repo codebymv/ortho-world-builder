@@ -19,6 +19,7 @@ import { GameUI } from './game/GameUI';
 import { Minimap } from './game/Minimap';
 import { NotificationFeed } from './game/NotificationFeed';
 import { PauseMenu } from './game/PauseMenu';
+import { MainMenu } from './game/MainMenu';
 import { TransitionOverlay } from './game/TransitionOverlay';
 import { DeathOverlay } from './game/DeathOverlay';
 import { BonfireOverlay } from './game/BonfireOverlay';
@@ -39,8 +40,15 @@ import type {
   RuntimeUiBindings,
 } from '@/game/runtime/setupGameRuntime';
 import { useGameMusic } from '@/game/runtime/useGameMusic';
-import { useGameRuntime } from '@/game/runtime/useGameRuntime';
 import { PerfProfiler, type PerfSnapshot } from '@/game/runtime/PerfProfiler';
+import {
+  getAudioVolume,
+  isAudioMuted,
+  setAudioMuted,
+  setAudioVolume,
+  applyMasterGainMute,
+  applyElementMute,
+} from '@/game/domain/audioMutePreference';
 
 type InteractionPrompt = string | null;
 type BossHudSnapshot = {
@@ -133,6 +141,20 @@ const LazyPlayerModal = lazy(async () => ({ default: (await loadPlayerModal()).P
 const LazyObjectivesModal = lazy(async () => ({ default: (await loadObjectivesModal()).ObjectivesModal }));
 const LazyVendorModal = lazy(async () => ({ default: (await loadVendorModal()).VendorModal }));
 const DEBUG_MELEE_CONE_DOT = 0.5;
+
+const preloadGameBoot = () => {
+  void runtimeSetupPromise;
+  void loadRuntimeContent();
+  void loadInteractionContent();
+
+  const savedStartMap = SaveManager.load()?.currentMap;
+  const mapsToPreload = new Set([savedStartMap ?? 'village', 'village']);
+  mapsToPreload.forEach(mapId => {
+    void preloadMap(mapId).catch(() => {
+      // Best-effort idle prefetch only.
+    });
+  });
+};
 
 const getDebugDirectionVector = (direction: string): { x: number; y: number } => {
   switch (direction) {
@@ -228,6 +250,41 @@ const Game = () => {
     return audioProcessor.resumeAudioContext().then(() => {});
   }, [audioProcessor]);
 
+  // Main Menu and Save States
+  const [isInMainMenu, setIsInMainMenu] = useState(true);
+  const [isBootingGame, setIsBootingGame] = useState(false);
+  const [bootMessage, setBootMessage] = useState('Kindling the bonfire...');
+  const [gameKey, setGameKey] = useState(0);
+  const [volume, setVolume] = useState(() => getAudioVolume());
+  const [isMuted, setIsMuted] = useState(() => isAudioMuted());
+
+  const handleVolumeChange = (nextVolume: number) => {
+    const clamped = Math.max(0, Math.min(1, nextVolume));
+    setVolume(clamped);
+    setAudioVolume(clamped);
+    if (clamped > 0 && isMuted) {
+      setIsMuted(false);
+      setAudioMuted(false);
+    } else if (clamped === 0 && !isMuted) {
+      setIsMuted(true);
+      setAudioMuted(true);
+    }
+    applyMasterGainMute(masterGainRef.current);
+    applyElementMute(musicRef.current);
+  };
+
+  const handleMuteToggle = () => {
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    setAudioMuted(nextMuted);
+    if (!nextMuted && volume <= 0) {
+      setVolume(0.5);
+      setAudioVolume(0.5);
+    }
+    applyMasterGainMute(masterGainRef.current);
+    applyElementMute(musicRef.current);
+  };
+
   // New state for overlays
   const [isPaused, setIsPaused] = useState(false);
   const [transitionActive, setTransitionActive] = useState(false);
@@ -313,7 +370,7 @@ const Game = () => {
           notify('Weapon stored', {
             id: 'weapon-loadout-full',
             type: 'info',
-            description: 'Loadout full — open Player (P) to swap a weapon in.',
+            description: 'Loadout full. Open Player (P) to swap a weapon in.',
             duration: 4000,
           });
         }
@@ -625,10 +682,7 @@ const Game = () => {
       void loadPlayerModal();
       void loadObjectivesModal();
       void loadVendorModal();
-      const startMap = SaveManager.load()?.currentMap ?? 'village';
-      void preloadMap(startMap).catch(() => {
-        // Best-effort idle prefetch only.
-      });
+      preloadGameBoot();
     };
 
     const ric = (window as Window).requestIdleCallback as Window['requestIdleCallback'] | undefined;
@@ -925,6 +979,7 @@ const Game = () => {
     processAudioElement,
     cleanupAudioProcessor,
     resumeAudioProcessor,
+    isInMainMenu,
   });
 
   const runtimeRefs = {
@@ -1023,6 +1078,7 @@ const Game = () => {
   } satisfies RuntimeCallbacks;
 
   const setupRuntime = () => {
+    if (isInMainMenu) return;
     const mountElement = mountRef.current;
     if (!mountElement) return;
 
@@ -1055,6 +1111,7 @@ const Game = () => {
       })
       .catch(error => {
         console.error('[Game] Failed to load runtime setup', error);
+        setBootMessage('The bonfire failed to kindle. Refresh and try again.');
       });
 
     return () => {
@@ -1063,7 +1120,17 @@ const Game = () => {
     };
   };
 
-  useGameRuntime(setupRuntime);
+  useEffect(() => {
+    return setupRuntime();
+  }, [isInMainMenu, gameKey]);
+
+  useEffect(() => {
+    if (!isBootingGame || !gameState || isInMainMenu) return;
+    const timeoutId = window.setTimeout(() => {
+      setIsBootingGame(false);
+    }, 180);
+    return () => window.clearTimeout(timeoutId);
+  }, [gameState, isBootingGame, isInMainMenu]);
 
   const activeQuests = gameState?.quests.filter(q => q.active && !q.completed) ?? [];
   const activeQuestTitle = activeQuests[0]?.title;
@@ -1071,6 +1138,16 @@ const Game = () => {
   const currentWorldMap = worldRef.current?.getCurrentMap() ?? null;
   const runtimeContent = runtimeContentRef.current;
   const interactionContent = interactionContentRef.current;
+
+  const handleBackToMainMenu = useCallback(() => {
+    if (gameStateRef.current) {
+      SaveManager.save(gameStateRef.current, mapMarkersRef.current, visitedTilesRef.current);
+    }
+    pausedRef.current = false;
+    setIsPaused(false);
+    setIsBootingGame(false);
+    setIsInMainMenu(true);
+  }, []);
 
   // Modal open helpers with mutual exclusivity
   const openInventoryModal = useCallback(() => {
@@ -1098,9 +1175,74 @@ const Game = () => {
     setPlayerModalOpen(true);
   }, []);
 
+  const prepareGameplayBoot = useCallback((message: string) => {
+    preloadGameBoot();
+    setBootMessage(message);
+    setIsBootingGame(true);
+    setGameState(null);
+    gameStateRef.current = null;
+    worldRef.current = null;
+    combatSystemRef.current = null;
+    setMapMarkers([]);
+    mapMarkersRef.current = [];
+    visitedTilesRef.current = new Set();
+    setCurrentDialogue(null);
+    setNpcScreenPos(null);
+    setMapModalOpen(false);
+    setInventoryModalOpen(false);
+    setObjectivesModalOpen(false);
+    setVendorModalOpen(false);
+    setPlayerModalOpen(false);
+    setBonfireMenuOpen(false);
+    setDeathActive(false);
+    pausedRef.current = false;
+    playerDeadRef.current = false;
+    setIsPaused(false);
+    setIsInMainMenu(false);
+  }, []);
+
+  if (isInMainMenu) {
+    return (
+      <MainMenu
+        onContinue={() => prepareGameplayBoot('Restoring your last bonfire...')}
+        onNewGame={() => {
+          SaveManager.clearSave();
+          setGameKey(prev => prev + 1);
+          prepareGameplayBoot('Kindling a new bonfire...');
+        }}
+        onLoadGame={() => prepareGameplayBoot('Loading your saved adventure...')}
+        volume={volume}
+        onVolumeChange={handleVolumeChange}
+        isMuted={isMuted}
+        onMuteToggle={handleMuteToggle}
+      />
+    );
+  }
+
   return (
-    <div className="relative w-full h-screen overflow-hidden">
+    <div key={gameKey} className="relative w-full h-screen overflow-hidden">
       <div ref={mountRef} className="w-full h-full" />
+
+      {isBootingGame && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-[#07030d]/92 text-[#E8DBF5] pointer-events-auto">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(116,65,190,0.24)_0%,rgba(7,3,13,0.78)_38%,rgba(0,0,0,0.98)_100%)]" />
+          <div className="relative flex flex-col items-center gap-5 px-8 text-center">
+            <div className="relative h-16 w-16">
+              <div className="absolute inset-0 rounded-full border border-[#8f67d6]/35" />
+              <div className="absolute inset-2 rounded-full border-t-2 border-[#d8c6f4] border-r-2 border-r-[#8f67d6] animate-spin" />
+              <div className="absolute inset-[1.35rem] rounded-full bg-[#ff8a2a] shadow-[0_0_24px_rgba(255,120,32,0.75)]" />
+            </div>
+            <div>
+              <p className="font-['Cinzel'] text-sm font-bold uppercase tracking-[0.35em] text-[#d8c6f4] drop-shadow-[0_0_14px_rgba(150,90,220,0.7)]">
+                {bootMessage}
+              </p>
+              <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-[#9f8ac4]">
+                Preparing the world
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       
       {gameState && (
         <>
@@ -1321,6 +1463,7 @@ const Game = () => {
       {isPaused && (
         <PauseMenu
           onResume={() => { pausedRef.current = false; setIsPaused(false); }}
+          onBackToMainMenu={handleBackToMainMenu}
           questTitle={activeQuestTitle}
           questObjective={activeQuestObjective}
         />
@@ -1338,6 +1481,7 @@ const Game = () => {
       {bonfireMenuOpen && gameState && (
         <BonfireMenu
           gameState={gameState}
+          assetManager={assetManagerRef.current}
           onRest={() => {
             restAtBonfireRef.current?.();
           }}
@@ -1347,6 +1491,9 @@ const Game = () => {
           }}
           onLevelUp={(stat) => {
             return gameState.levelUpStat(stat);
+          }}
+          onIncreaseHealing={() => {
+            return gameState.upgradeEphemeralExtract();
           }}
           onTravel={(entry) => {
             travelToBonfireRef.current?.(entry);

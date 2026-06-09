@@ -43,6 +43,7 @@ export const NPC_SCALE_BY_ID: Record<string, number> = {
   forest_ranger: 1.04,
   fort_quartermaster: 1.06,
   grove_warden: 1.04,
+  explorer_ulmund: 1.05,
   petra_ashveil: 1.02,
   mountain_hermit: 1.02,
   mysterious_man: 1.04,
@@ -87,6 +88,10 @@ export function createDefaultNpcData(): NPC[] {
     { id: 'manuscript_gate_guard', name: 'Ranger Gatekeeper', mapId: 'forest', position: { x: 80, y: 4 }, dialogueId: 'manuscript_gate_guard', sprite: 'npc_guard' },
     { id: 'fort_quartermaster', name: 'Listless Merchant', mapId: 'forest', position: { x: 80, y: 13 }, dialogueId: 'fort_quartermaster', sprite: 'npc_merchant' },
     { id: 'grove_warden', name: 'Warden Callum', mapId: 'forest', position: { x: -7, y: -1 }, dialogueId: 'grove_warden', sprite: 'npc_grove_warden', questGiver: true },
+    // Explorer Ulmund — south entry teaching beat beside a dud summoning circle (world 5,93).
+    // Sits on the main spine so first-time players can't miss him. Names the two stone types
+    // and gives the Shatter the Shrines quest, teaching the altar -> sediment -> live-glyph -> summon loop.
+    { id: 'explorer_ulmund', name: 'Explorer Ulmund', mapId: 'forest', position: { x: 5, y: 93 }, dialogueId: 'explorer_ulmund', sprite: 'npc_ulmund', questGiver: true },
     { id: 'petra_ashveil', name: 'Petra the Researcher', mapId: 'forest', position: { x: 12, y: -37 }, dialogueId: 'petra_ashveil', sprite: 'npc_petra' },
     // Olwen — displaced grove hermit now tending the eastern cliff cemetery near Bonfire 5.
     // Hands the player the Cursed Idol once, then settles into a quiet reflective state.
@@ -126,6 +131,8 @@ export function createNpcWanderState(npcData: NPC[]): Record<string, NpcWanderSt
                   ? 0.4
                 : npc.id === 'mountain_hermit'
                   ? 0.5
+                : npc.id === 'explorer_ulmund'
+                  ? 0.4
                 : npc.id === 'mysterious_man'
                   ? 0
                 : npc.id === 'oliver'
@@ -152,6 +159,8 @@ export function createNpcWanderState(npcData: NPC[]): Record<string, NpcWanderSt
                   ? 0.12
                 : npc.id === 'mountain_hermit'
                   ? 0.15
+                : npc.id === 'explorer_ulmund'
+                  ? 0.12
                 : npc.id === 'mysterious_man'
                   ? 0
                 : npc.id === 'oliver'

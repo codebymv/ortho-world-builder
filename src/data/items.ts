@@ -70,7 +70,7 @@ export const items: Record<string, Item> = {
   evacuation_order: {
     id: 'evacuation_order',
     name: "Commander's Evacuation Order",
-    description: "A fort commander's orders, wax seal broken, partially charred. The ink reads: 'All non-military personnel evacuate south to Greenleaf immediately. The Hollow corruption has breached the river line. Do not attempt to reach Guilrhym — the source of this heresy lies within the city walls. The Ashen Court has fractured the old seals.' Dated weeks ago. It never arrived.",
+    description: "A fort commander's orders, wax seal broken, partially charred. The ink reads: 'All non-military personnel evacuate south to Greenleaf immediately. The Hollow corruption has breached the river line. Do not attempt to reach Guilrhym. The source of this heresy lies within the city walls. The Ashen Court has fractured the old seals.' Dated weeks ago. It never arrived.",
     type: 'quest',
     sprite: 'loose_pages',
   },
@@ -82,7 +82,11 @@ export const items: Record<string, Item> = {
     type: 'equipment',
     sprite: 'broadsword',
     stats: {
-      damage: 22,
+      // 22 -> 28: turns the only mid-rung into a real upgrade so the weapon ladder reads
+      // 20 -> 28 -> 34 instead of 20/22 then a cliff to the Terminus Scythe. Makes the
+      // scythe a +6 climax step whether it's acquired early (field boss) or late (final
+      // boss), smoothing the curve without weapon variants.
+      damage: 28,
       range: 2.15,
     },
   },
@@ -150,7 +154,7 @@ export const items: Record<string, Item> = {
   verdant_tonic: {
     id: 'verdant_tonic',
     name: 'Verdant Tonic',
-    description: 'A thick, bitter draught brewed from purified grove sap. Cloaks your presence for 14 seconds — enemies will not detect you unless you are nearly on top of them.',
+    description: 'A thick, bitter draught brewed from purified grove sap. Cloaks your presence for 14 seconds. Enemies will not detect you unless you are nearly on top of them.',
     type: 'consumable',
     sprite: 'verdant_tonic',
     buffType: 'stealth',
@@ -160,7 +164,7 @@ export const items: Record<string, Item> = {
   berserker_draught: {
     id: 'berserker_draught',
     name: 'Berserker Draught',
-    description: 'A black tincture that floods the veins with heat. For 10 seconds, your strikes hit 50% harder and you move 40% faster — but the cost is paid in nerves and shaking hands when it ends.',
+    description: 'A black tincture that floods the veins with heat. For 10 seconds, your strikes hit 50% harder and you move 40% faster. But the cost is paid in nerves and shaking hands when it ends.',
     type: 'consumable',
     sprite: 'berserker_draught',
     buffType: 'berserker',
@@ -170,7 +174,7 @@ export const items: Record<string, Item> = {
   sundered_essence_i: {
     id: 'sundered_essence_i',
     name: 'Sundered Essence I',
-    description: 'A cold knot of soul-light, prised from something that died in these woods and never moved on. Crush it and the essence floods into you — enough to feel the weight of a life half-spent. Grants 50 essence when consumed.',
+    description: 'A cold knot of soul-light, prised from something that died in these woods and never moved on. Crush it and the essence floods into you. Enough to feel the weight of a life half-spent. Grants 50 essence when consumed.',
     type: 'consumable',
     sprite: 'sundered_essence_i',
     essenceAmount: 50,
@@ -179,7 +183,7 @@ export const items: Record<string, Item> = {
   sundered_essence_ii: {
     id: 'sundered_essence_ii',
     name: 'Sundered Essence II',
-    description: 'A denser coil of stolen soul-light, the kind that only gathers where the corruption runs deep — past the river, beneath the dead bridge. It burns colder and gives far more. Grants 150 essence when consumed.',
+    description: 'A denser coil of stolen soul-light, the kind that only gathers where the corruption runs deep. Past the river, beneath the dead bridge. It burns colder and gives far more. Grants 150 essence when consumed.',
     type: 'consumable',
     sprite: 'sundered_essence_ii',
     essenceAmount: 150,
@@ -188,7 +192,7 @@ export const items: Record<string, Item> = {
   last_breath_charm: {
     id: 'last_breath_charm',
     name: 'Last Breath Charm',
-    description: 'A bone token carved with a single rune. When a killing blow lands, the charm cracks and pulls you back from the brink — once. Carry it close; it cannot be drunk or willed to act, only spent by death itself.',
+    description: 'A bone token carved with a single rune. When a killing blow lands, the charm cracks and pulls you back from the brink. Once. Carry it close; it cannot be drunk or willed to act, only spent by death itself.',
     type: 'consumable',
     sprite: 'last_breath_charm',
     buffType: 'last_breath',
@@ -210,6 +214,14 @@ export const items: Record<string, Item> = {
     sprite: 'golem_heart',
   },
 
+  radiant_vestige: {
+    id: 'radiant_vestige',
+    name: 'Radiant Vestige',
+    description: 'A shard of unspent dawn, warm to the touch and faintly humming. Offered to a bonfire it deepens the flame\'s gift. Each one strengthens your Ephemeral Extract and grants another draught between rests.',
+    type: 'key',
+    sprite: 'radiant_vestige',
+  },
+
   tempered_core: {
     id: 'tempered_core',
     name: 'Tempered Core',
@@ -229,7 +241,7 @@ export const items: Record<string, Item> = {
   gravebound_ring: {
     id: 'gravebound_ring',
     name: 'Gravebound Ring',
-    description: 'A band of black stone that absorbs warmth and gives back none. It was tucked inside a hunter cache on the cliff shelf — and it fits like it was waiting.',
+    description: 'A band of black stone that absorbs warmth and gives back none. It was tucked inside a hunter cache on the cliff shelf. And it fits like it was waiting.',
     type: 'ring',
     sprite: 'gravebound_ring',
     stats: {
@@ -240,7 +252,7 @@ export const items: Record<string, Item> = {
   wolf_ring: {
     id: 'wolf_ring',
     name: 'Wolf Ring',
-    description: 'A battered iron band stamped with a wolf\'s head. Olwen swore it crawled back onto his finger every time he threw it away — yet your wounds seem to loosen their grip a little faster while you wear it.',
+    description: 'A battered iron band stamped with a wolf\'s head. Olwen swore it crawled back onto his finger every time he threw it away. Yet your wounds seem to loosen their grip a little faster while you wear it.',
     type: 'ring',
     sprite: 'wolf_ring',
     stats: {
@@ -251,7 +263,7 @@ export const items: Record<string, Item> = {
   wayfarer_ring: {
     id: 'wayfarer_ring',
     name: 'Wayfarer Ring',
-    description: 'A light bronze band etched with marching chevrons, found in a ranger cache near the southern fort road. Your stride feels noticeably lighter — though stronger march-rings are rumored deeper in the woods.',
+    description: 'A light bronze band etched with marching chevrons, found in a ranger cache near the southern fort road. Your stride feels noticeably lighter. Though stronger march-rings are rumored deeper in the woods.',
     type: 'ring',
     sprite: 'wayfarer_ring',
     stats: {
@@ -262,9 +274,9 @@ export const items: Record<string, Item> = {
   ironbark_ring: {
     id: 'ironbark_ring',
     name: 'Ironbark Band',
-    description: "A ring of fused ironbark and grey stone, prised from the knuckle of the thing that wades the dead pools. The land leans in around its wearer — and leans in further with each blow turned aside: every clean parry seems to peel back a little more of the woods, until death takes the knowing away again.",
+    description: "A ring of fused ironbark and grey stone, prised from the knuckle of the thing that wades the dead pools. The land leans in around its wearer. And leans in further with each blow turned aside: every clean parry seems to peel back a little more of the woods, until death takes the knowing away again.",
     type: 'ring',
-    // NOTE: reuses the gravebound ring icon for now — give it a bespoke sprite later.
+    // NOTE: reuses the gravebound ring icon for now. Give it a bespoke sprite later.
     sprite: 'gravebound_ring',
     stats: {
       // Utility ring: a small BASE fog-of-war reveal bonus, grown by perfect parries this

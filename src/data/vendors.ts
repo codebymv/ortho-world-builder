@@ -4,7 +4,7 @@ export interface VendorItem {
   price: number;
   currency: 'gold' | 'essence';
   unique?: boolean;     // one-time purchase (e.g. weapons)
-  /** Finite stock — tracked via vendor_bought_{vendorId}_{itemId} game flag. */
+  /** Finite stock. Tracked via vendor_bought_{vendorId}_{itemId} game flag. */
   stock?: number;
 }
 
@@ -43,8 +43,9 @@ export const vendors: Record<string, VendorDef> = {
     name: 'Listless Merchant',
     greeting: "Take your time. I'm not going anywhere.",
     items: [
+      // Ephemeral Extract removed (moving toward an Estus-style bonfire heal); Tempest Grass
+      // is now this merchant's only healing stock.
       { itemId: 'tempest_grass', price: 20, currency: 'gold', stock: 12 },
-      { itemId: 'health_potion', price: 38, currency: 'gold', stock: 12 },
       { itemId: 'sundered_essence_i', price: 75, currency: 'gold', stock: 5 },
       { itemId: 'ornamental_broadsword', price: 700, currency: 'gold', unique: true },
     ],
@@ -54,7 +55,8 @@ export const vendors: Record<string, VendorDef> = {
     name: 'Traveling Merchant',
     greeting: "Browse freely! Everything has a price and a story.",
     items: [
-      { itemId: 'health_potion', price: 10, currency: 'gold' },
+      // Ephemeral Extract removed. It is now an Estus-style bonfire-refilled flask, not a
+      // purchasable stacking consumable.
       { itemId: 'ancient_map', price: 50, currency: 'gold' },
     ],
   },

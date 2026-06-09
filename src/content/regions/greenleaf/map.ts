@@ -6,6 +6,12 @@ export const villageDef: MapDefinition = {
   width: 240,
   height: 160,
   spawnPoint: { x: 120, y: 110 },
+  // Main quest spine only — stops carveRoads from wiring every feature center together.
+  roadAnchors: [
+    { x: 119, y: 74 }, // plaza crossroads
+    { x: 119, y: 56 }, // north gate threshold
+    { x: 120, y: 8 },  // forest portal
+  ],
   seed: 42,
   baseTerrain: 'grassland',
   borderTile: 'tree',
@@ -115,8 +121,8 @@ export const villageDef: MapDefinition = {
     // Fence border around training grounds
     { x: 169, y: 19, width: 26, height: 18, type: 'iron_fence_border', fill: 'dirt' },
 
-    // ====== ELDER'S GARDEN (fenced, north of plaza) ======
-    { x: 105, y: 42, width: 14, height: 12, type: 'garden' },
+    // ====== ELDER'S GARDEN (fenced, north of plaza — ends west of the N-S dirt spine) ======
+    { x: 105, y: 42, width: 10, height: 12, type: 'garden' },
 
     // ====== PARKS & GREEN SPACES filling gaps ======
     { x: 82, y: 95, width: 12, height: 10, type: 'garden' },
@@ -147,7 +153,6 @@ export const villageDef: MapDefinition = {
     { x: 195, y: 100, width: 6, height: 6, type: 'cottage', interactionId: 'cottage_lake' },
 
     // ====== WATCHTOWERS along roads ======
-    { x: 115, y: 38, width: 6, height: 6, type: 'watchtower' },
     { x: 145, y: 95, width: 6, height: 6, type: 'watchtower' },
 
     // ====== DESTROYED OUTPOST (north-west, near cemetery) ======
@@ -173,7 +178,7 @@ export const villageDef: MapDefinition = {
     { x: 129, y: 55, width: 10, height: 4, type: 'garden' },
 
     // ====== NORTH CORRIDOR: ZONE B â€” THE THRESHOLD (y:22-42) ======
-    { x: 124, y: 30, width: 5, height: 4, type: 'cottage' },
+    { x: 132, y: 33, width: 5, height: 4, type: 'cottage' },
     { x: 101, y: 31, width: 5, height: 4, type: 'cottage' },
     { x: 132, y: 38, width: 5, height: 4, type: 'cottage' },
     { x: 106, y: 28, width: 7, height: 5, type: 'clearing', fill: 'dark_grass' },
@@ -186,38 +191,45 @@ export const villageDef: MapDefinition = {
     { x: 126, y: 8, width: 14, height: 16, type: 'forest_grove' },
     { x: 110, y: 3, width: 20, height: 12, type: 'clearing', fill: 'dirt' },
 
-    // ====== DIRT ROADS connecting everything ======
-    { x: 116, y: 10, width: 6, height: 130, type: 'path', fill: 'dirt' },
-    { x: 20, y: 72, width: 200, height: 4, type: 'path', fill: 'dirt' },
-    { x: 145, y: 72, width: 60, height: 4, type: 'path', fill: 'dirt' },
+    // ====== AUTHORED ROUTES: hub first, optional districts through clear entries ======
+    // Main quest funnel: spawn -> plaza -> north gate -> forest trail.
+    { x: 116, y: 96, width: 6, height: 44, type: 'path', fill: 'dirt' },
+    { x: 116, y: 49, width: 6, height: 20, type: 'path', fill: 'dirt' },
+    { x: 116, y: 8, width: 6, height: 38, type: 'path', fill: 'dirt' },
+    // Plaza branches: short, readable entries instead of one road slicing every district.
+    { x: 78, y: 72, width: 18, height: 4, type: 'path', fill: 'dirt' },
+    { x: 145, y: 72, width: 38, height: 4, type: 'path', fill: 'dirt' },
     { x: 184, y: 88, width: 24, height: 4, type: 'path', fill: 'dirt' },
-    { x: 40, y: 100, width: 100, height: 3, type: 'path', fill: 'dirt' },
-    { x: 28, y: 58, width: 50, height: 2, type: 'path', fill: 'dirt' },
-    { x: 28, y: 76, width: 50, height: 2, type: 'path', fill: 'dirt' },
-    { x: 38, y: 25, width: 78, height: 3, type: 'path', fill: 'dirt' },
-    { x: 116, y: 8, width: 6, height: 6, type: 'path', fill: 'dirt' },
-    { x: 196, y: 72, width: 42, height: 4, type: 'path', fill: 'dirt' },
+    { x: 88, y: 100, width: 28, height: 3, type: 'path', fill: 'dirt' },
     { x: 160, y: 100, width: 20, height: 3, type: 'path', fill: 'dirt' },
+    // Optional north-side lanes (short, not full-width tiers).
+    { x: 38, y: 25, width: 30, height: 3, type: 'path', fill: 'dirt' },
+    { x: 82, y: 25, width: 34, height: 3, type: 'path', fill: 'dirt' },
+    { x: 196, y: 72, width: 24, height: 4, type: 'path', fill: 'dirt' },
     { x: 170, y: 36, width: 24, height: 3, type: 'path', fill: 'dirt' },
-    { x: 112, y: 38, width: 4, height: 20, type: 'path', fill: 'dirt' },
     // Upper ridge detour: the obvious center climb is sealed; follow the cliff east to find the break.
     { x: 120, y: 31, width: 22, height: 3, type: 'path', fill: 'dirt' },
-    { x: 136, y: 27, width: 6, height: 7, type: 'path', fill: 'dirt' },
+    // East ridge connector: world (-1,-55) main spine → (16,-54) center-peak stair mouth
+    { x: 119, y: 24, width: 18, height: 3, type: 'path', fill: 'dirt' },
+    { x: 136, y: 25, width: 6, height: 9, type: 'path', fill: 'dirt' },
     { x: 112, y: 27, width: 12, height: 4, type: 'cliff_face' },
+    // Seal the full north-ridge cliff wall (tiles 98–147, y=44–48) as one continuous
+    // cliff_face so path tiles on both flanks don't leave green gaps at the stair corners.
+    // placeStairways runs last and re-stamps only the central dirt-spine stair gap at
+    // y=45–48 (x=116–121), so the old side shoulders stay cliff instead of touching dirt.
+    { x: 98, y: 44, width: 50, height: 5, type: 'cliff_face' },
+    // Vertical east ridge wall: world x=27, y=-74..-42 (tile x=146–148, y=5–37).
+    { x: 146, y: 5, width: 3, height: 33, type: 'cliff_face' },
     // Dirt widening at key intersections
     { x: 113, y: 70, width: 10, height: 8, type: 'clearing', fill: 'dirt' },
     { x: 113, y: 98, width: 10, height: 8, type: 'clearing', fill: 'dirt' },
     // Lake approach road
     { x: 160, y: 103, width: 12, height: 3, type: 'path', fill: 'dirt' },
-    // South-central connecting path
-    { x: 88, y: 100, width: 28, height: 3, type: 'path', fill: 'dirt' },
   ],
   portals: [
     { x: 120, y: 8, targetMap: 'forest', targetX: 150, targetY: 289 },
-    { x: 237, y: 80, targetMap: 'forest', targetX: 4, targetY: 150 },
   ],
   chests: [
-    { x: 120, y: 113, interactionId: 'start_extract_chest' },
     { x: 70, y: 100, interactionId: 'chest_1' },
     { x: 190, y: 35, interactionId: 'training_chest' },
     { x: 25, y: 120, interactionId: 'garden_chest' },
@@ -293,6 +305,7 @@ export const villageDef: MapDefinition = {
     { x: 120, y: 24, type: 'tempest_grass', walkable: true, interactionId: 'tempest_grass_pickup' },
     // Waypost at the trail junction (world 2, -39)
     { x: 122, y: 41, type: 'sign', walkable: false, interactionId: 'village_approach_sign' },
+    { x: 124, y: 57, type: 'sign', walkable: false, interactionId: 'north_gate_sign' },
   ],
   props: [
     // ====== NORTH RIDGE OVERLOOK ======
@@ -722,6 +735,17 @@ export const villageDef: MapDefinition = {
     { x: 126, y: 100, type: 'bench', walkable: false },
     { x: 112, y: 106, type: 'pot', walkable: true },
     { x: 126, y: 106, type: 'pot', walkable: true },
+    // District funnels: visible edges with intentional entries.
+    { x: 82, y: 70, type: 'hedge', walkable: false },
+    { x: 86, y: 70, type: 'hedge', walkable: false },
+    { x: 90, y: 70, type: 'hedge', walkable: false },
+    { x: 152, y: 68, type: 'hedge', walkable: false },
+    { x: 152, y: 76, type: 'hedge', walkable: false },
+    { x: 182, y: 68, type: 'hedge', walkable: false },
+    { x: 182, y: 76, type: 'hedge', walkable: false },
+    { x: 88, y: 103, type: 'hedge', walkable: false },
+    { x: 92, y: 103, type: 'hedge', walkable: false },
+    { x: 96, y: 103, type: 'hedge', walkable: false },
 
     // ====== ELDER'S GARDEN area ======
     { x: 103, y: 42, type: 'lantern', walkable: false },
@@ -776,23 +800,9 @@ export const villageDef: MapDefinition = {
     { x: 86, y: 122, type: 'flower', walkable: true },
 
     // ====== NORTH CORRIDOR: ZONE A â€” VILLAGE GATE ======
-    // Iron fence line west of road gap
-    { x: 108, y: 55, type: 'iron_fence', walkable: false },
-    { x: 109, y: 55, type: 'iron_fence', walkable: false },
-    { x: 110, y: 55, type: 'iron_fence', walkable: false },
-    { x: 111, y: 55, type: 'iron_fence', walkable: false },
-    { x: 112, y: 55, type: 'iron_fence', walkable: false },
-    { x: 113, y: 55, type: 'iron_fence', walkable: false },
-    // Pillars flanking the road gap
+    // Pillars flanking the road gap (no iron fence across the dirt spine)
     { x: 114, y: 55, type: 'pillar', walkable: false },
     { x: 123, y: 55, type: 'pillar', walkable: false },
-    // Iron fence line east of road gap
-    { x: 124, y: 55, type: 'iron_fence', walkable: false },
-    { x: 125, y: 55, type: 'iron_fence', walkable: false },
-    { x: 126, y: 55, type: 'iron_fence', walkable: false },
-    { x: 127, y: 55, type: 'iron_fence', walkable: false },
-    { x: 128, y: 55, type: 'iron_fence', walkable: false },
-    { x: 129, y: 55, type: 'iron_fence', walkable: false },
     // Gate area village props
     { x: 110, y: 53, type: 'bench', walkable: false },
     { x: 126, y: 53, type: 'bench', walkable: false },
@@ -802,7 +812,7 @@ export const villageDef: MapDefinition = {
     { x: 136, y: 57, type: 'flower', walkable: true },
     { x: 108, y: 57, type: 'barrel', walkable: false },
     { x: 129, y: 57, type: 'barrel', walkable: false },
-    { x: 110, y: 57, type: 'cart', walkable: false },
+    { x: 110, y: 58, type: 'cart', walkable: false },
     { x: 127, y: 57, type: 'pot', walkable: true },
     { x: 108, y: 53, type: 'lantern', walkable: false },
     { x: 129, y: 53, type: 'lantern', walkable: false },
@@ -848,11 +858,6 @@ export const villageDef: MapDefinition = {
     { x: 126, y: 12, type: 'rock', walkable: false },
     // Last lantern before the woods
     { x: 118, y: 10, type: 'lantern', walkable: false },
-
-    // === HERESY ALTARS (minimap landmarks — downscaled sprite icons once explored) ===
-    { x: 80, y: 10, type: 'heresy_altar', walkable: false },   // world (-40, -70) — north ridge overlook
-    { x: 16, y: 38, type: 'heresy_altar', walkable: false },   // world (-104, -42) — cemetery back grove
-    { x: 228, y: 148, type: 'heresy_altar', walkable: false }, // world (108, 68) — far east lake shore
   ],
   secretAreas: [
     { x: 5, y: 20, width: 6, height: 4, fill: 'stone' },
@@ -887,8 +892,8 @@ export const villageDef: MapDefinition = {
 
     // Center peak (el2 â†’ el1): south_face=27, on the main N-S cobble
     { x: 136, y: 27, width: 6, height: 4, elevation: 2 },
-    // North ridge (el1 â†’ el0): south_face=45, main N-S cobble
-    { x: 114, y: 45, width: 8, height: 4, elevation: 1 },
+    // North ridge (el1 â†’ el0): south_face=45, main N-S dirt spine
+    { x: 116, y: 45, width: 6, height: 4, elevation: 1 },
     // NE citadel (el2 â†’ el1): south_face=29
     { x: 188, y: 29, width: 6, height: 4, elevation: 2 },
     // NE to town (el1 â†’ el0): south_face=45
@@ -904,9 +909,10 @@ export const villageDef: MapDefinition = {
   ],
   enemyZones: [
     { x: 215, y: 12, width: 16, height: 12, enemyType: 'bandit', count: 4 },
+    { x: 92, y: 22, width: 18, height: 16, enemyType: 'slime', count: 3 },
+    { x: 122, y: 22, width: 16, height: 18, enemyType: 'slime', count: 2 },
     { x: 60, y: 28, width: 6, height: 5, enemyType: 'wolf', count: 1 },
     { x: 126, y: 28, width: 12, height: 6, enemyType: 'wolf', count: 2 },
     { x: 136, y: 28, width: 6, height: 5, enemyType: 'wolf', count: 1 },
-    { x: 5, y: 130, width: 12, height: 10, enemyType: 'slime', count: 3 },
   ],
 };

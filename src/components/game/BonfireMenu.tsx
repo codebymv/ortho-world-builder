@@ -1,6 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Sparkles, User } from 'lucide-react';
 import type { GameState } from '@/lib/game/GameState';
+import type { AssetManager } from '@/lib/game/AssetManager';
+import { items } from '@/data/items';
+import {
+  EPHEMERAL_EXTRACT_CHARGES_PER_UPGRADE,
+  EPHEMERAL_EXTRACT_POTENCY_PER_UPGRADE,
+} from '@/data/balance';
 import {
   type BonfireEntry,
   bonfireEntryWorldPosition,
@@ -17,9 +23,11 @@ const EssenceIcon = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
 
 interface BonfireMenuProps {
   gameState: GameState;
+  assetManager: AssetManager | null;
   onRest: () => void;
   onClose: () => void;
   onLevelUp: (stat: 'vitality' | 'endurance' | 'strength') => boolean;
+  onIncreaseHealing: () => boolean;
   onTravel: (entry: BonfireEntry) => void;
   triggerUIUpdate: () => void;
 }
@@ -112,15 +120,15 @@ const NearbyNpcBadge = ({ merchants, regular }: { merchants: number; regular: nu
   );
 };
 
-export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, triggerUIUpdate }: BonfireMenuProps) => {
-  const [view, setView] = useState<'main' | 'level-up' | 'fast-travel'>('main');
+export const BonfireMenu = ({ gameState, assetManager, onRest, onClose, onLevelUp, onIncreaseHealing, onTravel, triggerUIUpdate }: BonfireMenuProps) => {
+  const [view, setView] = useState<'main' | 'level-up' | 'fast-travel' | 'increase-healing'>('main');
   const [version, setVersion] = useState(0);
   const bump = useCallback(() => setVersion(v => v + 1), []);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (view === 'level-up' || view === 'fast-travel') setView('main');
+        if (view === 'level-up' || view === 'fast-travel' || view === 'increase-healing') setView('main');
         else onClose();
         e.preventDefault();
       }
@@ -135,6 +143,12 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
 
   const handleLevelUp = (stat: 'vitality' | 'endurance' | 'strength') => {
     if (onLevelUp(stat)) { bump(); triggerUIUpdate(); }
+  };
+
+  const vestigeCount = gameState.inventory.filter(i => i.id === 'radiant_vestige').length;
+  const canIncreaseHealing = vestigeCount > 0;
+  const handleIncreaseHealing = () => {
+    if (onIncreaseHealing()) { bump(); triggerUIUpdate(); }
   };
 
   void version;
@@ -303,6 +317,91 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
     );
   }
 
+  /* ─── Increase Healing view ─────────────────────────────────────── */
+  if (view === 'increase-healing') {
+    const baseHeal = items.health_potion?.healAmount ?? 55;
+    const curMax = p.maxEphemeralExtractCharges;
+    const curPotency = p.ephemeralExtractPotency;
+    const curHeal = Math.round(baseHeal * curPotency);
+    const nextMax = curMax + EPHEMERAL_EXTRACT_CHARGES_PER_UPGRADE;
+    const nextHeal = Math.round(baseHeal * (curPotency + EPHEMERAL_EXTRACT_POTENCY_PER_UPGRADE));
+    const potencyPct = Math.round(EPHEMERAL_EXTRACT_POTENCY_PER_UPGRADE * 100);
+    const vestigeUrl = assetManager?.getTextureURL('radiant_vestige') ?? null;
+
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 pointer-events-auto">
+        <div className="bg-[#1A0F0A]/95 border-2 border-[#8B5A2B] rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl animate-scale-in">
+
+          {/* Header */}
+          <div className="flex items-baseline justify-between mb-5">
+            <h2 className="text-base font-bold text-[#DAA520] uppercase tracking-[0.25em]">
+              Increase Healing
+            </h2>
+            <span className="text-xs text-[#8B7355] uppercase tracking-wider">
+              Held&nbsp;<span className="text-[#F5DEB3] font-bold">{vestigeCount}</span>
+            </span>
+          </div>
+
+          {/* Radiant Vestige art */}
+          <div className="flex flex-col items-center mb-5">
+            {vestigeUrl ? (
+              <img
+                src={vestigeUrl}
+                alt="Radiant Vestige"
+                className="w-20 h-20 [image-rendering:pixelated] object-contain drop-shadow-[0_0_8px_rgba(124,77,255,0.45)]"
+              />
+            ) : (
+              <div className="w-20 h-20" />
+            )}
+            <div className="mt-2 text-sm font-bold text-[#E1BEE7] uppercase tracking-wider">Radiant Vestige</div>
+            <p className="mt-2 text-center text-[11px] leading-relaxed text-[#A1887F] max-w-xs">
+              Offer a Radiant Vestige to the flame to deepen its gift. Each one carries another
+              draught of Ephemeral Extract and steepens every draught&apos;s restoration.
+            </p>
+          </div>
+
+          {/* Before → after readout */}
+          <div className="space-y-[2px] mb-5">
+            <div className="flex items-center justify-between px-3 py-2.5 border border-[#3A2215] bg-[#1E1008]/40">
+              <span className="text-[11px] uppercase tracking-wider text-[#A09070]">Flask Charges</span>
+              <span className="text-sm font-bold text-[#F5DEB3]">
+                {curMax} <span className="text-[#7C4DFF]">→</span> {nextMax}
+              </span>
+            </div>
+            <div className="flex items-center justify-between px-3 py-2.5 border border-[#3A2215] bg-[#1E1008]/40">
+              <span className="text-[11px] uppercase tracking-wider text-[#A09070]">Heal / Draught</span>
+              <span className="text-sm font-bold text-[#F5DEB3]">
+                {curHeal} <span className="text-[#7C4DFF]">→</span> {nextHeal}
+                <span className="ml-2 text-[10px] text-[#8FBC8F]">(+{potencyPct}%)</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Confirm — consumes one vestige */}
+          <button
+            disabled={!canIncreaseHealing}
+            onClick={canIncreaseHealing ? handleIncreaseHealing : undefined}
+            className={`w-full py-3 mb-2 text-sm font-bold uppercase tracking-[0.18em] border transition-colors ${
+              canIncreaseHealing
+                ? 'border-[#5C3A21] text-[#DAA520] hover:bg-[#3D2B21] hover:border-[#DAA520]'
+                : 'border-[#2A1A0F] text-[#6B5344] cursor-not-allowed'
+            }`}
+          >
+            {canIncreaseHealing ? 'Use 1 Radiant Vestige' : 'No Radiant Vestige'}
+          </button>
+
+          {/* Back */}
+          <button
+            onClick={() => setView('main')}
+            className="w-full py-2.5 border border-[#5C3A21] text-[#8B7355] hover:text-[#F5DEB3] hover:bg-[#2D1B11] text-xs font-bold uppercase tracking-[0.2em] transition-colors"
+          >
+            ← Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   /* ─── Main view ─────────────────────────────────────────────────── */
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 pointer-events-auto">
@@ -340,6 +439,22 @@ export const BonfireMenu = ({ gameState, onRest, onClose, onLevelUp, onTravel, t
             <span className="ml-2 inline-flex items-center text-xs font-semibold text-[#B8A590] normal-case tracking-normal">
               ({cost}<EssenceIcon size="md" />)
             </span>
+          </button>
+          <button
+            disabled={!canIncreaseHealing}
+            onClick={canIncreaseHealing ? () => setView('increase-healing') : undefined}
+            className={
+              canIncreaseHealing
+                ? 'w-full text-left px-4 py-3 border border-[#3A2215] text-[#F5DEB3] text-sm font-bold uppercase tracking-wider hover:bg-[#2D1B11] hover:border-[#8B5A2B] hover:text-[#FFD98A] transition-colors'
+                : 'w-full text-left px-4 py-3 border border-[#2A1A0F] text-[#5C4033] text-sm font-bold uppercase tracking-wider cursor-not-allowed'
+            }
+          >
+            Increase Healing
+            {canIncreaseHealing && (
+              <span className="ml-2 inline-flex items-center text-xs font-semibold text-[#B8A590] normal-case tracking-normal">
+                ({vestigeCount} Radiant Vestige{vestigeCount === 1 ? '' : 's'})
+              </span>
+            )}
           </button>
           <button
             onClick={() => setView('fast-travel')}

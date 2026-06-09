@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { isRingRewardChestInteractionId } from '@/data/specialChests';
+import { isRingRewardChestInteractionId, isVestigeRewardChestInteractionId } from '@/data/specialChests';
 import type { GameState, Item } from '@/lib/game/GameState';
 import type { RewardBundleEntry, ShowRewardBundleOptions } from '@/game/domain/rewardDisplay';
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
@@ -229,10 +229,34 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  const tryHandleVestigeRewardChest = (interactionId: string, px: number, py: number): boolean => {
+    if (!isVestigeRewardChestInteractionId(interactionId)) return false;
+    if (context.state.getFlag(`${interactionId}_opened`)) return false;
+
+    const vestige = context.items.radiant_vestige;
+    if (!vestige) return false;
+
+    context.playChestUnlock();
+    context.state.addItem({ ...vestige });
+    context.state.setFlag(`${interactionId}_opened`, true);
+    context.syncOpenedChestState();
+    context.emitSparkles(new THREE.Vector3(px, py, 0.3));
+    context.notify('Special Chest Opened!', {
+      id: 'vestige-chest-open',
+      type: 'success',
+      description: `Found ${vestige.name}. Offer it at a bonfire to strengthen your Ephemeral Extract.`,
+      duration: 3200,
+    });
+    context.triggerUIUpdate();
+    context.triggerSave();
+    return true;
+  };
+
   const tryHandleChestOpen = (interactionId: string, px: number, py: number): boolean => {
     if (!interactionId.includes('chest')) return false;
     if (context.state.getFlag(`${interactionId}_opened`)) return false;
     if (tryHandleRingRewardChest(interactionId, px, py)) return true;
+    if (tryHandleVestigeRewardChest(interactionId, px, py)) return true;
 
     context.playChestUnlock();
 
@@ -269,6 +293,9 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     const rewardEntries: RewardBundleEntry[] = [{ kind: 'gold', amount: goldAmount }];
 
     let deferBundleForWeaponAcquisition = false;
+    // Grants a headline chest item (weapon OR key/upgrade item like the Radiant Vestige): a
+    // first-time pickup gets the full acquisition overlay, and the gold/consumable reward bundle
+    // is deferred until that overlay closes so the two present sequentially, never overlapping.
     const grantChestWeapon = (item: Item) => {
       const firstAcquisition = !context.state.seenItemIds.has(item.id);
       context.state.addItem({ ...item });
@@ -277,8 +304,6 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
     if (interactionId === 'ancient_chest' && context.items.shadow_blade) {
       grantChestWeapon(context.items.shadow_blade);
-    } else if (interactionId === 'boss_arena_chest' && context.items.crystal_greatsword) {
-      grantChestWeapon(context.items.crystal_greatsword);
     } else if (interactionId === 'forest_river_chest' && context.items.ornamental_broadsword) {
       grantChestWeapon(context.items.ornamental_broadsword);
     } else if (
@@ -289,6 +314,10 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     ) {
       grantChestWeapon(context.items.terminus_scythe);
       context.state.setFlag('terminus_scythe_early_obtained', true);
+      // Early acquisition consumes the Hollow arena reward: pre-open that chest so it renders
+      // as already-looted when the player reaches the boss (the Apparition then drops only
+      // essence). Guarantees the scythe is never granted twice.
+      context.state.setFlag('hollow_terminus_chest_opened', true);
     } else if (
       interactionId === 'hollow_terminus_chest' &&
       context.items.terminus_scythe &&
@@ -329,19 +358,42 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     };
 
     // Chests that yield multiple Ephemeral Extracts instead of the usual single one.
-    const TRIPLE_EXTRACT_CHESTS = new Set(['start_extract_chest']);
+    // Currently empty: the starter extract chest was removed when Extract moved toward an
+    // Estus-style heal. Mechanism kept for any future multi-grant chest.
+    const TRIPLE_EXTRACT_CHESTS = new Set<string>([]);
     const extractCount = TRIPLE_EXTRACT_CHESTS.has(interactionId) ? 3 : 1;
 
+    // Ephemeral Extract is moving to an Estus-style bonfire-refilled heal, so generic chests no
+    // longer dispense it. A deterministic per-chest roll replaces the old default: ~10% Berserker
+    // Draught, ~10% Last Breath Charm, ~10% Verdant Tonic, and ~70% nothing extra (the chest's
+    // usual gold reward only). Hashed off the chest id so a given chest always yields the same
+    // result (no save-scum reroll). Explicit overrides and the deliberate triple-extract starter
+    // chest are untouched.
+    const DEFAULT_CONSUMABLE_ROLL: Record<number, string> = {
+      0: 'berserker_draught',
+      1: 'last_breath_charm',
+      2: 'verdant_tonic',
+    };
+    const rollDefaultChestConsumable = (id: string): string | null => {
+      let h = 0;
+      for (let i = 0; i < id.length; i++) h = (Math.imul(h, 31) + id.charCodeAt(i)) >>> 0;
+      return DEFAULT_CONSUMABLE_ROLL[h % 10] ?? null;
+    };
+
     const overrideItemId = CHEST_ESSENCE_OVERRIDES[interactionId] ?? CHEST_CONSUMABLE_OVERRIDES[interactionId];
-    const consumableItem = overrideItemId ? context.items[overrideItemId] : context.items.health_potion;
-    let consumableLabel = extractCount > 1 ? `${extractCount}× Ephemeral Extract` : 'an Ephemeral Extract';
+    const resolvedItemId = overrideItemId
+      ?? (extractCount > 1 ? 'health_potion' : rollDefaultChestConsumable(interactionId));
+    const consumableItem = resolvedItemId ? context.items[resolvedItemId] : undefined;
+    let consumableLabel: string | null = null;
     if (consumableItem) {
       for (let i = 0; i < extractCount; i++) {
         context.state.addItem({ ...consumableItem }, { notify: false });
       }
       rewardEntries.push({ kind: 'item', item: { ...consumableItem }, quantity: extractCount });
       context.playItemGrab();
-      if (overrideItemId) {
+      if (resolvedItemId === 'health_potion') {
+        consumableLabel = extractCount > 1 ? `${extractCount}× Ephemeral Extract` : 'an Ephemeral Extract';
+      } else {
         // Article matches the item name's first vowel sound.
         const startsWithVowel = /^[aeiou]/i.test(consumableItem.name);
         consumableLabel = `${startsWithVowel ? 'an' : 'a'} ${consumableItem.name}`;
@@ -362,7 +414,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.notify('Chest Opened!', {
       id: 'chest-open',
       type: 'success',
-      description: `Found ${goldAmount} gold, ${consumableLabel}.`,
+      description: consumableLabel ? `Found ${goldAmount} gold, ${consumableLabel}.` : `Found ${goldAmount} gold.`,
       duration: 3000,
     });
     context.triggerUIUpdate();

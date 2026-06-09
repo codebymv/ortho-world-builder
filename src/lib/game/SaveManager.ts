@@ -1,6 +1,7 @@
 import { GameState, Item, Quest, LastBonfire, DroppedEssence, WorldItem, EMPTY_EQUIPPED_RING_IDS, EMPTY_WEAPON_LOADOUT, type EquippedRingIds, type WeaponLoadout } from './GameState';
 import { MapMarker, KNOWN_LOCATIONS } from './MapMarkers';
 import { items } from '../../data/items';
+import { MAX_EPHEMERAL_EXTRACT_CHARGES } from '../../data/balance';
 import { migrateFindHunterObjectiveOrder } from './findHunterProgression';
 
 const SAVE_KEY = 'rpg_save_data';
@@ -26,6 +27,8 @@ export interface SaveData {
     vitality?: number;
     endurance?: number;
     strength?: number;
+    maxEphemeralExtractCharges?: number;
+    ephemeralExtractPotency?: number;
   };
   currentMap: string;
   inventory: Item[];
@@ -125,6 +128,10 @@ function migrateWorldItems(worldItems: WorldItem[]): WorldItem[] {
   return worldItems.filter(entry => {
     if (entry.mapId === 'interior_ranger_cabin') {
       return entry.itemId !== 'wolf_ring' && entry.itemId !== 'cursed_idol' && entry.itemId !== 'gravebound_ring';
+    }
+    // Hunter's Manuscript was replaced by the Commander's Evacuation Order at the same forest pickup.
+    if (entry.mapId === 'forest' && entry.itemId === 'hunters_manuscript') {
+      return false;
     }
     return true;
   });
@@ -240,6 +247,8 @@ function normalizeSave(raw: RawSave): SaveData {
       vitality: player.vitality,
       endurance: player.endurance,
       strength: player.strength,
+      maxEphemeralExtractCharges: player.maxEphemeralExtractCharges ?? MAX_EPHEMERAL_EXTRACT_CHARGES,
+      ephemeralExtractPotency: player.ephemeralExtractPotency ?? 1,
     },
     currentMap: raw.currentMap ?? 'village',
     inventory,
@@ -288,6 +297,8 @@ function createSaveData(state: GameState, mapMarkers: MapMarker[], visitedTiles:
       vitality: state.player.vitality,
       endurance: state.player.endurance,
       strength: state.player.strength,
+      maxEphemeralExtractCharges: state.player.maxEphemeralExtractCharges,
+      ephemeralExtractPotency: state.player.ephemeralExtractPotency,
     },
     currentMap: state.currentMap,
     inventory: state.inventory.map(i => ({ ...i })),

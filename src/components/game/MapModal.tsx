@@ -402,14 +402,14 @@ export const MapModal = memo(function MapModal({
   }, [markers, currentMapId, gameStateRef, refreshToken]);
   const legendEntries = useMemo(() => {
     const state = gameStateRef.current;
-    const hasPrimary = legendMarkers.some(m => state && isPrimaryObjectiveMarker(m, state));
-    const hasSecondary = legendMarkers.some(m => {
-      const isObjective = state ? isPrimaryObjectiveMarker(m, state) : false;
-      return (m.type === 'quest' || m.type === 'poi') && !isObjective;
-    });
+    const isObjective = (m: typeof legendMarkers[number]) => (state ? isPrimaryObjectiveMarker(m, state) : false);
+    const hasPrimary = legendMarkers.some(m => isObjective(m));
+    const hasOptional = legendMarkers.some(m => (m.type === 'quest' || m.type === 'poi') && !isObjective(m));
+    const hasDanger = legendMarkers.some(m => m.type === 'danger' && !isObjective(m));
     return [
-      ...(hasPrimary ? [{ key: 'primary', label: 'Primary' }] : []),
-      ...(hasSecondary ? [{ key: 'secondary', label: 'Secondary' }] : []),
+      ...(hasPrimary ? [{ key: 'primary', label: 'Primary', color: '#FFD700', hollow: false }] : []),
+      ...(hasOptional ? [{ key: 'optional', label: 'Optional', color: '#8FBC8F', hollow: true }] : []),
+      ...(hasDanger ? [{ key: 'danger', label: 'Danger', color: '#FF6F00', hollow: true }] : []),
     ];
   }, [legendMarkers, gameStateRef]);
 
@@ -463,7 +463,7 @@ export const MapModal = memo(function MapModal({
         )}
       >
         <DialogTitle className="sr-only">
-          {view === 'overworld' ? 'Zrasa Peninsula Map' : `Region map — ${currentMap.name}`}
+          {view === 'overworld' ? 'Zrasa Peninsula Map' : `Region map: ${currentMap.name}`}
         </DialogTitle>
         <div className="flex flex-shrink-0 flex-wrap items-end justify-between gap-2 border-b border-[#5C3A21]/60 pb-2 pr-12">
           <div className="flex flex-col gap-2">
@@ -591,10 +591,11 @@ export const MapModal = memo(function MapModal({
                 <span className="relative h-4 w-4 flex-shrink-0">
                   <span className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[#050302]" />
                   <span
-                    className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 border border-white/60"
+                    className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 border"
                     style={{
-                      backgroundColor: entry.key === 'primary' ? '#FFD700' : '#8FBC8F',
-                      boxShadow: entry.key === 'primary' ? '0 0 3px #FFD70080' : '0 0 3px #8FBC8F80',
+                      backgroundColor: entry.hollow ? `${entry.color}29` : entry.color,
+                      borderColor: entry.hollow ? entry.color : 'rgba(255,255,255,0.6)',
+                      boxShadow: `0 0 3px ${entry.color}80`,
                     }}
                   />
                 </span>

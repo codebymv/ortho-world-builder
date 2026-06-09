@@ -925,6 +925,13 @@ export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
       ? '#FFD700'
       : (marker.type === 'quest' || marker.type === 'poi') ? '#8FBC8F' : marker.color;
 
+    // Optional / skippable content (side quests, POIs, optional field bosses) renders
+    // HOLLOW so it visibly recedes from the solid pulsing primary objective — the player
+    // reads it as "you may detour here", not "you missed a turn". NPC and portal markers
+    // keep their solid read (they're people / navigation, not opt-in destinations).
+    const isOptional = !isObjectiveMarker
+      && (marker.type === 'quest' || marker.type === 'poi' || marker.type === 'danger');
+
     const cx = mx + scale / 2;
     const cy = my + scale / 2;
 
@@ -969,13 +976,24 @@ export function drawMinimapDynamicOverlay(p: DrawMinimapDynamicParams): void {
         markerSize + darkPad * 2,
         markerSize + darkPad * 2,
       );
-      ctx.fillStyle = markerColor;
-      ctx.fillRect(-markerSize / 2, -markerSize / 2, markerSize, markerSize);
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(1, scale >= 6 ? 2 : 1);
-      ctx.globalAlpha = 0.7;
-      ctx.strokeRect(-markerSize / 2, -markerSize / 2, markerSize, markerSize);
-      ctx.globalAlpha = 1;
+      if (isOptional) {
+        // Hollow diamond: faint fill + a bold colored outline (no white ring).
+        ctx.fillStyle = markerColor;
+        ctx.globalAlpha = 0.16;
+        ctx.fillRect(-markerSize / 2, -markerSize / 2, markerSize, markerSize);
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = markerColor;
+        ctx.lineWidth = Math.max(1.5, scale >= 6 ? 2.5 : 1.5);
+        ctx.strokeRect(-markerSize / 2, -markerSize / 2, markerSize, markerSize);
+      } else {
+        ctx.fillStyle = markerColor;
+        ctx.fillRect(-markerSize / 2, -markerSize / 2, markerSize, markerSize);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = Math.max(1, scale >= 6 ? 2 : 1);
+        ctx.globalAlpha = 0.7;
+        ctx.strokeRect(-markerSize / 2, -markerSize / 2, markerSize, markerSize);
+        ctx.globalAlpha = 1;
+      }
       ctx.restore();
     }
 
