@@ -15,13 +15,13 @@ const USE_INSTANCED_GROUND: boolean = false;
 export type TileType = 
   | 'grass' | 'dirt' | 'water' | 'water_corrupted' | 'stone' | 'wood' 
   | 'tree' | 'tree_b' | 'tree_c' | 'house' | 'house_entry' | 'house_blue' | 'house_blue_entry' | 'house_green' | 'house_green_entry' | 'house_thatch' | 'house_thatch_entry' | 'cottage_house' | 'cottage_house_entry' | 'cottage_house_forest' | 'cottage_house_forest_ruined' | 'cottage_house_ranger' | 'rock' | 'chest' | 'chest_opened' | 'special_chest' | 'special_chest_opened' | 'portal' | 'flower' | 'moonbloom' | 'tempest_grass'
-  | 'tall_grass' | 'tall_grass_b' | 'tall_grass_c' | 'bridge' | 'bridge_corrupted' | 'bridge_folded' | 'sand' | 'swamp' | 'lava' | 'ice'
+  | 'tall_grass' | 'tall_grass_b' | 'tall_grass_c' | 'plains_grass' | 'plains_grass_tall' | 'bridge' | 'bridge_corrupted' | 'bridge_folded' | 'sand' | 'swamp' | 'lava' | 'ice'
   | 'pressure_plate' | 'hidden_wall' | 'push_block' | 'switch_door'
   | 'campfire' | 'campfire_remains' | 'bonfire' | 'sign' | 'well' | 'tombstone' | 'tombstone_broken' | 'tombstone_cracked_v' | 'mushroom' | 'stump' | 'stump_b' | 'stump_c'
   | 'fence' | 'gate' | 'barrel' | 'crate' | 'spike_trap' | 'bones'
   | 'volcanic_rock' | 'ash' | 'ruins_floor' | 'waterfall' | 'snow'
   | 'dead_tree' | 'dead_tree_b' | 'dead_tree_c' | 'destroyed_house' | 'destroyed_house_rubble' | 'destroyed_house_overgrown' | 'broken_sign' | 'statue'
-  | 'cliff' | 'cliff_edge' | 'cliff_corrupted' | 'cliff_edge_corrupted' | 'cobblestone' | 'farmland' | 'wheat'
+  | 'cliff' | 'cliff_edge' | 'cliff_corrupted' | 'cliff_edge_corrupted' | 'cliff_edge_plains' | 'cobblestone' | 'farmland' | 'wheat'
   | 'iron_fence' | 'hedge' | 'scarecrow' | 'windmill' | 'hay_bale' | 'lantern'
   | 'dark_grass' | 'hollow_blight' | 'mossy_stone' | 'ruined_fort_wall' | 'ruined_fort_wall_mossy' | 'wooden_path' | 'stairs' | 'ladder' | 'curled_ladder' | 'gate_ladder' | 'gate_ladder_open'
   | 'wagon' | 'cart' | 'market_stall' | 'bench' | 'bookshelf'
@@ -48,6 +48,7 @@ export type TileType =
   | 'timber_palisade' | 'stone_low_wall' | 'chain_fence' | 'collapsed_masonry'
   // A bespoke cliff cave-mouth - interactable entrance into a cave interior (and its step-out exit)
   | 'cave_mouth'
+  | 'cave_mouth_angled'
   | 'cottage_shed'
   | 'blighted_stump'
   | 'observatory'
@@ -89,6 +90,8 @@ export interface Tile {
   enemyBlocked?: boolean;
   /** When true, the player moves at reduced speed (rickety plank crossings, etc.). */
   slowWalk?: boolean;
+  /** When true, draw a padlock overlay — key-item gates (forts, Highlander's Plains). */
+  keyGateLock?: boolean;
 }
 
 export interface WorldMap {
@@ -190,7 +193,7 @@ const INITIAL_LOAD_TILES_PER_FRAME = 320; // smoother initial/after-rebuild stre
 const TILE_KEY_STRIDE = 65536;
 const MAX_MESH_POOL_SIZE = 1200;
 const DECORATIVE_OVERLAY_NEAR_RADIUS = 26;
-const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted', 'stairs', 'ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open']);
+const HEIGHT_TILE_TYPES: ReadonlySet<TileType> = new Set(['cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted', 'cliff_edge_plains', 'stairs', 'ladder', 'curled_ladder', 'gate_ladder', 'gate_ladder_open']);
 const OVERLAY_CULL_EXEMPT_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'door', 'door_interior', 'door_iron',
   'chest', 'chest_opened', 'special_chest', 'special_chest_opened',
@@ -206,7 +209,7 @@ const OVERLAY_CULL_EXEMPT_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'windmill', 'ridge_lumberyard', 'observatory',
   'heresy_altar', 'heresy_altar_cracked', 'summoning_ritual', 'summoning_ritual_dud',
   'shortcut_lever',
-  'cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted',
+  'cliff', 'cliff_edge', 'cliff_corrupted', 'cliff_edge_corrupted', 'cliff_edge_plains',
   'stairs',
 ]);
 const ELEVATION_CONNECTOR_TILE_TYPES: ReadonlySet<TileType> = new Set([
@@ -219,7 +222,7 @@ const ELEVATION_CONNECTOR_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'wooden_path',
 ]);
 
-export const SPINE_ELEVATION_TILE_TYPES: ReadonlySet<TileType> = new Set(['dirt', 'grass', 'sand', 'hollow_blight', 'cobblestone', 'cobble_grand', 'cobble_market', 'cobble_residential', 'waterlogged_cobble', 'flood_silt', 'ashen_cobble', 'road_setts', 'ash', 'volcanic_rock', 'rock', 'dead_tree']);
+export const SPINE_ELEVATION_TILE_TYPES: ReadonlySet<TileType> = new Set(['dirt', 'grass', 'plains_grass', 'plains_grass_tall', 'sand', 'hollow_blight', 'cobblestone', 'cobble_grand', 'cobble_market', 'cobble_residential', 'waterlogged_cobble', 'flood_silt', 'ashen_cobble', 'road_setts', 'ash', 'volcanic_rock', 'rock', 'dead_tree']);
 
 export function isSpinePathElevationTile(tile: Tile | null): boolean {
   if (!tile?.walkable || !tile.spinePath) return false;
@@ -243,6 +246,7 @@ const NON_BLOCKING_OVERLAYS: ReadonlySet<TileType> = new Set([
   'pot',
   'rug',
   'tall_grass',
+  'plains_grass_tall',
   'wheat',
 ]);
 const WATER_BRIDGE_TILES: ReadonlySet<TileType> = new Set<TileType>([
@@ -258,6 +262,10 @@ const WATER_RIPPLE_TILES: ReadonlySet<TileType> = new Set<TileType>(['water', 'w
 /** Grassy/leafy ground that can host an idle wind gust (open vegetation, not structures/paths). */
 const WIND_GUST_TILES: ReadonlySet<TileType> = new Set<TileType>([
   'grass', 'dark_grass', 'tall_grass', 'tall_grass_b', 'tall_grass_c', 'wheat', 'farmland',
+] as TileType[]);
+/** Highlander's Plains ground - hosts the straw-tinted gust decal instead of the green one. */
+const PLAINS_GUST_TILES: ReadonlySet<TileType> = new Set<TileType>([
+  'plains_grass', 'plains_grass_tall',
 ] as TileType[]);
 const OVERWORLD_STRUCTURE_TILE_TYPES: ReadonlySet<TileType> = new Set([
   'house',
@@ -425,6 +433,7 @@ export class World {
   /** Idle ambience: sparse transient decals stamped on random visible water / grass tiles. */
   private readonly waterRipples: TransientTileDecalField;
   private readonly windGusts: TransientTileDecalField;
+  private readonly plainsGusts: TransientTileDecalField;
 
   constructor(scene: THREE.Scene, assetManager: AssetManager, map: WorldMap) {
     this.scene = scene;
@@ -453,6 +462,18 @@ export class World {
         jitter: 0.6, rotationJitter: 0.3,
       },
       () => this.assetManager.getTexture('wind_gust') ?? null,
+    );
+    // Open plains read as windswept: same gust mechanism, straw-tinted streaks, slightly more
+    // frequent and faster horizontal drift than the sheltered forest gusts.
+    this.plainsGusts = new TransientTileDecalField(
+      scene,
+      {
+        maxConcurrent: 5, lifeMs: 1200, minGapMs: 380, maxGapMs: 1100,
+        size: 1.5, renderOrder: 100, z: 0.04, peakOpacity: 0.46,
+        scaleFrom: 0.75, scaleTo: 1.35, driftX: 0.8, driftY: 0.1,
+        jitter: 0.6, rotationJitter: 0.3,
+      },
+      () => this.assetManager.getTexture('wind_gust_plains') ?? null,
     );
     this.generateDetailTextures();
     this.rebuildSouthCoastBackdrop();
@@ -1192,7 +1213,7 @@ export class World {
       scale = 2.4;
       yOffset = 0.76;
       sortTrim = 0.04;
-    } else if (tile.type === 'cliff_edge' || tile.type === 'cliff_edge_corrupted') {
+    } else if (tile.type === 'cliff_edge' || tile.type === 'cliff_edge_corrupted' || tile.type === 'cliff_edge_plains') {
       scale = 2.0;
       yOffset = 0.55;
       sortTrim = 0.05;
@@ -1221,7 +1242,8 @@ export class World {
 
     const sortAnchorY = yOffset - scale * 0.5 + sortTrim;
     const isCliffArt = tile.type === 'cliff' || tile.type === 'cliff_edge'
-      || tile.type === 'cliff_corrupted' || tile.type === 'cliff_edge_corrupted';
+      || tile.type === 'cliff_corrupted' || tile.type === 'cliff_edge_corrupted'
+      || tile.type === 'cliff_edge_plains';
     group.userData = {
       tileType: tile.type,
       sortAnchorY,
@@ -1370,7 +1392,7 @@ export class World {
   }
 
   private appendTerrainSeamFillers(parent: THREE.Group, tile: Tile, tileX: number, tileY: number): void {
-    if (WATER_BRIDGE_TILES.has(tile.type)) return;
+    const waterTile = WATER_BRIDGE_TILES.has(tile.type);
     const me = tile.elevation ?? 0;
     const kind = this.seamTerrainKind(tile, tileX, tileY);
     // Height tiles (cliff_edge, cliff body, etc.) only participate in the south→north
@@ -1386,12 +1408,15 @@ export class World {
       if (!nb) return;
       if (WATER_BRIDGE_TILES.has(nb.type)) return;
       const ne = nb.elevation ?? 0;
-      if (HEIGHT_TILE_TYPES.has(nb.type) && ne <= me) return;
+      if (HEIGHT_TILE_TYPES.has(nb.type) && (ne <= me || waterTile)) return;
       if (ne <= me) return;
       const gap = (ne - me) * World.ELEVATION_Y_OFFSET;
       if (gap < 0.02) return;
+      // Bank drop onto water/bridge: tint the filler with the bank's terrain (not the water's
+      // swamp palette) so the shelf face reads as earth above the waterline.
+      const fillKind = waterTile ? this.seamTerrainKind(nb, tileX, tileY + 1) : kind;
       const variant = Math.floor(tileHash(tileX, tileY, 201) * 6);
-      const mesh = this.acquireMesh(this.elevationFillerGeometry, this.getSeamFillMaterial(kind, variant));
+      const mesh = this.acquireMesh(this.elevationFillerGeometry, this.getSeamFillMaterial(fillKind, variant));
       this.setRenderRole(mesh, 'ground');
       mesh.scale.set(1, gap, 1);
       mesh.position.set(0, this.tileSize * 0.5 + gap * 0.5, 0.04);
@@ -1467,6 +1492,14 @@ export class World {
       parent.add(mesh);
     };
 
+    if (waterTile) {
+      // Water/bridge tiles normally rely on bank/cliff art to cover elevation faces, but when a
+      // plain walkable bank at higher elevation sits directly behind (screen-north, row ty+1,
+      // no cliff sprite), the elevated row leaves a sky strip along the waterline — fill just
+      // that gap.
+      addSouth();
+      return;
+    }
     addSouth();
     if (!heightTile) {
       addEast();
@@ -1483,7 +1516,8 @@ export class World {
     if (!south) return;
     const sheer =
       (south.type === 'cliff' || south.type === 'cliff_edge'
-        || south.type === 'cliff_corrupted' || south.type === 'cliff_edge_corrupted') &&
+        || south.type === 'cliff_corrupted' || south.type === 'cliff_edge_corrupted'
+        || south.type === 'cliff_edge_plains') &&
       !south.transition &&
       !this.isTileWalkable(south);
     if (!sheer) return;
@@ -1737,6 +1771,17 @@ export class World {
     overlayMesh.updateMatrix();
 
     group.add(baseMesh, overlayMesh);
+    if (tile.keyGateLock) {
+      const lockTexture = this.assetManager.getTexture('gate_padlock');
+      if (lockTexture) {
+        const lockMesh = this.createPlaneMesh(lockTexture, overlayZ + 0.08, 'overlay_gate_padlock');
+        lockMesh.scale.set(0.62, 0.62, 1);
+        lockMesh.position.y = yOffset + 0.12;
+        this.setRenderRole(lockMesh, 'overlay');
+        lockMesh.updateMatrix();
+        group.add(lockMesh);
+      }
+    }
     if (tileX !== undefined && tileY !== undefined) {
       this.appendTerrainSeamFillers(group, tile, tileX, tileY);
       if (tile.type === 'heresy_altar' || tile.type === 'heresy_altar_cracked') {
@@ -1894,6 +1939,7 @@ export class World {
   tickAmbientDecals(currentTime: number): void {
     this.waterRipples.tick(currentTime, () => this.pickRandomVisibleTileCenter(WATER_RIPPLE_TILES));
     this.windGusts.tick(currentTime, () => this.pickRandomVisibleTileCenter(WIND_GUST_TILES));
+    this.plainsGusts.tick(currentTime, () => this.pickRandomVisibleTileCenter(PLAINS_GUST_TILES));
   }
 
   /**
@@ -2032,6 +2078,7 @@ export class World {
     this.disposeSouthCoastBackdrop();
     this.waterRipples.clear();
     this.windGusts.clear();
+    this.plainsGusts.clear();
     for (const [, object] of this.activeMeshes) {
       this.scene.remove(object);
       this.recycleObject(object);
@@ -2494,7 +2541,7 @@ export class World {
     if (tile?.type === 'portal' && tile.transition) return tile.transition;
     // Cave-mouth EXITS step-warp like a portal (no door). Cave-mouth ENTRANCES are interactable
     // (interact-to-enter), so they're excluded here and won't auto-trigger on step.
-    if (tile?.type === 'cave_mouth' && tile.transition && !tile.interactable) return tile.transition;
+    if ((tile?.type === 'cave_mouth' || tile?.type === 'cave_mouth_angled') && tile.transition && !tile.interactable) return tile.transition;
     return null;
   }
 
@@ -2666,6 +2713,7 @@ export class World {
     this.disposeSouthCoastBackdrop();
     this.waterRipples.dispose();
     this.windGusts.dispose();
+    this.plainsGusts.dispose();
     for (const [, object] of this.activeMeshes) {
       this.scene.remove(object);
     }

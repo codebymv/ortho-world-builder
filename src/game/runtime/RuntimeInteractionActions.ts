@@ -25,6 +25,7 @@ interface InteractionSystemLike {
   tryHandleRiversideBridgeShortcutLever: (interactionId: string) => boolean;
   tryHandleHollowShortcutLever: (interactionId: string) => boolean;
   tryHandleEastHollowRouteGateLever: (interactionId: string) => boolean;
+  tryHandleHighlandersPlainsGate: (interactionId: string) => boolean;
   tryHandleHollowApproachLadder: (interactionId: string, ladderX: number, ladderY: number) => boolean;
   tryHandleCliffCorridorLadder: (interactionId: string, ladderX: number, ladderY: number) => boolean;
   tryHandleFortRidgeLadder: (interactionId: string, ladderX: number, ladderY: number) => boolean;
@@ -375,6 +376,7 @@ export function runInteractionCheck({
     if (interactionSystem.tryHandleRiversideBridgeShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleHollowShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleEastHollowRouteGateLever(interactionId)) return;
+    if (interactionSystem.tryHandleHighlandersPlainsGate(interactionId)) return;
     if (interactionSystem.tryHandleHollowApproachLadder(interactionId, px, py)) return;
     if (interactionSystem.tryHandleCliffCorridorLadder(interactionId, px, py)) return;
     if (interactionSystem.tryHandleFortRidgeLadder(interactionId, px, py)) return;

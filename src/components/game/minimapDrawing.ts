@@ -135,6 +135,8 @@ const MINIMAP_TILE_COLOR: Partial<Record<TileType, string>> & Record<string, str
   tall_grass_b: '#357A38',
   tall_grass_c: '#3B9440',
   dark_grass: '#2E7D32',
+  plains_grass: '#86B14E',
+  plains_grass_tall: '#A3A848',
   dirt: '#8D6E63',
   cave_floor: '#5C4A38',
   sand: '#E8D4B0',
@@ -172,6 +174,7 @@ const MINIMAP_TILE_COLOR: Partial<Record<TileType, string>> & Record<string, str
   // --- Vertical / elevation art ---
   cliff: '#5D6A72',
   cliff_edge: '#6B7A85',
+  cliff_edge_plains: '#7C8472',
   cliff_corrupted: '#4C4153',
   cliff_edge_corrupted: '#5A4F63',
   stairs: '#8A9096',
@@ -217,6 +220,7 @@ const MINIMAP_TILE_COLOR: Partial<Record<TileType, string>> & Record<string, str
   chain_fence: '#546E7A',
   collapsed_masonry: '#6E7A82',
   cave_mouth: '#1B1B1B',
+  cave_mouth_angled: '#1B1B1B',
   street_sign: '#3A5A4A',
   road_setts: '#5E6168',
   cobble_grand: '#9C968A',
@@ -377,6 +381,7 @@ const LANDMARK_ICON_SIZES: Partial<Record<string, number>> = {
   portal:               5,
   fog_gate:             5,
   cave_mouth:           4,
+  cave_mouth_angled:    4,
   // Lit bonfires (rest sites) - visible once discovered
   bonfire:              5,
 };

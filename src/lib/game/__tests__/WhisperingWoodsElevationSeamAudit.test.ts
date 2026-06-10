@@ -316,7 +316,8 @@ describe('world (63,106) stair band collision', () => {
     const south = map.tiles[256][212];
     expect(player.type).toBe('stairs');
     expect(player.walkable).toBe(true);
-    expect(south.type).toBe('grass');
+    // Inside the Highlander's Plains biome (y>=238, x>=195) the grass apron is retinted plains_grass.
+    expect(south.type).toBe('plains_grass');
     expect(south.walkable).toBe(true);
   });
 });
@@ -340,7 +341,8 @@ describe('world (-61,68..73) west cliff shelf reed bank', () => {
 
     for (let ty = 218; ty <= 223; ty++) {
       const tile = map.tiles[ty][89];
-      expect(tile.type).toBe('tall_grass');
+      // randomizeForestTreeVariants runs last and may swap reed tiles to the b/c kit variants.
+      expect(['tall_grass', 'tall_grass_b', 'tall_grass_c']).toContain(tile.type);
       expect(tile.walkable).toBe(true);
       expect(tile.baseTile).toBe('grass');
     }

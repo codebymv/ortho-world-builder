@@ -56,6 +56,7 @@ interface InteractionSystemContext {
   syncQuarryBankShortcutState: () => void;
   syncWestLakeBridgePlankState: () => void;
   syncWestCliffGateState: () => void;
+  syncEastCreekShoreGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncEastHollowRouteGateState: () => void;
@@ -317,6 +318,8 @@ export function createInteractionSystem(context: InteractionSystemContext) {
 
     if (interactionId === 'ancient_chest' && context.items.shadow_blade) {
       grantChestWeapon(context.items.shadow_blade);
+    } else if (interactionId === 'cliff_grotto_chest' && context.items.highlanders_key) {
+      grantChestWeapon(context.items.highlanders_key);
     } else if (interactionId === 'forest_river_chest' && context.items.ornamental_broadsword) {
       grantChestWeapon(context.items.ornamental_broadsword);
     } else if (
@@ -681,6 +684,33 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playGateShortcut();
     context.showHeroOverlay('Shortcut Unlocked');
     context.startCameraPan?.(89, -93, 750);
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
+  const tryHandleHighlandersPlainsGate = (interactionId: string): boolean => {
+    if (interactionId !== 'highlanders_plains_gate') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('highlanders_plains_gate_open')) {
+      context.notify('The gate is already open.', { id: 'highlanders-plains-gate-open', duration: 1800 });
+      return true;
+    }
+
+    if (!context.state.hasItem('highlanders_key')) {
+      context.playGateLockedHeavy();
+      context.notify("Only opens with Highlander's Key.", { id: 'highlanders-plains-gate-locked', duration: 2200 });
+      return true;
+    }
+
+    context.playGateOpenHeavy();
+    context.state.setFlag('highlanders_plains_gate_open', true);
+    context.syncEastCreekShoreGateState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay("Highlander's Plains");
+    context.startCameraPan?.(101, 87, 750);
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -1076,6 +1106,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleRiversideBridgeShortcutLever,
     tryHandleHollowShortcutLever,
     tryHandleEastHollowRouteGateLever,
+    tryHandleHighlandersPlainsGate,
     tryHandleHollowApproachLadder,
     tryHandleCliffCorridorLadder,
     tryHandleFortRidgeLadder,

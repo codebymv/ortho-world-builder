@@ -71,8 +71,11 @@ export function createRuntimeSessionState({
       lmbHoldStartTime: 0,
       interactBuffered: false,
       dodgeBuffered: false,
+      dodgeBufferedAt: 0, // wall-clock ms; frame runner expires stale presses (TTL)
       potionBuffered: false,
       comboInputBuffered: false, // LMB pressed during active swing; chains on animation end
+      attackBuffered: false, // LMB pressed during a dodge roll; fires when the roll ends
+      attackBufferedAt: 0,
     },
     loop: {
       lastAutoSaveTime: initialLastAutoSaveTime,

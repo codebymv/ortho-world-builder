@@ -52,7 +52,8 @@ export interface BuildRuntimePhaseContextsOptions {
   visitedTiles: Set<string>;
   getDirection8: (x: number, y: number) => Direction8;
   dir8to4: (direction: string) => string;
-  performDodge: (moveX: number, moveY: number) => void;
+  performDodge: (moveX: number, moveY: number) => boolean;
+  performBufferedAttack: () => { frameDuration: number } | null;
   playFootstep: (isSprinting: boolean) => void;
   emitDust: (x: number, y: number) => void;
   emitHeal: (x: number, y: number, z: number) => void;

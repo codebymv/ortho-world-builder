@@ -212,25 +212,6 @@ export function createKeyboardInputController({
       return;
     }
 
-    if (import.meta.env.DEV && e.key.toLowerCase() === 'v' && !e.repeat) {
-      const nextDebug = !getTransitionDebug();
-      setTransitionDebug(nextDebug);
-      setTransitionDebugEnabled(nextDebug);
-      if (nextDebug) {
-        rebuildTransitionDebug();
-        notify('Transition debug ON', {
-          id: 'transition-debug-on',
-          description: 'Markers: yellow entrance, orange exit, purple portal, cyan transition.',
-          duration: 2400,
-        });
-      } else {
-        clearTransitionDebug();
-        setTransitionDebugLines([]);
-        notify('Transition debug OFF', { id: 'transition-debug-off', duration: 1600 });
-      }
-      return;
-    }
-
     if (pausedRef.current || mapModalOpenRef.current || playerDeadRef.current) return;
 
     const lk = e.key.toLowerCase();

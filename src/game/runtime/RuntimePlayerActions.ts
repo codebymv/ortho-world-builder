@@ -33,13 +33,16 @@ export function createPerformDodgeAction({
   dodgeStaminaCost,
   getIsConsuming,
 }: CreatePerformDodgeActionOptions) {
-  return (moveX: number, moveY: number) => {
+  // Returns true when the dodge actually starts so callers can keep the input
+  // buffered (and retry next frame) instead of dropping presses made during
+  // the cooldown or a stamina trough.
+  return (moveX: number, moveY: number): boolean => {
     const now = performance.now();
-    if (now - state.player.lastDodgeTime < state.player.dodgeCooldown) return;
-    if (state.player.stamina < dodgeStaminaCost) return;
-    if (state.player.isDodging) return;
-    if (state.player.isClimbing) return;
-    if (getIsConsuming?.()) return;
+    if (now - state.player.lastDodgeTime < state.player.dodgeCooldown) return false;
+    if (state.player.stamina < dodgeStaminaCost) return false;
+    if (state.player.isDodging) return false;
+    if (state.player.isClimbing) return false;
+    if (getIsConsuming?.()) return false;
 
     let dx = moveX;
     let dy = moveY;
@@ -68,5 +71,6 @@ export function createPerformDodgeAction({
     setPlayerAnimState('dodge');
     playDodgeRoll();
     triggerUIUpdate();
+    return true;
   };
 }

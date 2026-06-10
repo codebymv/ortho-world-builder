@@ -278,6 +278,8 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   lantern: { isOverlay: true, baseTile: 'cobblestone', scale: 0.9, sortTrim: 0.14 },
   // Stands tall as a billboard reed clump (not a flat decal); scale + yOffset lift it well above
   // the tile so dense fills read as a wall of grass the player wades through / chops down.
+  // Knee-high plains tuft - taller than flat ground, well short of the tall_grass reed walls.
+  plains_grass_tall: { isOverlay: true, baseTile: 'plains_grass', scale: 1.12, sortTrim: 0.28, yOffset: 0.2 },
   tall_grass:   { isOverlay: true, baseTile: 'grass', scale: 1.70, sortTrim: 0.3, yOffset: 0.5 },
   tall_grass_b: { isOverlay: true, baseTile: 'grass', scale: 1.64, sortTrim: 0.3, yOffset: 0.5 }, // very slightly shorter
   tall_grass_c: { isOverlay: true, baseTile: 'grass', scale: 1.76, sortTrim: 0.3, yOffset: 0.5 }, // very slightly taller
@@ -352,6 +354,8 @@ export const TILE_METADATA: Partial<Record<TileType, TileMetadata>> = {
   boarded_facade: { isOverlay: true, baseTile: 'cobblestone', scale: 7.0, sortTrim: 0.34, yOffset: 2.9, foundation: TENEMENT_FOUNDATION },
   // Cave mouth - a dark opening in a rock face; walkable threshold (collision set by the placer).
   cave_mouth: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.18, yOffset: 0.5 },
+  // Side/angled cave mouth (asymmetric art) for openings on left/right-facing cliff walls.
+  cave_mouth_angled: { isOverlay: true, baseTile: 'dirt', scale: 2.2, sortTrim: 0.18, yOffset: 0.5 },
   chimney: { isOverlay: true, baseTile: 'roof_tile', scale: 1.0, sortTrim: 0.14 },
   observatory: {
     isOverlay: true,

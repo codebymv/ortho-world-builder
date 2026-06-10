@@ -17,6 +17,17 @@ import {
 } from '@/game/runtime/revenantRitualDecor';
 import { syncWestFortBonfireLogs } from '@/game/runtime/westFortBonfires';
 
+function closedKeyGateTile(el: number, interactionId: string, tx: number, centerTx: number): Tile {
+  return {
+    type: 'gate' as TileType,
+    walkable: false,
+    elevation: el,
+    interactable: true,
+    interactionId,
+    ...(tx === centerTx ? { keyGateLock: true } : {}),
+  };
+}
+
 interface RuntimeMapTransitionServiceLike {
   transitionTo: (targetMap: string, targetX: number, targetY: number) => void;
 }
@@ -372,6 +383,27 @@ export function createRuntimeMapFlow({
           };
     }
     world.refreshMapTileRegion(86, 57, 88, 60);
+  };
+
+  // Highlander's Plains picket gate — east creek north-shore fence at y=237 (world ~81..144, y=87).
+  // Closed: five-tile gate panel centered on world (101,87). Opens with Highlander's Key from Olwen's grotto.
+  const syncEastCreekShoreGateState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const open = state.getFlag('highlanders_plains_gate_open');
+    const gateY = 237;
+    const gateX0 = 249;
+    const gateX1 = 253;
+    const gateCenterX = 251;
+    for (let tx = gateX0; tx <= gateX1; tx++) {
+      const existing = map.tiles[gateY]?.[tx];
+      if (!existing) continue;
+      const el = existing.elevation ?? 0;
+      map.tiles[gateY][tx] = open
+        ? { type: 'grass' as TileType, walkable: true, elevation: el }
+        : closedKeyGateTile(el, 'highlanders_plains_gate', tx, gateCenterX);
+    }
+    world.refreshMapTileRegion(gateX0 - 1, gateY - 1, gateX1 + 1, gateY + 1);
   };
 
   const syncRiversideBridgeShortcutState = () => {
@@ -1243,7 +1275,7 @@ export function createRuntimeMapFlow({
         if (ty === SOUTH_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
           row[tx] = gateOpen
             ? { type: 'cobblestone' as TileType, walkable: true, elevation: el }
-            : { type: 'gate' as TileType, walkable: false, elevation: el, interactable: true, interactionId: 'forest_fort_gate' };
+            : closedKeyGateTile(el, 'forest_fort_gate', tx, GATE_CX);
           continue;
         }
 
@@ -1380,7 +1412,7 @@ export function createRuntimeMapFlow({
         if (ty === SOUTH_Y && tx >= GATE_CX - 1 && tx <= GATE_CX + 1) {
           row[tx] = gateOpen
             ? { type: 'cobblestone' as TileType, walkable: true, elevation: el }
-            : { type: 'gate' as TileType, walkable: false, elevation: el, interactable: true, interactionId: 'north_fort_gate' };
+            : closedKeyGateTile(el, 'north_fort_gate', tx, GATE_CX);
           continue;
         }
 
@@ -1540,7 +1572,7 @@ export function createRuntimeMapFlow({
         if (isOuter && nearGate && (ty === FORT_Y || ty === SOUTH_Y)) {
           row[tx] = gateOpen
             ? { type: 'cobblestone' as TileType, walkable: true, elevation: el }
-            : { type: 'gate' as TileType, walkable: false, elevation: el, interactable: true, interactionId };
+            : closedKeyGateTile(el, interactionId, tx, GATE_CX);
           continue;
         }
 
@@ -2034,6 +2066,7 @@ export function createRuntimeMapFlow({
     syncQuarryBankShortcutState();
     syncWestLakeBridgePlankState();
     syncWestCliffGateState();
+    syncEastCreekShoreGateState();
     syncRiversideBridgeShortcutState();
     syncHollowShortcutState();
     syncEastHollowRouteGateState();
@@ -2258,6 +2291,7 @@ export function createRuntimeMapFlow({
     syncQuarryBankShortcutState,
     syncWestLakeBridgePlankState,
     syncWestCliffGateState,
+    syncEastCreekShoreGateState,
     syncRiversideBridgeShortcutState,
     syncHollowShortcutState,
     syncEastHollowRouteGateState,

@@ -597,6 +597,23 @@ export function createRuntimeCombatActions({
     _executeAttackStep(0);
   };
 
+  // Called by PlayerSimulationSystem when an attack press buffered during a dodge
+  // roll fires at roll end. Always restarts the combo at step 0 - rolling drops
+  // the chain, Souls-style. Returns null while gates (attack cooldown, stamina,
+  // hurt lockout) still block the swing so the caller can retry each frame until
+  // the buffer's TTL expires.
+  const performBufferedAttack = (): { frameDuration: number } | null => {
+    if (state.player.hurtTimer > 0) return null;
+    const animState = getPlayerAnimState();
+    if (animState === 'drinking' || animState === 'attack') return null;
+
+    const frameDuration = _executeAttackStep(0);
+    if (frameDuration === 0) return null;
+    setComboStep(0);
+    setComboWindowTimer(0);
+    return { frameDuration };
+  };
+
   // Called by PlayerSimulationSystem when a buffered input fires at animation end.
   // For step 0/1 this advances the combo chain; for step 2 (finisher) it restarts
   // a fresh combo at step 0 so a press during the finisher swing isn't lost.
@@ -832,6 +849,7 @@ export function createRuntimeCombatActions({
   return {
     onEnemyKilled,
     performAttack,
+    performBufferedAttack,
     performChargeAttack,
     triggerComboChain,
   };

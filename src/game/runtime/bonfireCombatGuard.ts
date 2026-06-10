@@ -36,6 +36,7 @@ const ENEMY_SANCTUARY_TILE_TYPES: Set<string> = new Set([
   'cliff_edge',
   'cliff_corrupted',
   'cliff_edge_corrupted',
+  'cliff_edge_plains',
 ]);
 
 export function isPositionInBonfireSafeZone(

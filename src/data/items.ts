@@ -42,6 +42,14 @@ export const items: Record<string, Item> = {
     type: 'key',
     sprite: 'fort_gate_key',
   },
+
+  highlanders_key: {
+    id: 'highlanders_key',
+    name: "Highlander's Key",
+    description: 'A small rusted key, its teeth worn soft with age. Humbler than the fort\'s iron key, yet someone hid it away in the cliffs for a reason.',
+    type: 'key',
+    sprite: 'highlanders_key',
+  },
   
   moonbloom: {
     id: 'moonbloom',

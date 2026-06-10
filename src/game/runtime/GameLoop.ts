@@ -86,6 +86,7 @@ export interface RunGameplayPreludeOptions extends GameplayPreludeContext {
   animTimer: number;
   animFrame: number;
   dodgeBuffered: boolean;
+  attackBuffered: boolean;
   comboStep: number;
   comboWindowTimer: number;
   comboInputBuffered: boolean;
@@ -141,11 +142,13 @@ export function runGameplayPrelude({
   chargeTimeMin,
   chargeTimeMax,
   dodgeBuffered,
+  attackBuffered,
   keys,
   visitedTiles,
   getDirection8,
   dir8to4,
   performDodge,
+  performBufferedAttack,
   playFootstep,
   emitDust,
   emitHeal,
@@ -286,6 +289,7 @@ export function runGameplayPrelude({
     animTimer,
     animFrame,
     dodgeBuffered,
+    attackBuffered,
     comboStep,
     comboWindowTimer,
     comboInputBuffered,
@@ -319,11 +323,13 @@ export function runGameplayPrelude({
     chargeTimeMin,
     chargeTimeMax,
     dodgeBuffered,
+    attackBuffered,
     keys,
     visitedTiles,
     getDirection8,
     dir8to4,
     performDodge,
+    performBufferedAttack,
     playFootstep,
     emitDust,
     emitHeal,
@@ -375,6 +381,7 @@ export function runGameplayPrelude({
     animTimer,
     animFrame,
     dodgeBuffered,
+    attackBuffered,
     comboStep,
     comboWindowTimer,
     comboInputBuffered,

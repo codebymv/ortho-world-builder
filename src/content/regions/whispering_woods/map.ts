@@ -24,6 +24,8 @@ export const forestDef: MapDefinition = {
     { x: 150, y: 50, width: 30, height: 20, type: 'clearing', fill: 'grass' },
     // Failed ritual glyph - world (-16, -17); opens the tree cover for the decor ring.
     { x: 130, y: 129, width: 9, height: 9, type: 'clearing', fill: 'grass' },
+    // (East cliff cemetery overlook grass + cave mouth are carved AFTER the east-ridge cliff_face
+    // below, so the surrounding cliff isn't overwritten — see the East ridge section.)
     { x: 138, y: 246, width: 24, height: 18, type: 'clearing', fill: 'dirt' },
     // Explorer Ulmund's teaching ritual circle - world (5,93) / tile (155,243). Paved as
     // dirt spine so the dud glyph reads as part of the entry path (not a stray grass island)
@@ -335,7 +337,10 @@ export const forestDef: MapDefinition = {
     { x: 149, y: 188, width: 6, height: 6, type: 'cottage', interactionId: 'woodcutter_cottage_ruin' },
     { x: 118, y: 220, width: 18, height: 12, type: 'abandoned_camp', interactionId: 'hunters_last_camp' },
     { x: 152, y: 220, width: 18, height: 12, type: 'destroyed_town', interactionId: 'hunter_wreck' },
-    { x: 170, y: 90, width: 6, height: 6, type: 'cottage', interactionId: 'forest_cottage', interiorMap: 'interior_cottage_forest', interiorSpawnX: 6, interiorSpawnY: 8 },
+    // Former enterable forest_cottage (interior_cottage_forest) ??? now a vine-choked
+    // unenterable ruin facade (hollow_ruin prefix routes placeCottage to
+    // cottage_house_forest_ruined with no door). Chest loot moved outside, see chests[].
+    { x: 170, y: 90, width: 6, height: 6, type: 'cottage', interactionId: 'hollow_ruin_5' },
     { x: 80, y: 50, width: 6, height: 6, type: 'cottage', interactionId: 'ruin_cottage' },
     { x: 210, y: 200, width: 6, height: 6, type: 'cottage', interactionId: 'hidden_cottage' },
 
@@ -644,7 +649,8 @@ export const forestDef: MapDefinition = {
     { x: 228, y: 234, width: 3, height: 16, type: 'wall', fill: 'water' },
     { x: 230, y: 248, width: 20, height: 3, type: 'wall', fill: 'water' },
     { x: 248, y: 250, width: 3, height: 14, type: 'wall', fill: 'water' },
-    { x: 215, y: 232, width: 6, height: 3, type: 'bridge' },
+    // (Removed) small plank bridge at world (68,83) — the creek now runs unbroken here;
+    // the underlying water fill at { x: 200, y: 232 } shows through.
     { x: 228, y: 240, width: 3, height: 4, type: 'bridge' },
     { x: 238, y: 248, width: 6, height: 3, type: 'bridge' },
     // Creek-to-lake connector ? flowy overlap from world ~(48,83) down to ~(42,100).
@@ -653,6 +659,9 @@ export const forestDef: MapDefinition = {
     { x: 190, y: 241, width: 9, height: 5, type: 'wall', fill: 'water' },
     { x: 186, y: 245, width: 10, height: 5, type: 'wall', fill: 'water' },
     { x: 184, y: 248, width: 12, height: 5, type: 'wall', fill: 'water' },
+    // East creek north-shore picket — continuous run from the water (world 81,87) to the east cliff (world 144,87).
+    // Gate panel at world (101,87): fence in authored features; key-gated gate enforced at runtime.
+    { x: 231, y: 237, width: 64, height: 1, type: 'wall', fill: 'fence' },
     // Broken west lake bridge: visual route from world (32,109) to (51,109),
     // with a missing middle span so it stays non-functional.
     // West stub extended 1 tile east (now x:182–189); east stub extended 2 tiles west (now x:193–201).
@@ -665,8 +674,9 @@ export const forestDef: MapDefinition = {
     { x: 59, y: 193, width: 1, height: 1, type: 'wall', fill: 'fence' },
     // Stair-side picket run ? touches the south stair edge and connects into the bypass cap.
     { x: 59, y: 198, width: 1, height: 17, type: 'wall', fill: 'fence' },
-    // West-bank picket cordon ? flush with the cliff at world y=60; water starts at y=82.
-    { x: 205, y: 210, width: 1, height: 20, type: 'wall', fill: 'fence' },
+    // West-bank picket cordon ? flush with the cliff at world y=60; last picket on the
+    // grass lip at world y=81, flush against the water at y=82 with no walkable gap.
+    { x: 205, y: 210, width: 1, height: 22, type: 'wall', fill: 'fence' },
     // Rocky-shore sand divide ? world (-40, 97); chest on west side at ~(-45, 97).
     { x: 110, y: 246, width: 1, height: 2, type: 'wall', fill: 'fence' },
     // Bypass plank bridge (~world -68, 66) ? horizontal pickets along cliff-spin bands north + south of the trail.
@@ -732,6 +742,14 @@ export const forestDef: MapDefinition = {
     // Cliff separator between the shortcut strip and the nearby enemy arena.
     // Covers roughly world (118,-15) through (123,20).
     { x: 268, y: 135, width: 6, height: 36, type: 'cliff_face' },
+    // East cliff cemetery overlook + Highlander's Grotto entrance (el2 ascent). Grass pocket carved
+    // into the east-ridge cliff mass; angled cave mouth in the east wall.
+    { x: 286, y: 127, width: 8, height: 9, type: 'clearing', fill: 'grass' },
+    { x: 294, y: 131, width: 1, height: 1, type: 'cave_mouth', caveAngled: true, interiorMap: 'interior_cliff_grotto', interiorSpawnX: 8, interiorSpawnY: 4 },
+
+    // Highlander's Plains north rim: solid cliff band along the top playable edge, world
+    // (80,139)-(144,144), closing the bare grass gap between the plains and the map border.
+    { x: 230, y: 289, width: 65, height: 6, type: 'cliff_face' },
 
     // --- EAST RIDGE ASCENT: optional winding descent into the empty cliff void SOUTH of the
     // ladder overlook (screen-up; larger tile-Y renders upward). Dead-end reward branch carved
@@ -789,8 +807,11 @@ export const forestDef: MapDefinition = {
     { x: 285, y: 140, width: 12, height: 10, type: 'clearing', fill: 'mossy_stone' },
     { x: 288, y: 143, width: 6, height: 4, type: 'clearing', fill: 'ruins_floor' },
 
-    // --- Rocky shelf south of entry (fills x:200-230, y:270-285) ---
-    { x: 200, y: 275, width: 18, height: 10, type: 'clearing', fill: 'stone' },
+    // --- Highlander's Plains quarry (world 50-67, 125-134) - replaces the old bare stone shelf.
+    // Same nested-terrace recipe as the SE dig site: rough rim -> worked floor -> cut pit.
+    { x: 200, y: 275, width: 18, height: 10, type: 'clearing', fill: 'quarry_bedrock' },
+    { x: 202, y: 277, width: 13, height: 6, type: 'clearing', fill: 'quarry_floor' },
+    { x: 205, y: 279, width: 7, height: 3, type: 'clearing', fill: 'cobblestone' },
 
     // --- Mossy ruins east of spine (x:170, y:130) ---
     { x: 172, y: 132, width: 10, height: 8, type: 'ruins' },
@@ -967,6 +988,8 @@ export const forestDef: MapDefinition = {
     { x: 33, y: 135, interactionId: 'hidden_grove_chest' },
     // Former interior_woodcutter_cottage loot (exterior prop only now).
     { x: 93, y: 177, interactionId: 'forest_woodcutter_chest' },
+    // Former interior_cottage_forest loot ??? cottage is now an unenterable vine-choked ruin.
+    { x: 176, y: 96, interactionId: 'forest_cottage_chest' },
     { x: 42, y: 38, interactionId: 'wolf_den_chest' },
     { x: 228, y: 244, interactionId: 'forest_lake_chest' },
     { x: 90, y: 230, interactionId: 'spider_chest' },
@@ -1148,6 +1171,7 @@ export const forestDef: MapDefinition = {
     { x: 177, y: 182, type: 'heresy_altar', walkable: false }, // world (27, 32) ? final cliff lookout
     { x: 107, y: 54, type: 'heresy_altar', walkable: false }, // world (-43, -96) ? corrupted west-cliff stair shelf
     { x: 279, y: 72, type: 'heresy_altar', walkable: false }, // world (129, -78) ? eastern Hollow edge grove
+    { x: 224, y: 237, type: 'heresy_altar', walkable: false }, // world (74, 87) - Highlander's Plains creek shelf
     { x: 263, y: 231, type: 'ridge_lumberyard', walkable: false }, // world (~113, 81) - ridge lumberyard remains
     { x: 278, y: 90, type: 'sign', walkable: false, interactionId: 'east_ridge_lumberyard_sign' },
     { x: 276, y: 162, type: 'bones_pile', walkable: false },
@@ -1160,6 +1184,8 @@ export const forestDef: MapDefinition = {
     { x: 114, y: 137, type: 'observatory', walkable: false },
     // SW spider-nest meadow landmark ? world (-95, 82)
     { x: 55, y: 231, type: 'windmill', walkable: false },
+    // Highlander's Plains landmark - lone mill on the open high grass, world (106, 118)
+    { x: 256, y: 268, type: 'windmill', walkable: false },
     // Lantern trail guiding player toward the Hollow bridge.
     { x: 122, y: 110, type: 'lantern', walkable: true },
     { x: 122, y: 106, type: 'lantern', walkable: true },
@@ -1744,6 +1770,18 @@ export const forestDef: MapDefinition = {
     { x: 222, y: 213, type: 'rock', walkable: false },
     { x: 218, y: 221, type: 'stump_b', walkable: false },
 
+    // --- Highlander's Plains quarry - abandoned high-grass dig: hoist, staged blocks, cart, spoil ---
+    { x: 202, y: 281, type: 'quarry_crane', walkable: false },     // shear-legs hoist on the NW rim
+    { x: 208, y: 277, type: 'cut_stone_blocks', walkable: false }, // staged blocks by the pit mouth
+    { x: 212, y: 281, type: 'cut_stone_blocks', walkable: false },
+    { x: 215, y: 279, type: 'quarry_cart', walkable: false },      // cart on the east haul-out
+    { x: 206, y: 280, type: 'quarry_tools', walkable: false },     // pickaxe driven into a block
+    { x: 204, y: 277, type: 'quarry_rubble', walkable: true },     // spoil heaps raked aside
+    { x: 210, y: 283, type: 'quarry_rubble', walkable: true },
+    { x: 201, y: 283, type: 'rock', walkable: false },             // unworked boulders at the rough rim
+    { x: 216, y: 276, type: 'rock', walkable: false },
+    { x: 214, y: 284, type: 'stump_b', walkable: false },
+
     // --- Cliff corridor ladder ??? gate prop removed; stairway now carves through the cliff ---
     // Lantern at the base of the cliff to draw the player's eye upward
     { x: 270, y: 123, type: 'lantern', walkable: false },
@@ -2039,6 +2077,10 @@ export const forestDef: MapDefinition = {
     // highest point of the optional climb. The el1->el2 step is crossed via a spinePath grass seam
     // where the north leg meets the field. ===
     { x: 256, y: 143, width: 10, height: 8, elevation: 2 },
+    // === TIER 2: East cliff cemetery overlook ??? a small grass pocket one layer above the
+    // cemetery shelf (el1), reached only by the south-face stairway carved below (world ~139,-10).
+    // Shifted 4 tiles down-screen (y 131->127) per playtest; south_face = 127 + 10 - 1 = 136. ===
+    { x: 286, y: 127, width: 8, height: 10, elevation: 2 },
     // === TIER 1: South-east rocky bluff ===
     { x: 200, y: 236, width: 28, height: 16, elevation: 1 },
     // === TIER 1: South-west rocky hill (near ruined shrine) ===
@@ -2078,6 +2120,13 @@ export const forestDef: MapDefinition = {
     // SE enchanted hills south: stairway removed ??? cliff runs unbroken across the full south face.
     // East ridge south face: zone {x:282,y:100,h:50}, south_face=149
     { x: 290, y: 149, width: 6, height: 4, elevation: 1 },
+    // East cliff cemetery overlook ascent: carves the south face of the el2 pocket
+    // {x:286,y:127,h:10} so the player climbs up from the el1 cemetery shelf at world ~139,-10.
+    // Because this is an ascent APPROACHED FROM BELOW, the steps must span the full cliff span the
+    // player walks through: cliff_edge (136) + 3 cliff tiles (137-139) + 2 sprite-buffer rows
+    // (140-141) = height 6, so the el1 floor at y142 connects straight onto the steps.
+    // elevation:2 matches the pocket; the connector permits the +1 step from the el1 floor.
+    { x: 288, y: 136, width: 4, height: 6, elevation: 2 },
     // South-east bluff south face: zone {x:200,y:236,h:16}, south_face=251
     { x: 209, y: 251, width: 8, height: 5, elevation: 0 },
     // South-west rocky hill south: zone {x:72,y:274,h:16}, south_face=289
@@ -2281,6 +2330,8 @@ export const forestDef: MapDefinition = {
     // Stone quarry ??? skeletons among the rubble (main pit + lower west shelf of the same dig)
     { x: 228, y: 205, width: 16, height: 12, enemyType: 'skeleton', count: 4 },
     { x: 213, y: 213, width: 13, height: 8, enemyType: 'skeleton', count: 2 },
+    // Highlander's Plains quarry - skeletons among the rubble, mirroring the SE dig site.
+    { x: 201, y: 276, width: 16, height: 8, enemyType: 'skeleton', count: 3 },
     // Logging camp ??? wolves prowl the cleared area. Pushed NE off the south entry
     // approach (world ~20,93 / tile 170,243) so Explorer Ulmund's teaching beat isn't
     // delivered mid-fight; pack now guards the camp proper deeper in.

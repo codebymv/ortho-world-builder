@@ -33,6 +33,7 @@ export function buildGameplayPreludeContext(options: BuildRuntimePhaseContextsOp
     getDirection8: options.getDirection8,
     dir8to4: options.dir8to4,
     performDodge: options.performDodge,
+    performBufferedAttack: options.performBufferedAttack,
     playFootstep: options.playFootstep,
     emitDust: options.emitDust,
     emitHeal: options.emitHeal,

@@ -89,7 +89,8 @@ function isStructuralWallTile(type: string | undefined): boolean {
     type === 'cliff' ||
     type === 'cliff_edge' ||
     type === 'cliff_corrupted' ||
-    type === 'cliff_edge_corrupted'
+    type === 'cliff_edge_corrupted' ||
+    type === 'cliff_edge_plains'
   );
 }
 
@@ -365,11 +366,16 @@ interface UpdatePlayerSimulationOptions {
   chargeTimeMin: number;
   chargeTimeMax: number;
   dodgeBuffered: boolean;
+  /** LMB pressed during a dodge roll - fires as the roll ends (TTL-expired upstream). */
+  attackBuffered: boolean;
   keys: Record<string, boolean>;
   visitedTiles: Set<string>;
   getDirection8: (x: number, y: number) => Direction8;
   dir8to4: (direction: string) => string;
-  performDodge: (moveX: number, moveY: number) => void;
+  /** Returns true when the dodge actually fired (cooldown/stamina gates passed). */
+  performDodge: (moveX: number, moveY: number) => boolean;
+  /** Fires a buffered roll→attack; null while gates still block it. */
+  performBufferedAttack: () => { frameDuration: number } | null;
   playFootstep: (isSprinting: boolean) => void;
   emitDust: (x: number, y: number) => void;
   emitHeal: (x: number, y: number, z: number) => void;
@@ -427,6 +433,7 @@ export interface PlayerSimulationResult {
   animTimer: number;
   animFrame: number;
   dodgeBuffered: boolean;
+  attackBuffered: boolean;
   comboStep: number;
   comboWindowTimer: number;
   comboInputBuffered: boolean;
@@ -461,11 +468,13 @@ export function updatePlayerSimulation({
   chargeTimeMin,
   chargeTimeMax,
   dodgeBuffered,
+  attackBuffered,
   keys,
   visitedTiles,
   getDirection8,
   dir8to4,
   performDodge,
+  performBufferedAttack,
   playFootstep,
   emitDust,
   emitHeal,
@@ -565,6 +574,7 @@ export function updatePlayerSimulation({
       animTimer,
       animFrame,
       dodgeBuffered,
+      attackBuffered,
       comboStep,
       comboWindowTimer,
       comboInputBuffered,
@@ -663,12 +673,17 @@ export function updatePlayerSimulation({
     moveY = 0;
     moved = false;
     dodgeBuffered = false;
+    attackBuffered = false;
     handledLadderDismount = true;
   }
 
   if (!handledLadderDismount && dodgeBuffered && !isBlocking && !state.player.isClimbing && playerAnimState !== 'lunge' && playerAnimState !== 'lunge_recovery' && !consumableUseBlocksLocomotion(playerAnimState, drinkTimer)) {
-    performDodge(moveX, moveY);
-    dodgeBuffered = false;
+    // Only consume the press when the dodge actually fires. Failed attempts
+    // (cooldown still ticking, stamina trough) keep the buffer alive so it
+    // retries each frame until the TTL in RuntimeFrameRunner expires it.
+    if (performDodge(moveX, moveY)) {
+      dodgeBuffered = false;
+    }
   }
 
   if (moveX !== 0 && moveY !== 0) {
@@ -885,6 +900,31 @@ export function updatePlayerSimulation({
       playerAnimState !== 'block'
     ) {
       playerAnimState = state.player.isClimbing ? 'climb' : 'idle';
+    }
+  }
+
+  // Roll→attack buffer: a press made mid-dodge fires the moment the roll ends
+  // (retrying through the post-roll attack cooldown until the TTL expires).
+  if (
+    attackBuffered &&
+    !state.player.isDodging &&
+    !isBlocking &&
+    !isChargingAttack &&
+    playerAnimState !== 'attack' &&
+    playerAnimState !== 'spin_attack' &&
+    playerAnimState !== 'lunge' &&
+    playerAnimState !== 'lunge_recovery' &&
+    !consumableUseBlocksLocomotion(playerAnimState, drinkTimer) &&
+    !state.player.isClimbing
+  ) {
+    const buffered = performBufferedAttack();
+    if (buffered) {
+      attackBuffered = false;
+      playerAnimState = 'attack';
+      attackFrame = 0;
+      attackFrameTimer = buffered.frameDuration;
+      comboStep = 0;
+      comboWindowTimer = 0;
     }
   }
 
@@ -1144,6 +1184,7 @@ export function updatePlayerSimulation({
     animTimer,
     animFrame,
     dodgeBuffered,
+    attackBuffered,
     comboStep,
     comboWindowTimer,
     comboInputBuffered,

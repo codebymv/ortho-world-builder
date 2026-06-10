@@ -1275,7 +1275,7 @@ const Game = () => {
     return (
       <>
         <MainMenu
-          onContinue={() => prepareGameplayBoot('Restoring your last bonfire...')}
+          onContinue={() => prepareGameplayBoot('Restoring last bonfire...')}
           onNewGame={() => {
             SaveManager.clearSave();
             setGameKey(prev => prev + 1);
@@ -1329,18 +1329,6 @@ const Game = () => {
             interactionPrompt={interactionPrompt}
             activeQuestCount={activeQuests.length}
           />
-          {transitionDebugEnabled && (
-            <div className="fixed left-4 top-16 z-[80] max-w-md border border-[#5C3A21] bg-[#1A0F0A]/92 p-2 text-[11px] text-[#F5DEB3] shadow-lg pointer-events-none">
-              <div className="font-bold text-[#FFD27A]">TRANSITION DEBUG (V)</div>
-              {transitionDebugLines.length > 0 ? (
-                transitionDebugLines.map((line, idx) => (
-                  <div key={`td-${idx}`} className="font-mono leading-4">{line}</div>
-                ))
-              ) : (
-                <div className="font-mono leading-4 text-[#C8B18A]">No nearby transitions in scan radius.</div>
-              )}
-            </div>
-          )}
           {collisionDebugEnabled && collisionDebugSnapshot && (
             <div className="fixed left-4 top-56 z-[80] w-[25rem] border border-[#2A4A2A] bg-[#081208]/92 p-2 text-[11px] text-[#D7F7D7] shadow-lg pointer-events-none">
               <div className="font-bold text-[#9CFF9C]">COLLISION DEBUG (B)</div>

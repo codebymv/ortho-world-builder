@@ -65,7 +65,7 @@ export class AssetManager {
    * green-white motion streaks that arc gently upward to the right (the gust's travel direction),
    * tapered to nothing at both ends.
    */
-  createWindGustTexture(width = 32, height = 32): THREE.Texture {
+  createWindGustTexture(width = 32, height = 32, streakRgb: [number, number, number] = [236, 248, 232]): THREE.Texture {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -76,6 +76,7 @@ export class AssetManager {
       { x0: 3, len: 26, cy: 16, alpha: 0.62 },
       { x0: 9, len: 15, cy: 22, alpha: 0.42 },
     ];
+    const [sr, sg, sb] = streakRgb;
     for (const s of streaks) {
       for (let i = 0; i < s.len; i++) {
         const x = s.x0 + i;
@@ -83,7 +84,7 @@ export class AssetManager {
         const t = i / s.len;
         const edge = Math.sin(t * Math.PI); // soft taper at both ends of the streak
         const y = Math.round(s.cy - t * 2.5); // gentle upward arc toward the leading edge
-        ctx.fillStyle = `rgba(236, 248, 232, ${s.alpha * edge})`;
+        ctx.fillStyle = `rgba(${sr}, ${sg}, ${sb}, ${s.alpha * edge})`;
         ctx.fillRect(x, y, 1, 1);
       }
     }
@@ -5018,6 +5019,8 @@ export class AssetManager {
     this.registerTexture('water_ripple', () => this.createWaterRippleTexture());
     // Transient idle wind gust (a soft swoosh of motion streaks) spawned occasionally on grass/trees.
     this.registerTexture('wind_gust', () => this.createWindGustTexture());
+    // Straw-tinted gust for the sun-dried Highlander's Plains (same streak art, warmer color).
+    this.registerTexture('wind_gust_plains', () => this.createWindGustTexture(32, 32, [244, 238, 196]));
     registerColorTexture('stone', 0x6E7B85, 32, 32, 'gradient');
     registerColorTexture('wood', 0x795548, 32, 32, 'gradient');
     // Tall grass - a fanning clump of reed blades (full-height, dark base tuft) that stands up
@@ -5050,6 +5053,30 @@ export class AssetManager {
       this.registerTexture('tall_grass', () => this.createSpriteTexture(BASE_TALL_GRASS, 4, 'tall_grass'));
       this.registerTexture('tall_grass_b', () => this.createTallGrassVariantTexture(BASE_TALL_GRASS, 1));
       this.registerTexture('tall_grass_c', () => this.createTallGrassVariantTexture(BASE_TALL_GRASS, 2));
+    }
+    // Highlander's Plains - sun-dried ground (yellow-shifted grass) plus a knee-high straw tuft.
+    // The tuft is pure walkable decor: shorter and sparser than the breakable tall_grass reed walls
+    // so the open plain still reads as traversable at a glance.
+    registerColorTexture('plains_grass', 0x86B14E, 32, 32, 'noise');
+    {
+      const PG_DK = 0x6E7A30; // shaded base blade
+      const PG_MD = 0xA3A848; // mid straw-green
+      const PG_LT = 0xC4C268; // lit blade
+      const PG_TP = 0xE3DA8E; // pale sun-bleached tip
+      const X = C;
+      registerSpriteTexture('plains_grass_tall', [
+        [X,    X,    X,    X,    PG_TP,X,    X,    X,    X,    X,    PG_TP,X,    X,    X,    X,    X    ],
+        [X,    X,    X,    X,    PG_LT,X,    X,    PG_TP,X,    X,    PG_LT,X,    X,    X,    X,    X    ],
+        [X,    X,    PG_TP,X,    PG_LT,X,    X,    PG_LT,X,    X,    PG_MD,X,    X,    PG_TP,X,    X    ],
+        [X,    X,    PG_LT,X,    PG_MD,PG_TP,X,    PG_MD,X,    PG_TP,PG_MD,X,    X,    PG_LT,X,    X    ],
+        [X,    X,    PG_MD,X,    PG_MD,PG_LT,X,    PG_MD,PG_LT,PG_LT,PG_MD,X,    PG_TP,PG_MD,X,    X    ],
+        [X,    X,    PG_MD,PG_TP,PG_MD,PG_MD,PG_TP,PG_MD,PG_MD,PG_MD,PG_MD,X,    PG_LT,PG_MD,X,    X    ],
+        [X,    X,    PG_MD,PG_LT,PG_MD,PG_MD,PG_LT,PG_MD,PG_MD,PG_MD,PG_MD,PG_LT,PG_MD,PG_MD,X,    X    ],
+        [X,    X,    X,    PG_MD,PG_MD,PG_MD,PG_MD,PG_MD,PG_LT,PG_MD,PG_MD,PG_MD,PG_MD,X,    X,    X    ],
+        [X,    X,    X,    PG_DK,PG_MD,PG_MD,PG_MD,PG_MD,PG_MD,PG_MD,PG_MD,PG_MD,PG_DK,X,    X,    X    ],
+        [X,    X,    X,    PG_DK,PG_DK,PG_MD,PG_MD,PG_MD,PG_MD,PG_MD,PG_DK,PG_DK,X,    X,    X,    X    ],
+        [X,    X,    X,    X,    PG_DK,PG_DK,PG_DK,PG_DK,PG_DK,PG_DK,PG_DK,X,    X,    X,    X,    X    ],
+      ]);
     }
     registerColorTexture('sand', 0xF5DEB3, 32, 32, 'noise');
     registerColorTexture('swamp', 0x556B2F, 32, 32, 'noise');
@@ -5208,6 +5235,29 @@ export class AssetManager {
       [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
       [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
       // rows 14-15: base shadow
+      [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
+      [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
+    ]);
+
+    // cliff_edge_plains: identical rock face to cliff_edge, but the grass cap is yellow-shifted
+    // to sit on the sun-dried Highlander's Plains ground (plains_grass 0x86B14E) without a seam.
+    const PLAINS_CAP   = 0xAECB72; // sun-dried cap (yellow analog of CLIFF_GRASS)
+    const PLAINS_CAP_D = 0x70903B; // dark cap edge (yellow analog of CLIFF_GRASS_D)
+    registerSpriteTexture('cliff_edge_plains', [
+      [PLAINS_CAP,PLAINS_CAP,PLAINS_CAP_D,PLAINS_CAP,PLAINS_CAP,PLAINS_CAP,PLAINS_CAP_D,PLAINS_CAP,PLAINS_CAP,PLAINS_CAP,PLAINS_CAP_D,PLAINS_CAP],
+      [PLAINS_CAP,PLAINS_CAP_D,PLAINS_CAP,PLAINS_CAP,PLAINS_CAP_D,PLAINS_CAP,PLAINS_CAP,PLAINS_CAP_D,PLAINS_CAP,PLAINS_CAP,PLAINS_CAP,PLAINS_CAP_D],
+      [PLAINS_CAP,PLAINS_CAP,PLAINS_CAP_D,PLAINS_CAP,PLAINS_CAP,PLAINS_CAP_D,PLAINS_CAP,PLAINS_CAP,PLAINS_CAP_D,PLAINS_CAP,PLAINS_CAP,PLAINS_CAP],
+      [CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL,CLIFF_SOIL],
+      [CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM,CLIFF_TOP_RIM],
+      [CL,CL,CL,CL,CL,CL,CL,CL,CL,CL,CL,CL],
+      [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
+      [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
+      [CL,CL,CM,CL,CL,CM,CL,CM,CL,CL,CM,CL],
+      [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
+      [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
+      [CL,CM,CL,CL,CL,CM,CL,CL,CM,CL,CL,CL],
+      [CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM,CM],
+      [CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD,CD],
       [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
       [CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS,CS],
     ]);
@@ -6705,6 +6755,22 @@ export class AssetManager {
     const FK_SH = 0x90A4AE;  // iron highlight
     const FK_S  = 0x607D8B;  // iron mid
     const FK_SD = 0x37474F;  // iron dark
+    // Padlock overlay for key-gated fort / Highlander's Plains gates (closed state only).
+    const GL_G = 0xC9A227;
+    const GL_D = 0x8A6B12;
+    const GL_S = 0x5C4608;
+    const GL_H = 0xF0D060;
+    registerSpriteTexture('gate_padlock', [
+      [C,    C,    GL_G, GL_G, GL_G, GL_G, C,    C   ],
+      [C,    GL_G, GL_H, GL_G, GL_G, GL_H, GL_G, C   ],
+      [GL_G, GL_H, GL_G, GL_G, GL_G, GL_G, GL_H, GL_G],
+      [GL_G, GL_G, GL_G, GL_S, GL_S, GL_G, GL_G, GL_G],
+      [GL_D, GL_G, GL_S, C,    C,    GL_S, GL_G, GL_D],
+      [GL_D, GL_G, GL_S, C,    C,    GL_S, GL_G, GL_D],
+      [C,    GL_D, GL_G, GL_G, GL_G, GL_G, GL_D, C   ],
+      [C,    C,    GL_D, GL_D, GL_D, GL_D, C,    C   ],
+    ], 3);
+
     registerSpriteTexture('fort_gate_key', [
       // Ring / bow (rows 0-4) â€” hollow oval
       [C,     FK_GH, FK_G,  FK_GD, FK_GD, FK_G,  FK_GH, C   ],
@@ -6720,6 +6786,30 @@ export class AssetManager {
       [C,     C,     C,     FK_SH, FK_SD, FK_SH, C,     C   ],  // tooth 2
       [C,     C,     C,     FK_SH, FK_SD, C,     C,     C   ],
       [C,     C,     C,     C,     FK_SD, C,     C,     C   ],  // tip
+    ], 4);
+
+    // Highlander's Key - a humble rusted key: all worn iron/rust, no gold, fewer teeth.
+    const HK_RH = 0xA98054;  // rust highlight
+    const HK_R  = 0x7E5C32;  // rust mid
+    const HK_RD = 0x4F381C;  // rust dark
+    const HK_SH = 0x8A7860;  // pitted-iron highlight
+    const HK_S  = 0x615341;  // pitted-iron mid
+    const HK_SD = 0x3B3122;  // pitted-iron dark
+    registerSpriteTexture('highlanders_key', [
+      // Ring / bow (rows 0-4) - hollow oval, rusted
+      [C,     HK_RH, HK_R,  HK_RD, HK_RD, HK_R,  HK_RH, C   ],
+      [HK_RH, HK_R,  C,     C,     C,     C,     HK_R,  C   ],
+      [HK_R,  HK_RD, C,     C,     C,     C,     HK_RD, HK_R],
+      [HK_RH, HK_R,  C,     C,     C,     C,     HK_R,  C   ],
+      [C,     HK_RH, HK_R,  HK_RD, HK_RD, HK_R,  HK_RH, C   ],
+      // Shaft (rows 5-11) at columns 3-4
+      [C,     C,     C,     HK_SH, HK_SD, C,     C,     C   ],
+      [C,     C,     C,     HK_SH, HK_SD, C,     C,     C   ],
+      [C,     C,     C,     HK_SH, HK_SD, HK_SH, C,     C   ],  // single tooth
+      [C,     C,     C,     HK_SH, HK_SD, C,     C,     C   ],
+      [C,     C,     C,     HK_SH, HK_SD, C,     C,     C   ],
+      [C,     C,     C,     HK_S,  HK_SD, C,     C,     C   ],
+      [C,     C,     C,     C,     HK_SD, C,     C,     C   ],  // tip
     ], 4);
 
     const MAP_PAPER = 0xEAD7A8;
@@ -8286,6 +8376,23 @@ export class AssetManager {
       [CV_D, CV_S, CV_R, CV_S, CV_V, CV_VD,CV_VD,CV_V, CV_S, CV_R, CV_S, CV_D],
       [C,    CV_D, CV_S, CV_R, CV_S, CV_V, CV_V, CV_S, CV_R, CV_S, CV_D, C   ],
       [C,    C,    CV_D, CV_S, CV_R, CV_R, CV_R, CV_R, CV_S, CV_D, C,    C   ],
+    ]);
+
+    // Angled/side cave mouth: asymmetric so it reads on a left/right-facing cliff wall. The dark
+    // opening is biased to the LEFT (faces a patch on the wall's left) with the rock body thickening
+    // to the RIGHT, suggesting depth receding into the cliff. Mirror it (flip X) to face the other way.
+    registerSpriteTexture('cave_mouth_angled', [
+      [C,    C,    CV_S, CV_R, CV_R, CV_H, CV_R, CV_R, CV_R, CV_R, CV_S, C   ],
+      [C,    CV_S, CV_R, CV_H, CV_R, CV_M, CV_R, CV_H, CV_R, CV_R, CV_R, CV_S],
+      [CV_S, CV_R, CV_H, CV_V, CV_V, CV_V, CV_M, CV_R, CV_H, CV_R, CV_R, CV_S],
+      [CV_R, CV_H, CV_V, CV_VD,CV_VD,CV_V, CV_M, CV_H, CV_R, CV_R, CV_H, CV_R],
+      [CV_R, CV_M, CV_VD,CV_VD,CV_VD,CV_VD,CV_V, CV_M, CV_R, CV_H, CV_R, CV_R],
+      [CV_R, CV_M, CV_VD,CV_VD,CV_VD,CV_VD,CV_V, CV_M, CV_R, CV_H, CV_R, CV_R],
+      [CV_R, CV_M, CV_VD,CV_VD,CV_VD,CV_V, CV_M, CV_R, CV_H, CV_R, CV_R, CV_S],
+      [CV_S, CV_R, CV_V, CV_VD,CV_V, CV_M, CV_R, CV_H, CV_R, CV_R, CV_S, C   ],
+      [CV_D, CV_S, CV_R, CV_V, CV_M, CV_R, CV_H, CV_R, CV_R, CV_S, CV_D, C   ],
+      [C,    CV_D, CV_S, CV_R, CV_R, CV_R, CV_R, CV_R, CV_S, CV_D, C,    C   ],
+      [C,    C,    CV_D, CV_S, CV_R, CV_R, CV_R, CV_S, CV_D, C,    C,    C   ],
     ]);
     }
   }

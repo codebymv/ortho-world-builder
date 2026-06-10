@@ -30,6 +30,7 @@ export type KnownGameFlag =
   | 'forest_golem_defeated'
   | 'forest_kill_count'
   | 'grove_shelf_shortcut_open'
+  | 'highlanders_plains_gate_open'
   | 'quarry_bank_shortcut_open'
   | 'west_lake_bridge_plank_extended'
   | 'west_cliff_gate_open'

@@ -41,6 +41,7 @@ interface PointerInputOptions {
   setLmbHoldStartTime: (value: number) => void;
   chargeTimeMin: number;
   getComboWindowTimer: () => number;
+  setAttackBuffered: (value: boolean) => void;
 }
 
 export function createPointerInputController({
@@ -69,6 +70,7 @@ export function createPointerInputController({
   setLmbHoldStartTime,
   chargeTimeMin,
   getComboWindowTimer,
+  setAttackBuffered,
 }: PointerInputOptions) {
   let chargeStartTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -112,7 +114,14 @@ export function createPointerInputController({
     if (pausedRef.current || mapModalOpenRef.current || playerDeadRef.current) return;
 
     if (e.button === 0) {
-      if (!state.dialogueActive && !state.player.isDodging && !state.player.isClimbing) {
+      if (!state.dialogueActive && !state.player.isClimbing) {
+        // Mid-dodge: buffer the press so the simulation can fire it the moment
+        // the roll ends (Souls-style roll→attack). TTL-expired in the frame runner.
+        if (state.player.isDodging) {
+          setAttackBuffered(true);
+          return;
+        }
+
         const currentTime = performance.now();
         const playerAnimState = getPlayerAnimState();
 
@@ -124,11 +133,10 @@ export function createPointerInputController({
         }
 
         // In the combo chain window (after animation ends, before window expires):
-        // register the mousedown so mouseup can call performAttack for the chain.
-        // Bypass the attackCooldown gate since the chain has its own timing logic.
+        // chain immediately on mousedown. Deferring to mouseup used to drop the
+        // press entirely because no charge state was active when the button rose.
         if (getComboWindowTimer() > 0) {
-          setIsLmbHeld(true);
-          setLmbHoldStartTime(currentTime);
+          performAttack();
           return;
         }
 

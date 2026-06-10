@@ -65,7 +65,10 @@ export interface GameplayPreludeContext {
   visitedTiles: Set<string>;
   getDirection8: (x: number, y: number) => Direction8;
   dir8to4: (direction: string) => string;
-  performDodge: (moveX: number, moveY: number) => void;
+  /** Returns true when the dodge actually fired (cooldown/stamina gates passed). */
+  performDodge: (moveX: number, moveY: number) => boolean;
+  /** Fires an attack press buffered during a dodge roll; null while gates still block it. */
+  performBufferedAttack: () => { frameDuration: number } | null;
   playFootstep: (isSprinting: boolean) => void;
   emitDust: (x: number, y: number) => void;
   emitHeal: (x: number, y: number, z: number) => void;

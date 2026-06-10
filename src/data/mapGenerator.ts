@@ -101,6 +101,8 @@ export interface MapFeature {
   /** cave_mouth only: when true the mouth is the interior's EXIT (interactionId 'building_exit')
    *  rather than an entrance ('building_entrance'). Both are interact-to-use. */
   caveExit?: boolean;
+  /** cave_mouth only: use the angled/side-facing sprite (for openings on a left/right cliff wall). */
+  caveAngled?: boolean;
 }
 
 export interface MapDefinition {
@@ -2033,7 +2035,7 @@ function placeCaveMouth(tiles: Tile[][], f: MapFeature) {
   if (cy < 0 || cy >= tiles.length || cx < 0 || cx >= tiles[0].length) return;
   const existing = tiles[cy][cx];
   const transition = { targetMap: f.interiorMap, targetX: f.interiorSpawnX, targetY: f.interiorSpawnY };
-  tiles[cy][cx] = createTile('cave_mouth', true, {
+  tiles[cy][cx] = createTile(f.caveAngled ? 'cave_mouth_angled' : 'cave_mouth', true, {
     elevation: existing.elevation,
     transition,
     interactable: true,
@@ -4086,6 +4088,172 @@ function scrubWhisperingWoodsQuarryBankShortcutLiveTrees(tiles: Tile[][], def: M
   }
 }
 
+function enforceWhisperingWoodsEastCreekShoreGate(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // East creek north-shore picket gate at world (101,87) / tile (251,237). Closed gate panels
+  // (walkable: false, key-gated) are applied at runtime by syncEastCreekShoreGateState.
+
+  // Clear the live trees crowding the gate mouth so the opening reads cleanly.
+  for (let ty = 235; ty <= 239; ty++) {
+    for (let tx = 248; tx <= 254; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.type !== 'tree' || t.transition || t.interactable) continue;
+      tiles[ty][tx] = createTile('grass', true, { elevation: t.elevation ?? 0 });
+    }
+  }
+}
+
+function applyWhisperingWoodsHighlanderPlainsBiome(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // Highlander's Plains - everything north of the east creek picket fence (world y 87..144,
+  // x 45..144 / tiles y 238..294, x 195..294). Retint plain grass to the sun-dried plains tone
+  // and scatter knee-high straw tufts (walkable decor, not the breakable tall_grass walls).
+  const Y0 = 238, Y1 = 294;
+  const X0 = 195, X1 = 294;
+  // Speckled border blend (same recipe as placeBridgeDecayBlend): instead of a hard biome line at
+  // the south fence row / west open edge, plains coverage ramps in over ~4 tiles of depth inside
+  // the region AND spills ~2 tiles out into the forest grass, with a deterministic multi-octave
+  // speckle, so the two grasses interleave across a wide, obvious transition band.
+  const BLEND_DEPTH = 4; // ramp depth inside the region
+  const BLEND_OUTSET = 4; // plains speckles spill well past the border into the forest side
+  for (let ty = Y0 - BLEND_OUTSET; ty <= Y1; ty++) {
+    for (let tx = X0 - BLEND_OUTSET; tx <= X1; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.transition || t.interactable) continue;
+      const insideRegion = ty >= Y0 && tx >= X0;
+      // Cliff caps inside the plains get the yellow-shifted edge art so the band matches the ground.
+      if (t.type === 'cliff_edge') {
+        if (insideRegion) tiles[ty][tx] = { ...t, type: 'cliff_edge_plains' };
+        continue;
+      }
+      if (t.type !== 'grass') continue;
+
+      // Signed depth from the nearest open border (south fence line, west edge); negative in the
+      // forest-side outset band. North/east are map edges - no transition to blend against.
+      const depth = Math.min(ty - Y0, tx - X0);
+      if (depth < BLEND_DEPTH) {
+        // Linear ramp across the full band (outset..depth) with a strong speckle so coverage
+        // disperses from ~5% two tiles into the forest up to ~95% four tiles into the plains.
+        const ramp = (depth + BLEND_OUTSET + 1) / (BLEND_DEPTH + BLEND_OUTSET);
+        const h1 = bridgeDecayHash01(tx, ty, 21);
+        const h2 = bridgeDecayHash01(tx + 3, ty - 2, 27);
+        const h3 = bridgeDecayHash01(tx - 1, ty + 5, 33);
+        const speckle = (h1 - 0.5) * 0.55 + (h2 - 0.5) * 0.3 + (h3 - 0.5) * 0.2;
+        if (ramp + speckle <= 0.5) continue; // stays forest grass
+      }
+
+      if (!t.walkable) {
+        // Unwalkable bare grass here is an invisible prop foundation (windmill base, etc.) or a
+        // cliff-sprite buffer stamped before this pass. Keep its collision and flags but retint
+        // the ground so it doesn't read as a bright forest-grass rectangle on the plains.
+        tiles[ty][tx] = { ...t, type: 'plains_grass' };
+        continue;
+      }
+
+      // Keep the gate mouth clear so the opening stays readable from both sides.
+      const nearGateMouth = ty <= 240 && tx >= 248 && tx <= 254;
+      // Deterministic coordinate hash - ~8% tuft coverage, stable across regenerations.
+      const hash = ((tx * 73856093) ^ (ty * 19349663)) >>> 0;
+      const tuft = !nearGateMouth && hash % 100 < 8;
+      tiles[ty][tx] = createTile(tuft ? 'plains_grass_tall' : 'plains_grass', true, {
+        elevation: t.elevation ?? 0,
+      });
+    }
+  }
+}
+
+function scrubWhisperingWoodsPlainsCliffBufferBoxes(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // World (55,99)/(56,99): applySouthCliffSpriteWalkabilityBuffer left two unwalkable grass tiles
+  // two rows clear of the cliff band's art, and the plains biome pass skips unwalkable grass - so
+  // they read as a phantom collision box on a stray bright-green patch. Restore them as open
+  // plains ground.
+  for (const { tx, ty } of [{ tx: 205, ty: 249 }, { tx: 206, ty: 249 }]) {
+    const t = tiles[ty]?.[tx];
+    if (!t || t.walkable || t.type !== 'grass') continue;
+    tiles[ty][tx] = createTile('plains_grass', true, { elevation: t.elevation ?? 0 });
+  }
+}
+
+function sealWhisperingWoodsPlainsNorthRimGap(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // Rows ty 287-288 (world y 137-138) between the plains north cliff band and the authored
+  // north-rim cliff_face are leftover sprite-buffer tiles: unwalkable grass that is covered by
+  // the band's tall art in-world but reads as a walkable green strip on the minimap. Type them
+  // as cliff body so the rim renders as one solid mass. Genuinely walkable tiles (the east
+  // map-edge corridor at tx 292-293 and the open west fringe) are left untouched.
+  for (let ty = 287; ty <= 288; ty++) {
+    for (let tx = 230; tx <= 291; tx++) {
+      const t = tiles[ty]?.[tx];
+      if (!t || t.transition || t.interactable || t.walkable) continue;
+      tiles[ty][tx] = createTile('cliff', false, { elevation: t.elevation ?? 0 });
+    }
+  }
+}
+
+function enforceWhisperingWoodsPlainsWestSlope(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // Where high plains shelves (el1) meet lower fields (el0) along bare grass columns, keep the
+  // boundary open: mark both columns as spinePath so the player walks the gentle rise anywhere
+  // along the line (same mechanism as authored dirt spines) instead of hitting an invisible
+  // wall or a stamped cliff face.
+  const slopeStrips: Array<{ y0: number; y1: number; cols: [number, number] }> = [
+    { y0: 251, y1: 282, cols: [229, 230] }, // world (80,101)-(80,132) - east high plains west face
+    { y0: 242, y1: 251, cols: [199, 200] }, // world (50,92)-(50,101) - lakeside shelf west face
+    { y0: 238, y1: 288, cols: [291, 292] }, // world (142,88)-(142,138) - east map-edge corridor face
+  ];
+  for (const { y0, y1, cols } of slopeStrips) {
+    for (let ty = y0; ty <= y1; ty++) {
+      for (const tx of cols) {
+        const t = tiles[ty]?.[tx];
+        if (!t || !t.walkable || t.transition || t.interactable) continue;
+        if (t.type !== 'plains_grass' && t.type !== 'plains_grass_tall' && t.type !== 'grass') continue;
+        tiles[ty][tx] = { ...t, spinePath: true };
+      }
+    }
+  }
+}
+
+function enforceWhisperingWoodsPlainsShelfLipElevation(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // Plains shelf lip rows directly north of cliff_edge bands: isolated walkable e0 potholes
+  // inside an otherwise e1 row (seen at world 52,100 / 57,100, and on the high-plains south lip
+  // at y=282) render as sunken one-tile seam columns and block +/-1 elevation crossing.
+  // Raise any such dip to match its e1 neighbors.
+  const lipRows: Array<{ ty: number; x0: number; x1: number }> = [
+    { ty: 250, x0: 200, x1: 212 }, // SE bluff lip (world y=100)
+    { ty: 282, x0: 231, x1: 291 }, // high-plains south lip (world y=132)
+  ];
+  const isLipPothole = (ty: number, tx: number): boolean => {
+    const t = tiles[ty]?.[tx];
+    return !!t && t.walkable && !t.transition && !t.interactable && (t.elevation ?? 0) === 0;
+  };
+  for (const { ty, x0, x1 } of lipRows) {
+    for (let tx = x0; tx <= x1; tx++) {
+      if (!isLipPothole(ty, tx)) continue;
+      // Maximal run of e0 tiles starting here; raise short runs (<=4) flanked by e1 on both ends.
+      let runEnd = tx;
+      while (runEnd + 1 <= x1 && isLipPothole(ty, runEnd + 1)) runEnd++;
+      const west = tiles[ty][tx - 1];
+      const east = tiles[ty][runEnd + 1];
+      if (runEnd - tx < 4 && (west?.elevation ?? 0) === 1 && (east?.elevation ?? 0) === 1) {
+        for (let rx = tx; rx <= runEnd; rx++) {
+          tiles[ty][rx] = { ...tiles[ty][rx], elevation: 1 };
+        }
+      }
+      tx = runEnd;
+    }
+  }
+}
+
 function scrubWhisperingWoodsPrecipiceWestRitualDeadTrees(tiles: Tile[][], def: MapDefinition) {
   if (def.name !== 'Whispering Woods') return;
 
@@ -5050,6 +5218,12 @@ export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
   scrubWhisperingWoodsPrecipiceReserveLiveTrees(tiles, def);
   scrubWhisperingWoodsPrecipiceWestPocketLiveTrees(tiles, def);
   scrubWhisperingWoodsQuarryBankShortcutLiveTrees(tiles, def);
+  enforceWhisperingWoodsEastCreekShoreGate(tiles, def);
+  applyWhisperingWoodsHighlanderPlainsBiome(tiles, def);
+  enforceWhisperingWoodsPlainsShelfLipElevation(tiles, def);
+  scrubWhisperingWoodsPlainsCliffBufferBoxes(tiles, def);
+  sealWhisperingWoodsPlainsNorthRimGap(tiles, def);
+  enforceWhisperingWoodsPlainsWestSlope(tiles, def);
   scrubWhisperingWoodsPrecipiceWestRitualDeadTrees(tiles, def);
   enforceWhisperingWoodsPrecipiceReserveWestLip(tiles, def);
   enforceWhisperingWoodsPrecipiceReserveCliffBites(tiles, def);

@@ -60,6 +60,7 @@ interface RuntimeActionPhaseOptions {
   syncQuarryBankShortcutState: () => void;
   syncWestLakeBridgePlankState: () => void;
   syncWestCliffGateState: () => void;
+  syncEastCreekShoreGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncEastHollowRouteGateState: () => void;
@@ -141,6 +142,7 @@ export function setupRuntimeActionPhase({
   syncQuarryBankShortcutState,
   syncWestLakeBridgePlankState,
   syncWestCliffGateState,
+  syncEastCreekShoreGateState,
   syncRiversideBridgeShortcutState,
   syncHollowShortcutState,
   syncEastHollowRouteGateState,
@@ -260,7 +262,7 @@ export function setupRuntimeActionPhase({
     getIsConsuming: () => runtimeSession.animation.drinkTimer > 0,
   });
 
-  const { onEnemyKilled, performAttack, performChargeAttack, triggerComboChain } = createRuntimeCombatActions({
+  const { onEnemyKilled, performAttack, performBufferedAttack, performChargeAttack, triggerComboChain } = createRuntimeCombatActions({
     state,
     world,
     visitedTilesRef,
@@ -417,6 +419,7 @@ export function setupRuntimeActionPhase({
     syncQuarryBankShortcutState,
     syncWestLakeBridgePlankState,
     syncWestCliffGateState,
+    syncEastCreekShoreGateState,
     syncRiversideBridgeShortcutState,
     syncHollowShortcutState,
     syncEastHollowRouteGateState,
@@ -588,6 +591,7 @@ export function setupRuntimeActionPhase({
     checkInteraction,
     performDodge,
     performAttack,
+    performBufferedAttack,
     performChargeAttack,
     triggerComboChain,
     onEnemyKilled,

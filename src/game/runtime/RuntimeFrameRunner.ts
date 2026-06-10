@@ -9,6 +9,12 @@ import type { GameState } from '@/lib/game/GameState';
 import type { ParticleSystem } from '@/lib/game/ParticleSystem';
 import type { PerfProfiler, PerfStatsInput } from '@/game/runtime/PerfProfiler';
 
+// Input-buffer TTLs (wall-clock ms). Buffered presses retry every frame while
+// gates (cooldown/stamina/state) block them, then expire - Souls-style grace
+// instead of consume-and-drop, without firing seconds-stale inputs.
+const DODGE_BUFFER_TTL_MS = 250;
+const ATTACK_BUFFER_TTL_MS = 450; // covers the remainder of a roll + post-roll attack cooldown
+
 interface RunRuntimeFrameOptions {
   runtimeSession: RuntimeSessionState;
   phaseContexts: RuntimePhaseContexts;
@@ -110,6 +116,14 @@ export function runRuntimeFrame({
 
   const { deltaTime } = frameState;
 
+  const input = runtimeSession.input;
+  if (input.dodgeBuffered && currentTime - input.dodgeBufferedAt > DODGE_BUFFER_TTL_MS) {
+    input.dodgeBuffered = false;
+  }
+  if (input.attackBuffered && currentTime - input.attackBufferedAt > ATTACK_BUFFER_TTL_MS) {
+    input.attackBuffered = false;
+  }
+
   const preludeOpts = phaseContexts.gameplayPreludeContext as RunGameplayPreludeOptions;
   preludeOpts.currentTime = currentTime;
   preludeOpts.deltaTime = deltaTime;
@@ -133,6 +147,7 @@ export function runRuntimeFrame({
   preludeOpts.animTimer = runtimeSession.animation.animTimer;
   preludeOpts.animFrame = runtimeSession.animation.animFrame;
   preludeOpts.dodgeBuffered = runtimeSession.input.dodgeBuffered;
+  preludeOpts.attackBuffered = runtimeSession.input.attackBuffered;
   preludeOpts.comboStep = runtimeSession.animation.comboStep;
   preludeOpts.comboWindowTimer = runtimeSession.animation.comboWindowTimer;
   preludeOpts.comboInputBuffered = runtimeSession.input.comboInputBuffered;
@@ -160,6 +175,7 @@ export function runRuntimeFrame({
   runtimeSession.animation.animTimer = preludeState.animTimer;
   runtimeSession.animation.animFrame = preludeState.animFrame;
   runtimeSession.input.dodgeBuffered = preludeState.dodgeBuffered;
+  runtimeSession.input.attackBuffered = preludeState.attackBuffered;
   runtimeSession.animation.comboStep = preludeState.comboStep;
   runtimeSession.animation.comboWindowTimer = preludeState.comboWindowTimer;
   runtimeSession.input.comboInputBuffered = preludeState.comboInputBuffered;

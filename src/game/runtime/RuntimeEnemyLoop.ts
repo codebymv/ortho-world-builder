@@ -37,10 +37,13 @@ function getProjectileVisualScale(sprite: string): { x: number; y: number } {
   return { x: 0.55, y: 0.55 };
 }
 
-function getPlantLashProgress(enemy: { state: string; telegraphTimer: number; telegraphDuration: number; attackAnimationTimer: number }): number {
+function getPlantLashProgress(enemy: { state: string; telegraphTimer: number; telegraphDuration: number; telegraphTotal: number; attackAnimationTimer: number }): number {
   if (enemy.state === 'telegraphing') {
-    const raw = enemy.telegraphDuration > 0
-      ? 1 - enemy.telegraphTimer / enemy.telegraphDuration
+    // Normalize against the actual variance-rolled windup so the lash snap
+    // lands exactly when the hit resolves.
+    const windup = enemy.telegraphTotal > 0 ? enemy.telegraphTotal : enemy.telegraphDuration;
+    const raw = windup > 0
+      ? Math.min(1, Math.max(0, 1 - enemy.telegraphTimer / windup))
       : 1;
     if (raw < 0.68) return 0;
     const snap = (raw - 0.68) / 0.32;
@@ -786,8 +789,9 @@ export function runEnemyLoop({
         aura.push(armMesh);
         registry.auxMeshes.set(enemy.id, aura);
       }
-      const progress = enemy.telegraphDuration > 0
-        ? 1 - enemy.telegraphTimer / enemy.telegraphDuration
+      const castWindup = enemy.telegraphTotal > 0 ? enemy.telegraphTotal : enemy.telegraphDuration;
+      const progress = castWindup > 0
+        ? Math.min(1, Math.max(0, 1 - enemy.telegraphTimer / castWindup))
         : 0;
       const aim = enemy.attackLockedTarget ?? state.player.position;
       const baseAngle = Math.atan2(aim.y - enemy.position.y, aim.x - enemy.position.x);

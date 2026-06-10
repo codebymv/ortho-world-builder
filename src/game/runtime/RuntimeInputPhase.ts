@@ -95,6 +95,7 @@ export function setupRuntimeInputPhase({
     runtimeSession.input.dodgeBuffered = false;
     runtimeSession.input.potionBuffered = false;
     runtimeSession.input.comboInputBuffered = false;
+    runtimeSession.input.attackBuffered = false;
     runtimeSession.input.isLmbHeld = false;
     runtimeSession.input.lmbHoldStartTime = 0;
 
@@ -148,6 +149,7 @@ export function setupRuntimeInputPhase({
     },
     setDodgeBuffered: value => {
       runtimeSession.input.dodgeBuffered = value;
+      if (value) runtimeSession.input.dodgeBufferedAt = performance.now();
     },
     setPlayerAnimState: value => {
       runtimeSession.animation.playerAnimState = value;
@@ -201,6 +203,10 @@ export function setupRuntimeInputPhase({
     },
     chargeTimeMin,
     getComboWindowTimer: () => runtimeSession.animation.comboWindowTimer,
+    setAttackBuffered: value => {
+      runtimeSession.input.attackBuffered = value;
+      if (value) runtimeSession.input.attackBufferedAt = performance.now();
+    },
   });
 
   const handleResize = createViewportResizeHandler({

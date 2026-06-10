@@ -343,6 +343,7 @@ function setVariableTelegraph(enemy: Enemy, baseDuration: number): void {
   } else {
     enemy.telegraphTimer = baseDuration * (0.85 + Math.random() * 0.30);
   }
+  enemy.telegraphTotal = enemy.telegraphTimer;
 }
 
 /**
@@ -482,6 +483,12 @@ export interface Enemy {
   attackAnimationTimer: number;
   telegraphTimer: number;
   telegraphDuration: number;
+  /**
+   * Actual duration of the current windup after variance rolls and per-attack
+   * multipliers. Visuals must normalize telegraph progress against this - using
+   * the base telegraphDuration makes the sprite windup lie about the real timing.
+   */
+  telegraphTotal: number;
   recoverTimer: number;
   recoverDuration: number;
   patrolOrigin: { x: number; y: number };
@@ -826,6 +833,7 @@ export class CombatSystem {
       attackAnimationTimer: 0,
       telegraphTimer: 0,
       telegraphDuration: options.telegraphDuration ?? 0.8,
+      telegraphTotal: 0,
       recoverTimer: 0,
       recoverDuration: options.recoverDuration ?? 0.6,
       patrolOrigin: { ...position },
@@ -1251,6 +1259,7 @@ export class CombatSystem {
                 Math.random() < (bo.rangedChance ?? 0.5) * deltaTime * 2) {
               enemy.state = 'telegraphing';
               enemy.telegraphTimer = enemy.telegraphDuration * 0.8;
+              enemy.telegraphTotal = enemy.telegraphTimer;
               triggerWaterSlimeSurface(world, enemy, particleSystem);
               updateMovementVisuals(enemy, 0, 0, false, 0);
               break;
@@ -1287,6 +1296,7 @@ export class CombatSystem {
                   // before it sweeps its hand to release the storm.
                   enemy.telegraphTimer *= 1.35;
                 }
+                enemy.telegraphTotal = enemy.telegraphTimer;
                 updateMovementVisuals(enemy, 0, 0, false, 0);
                 break;
               }
@@ -1323,6 +1333,7 @@ export class CombatSystem {
             } else if (enemy.currentAttackType === 'revenant_bladestorm') {
               enemy.telegraphTimer *= 1.35;
             }
+            enemy.telegraphTotal = enemy.telegraphTimer;
             updateMovementVisuals(enemy, 0, 0, false, 0);
             break;
           }
@@ -1814,6 +1825,7 @@ export class CombatSystem {
                   ? 'combo_finisher'
                   : 'combo_sweep';
                 enemy.telegraphTimer = enemy.currentAttackType === 'combo_finisher' ? 0.55 : 0.5;
+                enemy.telegraphTotal = enemy.telegraphTimer;
                 enemy.comboHitsRemaining--;
                 break;
               }
@@ -1861,6 +1873,7 @@ export class CombatSystem {
                 enemy.state = 'telegraphing';
                 enemy.currentAttackType = 'sweep';
                 enemy.telegraphTimer = isP3 ? 0.6 : 0.7;
+                enemy.telegraphTotal = enemy.telegraphTimer;
                 break;
               }
 
@@ -1869,6 +1882,7 @@ export class CombatSystem {
                 enemy.state = 'telegraphing';
                 enemy.currentAttackType = 'combo_sweep';
                 enemy.telegraphTimer = isP3 ? 0.5 : 0.55;
+                enemy.telegraphTotal = enemy.telegraphTimer;
                 enemy.comboHitsRemaining = isP3 ? 1 : 0;
                 break;
               }
@@ -1878,6 +1892,7 @@ export class CombatSystem {
               if (Math.random() < chainChance) {
                 enemy.state = 'telegraphing';
                 enemy.telegraphTimer = bo.chainTelegraph ?? enemy.telegraphDuration * 0.5;
+                enemy.telegraphTotal = enemy.telegraphTimer;
                 break;
               }
 
@@ -1890,6 +1905,7 @@ export class CombatSystem {
                 enemy.state = 'telegraphing';
                 enemy.currentAttackType = 'revenant_flurry';
                 enemy.telegraphTimer = 0.32;
+                enemy.telegraphTotal = enemy.telegraphTimer;
                 enemy.comboHitsRemaining--;
                 break;
               }
@@ -1904,6 +1920,7 @@ export class CombatSystem {
                 Math.random() < (bo.chainChance ?? 0.3)) {
               enemy.state = 'telegraphing';
               enemy.telegraphTimer = bo.chainTelegraph ?? enemy.telegraphDuration * 0.5;
+              enemy.telegraphTotal = enemy.telegraphTimer;
             } else {
               enemy.state = shouldEnemyResumeChasing(distSq, chaseRangeSq) ? 'chasing' : 'idle';
             }
@@ -2129,6 +2146,10 @@ export class CombatSystem {
     knockbackMagnitude: number = 0,
   ): { parried: boolean } {
     const player = this.gameState.player;
+    // Fresh i-frame check - mirrors attackPlayer. Call sites gate on a
+    // `playerInvulnerable` snapshot taken before the enemy loop, which goes
+    // stale the moment an earlier enemy in the same pass lands a hit.
+    if (player.iFrameTimer > 0) return { parried: false };
     const isParry = isBlocking && (now - blockStartTime) < PARRY_WINDOW;
 
     if (isParry) {
@@ -2174,6 +2195,10 @@ export class CombatSystem {
     now: number = 0
   ): { parried: boolean } {
     const player = this.gameState.player;
+    // Fresh i-frame check: the caller's `playerInvulnerable` is computed once
+    // before the enemy loop, so a second enemy resolving in the same update
+    // pass would bypass the hit grace granted a few iterations earlier.
+    if (player.iFrameTimer > 0) return { parried: false };
     const isParry = isBlocking && (now - blockStartTime) < PARRY_WINDOW;
 
     if (isParry) {
@@ -2202,6 +2227,11 @@ export class CombatSystem {
     player.health = Math.max(0, player.health - damage);
     player.damageFlashTimer = 0.3;
     player.hurtTimer = Math.max(player.hurtTimer, 0.35);
+    // Cross-enemy hit grace, matching the AoE/special paths: two pack enemies whose
+    // telegraphs expire on the same frame can't double-tap for full damage with a
+    // single reaction window. Kept just under the fastest chain telegraph (0.32s
+    // flurry) so a single enemy's designed multi-hit pressure still lands.
+    player.iFrameTimer = Math.max(player.iFrameTimer, 0.3);
     enemy.attackAnimationTimer = 0.3;
 
     const bo = enemy.behaviorOverrides;

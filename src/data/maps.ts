@@ -1,5 +1,5 @@
 import { WorldMap } from '@/lib/game/World';
-import { interiorBlacksmithDef, interiorCottageADef, interiorCottageForestDef, interiorGuilrhymCathedralDef, interiorHollowArenaDef, interiorHunterCottageDef, interiorInnDef, interiorMerchantDef, interiorRangerCabinDef, interiorWoodcutterCottageDef, interiorSurveyorsHollowDef, interiorTravelersInletDef } from '@/content/regions/interiors';
+import { interiorBlacksmithDef, interiorCottageADef, interiorCottageForestDef, interiorGuilrhymCathedralDef, interiorHollowArenaDef, interiorHunterCottageDef, interiorInnDef, interiorMerchantDef, interiorRangerCabinDef, interiorWoodcutterCottageDef, interiorSurveyorsHollowDef, interiorTravelersInletDef, interiorCliffGrottoDef } from '@/content/regions/interiors';
 import { villageDef } from '@/content/regions/greenleaf/map';
 import { forestDef } from '@/content/regions/whispering_woods/map';
 import { generateMap, MapDefinition } from './mapGenerator';
@@ -52,6 +52,7 @@ const staticMapDefinitions: Record<string, MapDefinition> = {
   interior_hunter_cottage: interiorHunterCottageDef,
   interior_surveyors_hollow: interiorSurveyorsHollowDef,
   interior_travelers_inlet: interiorTravelersInletDef,
+  interior_cliff_grotto: interiorCliffGrottoDef,
   interior_hollow_arena: interiorHollowArenaDef,
   interior_guilrhym_cathedral: interiorGuilrhymCathedralDef,
 };
@@ -85,6 +86,7 @@ const mapDefinitionSummaries: Record<string, MapDefinitionSummary> = {
   interior_hunter_cottage: summarizeMapDefinition(interiorHunterCottageDef),
   interior_surveyors_hollow: summarizeMapDefinition(interiorSurveyorsHollowDef),
   interior_travelers_inlet: summarizeMapDefinition(interiorTravelersInletDef),
+  interior_cliff_grotto: summarizeMapDefinition(interiorCliffGrottoDef),
   interior_hollow_arena: summarizeMapDefinition(interiorHollowArenaDef),
   interior_guilrhym_cathedral: summarizeMapDefinition(interiorGuilrhymCathedralDef),
 };

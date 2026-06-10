@@ -18,7 +18,9 @@ export const interiorCottageForestDef: MapDefinition = {
     { x: 7, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
   ],
   portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 173, targetY: 96 }],
-  chests: [{ x: 9, y: 6, interactionId: 'forest_cottage_chest' }],
+  // Loot moved to the overworld: the cottage is now an unenterable vine-choked ruin
+  // (see whispering_woods map.ts chests[] ??? forest_cottage_chest at 176,96).
+  chests: [],
   interactables: [],
   props: [
     { x: 4, y: 4, type: 'table', walkable: false },
@@ -235,5 +237,40 @@ export const interiorTravelersInletDef: MapDefinition = {
     { x: 18, y: 11, type: 'cage', walkable: false },
     { x: 21, y: 15, type: 'cage', walkable: false },
     { x: 21, y: 13, type: 'barrel', walkable: false },
+  ],
+};
+
+// Highlander's Grotto - a small cave tucked behind the east cliff cemetery overlook. Entered via an
+// angled (side-facing) cave mouth on the overlook's east wall; interior exit uses the head-on mouth.
+export const interiorCliffGrottoDef: MapDefinition = {
+  name: "Highlander's Grotto",
+  width: 16,
+  height: 14,
+  spawnPoint: { x: 8, y: 5 },
+  seed: 6273,
+  baseTerrain: 'dungeon',
+  borderTile: 'stone',
+  autoRoads: false,
+  features: [
+    { x: 0, y: 0, width: 16, height: 14, type: 'wall', fill: 'stone' },
+    { x: 2, y: 3, width: 12, height: 9, type: 'clearing', fill: 'cave_floor' },
+    // The exit IS the mouth - interact-to-exit, dropping back onto the overlook grass
+    // just west of the overworld cave mouth (forest tile 292,131). Head-on sprite inside;
+    // the overworld entrance keeps the angled side-facing mouth on the cliff wall.
+    { x: 8, y: 2, width: 1, height: 1, type: 'cave_mouth', caveExit: true, interiorMap: 'forest', interiorSpawnX: 292, interiorSpawnY: 131 },
+  ],
+  portals: [],
+  chests: [{ x: 12, y: 9, interactionId: 'cliff_grotto_chest' }],
+  interactables: [],
+  enemyZones: [
+    // Lone Hollow Reaver guarding the highlander's cache - throws scythe blades from the back alcove.
+    { x: 8, y: 6, width: 5, height: 4, enemyType: 'hollow_reaver', count: 1 },
+  ],
+  props: [
+    { x: 4, y: 5, type: 'rock', walkable: false },
+    { x: 5, y: 10, type: 'bones', walkable: true },
+    { x: 11, y: 4, type: 'lantern', walkable: false },
+    { x: 6, y: 8, type: 'crate', walkable: false },
+    { x: 9, y: 10, type: 'bones', walkable: true },
   ],
 };

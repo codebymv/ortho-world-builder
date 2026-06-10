@@ -165,8 +165,12 @@ export function applyEnemyVisuals({
   const walkFrame = resolveWalkFrame(enemy, enemyType);
   const hasAttackAnim = enemy.attackAnimationTimer > 0;
   const animPhase = enemy.phase ?? 1;
-  const chargeFrame = (enemy.state === 'telegraphing' && enemy.telegraphDuration > 0)
-    ? Math.min(2, Math.floor((1 - enemy.telegraphTimer / enemy.telegraphDuration) * 3))
+  // Normalize against the actual variance-rolled windup (telegraphTotal), not the
+  // base blueprint duration - otherwise snap/held telegraphs desync the sprite
+  // from the real strike timing.
+  const telegraphTotal = enemy.telegraphTotal > 0 ? enemy.telegraphTotal : enemy.telegraphDuration;
+  const chargeFrame = (enemy.state === 'telegraphing' && telegraphTotal > 0)
+    ? Math.min(2, Math.max(0, Math.floor((1 - enemy.telegraphTimer / telegraphTotal) * 3)))
     : 0;
 
   const sc = _enemySpriteCache.get(enemy.id);
@@ -376,7 +380,10 @@ export function applyEnemyVisuals({
         break;
     }
   } else if (enemy.state === 'telegraphing') {
-    const telegraphProgress = 1 - enemy.telegraphTimer / enemy.telegraphDuration;
+    // Use the actual rolled windup so the swell/shake/lean ramp lands exactly
+    // when the hit comes - snap strikes ramp fast, held fake-outs ramp slow.
+    const actualWindup = enemy.telegraphTotal > 0 ? enemy.telegraphTotal : enemy.telegraphDuration;
+    const telegraphProgress = Math.min(1, Math.max(0, 1 - enemy.telegraphTimer / actualWindup));
     const dx = state.player.position.x - enemy.position.x;
     const dy = state.player.position.y - enemy.position.y;
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;

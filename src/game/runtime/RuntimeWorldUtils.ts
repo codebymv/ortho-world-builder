@@ -147,6 +147,10 @@ export function getInteractionPromptLabel(
   if (interactionId === 'east_hollow_route_gate_sealed') {
     return 'Must open another way';
   }
+  if (interactionId === 'highlanders_plains_gate') {
+    if (state.getFlag('highlanders_plains_gate_open')) return "Highlander's Plains Gate (Open)";
+    return state.hasItem('highlanders_key') ? "Unlock Highlander's Plains Gate" : "Highlander's Gate (Locked, Key Required)";
+  }
 
   if (criticalItemInteractionIds.has(interactionId)) {
     const config = criticalPathItems[interactionId];
