@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateMap } from '@/data/mapGenerator';
 import { forestDef } from '@/content/regions/whispering_woods/map';
+import { interiorHollowArenaDef } from '@/content/regions/interiors/hollow';
 import { getBonfiresForMap } from '@/data/bonfires';
 import { canCrossSpinePathElevation } from '@/lib/game/World';
 import type { Tile } from '@/lib/game/World';
@@ -462,10 +463,46 @@ describe('hollow corridor gate at world (-32,-102)', () => {
         };
       }
     }
+    for (let ty = 49; ty <= 54; ty++) {
+      for (let tx = 116; tx <= 130; tx++) {
+        tiles[ty][tx] = {
+          type: 'hollow_blight',
+          walkable: true,
+          elevation: 1,
+          spinePath: true,
+        };
+      }
+    }
   }
 
   it('lever is placed at tile (118,48) and closed gate uses iron_fence + gate panels', () => {
     const map = generateMap(forestDef);
+    expect(map.tiles[49][124]).toMatchObject({
+      type: 'hollow_blight',
+      walkable: true,
+      elevation: 1,
+      spinePath: true,
+    });
+    expect(map.tiles[52][127]).toMatchObject({
+      type: 'hollow_blight',
+      walkable: true,
+      elevation: 1,
+      spinePath: true,
+    });
+    for (let tx = 119; tx <= 130; tx++) {
+      expect(map.tiles[53][tx]).toMatchObject({
+        type: 'hollow_blight',
+        walkable: true,
+        elevation: 1,
+        spinePath: true,
+      });
+    }
+    expect(map.tiles[54][126]).toMatchObject({
+      type: 'hollow_blight',
+      walkable: true,
+      elevation: 1,
+      spinePath: true,
+    });
     applyClosedHollowGate(map.tiles);
     const lever = map.tiles[48][118];
     expect(lever.type).toBe('shortcut_lever');
@@ -477,16 +514,80 @@ describe('hollow corridor gate at world (-32,-102)', () => {
     expect(map.tiles[50][122].walkable).toBe(false);
   });
 
-  it('opened gate row is walkable dirt spine', () => {
+  it('opened gate row is walkable spine ground', () => {
     const map = generateMap(forestDef);
     applyOpenHollowGate(map.tiles);
     for (let tx = 116; tx <= 129; tx++) {
       const tile = map.tiles[50][tx];
-      expect(tile.type).toBe('dirt');
+      expect(['dirt', 'hollow_blight']).toContain(tile.type);
       expect(tile.walkable).toBe(true);
       expect(tile.spinePath).toBe(true);
     }
-    expect(canCrossSpinePathElevation(map.tiles[49][122], map.tiles[50][122])).toBe(true);
+  });
+
+  it('opened shortcut clears the cliff lip behind the full gate width', () => {
+    const map = generateMap(forestDef);
+    applyOpenHollowGate(map.tiles);
+    const behindGate = map.tiles[49][124];
+    const gateMouth = map.tiles[50][124];
+    const eastBackEdge = map.tiles[52][127];
+    const southCollisionRow = map.tiles[53][130];
+    const lowerProbe = map.tiles[54][126];
+    expect(behindGate).toMatchObject({ type: 'hollow_blight', walkable: true, elevation: 1, spinePath: true });
+    expect(gateMouth.walkable).toBe(true);
+    expect(eastBackEdge).toMatchObject({ type: 'hollow_blight', walkable: true, elevation: 1, spinePath: true });
+    expect(southCollisionRow).toMatchObject({ type: 'hollow_blight', walkable: true, elevation: 1, spinePath: true });
+    expect(lowerProbe).toMatchObject({ type: 'hollow_blight', walkable: true, elevation: 1, spinePath: true });
+    expect(canCrossSpinePathElevation(behindGate, gateMouth)).toBe(true);
+    expect(canCrossSpinePathElevation(gateMouth, eastBackEdge)).toBe(true);
+    expect(canCrossSpinePathElevation(eastBackEdge, southCollisionRow)).toBe(true);
+    expect(canCrossSpinePathElevation(southCollisionRow, lowerProbe)).toBe(true);
+  });
+});
+
+describe('Whispering Woods visual language pass', () => {
+  it('uses hollow_blight for the Hollow spine while preserving walkable route language', () => {
+    const map = generateMap(forestDef);
+    for (const [tx, ty] of [[122, 60], [124, 55], [122, 45], [122, 40], [122, 26]]) {
+      const tile = map.tiles[ty][tx];
+      expect(tile.type).toBe('hollow_blight');
+      expect(tile.walkable).toBe(true);
+    }
+  });
+
+  it('marks the Hollow false-progress pocket with an inert dud ritual cluster', () => {
+    const map = generateMap(forestDef);
+    expect(map.tiles[33][211]).toMatchObject({ type: 'summoning_ritual_dud', walkable: true });
+    expect(map.tiles[31][208].type).toBe('ritual_candle_knocked');
+    expect(map.tiles[37][212].type).toBe('bloodstain');
+  });
+
+  it('keeps the fort-key ranger reachable on the east side of the chapel stair approach', () => {
+    const map = generateMap(forestDef);
+    expect(map.tiles[183][68]).toMatchObject({
+      type: 'ranger_remains',
+      walkable: true,
+      interactionId: 'chapel_dead_ranger',
+    });
+    expect(map.tiles[183][65].interactionId).not.toBe('chapel_dead_ranger');
+    expect(map.tiles[182][72].type).toBe('bloodstain');
+  });
+
+  it('adds optional-reward landmark scent without blocking route rewards', () => {
+    const map = generateMap(forestDef);
+    expect(map.tiles[258][188]).toMatchObject({ type: 'lantern', walkable: false });
+    expect(map.tiles[222][221]).toMatchObject({ type: 'lantern', walkable: false });
+    expect(map.tiles[134][292]).toMatchObject({ type: 'quarry_tools', walkable: true });
+  });
+});
+
+describe('Hollow Guardian arena readability', () => {
+  it('keeps a subtle center-control mark in the arena floor', () => {
+    const arena = generateMap(interiorHollowArenaDef);
+    expect(arena.tiles[18][18].type).toBe('ruins_floor');
+    expect(arena.tiles[14][18].type).toBe('bloodstain');
+    expect(arena.tiles[18][22].type).toBe('bones');
+    expect(arena.tiles[15][15].type).toBe('rubble');
   });
 });
 

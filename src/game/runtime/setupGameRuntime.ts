@@ -626,6 +626,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       syncQuarryBankShortcutState,
       syncWestLakeBridgePlankState,
       syncWestCliffGateState,
+      syncSouthEntryPicketGateState,
       syncEastCreekShoreGateState,
       syncRiversideBridgeShortcutState,
       syncHollowShortcutState,
@@ -823,6 +824,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncQuarryBankShortcutState,
           syncWestLakeBridgePlankState,
           syncWestCliffGateState,
+          syncSouthEntryPicketGateState,
           syncEastCreekShoreGateState,
           syncRiversideBridgeShortcutState,
           syncHollowShortcutState,
@@ -1227,6 +1229,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           npcScreenMinPx: NPC_SCREEN_MIN_PX,
           autoSaveInterval: AUTO_SAVE_INTERVAL,
           triggerSave,
+          setActiveNpcsForCurrentMap,
           worldItemRenderer,
         });
       } catch (error) {

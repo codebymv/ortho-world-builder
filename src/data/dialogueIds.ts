@@ -79,6 +79,7 @@ export const dialogueIds = new Set<string>([
   'petra_ashveil',
   'mountain_hermit',
   'mysterious_man',
+  'mysterious_man_shore',
   'hollow_approach_ladder_wrong_side',
   'cliff_corridor_ladder_wrong_side',
   'fort_ridge_ladder_wrong_side',

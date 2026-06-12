@@ -228,10 +228,9 @@ export function createProgressionService(context: ProgressionServiceContext) {
       }
     }
 
-    if (dialogueId === 'mysterious_man') {
-      // Real dialogue unlocks once the Hollow Apparition is dead. Until then he
-      // stays dismissive - same cold-shoulder node every time so the player learns
-      // to come back later rather than fishing for content that isn't there yet.
+    if (dialogueId === 'mysterious_man' || dialogueId === 'mysterious_man_shore') {
+      // Real dialogue unlocks once the Hollow Apparition is dead. Until then the
+      // witness only offers silence.
       if (state.getFlag('hollow_guardian_defeated')) {
         startNode = dialogue.nodes.find(node => node.id === 'unlocked') ?? startNode;
       }

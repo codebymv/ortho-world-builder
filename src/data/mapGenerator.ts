@@ -1075,6 +1075,29 @@ function enforceWesternBypassObservatoryApproach(tiles: Tile[][], def: MapDefini
   // the sprite footprint, so do not stamp a separate visible stone rectangle here.
 }
 
+/** North fort approach observatory (66,249): reopen skirt lanes after the shared foundation mask. */
+function enforceNorthFortApproachObservatory(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  const reopenInvisibleTerrain = (tx: number, ty: number) => {
+    if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) return;
+    const existing = tiles[ty][tx];
+    if (existing.transition || existing.interactable) return;
+    if (existing.type !== 'grass' && existing.type !== 'dirt') return;
+    tiles[ty][tx] = { ...existing, walkable: true };
+  };
+
+  // East-west skirt north of the dome base — keeps the wayfarer cache lane (tile 87,249) reachable
+  // without dead-ending on invisible collision north/east of the tower body.
+  for (let ty = 246; ty <= 248; ty++) {
+    for (let tx = 70; tx <= 90; tx++) reopenInvisibleTerrain(tx, ty);
+  }
+  // South entrance apron — rows just below the rendered footprint at this placement.
+  for (let ty = 254; ty <= 256; ty++) {
+    for (let tx = 60; tx <= 72; tx++) reopenInvisibleTerrain(tx, ty);
+  }
+}
+
 function enforceWhisperingWoodsCliffLedgeLookoutApproach(tiles: Tile[][], def: MapDefinition) {
   if (def.name !== 'Whispering Woods') return;
 
@@ -1248,6 +1271,7 @@ function placeLake(tiles: Tile[][], f: MapFeature) {
   const cy = f.y + f.height / 2;
   const rx = f.width / 2;
   const ry = f.height / 2;
+  const waterType: TileType = f.fill === 'water_corrupted' ? 'water_corrupted' : 'water';
 
   for (let dy = -Math.ceil(ry) - 1; dy <= Math.ceil(ry) + 1; dy++) {
     for (let dx = -Math.ceil(rx) - 1; dx <= Math.ceil(rx) + 1; dx++) {
@@ -1256,7 +1280,7 @@ function placeLake(tiles: Tile[][], f: MapFeature) {
       if (ty >= 0 && ty < tiles.length && tx >= 0 && tx < tiles[0].length) {
         const dist = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
         if (dist < 0.8) {
-          tiles[ty][tx] = createTile('water', false);
+          tiles[ty][tx] = createTile(waterType, false);
         } else if (dist < 1.2) {
           tiles[ty][tx] = createTile('sand', true);
         }
@@ -3403,21 +3427,17 @@ function applyHollowBoundaryBlend(tiles: Tile[][], def: MapDefinition) {
 }
 
 /**
- * Whispering Woods hollow lake: repaint authored `water` near world position (4, -112) as
- * `water_corrupted` after all other passes. This intentionally leaves the corrupted-bridge river
- * normal and only taints the deeper hollow pool the player called out.
+ * Whispering Woods deep-hollow east pool only. Does NOT touch the NW seal / west-run pond by the
+ * hooded river witness (world ~-55,-73) or the decayed-bridge approach river — those stay normal water.
  */
 function applyWhisperingWoodsHollowApproachCorruptedWater(tiles: Tile[][], def: MapDefinition) {
   if (def.name !== 'Whispering Woods') return;
   const h = tiles.length;
   const w = tiles[0]?.length ?? 0;
-  // World coordinate (4, -112) maps to tile space roughly (154, 38) on the 300x300 forest map.
-  const x0 = 140;
-  const x1 = 170;
-  const y0 = 26;
-  const y1 = 52;
-  for (let ty = y0; ty < y1 && ty < h; ty++) {
-    for (let tx = x0; tx < x1 && tx < w; tx++) {
+
+  // Deeper east hollow pool near world (4, -112) / tile ~(154, 38).
+  for (let ty = 26; ty < 52 && ty < h; ty++) {
+    for (let tx = 140; tx < 170 && tx < w; tx++) {
       const t = tiles[ty][tx];
       if (t.type !== 'water') continue;
       tiles[ty][tx] = { ...t, type: 'water_corrupted', walkable: false };
@@ -3520,6 +3540,10 @@ function enforceHollowWestCorruptedStairShelf(tiles: Tile[][], def: MapDefinitio
   setRect(101, 49, 15, 8, 'hollow_blight', true);
   setRect(100, 51, 16, 3, 'dirt', true);
   setRect(113, 49, 3, 9, 'cliff', false);
+  // Back-side landing for the Hollow shortcut gate. The closed gate rows still block progress,
+  // but the far side must not be a cliff lip or the shortcut remains visually/traversally false.
+  // Match the full opened gate width, not just the center gate panels.
+  setRect(116, 49, 15, 6, 'hollow_blight', true, { spinePath: true });
   setRect(92, 52, 2, 3, 'hollow_blight', true);
   setRect(94, 49, 7, 6, 'stairs', true, { stairAxis: 'ew' });
   setRect(107, 54, 1, 1, 'heresy_altar', false);
@@ -4097,6 +4121,20 @@ function enforceWhisperingWoodsEastCreekShoreGate(tiles: Tile[][], def: MapDefin
   // Clear the live trees crowding the gate mouth so the opening reads cleanly.
   for (let ty = 235; ty <= 239; ty++) {
     for (let tx = 248; tx <= 254; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const t = tiles[ty][tx];
+      if (t.type !== 'tree' || t.transition || t.interactable) continue;
+      tiles[ty][tx] = createTile('grass', true, { elevation: t.elevation ?? 0 });
+    }
+  }
+}
+
+function scrubWhisperingWoodsSouthEntryPicketGateTrees(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // West-bank picket gate (128,262–264) + lever (125,267): strip procedural trees crowding the panel.
+  for (let ty = 260; ty <= 268; ty++) {
+    for (let tx = 123; tx <= 130; tx++) {
       if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
       const t = tiles[ty][tx];
       if (t.type !== 'tree' || t.transition || t.interactable) continue;
@@ -5185,6 +5223,7 @@ export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
   enforceWhisperingWoodsEastDirtSpineBreak(tiles, def);
   scrubWhisperingWoodsNorthFortElevationSeam(tiles, def);
   enforceWesternBypassObservatoryApproach(tiles, def);
+  enforceNorthFortApproachObservatory(tiles, def);
   enforceWhisperingWoodsCliffLedgeLookoutApproach(tiles, def);
   enforceLakeOverlookBridgeLanding(tiles, def);
   enforceRiversideBridgeSpineApproach(tiles, def);
@@ -5219,6 +5258,7 @@ export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
   scrubWhisperingWoodsPrecipiceWestPocketLiveTrees(tiles, def);
   scrubWhisperingWoodsQuarryBankShortcutLiveTrees(tiles, def);
   enforceWhisperingWoodsEastCreekShoreGate(tiles, def);
+  scrubWhisperingWoodsSouthEntryPicketGateTrees(tiles, def);
   applyWhisperingWoodsHighlanderPlainsBiome(tiles, def);
   enforceWhisperingWoodsPlainsShelfLipElevation(tiles, def);
   scrubWhisperingWoodsPlainsCliffBufferBoxes(tiles, def);

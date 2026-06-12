@@ -34,6 +34,7 @@ export type KnownGameFlag =
   | 'quarry_bank_shortcut_open'
   | 'west_lake_bridge_plank_extended'
   | 'west_cliff_gate_open'
+  | 'south_entry_picket_gate_open'
   | 'ritual_revenant_west_cleared'
   | 'ritual_revenant_precipice_cleared'
   | 'terminus_scythe_early_obtained'

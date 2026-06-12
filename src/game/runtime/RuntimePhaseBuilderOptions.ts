@@ -181,5 +181,6 @@ export interface BuildRuntimePhaseContextsOptions {
   npcScreenMinPx: number;
   autoSaveInterval: number;
   triggerSave: () => void;
+  setActiveNpcsForCurrentMap: () => void;
   worldItemRenderer: WorldItemRendererInstance;
 }

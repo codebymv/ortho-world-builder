@@ -318,16 +318,11 @@ export function runEnemyLoop({
           },
         );
       };
-      // Two Reavers per wave, corners vary by phase so each summon creates a different
-      // crossfire angle. Phase 2 flanks the player's entry side (south corners); phase 3
-      // creates a diagonal from NW → SE to force repositioning.
-      const REAVER_CORNERS_PHASE2 = [
-        { x: -7, y:  6 }, // SW
-        { x:  6, y:  6 }, // SE
-      ];
+      // Phase two now leans on a single Shade; the entry Reaver already supplies
+      // enough scythe pressure if the player brings it into the phase break.
+      const REAVER_CORNERS_PHASE2: Array<{ x: number; y: number }> = [];
       const REAVER_CORNERS_PHASE3 = [
         { x: -7, y: -7 }, // NW
-        { x:  6, y:  6 }, // SE (diagonal crossfire)
       ];
 
       if (enemy.type === 'golem' && phase === 2) {
@@ -357,12 +352,10 @@ export function runEnemyLoop({
         screenShake.shake(0.6, 0.3);
         screenShake.hitStop(0.3);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 20, 0x44FFEE, 0.1, 1.8, 1.2);
-        // Summon 2 Hollow Shades flanking the boss
-        for (const off of [{ x: -2.5, y: -1.5 }, { x: 2.5, y: 1.5 }]) {
+        // Summon one Hollow Shade instead of a full flanking pair.
+        for (const off of [{ x: -2.5, y: -1.5 }]) {
           spawnShade(off);
         }
-        // Two Reavers spawn at the south (player-entry) corners - flanks the player's
-        // retreat line and forces them to fight toward the boss to clear the pressure.
         for (const corner of REAVER_CORNERS_PHASE2) {
           particleSystem.emitAt(corner.x, corner.y, 0.4, 10, 0xCC44FF, 0.1, 1.4, 1.0);
           spawnReaverAt(corner);
@@ -380,8 +373,7 @@ export function runEnemyLoop({
         screenShake.shake(0.8, 0.4);
         screenShake.hitStop(0.4);
         particleSystem.emitAt(enemy.position.x, enemy.position.y, 0.5, 35, 0x44FFEE, 0.12, 2.2, 1.5);
-        // Two Reavers at NW + SE - diagonal crossfire that forces the player off any
-        // safe axis they've been using, raising stakes for the final phase.
+        // One Reaver at NW changes the safe axis for the final phase.
         for (const corner of REAVER_CORNERS_PHASE3) {
           particleSystem.emitAt(corner.x, corner.y, 0.4, 14, 0xCC44FF, 0.12, 1.6, 1.2);
           spawnReaverAt(corner);

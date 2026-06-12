@@ -56,6 +56,7 @@ interface InteractionSystemContext {
   syncQuarryBankShortcutState: () => void;
   syncWestLakeBridgePlankState: () => void;
   syncWestCliffGateState: () => void;
+  syncSouthEntryPicketGateState: () => void;
   syncEastCreekShoreGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
@@ -564,6 +565,33 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playGateOpenHeavy();
     context.playGateShortcut();
     context.showHeroOverlay('Gate Unbarred');
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
+  const tryHandleSouthEntryPicketGateLever = (interactionId: string): boolean => {
+    if (interactionId === 'south_entry_picket_gate_sealed') {
+      context.playGateLockedHeavy();
+      context.notify('Must open another way.', { id: 'south-entry-picket-gate-sealed', duration: 2000 });
+      return true;
+    }
+    if (interactionId !== 'south_entry_picket_gate_lever') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('south_entry_picket_gate_open')) {
+      context.notify('The picket gate is already open.', { id: 'south-entry-picket-gate-open', duration: 1800 });
+      return true;
+    }
+
+    context.playLeverPull();
+    context.state.setFlag('south_entry_picket_gate_open', true);
+    context.syncSouthEntryPicketGateState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateOpenHeavy();
+    context.playGateShortcut();
+    context.showHeroOverlay('Shortcut Unlocked');
+    context.startCameraPan?.(-22, 113, 750);
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -1103,6 +1131,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleQuarryBankShortcutLever,
     tryHandleWestLakeBridgePlank,
     tryHandleWestCliffGateLever,
+    tryHandleSouthEntryPicketGateLever,
     tryHandleRiversideBridgeShortcutLever,
     tryHandleHollowShortcutLever,
     tryHandleEastHollowRouteGateLever,

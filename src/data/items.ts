@@ -13,10 +13,10 @@ export const items: Record<string, Item> = {
   tempest_grass: {
     id: 'tempest_grass',
     name: 'Tempest Grass',
-    description: 'A wild healing herb bundled with twine. Restores 35 health and fully replenishes stamina when chewed.',
+    description: 'A wild healing herb bundled with twine. Restores 40 health and fully replenishes stamina when chewed.',
     type: 'consumable',
     sprite: 'tempest_grass_item',
-    healAmount: 35,
+    healAmount: 40,
   },
   
   ancient_map: {

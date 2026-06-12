@@ -2324,10 +2324,15 @@ export class AssetManager {
     return texture;
   }
 
-  createMysteriousMan(spriteId?: string): THREE.Texture {
-    // Design intent: tall, perfectly still, face completely absent inside the hood.
-    // Void-black with violet seepage along the hem - same corruption palette as the
-    // Hollow enemies - so the player feels something is wrong before they speak to him.
+  createMysteriousMan(spriteId?: string, variant: 'default' | 'shore' = 'default'): THREE.Texture {
+    // Hooded human built cell-for-cell on the createChibiCharacter front-view
+    // grammar (the canonical "what a person looks like" map): same head volume,
+    // body rows, arm/hand slots, belt, skirt, legs and boot baseline as the
+    // player and villagers. Only the head content differs - the hood occupies
+    // the hair slots and the eye row sits in full hood shadow, so he reads as
+    // unmistakably human while keeping his face hidden. The Hollow palette and
+    // purple trim are the only things marking him as wrong.
+    const isShore = variant === 'shore';
     const G = 4;
     const W = 16 * G, H = 20 * G;
     const canvas = document.createElement('canvas');
@@ -2339,117 +2344,105 @@ export class AssetManager {
       ctx.fillRect(gx * G, gy * G, G, G);
     };
 
-    // Palette - voidborne, barely-there, with violet corruption seeping up from below
-    const VOID    = 0x0A080C;  // deepest black (true void)
-    const CLOAK   = 0x161220;  // cloak base - near-black with blue-purple tint
-    const CLOAK_H = 0x2A2440;  // cloak subtle highlight
-    const CLOAK_D = 0x060408;  // cloak deepest shadow
-    const HOOD    = 0x120F1C;  // hood outer
-    const HOOD_D  = 0x080610;  // hood deep shadow
-    const FACE    = 0x0D0B14;  // near-black inside hood (not pure void - eyes need contrast)
-    const EYE     = 0x8A8296;  // dim silver-grey eyes - reads as person, not glowing enemy
-    const EYE_D   = 0x4A4458;  // eye shadow
-    const VIOLET  = 0x7B3FA0;  // corruption accent (matches Hollow enemies)
-    const VIOLET_D = 0x4A1E6A; // corruption shadow
-    const VIOLET_G = 0xB06ECC; // corruption glow/sparkle
-    const SLEEVE  = 0x1A1628;  // sleeve ends, hands hidden
-    const SEAM    = 0x221C34;  // cloak seam lines
+    // Palette mapped to createChibiCharacter roles. Hood/cape share one cloth
+    // family so the silhouette reads as a single garment, not a hat on a body.
+    const HOOD     = isShore ? 0x1A1824 : 0x17121F; // hair
+    const HOOD_H   = isShore ? 0x2E3448 : 0x2A243A; // hairLight
+    const HOOD_D   = 0x07060B; // hairDark
+    const VOID     = 0x100C16; // hood-cavity shadow (no face features)
+    const CAPE     = isShore ? 0x141828 : 0x1A1028; // capeMain
+    const CAPE_D   = 0x0A060F; // capeDark
+    const ROBE     = isShore ? 0x242A38 : 0x211A2F; // tunicMain
+    const ROBE_H   = isShore ? 0x3A4458 : 0x39304B; // tunicLight
+    const ROBE_D   = 0x100B18; // tunicDark
+    const TRIM     = isShore ? 0x4A6B8A : 0x7B3FA0; // trimColor
+    const TRIM_H   = isShore ? 0x6A8FAA : 0xB06ECC; // trimLight
+    const HAND     = 0x55402F; // skinShadow (sleeve hands only)
+    const PANTS    = 0x17121D; // pantColor
+    const BOOT     = 0x121017; // bootColor
+    const BOOT_D   = 0x08060B; // bootDark
 
-    // ── HOOD - tall, upright (not drooping like Olwen), swallows the face entirely ──
-    // Peak
-    cell(7, 0, HOOD_D); cell(8, 0, HOOD_D);
-    cell(6, 1, HOOD_D); cell(7, 1, HOOD); cell(8, 1, HOOD); cell(9, 1, HOOD_D);
-    cell(5, 2, HOOD_D); cell(6, 2, HOOD); cell(7, 2, CLOAK_H); cell(8, 2, CLOAK_H); cell(9, 2, HOOD); cell(10, 2, HOOD_D);
-    cell(4, 3, HOOD_D); cell(5, 3, HOOD); cell(6, 3, HOOD); cell(7, 3, CLOAK_H);
-    cell(8, 3, CLOAK_H); cell(9, 3, HOOD); cell(10, 3, HOOD); cell(11, 3, HOOD_D);
+    // Draw order: cape drapes -> hood -> body (same slots as front-view chibi).
 
-    // Hood sides framing the void-face (rows 4-8)
-    cell(3, 4, HOOD_D); cell(4, 4, HOOD); cell(5, 4, HOOD);
-    cell(6, 4, FACE); cell(7, 4, FACE); cell(8, 4, FACE); cell(9, 4, FACE);
-    cell(10, 4, HOOD); cell(11, 4, HOOD); cell(12, 4, HOOD_D);
+    // Wide cloak panels tie the hood sides to the torso. Start at row 4 so
+    // the drape visibly grows out of the hood rather than appearing at the waist.
+    for (let dy = 4; dy <= 13; dy++) {
+      cell(3, dy, CAPE_D);
+      cell(4, dy, (dy % 2 === 0) ? CAPE : CAPE_D);
+      cell(11, dy, (dy % 2 === 0) ? CAPE_D : CAPE);
+      cell(12, dy, CAPE_D);
+    }
+    // Standard cape peeks behind the torso (player slots, rows 8-10).
+    cell(4, 8, CAPE_D); cell(11, 8, CAPE_D);
+    cell(4, 9, CAPE_D); cell(11, 9, CAPE_D);
+    cell(4, 10, CAPE_D); cell(11, 10, CAPE_D);
 
-    cell(3, 5, HOOD_D); cell(4, 5, HOOD);
-    cell(5, 5, FACE); cell(6, 5, EYE_D); cell(7, 5, EYE);
-    cell(8, 5, FACE);
-    cell(9, 5, EYE); cell(10, 5, EYE_D);
-    cell(11, 5, HOOD); cell(12, 5, HOOD_D);
+    // Hood crown (player hair rows 0-1).
+    for (let dx = 5; dx <= 10; dx++) cell(dx, 0, HOOD);
+    cell(6, 0, HOOD_H); cell(8, 0, HOOD_H);
+    for (let dx = 4; dx <= 11; dx++) cell(dx, 1, (dx % 3 === 0) ? HOOD_H : HOOD);
 
-    cell(3, 6, HOOD_D); cell(4, 6, HOOD);
-    cell(5, 6, FACE); cell(6, 6, FACE); cell(7, 6, FACE);
-    cell(8, 6, FACE); cell(9, 6, FACE); cell(10, 6, FACE);
-    cell(11, 6, HOOD); cell(12, 6, HOOD_D);
+    // Hood face block (player face rows 2-5) - same width/inset, all cloth.
+    for (let dy = 2; dy <= 5; dy++) {
+      const inset = dy === 2 ? 1 : 0;
+      for (let dx = 5 + inset; dx <= 10 - inset; dx++) cell(dx, dy, VOID);
+    }
+    cell(6, 2, HOOD_H); cell(7, 2, HOOD_H); cell(8, 2, HOOD_H);
+    cell(4, 2, HOOD); cell(11, 2, HOOD);
+    cell(4, 3, HOOD_D); cell(11, 3, HOOD_D);
+    cell(4, 4, HOOD_D); cell(11, 4, HOOD_D);
+    cell(5, 2, HOOD); cell(10, 2, HOOD);
+    cell(5, 3, HOOD); cell(10, 3, HOOD);
+    cell(5, 4, HOOD); cell(10, 4, HOOD);
+    cell(5, 5, HOOD); cell(10, 5, HOOD);
 
-    cell(3, 7, HOOD_D); cell(4, 7, HOOD); cell(5, 7, HOOD);
-    cell(6, 7, FACE); cell(7, 7, FACE); cell(8, 7, FACE); cell(9, 7, FACE);
-    cell(10, 7, HOOD); cell(11, 7, HOOD); cell(12, 7, HOOD_D);
+    // Collar row (player neck row 6) - hood cloth wraps the throat; no skin.
+    cell(4, 6, HOOD); cell(5, 6, HOOD_D); cell(6, 6, VOID);
+    cell(7, 6, VOID); cell(8, 6, VOID); cell(9, 6, HOOD_D);
+    cell(10, 6, HOOD); cell(11, 6, HOOD);
 
-    // Hood collar merges into shoulders (row 8)
-    cell(3, 8, HOOD_D); cell(4, 8, HOOD); cell(5, 8, HOOD); cell(6, 8, HOOD);
-    cell(7, 8, CLOAK_D); cell(8, 8, CLOAK_D);
-    cell(9, 8, HOOD); cell(10, 8, HOOD); cell(11, 8, HOOD); cell(12, 8, HOOD_D);
-
-    // ── SHOULDERS - wide and straight (taller posture than Olwen) ──
-    cell(2, 9, CLOAK_D); cell(3, 9, CLOAK); cell(4, 9, CLOAK_H);
-    cell(5, 9, CLOAK); cell(6, 9, CLOAK); cell(7, 9, SEAM); cell(8, 9, SEAM);
-    cell(9, 9, CLOAK); cell(10, 9, CLOAK); cell(11, 9, CLOAK_H); cell(12, 9, CLOAK); cell(13, 9, CLOAK_D);
-
-    cell(2, 10, CLOAK_D); cell(3, 10, CLOAK); cell(4, 10, CLOAK_H);
-    cell(5, 10, CLOAK); cell(6, 10, SEAM); cell(7, 10, CLOAK); cell(8, 10, CLOAK);
-    cell(9, 10, SEAM); cell(10, 10, CLOAK); cell(11, 10, CLOAK_H); cell(12, 10, CLOAK); cell(13, 10, CLOAK_D);
-
-    // ── BODY - monolithic cloak slab (rows 11-14) no belt, no feature, just presence ──
-    for (let dy = 11; dy <= 14; dy++) {
-      cell(2, dy, CLOAK_D);
-      cell(3, dy, CLOAK);
-      cell(4, dy, CLOAK_H);
-      cell(5, dy, CLOAK);
-      cell(6, dy, dy === 12 ? SEAM : CLOAK);
-      cell(7, dy, CLOAK);
-      cell(8, dy, CLOAK);
-      cell(9, dy, dy === 12 ? SEAM : CLOAK);
-      cell(10, dy, CLOAK);
-      cell(11, dy, CLOAK_H);
-      cell(12, dy, CLOAK);
-      cell(13, dy, CLOAK_D);
+    // Body / tunic (player rows 7-9) - identical grammar, robe palette.
+    for (let dx = 5; dx <= 10; dx++) {
+      cell(dx, 7, ROBE_H);
+      cell(dx, 8, ROBE);
+      cell(dx, 9, ROBE);
+    }
+    cell(7, 7, TRIM); cell(8, 7, TRIM);
+    cell(7, 8, TRIM); cell(8, 8, TRIM);
+    if (isShore) {
+      // Lakeside pose: sleeves hang while both hands rest folded at the belt.
+      cell(4, 7, ROBE_D); cell(4, 8, ROBE_D);
+      cell(11, 7, ROBE_D); cell(11, 8, ROBE_D);
+      cell(6, 9, HAND); cell(7, 9, HAND); cell(8, 9, HAND); cell(9, 9, HAND);
+    } else {
+      cell(4, 7, ROBE_D); cell(4, 8, ROBE_D); cell(4, 9, HAND);
+      cell(11, 7, ROBE_D); cell(11, 8, ROBE_D); cell(11, 9, HAND);
     }
 
-    // Hidden sleeves - arms not visible, just dark sleeve mouths at sides (rows 12-13)
-    cell(2, 12, SLEEVE); cell(2, 13, SLEEVE);
-    cell(13, 12, SLEEVE); cell(13, 13, SLEEVE);
+    // Belt (player row 10).
+    for (let dx = 5; dx <= 10; dx++) cell(dx, 10, BOOT_D);
+    cell(7, 10, TRIM); cell(8, 10, TRIM);
 
-    // ── CLOAK SKIRT (rows 15-16) - widens slightly ──
-    cell(2, 15, CLOAK_D); cell(3, 15, CLOAK); cell(4, 15, CLOAK_H);
-    cell(5, 15, CLOAK); cell(6, 15, CLOAK); cell(7, 15, CLOAK); cell(8, 15, CLOAK);
-    cell(9, 15, CLOAK); cell(10, 15, CLOAK); cell(11, 15, CLOAK_H); cell(12, 15, CLOAK); cell(13, 15, CLOAK_D);
+    // Tunic skirt (player row 11).
+    for (let dx = 5; dx <= 10; dx++) cell(dx, 11, ROBE_D);
 
-    cell(1, 16, CLOAK_D); cell(2, 16, CLOAK_D); cell(3, 16, CLOAK); cell(4, 16, CLOAK_H);
-    cell(5, 16, CLOAK); cell(6, 16, CLOAK); cell(7, 16, CLOAK); cell(8, 16, CLOAK);
-    cell(9, 16, CLOAK); cell(10, 16, CLOAK); cell(11, 16, CLOAK_H); cell(12, 16, CLOAK);
-    cell(13, 16, CLOAK_D); cell(14, 16, CLOAK_D);
+    // Legs + boots (player rows 12-14).
+    cell(6, 12, PANTS); cell(7, 12, PANTS);
+    cell(8, 12, PANTS); cell(9, 12, PANTS);
+    cell(6, 13, PANTS); cell(7, 13, PANTS);
+    cell(8, 13, PANTS); cell(9, 13, PANTS);
+    cell(6, 14, BOOT_D); cell(7, 14, BOOT);
+    cell(8, 14, BOOT); cell(9, 14, BOOT_D);
 
-    // ── VIOLET CORRUPTION HEM - seeping up from the ground, marks him as Hollow-touched ──
-    // Row 17: main corruption band
-    cell(2, 17, VIOLET_D); cell(3, 17, VIOLET); cell(4, 17, VIOLET_D);
-    cell(5, 17, VIOLET); cell(6, 17, VIOLET_G); cell(7, 17, VIOLET);
-    cell(8, 17, VIOLET); cell(9, 17, VIOLET_G); cell(10, 17, VIOLET);
-    cell(11, 17, VIOLET_D); cell(12, 17, VIOLET); cell(13, 17, VIOLET_D);
-
-    // Row 18: corruption drips (irregular pattern - not a clean line)
-    cell(3, 18, VIOLET_D); cell(5, 18, VIOLET_D); cell(7, 18, VIOLET_D);
-    cell(9, 18, VIOLET_D); cell(11, 18, VIOLET_D);
-
-    // Row 19: faint trailing wisps
-    cell(4, 19, VOID); cell(6, 19, VOID); cell(10, 19, VOID);
-
-    // ── Subtle depth pass (same as Olwen) ──
+    // Subtle depth pass mirrors the chibi renderer.
     const imgData = ctx.getImageData(0, 0, W, H);
     for (let y = 0; y < H; y += G) {
       for (let x = 0; x < W; x += G) {
         const i = (y * W + x) * 4;
         if (imgData.data[i + 3] > 0) {
-          ctx.fillStyle = 'rgba(255,255,255,0.06)';
+          ctx.fillStyle = 'rgba(255,255,255,0.12)';
           ctx.fillRect(x, y, 1, 1);
-          ctx.fillStyle = 'rgba(0,0,0,0.18)';
+          ctx.fillStyle = 'rgba(0,0,0,0.10)';
           ctx.fillRect(x + G - 1, y + G - 1, 1, 1);
         }
       }
@@ -3374,9 +3367,10 @@ export class AssetManager {
     // distinct character, not a recolour of the villagers.
     this.registerTexture('npc_olwen', () => this.createOlwenHermit('npc_olwen'));
 
-    // Mysterious Man - void-black cloak with violet corruption hem. No face visible.
-    // Distinct from any chibi variant; the Hollow colour palette marks him as dangerous.
+    // Mysterious Man - chibi-proportioned hooded human with restrained Hollow accents.
     this.registerTexture('npc_mysterious_man', () => this.createMysteriousMan('npc_mysterious_man'));
+    // Lakeside witness at the SW rocky pond - cooler palette, folded hands, faces the water.
+    this.registerTexture('npc_mysterious_man_shore', () => this.createMysteriousMan('npc_mysterious_man_shore', 'shore'));
 
     // ========== NEW ENEMY: Spider ==========
     const SPIDER_BODY = 0x212121;

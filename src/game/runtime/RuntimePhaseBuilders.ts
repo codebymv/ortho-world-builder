@@ -62,6 +62,9 @@ export function buildGameplayPreludeContext(options: BuildRuntimePhaseContextsOp
     comboStepCount: options.comboStepCount,
     getComboRecovery: options.getComboRecovery,
     completeConsumableUse: options.completeConsumableUse,
+    screenShake: options.screenShake,
+    triggerSave: options.triggerSave,
+    setActiveNpcsForCurrentMap: options.setActiveNpcsForCurrentMap,
   };
 }
 

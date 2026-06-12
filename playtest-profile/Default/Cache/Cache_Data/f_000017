@@ -1,0 +1,196 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/game/PauseMenu.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=abbca2e0"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.__vite_plugin_react_preamble_installed__) {
+    throw new Error("@vitejs/plugin-react can't detect preamble. Something is wrong. See https://github.com/vitejs/vite-plugin-react/pull/11#discussion_r430879201");
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = (type, id) => {
+    RefreshRuntime.register(type, "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx " + id);
+  };
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+import { Button } from "/src/components/ui/button.tsx";
+import { X } from "/node_modules/.vite/deps/lucide-react.js?v=abbca2e0";
+import { CONTROL_GROUPS } from "/src/components/game/controlBindings.ts";
+export const PauseMenu = ({ onResume, onBackToMainMenu, questTitle, questObjective }) => {
+  return /* @__PURE__ */ jsxDEV("div", { className: "fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto", children: /* @__PURE__ */ jsxDEV("div", { className: "bg-[#1A0F0A]/95 border-2 border-[#8B5A2B] rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl animate-scale-in", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "flex justify-between items-center mb-6", children: [
+      /* @__PURE__ */ jsxDEV("h2", { className: "text-2xl font-bold text-[#DAA520] uppercase tracking-widest", children: "Paused" }, void 0, false, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+        lineNumber: 19,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV(
+        Button,
+        {
+          onClick: onResume,
+          variant: "ghost",
+          size: "sm",
+          className: "text-[#D3D3D3] hover:text-[#DAA520] hover:bg-[#2D1B11]",
+          children: /* @__PURE__ */ jsxDEV(X, { className: "w-5 h-5" }, void 0, false, {
+            fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+            lineNumber: 26,
+            columnNumber: 13
+          }, this)
+        },
+        void 0,
+        false,
+        {
+          fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+          lineNumber: 20,
+          columnNumber: 11
+        },
+        this
+      )
+    ] }, void 0, true, {
+      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+      lineNumber: 18,
+      columnNumber: 9
+    }, this),
+    (questTitle || questObjective) && /* @__PURE__ */ jsxDEV("div", { className: "mb-6 p-3 bg-[#2D1B11]/80 border border-[#5C3A21] rounded-sm", children: [
+      /* @__PURE__ */ jsxDEV("p", { className: "text-[10px] text-[#DAA520] uppercase tracking-wider font-bold mb-1", children: "Current Objective" }, void 0, false, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+        lineNumber: 32,
+        columnNumber: 13
+      }, this),
+      questTitle && /* @__PURE__ */ jsxDEV("p", { className: "text-[11px] uppercase tracking-wider text-[#A1887F] mb-0.5", children: questTitle }, void 0, false, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+        lineNumber: 34,
+        columnNumber: 11
+      }, this),
+      questObjective && /* @__PURE__ */ jsxDEV("p", { className: "text-sm text-[#F5DEB3]", children: questObjective }, void 0, false, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+        lineNumber: 37,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+      lineNumber: 31,
+      columnNumber: 9
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "space-y-4 mb-6", children: [
+      /* @__PURE__ */ jsxDEV("p", { className: "text-[10px] text-[#DAA520] uppercase tracking-wider font-bold", children: "Controls" }, void 0, false, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+        lineNumber: 43,
+        columnNumber: 11
+      }, this),
+      CONTROL_GROUPS.map(
+        (group) => /* @__PURE__ */ jsxDEV("div", { className: "space-y-1.5", children: [
+          /* @__PURE__ */ jsxDEV("p", { className: "text-[10px] font-bold text-[#DAA520]/90 uppercase tracking-[0.2em]", children: group.title }, void 0, false, {
+            fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+            lineNumber: 46,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-2 gap-2", children: group.bindings.map(
+            (b) => /* @__PURE__ */ jsxDEV(
+              "div",
+              {
+                className: `flex justify-between items-center bg-[#2D1B11]/50 px-2 py-1.5 rounded-sm border border-[#5C3A21]/30 ${b.wide ? "col-span-2" : ""}`,
+                children: [
+                  /* @__PURE__ */ jsxDEV("kbd", { className: "bg-[#1A0F0A] px-1.5 py-0.5 rounded border border-[#5C3A21] text-[#DAA520] text-[10px] font-bold", children: b.keys }, void 0, false, {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+                    lineNumber: 53,
+                    columnNumber: 21
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "text-[#F5DEB3] text-xs", children: b.action }, void 0, false, {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+                    lineNumber: 54,
+                    columnNumber: 21
+                  }, this)
+                ]
+              },
+              `${group.title}-${b.keys}`,
+              true,
+              {
+                fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+                lineNumber: 49,
+                columnNumber: 15
+              },
+              this
+            )
+          ) }, void 0, false, {
+            fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+            lineNumber: 47,
+            columnNumber: 15
+          }, this)
+        ] }, group.title, true, {
+          fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+          lineNumber: 45,
+          columnNumber: 11
+        }, this)
+      )
+    ] }, void 0, true, {
+      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+      lineNumber: 42,
+      columnNumber: 9
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "flex flex-col gap-3", children: [
+      /* @__PURE__ */ jsxDEV(
+        Button,
+        {
+          onClick: onResume,
+          className: "w-full bg-[#8B5A2B] hover:bg-[#A0522D] text-white font-bold py-3 border border-[#5C3A21] uppercase tracking-wider",
+          children: "Resume"
+        },
+        void 0,
+        false,
+        {
+          fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+          lineNumber: 63,
+          columnNumber: 11
+        },
+        this
+      ),
+      /* @__PURE__ */ jsxDEV(
+        Button,
+        {
+          onClick: onBackToMainMenu,
+          className: "w-full bg-transparent hover:bg-[#2D1B11] text-[#D3D3D3] hover:text-[#DAA520] font-bold py-3 border border-[#5C3A21] uppercase tracking-wider transition-all duration-200",
+          children: "Back to Main Menu"
+        },
+        void 0,
+        false,
+        {
+          fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+          lineNumber: 69,
+          columnNumber: 11
+        },
+        this
+      )
+    ] }, void 0, true, {
+      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+      lineNumber: 62,
+      columnNumber: 9
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+    lineNumber: 17,
+    columnNumber: 7
+  }, this) }, void 0, false, {
+    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx",
+    lineNumber: 16,
+    columnNumber: 5
+  }, this);
+};
+_c = PauseMenu;
+var _c;
+$RefreshReg$(_c, "PauseMenu");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PauseMenu.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate(currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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LE1BS0E7QUFBQSxNQUNBO0FBQUEsUUFBQztBQUFBO0FBQUEsVUFDQyxTQUFTQztBQUFBQSxVQUNULFdBQVU7QUFBQSxVQUEwSztBQUFBO0FBQUEsUUFGdEw7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLE1BS0E7QUFBQSxTQVpGO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0FhQTtBQUFBLE9BMURGO0FBQUE7QUFBQTtBQUFBO0FBQUEsU0EyREEsS0E1REY7QUFBQTtBQUFBO0FBQUE7QUFBQSxTQTZEQTtBQUVKO0FBQUVXLEtBakVXYjtBQUFTLElBQUFhO0FBQUEsYUFBQUEsSUFBQSIsIm5hbWVzIjpbIlgiLCJDT05UUk9MX0dST1VQUyIsIlBhdXNlTWVudSIsIm9uUmVzdW1lIiwib25CYWNrVG9NYWluTWVudSIsInF1ZXN0VGl0bGUiLCJxdWVzdE9iamVjdGl2ZSIsIm1hcCIsImdyb3VwIiwidGl0bGUiLCJiaW5kaW5ncyIsImIiLCJ3aWRlIiwia2V5cyIsImFjdGlvbiIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIlBhdXNlTWVudS50c3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgQnV0dG9uIH0gZnJvbSAnQC9jb21wb25lbnRzL3VpL2J1dHRvbic7XG5pbXBvcnQgeyBYIH0gZnJvbSAnbHVjaWRlLXJlYWN0JztcbmltcG9ydCB7IENPTlRST0xfR1JPVVBTIH0gZnJvbSAnLi9jb250cm9sQmluZGluZ3MnO1xuXG5pbnRlcmZhY2UgUGF1c2VNZW51UHJvcHMge1xuICBvblJlc3VtZTogKCkgPT4gdm9pZDtcbiAgb25CYWNrVG9NYWluTWVudTogKCkgPT4gdm9pZDtcbiAgLyoqIFRpdGxlIG9mIHRoZSBwbGF5ZXIncyBwcmltYXJ5IGFjdGl2ZSBxdWVzdCwgZS5nLiBcIlRoZSBNaXNzaW5nIEh1bnRlclwiLiAqL1xuICBxdWVzdFRpdGxlPzogc3RyaW5nO1xuICAvKiogQWN0aXZlICh1bi1jaGVja2VkKSBvYmplY3RpdmUgc3RlcCB1bmRlciB0aGF0IHF1ZXN0LCBlLmcuIFwiRmluZCB0aGUgRGlzcGFyYWdlZCBDb3R0YWdlXCIuICovXG4gIHF1ZXN0T2JqZWN0aXZlPzogc3RyaW5nO1xufVxuXG5leHBvcnQgY29uc3QgUGF1c2VNZW51ID0gKHsgb25SZXN1bWUsIG9uQmFja1RvTWFpbk1lbnUsIHF1ZXN0VGl0bGUsIHF1ZXN0T2JqZWN0aXZlIH06IFBhdXNlTWVudVByb3BzKSA9PiB7XG4gIHJldHVybiAoXG4gICAgPGRpdiBjbGFzc05hbWU9XCJmaXhlZCBpbnNldC0wIHotWzEwMF0gZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgYmctYmxhY2svNzAgYmFja2Ryb3AtYmx1ci1zbSBwb2ludGVyLWV2ZW50cy1hdXRvXCI+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cImJnLVsjMUEwRjBBXS85NSBib3JkZXItMiBib3JkZXItWyM4QjVBMkJdIHJvdW5kZWQtbGcgcC04IG1heC13LW1kIHctZnVsbCBteC00IHNoYWRvdy0yeGwgYW5pbWF0ZS1zY2FsZS1pblwiPlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXgganVzdGlmeS1iZXR3ZWVuIGl0ZW1zLWNlbnRlciBtYi02XCI+XG4gICAgICAgICAgPGgyIGNsYXNzTmFtZT1cInRleHQtMnhsIGZvbnQtYm9sZCB0ZXh0LVsjREFBNTIwXSB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZXN0XCI+UGF1c2VkPC9oMj5cbiAgICAgICAgICA8QnV0dG9uXG4gICAgICAgICAgICBvbkNsaWNrPXtvblJlc3VtZX1cbiAgICAgICAgICAgIHZhcmlhbnQ9XCJnaG9zdFwiXG4gICAgICAgICAgICBzaXplPVwic21cIlxuICAgICAgICAgICAgY2xhc3NOYW1lPVwidGV4dC1bI0QzRDNEM10gaG92ZXI6dGV4dC1bI0RBQTUyMF0gaG92ZXI6YmctWyMyRDFCMTFdXCJcbiAgICAgICAgICA+XG4gICAgICAgICAgICA8WCBjbGFzc05hbWU9XCJ3LTUgaC01XCIgLz5cbiAgICAgICAgICA8L0J1dHRvbj5cbiAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgeyhxdWVzdFRpdGxlIHx8IHF1ZXN0T2JqZWN0aXZlKSAmJiAoXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJtYi02IHAtMyBiZy1bIzJEMUIxMV0vODAgYm9yZGVyIGJvcmRlci1bIzVDM0EyMV0gcm91bmRlZC1zbVwiPlxuICAgICAgICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC1bMTBweF0gdGV4dC1bI0RBQTUyMF0gdXBwZXJjYXNlIHRyYWNraW5nLXdpZGVyIGZvbnQtYm9sZCBtYi0xXCI+Q3VycmVudCBPYmplY3RpdmU8L3A+XG4gICAgICAgICAgICB7cXVlc3RUaXRsZSAmJiAoXG4gICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cInRleHQtWzExcHhdIHVwcGVyY2FzZSB0cmFja2luZy13aWRlciB0ZXh0LVsjQTE4ODdGXSBtYi0wLjVcIj57cXVlc3RUaXRsZX08L3A+XG4gICAgICAgICAgICApfVxuICAgICAgICAgICAge3F1ZXN0T2JqZWN0aXZlICYmIChcbiAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC1zbSB0ZXh0LVsjRjVERUIzXVwiPntxdWVzdE9iamVjdGl2ZX08L3A+XG4gICAgICAgICAgICApfVxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICApfVxuXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic3BhY2UteS00IG1iLTZcIj5cbiAgICAgICAgICA8cCBjbGFzc05hbWU9XCJ0ZXh0LVsxMHB4XSB0ZXh0LVsjREFBNTIwXSB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZXIgZm9udC1ib2xkXCI+Q29udHJvbHM8L3A+XG4gICAgICAgICAge0NPTlRST0xfR1JPVVBTLm1hcChncm91cCA9PiAoXG4gICAgICAgICAgICA8ZGl2IGtleT17Z3JvdXAudGl0bGV9IGNsYXNzTmFtZT1cInNwYWNlLXktMS41XCI+XG4gICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cInRleHQtWzEwcHhdIGZvbnQtYm9sZCB0ZXh0LVsjREFBNTIwXS85MCB1cHBlcmNhc2UgdHJhY2tpbmctWzAuMmVtXVwiPntncm91cC50aXRsZX08L3A+XG4gICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZ3JpZCBncmlkLWNvbHMtMiBnYXAtMlwiPlxuICAgICAgICAgICAgICAgIHtncm91cC5iaW5kaW5ncy5tYXAoYiA9PiAoXG4gICAgICAgICAgICAgICAgICA8ZGl2XG4gICAgICAgICAgICAgICAgICAgIGtleT17YCR7Z3JvdXAudGl0bGV9LSR7Yi5rZXlzfWB9XG4gICAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT17YGZsZXgganVzdGlmeS1iZXR3ZWVuIGl0ZW1zLWNlbnRlciBiZy1bIzJEMUIxMV0vNTAgcHgtMiBweS0xLjUgcm91bmRlZC1zbSBib3JkZXIgYm9yZGVyLVsjNUMzQTIxXS8zMCAke2Iud2lkZSA/ICdjb2wtc3Bhbi0yJyA6ICcnfWB9XG4gICAgICAgICAgICAgICAgICA+XG4gICAgICAgICAgICAgICAgICAgIDxrYmQgY2xhc3NOYW1lPVwiYmctWyMxQTBGMEFdIHB4LTEuNSBweS0wLjUgcm91bmRlZCBib3JkZXIgYm9yZGVyLVsjNUMzQTIxXSB0ZXh0LVsjREFBNTIwXSB0ZXh0LVsxMHB4XSBmb250LWJvbGRcIj57Yi5rZXlzfTwva2JkPlxuICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0ZXh0LVsjRjVERUIzXSB0ZXh0LXhzXCI+e2IuYWN0aW9ufTwvc3Bhbj5cbiAgICAgICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgICAgICkpfVxuICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICkpfVxuICAgICAgICA8L2Rpdj5cblxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggZmxleC1jb2wgZ2FwLTNcIj5cbiAgICAgICAgICA8QnV0dG9uXG4gICAgICAgICAgICBvbkNsaWNrPXtvblJlc3VtZX1cbiAgICAgICAgICAgIGNsYXNzTmFtZT1cInctZnVsbCBiZy1bIzhCNUEyQl0gaG92ZXI6YmctWyNBMDUyMkRdIHRleHQtd2hpdGUgZm9udC1ib2xkIHB5LTMgYm9yZGVyIGJvcmRlci1bIzVDM0EyMV0gdXBwZXJjYXNlIHRyYWNraW5nLXdpZGVyXCJcbiAgICAgICAgICA+XG4gICAgICAgICAgICBSZXN1bWVcbiAgICAgICAgICA8L0J1dHRvbj5cbiAgICAgICAgICA8QnV0dG9uXG4gICAgICAgICAgICBvbkNsaWNrPXtvbkJhY2tUb01haW5NZW51fVxuICAgICAgICAgICAgY2xhc3NOYW1lPVwidy1mdWxsIGJnLXRyYW5zcGFyZW50IGhvdmVyOmJnLVsjMkQxQjExXSB0ZXh0LVsjRDNEM0QzXSBob3Zlcjp0ZXh0LVsjREFBNTIwXSBmb250LWJvbGQgcHktMyBib3JkZXIgYm9yZGVyLVsjNUMzQTIxXSB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZXIgdHJhbnNpdGlvbi1hbGwgZHVyYXRpb24tMjAwXCJcbiAgICAgICAgICA+XG4gICAgICAgICAgICBCYWNrIHRvIE1haW4gTWVudVxuICAgICAgICAgIDwvQnV0dG9uPlxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuICAgIDwvZGl2PlxuICApO1xufTtcbiJdLCJmaWxlIjoiQzovVXNlcnMvcm94YXMvT25lRHJpdmUvRGVza3RvcC9QUk9KRUNUUy9zb3Vscy1zbG9wL3NyYy9jb21wb25lbnRzL2dhbWUvUGF1c2VNZW51LnRzeCJ9

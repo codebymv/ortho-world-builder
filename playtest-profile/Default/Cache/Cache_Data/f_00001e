@@ -1,0 +1,356 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/game/PerfOverlay.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=abbca2e0"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.__vite_plugin_react_preamble_installed__) {
+    throw new Error("@vitejs/plugin-react can't detect preamble. Something is wrong. See https://github.com/vitejs/vite-plugin-react/pull/11#discussion_r430879201");
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = (type, id) => {
+    RefreshRuntime.register(type, "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx " + id);
+  };
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+function ms(value) {
+  return `${value.toFixed(1)}ms`;
+}
+function number(value) {
+  return Math.round(value).toLocaleString();
+}
+export function PerfOverlay({ snapshot }) {
+  const phaseEntries = Object.entries(snapshot.phases).filter(([, phase]) => phase && phase.last > 0).sort(([, a], [, b]) => (b?.p95 ?? 0) - (a?.p95 ?? 0)).slice(0, 10);
+  return /* @__PURE__ */ jsxDEV("div", { className: "fixed left-4 top-16 z-[90] w-[22rem] border border-[#3B5B72] bg-[#061018]/92 p-2 font-mono text-[11px] text-[#D8F3FF] shadow-lg pointer-events-none", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "mb-1 flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-wider text-[#8DD8FF]", children: [
+      /* @__PURE__ */ jsxDEV("span", { children: "Perf profiler (F8)" }, void 0, false, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 24,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { children: [
+        snapshot.frames.fps.toFixed(0),
+        " fps"
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 25,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+      lineNumber: 23,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "mb-1 text-[10px] text-[#8DD8FF]/75", children: "F9 captures this sample to console + window history" }, void 0, false, {
+      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+      lineNumber: 27,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-5 gap-1 text-center", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "last",
+        /* @__PURE__ */ jsxDEV("br", {}, void 0, false, {
+          fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+          lineNumber: 29,
+          columnNumber: 18
+        }, this),
+        ms(snapshot.frames.last)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 29,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "p50",
+        /* @__PURE__ */ jsxDEV("br", {}, void 0, false, {
+          fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+          lineNumber: 30,
+          columnNumber: 17
+        }, this),
+        ms(snapshot.frames.p50)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 30,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "p95",
+        /* @__PURE__ */ jsxDEV("br", {}, void 0, false, {
+          fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+          lineNumber: 31,
+          columnNumber: 17
+        }, this),
+        ms(snapshot.frames.p95)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 31,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "p99",
+        /* @__PURE__ */ jsxDEV("br", {}, void 0, false, {
+          fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+          lineNumber: 32,
+          columnNumber: 17
+        }, this),
+        ms(snapshot.frames.p99)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 32,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "max",
+        /* @__PURE__ */ jsxDEV("br", {}, void 0, false, {
+          fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+          lineNumber: 33,
+          columnNumber: 17
+        }, this),
+        ms(snapshot.frames.max)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 33,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+      lineNumber: 28,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "mt-2 grid grid-cols-2 gap-x-3 gap-y-1", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "draws ",
+        number(snapshot.renderer.drawCalls)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 36,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "tris ",
+        number(snapshot.renderer.triangles)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 37,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "tex ",
+        number(snapshot.renderer.textures)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 38,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "geo ",
+        number(snapshot.renderer.geometries)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 39,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "pixel ",
+        snapshot.renderer.pixelRatio.toFixed(2),
+        "x"
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 40,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "cap ",
+        snapshot.adaptivePixelRatioCap.toFixed(2),
+        "x"
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 41,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "world ",
+        number(snapshot.world.activeObjects)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 42,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "pending ",
+        number(snapshot.world.pendingTiles)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 43,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "overlays ",
+        number(snapshot.world.activeOverlayObjects)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 44,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "culled ",
+        number(snapshot.world.activeDecorativeOverlayCulls)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 45,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "mesh pool ",
+        number(snapshot.world.meshPoolSize)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 46,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "grp pool ",
+        number(snapshot.world.groupPoolSize)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 47,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "enemies ",
+        snapshot.entities.liveEnemies,
+        "/",
+        snapshot.entities.totalEnemies
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 48,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "proj ",
+        snapshot.entities.projectiles + snapshot.entities.hazards
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 49,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "particles ",
+        snapshot.entities.particles
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 50,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "p budget ",
+        snapshot.entities.particleEmitted,
+        "/",
+        snapshot.entities.particleBudget
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 51,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "p drop ",
+        number(snapshot.entities.particleDropped)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 52,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "p scale ",
+        snapshot.entities.particleQualityScale.toFixed(2)
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 53,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "weather ",
+        snapshot.entities.weatherParticles
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 54,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "ambient ",
+        snapshot.entities.ambientParticles
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 55,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        "items ",
+        snapshot.entities.worldItemVisible,
+        "/",
+        snapshot.entities.worldItemVisuals,
+        "/",
+        snapshot.entities.worldItems
+      ] }, void 0, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 56,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+      lineNumber: 35,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "mt-2 border-t border-[#3B5B72]/70 pt-1", children: phaseEntries.map(
+      ([name, phase]) => phase ? /* @__PURE__ */ jsxDEV("div", { className: "flex justify-between gap-2 leading-4", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: name }, void 0, false, {
+          fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+          lineNumber: 62,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { children: [
+          "last ",
+          ms(phase.last),
+          " avg ",
+          ms(phase.avg),
+          " p95 ",
+          ms(phase.p95)
+        ] }, void 0, true, {
+          fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+          lineNumber: 63,
+          columnNumber: 15
+        }, this)
+      ] }, name, true, {
+        fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+        lineNumber: 61,
+        columnNumber: 9
+      }, this) : null
+    ) }, void 0, false, {
+      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+      lineNumber: 58,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx",
+    lineNumber: 22,
+    columnNumber: 5
+  }, this);
+}
+_c = PerfOverlay;
+var _c;
+$RefreshReg$(_c, "PerfOverlay");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/PerfOverlay.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate(currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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O0FBQUEsTUFDakQsdUJBQUMsU0FBSTtBQUFBO0FBQUEsUUFBUzFDLFNBQVNnQyxTQUFTVztBQUFBQSxXQUFoQztBQUFBO0FBQUE7QUFBQTtBQUFBLGFBQWlEO0FBQUEsTUFDakQsdUJBQUMsU0FBSTtBQUFBO0FBQUEsUUFBTzNDLFNBQVNnQyxTQUFTWTtBQUFBQSxRQUFpQjtBQUFBLFFBQUU1QyxTQUFTZ0MsU0FBU2E7QUFBQUEsUUFBaUI7QUFBQSxRQUFFN0MsU0FBU2dDLFNBQVNjO0FBQUFBLFdBQXhHO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFBbUg7QUFBQSxTQXJCckg7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQXNCQTtBQUFBLElBQ0EsdUJBQUMsU0FBSSxXQUFVLDBDQUNaN0MsdUJBQWE4QztBQUFBQSxNQUFJLENBQUMsQ0FBQ0MsTUFBTTFDLEtBQUssTUFDN0JBLFFBQ0UsdUJBQUMsU0FBZSxXQUFVLHdDQUN4QjtBQUFBLCtCQUFDLFVBQU0wQyxrQkFBUDtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQVk7QUFBQSxRQUNaLHVCQUFDLFVBQUs7QUFBQTtBQUFBLFVBQU14RCxHQUFHYyxNQUFNQyxJQUFJO0FBQUEsVUFBRTtBQUFBLFVBQU1mLEdBQUdjLE1BQU0yQyxHQUFHO0FBQUEsVUFBRTtBQUFBLFVBQU16RCxHQUFHYyxNQUFNSyxHQUFHO0FBQUEsYUFBakU7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFtRTtBQUFBLFdBRjNEcUMsTUFBVjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBR0EsSUFDRTtBQUFBLElBQ0wsS0FSSDtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBU0E7QUFBQSxPQTdDRjtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBOENBO0FBRUo7QUFBQ0UsS0F2RGVuRDtBQUFXLElBQUFtRDtBQUFBLGFBQUFBLElBQUEiLCJuYW1lcyI6WyJtcyIsInZhbHVlIiwidG9GaXhlZCIsIm51bWJlciIsIk1hdGgiLCJyb3VuZCIsInRvTG9jYWxlU3RyaW5nIiwiUGVyZk92ZXJsYXkiLCJzbmFwc2hvdCIsInBoYXNlRW50cmllcyIsIk9iamVjdCIsImVudHJpZXMiLCJwaGFzZXMiLCJmaWx0ZXIiLCJwaGFzZSIsImxhc3QiLCJzb3J0IiwiYSIsImIiLCJwOTUiLCJzbGljZSIsImZyYW1lcyIsImZwcyIsInA1MCIsInA5OSIsIm1heCIsInJlbmRlcmVyIiwiZHJhd0NhbGxzIiwidHJpYW5nbGVzIiwidGV4dHVyZXMiLCJnZW9tZXRyaWVzIiwicGl4ZWxSYXRpbyIsImFkYXB0aXZlUGl4ZWxSYXRpb0NhcCIsIndvcmxkIiwiYWN0aXZlT2JqZWN0cyIsInBlbmRpbmdUaWxlcyIsImFjdGl2ZU92ZXJsYXlPYmplY3RzIiwiYWN0aXZlRGVjb3JhdGl2ZU92ZXJsYXlDdWxscyIsIm1lc2hQb29sU2l6ZSIsImdyb3VwUG9vbFNpemUiLCJlbnRpdGllcyIsImxpdmVFbmVtaWVzIiwidG90YWxFbmVtaWVzIiwicHJvamVjdGlsZXMiLCJoYXphcmRzIiwicGFydGljbGVzIiwicGFydGljbGVFbWl0dGVkIiwicGFydGljbGVCdWRnZXQiLCJwYXJ0aWNsZURyb3BwZWQiLCJwYXJ0aWNsZVF1YWxpdHlTY2FsZSIsIndlYXRoZXJQYXJ0aWNsZXMiLCJhbWJpZW50UGFydGljbGVzIiwid29ybGRJdGVtVmlzaWJsZSIsIndvcmxkSXRlbVZpc3VhbHMiLCJ3b3JsZEl0ZW1zIiwibWFwIiwibmFtZSIsImF2ZyIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIlBlcmZPdmVybGF5LnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgdHlwZSB7IFBlcmZTbmFwc2hvdCB9IGZyb20gJ0AvZ2FtZS9ydW50aW1lL1BlcmZQcm9maWxlcic7XG5cbmludGVyZmFjZSBQZXJmT3ZlcmxheVByb3BzIHtcbiAgc25hcHNob3Q6IFBlcmZTbmFwc2hvdDtcbn1cblxuZnVuY3Rpb24gbXModmFsdWU6IG51bWJlcik6IHN0cmluZyB7XG4gIHJldHVybiBgJHt2YWx1ZS50b0ZpeGVkKDEpfW1zYDtcbn1cblxuZnVuY3Rpb24gbnVtYmVyKHZhbHVlOiBudW1iZXIpOiBzdHJpbmcge1xuICByZXR1cm4gTWF0aC5yb3VuZCh2YWx1ZSkudG9Mb2NhbGVTdHJpbmcoKTtcbn1cblxuZXhwb3J0IGZ1bmN0aW9uIFBlcmZPdmVybGF5KHsgc25hcHNob3QgfTogUGVyZk92ZXJsYXlQcm9wcykge1xuICBjb25zdCBwaGFzZUVudHJpZXMgPSBPYmplY3QuZW50cmllcyhzbmFwc2hvdC5waGFzZXMpXG4gICAgLmZpbHRlcigoWywgcGhhc2VdKSA9PiBwaGFzZSAmJiBwaGFzZS5sYXN0ID4gMClcbiAgICAuc29ydCgoWywgYV0sIFssIGJdKSA9PiAoYj8ucDk1ID8/IDApIC0gKGE/LnA5NSA/PyAwKSlcbiAgICAuc2xpY2UoMCwgMTApO1xuXG4gIHJldHVybiAoXG4gICAgPGRpdiBjbGFzc05hbWU9XCJmaXhlZCBsZWZ0LTQgdG9wLTE2IHotWzkwXSB3LVsyMnJlbV0gYm9yZGVyIGJvcmRlci1bIzNCNUI3Ml0gYmctWyMwNjEwMThdLzkyIHAtMiBmb250LW1vbm8gdGV4dC1bMTFweF0gdGV4dC1bI0Q4RjNGRl0gc2hhZG93LWxnIHBvaW50ZXItZXZlbnRzLW5vbmVcIj5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwibWItMSBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4gZ2FwLTIgdGV4dC1bMTFweF0gZm9udC1ib2xkIHVwcGVyY2FzZSB0cmFja2luZy13aWRlciB0ZXh0LVsjOEREOEZGXVwiPlxuICAgICAgICA8c3Bhbj5QZXJmIHByb2ZpbGVyIChGOCk8L3NwYW4+XG4gICAgICAgIDxzcGFuPntzbmFwc2hvdC5mcmFtZXMuZnBzLnRvRml4ZWQoMCl9IGZwczwvc3Bhbj5cbiAgICAgIDwvZGl2PlxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJtYi0xIHRleHQtWzEwcHhdIHRleHQtWyM4REQ4RkZdLzc1XCI+RjkgY2FwdHVyZXMgdGhpcyBzYW1wbGUgdG8gY29uc29sZSArIHdpbmRvdyBoaXN0b3J5PC9kaXY+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cImdyaWQgZ3JpZC1jb2xzLTUgZ2FwLTEgdGV4dC1jZW50ZXJcIj5cbiAgICAgICAgPGRpdj5sYXN0PGJyIC8+e21zKHNuYXBzaG90LmZyYW1lcy5sYXN0KX08L2Rpdj5cbiAgICAgICAgPGRpdj5wNTA8YnIgLz57bXMoc25hcHNob3QuZnJhbWVzLnA1MCl9PC9kaXY+XG4gICAgICAgIDxkaXY+cDk1PGJyIC8+e21zKHNuYXBzaG90LmZyYW1lcy5wOTUpfTwvZGl2PlxuICAgICAgICA8ZGl2PnA5OTxiciAvPnttcyhzbmFwc2hvdC5mcmFtZXMucDk5KX08L2Rpdj5cbiAgICAgICAgPGRpdj5tYXg8YnIgLz57bXMoc25hcHNob3QuZnJhbWVzLm1heCl9PC9kaXY+XG4gICAgICA8L2Rpdj5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwibXQtMiBncmlkIGdyaWQtY29scy0yIGdhcC14LTMgZ2FwLXktMVwiPlxuICAgICAgICA8ZGl2PmRyYXdzIHtudW1iZXIoc25hcHNob3QucmVuZGVyZXIuZHJhd0NhbGxzKX08L2Rpdj5cbiAgICAgICAgPGRpdj50cmlzIHtudW1iZXIoc25hcHNob3QucmVuZGVyZXIudHJpYW5nbGVzKX08L2Rpdj5cbiAgICAgICAgPGRpdj50ZXgge251bWJlcihzbmFwc2hvdC5yZW5kZXJlci50ZXh0dXJlcyl9PC9kaXY+XG4gICAgICAgIDxkaXY+Z2VvIHtudW1iZXIoc25hcHNob3QucmVuZGVyZXIuZ2VvbWV0cmllcyl9PC9kaXY+XG4gICAgICAgIDxkaXY+cGl4ZWwge3NuYXBzaG90LnJlbmRlcmVyLnBpeGVsUmF0aW8udG9GaXhlZCgyKX14PC9kaXY+XG4gICAgICAgIDxkaXY+Y2FwIHtzbmFwc2hvdC5hZGFwdGl2ZVBpeGVsUmF0aW9DYXAudG9GaXhlZCgyKX14PC9kaXY+XG4gICAgICAgIDxkaXY+d29ybGQge251bWJlcihzbmFwc2hvdC53b3JsZC5hY3RpdmVPYmplY3RzKX08L2Rpdj5cbiAgICAgICAgPGRpdj5wZW5kaW5nIHtudW1iZXIoc25hcHNob3Qud29ybGQucGVuZGluZ1RpbGVzKX08L2Rpdj5cbiAgICAgICAgPGRpdj5vdmVybGF5cyB7bnVtYmVyKHNuYXBzaG90LndvcmxkLmFjdGl2ZU92ZXJsYXlPYmplY3RzKX08L2Rpdj5cbiAgICAgICAgPGRpdj5jdWxsZWQge251bWJlcihzbmFwc2hvdC53b3JsZC5hY3RpdmVEZWNvcmF0aXZlT3ZlcmxheUN1bGxzKX08L2Rpdj5cbiAgICAgICAgPGRpdj5tZXNoIHBvb2wge251bWJlcihzbmFwc2hvdC53b3JsZC5tZXNoUG9vbFNpemUpfTwvZGl2PlxuICAgICAgICA8ZGl2PmdycCBwb29sIHtudW1iZXIoc25hcHNob3Qud29ybGQuZ3JvdXBQb29sU2l6ZSl9PC9kaXY+XG4gICAgICAgIDxkaXY+ZW5lbWllcyB7c25hcHNob3QuZW50aXRpZXMubGl2ZUVuZW1pZXN9L3tzbmFwc2hvdC5lbnRpdGllcy50b3RhbEVuZW1pZXN9PC9kaXY+XG4gICAgICAgIDxkaXY+cHJvaiB7c25hcHNob3QuZW50aXRpZXMucHJvamVjdGlsZXMgKyBzbmFwc2hvdC5lbnRpdGllcy5oYXphcmRzfTwvZGl2PlxuICAgICAgICA8ZGl2PnBhcnRpY2xlcyB7c25hcHNob3QuZW50aXRpZXMucGFydGljbGVzfTwvZGl2PlxuICAgICAgICA8ZGl2PnAgYnVkZ2V0IHtzbmFwc2hvdC5lbnRpdGllcy5wYXJ0aWNsZUVtaXR0ZWR9L3tzbmFwc2hvdC5lbnRpdGllcy5wYXJ0aWNsZUJ1ZGdldH08L2Rpdj5cbiAgICAgICAgPGRpdj5wIGRyb3Age251bWJlcihzbmFwc2hvdC5lbnRpdGllcy5wYXJ0aWNsZURyb3BwZWQpfTwvZGl2PlxuICAgICAgICA8ZGl2PnAgc2NhbGUge3NuYXBzaG90LmVudGl0aWVzLnBhcnRpY2xlUXVhbGl0eVNjYWxlLnRvRml4ZWQoMil9PC9kaXY+XG4gICAgICAgIDxkaXY+d2VhdGhlciB7c25hcHNob3QuZW50aXRpZXMud2VhdGhlclBhcnRpY2xlc308L2Rpdj5cbiAgICAgICAgPGRpdj5hbWJpZW50IHtzbmFwc2hvdC5lbnRpdGllcy5hbWJpZW50UGFydGljbGVzfTwvZGl2PlxuICAgICAgICA8ZGl2Pml0ZW1zIHtzbmFwc2hvdC5lbnRpdGllcy53b3JsZEl0ZW1WaXNpYmxlfS97c25hcHNob3QuZW50aXRpZXMud29ybGRJdGVtVmlzdWFsc30ve3NuYXBzaG90LmVudGl0aWVzLndvcmxkSXRlbXN9PC9kaXY+XG4gICAgICA8L2Rpdj5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwibXQtMiBib3JkZXItdCBib3JkZXItWyMzQjVCNzJdLzcwIHB0LTFcIj5cbiAgICAgICAge3BoYXNlRW50cmllcy5tYXAoKFtuYW1lLCBwaGFzZV0pID0+IChcbiAgICAgICAgICBwaGFzZSA/IChcbiAgICAgICAgICAgIDxkaXYga2V5PXtuYW1lfSBjbGFzc05hbWU9XCJmbGV4IGp1c3RpZnktYmV0d2VlbiBnYXAtMiBsZWFkaW5nLTRcIj5cbiAgICAgICAgICAgICAgPHNwYW4+e25hbWV9PC9zcGFuPlxuICAgICAgICAgICAgICA8c3Bhbj5sYXN0IHttcyhwaGFzZS5sYXN0KX0gYXZnIHttcyhwaGFzZS5hdmcpfSBwOTUge21zKHBoYXNlLnA5NSl9PC9zcGFuPlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgKSA6IG51bGxcbiAgICAgICAgKSl9XG4gICAgICA8L2Rpdj5cbiAgICA8L2Rpdj5cbiAgKTtcbn1cbiJdLCJmaWxlIjoiQzovVXNlcnMvcm94YXMvT25lRHJpdmUvRGVza3RvcC9QUk9KRUNUUy9zb3Vscy1zbG9wL3NyYy9jb21wb25lbnRzL2dhbWUvUGVyZk92ZXJsYXkudHN4In0=

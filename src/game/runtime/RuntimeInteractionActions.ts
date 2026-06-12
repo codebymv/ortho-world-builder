@@ -22,6 +22,7 @@ interface InteractionSystemLike {
   tryHandleGroveShelfShortcutLever: (interactionId: string) => boolean;
   tryHandleQuarryBankShortcutLever: (interactionId: string) => boolean;
   tryHandleWestCliffGateLever: (interactionId: string) => boolean;
+  tryHandleSouthEntryPicketGateLever: (interactionId: string) => boolean;
   tryHandleRiversideBridgeShortcutLever: (interactionId: string) => boolean;
   tryHandleHollowShortcutLever: (interactionId: string) => boolean;
   tryHandleEastHollowRouteGateLever: (interactionId: string) => boolean;
@@ -373,6 +374,7 @@ export function runInteractionCheck({
     if (interactionSystem.tryHandleQuarryBankShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleWestLakeBridgePlank(interactionId)) return;
     if (interactionSystem.tryHandleWestCliffGateLever(interactionId)) return;
+    if (interactionSystem.tryHandleSouthEntryPicketGateLever(interactionId)) return;
     if (interactionSystem.tryHandleRiversideBridgeShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleHollowShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleEastHollowRouteGateLever(interactionId)) return;

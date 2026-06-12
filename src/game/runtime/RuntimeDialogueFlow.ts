@@ -54,6 +54,7 @@ interface CreateRuntimeDialogueFlowOptions {
   syncQuarryBankShortcutState: () => void;
   syncWestLakeBridgePlankState: () => void;
   syncWestCliffGateState: () => void;
+  syncSouthEntryPicketGateState: () => void;
   syncEastCreekShoreGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
@@ -115,6 +116,7 @@ export function createRuntimeDialogueFlow({
   syncQuarryBankShortcutState,
   syncWestLakeBridgePlankState,
   syncWestCliffGateState,
+  syncSouthEntryPicketGateState,
   syncEastCreekShoreGateState,
   syncRiversideBridgeShortcutState,
   syncHollowShortcutState,
@@ -207,6 +209,7 @@ export function createRuntimeDialogueFlow({
     syncQuarryBankShortcutState,
     syncWestLakeBridgePlankState,
     syncWestCliffGateState,
+    syncSouthEntryPicketGateState,
     syncEastCreekShoreGateState,
     syncRiversideBridgeShortcutState,
     syncHollowShortcutState,

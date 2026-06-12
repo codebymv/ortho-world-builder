@@ -1,4 +1,5 @@
 import type { GameplayPreludeContext } from '@/game/runtime/RuntimePhaseContexts';
+import { updateHoodedWitnessVanish } from '@/game/runtime/hoodedWitnessVanish';
 import { updateNpcBehaviors } from '@/game/runtime/NpcBehaviorSystem';
 import { updatePlayerSimulation, type Direction8, type PlayerAnimState } from '@/game/runtime/PlayerSimulationSystem';
 import { checkPositionBasedProgression } from '@/game/runtime/RuntimeMapRules';
@@ -173,6 +174,9 @@ export function runGameplayPrelude({
   getComboRecovery,
   completeConsumableUse,
   notify,
+  screenShake,
+  triggerSave,
+  setActiveNpcsForCurrentMap,
 }: RunGameplayPreludeOptions) {
   const nowSec = currentTime / 1000;
   if (state.player.iFrameTimer > 0) {
@@ -241,6 +245,16 @@ export function runGameplayPrelude({
   if (portalCooldown > 0) {
     portalCooldown -= deltaTime;
   }
+
+  updateHoodedWitnessVanish({
+    state,
+    deltaTime,
+    currentTime,
+    particleSystem,
+    screenShake,
+    triggerSave,
+    onWitnessVanished: () => setActiveNpcsForCurrentMap(),
+  });
 
   updateNpcBehaviors({
     activeNpcIndices,

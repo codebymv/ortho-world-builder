@@ -47,6 +47,7 @@ export const NPC_SCALE_BY_ID: Record<string, number> = {
   petra_ashveil: 1.02,
   mountain_hermit: 1.02,
   mysterious_man: 1.04,
+  mysterious_man_shore: 1.04,
 };
 
 export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
@@ -99,6 +100,9 @@ export function createDefaultNpcData(): NPC[] {
     // Unnamed Hollow figure on the north bank of the corrupted river. Dismissive until
     // the player kills the Hollow Apparition (flag: hollow_guardian_defeated).
     { id: 'mysterious_man', name: 'A Hooded Figure', mapId: 'forest', position: { x: -55, y: -73 }, dialogueId: 'mysterious_man', sprite: 'npc_mysterious_man', facing: 'left' },
+    // Second hooded witness on the north shore of the SW rocky pond (world ~-118, 127).
+    // Front-facing sprite reads as looking south toward the water below.
+    { id: 'mysterious_man_shore', name: 'A Hooded Figure', mapId: 'forest', position: { x: -118, y: 127 }, dialogueId: 'mysterious_man_shore', sprite: 'npc_mysterious_man_shore' },
     { id: 'oliver', name: 'Oliver', mapId: 'guilrhym', position: { x: 9, y: 125 }, dialogueId: 'oliver', sprite: 'npc_oliver_injured' }, // world (9,125) = tile (159,275), gate plaza
   ];
 }
@@ -133,7 +137,7 @@ export function createNpcWanderState(npcData: NPC[]): Record<string, NpcWanderSt
                   ? 0.5
                 : npc.id === 'explorer_ulmund'
                   ? 0.4
-                : npc.id === 'mysterious_man'
+                : npc.id === 'mysterious_man' || npc.id === 'mysterious_man_shore'
                   ? 0
                 : npc.id === 'oliver'
                   ? 0
@@ -161,7 +165,7 @@ export function createNpcWanderState(npcData: NPC[]): Record<string, NpcWanderSt
                   ? 0.15
                 : npc.id === 'explorer_ulmund'
                   ? 0.12
-                : npc.id === 'mysterious_man'
+                : npc.id === 'mysterious_man' || npc.id === 'mysterious_man_shore'
                   ? 0
                 : npc.id === 'oliver'
                   ? 0

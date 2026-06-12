@@ -10,6 +10,7 @@ interface ApplyNpcVisualsOptions {
   isObjective: boolean;
   npcScale: number;
   npcFootOffset: number;
+  vanishProgress?: number;
   getVisualYAt: (x: number, y: number) => number;
   getActorRenderOrder: (x: number, y: number, footOffset: number) => number;
   meshes: {
@@ -29,6 +30,7 @@ export function applyNpcVisuals({
   isPaused,
   npcScale,
   npcFootOffset,
+  vanishProgress = 0,
   getVisualYAt,
   getActorRenderOrder,
   meshes,
@@ -47,15 +49,22 @@ export function applyNpcVisuals({
 
   const { npcMesh, npcShadow, npcOutline, npcObjectiveHalo, npcObjectiveRing } = meshes;
 
+  const dissolveScale = vanishProgress > 0 ? 1 - vanishProgress * 0.28 : 1;
+  const dissolveAlpha = vanishProgress > 0 ? 1 - vanishProgress : 1;
+
   if (npcMesh) {
     npcMesh.position.set(npc.position.x, visualY + bob, 0.2);
+    const scaleX = npcScale * (isTalking ? 1 : 1 - stride * 0.025) * dissolveScale;
+    const scaleY = npcScale * (isTalking ? 1 : 1 + stride * 0.05) * dissolveScale;
     npcMesh.scale.set(
-      npcScale * (isTalking ? 1 : 1 - stride * 0.025),
-      npcScale * (isTalking ? 1 : 1 + stride * 0.05),
+      npc.facing === 'left' ? -scaleX : scaleX,
+      scaleY,
       1,
     );
     npcMesh.rotation.z = lean;
     npcMesh.renderOrder = getActorRenderOrder(npc.position.x, npc.position.y, npcFootOffset);
+    const mat = npcMesh.material as THREE.MeshBasicMaterial;
+    mat.opacity = dissolveAlpha;
   }
 
   if (npcShadow) {
@@ -66,6 +75,12 @@ export function applyNpcVisuals({
     npcOutline.position.set(npc.position.x, visualY + bob, 0.19);
     npcOutline.rotation.z = lean;
     npcOutline.renderOrder = npcMesh.renderOrder - 1;
+    const outlineMat = npcOutline.material as THREE.MeshBasicMaterial;
+    outlineMat.opacity = 0.45 * dissolveAlpha;
+  }
+
+  if (npcShadow) {
+    npcShadow.scale.set(0.8 * dissolveScale, 0.35 * dissolveScale, 1);
   }
 
   if (npcObjectiveHalo) {

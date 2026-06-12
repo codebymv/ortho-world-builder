@@ -1443,7 +1443,7 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [
       {
         id: 'start',
-        text: "…Not yet. Not while the **Apparition** still breathes. Come back when the fog above the gate has lifted, and we will see what is left to say. *Until then. Keep walking.*",
+        text: '...',
         responses: [{ text: "[Leave]", nextId: 'end' }],
       },
       {
@@ -1469,6 +1469,43 @@ export const dialogues: Record<string, Dialogue> = {
         responses: [
           { text: "Who are you, then?", nextId: 'who' },
           { text: "I'll be back.", nextId: 'end' },
+        ],
+      },
+      { id: 'end', text: '', responses: [] },
+    ],
+  },
+
+  mysterious_man_shore: {
+    id: 'mysterious_man_shore',
+    nodes: [
+      {
+        id: 'start',
+        text: '...',
+        responses: [{ text: '[Leave]', nextId: 'end' }],
+      },
+      {
+        id: 'unlocked',
+        text: 'You found the other shore, then. I come here when the gate feels too loud. The pond does not ask questions. It only holds what the woods refuse to carry downstream.',
+        responses: [
+          { text: 'Are you the same one from the river?', nextId: 'same' },
+          { text: 'What does the water hold?', nextId: 'water' },
+          { text: 'I will leave you to it.', nextId: 'end' },
+        ],
+      },
+      {
+        id: 'same',
+        text: 'Same witness. Different silence. If that troubles you, good. Trouble means you are still paying attention.',
+        responses: [
+          { text: 'What does the water hold?', nextId: 'water' },
+          { text: 'Understood.', nextId: 'end' },
+        ],
+      },
+      {
+        id: 'water',
+        text: 'Names. Footsteps. The last thing people said before they turned toward the Hollow. I do not fish them out. I only make sure someone is standing here when they surface.',
+        responses: [
+          { text: 'Are you the same one from the river?', nextId: 'same' },
+          { text: 'I will leave you to it.', nextId: 'end' },
         ],
       },
       { id: 'end', text: '', responses: [] },

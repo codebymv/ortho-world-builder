@@ -54,5 +54,6 @@ describe('CombatBalance', () => {
     const reaver = ENEMY_BLUEPRINTS.hollow_reaver.behaviorOverrides;
     expect(reaver?.rangedRange).toBeLessThanOrEqual(3.5);
     expect(reaver?.rangedProjectileLifetime).toBeLessThanOrEqual(1.2);
+    expect(reaver?.rangedCooldown).toBeGreaterThanOrEqual(1.2);
   });
 });

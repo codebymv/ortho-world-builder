@@ -87,8 +87,8 @@ export const forestDef: MapDefinition = {
     // (bridge_decay_blend) replaces hard rectangle boundaries ??? south stays mostly intact wood,
     // north goes hollow-tainted, with mixed tiles in between. Water gap x=123???124 on north rows.
     { x: 118, y: 81, width: 12, height: 15, type: 'bridge_decay_blend' },
-    // Corrupted-water pass now targets the deeper hollow lake near world position (4, -112) via
-    // applyWhisperingWoodsHollowApproachCorruptedWater (mapGenerator), leaving this bridge run normal.
+    // Corrupted-water pass (mapGenerator) taints only the deeper east hollow pool; NW seal / west-run
+    // and bridge approach river stay normal blue water (hooded river witness at ~-55,-73).
 
     // === THE HOLLOW ??? Dark clearings and corrupted terrain (y < 75) ===
     { x: 40, y: 30, width: 30, height: 30, type: 'clearing', fill: 'dark_grass' },
@@ -102,18 +102,19 @@ export const forestDef: MapDefinition = {
     { x: 85, y: 35, width: 8, height: 6, type: 'clearing', fill: 'mossy_stone' },
     { x: 155, y: 50, width: 6, height: 4, type: 'clearing', fill: 'mossy_stone' },
     { x: 120, y: 25, width: 8, height: 6, type: 'clearing', fill: 'mossy_stone' },
-    // Paths through the Hollow (mossy stone trails)
-    { x: 120, y: 72, width: 8, height: 8, type: 'path', fill: 'dirt' },
-    { x: 122, y: 55, width: 6, height: 18, type: 'path', fill: 'dirt' },
-    { x: 118, y: 40, width: 8, height: 16, type: 'path', fill: 'dirt' },
-    { x: 120, y: 28, width: 6, height: 14, type: 'path', fill: 'dirt' },
+    // Paths through the Hollow: same spine grammar as forest dirt, but bleached/corrupted so
+    // this district reads as a different sentence instead of another ordinary trail.
+    { x: 120, y: 72, width: 8, height: 8, type: 'path', fill: 'hollow_blight' },
+    { x: 122, y: 55, width: 6, height: 18, type: 'path', fill: 'hollow_blight' },
+    { x: 118, y: 40, width: 8, height: 16, type: 'path', fill: 'hollow_blight' },
+    { x: 120, y: 28, width: 6, height: 14, type: 'path', fill: 'hollow_blight' },
     // Path continues to the fog gate at y=18 so the terminus is readable on-screen.
-    { x: 120, y: 18, width: 6, height: 11, type: 'path', fill: 'dirt' },
+    { x: 120, y: 18, width: 6, height: 11, type: 'path', fill: 'hollow_blight' },
 
     // === THE HOLLOW ??? Fog Gate terminus (y=18) ===
     // Ceremonial cleared apron behind the gate so it reads as the hard end of the path,
     // not a random tree line in the forest.
-    { x: 100, y: 2, width: 48, height: 34, type: 'clearing', fill: 'dirt' },
+    { x: 100, y: 2, width: 48, height: 34, type: 'clearing', fill: 'hollow_blight' },
     // Everything north of y=18 is sealed. The fog gate (5 tiles, x=120-124) is placed at
     // runtime by syncHollowFogGateState and clears to hollow_blight after the boss is defeated.
     // Cliff block directly behind the gate so there is no visible grass/tree space beyond it.
@@ -321,6 +322,8 @@ export const forestDef: MapDefinition = {
     { x: 44, y: 180, width: 35, height: 33, type: 'clearing', fill: 'grass' },
     // Mid-plateau observatory plot ? world (-36, -13); sized for expanded foundation mask.
     { x: 106, y: 126, width: 16, height: 18, type: 'clearing', fill: 'grass' },
+    // North fort approach observatory plot — world (-84, 99); sized for shared foundation mask.
+    { x: 58, y: 241, width: 16, height: 18, type: 'clearing', fill: 'grass' },
 
     // Hunter shack is teased from below, then reached by wrapping around a cliff-backed approach.
     { x: 60, y: 186, width: 62, height: 26, type: 'cliff_face' },
@@ -846,6 +849,10 @@ export const forestDef: MapDefinition = {
     { x: 165, y: 236, width: 14, height: 10, type: 'abandoned_camp', interactionId: 'logging_camp' },
     { x: 162, y: 234, width: 20, height: 14, type: 'clearing', fill: 'dirt' },
 
+    // --- Vine-choked cottage ruin east of south lake — world (27, 94); unenterable set dressing ---
+    { x: 173, y: 240, width: 9, height: 9, type: 'clearing', fill: 'grass' },
+    { x: 175, y: 242, width: 5, height: 5, type: 'cottage', interactionId: 'hollow_ruin_6' },
+
     // --- Collapsed cottage (far east, x:280, y:160) ---
     { x: 280, y: 160, width: 6, height: 6, type: 'cottage', interactionId: 'collapsed_cottage' },
     { x: 276, y: 158, width: 14, height: 10, type: 'clearing', fill: 'grass' },
@@ -862,8 +869,8 @@ export const forestDef: MapDefinition = {
     // --- Old well clearing (central, x:190, y:120) ---
     { x: 188, y: 118, width: 12, height: 10, type: 'clearing', fill: 'grass' },
 
-    // --- Rocky pond (far south-west, x:30, y:280) ---
-    { x: 28, y: 278, width: 12, height: 8, type: 'lake' },
+    // --- Rocky pond (far south-west, world ~-122, 132) - hollow-tainted water for the lakeside witness ---
+    { x: 28, y: 278, width: 12, height: 8, type: 'lake', fill: 'water_corrupted' },
 
     // --- Small pond (far east, x:275, y:220) ---
     { x: 275, y: 220, width: 10, height: 8, type: 'lake' },
@@ -947,7 +954,8 @@ export const forestDef: MapDefinition = {
     // World (~44, 128)?(~44, 143). Vertical on grass at x=194 (east bank); south cap split around portal spine (x:146?153).
     { x: 194, y: 278, width: 1, height: 4, type: 'wall', fill: 'fence' },
     { x: 194, y: 282, width: 1, height: 12, type: 'wall', fill: 'fence' },
-    // West-bank picket cordon ? seals the meander's east grass lip (world x=-22, y=106?119).
+    // West-bank picket cordon — seals the meander's east grass lip (world x=-22, y=106–119).
+    // Gate panel at world (-22, 112–114) / tiles (128, 262–264); lever stays west at (-25, 117).
     { x: 128, y: 256, width: 1, height: 14, type: 'wall', fill: 'fence' },
     // West cap meets the spine west edge (x=145); portal column stays open at x:146?153.
     { x: 122, y: 293, width: 24, height: 1, type: 'wall', fill: 'fence' },
@@ -1048,6 +1056,8 @@ export const forestDef: MapDefinition = {
     { x: 236, y: 55, type: 'shortcut_lever', walkable: false, interactionId: 'east_hollow_route_gate_lever' },
     // Quarry-bank shortcut lever - on the quarry side of the west-bank picket cordon.
     { x: 207, y: 220, type: 'shortcut_lever', walkable: false, interactionId: 'quarry_bank_shortcut_lever' },
+    // South-entry picket gate lever — west of the gate at world (-25, 117) / tile (125, 267).
+    { x: 125, y: 267, type: 'shortcut_lever', walkable: false, interactionId: 'south_entry_picket_gate_lever' },
     // South approach trail toward the fog-gate corridor ??? world near (-26, -46).
     { x: 124, y: 77, type: 'bonfire', walkable: false, interactionId: 'bonfire_forest_fort' },
     // Eastern fort passage - safe rest point inside the garrison by the gatekeeper and quartermaster.
@@ -1076,7 +1086,7 @@ export const forestDef: MapDefinition = {
     { x: 275, y: 270, type: 'well', walkable: false, interactionId: 'well' },
     { x: 140, y: 95, type: 'well', walkable: false, interactionId: 'ancient_well' },
     { x: 30, y: 35, type: 'bones_pile', walkable: true, interactionId: 'wolf_den_bones' },
-    { x: 65, y: 183, type: 'ranger_remains', walkable: true, interactionId: 'chapel_dead_ranger' },
+    { x: 68, y: 183, type: 'ranger_remains', walkable: true, interactionId: 'chapel_dead_ranger' },
     { x: 89, y: 190, type: 'ranger_remains_scattered', walkable: true },
     { x: 262, y: 25, type: 'sign', walkable: false, interactionId: 'volcano_warning' },
     { x: 22, y: 248, type: 'cage', walkable: false },
@@ -1140,6 +1150,11 @@ export const forestDef: MapDefinition = {
     // the WEST - opens it. Proximity-based interaction still picks the lever from the west and the
     // gate's sealed message from the east.
     { x: 84, y: 55, type: 'shortcut_lever', walkable: false, interactionId: 'west_cliff_gate_lever' },
+    // Clear procedural trees crowding the south-entry picket gate (128,262–264) and lever (125,267).
+    { x: 127, y: 261, type: 'grass', walkable: true },
+    { x: 129, y: 261, type: 'grass', walkable: true },
+    { x: 126, y: 263, type: 'grass', walkable: true },
+    { x: 124, y: 265, type: 'grass', walkable: true },
 
   ],
   props: [
@@ -1153,6 +1168,14 @@ export const forestDef: MapDefinition = {
     { x: 273, y: 259, type: 'summoning_ritual_dud', walkable: true }, // world (123, 109)
     { x: 134, y: 133, type: 'summoning_ritual_dud', walkable: true }, // world (-16, -17)
     { x: 285, y: 162, type: 'summoning_ritual_dud', walkable: true }, // world (135, 12)
+    // Failed ritual dead-zone - deliberately inert false read in the Hollow pocket. It tells
+    // players this empty combat pocket is authored lore, not missing progression.
+    { x: 211, y: 33, type: 'summoning_ritual_dud', walkable: true }, // world (61, -117)
+    { x: 208, y: 31, type: 'ritual_candle_knocked', walkable: true },
+    { x: 214, y: 31, type: 'ritual_candle_knocked', walkable: true },
+    { x: 215, y: 34, type: 'ritual_candle_knocked', walkable: true },
+    { x: 208, y: 35, type: 'bones', walkable: true },
+    { x: 212, y: 37, type: 'bloodstain', walkable: true },
     // Ritual rings - east placed at map gen; west ring is re-stamped after the fort overlay loads.
     { x: 257, y: 139, type: 'ritual_candle_knocked', walkable: true },
     { x: 263, y: 139, type: 'ritual_candle_knocked', walkable: true },
@@ -1182,6 +1205,8 @@ export const forestDef: MapDefinition = {
     { x: 131, y: 222, type: 'observatory', walkable: false },
     // Mid-plateau watch tower ? world (-36, -13)
     { x: 114, y: 137, type: 'observatory', walkable: false },
+    // North fort approach watch tower — world (-84, 99)
+    { x: 66, y: 249, type: 'observatory', walkable: false },
     // SW spider-nest meadow landmark ? world (-95, 82)
     { x: 55, y: 231, type: 'windmill', walkable: false },
     // Highlander's Plains landmark - lone mill on the open high grass, world (106, 118)
@@ -1204,6 +1229,16 @@ export const forestDef: MapDefinition = {
     // tower (x:222,y:91) so the player can skirt its east edge down to the compound entrance.
     { x: 226, y: 86, type: 'grass', walkable: true },
     { x: 226, y: 89, type: 'grass', walkable: true },
+    // Clear trees pinching the east/west skirt lanes around the north-fort approach tower (66,249).
+    { x: 60, y: 248, type: 'grass', walkable: true },
+    { x: 72, y: 248, type: 'grass', walkable: true },
+    { x: 78, y: 249, type: 'grass', walkable: true },
+    { x: 70, y: 252, type: 'grass', walkable: true },
+    // Rocks and lanterns flanking the south entrance apron (matches NE compound grammar).
+    { x: 63, y: 255, type: 'rock', walkable: false },
+    { x: 69, y: 255, type: 'rock', walkable: false },
+    { x: 64, y: 256, type: 'lantern', walkable: false },
+    { x: 68, y: 256, type: 'lantern', walkable: false },
     // Precipice summoning glyph + decor ring: mapGenerator restampAuthoredRitualGlyphs (world ~77,-138).
     // Hollow approach and shortcut hints are atmosphere, not direct interactables.
     { x: 120, y: 26, type: 'campfire_remains', walkable: false },
@@ -1266,6 +1301,11 @@ export const forestDef: MapDefinition = {
     // player naturally walks). The dynamic loose_plank tease tile at (192,260) sticks out from
     // this pile into the water gap and carries the interactionId.
     { x: 193, y: 260, type: 'plank_pile', walkable: true },
+    // Ornamental broadsword reward shelf: a visible camp remnant makes the bridge-adjacent chest
+    // read as an optional power pocket instead of plain shoreline clutter.
+    { x: 186, y: 261, type: 'campfire_remains', walkable: false },
+    { x: 188, y: 258, type: 'lantern', walkable: false },
+    { x: 198, y: 258, type: 'bones_pile', walkable: true },
     { x: 146, y: 238, type: 'lantern', walkable: false },
     { x: 146, y: 222, type: 'lantern', walkable: false },
     // Northward spine ??? ranger line of march (packed path ~146???154 x); keeps manuscript progression readable
@@ -1308,6 +1348,11 @@ export const forestDef: MapDefinition = {
     { x: 56, y: 169, type: 'bloodstain', walkable: true },
     { x: 60, y: 175, type: 'bloodstain', walkable: true },
     { x: 63, y: 180, type: 'bloodstain', walkable: true },
+    // Fort-key corpse directionality: the key bearer lies on the east/right side of the chapel
+    // stair approach, with dropped gear and blood pointing back toward the fort road.
+    { x: 70, y: 183, type: 'bones', walkable: true },
+    { x: 72, y: 182, type: 'bloodstain', walkable: true },
+    { x: 74, y: 181, type: 'rubble', walkable: true },
 
     // --- Iron gate: bonfire plateau north to the sealed ranger gate (y=199-202) ---
     { x: 134, y: 206, type: 'bloodstain', walkable: true },
@@ -1381,6 +1426,8 @@ export const forestDef: MapDefinition = {
     { x: 215, y: 224, type: 'bloodstain', walkable: true },
     { x: 228, y: 226, type: 'bloodstain', walkable: true },
     { x: 234, y: 227, type: 'bloodstain', walkable: true },
+    { x: 221, y: 222, type: 'lantern', walkable: false },
+    { x: 226, y: 224, type: 'fallen_log_b', walkable: false },
 
     // Lanterns along the south bank.
     { x: 90, y: 166, type: 'lantern', walkable: false },
@@ -1422,6 +1469,11 @@ export const forestDef: MapDefinition = {
     // Western bypass tease ? statue visible from the iron-gate plateau, hints at the bypass loop.
     { x: 88, y: 196, type: 'statue', walkable: false },
     { x: 90, y: 198, type: 'lantern', walkable: false },
+    // Highlander's Grotto side-power scent: quarry objects and a lantern make the cave mouth read
+    // as optional reward-route infrastructure, not a random cliff texture.
+    { x: 291, y: 130, type: 'lantern', walkable: false },
+    { x: 292, y: 134, type: 'quarry_tools', walkable: true },
+    { x: 288, y: 135, type: 'cut_stone_blocks', walkable: false },
 
     // === SE FORGOTTEN SHRINE ATMOSPHERE ===
     // Surrounds the hidden shrine with overgrowth and decay ? communicates "lost place" without text.
@@ -1936,6 +1988,11 @@ export const forestDef: MapDefinition = {
     { x: 188, y: 114, type: 'rock', walkable: false },
     { x: 182, y: 118, type: 'flower', walkable: true },
     { x: 186, y: 122, type: 'tall_grass', walkable: true },
+
+    // --- Vine-choked cottage ruin (world 27, 94) — yard clutter ---
+    { x: 172, y: 247, type: 'dead_tree_c', walkable: false },
+    { x: 179, y: 246, type: 'stump_b', walkable: false },
+    { x: 174, y: 248, type: 'tall_grass_b', walkable: true },
 
     // --- South-central empty zone scatter (x:100-140, y:230-250) ---
     // Override: remove noise-generated stump at (128,227) ??? no interaction exists there

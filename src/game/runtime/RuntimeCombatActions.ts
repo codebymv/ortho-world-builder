@@ -18,6 +18,7 @@ import { revealAllTilesForMap } from '@/lib/game/visitedTiles';
 import { getStaggerDamageMultiplier } from '@/data/balance';
 import { getMoveset } from '@/data/weaponMovesets';
 import { SaveManager } from '@/lib/game/SaveManager';
+import { tryStrikeHoodedWitness } from '@/game/runtime/hoodedWitnessVanish';
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
 type Direction4 = 'up' | 'down' | 'left' | 'right';
@@ -456,17 +457,32 @@ export function createRuntimeCombatActions({
     triggerUIUpdate();
   };
 
+  const _tryStrikeHoodedWitnessAt = (strikeX: number, strikeY: number, radius: number) => {
+    tryStrikeHoodedWitness({
+      state,
+      strikeX,
+      strikeY,
+      radius,
+      npcs: state.npcs,
+      particleSystem,
+      screenShake,
+      playRitualSummonStart,
+      onDialogueClosed: triggerUIUpdate,
+    });
+  };
+
   const _applyAttackDamage = (step: number) => {
     const moveset = getMoveset(state.equippedWeaponId);
     const stepDef = moveset.steps[step] ?? moveset.steps[moveset.steps.length - 1];
     const stepRange = state.player.attackRange * (stepDef?.rangeMult ?? 1);
     const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, stepRange, _scratchEnemies);
     const direction = dir8to4(getCurrentDir8()) as Direction4;
+    const off = DIR_OFFSETS_4[direction];
+    const attackX = state.player.position.x + off.x;
+    const attackY = state.player.position.y + off.y;
     const target = getForwardMeleeTarget(enemiesInRange, state.player.position, direction, world);
     if (!target) {
-      const off = DIR_OFFSETS_4[direction];
-      const attackX = state.player.position.x + off.x;
-      const attackY = state.player.position.y + off.y;
+      _tryStrikeHoodedWitnessAt(attackX, attackY, stepRange);
       particleSystem.emitAt(attackX, attackY, 0.3, 4, 0xffffff, 0.3, 1, 1);
       breakTilesInRadius(world, world.getCurrentMap(), attackX, attackY, stepRange, particleSystem, {
         generic: playPropBreak,
@@ -481,6 +497,8 @@ export function createRuntimeCombatActions({
       }
       return;
     }
+
+    _tryStrikeHoodedWitnessAt(attackX, attackY, stepRange);
 
     const parryBonus = state.player.parryBonusTimer > 0 ? 1.25 : 1;
     const stepDamageMult = stepDef?.damageMult ?? 1;
@@ -796,6 +814,7 @@ export function createRuntimeCombatActions({
     const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
     const chargeDamage = Math.floor(state.player.attackDamage * damageMultiplier * state.player.berserkerDamageMult);
     const chargeRange = state.player.attackRange * (1 + level * 0.5);
+    _tryStrikeHoodedWitnessAt(state.player.position.x, state.player.position.y, chargeRange);
     breakTilesInRadius(world, world.getCurrentMap(), state.player.position.x, state.player.position.y, chargeRange, particleSystem, {
       generic: playPropBreak,
       tallGrass: playTallGrassBreak,

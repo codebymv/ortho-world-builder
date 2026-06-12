@@ -1,0 +1,273 @@
+export const items = {
+  health_potion: {
+    id: "health_potion",
+    name: "Ephemeral Extract",
+    description: "A bright alchemical draught that briefly steadies body and breath. Restores 55 health when consumed.",
+    type: "consumable",
+    sprite: "potion",
+    healAmount: 55
+  },
+  tempest_grass: {
+    id: "tempest_grass",
+    name: "Tempest Grass",
+    description: "A wild healing herb bundled with twine. Restores 35 health and fully replenishes stamina when chewed.",
+    type: "consumable",
+    sprite: "tempest_grass_item",
+    healAmount: 35
+  },
+  ancient_map: {
+    id: "ancient_map",
+    name: "Ancient Map",
+    description: "A weathered map showing the location of ancient ruins and forgotten paths.",
+    type: "quest",
+    sprite: "map"
+  },
+  village_key: {
+    id: "village_key",
+    name: "Village Key",
+    description: "An old iron key. It might open something important in the village.",
+    type: "key",
+    sprite: "key"
+  },
+  fort_gate_key: {
+    id: "fort_gate_key",
+    name: "Fort Gate Key",
+    description: "A heavy iron key taken from a dead ranger at the old chapel ruins in the west woods. It bears the same crest as the fort banner.",
+    type: "key",
+    sprite: "fort_gate_key"
+  },
+  highlanders_key: {
+    id: "highlanders_key",
+    name: "Highlander's Key",
+    description: "A small rusted key, its teeth worn soft with age. Humbler than the fort's iron key, yet someone hid it away in the cliffs for a reason.",
+    type: "key",
+    sprite: "highlanders_key"
+  },
+  moonbloom: {
+    id: "moonbloom",
+    name: "Moonbloom Flower",
+    description: "A rare blossom of deep indigo, violet, and ember-red. Even in shade it seems to hold a sliver of moonlight.",
+    type: "quest",
+    sprite: "moonbloom"
+  },
+  manuscript_fragment: {
+    id: "manuscript_fragment",
+    name: "Manuscript Fragment",
+    description: "Torn pages from the missing hunter. The writing speaks of corruption deeper in the woods and a guardian at its heart. The rest of the manuscript lies beyond the river.",
+    type: "quest",
+    sprite: "loose_pages"
+  },
+  hunters_manuscript: {
+    id: "hunters_manuscript",
+    name: "Hunter's Manuscript",
+    description: "The complete manuscript recovered from the Hollow. It details the corruption spreading through the Whispering Woods and the ancient guardian that protects its source.",
+    type: "quest",
+    sprite: "loose_pages"
+  },
+  evacuation_order: {
+    id: "evacuation_order",
+    name: "Commander's Evacuation Order",
+    description: "A fort commander's orders, wax seal broken, partially charred. The ink reads: 'All non-military personnel evacuate south to Greenleaf immediately. The Hollow corruption has breached the river line. Do not attempt to reach Guilrhym. The source of this heresy lies within the city walls. The Ashen Court has fractured the old seals.' Dated weeks ago. It never arrived.",
+    type: "quest",
+    sprite: "loose_pages"
+  },
+  ornamental_broadsword: {
+    id: "ornamental_broadsword",
+    name: "Ornamental Broadsword",
+    description: "A broad, heavy blade etched with faded ceremonial runes. Whoever carried it into these woods never carried it out.",
+    type: "equipment",
+    sprite: "broadsword",
+    stats: {
+      // 22 -> 28: turns the only mid-rung into a real upgrade so the weapon ladder reads
+      // 20 -> 28 -> 34 instead of 20/22 then a cliff to the Terminus Scythe. Makes the
+      // scythe a +6 climax step whether it's acquired early (field boss) or late (final
+      // boss), smoothing the curve without weapon variants.
+      damage: 28,
+      range: 2.15
+    }
+  },
+  iron_sword: {
+    id: "iron_sword",
+    name: "Iron Sword",
+    description: "A well-crafted blade of sturdy iron. Reliable and sharp.",
+    type: "equipment",
+    sprite: "sword",
+    stats: {
+      damage: 28,
+      range: 2.15
+    }
+  },
+  meek_short_sword: {
+    id: "meek_short_sword",
+    name: "Meek Short Sword",
+    description: "A simple, reliable starting blade. Attack with left click.",
+    type: "equipment",
+    sprite: "sword",
+    stats: {
+      damage: 20,
+      range: 2
+    }
+  },
+  shadow_blade: {
+    id: "shadow_blade",
+    name: "Shadow Blade",
+    description: "A dark sword forged from an alloy found only in the ancient ruins. Its edge hums with residual magic.",
+    type: "equipment",
+    sprite: "sword",
+    stats: {
+      damage: 36,
+      range: 2.3
+    }
+  },
+  terminus_scythe: {
+    id: "terminus_scythe",
+    name: "Terminus Scythe",
+    description: "A two-handed scythe radiating dark matter energy. Its charge attack sends a devastating arc slash forward, cutting the threads that bind souls to this world.",
+    type: "equipment",
+    sprite: "scythe",
+    stats: {
+      damage: 34,
+      range: 2.6
+    }
+  },
+  crystal_greatsword: {
+    id: "crystal_greatsword",
+    name: "Crystal Greatsword",
+    description: "A massive crystalline blade pulsing with arcane power. Devastatingly slow but overwhelmingly powerful.",
+    type: "equipment",
+    sprite: "sword",
+    stats: {
+      damage: 44,
+      range: 2.5
+    }
+  },
+  verdant_tonic: {
+    id: "verdant_tonic",
+    name: "Verdant Tonic",
+    description: "A thick, bitter draught brewed from purified grove sap. Cloaks your presence for 14 seconds. Enemies will not detect you unless you are nearly on top of them.",
+    type: "consumable",
+    sprite: "verdant_tonic",
+    buffType: "stealth",
+    buffDuration: 14
+  },
+  berserker_draught: {
+    id: "berserker_draught",
+    name: "Berserker Draught",
+    description: "A black tincture that floods the veins with heat. For 10 seconds, your strikes hit 50% harder and you move 40% faster. But the cost is paid in nerves and shaking hands when it ends.",
+    type: "consumable",
+    sprite: "berserker_draught",
+    buffType: "berserker",
+    buffDuration: 10
+  },
+  sundered_essence_i: {
+    id: "sundered_essence_i",
+    name: "Sundered Essence I",
+    description: "A cold knot of soul-light, prised from something that died in these woods and never moved on. Crush it and the essence floods into you. Enough to feel the weight of a life half-spent. Grants 50 essence when consumed.",
+    type: "consumable",
+    sprite: "sundered_essence_i",
+    essenceAmount: 50
+  },
+  sundered_essence_ii: {
+    id: "sundered_essence_ii",
+    name: "Sundered Essence II",
+    description: "A denser coil of stolen soul-light, the kind that only gathers where the corruption runs deep. Past the river, beneath the dead bridge. It burns colder and gives far more. Grants 150 essence when consumed.",
+    type: "consumable",
+    sprite: "sundered_essence_ii",
+    essenceAmount: 150
+  },
+  last_breath_charm: {
+    id: "last_breath_charm",
+    name: "Last Breath Charm",
+    description: "A bone token carved with a single rune. When a killing blow lands, the charm cracks and pulls you back from the brink. Once. Carry it close; it cannot be drunk or willed to act, only spent by death itself.",
+    type: "consumable",
+    sprite: "last_breath_charm",
+    buffType: "last_breath"
+  },
+  blighted_root_shard: {
+    id: "blighted_root_shard",
+    name: "Blighted Root Shard",
+    description: "A gnarled, pulsing fragment torn from the heart of the corrupted grove. It still twitches faintly in your hands.",
+    type: "quest",
+    sprite: "blighted_root_shard"
+  },
+  golem_heart: {
+    id: "golem_heart",
+    name: "Golem Heart",
+    description: "A dense core chipped from the Stone Golem. It is warm to the touch and thrums with the memory of impossible weight.",
+    type: "quest",
+    sprite: "golem_heart"
+  },
+  radiant_vestige: {
+    id: "radiant_vestige",
+    name: "Radiant Vestige",
+    description: "A shard of unspent dawn, warm to the touch and faintly humming. Offered to a bonfire it deepens the flame's gift. Each one strengthens your Ephemeral Extract and grants another draught between rests.",
+    type: "key",
+    sprite: "radiant_vestige"
+  },
+  tempered_core: {
+    id: "tempered_core",
+    name: "Tempered Core",
+    description: "A fist-sized ingot prised from the Ridge Revenant, its surface folded a thousand times and still glowing at the seams. A smith who knows how to work bound steel could fold its strength into a blade.",
+    type: "quest",
+    sprite: "tempered_core"
+  },
+  ranger_badge: {
+    id: "ranger_badge",
+    name: "Ranger Badge",
+    description: "A weathered badge from the old outpost, pressed into your palm as proof that the high road is safe again.",
+    type: "quest",
+    sprite: "map"
+  },
+  gravebound_ring: {
+    id: "gravebound_ring",
+    name: "Gravebound Ring",
+    description: "A band of black stone that absorbs warmth and gives back none. It was tucked inside a hunter cache on the cliff shelf. And it fits like it was waiting.",
+    type: "ring",
+    sprite: "gravebound_ring",
+    stats: {
+      staminaRegenMult: 1.22
+    }
+  },
+  wolf_ring: {
+    id: "wolf_ring",
+    name: "Wolf Ring",
+    description: "A battered iron band stamped with a wolf's head. Olwen swore it crawled back onto his finger every time he threw it away. Yet your wounds seem to loosen their grip a little faster while you wear it.",
+    type: "ring",
+    sprite: "wolf_ring",
+    stats: {
+      recoverySpeedMult: 1.22
+    }
+  },
+  wayfarer_ring: {
+    id: "wayfarer_ring",
+    name: "Wayfarer Ring",
+    description: "A light bronze band etched with marching chevrons, found in a ranger cache near the southern fort road. Your stride feels noticeably lighter. Though stronger march-rings are rumored deeper in the woods.",
+    type: "ring",
+    sprite: "wayfarer_ring",
+    stats: {
+      moveSpeedMult: 1.15
+    }
+  },
+  ironbark_ring: {
+    id: "ironbark_ring",
+    name: "Ironbark Band",
+    description: "A ring of fused ironbark and grey stone, prised from the knuckle of the thing that wades the dead pools. The land leans in around its wearer. And leans in further with each blow turned aside: every clean parry seems to peel back a little more of the woods, until death takes the knowing away again.",
+    type: "ring",
+    // NOTE: reuses the gravebound ring icon for now. Give it a bespoke sprite later.
+    sprite: "gravebound_ring",
+    stats: {
+      // Utility ring: a small BASE fog-of-war reveal bonus, grown by perfect parries this
+      // life (GameState.registerPerfectParry, capped at IRONBARK_PARRY_REVEAL_CAP, reset on death).
+      revealRadiusBonus: 3
+    }
+  },
+  heretical_essence_apparition: {
+    id: "heretical_essence_apparition",
+    name: "Heretical Essence of the Apparition",
+    description: "A condensed wisp of forbidden power torn from the Hollow Apparition. It pulses with a cold, violet light and hums with the memory of the guardian that once protected this place.",
+    type: "quest",
+    sprite: "heretical_essence_apparition"
+  }
+};
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIml0ZW1zLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IEl0ZW0gfSBmcm9tICdAL2xpYi9nYW1lL0dhbWVTdGF0ZSc7XHJcblxyXG5leHBvcnQgY29uc3QgaXRlbXM6IFJlY29yZDxzdHJpbmcsIEl0ZW0+ID0ge1xyXG4gIGhlYWx0aF9wb3Rpb246IHtcclxuICAgIGlkOiAnaGVhbHRoX3BvdGlvbicsXHJcbiAgICBuYW1lOiAnRXBoZW1lcmFsIEV4dHJhY3QnLFxyXG4gICAgZGVzY3JpcHRpb246ICdBIGJyaWdodCBhbGNoZW1pY2FsIGRyYXVnaHQgdGhhdCBicmllZmx5IHN0ZWFkaWVzIGJvZHkgYW5kIGJyZWF0aC4gUmVzdG9yZXMgNTUgaGVhbHRoIHdoZW4gY29uc3VtZWQuJyxcclxuICAgIHR5cGU6ICdjb25zdW1hYmxlJyxcclxuICAgIHNwcml0ZTogJ3BvdGlvbicsXHJcbiAgICBoZWFsQW1vdW50OiA1NSxcclxuICB9LFxyXG5cclxuICB0ZW1wZXN0X2dyYXNzOiB7XHJcbiAgICBpZDogJ3RlbXBlc3RfZ3Jhc3MnLFxyXG4gICAgbmFtZTogJ1RlbXBlc3QgR3Jhc3MnLFxyXG4gICAgZGVzY3JpcHRpb246ICdBIHdpbGQgaGVhbGluZyBoZXJiIGJ1bmRsZWQgd2l0aCB0d2luZS4gUmVzdG9yZXMgMzUgaGVhbHRoIGFuZCBmdWxseSByZXBsZW5pc2hlcyBzdGFtaW5hIHdoZW4gY2hld2VkLicsXHJcbiAgICB0eXBlOiAnY29uc3VtYWJsZScsXHJcbiAgICBzcHJpdGU6ICd0ZW1wZXN0X2dyYXNzX2l0ZW0nLFxyXG4gICAgaGVhbEFtb3VudDogMzUsXHJcbiAgfSxcclxuICBcclxuICBhbmNpZW50X21hcDoge1xyXG4gICAgaWQ6ICdhbmNpZW50X21hcCcsXHJcbiAgICBuYW1lOiAnQW5jaWVudCBNYXAnLFxyXG4gICAgZGVzY3JpcHRpb246ICdBIHdlYXRoZXJlZCBtYXAgc2hvd2luZyB0aGUgbG9jYXRpb24gb2YgYW5jaWVudCBydWlucyBhbmQgZm9yZ290dGVuIHBhdGhzLicsXHJcbiAgICB0eXBlOiAncXVlc3QnLFxyXG4gICAgc3ByaXRlOiAnbWFwJyxcclxuICB9LFxyXG4gIFxyXG4gIHZpbGxhZ2Vfa2V5OiB7XHJcbiAgICBpZDogJ3ZpbGxhZ2Vfa2V5JyxcclxuICAgIG5hbWU6ICdWaWxsYWdlIEtleScsXHJcbiAgICBkZXNjcmlwdGlvbjogJ0FuIG9sZCBpcm9uIGtleS4gSXQgbWlnaHQgb3BlbiBzb21ldGhpbmcgaW1wb3J0YW50IGluIHRoZSB2aWxsYWdlLicsXHJcbiAgICB0eXBlOiAna2V5JyxcclxuICAgIHNwcml0ZTogJ2tleScsXHJcbiAgfSxcclxuXHJcbiAgZm9ydF9nYXRlX2tleToge1xyXG4gICAgaWQ6ICdmb3J0X2dhdGVfa2V5JyxcclxuICAgIG5hbWU6ICdGb3J0IEdhdGUgS2V5JyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSBoZWF2eSBpcm9uIGtleSB0YWtlbiBmcm9tIGEgZGVhZCByYW5nZXIgYXQgdGhlIG9sZCBjaGFwZWwgcnVpbnMgaW4gdGhlIHdlc3Qgd29vZHMuIEl0IGJlYXJzIHRoZSBzYW1lIGNyZXN0IGFzIHRoZSBmb3J0IGJhbm5lci4nLFxyXG4gICAgdHlwZTogJ2tleScsXHJcbiAgICBzcHJpdGU6ICdmb3J0X2dhdGVfa2V5JyxcclxuICB9LFxyXG5cclxuICBoaWdobGFuZGVyc19rZXk6IHtcclxuICAgIGlkOiAnaGlnaGxhbmRlcnNfa2V5JyxcclxuICAgIG5hbWU6IFwiSGlnaGxhbmRlcidzIEtleVwiLFxyXG4gICAgZGVzY3JpcHRpb246ICdBIHNtYWxsIHJ1c3RlZCBrZXksIGl0cyB0ZWV0aCB3b3JuIHNvZnQgd2l0aCBhZ2UuIEh1bWJsZXIgdGhhbiB0aGUgZm9ydFxcJ3MgaXJvbiBrZXksIHlldCBzb21lb25lIGhpZCBpdCBhd2F5IGluIHRoZSBjbGlmZnMgZm9yIGEgcmVhc29uLicsXHJcbiAgICB0eXBlOiAna2V5JyxcclxuICAgIHNwcml0ZTogJ2hpZ2hsYW5kZXJzX2tleScsXHJcbiAgfSxcclxuICBcclxuICBtb29uYmxvb206IHtcclxuICAgIGlkOiAnbW9vbmJsb29tJyxcclxuICAgIG5hbWU6ICdNb29uYmxvb20gRmxvd2VyJyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSByYXJlIGJsb3Nzb20gb2YgZGVlcCBpbmRpZ28sIHZpb2xldCwgYW5kIGVtYmVyLXJlZC4gRXZlbiBpbiBzaGFkZSBpdCBzZWVtcyB0byBob2xkIGEgc2xpdmVyIG9mIG1vb25saWdodC4nLFxyXG4gICAgdHlwZTogJ3F1ZXN0JyxcclxuICAgIHNwcml0ZTogJ21vb25ibG9vbScsXHJcbiAgfSxcclxuXHJcbiAgbWFudXNjcmlwdF9mcmFnbWVudDoge1xyXG4gICAgaWQ6ICdtYW51c2NyaXB0X2ZyYWdtZW50JyxcclxuICAgIG5hbWU6ICdNYW51c2NyaXB0IEZyYWdtZW50JyxcclxuICAgIGRlc2NyaXB0aW9uOiAnVG9ybiBwYWdlcyBmcm9tIHRoZSBtaXNzaW5nIGh1bnRlci4gVGhlIHdyaXRpbmcgc3BlYWtzIG9mIGNvcnJ1cHRpb24gZGVlcGVyIGluIHRoZSB3b29kcyBhbmQgYSBndWFyZGlhbiBhdCBpdHMgaGVhcnQuIFRoZSByZXN0IG9mIHRoZSBtYW51c2NyaXB0IGxpZXMgYmV5b25kIHRoZSByaXZlci4nLFxyXG4gICAgdHlwZTogJ3F1ZXN0JyxcclxuICAgIHNwcml0ZTogJ2xvb3NlX3BhZ2VzJyxcclxuICB9LFxyXG5cclxuICBodW50ZXJzX21hbnVzY3JpcHQ6IHtcclxuICAgIGlkOiAnaHVudGVyc19tYW51c2NyaXB0JyxcclxuICAgIG5hbWU6IFwiSHVudGVyJ3MgTWFudXNjcmlwdFwiLFxyXG4gICAgZGVzY3JpcHRpb246ICdUaGUgY29tcGxldGUgbWFudXNjcmlwdCByZWNvdmVyZWQgZnJvbSB0aGUgSG9sbG93LiBJdCBkZXRhaWxzIHRoZSBjb3JydXB0aW9uIHNwcmVhZGluZyB0aHJvdWdoIHRoZSBXaGlzcGVyaW5nIFdvb2RzIGFuZCB0aGUgYW5jaWVudCBndWFyZGlhbiB0aGF0IHByb3RlY3RzIGl0cyBzb3VyY2UuJyxcclxuICAgIHR5cGU6ICdxdWVzdCcsXHJcbiAgICBzcHJpdGU6ICdsb29zZV9wYWdlcycsXHJcbiAgfSxcclxuXHJcbiAgZXZhY3VhdGlvbl9vcmRlcjoge1xyXG4gICAgaWQ6ICdldmFjdWF0aW9uX29yZGVyJyxcclxuICAgIG5hbWU6IFwiQ29tbWFuZGVyJ3MgRXZhY3VhdGlvbiBPcmRlclwiLFxyXG4gICAgZGVzY3JpcHRpb246IFwiQSBmb3J0IGNvbW1hbmRlcidzIG9yZGVycywgd2F4IHNlYWwgYnJva2VuLCBwYXJ0aWFsbHkgY2hhcnJlZC4gVGhlIGluayByZWFkczogJ0FsbCBub24tbWlsaXRhcnkgcGVyc29ubmVsIGV2YWN1YXRlIHNvdXRoIHRvIEdyZWVubGVhZiBpbW1lZGlhdGVseS4gVGhlIEhvbGxvdyBjb3JydXB0aW9uIGhhcyBicmVhY2hlZCB0aGUgcml2ZXIgbGluZS4gRG8gbm90IGF0dGVtcHQgdG8gcmVhY2ggR3VpbHJoeW0uIFRoZSBzb3VyY2Ugb2YgdGhpcyBoZXJlc3kgbGllcyB3aXRoaW4gdGhlIGNpdHkgd2FsbHMuIFRoZSBBc2hlbiBDb3VydCBoYXMgZnJhY3R1cmVkIHRoZSBvbGQgc2VhbHMuJyBEYXRlZCB3ZWVrcyBhZ28uIEl0IG5ldmVyIGFycml2ZWQuXCIsXHJcbiAgICB0eXBlOiAncXVlc3QnLFxyXG4gICAgc3ByaXRlOiAnbG9vc2VfcGFnZXMnLFxyXG4gIH0sXHJcbiAgXHJcbiAgb3JuYW1lbnRhbF9icm9hZHN3b3JkOiB7XHJcbiAgICBpZDogJ29ybmFtZW50YWxfYnJvYWRzd29yZCcsXHJcbiAgICBuYW1lOiAnT3JuYW1lbnRhbCBCcm9hZHN3b3JkJyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSBicm9hZCwgaGVhdnkgYmxhZGUgZXRjaGVkIHdpdGggZmFkZWQgY2VyZW1vbmlhbCBydW5lcy4gV2hvZXZlciBjYXJyaWVkIGl0IGludG8gdGhlc2Ugd29vZHMgbmV2ZXIgY2FycmllZCBpdCBvdXQuJyxcclxuICAgIHR5cGU6ICdlcXVpcG1lbnQnLFxyXG4gICAgc3ByaXRlOiAnYnJvYWRzd29yZCcsXHJcbiAgICBzdGF0czoge1xyXG4gICAgICAvLyAyMiAtPiAyODogdHVybnMgdGhlIG9ubHkgbWlkLXJ1bmcgaW50byBhIHJlYWwgdXBncmFkZSBzbyB0aGUgd2VhcG9uIGxhZGRlciByZWFkc1xyXG4gICAgICAvLyAyMCAtPiAyOCAtPiAzNCBpbnN0ZWFkIG9mIDIwLzIyIHRoZW4gYSBjbGlmZiB0byB0aGUgVGVybWludXMgU2N5dGhlLiBNYWtlcyB0aGVcclxuICAgICAgLy8gc2N5dGhlIGEgKzYgY2xpbWF4IHN0ZXAgd2hldGhlciBpdCdzIGFjcXVpcmVkIGVhcmx5IChmaWVsZCBib3NzKSBvciBsYXRlIChmaW5hbFxyXG4gICAgICAvLyBib3NzKSwgc21vb3RoaW5nIHRoZSBjdXJ2ZSB3aXRob3V0IHdlYXBvbiB2YXJpYW50cy5cclxuICAgICAgZGFtYWdlOiAyOCxcclxuICAgICAgcmFuZ2U6IDIuMTUsXHJcbiAgICB9LFxyXG4gIH0sXHJcblxyXG4gIGlyb25fc3dvcmQ6IHtcclxuICAgIGlkOiAnaXJvbl9zd29yZCcsXHJcbiAgICBuYW1lOiAnSXJvbiBTd29yZCcsXHJcbiAgICBkZXNjcmlwdGlvbjogJ0Egd2VsbC1jcmFmdGVkIGJsYWRlIG9mIHN0dXJkeSBpcm9uLiBSZWxpYWJsZSBhbmQgc2hhcnAuJyxcclxuICAgIHR5cGU6ICdlcXVpcG1lbnQnLFxyXG4gICAgc3ByaXRlOiAnc3dvcmQnLFxyXG4gICAgc3RhdHM6IHtcclxuICAgICAgZGFtYWdlOiAyOCxcclxuICAgICAgcmFuZ2U6IDIuMTUsXHJcbiAgICB9LFxyXG4gIH0sXHJcbiAgXHJcbiAgbWVla19zaG9ydF9zd29yZDoge1xyXG4gICAgaWQ6ICdtZWVrX3Nob3J0X3N3b3JkJyxcclxuICAgIG5hbWU6ICdNZWVrIFNob3J0IFN3b3JkJyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSBzaW1wbGUsIHJlbGlhYmxlIHN0YXJ0aW5nIGJsYWRlLiBBdHRhY2sgd2l0aCBsZWZ0IGNsaWNrLicsXHJcbiAgICB0eXBlOiAnZXF1aXBtZW50JyxcclxuICAgIHNwcml0ZTogJ3N3b3JkJyxcclxuICAgIHN0YXRzOiB7XHJcbiAgICAgIGRhbWFnZTogMjAsXHJcbiAgICAgIHJhbmdlOiAyLFxyXG4gICAgfSxcclxuICB9LFxyXG5cclxuICBzaGFkb3dfYmxhZGU6IHtcclxuICAgIGlkOiAnc2hhZG93X2JsYWRlJyxcclxuICAgIG5hbWU6ICdTaGFkb3cgQmxhZGUnLFxyXG4gICAgZGVzY3JpcHRpb246ICdBIGRhcmsgc3dvcmQgZm9yZ2VkIGZyb20gYW4gYWxsb3kgZm91bmQgb25seSBpbiB0aGUgYW5jaWVudCBydWlucy4gSXRzIGVkZ2UgaHVtcyB3aXRoIHJlc2lkdWFsIG1hZ2ljLicsXHJcbiAgICB0eXBlOiAnZXF1aXBtZW50JyxcclxuICAgIHNwcml0ZTogJ3N3b3JkJyxcclxuICAgIHN0YXRzOiB7XHJcbiAgICAgIGRhbWFnZTogMzYsXHJcbiAgICAgIHJhbmdlOiAyLjMsXHJcbiAgICB9LFxyXG4gIH0sXHJcblxyXG4gIHRlcm1pbnVzX3NjeXRoZToge1xyXG4gICAgaWQ6ICd0ZXJtaW51c19zY3l0aGUnLFxyXG4gICAgbmFtZTogJ1Rlcm1pbnVzIFNjeXRoZScsXHJcbiAgICBkZXNjcmlwdGlvbjogJ0EgdHdvLWhhbmRlZCBzY3l0aGUgcmFkaWF0aW5nIGRhcmsgbWF0dGVyIGVuZXJneS4gSXRzIGNoYXJnZSBhdHRhY2sgc2VuZHMgYSBkZXZhc3RhdGluZyBhcmMgc2xhc2ggZm9yd2FyZCwgY3V0dGluZyB0aGUgdGhyZWFkcyB0aGF0IGJpbmQgc291bHMgdG8gdGhpcyB3b3JsZC4nLFxyXG4gICAgdHlwZTogJ2VxdWlwbWVudCcsXHJcbiAgICBzcHJpdGU6ICdzY3l0aGUnLFxyXG4gICAgc3RhdHM6IHtcclxuICAgICAgZGFtYWdlOiAzNCxcclxuICAgICAgcmFuZ2U6IDIuNixcclxuICAgIH0sXHJcbiAgfSxcclxuXHJcbiAgY3J5c3RhbF9ncmVhdHN3b3JkOiB7XHJcbiAgICBpZDogJ2NyeXN0YWxfZ3JlYXRzd29yZCcsXHJcbiAgICBuYW1lOiAnQ3J5c3RhbCBHcmVhdHN3b3JkJyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSBtYXNzaXZlIGNyeXN0YWxsaW5lIGJsYWRlIHB1bHNpbmcgd2l0aCBhcmNhbmUgcG93ZXIuIERldmFzdGF0aW5nbHkgc2xvdyBidXQgb3ZlcndoZWxtaW5nbHkgcG93ZXJmdWwuJyxcclxuICAgIHR5cGU6ICdlcXVpcG1lbnQnLFxyXG4gICAgc3ByaXRlOiAnc3dvcmQnLFxyXG4gICAgc3RhdHM6IHtcclxuICAgICAgZGFtYWdlOiA0NCxcclxuICAgICAgcmFuZ2U6IDIuNSxcclxuICAgIH0sXHJcbiAgfSxcclxuXHJcbiAgdmVyZGFudF90b25pYzoge1xyXG4gICAgaWQ6ICd2ZXJkYW50X3RvbmljJyxcclxuICAgIG5hbWU6ICdWZXJkYW50IFRvbmljJyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSB0aGljaywgYml0dGVyIGRyYXVnaHQgYnJld2VkIGZyb20gcHVyaWZpZWQgZ3JvdmUgc2FwLiBDbG9ha3MgeW91ciBwcmVzZW5jZSBmb3IgMTQgc2Vjb25kcy4gRW5lbWllcyB3aWxsIG5vdCBkZXRlY3QgeW91IHVubGVzcyB5b3UgYXJlIG5lYXJseSBvbiB0b3Agb2YgdGhlbS4nLFxyXG4gICAgdHlwZTogJ2NvbnN1bWFibGUnLFxyXG4gICAgc3ByaXRlOiAndmVyZGFudF90b25pYycsXHJcbiAgICBidWZmVHlwZTogJ3N0ZWFsdGgnLFxyXG4gICAgYnVmZkR1cmF0aW9uOiAxNCxcclxuICB9LFxyXG5cclxuICBiZXJzZXJrZXJfZHJhdWdodDoge1xyXG4gICAgaWQ6ICdiZXJzZXJrZXJfZHJhdWdodCcsXHJcbiAgICBuYW1lOiAnQmVyc2Vya2VyIERyYXVnaHQnLFxyXG4gICAgZGVzY3JpcHRpb246ICdBIGJsYWNrIHRpbmN0dXJlIHRoYXQgZmxvb2RzIHRoZSB2ZWlucyB3aXRoIGhlYXQuIEZvciAxMCBzZWNvbmRzLCB5b3VyIHN0cmlrZXMgaGl0IDUwJSBoYXJkZXIgYW5kIHlvdSBtb3ZlIDQwJSBmYXN0ZXIuIEJ1dCB0aGUgY29zdCBpcyBwYWlkIGluIG5lcnZlcyBhbmQgc2hha2luZyBoYW5kcyB3aGVuIGl0IGVuZHMuJyxcclxuICAgIHR5cGU6ICdjb25zdW1hYmxlJyxcclxuICAgIHNwcml0ZTogJ2JlcnNlcmtlcl9kcmF1Z2h0JyxcclxuICAgIGJ1ZmZUeXBlOiAnYmVyc2Vya2VyJyxcclxuICAgIGJ1ZmZEdXJhdGlvbjogMTAsXHJcbiAgfSxcclxuXHJcbiAgc3VuZGVyZWRfZXNzZW5jZV9pOiB7XHJcbiAgICBpZDogJ3N1bmRlcmVkX2Vzc2VuY2VfaScsXHJcbiAgICBuYW1lOiAnU3VuZGVyZWQgRXNzZW5jZSBJJyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSBjb2xkIGtub3Qgb2Ygc291bC1saWdodCwgcHJpc2VkIGZyb20gc29tZXRoaW5nIHRoYXQgZGllZCBpbiB0aGVzZSB3b29kcyBhbmQgbmV2ZXIgbW92ZWQgb24uIENydXNoIGl0IGFuZCB0aGUgZXNzZW5jZSBmbG9vZHMgaW50byB5b3UuIEVub3VnaCB0byBmZWVsIHRoZSB3ZWlnaHQgb2YgYSBsaWZlIGhhbGYtc3BlbnQuIEdyYW50cyA1MCBlc3NlbmNlIHdoZW4gY29uc3VtZWQuJyxcclxuICAgIHR5cGU6ICdjb25zdW1hYmxlJyxcclxuICAgIHNwcml0ZTogJ3N1bmRlcmVkX2Vzc2VuY2VfaScsXHJcbiAgICBlc3NlbmNlQW1vdW50OiA1MCxcclxuICB9LFxyXG5cclxuICBzdW5kZXJlZF9lc3NlbmNlX2lpOiB7XHJcbiAgICBpZDogJ3N1bmRlcmVkX2Vzc2VuY2VfaWknLFxyXG4gICAgbmFtZTogJ1N1bmRlcmVkIEVzc2VuY2UgSUknLFxyXG4gICAgZGVzY3JpcHRpb246ICdBIGRlbnNlciBjb2lsIG9mIHN0b2xlbiBzb3VsLWxpZ2h0LCB0aGUga2luZCB0aGF0IG9ubHkgZ2F0aGVycyB3aGVyZSB0aGUgY29ycnVwdGlvbiBydW5zIGRlZXAuIFBhc3QgdGhlIHJpdmVyLCBiZW5lYXRoIHRoZSBkZWFkIGJyaWRnZS4gSXQgYnVybnMgY29sZGVyIGFuZCBnaXZlcyBmYXIgbW9yZS4gR3JhbnRzIDE1MCBlc3NlbmNlIHdoZW4gY29uc3VtZWQuJyxcclxuICAgIHR5cGU6ICdjb25zdW1hYmxlJyxcclxuICAgIHNwcml0ZTogJ3N1bmRlcmVkX2Vzc2VuY2VfaWknLFxyXG4gICAgZXNzZW5jZUFtb3VudDogMTUwLFxyXG4gIH0sXHJcblxyXG4gIGxhc3RfYnJlYXRoX2NoYXJtOiB7XHJcbiAgICBpZDogJ2xhc3RfYnJlYXRoX2NoYXJtJyxcclxuICAgIG5hbWU6ICdMYXN0IEJyZWF0aCBDaGFybScsXHJcbiAgICBkZXNjcmlwdGlvbjogJ0EgYm9uZSB0b2tlbiBjYXJ2ZWQgd2l0aCBhIHNpbmdsZSBydW5lLiBXaGVuIGEga2lsbGluZyBibG93IGxhbmRzLCB0aGUgY2hhcm0gY3JhY2tzIGFuZCBwdWxscyB5b3UgYmFjayBmcm9tIHRoZSBicmluay4gT25jZS4gQ2FycnkgaXQgY2xvc2U7IGl0IGNhbm5vdCBiZSBkcnVuayBvciB3aWxsZWQgdG8gYWN0LCBvbmx5IHNwZW50IGJ5IGRlYXRoIGl0c2VsZi4nLFxyXG4gICAgdHlwZTogJ2NvbnN1bWFibGUnLFxyXG4gICAgc3ByaXRlOiAnbGFzdF9icmVhdGhfY2hhcm0nLFxyXG4gICAgYnVmZlR5cGU6ICdsYXN0X2JyZWF0aCcsXHJcbiAgfSxcclxuXHJcbiAgYmxpZ2h0ZWRfcm9vdF9zaGFyZDoge1xyXG4gICAgaWQ6ICdibGlnaHRlZF9yb290X3NoYXJkJyxcclxuICAgIG5hbWU6ICdCbGlnaHRlZCBSb290IFNoYXJkJyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSBnbmFybGVkLCBwdWxzaW5nIGZyYWdtZW50IHRvcm4gZnJvbSB0aGUgaGVhcnQgb2YgdGhlIGNvcnJ1cHRlZCBncm92ZS4gSXQgc3RpbGwgdHdpdGNoZXMgZmFpbnRseSBpbiB5b3VyIGhhbmRzLicsXHJcbiAgICB0eXBlOiAncXVlc3QnLFxyXG4gICAgc3ByaXRlOiAnYmxpZ2h0ZWRfcm9vdF9zaGFyZCcsXHJcbiAgfSxcclxuXHJcbiAgZ29sZW1faGVhcnQ6IHtcclxuICAgIGlkOiAnZ29sZW1faGVhcnQnLFxyXG4gICAgbmFtZTogJ0dvbGVtIEhlYXJ0JyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSBkZW5zZSBjb3JlIGNoaXBwZWQgZnJvbSB0aGUgU3RvbmUgR29sZW0uIEl0IGlzIHdhcm0gdG8gdGhlIHRvdWNoIGFuZCB0aHJ1bXMgd2l0aCB0aGUgbWVtb3J5IG9mIGltcG9zc2libGUgd2VpZ2h0LicsXHJcbiAgICB0eXBlOiAncXVlc3QnLFxyXG4gICAgc3ByaXRlOiAnZ29sZW1faGVhcnQnLFxyXG4gIH0sXHJcblxyXG4gIHJhZGlhbnRfdmVzdGlnZToge1xyXG4gICAgaWQ6ICdyYWRpYW50X3Zlc3RpZ2UnLFxyXG4gICAgbmFtZTogJ1JhZGlhbnQgVmVzdGlnZScsXHJcbiAgICBkZXNjcmlwdGlvbjogJ0Egc2hhcmQgb2YgdW5zcGVudCBkYXduLCB3YXJtIHRvIHRoZSB0b3VjaCBhbmQgZmFpbnRseSBodW1taW5nLiBPZmZlcmVkIHRvIGEgYm9uZmlyZSBpdCBkZWVwZW5zIHRoZSBmbGFtZVxcJ3MgZ2lmdC4gRWFjaCBvbmUgc3RyZW5ndGhlbnMgeW91ciBFcGhlbWVyYWwgRXh0cmFjdCBhbmQgZ3JhbnRzIGFub3RoZXIgZHJhdWdodCBiZXR3ZWVuIHJlc3RzLicsXHJcbiAgICB0eXBlOiAna2V5JyxcclxuICAgIHNwcml0ZTogJ3JhZGlhbnRfdmVzdGlnZScsXHJcbiAgfSxcclxuXHJcbiAgdGVtcGVyZWRfY29yZToge1xyXG4gICAgaWQ6ICd0ZW1wZXJlZF9jb3JlJyxcclxuICAgIG5hbWU6ICdUZW1wZXJlZCBDb3JlJyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSBmaXN0LXNpemVkIGluZ290IHByaXNlZCBmcm9tIHRoZSBSaWRnZSBSZXZlbmFudCwgaXRzIHN1cmZhY2UgZm9sZGVkIGEgdGhvdXNhbmQgdGltZXMgYW5kIHN0aWxsIGdsb3dpbmcgYXQgdGhlIHNlYW1zLiBBIHNtaXRoIHdobyBrbm93cyBob3cgdG8gd29yayBib3VuZCBzdGVlbCBjb3VsZCBmb2xkIGl0cyBzdHJlbmd0aCBpbnRvIGEgYmxhZGUuJyxcclxuICAgIHR5cGU6ICdxdWVzdCcsXHJcbiAgICBzcHJpdGU6ICd0ZW1wZXJlZF9jb3JlJyxcclxuICB9LFxyXG5cclxuICByYW5nZXJfYmFkZ2U6IHtcclxuICAgIGlkOiAncmFuZ2VyX2JhZGdlJyxcclxuICAgIG5hbWU6ICdSYW5nZXIgQmFkZ2UnLFxyXG4gICAgZGVzY3JpcHRpb246ICdBIHdlYXRoZXJlZCBiYWRnZSBmcm9tIHRoZSBvbGQgb3V0cG9zdCwgcHJlc3NlZCBpbnRvIHlvdXIgcGFsbSBhcyBwcm9vZiB0aGF0IHRoZSBoaWdoIHJvYWQgaXMgc2FmZSBhZ2Fpbi4nLFxyXG4gICAgdHlwZTogJ3F1ZXN0JyxcclxuICAgIHNwcml0ZTogJ21hcCcsXHJcbiAgfSxcclxuXHJcbiAgZ3JhdmVib3VuZF9yaW5nOiB7XHJcbiAgICBpZDogJ2dyYXZlYm91bmRfcmluZycsXHJcbiAgICBuYW1lOiAnR3JhdmVib3VuZCBSaW5nJyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSBiYW5kIG9mIGJsYWNrIHN0b25lIHRoYXQgYWJzb3JicyB3YXJtdGggYW5kIGdpdmVzIGJhY2sgbm9uZS4gSXQgd2FzIHR1Y2tlZCBpbnNpZGUgYSBodW50ZXIgY2FjaGUgb24gdGhlIGNsaWZmIHNoZWxmLiBBbmQgaXQgZml0cyBsaWtlIGl0IHdhcyB3YWl0aW5nLicsXHJcbiAgICB0eXBlOiAncmluZycsXHJcbiAgICBzcHJpdGU6ICdncmF2ZWJvdW5kX3JpbmcnLFxyXG4gICAgc3RhdHM6IHtcclxuICAgICAgc3RhbWluYVJlZ2VuTXVsdDogMS4yMixcclxuICAgIH0sXHJcbiAgfSxcclxuXHJcbiAgd29sZl9yaW5nOiB7XHJcbiAgICBpZDogJ3dvbGZfcmluZycsXHJcbiAgICBuYW1lOiAnV29sZiBSaW5nJyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSBiYXR0ZXJlZCBpcm9uIGJhbmQgc3RhbXBlZCB3aXRoIGEgd29sZlxcJ3MgaGVhZC4gT2x3ZW4gc3dvcmUgaXQgY3Jhd2xlZCBiYWNrIG9udG8gaGlzIGZpbmdlciBldmVyeSB0aW1lIGhlIHRocmV3IGl0IGF3YXkuIFlldCB5b3VyIHdvdW5kcyBzZWVtIHRvIGxvb3NlbiB0aGVpciBncmlwIGEgbGl0dGxlIGZhc3RlciB3aGlsZSB5b3Ugd2VhciBpdC4nLFxyXG4gICAgdHlwZTogJ3JpbmcnLFxyXG4gICAgc3ByaXRlOiAnd29sZl9yaW5nJyxcclxuICAgIHN0YXRzOiB7XHJcbiAgICAgIHJlY292ZXJ5U3BlZWRNdWx0OiAxLjIyLFxyXG4gICAgfSxcclxuICB9LFxyXG5cclxuICB3YXlmYXJlcl9yaW5nOiB7XHJcbiAgICBpZDogJ3dheWZhcmVyX3JpbmcnLFxyXG4gICAgbmFtZTogJ1dheWZhcmVyIFJpbmcnLFxyXG4gICAgZGVzY3JpcHRpb246ICdBIGxpZ2h0IGJyb256ZSBiYW5kIGV0Y2hlZCB3aXRoIG1hcmNoaW5nIGNoZXZyb25zLCBmb3VuZCBpbiBhIHJhbmdlciBjYWNoZSBuZWFyIHRoZSBzb3V0aGVybiBmb3J0IHJvYWQuIFlvdXIgc3RyaWRlIGZlZWxzIG5vdGljZWFibHkgbGlnaHRlci4gVGhvdWdoIHN0cm9uZ2VyIG1hcmNoLXJpbmdzIGFyZSBydW1vcmVkIGRlZXBlciBpbiB0aGUgd29vZHMuJyxcclxuICAgIHR5cGU6ICdyaW5nJyxcclxuICAgIHNwcml0ZTogJ3dheWZhcmVyX3JpbmcnLFxyXG4gICAgc3RhdHM6IHtcclxuICAgICAgbW92ZVNwZWVkTXVsdDogMS4xNSxcclxuICAgIH0sXHJcbiAgfSxcclxuXHJcbiAgaXJvbmJhcmtfcmluZzoge1xyXG4gICAgaWQ6ICdpcm9uYmFya19yaW5nJyxcclxuICAgIG5hbWU6ICdJcm9uYmFyayBCYW5kJyxcclxuICAgIGRlc2NyaXB0aW9uOiBcIkEgcmluZyBvZiBmdXNlZCBpcm9uYmFyayBhbmQgZ3JleSBzdG9uZSwgcHJpc2VkIGZyb20gdGhlIGtudWNrbGUgb2YgdGhlIHRoaW5nIHRoYXQgd2FkZXMgdGhlIGRlYWQgcG9vbHMuIFRoZSBsYW5kIGxlYW5zIGluIGFyb3VuZCBpdHMgd2VhcmVyLiBBbmQgbGVhbnMgaW4gZnVydGhlciB3aXRoIGVhY2ggYmxvdyB0dXJuZWQgYXNpZGU6IGV2ZXJ5IGNsZWFuIHBhcnJ5IHNlZW1zIHRvIHBlZWwgYmFjayBhIGxpdHRsZSBtb3JlIG9mIHRoZSB3b29kcywgdW50aWwgZGVhdGggdGFrZXMgdGhlIGtub3dpbmcgYXdheSBhZ2Fpbi5cIixcclxuICAgIHR5cGU6ICdyaW5nJyxcclxuICAgIC8vIE5PVEU6IHJldXNlcyB0aGUgZ3JhdmVib3VuZCByaW5nIGljb24gZm9yIG5vdy4gR2l2ZSBpdCBhIGJlc3Bva2Ugc3ByaXRlIGxhdGVyLlxyXG4gICAgc3ByaXRlOiAnZ3JhdmVib3VuZF9yaW5nJyxcclxuICAgIHN0YXRzOiB7XHJcbiAgICAgIC8vIFV0aWxpdHkgcmluZzogYSBzbWFsbCBCQVNFIGZvZy1vZi13YXIgcmV2ZWFsIGJvbnVzLCBncm93biBieSBwZXJmZWN0IHBhcnJpZXMgdGhpc1xyXG4gICAgICAvLyBsaWZlIChHYW1lU3RhdGUucmVnaXN0ZXJQZXJmZWN0UGFycnksIGNhcHBlZCBhdCBJUk9OQkFSS19QQVJSWV9SRVZFQUxfQ0FQLCByZXNldCBvbiBkZWF0aCkuXHJcbiAgICAgIHJldmVhbFJhZGl1c0JvbnVzOiAzLFxyXG4gICAgfSxcclxuICB9LFxyXG5cclxuICBoZXJldGljYWxfZXNzZW5jZV9hcHBhcml0aW9uOiB7XHJcbiAgICBpZDogJ2hlcmV0aWNhbF9lc3NlbmNlX2FwcGFyaXRpb24nLFxyXG4gICAgbmFtZTogJ0hlcmV0aWNhbCBFc3NlbmNlIG9mIHRoZSBBcHBhcml0aW9uJyxcclxuICAgIGRlc2NyaXB0aW9uOiAnQSBjb25kZW5zZWQgd2lzcCBvZiBmb3JiaWRkZW4gcG93ZXIgdG9ybiBmcm9tIHRoZSBIb2xsb3cgQXBwYXJpdGlvbi4gSXQgcHVsc2VzIHdpdGggYSBjb2xkLCB2aW9sZXQgbGlnaHQgYW5kIGh1bXMgd2l0aCB0aGUgbWVtb3J5IG9mIHRoZSBndWFyZGlhbiB0aGF0IG9uY2UgcHJvdGVjdGVkIHRoaXMgcGxhY2UuJyxcclxuICAgIHR5cGU6ICdxdWVzdCcsXHJcbiAgICBzcHJpdGU6ICdoZXJldGljYWxfZXNzZW5jZV9hcHBhcml0aW9uJyxcclxuICB9LFxyXG59O1xyXG4iXSwibWFwcGluZ3MiOiJBQUVPLGFBQU0sUUFBOEI7QUFBQSxFQUN6QyxlQUFlO0FBQUEsSUFDYixJQUFJO0FBQUEsSUFDSixNQUFNO0FBQUEsSUFDTixhQUFhO0FBQUEsSUFDYixNQUFNO0FBQUEsSUFDTixRQUFRO0FBQUEsSUFDUixZQUFZO0FBQUEsRUFDZDtBQUFBLEVBRUEsZUFBZTtBQUFBLElBQ2IsSUFBSTtBQUFBLElBQ0osTUFBTTtBQUFBLElBQ04sYUFBYTtBQUFBLElBQ2IsTUFBTTtBQUFBLElBQ04sUUFBUTtBQUFBLElBQ1IsWUFBWTtBQUFBLEVBQ2Q7QUFBQSxFQUVBLGFBQWE7QUFBQSxJQUNYLElBQUk7QUFBQSxJQUNKLE1BQU07QUFBQSxJQUNOLGFBQWE7QUFBQSxJQUNiLE1BQU07QUFBQSxJQUNOLFFBQVE7QUFBQSxFQUNWO0FBQUEsRUFFQSxhQUFhO0FBQUEsSUFDWCxJQUFJO0FBQUEsSUFDSixNQUFNO0FBQUEsSUFDTixhQUFhO0FBQUEsSUFDYixNQUFNO0FBQUEsSUFDTixRQUFRO0FBQUEsRUFDVjtBQUFBLEVBRUEsZUFBZTtBQUFBLElBQ2IsSUFBSTtBQUFBLElBQ0osTUFBTTtBQUFBLElBQ04sYUFBYTtBQUFBLElBQ2IsTUFBTTtBQUFBLElBQ04sUUFBUTtBQUFBLEVBQ1Y7QUFBQSxFQUVBLGlCQUFpQjtBQUFBLElBQ2YsSUFBSTtBQUFBLElBQ0osTUFBTTtBQUFBLElBQ04sYUFBYTtBQUFBLElBQ2IsTUFBTTtBQUFBLElBQ04sUUFBUTtBQUFBLEVBQ1Y7QUFBQSxFQUVBLFdBQVc7QUFBQSxJQUNULElBQUk7QUFBQSxJQUNKLE1BQU07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

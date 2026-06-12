@@ -23,10 +23,12 @@ const DORMANCY_RANGE_SQ = 40 * 40;
 const FACTION_FIGHT_WAKE_SQ = 16 * 16;
 const _tmpOldPos = { x: 0, y: 0 };
 const HOLLOW_STILLNESS_THRESHOLD_SQ = 0.25 * 0.25;
-const HOLLOW_STILLNESS_TRIGGER = 0.75;
-const FALLING_SCYTHE_WARNING = 1.5;
+const HOLLOW_STILLNESS_TRIGGER = 1.2;
+const HOLLOW_STILLNESS_COOLDOWN = 2.2;
+const HOLLOW_STILLNESS_GUARDIAN_RANGE_SQ = 10.5 * 10.5;
+const FALLING_SCYTHE_WARNING = 1.9;
 const FALLING_SCYTHE_STRIKE = 0.35;
-const FALLING_SCYTHE_RADIUS = 0.75;
+const FALLING_SCYTHE_RADIUS = 0.65;
 const HOLLOW_ECLIPSE_TELEGRAPH = 2.2;
 const HOLLOW_ECLIPSE_PHASE_DELAY = 8.0;
 const HOLLOW_ECLIPSE_CHANCE = 0.08;
@@ -1747,6 +1749,9 @@ export class CombatSystem {
                   spinRate: projectileSprite === 'projectile_shell' ? 8 : undefined,
                 });
               }
+              if (eBo.rangedCooldown != null && eBo.rangedCooldown > 0) {
+                enemy.attackWindupLockTimer = Math.max(enemy.attackWindupLockTimer, eBo.rangedCooldown);
+              }
               if (enemy.type === 'water_slime' && world && isWaterSlimeWaterTile(world, enemy.position.x, enemy.position.y)) {
                 enemy.waterDiveCooldown = Math.min(enemy.waterDiveCooldown, 0.05);
               }
@@ -2414,7 +2419,7 @@ export class CombatSystem {
       return null;
     }
 
-    this.updateHollowStillnessScythes(deltaTime, playerPosition, guardian.phase);
+    this.updateHollowStillnessScythes(deltaTime, playerPosition, guardian);
 
     const now = performance.now() / 1000;
     let parryEvent: ParryFeedbackEvent | null = null;
@@ -2462,10 +2467,19 @@ export class CombatSystem {
   private updateHollowStillnessScythes(
     deltaTime: number,
     playerPosition: { x: number; y: number },
-    guardianPhase: number,
+    guardian: Enemy,
   ): void {
     if (this.hollowStillnessCooldown > 0) {
       this.hollowStillnessCooldown = Math.max(0, this.hollowStillnessCooldown - deltaTime);
+    }
+
+    const guardianDx = playerPosition.x - guardian.position.x;
+    const guardianDy = playerPosition.y - guardian.position.y;
+    if (guardianDx * guardianDx + guardianDy * guardianDy > HOLLOW_STILLNESS_GUARDIAN_RANGE_SQ) {
+      // Do not punish the arena lip before the Apparition has actually joined the fight.
+      this.hollowStillnessTimer = 0;
+      this.hollowLastPlayerPosition = { ...playerPosition };
+      return;
     }
 
     const anchor = this.hollowLastPlayerPosition;
@@ -2486,11 +2500,11 @@ export class CombatSystem {
     if (this.hollowStillnessTimer >= HOLLOW_STILLNESS_TRIGGER && this.hollowStillnessCooldown <= 0) {
       this.spawnFallingScytheHazard({
         position: { ...playerPosition },
-        damage: this.getFallingScytheDamageForPhase(guardianPhase),
+        damage: this.getFallingScytheDamageForPhase(guardian.phase),
         source: 'stillness',
       });
       this.hollowStillnessTimer = 0;
-      this.hollowStillnessCooldown = 0.55;
+      this.hollowStillnessCooldown = HOLLOW_STILLNESS_COOLDOWN;
     }
   }
 

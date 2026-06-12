@@ -106,6 +106,8 @@ type DevPerfCapture = {
 const DEV_PERF_CAPTURE_KEY = '__ORTHO_PERF_CAPTURES';
 const DEV_PERF_CAPTURE_FN_KEY = '__ORTHO_CAPTURE_PERF';
 const DEV_PERF_CLEAR_FN_KEY = '__ORTHO_CLEAR_PERF_CAPTURES';
+const DEV_PLAYTEST_SNAPSHOT_FN_KEY = '__SOULS_PLAYTEST_SNAPSHOT';
+const DEV_PLAYTEST_SNAPSHOT_ENABLED_KEY = '__SOULS_ENABLE_PLAYTEST_SNAPSHOT';
 
 const loadMapModal = () => import('./game/MapModal');
 const loadInventoryModal = () => import('./game/InventoryModal');
@@ -819,6 +821,76 @@ const Game = () => {
       });
     };
 
+    const shouldExposePlaytestSnapshot =
+      import.meta.env.DEV ||
+      import.meta.env.MODE === 'test' ||
+      window.localStorage.getItem(DEV_PLAYTEST_SNAPSHOT_ENABLED_KEY) === '1';
+
+    if (shouldExposePlaytestSnapshot) {
+      win[DEV_PLAYTEST_SNAPSHOT_FN_KEY] = () => {
+        const state = gameStateRef.current;
+        const combat = combatSystemRef.current;
+        return {
+          mapId: state?.currentMap ?? 'unknown',
+          player: state
+            ? {
+                x: state.player.position.x,
+                y: state.player.position.y,
+                health: state.player.health,
+                maxHealth: state.player.maxHealth,
+                stamina: state.player.stamina,
+                maxStamina: state.player.maxStamina,
+                direction: state.player.direction,
+                attackDamage: state.player.attackDamage,
+                attackRange: state.player.attackRange,
+                hurtTimer: state.player.hurtTimer,
+                iFrameTimer: state.player.iFrameTimer,
+                isDodging: state.player.isDodging,
+                activeItemId: state.inventory[state.activeItemIndex]?.id ?? null,
+                extracts: state.inventory.filter(item => item.id === 'health_potion').length,
+                tempestGrass: state.inventory.filter(item => item.id === 'tempest_grass').length,
+                berserkerDraughts: state.inventory.filter(item => item.id === 'berserker_draught').length,
+                berserkerTimer: state.player.berserkerTimer,
+                berserkerDamageMult: state.player.berserkerDamageMult,
+              }
+            : null,
+          enemies: combat?.getAllEnemies().map(enemy => ({
+            id: enemy.id,
+            type: enemy.type,
+            name: enemy.name,
+            x: enemy.position.x,
+            y: enemy.position.y,
+            health: enemy.health,
+            maxHealth: enemy.maxHealth,
+            state: enemy.state,
+            phase: enemy.phase,
+            attackRange: enemy.attackRange,
+            currentAttackType: enemy.currentAttackType,
+          })) ?? [],
+          hazards: combat?.getFallingScytheHazards().map(hazard => ({
+            id: hazard.id,
+            x: hazard.position.x,
+            y: hazard.position.y,
+            radius: hazard.radius,
+            state: hazard.state,
+            source: hazard.source,
+          })) ?? [],
+          projectiles: combat?.getProjectiles().map(projectile => ({
+            id: projectile.id,
+            x: projectile.position.x,
+            y: projectile.position.y,
+            vx: projectile.velocity.x,
+            vy: projectile.velocity.y,
+            sprite: projectile.sprite,
+            hitRadius: projectile.hitRadius,
+            sourceEnemyId: projectile.sourceEnemyId,
+            alive: projectile.alive,
+            reflected: projectile.reflected,
+          })) ?? [],
+        };
+      };
+    }
+
     const handlePerfCapture = (e: KeyboardEvent) => {
       if (e.key !== 'F9' || e.repeat) return;
       e.preventDefault();
@@ -837,6 +909,7 @@ const Game = () => {
       window.removeEventListener('keydown', handlePerfCapture);
       delete win[DEV_PERF_CAPTURE_FN_KEY];
       delete win[DEV_PERF_CLEAR_FN_KEY];
+      delete win[DEV_PLAYTEST_SNAPSHOT_FN_KEY];
     };
   }, []);
 

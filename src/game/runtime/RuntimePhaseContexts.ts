@@ -110,6 +110,9 @@ export interface GameplayPreludeContext {
   comboStepCount: number;
   getComboRecovery: (step: number) => number;
   completeConsumableUse?: () => void;
+  screenShake: import('@/lib/game/ScreenShake').ScreenShake;
+  triggerSave: () => void;
+  setActiveNpcsForCurrentMap: () => void;
 }
 
 export interface PlayerFrameContext {

@@ -8,6 +8,8 @@ export interface EnemyBehaviorOverrides {
   rangedAttack?: boolean;
   rangedRange?: number;
   rangedChance?: number;
+  /** Seconds after a ranged release before this enemy may begin another ranged cast. */
+  rangedCooldown?: number;
   /** When true, ranged attacks emit a Projectile (e.g. thrown scythe) instead of resolving as a melee hit at telegraph end. */
   rangedProjectile?: boolean;
   /** Tiles per second for the thrown projectile. */
@@ -148,6 +150,7 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
       rangedAttack: true,
       rangedRange: 3.5,
       rangedChance: 0.7,
+      rangedCooldown: 1.4,
       rangedProjectile: true,
       rangedProjectileSpeed: 7.0,
       rangedProjectileSprite: 'projectile_scythe',

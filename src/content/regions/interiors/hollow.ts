@@ -19,15 +19,11 @@ export const interiorHollowArenaDef: MapDefinition = {
     { x: 3, y: 3, width: 30, height: 30, type: 'clearing', fill: 'dark_grass' },
     { x: 10, y: 10, width: 16, height: 16, type: 'clearing', fill: 'mossy_stone' },
     { x: 13, y: 13, width: 10, height: 10, type: 'clearing', fill: 'ruins_floor' },
+    { x: 15, y: 15, width: 6, height: 6, type: 'clearing', fill: 'mossy_stone' },
+    { x: 17, y: 17, width: 2, height: 2, type: 'clearing', fill: 'ruins_floor' },
   ],
   portals: [],
-  chests: [
-    // Post-boss reward - Terminus Scythe, but ONLY if the player did not already claim it
-    // early from a Ridge Revenant. If they did, InteractionSystem pre-opens this chest so it
-    // renders as already-looted and the Apparition drops only essence. East side of the inner
-    // ruins, reachable after the boss (the arena exit gates on hollow_guardian_defeated).
-    { x: 24, y: 16, interactionId: 'hollow_terminus_chest' },
-  ],
+  chests: [],
   interactables: [],
   props: [
     { x: 10, y: 10, type: 'statue', walkable: false },
@@ -42,8 +38,6 @@ export const interiorHollowArenaDef: MapDefinition = {
     { x: 28, y: 12, type: 'bones', walkable: true },
     { x: 16, y: 28, type: 'bones', walkable: true },
     { x: 20, y: 6, type: 'bones', walkable: true },
-    // Spent ritual - the Apparition was created here
-    { x: 18, y: 14, type: 'heresy_altar_cracked', walkable: true },
     { x: 18, y: 8,  type: 'tombstone_broken',     walkable: true },
     // Corruption creeping from the north wall
     { x: 5,  y: 5,  type: 'dead_tree',   walkable: false },
@@ -53,6 +47,13 @@ export const interiorHollowArenaDef: MapDefinition = {
     { x: 21, y: 11, type: 'bones', walkable: true },
     { x: 12, y: 18, type: 'bones', walkable: true },
     { x: 24, y: 18, type: 'bones', walkable: true },
+    // Subtle center-control language: worn ring marks the safe/home stage without UI text.
+    { x: 18, y: 14, type: 'bloodstain', walkable: true },
+    { x: 18, y: 22, type: 'bloodstain', walkable: true },
+    { x: 14, y: 18, type: 'bones', walkable: true },
+    { x: 22, y: 18, type: 'bones', walkable: true },
+    { x: 15, y: 15, type: 'rubble', walkable: true },
+    { x: 21, y: 21, type: 'rubble', walkable: true },
     // Evidence of previous challengers
     { x: 8,  y: 8,  type: 'bloodstain', walkable: true },
     { x: 26, y: 9,  type: 'bloodstain', walkable: true },

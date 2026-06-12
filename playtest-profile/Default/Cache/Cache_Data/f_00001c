@@ -1,0 +1,541 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/game/WeaponAcquiredOverlay.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=abbca2e0"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.__vite_plugin_react_preamble_installed__) {
+    throw new Error("@vitejs/plugin-react can't detect preamble. Something is wrong. See https://github.com/vitejs/vite-plugin-react/pull/11#discussion_r430879201");
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = (type, id) => {
+    RefreshRuntime.register(type, "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx " + id);
+  };
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=abbca2e0"; const useEffect = __vite__cjsImport3_react["useEffect"]; const useRef = __vite__cjsImport3_react["useRef"]; const useState = __vite__cjsImport3_react["useState"]; const useCallback = __vite__cjsImport3_react["useCallback"];
+const EQUIP_DELAY_MS = 350;
+const AUTO_DISMISS_MS = 1e4;
+const TYPE_CHROME = {
+  equipment: {
+    header: "Weapon",
+    acquiredHeader: "Weapon Acquired",
+    chip: "Weapon",
+    border: "border-[#DAA520]",
+    shadow: "shadow-[#DAA520]/15",
+    ringActive: "border-[#DAA520]",
+    ringEquipped: "border-emerald-400"
+  },
+  consumable: {
+    header: "Consumable",
+    acquiredHeader: "Item Acquired",
+    chip: "Consumable",
+    border: "border-amber-500",
+    shadow: "shadow-amber-500/15",
+    ringActive: "border-amber-500",
+    ringEquipped: "border-amber-300"
+  },
+  key: {
+    header: "Key Item",
+    acquiredHeader: "Key Item Acquired",
+    chip: "Key Item",
+    border: "border-violet-400",
+    shadow: "shadow-violet-400/15",
+    ringActive: "border-violet-400",
+    ringEquipped: "border-violet-300"
+  },
+  quest: {
+    header: "Quest Item",
+    acquiredHeader: "Quest Item Acquired",
+    chip: "Quest Item",
+    border: "border-cyan-400",
+    shadow: "shadow-cyan-400/15",
+    ringActive: "border-cyan-400",
+    ringEquipped: "border-cyan-300"
+  },
+  ring: {
+    header: "Ring",
+    acquiredHeader: "Ring Acquired",
+    chip: "Ring",
+    border: "border-violet-400",
+    shadow: "shadow-violet-400/15",
+    ringActive: "border-violet-400",
+    ringEquipped: "border-emerald-400"
+  }
+};
+function formatRingBonus(item) {
+  if (item.stats?.staminaRegenMult && item.stats.staminaRegenMult > 1) {
+    return `+${Math.round((item.stats.staminaRegenMult - 1) * 100)}% stamina recovery`;
+  }
+  if (item.stats?.recoverySpeedMult && item.stats.recoverySpeedMult > 1) {
+    return `+${Math.round((item.stats.recoverySpeedMult - 1) * 100)}% recovery speed`;
+  }
+  if (item.stats?.moveSpeedMult && item.stats.moveSpeedMult > 1) {
+    return `+${Math.round((item.stats.moveSpeedMult - 1) * 100)}% movement speed`;
+  }
+  return null;
+}
+export const WeaponAcquiredOverlay = ({
+  item,
+  currentWeapon,
+  assetManager,
+  onEquip,
+  onDismiss,
+  canEquipActive = true
+}) => {
+  _s();
+  const [phase, setPhase] = useState("hidden");
+  const timersRef = useRef([]);
+  const onEquipRef = useRef(onEquip);
+  const onDismissRef = useRef(onDismiss);
+  onEquipRef.current = onEquip;
+  onDismissRef.current = onDismiss;
+  const itemRef = useRef(item);
+  itemRef.current = item;
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }, []);
+  const dismiss = useCallback(() => {
+    clearTimers();
+    setPhase("fadeout");
+    timersRef.current.push(setTimeout(() => {
+      setPhase("hidden");
+      onDismissRef.current();
+    }, 500));
+  }, [clearTimers]);
+  const handleEquip = useCallback(() => {
+    if (phase !== "ready" || !itemRef.current) return;
+    if (itemRef.current.type !== "equipment" && itemRef.current.type !== "ring") {
+      dismiss();
+      return;
+    }
+    clearTimers();
+    onEquipRef.current(itemRef.current.id);
+    setPhase("equipped");
+    timersRef.current.push(setTimeout(() => {
+      setPhase("fadeout");
+      timersRef.current.push(setTimeout(() => {
+        setPhase("hidden");
+        onDismissRef.current();
+      }, 500));
+    }, 800));
+  }, [phase, clearTimers, dismiss]);
+  useEffect(() => {
+    if (item) {
+      setPhase("fadein");
+      timersRef.current.push(setTimeout(() => setPhase("ready"), EQUIP_DELAY_MS));
+      timersRef.current.push(setTimeout(() => dismiss(), AUTO_DISMISS_MS));
+      return clearTimers;
+    } else {
+      setPhase("hidden");
+    }
+  }, [item, dismiss, clearTimers]);
+  useEffect(() => {
+    if (phase !== "ready") return;
+    const canEquip = itemRef.current?.type === "equipment" || itemRef.current?.type === "ring";
+    const onKeyDown = (e) => {
+      if (canEquip && canEquipActive && e.code === "KeyF") {
+        e.preventDefault();
+        e.stopPropagation();
+        handleEquip();
+        return;
+      }
+      if (e.code === "Enter" || e.code === "Space") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (canEquip && canEquipActive) handleEquip();
+        else
+          dismiss();
+      }
+      if (e.code === "Escape") {
+        e.preventDefault();
+        dismiss();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
+  }, [phase, handleEquip, dismiss, canEquipActive]);
+  if (phase === "hidden" || !item) return null;
+  const chrome = TYPE_CHROME[item.type] ?? TYPE_CHROME.quest;
+  const isEquipment = item.type === "equipment";
+  const isRing = item.type === "ring";
+  const isEquipped = phase === "equipped";
+  const ringBonus = formatRingBonus(item);
+  const spriteUrl = assetManager?.getTextureURL(item.sprite) ?? null;
+  const newDmg = item.stats?.damage ?? 0;
+  const oldDmg = currentWeapon?.stats?.damage ?? 0;
+  const newRange = item.stats?.range ?? 0;
+  const oldRange = currentWeapon?.stats?.range ?? 0;
+  const dmgDiff = newDmg - oldDmg;
+  const rangeDiff = +(newRange - oldRange).toFixed(2);
+  return /* @__PURE__ */ jsxDEV(
+    "div",
+    {
+      className: `fixed inset-0 z-[97] flex items-center justify-center transition-opacity duration-500 ${phase === "fadein" || phase === "ready" || phase === "equipped" ? "opacity-100" : "opacity-0"}`,
+      style: { backgroundColor: "rgba(10,6,2,0.82)" },
+      onClick: (e) => {
+        e.stopPropagation();
+        if (phase === "ready") dismiss();
+      },
+      children: /* @__PURE__ */ jsxDEV(
+        "div",
+        {
+          className: "flex flex-col items-center pointer-events-auto select-none",
+          onClick: (e) => e.stopPropagation(),
+          style: { marginTop: "-4vh" },
+          children: [
+            /* @__PURE__ */ jsxDEV(
+              "p",
+              {
+                className: "text-xs uppercase tracking-[0.4em] text-[#DAA520] mb-4 drop-shadow-[0_0_6px_rgba(218,165,32,0.3)]",
+                children: isEquipped ? isRing ? "Ring Equipped" : "Weapon Equipped" : chrome.acquiredHeader
+              },
+              void 0,
+              false,
+              {
+                fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                lineNumber: 212,
+                columnNumber: 9
+              },
+              this
+            ),
+            /* @__PURE__ */ jsxDEV(
+              "div",
+              {
+                className: `w-24 h-24 bg-[#1A0F0A]/90 border-2 rounded-lg flex items-center justify-center shadow-2xl mb-4 transition-all duration-500 ${isEquipped ? `${chrome.ringEquipped} shadow-emerald-400/20` : `${chrome.ringActive} ${chrome.shadow}`}`,
+                children: spriteUrl ? /* @__PURE__ */ jsxDEV(
+                  "img",
+                  {
+                    src: spriteUrl,
+                    alt: item.name,
+                    className: "w-16 h-16 [image-rendering:pixelated] object-contain drop-shadow-md"
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                    lineNumber: 227,
+                    columnNumber: 11
+                  },
+                  this
+                ) : /* @__PURE__ */ jsxDEV("div", { className: "w-16 h-16 bg-[#2D1B11] rounded" }, void 0, false, {
+                  fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                  lineNumber: 233,
+                  columnNumber: 11
+                }, this)
+              },
+              void 0,
+              false,
+              {
+                fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                lineNumber: 221,
+                columnNumber: 9
+              },
+              this
+            ),
+            /* @__PURE__ */ jsxDEV(
+              "h2",
+              {
+                className: `text-2xl font-bold tracking-wide mb-1 transition-colors duration-300 ${isEquipped ? "text-emerald-300" : "text-[#F5DEB3]"}`,
+                children: item.name
+              },
+              void 0,
+              false,
+              {
+                fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                lineNumber: 238,
+                columnNumber: 9
+              },
+              this
+            ),
+            !isEquipment && /* @__PURE__ */ jsxDEV("span", { className: `mb-2 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-sm ${chrome.border} border bg-black/30 text-[#F5DEB3]`, children: chrome.chip }, void 0, false, {
+              fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+              lineNumber: 248,
+              columnNumber: 9
+            }, this),
+            /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-[#C9B8A8] max-w-xs text-center leading-relaxed mb-5 px-4", children: item.description }, void 0, false, {
+              fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+              lineNumber: 254,
+              columnNumber: 9
+            }, this),
+            isRing && ringBonus && /* @__PURE__ */ jsxDEV("p", { className: "text-sm font-bold text-violet-300 mb-5 tabular-nums", children: ringBonus }, void 0, false, {
+              fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+              lineNumber: 259,
+              columnNumber: 9
+            }, this),
+            isEquipment && /* @__PURE__ */ jsxDEV("div", { className: "flex items-stretch gap-6 mb-6", children: [
+              /* @__PURE__ */ jsxDEV("div", { className: "flex flex-col items-center min-w-[100px]", children: [
+                /* @__PURE__ */ jsxDEV("span", { className: "text-[10px] uppercase tracking-wider text-[#A1887F] mb-2", children: "Current" }, void 0, false, {
+                  fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                  lineNumber: 267,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#F5DEB3] font-semibold mb-1", children: currentWeapon?.name ?? "None" }, void 0, false, {
+                  fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                  lineNumber: 268,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { className: "flex flex-col gap-1 items-center", children: [
+                  /* @__PURE__ */ jsxDEV("span", { className: "text-[11px] text-[#C9B8A8]", children: [
+                    "ATK ",
+                    /* @__PURE__ */ jsxDEV("span", { className: "font-bold", children: oldDmg }, void 0, false, {
+                      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                      lineNumber: 271,
+                      columnNumber: 23
+                    }, this)
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                    lineNumber: 270,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "text-[11px] text-[#C9B8A8]", children: [
+                    "RNG ",
+                    /* @__PURE__ */ jsxDEV("span", { className: "font-bold", children: oldRange.toFixed(2) }, void 0, false, {
+                      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                      lineNumber: 274,
+                      columnNumber: 23
+                    }, this)
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                    lineNumber: 273,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                  lineNumber: 269,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                lineNumber: 266,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { className: "flex items-center", children: /* @__PURE__ */ jsxDEV("span", { className: "text-lg text-[#DAA520]", children: "→" }, void 0, false, {
+                fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                lineNumber: 281,
+                columnNumber: 15
+              }, this) }, void 0, false, {
+                fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                lineNumber: 280,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { className: "flex flex-col items-center min-w-[100px]", children: [
+                /* @__PURE__ */ jsxDEV("span", { className: "text-[10px] uppercase tracking-wider text-[#DAA520] mb-2", children: "New" }, void 0, false, {
+                  fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                  lineNumber: 286,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#F5DEB3] font-semibold mb-1", children: item.name }, void 0, false, {
+                  fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                  lineNumber: 287,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { className: "flex flex-col gap-1 items-center", children: [
+                  /* @__PURE__ */ jsxDEV("span", { className: "text-[11px] text-[#F5DEB3]", children: [
+                    "ATK ",
+                    /* @__PURE__ */ jsxDEV("span", { className: "font-bold", children: newDmg }, void 0, false, {
+                      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                      lineNumber: 290,
+                      columnNumber: 23
+                    }, this),
+                    dmgDiff !== 0 && /* @__PURE__ */ jsxDEV("span", { className: `ml-1 text-[10px] font-bold ${dmgDiff > 0 ? "text-emerald-400" : "text-red-400"}`, children: [
+                      dmgDiff > 0 ? "+" : "",
+                      dmgDiff
+                    ] }, void 0, true, {
+                      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                      lineNumber: 292,
+                      columnNumber: 17
+                    }, this)
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                    lineNumber: 289,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "text-[11px] text-[#F5DEB3]", children: [
+                    "RNG ",
+                    /* @__PURE__ */ jsxDEV("span", { className: "font-bold", children: newRange.toFixed(2) }, void 0, false, {
+                      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                      lineNumber: 298,
+                      columnNumber: 23
+                    }, this),
+                    rangeDiff !== 0 && /* @__PURE__ */ jsxDEV("span", { className: `ml-1 text-[10px] font-bold ${rangeDiff > 0 ? "text-emerald-400" : "text-red-400"}`, children: [
+                      rangeDiff > 0 ? "+" : "",
+                      rangeDiff
+                    ] }, void 0, true, {
+                      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                      lineNumber: 300,
+                      columnNumber: 17
+                    }, this)
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                    lineNumber: 297,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                  lineNumber: 288,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                lineNumber: 285,
+                columnNumber: 13
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+              lineNumber: 264,
+              columnNumber: 9
+            }, this),
+            phase === "ready" && (isEquipment || isRing) && canEquipActive && /* @__PURE__ */ jsxDEV(
+              "button",
+              {
+                className: "flex items-center gap-2 bg-[#2D1B11]/80 border border-[#DAA520]/60 rounded-md px-5 py-2 cursor-pointer hover:bg-[#3D2B21] transition-colors group",
+                onClick: (e) => {
+                  e.stopPropagation();
+                  handleEquip();
+                },
+                children: [
+                  /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#C9B8A8] uppercase tracking-wider", children: "Press" }, void 0, false, {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                    lineNumber: 316,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("kbd", { className: "bg-[#1A0F0A] px-2 py-0.5 rounded border border-[#5C3A21] text-[#DAA520] text-sm font-bold shadow-inner group-hover:border-[#DAA520]", children: "F" }, void 0, false, {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                    lineNumber: 317,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#C9B8A8] uppercase tracking-wider", children: "to equip" }, void 0, false, {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                    lineNumber: 320,
+                    columnNumber: 13
+                  }, this)
+                ]
+              },
+              void 0,
+              true,
+              {
+                fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                lineNumber: 312,
+                columnNumber: 9
+              },
+              this
+            ),
+            phase === "ready" && isEquipment && !canEquipActive && /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-[#C9B8A8] text-center max-w-xs leading-relaxed", children: [
+              "Loadout full. Open",
+              " ",
+              /* @__PURE__ */ jsxDEV("kbd", { className: "rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]", children: "P" }, void 0, false, {
+                fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                lineNumber: 327,
+                columnNumber: 13
+              }, this),
+              " ",
+              "to swap a weapon into your active set."
+            ] }, void 0, true, {
+              fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+              lineNumber: 325,
+              columnNumber: 9
+            }, this),
+            phase === "ready" && isRing && !canEquipActive && /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-[#C9B8A8] text-center max-w-xs leading-relaxed", children: [
+              "Ring slots full. Open",
+              " ",
+              /* @__PURE__ */ jsxDEV("kbd", { className: "rounded border border-[#5C3A21] bg-[#1A0F0A] px-1.5 py-0.5 font-mono text-[#DAA520]", children: "P" }, void 0, false, {
+                fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                lineNumber: 335,
+                columnNumber: 13
+              }, this),
+              " ",
+              "to swap rings."
+            ] }, void 0, true, {
+              fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+              lineNumber: 333,
+              columnNumber: 9
+            }, this),
+            phase === "ready" && !isEquipment && /* @__PURE__ */ jsxDEV(
+              "button",
+              {
+                className: "flex items-center gap-2 bg-[#2D1B11]/80 border border-[#DAA520]/60 rounded-md px-5 py-2 cursor-pointer hover:bg-[#3D2B21] transition-colors group",
+                onClick: (e) => {
+                  e.stopPropagation();
+                  dismiss();
+                },
+                children: [
+                  /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#C9B8A8] uppercase tracking-wider", children: "Press" }, void 0, false, {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                    lineNumber: 345,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("kbd", { className: "bg-[#1A0F0A] px-2 py-0.5 rounded border border-[#5C3A21] text-[#DAA520] text-sm font-bold shadow-inner group-hover:border-[#DAA520]", children: "Space" }, void 0, false, {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                    lineNumber: 346,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#C9B8A8] uppercase tracking-wider", children: "to continue" }, void 0, false, {
+                    fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                    lineNumber: 349,
+                    columnNumber: 13
+                  }, this)
+                ]
+              },
+              void 0,
+              true,
+              {
+                fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+                lineNumber: 341,
+                columnNumber: 9
+              },
+              this
+            ),
+            isEquipped && /* @__PURE__ */ jsxDEV("p", { className: "text-sm text-emerald-400 font-bold uppercase tracking-widest animate-pulse", children: "Equipped!" }, void 0, false, {
+              fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+              lineNumber: 354,
+              columnNumber: 9
+            }, this),
+            phase === "fadein" && /* @__PURE__ */ jsxDEV("div", { className: "h-8" }, void 0, false, {
+              fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+              lineNumber: 360,
+              columnNumber: 9
+            }, this)
+          ]
+        },
+        void 0,
+        true,
+        {
+          fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+          lineNumber: 206,
+          columnNumber: 7
+        },
+        this
+      )
+    },
+    void 0,
+    false,
+    {
+      fileName: "C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx",
+      lineNumber: 199,
+      columnNumber: 5
+    },
+    this
+  );
+};
+_s(WeaponAcquiredOverlay, "CtsfkU+WU5mFu0MQZdjYCt/WcY0=");
+_c = WeaponAcquiredOverlay;
+var _c;
+$RefreshReg$(_c, "WeaponAcquiredOverlay");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/roxas/OneDrive/Desktop/PROJECTS/souls-slop/src/components/game/WeaponAcquiredOverlay.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate(currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUE7QUFBQTtBQUFBO0FBQUEsbUJBQW9CO0FBQUE7QUFBQTtBQUFBLFFBMUp4QjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsTUE0SkE7QUFBQTtBQUFBLElBbktGO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxFQW9LQTtBQUVKO0FBQUVELEdBNVFXTix1QkFBcUI7QUFBQSxLQUFyQkE7QUFBcUIsSUFBQXdEO0FBQUEsYUFBQUEsSUFBQSIsIm5hbWVzIjpbInVzZVJlZiIsInVzZUNhbGxiYWNrIiwiRVFVSVBfREVMQVlfTVMiLCJBVVRPX0RJU01JU1NfTVMiLCJUWVBFX0NIUk9NRSIsImVxdWlwbWVudCIsImhlYWRlciIsImFjcXVpcmVkSGVhZGVyIiwiY2hpcCIsImJvcmRlciIsInNoYWRvdyIsInJpbmdBY3RpdmUiLCJyaW5nRXF1aXBwZWQiLCJjb25zdW1hYmxlIiwia2V5IiwicXVlc3QiLCJyaW5nIiwiZm9ybWF0UmluZ0JvbnVzIiwiaXRlbSIsInN0YXRzIiwic3RhbWluYVJlZ2VuTXVsdCIsIk1hdGgiLCJyb3VuZCIsInJlY292ZXJ5U3BlZWRNdWx0IiwibW92ZVNwZWVkTXVsdCIsIldlYXBvbkFjcXVpcmVkT3ZlcmxheSIsImN1cnJlbnRXZWFwb24iLCJhc3NldE1hbmFnZXIiLCJvbkVxdWlwIiwib25EaXNtaXNzIiwiY2FuRXF1aXBBY3RpdmUiLCJfcyIsInBoYXNlIiwic2V0UGhhc2UiLCJ1c2VTdGF0ZSIsInRpbWVyc1JlZiIsIm9uRXF1aXBSZWYiLCJvbkRpc21pc3NSZWYiLCJjdXJyZW50IiwiaXRlbVJlZiIsImNsZWFyVGltZXJzIiwiZm9yRWFjaCIsImNsZWFyVGltZW91dCIsImRpc21pc3MiLCJwdXNoIiwic2V0VGltZW91dCIsImhhbmRsZUVxdWlwIiwidHlwZSIsImlkIiwidXNlRWZmZWN0IiwiY2FuRXF1aXAiLCJvbktleURvd24iLCJlIiwiY29kZSIsInByZXZlbnREZWZhdWx0Iiwic3RvcFByb3BhZ2F0aW9uIiwid2luZG93IiwiYWRkRXZlbnRMaXN0ZW5lciIsImNhcHR1cmUiLCJyZW1vdmVFdmVudExpc3RlbmVyIiwiY2hyb21lIiwiaXNFcXVpcG1lbnQiLCJpc1JpbmciLCJpc0VxdWlwcGVkIiwicmluZ0JvbnVzIiwic3ByaXRlVXJsIiwiZ2V0VGV4dHVyZVVSTCIsInNwcml0ZSIsIm5ld0RtZyIsImRhbWFnZSIsIm9sZERtZyIsIm5ld1JhbmdlIiwicmFuZ2UiLCJvbGRSYW5nZSIsImRtZ0RpZmYiLCJyYW5nZURpZmYiLCJ0b0ZpeGVkIiwiYmFja2dyb3VuZENvbG9yIiwibWFyZ2luVG9wIiwibmFtZSIsImRlc2NyaXB0aW9uIiwiX2MiXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiV2VhcG9uQWNxdWlyZWRPdmVybGF5LnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyB1c2VFZmZlY3QsIHVzZVJlZiwgdXNlU3RhdGUsIHVzZUNhbGxiYWNrIH0gZnJvbSAncmVhY3QnO1xuaW1wb3J0IHR5cGUgeyBJdGVtIH0gZnJvbSAnQC9saWIvZ2FtZS9HYW1lU3RhdGUnO1xuaW1wb3J0IHR5cGUgeyBBc3NldE1hbmFnZXIgfSBmcm9tICdAL2xpYi9nYW1lL0Fzc2V0TWFuYWdlcic7XG5cbmludGVyZmFjZSBJdGVtQWNxdWlyZWRPdmVybGF5UHJvcHMge1xuICBpdGVtOiBJdGVtIHwgbnVsbDtcbiAgLyoqIEN1cnJlbnRseSBlcXVpcHBlZCB3ZWFwb24gLSBvbmx5IHVzZWQgd2hlbiB0aGUgYWNxdWlyZWQgaXRlbSBpcyBlcXVpcG1lbnQsIGZvciB0aGUgc3RhdCBjb21wYXJlLiAqL1xuICBjdXJyZW50V2VhcG9uOiBJdGVtIHwgbnVsbDtcbiAgYXNzZXRNYW5hZ2VyPzogQXNzZXRNYW5hZ2VyIHwgbnVsbDtcbiAgLyoqIEVxdWlwIGhhbmRsZXIgZm9yIHdlYXBvbnMgYW5kIHJpbmdzLiBJZ25vcmVkIGZvciBvdGhlciBpdGVtIHR5cGVzLiAqL1xuICBvbkVxdWlwOiAoaXRlbUlkOiBzdHJpbmcpID0+IHZvaWQ7XG4gIG9uRGlzbWlzczogKCkgPT4gdm9pZDtcbiAgLyoqIFdoZW4gZmFsc2UsIHdlYXBvbiBpcyBpbiBpbnZlbnRvcnkgcmVzZXJ2ZSAtIHByb21wdCBQbGF5ZXIgKFApIGluc3RlYWQgb2YgZXF1aXAuICovXG4gIGNhbkVxdWlwQWN0aXZlPzogYm9vbGVhbjtcbn1cblxuY29uc3QgRVFVSVBfREVMQVlfTVMgPSAzNTA7XG5jb25zdCBBVVRPX0RJU01JU1NfTVMgPSAxMF8wMDA7XG5cbmludGVyZmFjZSBUeXBlQ2hyb21lIHtcbiAgaGVhZGVyOiBzdHJpbmc7XG4gIGFjcXVpcmVkSGVhZGVyOiBzdHJpbmc7XG4gIGNoaXA6IHN0cmluZztcbiAgYm9yZGVyOiBzdHJpbmc7XG4gIHNoYWRvdzogc3RyaW5nO1xuICByaW5nQWN0aXZlOiBzdHJpbmc7XG4gIHJpbmdFcXVpcHBlZDogc3RyaW5nO1xufVxuXG5jb25zdCBUWVBFX0NIUk9NRTogUmVjb3JkPEl0ZW1bJ3R5cGUnXSwgVHlwZUNocm9tZT4gPSB7XG4gIGVxdWlwbWVudDoge1xuICAgIGhlYWRlcjogJ1dlYXBvbicsXG4gICAgYWNxdWlyZWRIZWFkZXI6ICdXZWFwb24gQWNxdWlyZWQnLFxuICAgIGNoaXA6ICdXZWFwb24nLFxuICAgIGJvcmRlcjogJ2JvcmRlci1bI0RBQTUyMF0nLFxuICAgIHNoYWRvdzogJ3NoYWRvdy1bI0RBQTUyMF0vMTUnLFxuICAgIHJpbmdBY3RpdmU6ICdib3JkZXItWyNEQUE1MjBdJyxcbiAgICByaW5nRXF1aXBwZWQ6ICdib3JkZXItZW1lcmFsZC00MDAnLFxuICB9LFxuICBjb25zdW1hYmxlOiB7XG4gICAgaGVhZGVyOiAnQ29uc3VtYWJsZScsXG4gICAgYWNxdWlyZWRIZWFkZXI6ICdJdGVtIEFjcXVpcmVkJyxcbiAgICBjaGlwOiAnQ29uc3VtYWJsZScsXG4gICAgYm9yZGVyOiAnYm9yZGVyLWFtYmVyLTUwMCcsXG4gICAgc2hhZG93OiAnc2hhZG93LWFtYmVyLTUwMC8xNScsXG4gICAgcmluZ0FjdGl2ZTogJ2JvcmRlci1hbWJlci01MDAnLFxuICAgIHJpbmdFcXVpcHBlZDogJ2JvcmRlci1hbWJlci0zMDAnLFxuICB9LFxuICBrZXk6IHtcbiAgICBoZWFkZXI6ICdLZXkgSXRlbScsXG4gICAgYWNxdWlyZWRIZWFkZXI6ICdLZXkgSXRlbSBBY3F1aXJlZCcsXG4gICAgY2hpcDogJ0tleSBJdGVtJyxcbiAgICBib3JkZXI6ICdib3JkZXItdmlvbGV0LTQwMCcsXG4gICAgc2hhZG93OiAnc2hhZG93LXZpb2xldC00MDAvMTUnLFxuICAgIHJpbmdBY3RpdmU6ICdib3JkZXItdmlvbGV0LTQwMCcsXG4gICAgcmluZ0VxdWlwcGVkOiAnYm9yZGVyLXZpb2xldC0zMDAnLFxuICB9LFxuICBxdWVzdDoge1xuICAgIGhlYWRlcjogJ1F1ZXN0IEl0ZW0nLFxuICAgIGFjcXVpcmVkSGVhZGVyOiAnUXVlc3QgSXRlbSBBY3F1aXJlZCcsXG4gICAgY2hpcDogJ1F1ZXN0IEl0ZW0nLFxuICAgIGJvcmRlcjogJ2JvcmRlci1jeWFuLTQwMCcsXG4gICAgc2hhZG93OiAnc2hhZG93LWN5YW4tNDAwLzE1JyxcbiAgICByaW5nQWN0aXZlOiAnYm9yZGVyLWN5YW4tNDAwJyxcbiAgICByaW5nRXF1aXBwZWQ6ICdib3JkZXItY3lhbi0zMDAnLFxuICB9LFxuICByaW5nOiB7XG4gICAgaGVhZGVyOiAnUmluZycsXG4gICAgYWNxdWlyZWRIZWFkZXI6ICdSaW5nIEFjcXVpcmVkJyxcbiAgICBjaGlwOiAnUmluZycsXG4gICAgYm9yZGVyOiAnYm9yZGVyLXZpb2xldC00MDAnLFxuICAgIHNoYWRvdzogJ3NoYWRvdy12aW9sZXQtNDAwLzE1JyxcbiAgICByaW5nQWN0aXZlOiAnYm9yZGVyLXZpb2xldC00MDAnLFxuICAgIHJpbmdFcXVpcHBlZDogJ2JvcmRlci1lbWVyYWxkLTQwMCcsXG4gIH0sXG59O1xuXG5mdW5jdGlvbiBmb3JtYXRSaW5nQm9udXMoaXRlbTogSXRlbSk6IHN0cmluZyB8IG51bGwge1xuICBpZiAoaXRlbS5zdGF0cz8uc3RhbWluYVJlZ2VuTXVsdCAmJiBpdGVtLnN0YXRzLnN0YW1pbmFSZWdlbk11bHQgPiAxKSB7XG4gICAgcmV0dXJuIGArJHtNYXRoLnJvdW5kKChpdGVtLnN0YXRzLnN0YW1pbmFSZWdlbk11bHQgLSAxKSAqIDEwMCl9JSBzdGFtaW5hIHJlY292ZXJ5YDtcbiAgfVxuICBpZiAoaXRlbS5zdGF0cz8ucmVjb3ZlcnlTcGVlZE11bHQgJiYgaXRlbS5zdGF0cy5yZWNvdmVyeVNwZWVkTXVsdCA+IDEpIHtcbiAgICByZXR1cm4gYCske01hdGgucm91bmQoKGl0ZW0uc3RhdHMucmVjb3ZlcnlTcGVlZE11bHQgLSAxKSAqIDEwMCl9JSByZWNvdmVyeSBzcGVlZGA7XG4gIH1cbiAgaWYgKGl0ZW0uc3RhdHM/Lm1vdmVTcGVlZE11bHQgJiYgaXRlbS5zdGF0cy5tb3ZlU3BlZWRNdWx0ID4gMSkge1xuICAgIHJldHVybiBgKyR7TWF0aC5yb3VuZCgoaXRlbS5zdGF0cy5tb3ZlU3BlZWRNdWx0IC0gMSkgKiAxMDApfSUgbW92ZW1lbnQgc3BlZWRgO1xuICB9XG4gIHJldHVybiBudWxsO1xufVxuXG4vKipcbiAqIFJlbmFtZWQgZnJvbSBXZWFwb25BY3F1aXJlZE92ZXJsYXkgLSBub3cgZmlyZXMgZm9yIGFueSBmaXJzdC10aW1lIHBpY2t1cCBzbyB0aGVcbiAqIHBsYXllciBzZWVzIHJlYWwgZmFuZmFyZSB0aGUgZmlyc3QgdGltZSB0aGV5IGZpbmQgYSBwb3Rpb24sIGNoYXJtLCBrZXksIG9yIHdlYXBvbi5cbiAqIEdhbWUudHN4IGlzIHJlc3BvbnNpYmxlIGZvciBvbmx5IGludm9raW5nIHRoaXMgd2l0aCBmaXJzdC10aW1lIGl0ZW1zICh0cmFja2VkIHZpYVxuICogR2FtZVN0YXRlLnNlZW5JdGVtSWRzKTsgdGhlIG92ZXJsYXkgaXRzZWxmIGp1c3QgcmVuZGVycyB3aGF0ZXZlciBpdCdzIGhhbmRlZC5cbiAqL1xuZXhwb3J0IGNvbnN0IFdlYXBvbkFjcXVpcmVkT3ZlcmxheSA9ICh7XG4gIGl0ZW0sXG4gIGN1cnJlbnRXZWFwb24sXG4gIGFzc2V0TWFuYWdlcixcbiAgb25FcXVpcCxcbiAgb25EaXNtaXNzLFxuICBjYW5FcXVpcEFjdGl2ZSA9IHRydWUsXG59OiBJdGVtQWNxdWlyZWRPdmVybGF5UHJvcHMpID0+IHtcbiAgY29uc3QgW3BoYXNlLCBzZXRQaGFzZV0gPSB1c2VTdGF0ZTwnaGlkZGVuJyB8ICdmYWRlaW4nIHwgJ3JlYWR5JyB8ICdlcXVpcHBlZCcgfCAnZmFkZW91dCc+KCdoaWRkZW4nKTtcbiAgY29uc3QgdGltZXJzUmVmID0gdXNlUmVmPFJldHVyblR5cGU8dHlwZW9mIHNldFRpbWVvdXQ+W10+KFtdKTtcbiAgY29uc3Qgb25FcXVpcFJlZiA9IHVzZVJlZihvbkVxdWlwKTtcbiAgY29uc3Qgb25EaXNtaXNzUmVmID0gdXNlUmVmKG9uRGlzbWlzcyk7XG4gIG9uRXF1aXBSZWYuY3VycmVudCA9IG9uRXF1aXA7XG4gIG9uRGlzbWlzc1JlZi5jdXJyZW50ID0gb25EaXNtaXNzO1xuICBjb25zdCBpdGVtUmVmID0gdXNlUmVmKGl0ZW0pO1xuICBpdGVtUmVmLmN1cnJlbnQgPSBpdGVtO1xuXG4gIGNvbnN0IGNsZWFyVGltZXJzID0gdXNlQ2FsbGJhY2soKCkgPT4ge1xuICAgIHRpbWVyc1JlZi5jdXJyZW50LmZvckVhY2goY2xlYXJUaW1lb3V0KTtcbiAgICB0aW1lcnNSZWYuY3VycmVudCA9IFtdO1xuICB9LCBbXSk7XG5cbiAgY29uc3QgZGlzbWlzcyA9IHVzZUNhbGxiYWNrKCgpID0+IHtcbiAgICBjbGVhclRpbWVycygpO1xuICAgIHNldFBoYXNlKCdmYWRlb3V0Jyk7XG4gICAgdGltZXJzUmVmLmN1cnJlbnQucHVzaChzZXRUaW1lb3V0KCgpID0+IHtcbiAgICAgIHNldFBoYXNlKCdoaWRkZW4nKTtcbiAgICAgIG9uRGlzbWlzc1JlZi5jdXJyZW50KCk7XG4gICAgfSwgNTAwKSk7XG4gIH0sIFtjbGVhclRpbWVyc10pO1xuXG4gIGNvbnN0IGhhbmRsZUVxdWlwID0gdXNlQ2FsbGJhY2soKCkgPT4ge1xuICAgIGlmIChwaGFzZSAhPT0gJ3JlYWR5JyB8fCAhaXRlbVJlZi5jdXJyZW50KSByZXR1cm47XG4gICAgaWYgKGl0ZW1SZWYuY3VycmVudC50eXBlICE9PSAnZXF1aXBtZW50JyAmJiBpdGVtUmVmLmN1cnJlbnQudHlwZSAhPT0gJ3JpbmcnKSB7XG4gICAgICBkaXNtaXNzKCk7XG4gICAgICByZXR1cm47XG4gICAgfVxuICAgIGNsZWFyVGltZXJzKCk7XG4gICAgb25FcXVpcFJlZi5jdXJyZW50KGl0ZW1SZWYuY3VycmVudC5pZCk7XG4gICAgc2V0UGhhc2UoJ2VxdWlwcGVkJyk7XG4gICAgdGltZXJzUmVmLmN1cnJlbnQucHVzaChzZXRUaW1lb3V0KCgpID0+IHtcbiAgICAgIHNldFBoYXNlKCdmYWRlb3V0Jyk7XG4gICAgICB0aW1lcnNSZWYuY3VycmVudC5wdXNoKHNldFRpbWVvdXQoKCkgPT4ge1xuICAgICAgICBzZXRQaGFzZSgnaGlkZGVuJyk7XG4gICAgICAgIG9uRGlzbWlzc1JlZi5jdXJyZW50KCk7XG4gICAgICB9LCA1MDApKTtcbiAgICB9LCA4MDApKTtcbiAgfSwgW3BoYXNlLCBjbGVhclRpbWVycywgZGlzbWlzc10pO1xuXG4gIHVzZUVmZmVjdCgoKSA9PiB7XG4gICAgaWYgKGl0ZW0pIHtcbiAgICAgIHNldFBoYXNlKCdmYWRlaW4nKTtcbiAgICAgIHRpbWVyc1JlZi5jdXJyZW50LnB1c2goc2V0VGltZW91dCgoKSA9PiBzZXRQaGFzZSgncmVhZHknKSwgRVFVSVBfREVMQVlfTVMpKTtcbiAgICAgIHRpbWVyc1JlZi5jdXJyZW50LnB1c2goc2V0VGltZW91dCgoKSA9PiBkaXNtaXNzKCksIEFVVE9fRElTTUlTU19NUykpO1xuICAgICAgcmV0dXJuIGNsZWFyVGltZXJzO1xuICAgIH0gZWxzZSB7XG4gICAgICBzZXRQaGFzZSgnaGlkZGVuJyk7XG4gICAgfVxuICB9LCBbaXRlbSwgZGlzbWlzcywgY2xlYXJUaW1lcnNdKTtcblxuICB1c2VFZmZlY3QoKCkgPT4ge1xuICAgIGlmIChwaGFzZSAhPT0gJ3JlYWR5JykgcmV0dXJuO1xuICAgIGNvbnN0IGNhbkVxdWlwID0gaXRlbVJlZi5jdXJyZW50Py50eXBlID09PSAnZXF1aXBtZW50JyB8fCBpdGVtUmVmLmN1cnJlbnQ/LnR5cGUgPT09ICdyaW5nJztcbiAgICBjb25zdCBvbktleURvd24gPSAoZTogS2V5Ym9hcmRFdmVudCkgPT4ge1xuICAgICAgaWYgKGNhbkVxdWlwICYmIGNhbkVxdWlwQWN0aXZlICYmIGUuY29kZSA9PT0gJ0tleUYnKSB7XG4gICAgICAgIGUucHJldmVudERlZmF1bHQoKTtcbiAgICAgICAgZS5zdG9wUHJvcGFnYXRpb24oKTtcbiAgICAgICAgaGFuZGxlRXF1aXAoKTtcbiAgICAgICAgcmV0dXJuO1xuICAgICAgfVxuICAgICAgaWYgKGUuY29kZSA9PT0gJ0VudGVyJyB8fCBlLmNvZGUgPT09ICdTcGFjZScpIHtcbiAgICAgICAgZS5wcmV2ZW50RGVmYXVsdCgpO1xuICAgICAgICBlLnN0b3BQcm9wYWdhdGlvbigpO1xuICAgICAgICBpZiAoY2FuRXF1aXAgJiYgY2FuRXF1aXBBY3RpdmUpIGhhbmRsZUVxdWlwKCk7XG4gICAgICAgIGVsc2UgZGlzbWlzcygpO1xuICAgICAgfVxuICAgICAgaWYgKGUuY29kZSA9PT0gJ0VzY2FwZScpIHtcbiAgICAgICAgZS5wcmV2ZW50RGVmYXVsdCgpO1xuICAgICAgICBkaXNtaXNzKCk7XG4gICAgICB9XG4gICAgfTtcbiAgICB3aW5kb3cuYWRkRXZlbnRMaXN0ZW5lcigna2V5ZG93bicsIG9uS2V5RG93biwgeyBjYXB0dXJlOiB0cnVlIH0pO1xuICAgIHJldHVybiAoKSA9PiB3aW5kb3cucmVtb3ZlRXZlbnRMaXN0ZW5lcigna2V5ZG93bicsIG9uS2V5RG93biwgeyBjYXB0dXJlOiB0cnVlIH0pO1xuICB9LCBbcGhhc2UsIGhhbmRsZUVxdWlwLCBkaXNtaXNzLCBjYW5FcXVpcEFjdGl2ZV0pO1xuXG4gIGlmIChwaGFzZSA9PT0gJ2hpZGRlbicgfHwgIWl0ZW0pIHJldHVybiBudWxsO1xuXG4gIGNvbnN0IGNocm9tZSA9IFRZUEVfQ0hST01FW2l0ZW0udHlwZV0gPz8gVFlQRV9DSFJPTUUucXVlc3Q7XG4gIGNvbnN0IGlzRXF1aXBtZW50ID0gaXRlbS50eXBlID09PSAnZXF1aXBtZW50JztcbiAgY29uc3QgaXNSaW5nID0gaXRlbS50eXBlID09PSAncmluZyc7XG4gIGNvbnN0IGlzRXF1aXBwZWQgPSBwaGFzZSA9PT0gJ2VxdWlwcGVkJztcbiAgY29uc3QgcmluZ0JvbnVzID0gZm9ybWF0UmluZ0JvbnVzKGl0ZW0pO1xuICBjb25zdCBzcHJpdGVVcmwgPSBhc3NldE1hbmFnZXI/LmdldFRleHR1cmVVUkwoaXRlbS5zcHJpdGUpID8/IG51bGw7XG5cbiAgY29uc3QgbmV3RG1nID0gaXRlbS5zdGF0cz8uZGFtYWdlID8/IDA7XG4gIGNvbnN0IG9sZERtZyA9IGN1cnJlbnRXZWFwb24/LnN0YXRzPy5kYW1hZ2UgPz8gMDtcbiAgY29uc3QgbmV3UmFuZ2UgPSBpdGVtLnN0YXRzPy5yYW5nZSA/PyAwO1xuICBjb25zdCBvbGRSYW5nZSA9IGN1cnJlbnRXZWFwb24/LnN0YXRzPy5yYW5nZSA/PyAwO1xuICBjb25zdCBkbWdEaWZmID0gbmV3RG1nIC0gb2xkRG1nO1xuICBjb25zdCByYW5nZURpZmYgPSArKG5ld1JhbmdlIC0gb2xkUmFuZ2UpLnRvRml4ZWQoMik7XG5cbiAgcmV0dXJuIChcbiAgICA8ZGl2XG4gICAgICBjbGFzc05hbWU9e2BmaXhlZCBpbnNldC0wIHotWzk3XSBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciB0cmFuc2l0aW9uLW9wYWNpdHkgZHVyYXRpb24tNTAwICR7XG4gICAgICAgIHBoYXNlID09PSAnZmFkZWluJyB8fCBwaGFzZSA9PT0gJ3JlYWR5JyB8fCBwaGFzZSA9PT0gJ2VxdWlwcGVkJyA/ICdvcGFjaXR5LTEwMCcgOiAnb3BhY2l0eS0wJ1xuICAgICAgfWB9XG4gICAgICBzdHlsZT17eyBiYWNrZ3JvdW5kQ29sb3I6ICdyZ2JhKDEwLDYsMiwwLjgyKScgfX1cbiAgICAgIG9uQ2xpY2s9eyhlKSA9PiB7IGUuc3RvcFByb3BhZ2F0aW9uKCk7IGlmIChwaGFzZSA9PT0gJ3JlYWR5JykgZGlzbWlzcygpOyB9fVxuICAgID5cbiAgICAgIDxkaXZcbiAgICAgICAgY2xhc3NOYW1lPVwiZmxleCBmbGV4LWNvbCBpdGVtcy1jZW50ZXIgcG9pbnRlci1ldmVudHMtYXV0byBzZWxlY3Qtbm9uZVwiXG4gICAgICAgIG9uQ2xpY2s9eyhlKSA9PiBlLnN0b3BQcm9wYWdhdGlvbigpfVxuICAgICAgICBzdHlsZT17eyBtYXJnaW5Ub3A6ICctNHZoJyB9fVxuICAgICAgPlxuICAgICAgICB7LyogSGVhZGVyICovfVxuICAgICAgICA8cFxuICAgICAgICAgIGNsYXNzTmFtZT1cInRleHQteHMgdXBwZXJjYXNlIHRyYWNraW5nLVswLjRlbV0gdGV4dC1bI0RBQTUyMF0gbWItNCBkcm9wLXNoYWRvdy1bMF8wXzZweF9yZ2JhKDIxOCwxNjUsMzIsMC4zKV1cIlxuICAgICAgICA+XG4gICAgICAgICAge2lzRXF1aXBwZWRcbiAgICAgICAgICAgID8gKGlzUmluZyA/ICdSaW5nIEVxdWlwcGVkJyA6ICdXZWFwb24gRXF1aXBwZWQnKVxuICAgICAgICAgICAgOiBjaHJvbWUuYWNxdWlyZWRIZWFkZXJ9XG4gICAgICAgIDwvcD5cblxuICAgICAgICB7LyogSXRlbSBpY29uICovfVxuICAgICAgICA8ZGl2XG4gICAgICAgICAgY2xhc3NOYW1lPXtgdy0yNCBoLTI0IGJnLVsjMUEwRjBBXS85MCBib3JkZXItMiByb3VuZGVkLWxnIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHNoYWRvdy0yeGwgbWItNCB0cmFuc2l0aW9uLWFsbCBkdXJhdGlvbi01MDAgJHtcbiAgICAgICAgICAgIGlzRXF1aXBwZWQgPyBgJHtjaHJvbWUucmluZ0VxdWlwcGVkfSBzaGFkb3ctZW1lcmFsZC00MDAvMjBgIDogYCR7Y2hyb21lLnJpbmdBY3RpdmV9ICR7Y2hyb21lLnNoYWRvd31gXG4gICAgICAgICAgfWB9XG4gICAgICAgID5cbiAgICAgICAgICB7c3ByaXRlVXJsID8gKFxuICAgICAgICAgICAgPGltZ1xuICAgICAgICAgICAgICBzcmM9e3Nwcml0ZVVybH1cbiAgICAgICAgICAgICAgYWx0PXtpdGVtLm5hbWV9XG4gICAgICAgICAgICAgIGNsYXNzTmFtZT1cInctMTYgaC0xNiBbaW1hZ2UtcmVuZGVyaW5nOnBpeGVsYXRlZF0gb2JqZWN0LWNvbnRhaW4gZHJvcC1zaGFkb3ctbWRcIlxuICAgICAgICAgICAgLz5cbiAgICAgICAgICApIDogKFxuICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJ3LTE2IGgtMTYgYmctWyMyRDFCMTFdIHJvdW5kZWRcIiAvPlxuICAgICAgICAgICl9XG4gICAgICAgIDwvZGl2PlxuXG4gICAgICAgIHsvKiBJdGVtIG5hbWUgKi99XG4gICAgICAgIDxoMlxuICAgICAgICAgIGNsYXNzTmFtZT17YHRleHQtMnhsIGZvbnQtYm9sZCB0cmFja2luZy13aWRlIG1iLTEgdHJhbnNpdGlvbi1jb2xvcnMgZHVyYXRpb24tMzAwICR7XG4gICAgICAgICAgICBpc0VxdWlwcGVkID8gJ3RleHQtZW1lcmFsZC0zMDAnIDogJ3RleHQtWyNGNURFQjNdJ1xuICAgICAgICAgIH1gfVxuICAgICAgICA+XG4gICAgICAgICAge2l0ZW0ubmFtZX1cbiAgICAgICAgPC9oMj5cblxuICAgICAgICB7LyogVHlwZSBjaGlwIChub24tZXF1aXBtZW50IG9ubHkgLSBlcXVpcG1lbnQgaGVhZGVyIGFscmVhZHkgc2F5cyBcIldlYXBvblwiKSAqL31cbiAgICAgICAgeyFpc0VxdWlwbWVudCAmJiAoXG4gICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPXtgbWItMiB0ZXh0LVsxMHB4XSB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZXIgZm9udC1ib2xkIHB4LTIgcHktMC41IHJvdW5kZWQtc20gJHtjaHJvbWUuYm9yZGVyfSBib3JkZXIgYmctYmxhY2svMzAgdGV4dC1bI0Y1REVCM11gfT5cbiAgICAgICAgICAgIHtjaHJvbWUuY2hpcH1cbiAgICAgICAgICA8L3NwYW4+XG4gICAgICAgICl9XG5cbiAgICAgICAgey8qIERlc2NyaXB0aW9uICovfVxuICAgICAgICA8cCBjbGFzc05hbWU9XCJ0ZXh0LXhzIHRleHQtWyNDOUI4QThdIG1heC13LXhzIHRleHQtY2VudGVyIGxlYWRpbmctcmVsYXhlZCBtYi01IHB4LTRcIj5cbiAgICAgICAgICB7aXRlbS5kZXNjcmlwdGlvbn1cbiAgICAgICAgPC9wPlxuXG4gICAgICAgIHtpc1JpbmcgJiYgcmluZ0JvbnVzICYmIChcbiAgICAgICAgICA8cCBjbGFzc05hbWU9XCJ0ZXh0LXNtIGZvbnQtYm9sZCB0ZXh0LXZpb2xldC0zMDAgbWItNSB0YWJ1bGFyLW51bXNcIj57cmluZ0JvbnVzfTwvcD5cbiAgICAgICAgKX1cblxuICAgICAgICB7LyogU3RhdCBjb21wYXJpc29uIC0gZXF1aXBtZW50IG9ubHkgKi99XG4gICAgICAgIHtpc0VxdWlwbWVudCAmJiAoXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJmbGV4IGl0ZW1zLXN0cmV0Y2ggZ2FwLTYgbWItNlwiPlxuICAgICAgICAgICAgey8qIEN1cnJlbnQgd2VhcG9uICovfVxuICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJmbGV4IGZsZXgtY29sIGl0ZW1zLWNlbnRlciBtaW4tdy1bMTAwcHhdXCI+XG4gICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRleHQtWzEwcHhdIHVwcGVyY2FzZSB0cmFja2luZy13aWRlciB0ZXh0LVsjQTE4ODdGXSBtYi0yXCI+Q3VycmVudDwvc3Bhbj5cbiAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwidGV4dC14cyB0ZXh0LVsjRjVERUIzXSBmb250LXNlbWlib2xkIG1iLTFcIj57Y3VycmVudFdlYXBvbj8ubmFtZSA/PyAnTm9uZSd9PC9zcGFuPlxuICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggZmxleC1jb2wgZ2FwLTEgaXRlbXMtY2VudGVyXCI+XG4gICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwidGV4dC1bMTFweF0gdGV4dC1bI0M5QjhBOF1cIj5cbiAgICAgICAgICAgICAgICAgIEFUSyA8c3BhbiBjbGFzc05hbWU9XCJmb250LWJvbGRcIj57b2xkRG1nfTwvc3Bhbj5cbiAgICAgICAgICAgICAgICA8L3NwYW4+XG4gICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwidGV4dC1bMTFweF0gdGV4dC1bI0M5QjhBOF1cIj5cbiAgICAgICAgICAgICAgICAgIFJORyA8c3BhbiBjbGFzc05hbWU9XCJmb250LWJvbGRcIj57b2xkUmFuZ2UudG9GaXhlZCgyKX08L3NwYW4+XG4gICAgICAgICAgICAgICAgPC9zcGFuPlxuICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgIDwvZGl2PlxuXG4gICAgICAgICAgICB7LyogQXJyb3cgKi99XG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyXCI+XG4gICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRleHQtbGcgdGV4dC1bI0RBQTUyMF1cIj4mcmFycjs8L3NwYW4+XG4gICAgICAgICAgICA8L2Rpdj5cblxuICAgICAgICAgICAgey8qIE5ldyB3ZWFwb24gKi99XG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggZmxleC1jb2wgaXRlbXMtY2VudGVyIG1pbi13LVsxMDBweF1cIj5cbiAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwidGV4dC1bMTBweF0gdXBwZXJjYXNlIHRyYWNraW5nLXdpZGVyIHRleHQtWyNEQUE1MjBdIG1iLTJcIj5OZXc8L3NwYW4+XG4gICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1bI0Y1REVCM10gZm9udC1zZW1pYm9sZCBtYi0xXCI+e2l0ZW0ubmFtZX08L3NwYW4+XG4gICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBmbGV4LWNvbCBnYXAtMSBpdGVtcy1jZW50ZXJcIj5cbiAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJ0ZXh0LVsxMXB4XSB0ZXh0LVsjRjVERUIzXVwiPlxuICAgICAgICAgICAgICAgICAgQVRLIDxzcGFuIGNsYXNzTmFtZT1cImZvbnQtYm9sZFwiPntuZXdEbWd9PC9zcGFuPlxuICAgICAgICAgICAgICAgICAge2RtZ0RpZmYgIT09IDAgJiYgKFxuICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9e2BtbC0xIHRleHQtWzEwcHhdIGZvbnQtYm9sZCAke2RtZ0RpZmYgPiAwID8gJ3RleHQtZW1lcmFsZC00MDAnIDogJ3RleHQtcmVkLTQwMCd9YH0+XG4gICAgICAgICAgICAgICAgICAgICAge2RtZ0RpZmYgPiAwID8gJysnIDogJyd9e2RtZ0RpZmZ9XG4gICAgICAgICAgICAgICAgICAgIDwvc3Bhbj5cbiAgICAgICAgICAgICAgICAgICl9XG4gICAgICAgICAgICAgICAgPC9zcGFuPlxuICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRleHQtWzExcHhdIHRleHQtWyNGNURFQjNdXCI+XG4gICAgICAgICAgICAgICAgICBSTkcgPHNwYW4gY2xhc3NOYW1lPVwiZm9udC1ib2xkXCI+e25ld1JhbmdlLnRvRml4ZWQoMil9PC9zcGFuPlxuICAgICAgICAgICAgICAgICAge3JhbmdlRGlmZiAhPT0gMCAmJiAoXG4gICAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT17YG1sLTEgdGV4dC1bMTBweF0gZm9udC1ib2xkICR7cmFuZ2VEaWZmID4gMCA/ICd0ZXh0LWVtZXJhbGQtNDAwJyA6ICd0ZXh0LXJlZC00MDAnfWB9PlxuICAgICAgICAgICAgICAgICAgICAgIHtyYW5nZURpZmYgPiAwID8gJysnIDogJyd9e3JhbmdlRGlmZn1cbiAgICAgICAgICAgICAgICAgICAgPC9zcGFuPlxuICAgICAgICAgICAgICAgICAgKX1cbiAgICAgICAgICAgICAgICA8L3NwYW4+XG4gICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgICl9XG5cbiAgICAgICAgey8qIFByb21wdCBidXR0b24gKi99XG4gICAgICAgIHtwaGFzZSA9PT0gJ3JlYWR5JyAmJiAoaXNFcXVpcG1lbnQgfHwgaXNSaW5nKSAmJiBjYW5FcXVpcEFjdGl2ZSAmJiAoXG4gICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTIgYmctWyMyRDFCMTFdLzgwIGJvcmRlciBib3JkZXItWyNEQUE1MjBdLzYwIHJvdW5kZWQtbWQgcHgtNSBweS0yIGN1cnNvci1wb2ludGVyIGhvdmVyOmJnLVsjM0QyQjIxXSB0cmFuc2l0aW9uLWNvbG9ycyBncm91cFwiXG4gICAgICAgICAgICBvbkNsaWNrPXsoZSkgPT4geyBlLnN0b3BQcm9wYWdhdGlvbigpOyBoYW5kbGVFcXVpcCgpOyB9fVxuICAgICAgICAgID5cbiAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1bI0M5QjhBOF0gdXBwZXJjYXNlIHRyYWNraW5nLXdpZGVyXCI+UHJlc3M8L3NwYW4+XG4gICAgICAgICAgICA8a2JkIGNsYXNzTmFtZT1cImJnLVsjMUEwRjBBXSBweC0yIHB5LTAuNSByb3VuZGVkIGJvcmRlciBib3JkZXItWyM1QzNBMjFdIHRleHQtWyNEQUE1MjBdIHRleHQtc20gZm9udC1ib2xkIHNoYWRvdy1pbm5lciBncm91cC1ob3Zlcjpib3JkZXItWyNEQUE1MjBdXCI+XG4gICAgICAgICAgICAgIEZcbiAgICAgICAgICAgIDwva2JkPlxuICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwidGV4dC14cyB0ZXh0LVsjQzlCOEE4XSB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZXJcIj50byBlcXVpcDwvc3Bhbj5cbiAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgKX1cblxuICAgICAgICB7cGhhc2UgPT09ICdyZWFkeScgJiYgaXNFcXVpcG1lbnQgJiYgIWNhbkVxdWlwQWN0aXZlICYmIChcbiAgICAgICAgICA8cCBjbGFzc05hbWU9XCJ0ZXh0LXhzIHRleHQtWyNDOUI4QThdIHRleHQtY2VudGVyIG1heC13LXhzIGxlYWRpbmctcmVsYXhlZFwiPlxuICAgICAgICAgICAgTG9hZG91dCBmdWxsLiBPcGVueycgJ31cbiAgICAgICAgICAgIDxrYmQgY2xhc3NOYW1lPVwicm91bmRlZCBib3JkZXIgYm9yZGVyLVsjNUMzQTIxXSBiZy1bIzFBMEYwQV0gcHgtMS41IHB5LTAuNSBmb250LW1vbm8gdGV4dC1bI0RBQTUyMF1cIj5QPC9rYmQ+eycgJ31cbiAgICAgICAgICAgIHRvIHN3YXAgYSB3ZWFwb24gaW50byB5b3VyIGFjdGl2ZSBzZXQuXG4gICAgICAgICAgPC9wPlxuICAgICAgICApfVxuXG4gICAgICAgIHtwaGFzZSA9PT0gJ3JlYWR5JyAmJiBpc1JpbmcgJiYgIWNhbkVxdWlwQWN0aXZlICYmIChcbiAgICAgICAgICA8cCBjbGFzc05hbWU9XCJ0ZXh0LXhzIHRleHQtWyNDOUI4QThdIHRleHQtY2VudGVyIG1heC13LXhzIGxlYWRpbmctcmVsYXhlZFwiPlxuICAgICAgICAgICAgUmluZyBzbG90cyBmdWxsLiBPcGVueycgJ31cbiAgICAgICAgICAgIDxrYmQgY2xhc3NOYW1lPVwicm91bmRlZCBib3JkZXIgYm9yZGVyLVsjNUMzQTIxXSBiZy1bIzFBMEYwQV0gcHgtMS41IHB5LTAuNSBmb250LW1vbm8gdGV4dC1bI0RBQTUyMF1cIj5QPC9rYmQ+eycgJ31cbiAgICAgICAgICAgIHRvIHN3YXAgcmluZ3MuXG4gICAgICAgICAgPC9wPlxuICAgICAgICApfVxuXG4gICAgICAgIHtwaGFzZSA9PT0gJ3JlYWR5JyAmJiAhaXNFcXVpcG1lbnQgJiYgKFxuICAgICAgICAgIDxidXR0b25cbiAgICAgICAgICAgIGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGdhcC0yIGJnLVsjMkQxQjExXS84MCBib3JkZXIgYm9yZGVyLVsjREFBNTIwXS82MCByb3VuZGVkLW1kIHB4LTUgcHktMiBjdXJzb3ItcG9pbnRlciBob3ZlcjpiZy1bIzNEMkIyMV0gdHJhbnNpdGlvbi1jb2xvcnMgZ3JvdXBcIlxuICAgICAgICAgICAgb25DbGljaz17KGUpID0+IHsgZS5zdG9wUHJvcGFnYXRpb24oKTsgZGlzbWlzcygpOyB9fVxuICAgICAgICAgID5cbiAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1bI0M5QjhBOF0gdXBwZXJjYXNlIHRyYWNraW5nLXdpZGVyXCI+UHJlc3M8L3NwYW4+XG4gICAgICAgICAgICA8a2JkIGNsYXNzTmFtZT1cImJnLVsjMUEwRjBBXSBweC0yIHB5LTAuNSByb3VuZGVkIGJvcmRlciBib3JkZXItWyM1QzNBMjFdIHRleHQtWyNEQUE1MjBdIHRleHQtc20gZm9udC1ib2xkIHNoYWRvdy1pbm5lciBncm91cC1ob3Zlcjpib3JkZXItWyNEQUE1MjBdXCI+XG4gICAgICAgICAgICAgIFNwYWNlXG4gICAgICAgICAgICA8L2tiZD5cbiAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1bI0M5QjhBOF0gdXBwZXJjYXNlIHRyYWNraW5nLXdpZGVyXCI+dG8gY29udGludWU8L3NwYW4+XG4gICAgICAgICAgPC9idXR0b24+XG4gICAgICAgICl9XG5cbiAgICAgICAge2lzRXF1aXBwZWQgJiYgKFxuICAgICAgICAgIDxwIGNsYXNzTmFtZT1cInRleHQtc20gdGV4dC1lbWVyYWxkLTQwMCBmb250LWJvbGQgdXBwZXJjYXNlIHRyYWNraW5nLXdpZGVzdCBhbmltYXRlLXB1bHNlXCI+XG4gICAgICAgICAgICBFcXVpcHBlZCFcbiAgICAgICAgICA8L3A+XG4gICAgICAgICl9XG5cbiAgICAgICAge3BoYXNlID09PSAnZmFkZWluJyAmJiAoXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJoLThcIiAvPlxuICAgICAgICApfVxuICAgICAgPC9kaXY+XG4gICAgPC9kaXY+XG4gICk7XG59O1xuIl0sImZpbGUiOiJDOi9Vc2Vycy9yb3hhcy9PbmVEcml2ZS9EZXNrdG9wL1BST0pFQ1RTL3NvdWxzLXNsb3Avc3JjL2NvbXBvbmVudHMvZ2FtZS9XZWFwb25BY3F1aXJlZE92ZXJsYXkudHN4In0=

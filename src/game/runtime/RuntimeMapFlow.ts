@@ -387,6 +387,31 @@ export function createRuntimeMapFlow({
 
   // Highlander's Plains picket gate — east creek north-shore fence at y=237 (world ~81..144, y=87).
   // Closed: five-tile gate panel centered on world (101,87). Opens with Highlander's Key from Olwen's grotto.
+  // South-entry west-bank picket gate — vertical fence at x=128 (world x=-22). Three-tile gate
+  // panel at world (-22, 112–114) / tiles (128, 262–264); lever stays west at (-25, 117).
+  const syncSouthEntryPicketGateState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const open = state.getFlag('south_entry_picket_gate_open');
+    const gateX = 128;
+    const gateY0 = 262;
+    const gateY1 = 264;
+    for (let gateY = gateY0; gateY <= gateY1; gateY++) {
+      const existing = map.tiles[gateY]?.[gateX];
+      if (!existing) continue;
+      map.tiles[gateY][gateX] = open
+        ? { type: 'grass' as TileType, walkable: true, elevation: existing.elevation ?? 0 }
+        : {
+            type: 'gate' as TileType,
+            walkable: false,
+            elevation: existing.elevation ?? 0,
+            interactable: true,
+            interactionId: 'south_entry_picket_gate_sealed',
+          };
+    }
+    world.refreshMapTileRegion(gateX - 1, gateY0 - 1, gateX + 1, gateY1 + 1);
+  };
+
   const syncEastCreekShoreGateState = () => {
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
@@ -472,9 +497,10 @@ export function createRuntimeMapFlow({
   const syncHollowShortcutState = () => {
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
+    const shortcutOpen = state.getFlag('hollow_shortcut_open');
     applyIronFenceGateBand(
       map,
-      state.getFlag('hollow_shortcut_open'),
+      shortcutOpen,
       50,
       51,
       116,
@@ -483,7 +509,21 @@ export function createRuntimeMapFlow({
       124,
       'hollow_gate_sealed',
     );
-    world.refreshMapTileRegion(115, 49, 130, 52);
+    if (shortcutOpen) {
+      for (let ty = 49; ty <= 54; ty++) {
+        for (let tx = 116; tx <= 130; tx++) {
+          const existing = map.tiles[ty]?.[tx];
+          if (!existing) continue;
+          map.tiles[ty][tx] = {
+            type: 'hollow_blight' as TileType,
+            walkable: true,
+            elevation: 1,
+            spinePath: true,
+          };
+        }
+      }
+    }
+    world.refreshMapTileRegion(115, 48, 130, 53);
   };
 
   // East hollow horizontal fence at y:57 (world ~76..101,-93). Gate band centered on world (89,-92).
@@ -1679,7 +1719,14 @@ export function createRuntimeMapFlow({
       } else {
         gateRow[tx] = gateOpen
           ? { type: 'cobblestone' as TileType, walkable: true, elevation: el }
-          : { type: 'gate' as TileType, walkable: false, elevation: el, interactable: true, interactionId: 'manuscript_checkpoint_gate' };
+          : {
+              type: 'gate' as TileType,
+              walkable: false,
+              elevation: el,
+              interactable: true,
+              interactionId: 'manuscript_checkpoint_gate',
+              ...(tx === gateCenterX ? { keyGateLock: true } : {}),
+            };
       }
     }
 
@@ -1746,7 +1793,8 @@ export function createRuntimeMapFlow({
       { x: 30, y: 5, interactionId: 'hollow_arena_chest_ne' },
       { x: 5, y: 30, interactionId: 'hollow_arena_chest_sw' },
     ];
-    // Center special chest - materialises at the boss's fall point after the guardian dies.
+    // Center special chest - materialises at the boss's fall point after the guardian dies,
+    // unless the player already earned the Terminus Scythe from a revenant ritual.
     // Placed 3 tiles south of the portal (same column, still on ruins_floor) so it is visible
     // from both the portal and the bonfire without overlapping either.
     const TERMINUS_CHEST_X = 18;
@@ -1785,17 +1833,24 @@ export function createRuntimeMapFlow({
           interactionId: chest.interactionId,
         };
       }
-      // Terminus Scythe special chest - appears at the boss's fallen position.
+      // Terminus Scythe special chest - appears at the boss's fallen position only if
+      // the early revenant route did not already award the weapon.
       const terminusRow = map.tiles[TERMINUS_CHEST_Y];
       if (terminusRow) {
         const tEl = terminusRow[TERMINUS_CHEST_X]?.elevation ?? 0;
-        terminusRow[TERMINUS_CHEST_X] = {
-          type: 'special_chest' as TileType,
-          walkable: true,
-          elevation: tEl,
-          interactable: true,
-          interactionId: 'hollow_terminus_chest',
-        };
+        if (state.getFlag('terminus_scythe_early_obtained')) {
+          terminusRow[TERMINUS_CHEST_X] = { type: 'ruins_floor' as TileType, walkable: true, elevation: tEl };
+        } else {
+          terminusRow[TERMINUS_CHEST_X] = {
+            type: state.getFlag('hollow_terminus_chest_opened')
+              ? getOpenedChestTileType('hollow_terminus_chest')
+              : getClosedChestTileType('hollow_terminus_chest'),
+            walkable: true,
+            elevation: tEl,
+            interactable: true,
+            interactionId: 'hollow_terminus_chest',
+          };
+        }
       }
     } else {
       row[portalX] = { type: 'ruins_floor' as TileType, walkable: true, elevation: el };
@@ -2066,6 +2121,7 @@ export function createRuntimeMapFlow({
     syncQuarryBankShortcutState();
     syncWestLakeBridgePlankState();
     syncWestCliffGateState();
+    syncSouthEntryPicketGateState();
     syncEastCreekShoreGateState();
     syncRiversideBridgeShortcutState();
     syncHollowShortcutState();
@@ -2175,14 +2231,11 @@ export function createRuntimeMapFlow({
         });
       }
 
-      // Two Hollow Reavers at the far (north) corners on arena entry - they anchor to the
-      // boss side so the player faces ranged pressure from the same direction as the boss.
-      // A second pair spawns via the phase-2 summon in RuntimeEnemyLoop when the boss
-      // crosses 50% HP, giving the player a moment to read the fight before full crossfire.
+      // One Hollow Reaver at a far (north) corner on arena entry - enough ranged pressure
+      // to teach the add read without immediately turning the arena into full crossfire.
       const reaverBp = ENEMY_BLUEPRINTS.hollow_reaver;
       if (reaverBp) {
         const initialReaverCorners = [
-          { x: -7, y: -7 }, // NW corner
           { x:  6, y: -7 }, // NE corner
         ];
         for (const corner of initialReaverCorners) {
@@ -2291,6 +2344,7 @@ export function createRuntimeMapFlow({
     syncQuarryBankShortcutState,
     syncWestLakeBridgePlankState,
     syncWestCliffGateState,
+    syncSouthEntryPicketGateState,
     syncEastCreekShoreGateState,
     syncRiversideBridgeShortcutState,
     syncHollowShortcutState,

@@ -3,6 +3,7 @@ import type { NPC } from '@/lib/game/GameState';
 import type { World } from '@/lib/game/World';
 import type { NpcWanderState } from '@/game/runtime/RuntimeConfig';
 import { applyNpcVisuals } from '@/game/runtime/NpcVisualSystem';
+import { getHoodedWitnessVanishProgress } from '@/game/runtime/hoodedWitnessVanish';
 
 interface UpdateNpcBehaviorsOptions {
   activeNpcIndices: number[];
@@ -116,6 +117,7 @@ export function updateNpcBehaviors({
       npcObjectiveRing: meshes.npcObjectiveRings[ni],
     };
 
+    const vanishProgress = getHoodedWitnessVanishProgress(npc.id);
     const isTalkingToThisNpc = isDialogueActive && currentDialogue === npc.dialogueId;
     if (isTalkingToThisNpc) {
       applyNpcVisuals({
@@ -127,6 +129,7 @@ export function updateNpcBehaviors({
         isObjective: isNpcPriorityCueTarget(npc),
         npcScale: npcScaleById[npc.id] ?? 1,
         npcFootOffset,
+        vanishProgress,
         getVisualYAt,
         getActorRenderOrder,
         meshes: visualMeshes,
@@ -160,6 +163,7 @@ export function updateNpcBehaviors({
           isObjective: isNpcPriorityCueTarget(npc),
           npcScale: npcScaleById[npc.id] ?? 1,
           npcFootOffset,
+          vanishProgress,
           getVisualYAt,
           getActorRenderOrder,
           meshes: visualMeshes,
@@ -214,6 +218,7 @@ export function updateNpcBehaviors({
       isObjective: isNpcPriorityCueTarget(npc),
       npcScale: npcScaleById[npc.id] ?? 1,
       npcFootOffset,
+      vanishProgress,
       getVisualYAt,
       getActorRenderOrder,
       meshes: visualMeshes,

@@ -132,6 +132,12 @@ export function getInteractionPromptLabel(
   if (interactionId === 'west_cliff_gate_sealed') {
     return 'Must open another way';
   }
+  if (interactionId === 'south_entry_picket_gate_lever') {
+    return state.getFlag('south_entry_picket_gate_open') ? 'Gate Opened' : 'Lift Bar';
+  }
+  if (interactionId === 'south_entry_picket_gate_sealed') {
+    return 'Must open another way';
+  }
   if (interactionId === 'riverside_bridge_shortcut_lever') {
     return state.getFlag('riverside_bridge_shortcut_open') ? 'Shortcut Unlocked' : 'Lower Bridge';
   }
