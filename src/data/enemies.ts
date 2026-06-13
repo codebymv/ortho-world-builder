@@ -175,9 +175,12 @@ export const ENEMY_BLUEPRINTS: Record<string, EnemyBlueprint> = {
     goldReward: 5,
     behaviorOverrides: {
       chainAttack: true,
-      chainChance: 0.4,
+      chainChance: 0.25,
       chainTelegraph: 0.45,
-      knockbackResistance: 1.0,
+      retreatAfterHit: true,
+      retreatDuration: 0.75,
+      retreatSpeedMult: 1.65,
+      knockbackResistance: 0.8,
     },
   },
   plant: {

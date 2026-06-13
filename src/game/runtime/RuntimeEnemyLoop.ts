@@ -21,8 +21,91 @@ const hazardRemovalScratch: string[] = [];
 const projectileSfxSprites = new Map<string, string>();
 const projectileSfxCounts = new Map<string, number>();
 const hazardSfxStates = new Map<string, string>();
+type ChrysalisSlashVisual = {
+  mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  timer: number;
+  maxTimer: number;
+};
+const chrysalisSlashVisuals: ChrysalisSlashVisual[] = [];
+let chrysalisSlashTexture: THREE.Texture | null = null;
+let chrysalisSlashGeometry: THREE.PlaneGeometry | null = null;
 
-function isBoulderProjectile(sprite: string, sourceEnemyId?: string): boolean {
+function getChrysalisSlashTexture(): THREE.Texture {
+  if (chrysalisSlashTexture) return chrysalisSlashTexture;
+  const canvas = document.createElement('canvas');
+  canvas.width = 96;
+  canvas.height = 96;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.translate(48, 48);
+    ctx.rotate(-Math.PI / 4);
+
+    const glow = ctx.createLinearGradient(-44, 0, 44, 0);
+    glow.addColorStop(0, 'rgba(120, 220, 255, 0)');
+    glow.addColorStop(0.18, 'rgba(160, 240, 255, 0.35)');
+    glow.addColorStop(0.5, 'rgba(255, 255, 255, 0.95)');
+    glow.addColorStop(0.82, 'rgba(160, 240, 255, 0.35)');
+    glow.addColorStop(1, 'rgba(120, 220, 255, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.moveTo(-44, -5);
+    ctx.lineTo(36, -14);
+    ctx.lineTo(46, 0);
+    ctx.lineTo(36, 14);
+    ctx.lineTo(-44, 5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.fillRect(-28, -2, 58, 4);
+    ctx.fillStyle = 'rgba(190, 245, 255, 0.7)';
+    ctx.fillRect(-38, 5, 22, 3);
+    ctx.fillRect(12, -10, 24, 3);
+  }
+  chrysalisSlashTexture = new THREE.CanvasTexture(canvas);
+  chrysalisSlashTexture.colorSpace = THREE.SRGBColorSpace;
+  chrysalisSlashTexture.magFilter = THREE.NearestFilter;
+  chrysalisSlashTexture.minFilter = THREE.NearestFilter;
+  return chrysalisSlashTexture;
+}
+
+function spawnChrysalisSlashVisual(scene: THREE.Scene, x: number, y: number, variant: number) {
+  if (!chrysalisSlashGeometry) chrysalisSlashGeometry = new THREE.PlaneGeometry(1, 1);
+  const material = new THREE.MeshBasicMaterial({
+    map: getChrysalisSlashTexture(),
+    transparent: true,
+    depthWrite: false,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+  });
+  const mesh = new THREE.Mesh(chrysalisSlashGeometry, material);
+  mesh.position.set(x, y, 0.92);
+  mesh.rotation.z = variant % 2 === 0 ? 0.68 : -0.68;
+  mesh.scale.set(1.7, 1.05, 1);
+  mesh.renderOrder = 1000002;
+  scene.add(mesh);
+  chrysalisSlashVisuals.push({ mesh, timer: 0.34, maxTimer: 0.34 });
+}
+
+function updateChrysalisSlashVisuals(scene: THREE.Scene, deltaTime: number) {
+  for (let i = chrysalisSlashVisuals.length - 1; i >= 0; i--) {
+    const visual = chrysalisSlashVisuals[i];
+    visual.timer -= deltaTime;
+    const t = Math.max(0, visual.timer / visual.maxTimer);
+    const grow = 1 + (1 - t) * 0.28;
+    visual.mesh.scale.set(1.7 * grow, 1.05 * grow, 1);
+    visual.mesh.material.opacity = Math.min(1, t * 1.35);
+    if (visual.timer <= 0) {
+      scene.remove(visual.mesh);
+      visual.mesh.material.dispose();
+      chrysalisSlashVisuals.splice(i, 1);
+    }
+  }
+}
+
+function isBoulderProjectile(sprite: string, sourceEnemyId?: string | null): boolean {
   return sprite === 'rock' || sourceEnemyId === 'east_ridge_boulder';
 }
 
@@ -34,6 +117,7 @@ function getProjectileVisualScale(sprite: string): { x: number; y: number } {
   if (sprite === 'projectile_spectral_blade') return { x: 0.78, y: 0.42 };
   if (sprite === 'projectile_scythe') return { x: 0.68, y: 0.5 };
   if (sprite === 'projectile_shell') return { x: 0.48, y: 0.42 };
+  if (sprite === 'projectile_throwing_barb') return { x: 0.42, y: 0.24 };
   return { x: 0.55, y: 0.55 };
 }
 
@@ -257,7 +341,10 @@ export function runEnemyLoop({
   createOutlineMesh,
   getVisualYAt,
   getActorRenderOrder,
+  onEnemyKilled,
 }: RunEnemyLoopOptions) {
+  updateChrysalisSlashVisuals(scene, deltaTime);
+
   const playerHealthBeforeUpdate = state.player.health;
   const guardBreakBeforeUpdate = state.player.guardBrokenTimer;
   const playerCombatElevation = state.player.isClimbing
@@ -510,11 +597,24 @@ export function runEnemyLoop({
       );
     }
   }
-  // Silence the unused-import: floatingText is still wired through the context
-  // for damage numbers elsewhere; the parry path intentionally no longer uses it.
-  void floatingText;
-
   const enemies = combatSystem.getEnemies();
+  const chrysalisEchoes = combatSystem.updateChrysalisEchoes(deltaTime);
+  for (const echo of chrysalisEchoes) {
+    if (echo.phase === 'telegraph') {
+      spawnChrysalisSlashVisual(scene, echo.slashX, echo.slashY, Math.round((echo.slashX + echo.slashY) * 10));
+      particleSystem.emitAt(echo.slashX, echo.slashY, 0.62, 12, 0xD9FFFF, 0.22, 0.45, 1.0);
+      particleSystem.emitAt(echo.slashX, echo.slashY, 0.66, 6, 0xFFFFFF, 0.16, 0.3, 0.8);
+      particleSystem.emitAt(echo.x, echo.y + 0.38, 0.48, 6, 0x8FD8FF, 0.30, 0.45, 0.75);
+      continue;
+    }
+
+    floatingText.spawnDamage(echo.x, echo.y, echo.damage, false);
+    particleSystem.emitAt(echo.slashX, echo.slashY, 0.58, 20, 0xD9FFFF, 0.20, 1.9, 1.2);
+    particleSystem.emitAt(echo.slashX, echo.slashY, 0.64, 10, 0xFFFFFF, 0.14, 1.35, 0.65);
+    particleSystem.emitAt(echo.x, echo.y + 0.25, 0.45, 8, 0x8FD8FF, 0.24, 1.25, 0.95);
+    screenShake.shake(echo.killed ? 0.08 : 0.04, 0.05);
+    if (echo.killed) onEnemyKilled(echo.enemy);
+  }
   const enemyAudioNow = currentTime / 1000;
   const FULL_VISUAL_RANGE_SQ = 28 * 28;
   const VISUAL_RANGE_SQ = 36 * 36;

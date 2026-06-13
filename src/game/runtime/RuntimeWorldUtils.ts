@@ -157,6 +157,10 @@ export function getInteractionPromptLabel(
     if (state.getFlag('highlanders_plains_gate_open')) return "Highlander's Plains Gate (Open)";
     return state.hasItem('highlanders_key') ? "Unlock Highlander's Plains Gate" : "Highlander's Gate (Locked, Key Required)";
   }
+  if (interactionId === 'western_preserve_gate') {
+    if (state.getFlag('western_preserve_gate_open')) return 'Western Preserve Gate (Open)';
+    return state.hasItem('western_preserve_key') ? 'Unlock Western Preserve Gate' : 'Western Preserve Gate (Locked, Key Required)';
+  }
 
   if (criticalItemInteractionIds.has(interactionId)) {
     const config = criticalPathItems[interactionId];
@@ -178,7 +182,6 @@ export function getInteractionPromptLabel(
   if (interactionId === 'ancient_well') return 'Drink from Well';
   if (interactionId === 'well' || interactionId === 'fountain' || interactionId === 'ancient_fountain' || interactionId === 'ancient_well' || interactionId === 'guilrhym_fountain' || interactionId === 'guilrhym_market_well' || interactionId === 'guilrhym_cathedral_well') return 'Drink from Fountain';
   if (interactionId === 'hunter_clue') return "Read Hunter's Manuscript";
-  if (interactionId === 'wolf_den_bones') return 'Inspect Remains';
   if (interactionId === 'chapel_dead_ranger') return 'Inspect Fallen Ranger';
   if (interactionId === 'hollow_dead_ranger') return 'Inspect Fallen Ranger';
   if (interactionId === 'dead_ranger_shortcut_note') return 'Inspect Fallen Ranger';

@@ -53,7 +53,6 @@ export const forestDef: MapDefinition = {
     // === HIDDEN GROVE (west) ===
     { x: 15, y: 120, width: 36, height: 28, type: 'clearing', fill: 'grass' },
     { x: 25, y: 128, width: 16, height: 12, type: 'garden' },
-
     // === SPIDER NEST (dark area, south-west) ===
     { x: 20, y: 240, width: 30, height: 25, type: 'clearing', fill: 'dirt' },
     { x: 25, y: 245, width: 20, height: 15, type: 'camp', interactionId: 'spider_nest' },
@@ -69,6 +68,8 @@ export const forestDef: MapDefinition = {
     { x: 28, y: 64, width: 64, height: 16, type: 'wall', fill: 'water' },
     // West run: straight channel east from map edge, connecting off the NW seal
     { x: 4, y: 80, width: 104, height: 7, type: 'wall', fill: 'water' },
+    // Western Preserve crossing - narrow plank bridge at world ~(-139,-71..-63).
+    { x: 9, y: 79, width: 5, height: 9, type: 'bridge' },
     // Curve 1 ??? river bends gently southward entering the meander
     { x: 104, y: 80, width: 12, height: 11, type: 'wall', fill: 'water' },
     // Meander belly ??? river pools south through the old lake zone (ends y=95, not y=96)
@@ -98,6 +99,11 @@ export const forestDef: MapDefinition = {
     { x: 180, y: 45, width: 25, height: 25, type: 'clearing', fill: 'dark_grass' },
     { x: 60, y: 55, width: 20, height: 20, type: 'clearing', fill: 'dark_grass' },
     { x: 200, y: 30, width: 24, height: 20, type: 'clearing', fill: 'dark_grass' },
+    // Clean up two stray live trees in the west Hollow pocket around world (-124,-104).
+    // Tree sprites anchor at their trunks, below the visible canopy, so these patches cover
+    // the trunk-base tiles rather than only the canopy pixels.
+    { x: 6, y: 32, width: 34, height: 28, type: 'clearing', fill: 'hollow_blight' },
+    { x: 32, y: 58, width: 28, height: 34, type: 'clearing', fill: 'hollow_blight' },
     // Mossy stone patches ??? corruption seeping through
     { x: 85, y: 35, width: 8, height: 6, type: 'clearing', fill: 'mossy_stone' },
     { x: 155, y: 50, width: 6, height: 4, type: 'clearing', fill: 'mossy_stone' },
@@ -190,6 +196,12 @@ export const forestDef: MapDefinition = {
     // The river (y=81???95) sits in the cliff channel; these cliff walls form the south bank at y=96.
     // West segment: map edge to x=118 (just west of bridge).
     { x: 4, y: 96, width: 114, height: 8, type: 'cliff_face' },
+    // West preserve stair landing: placed after the broad Hollow cliff bank so the shelf
+    // remains visibly grass at the top of the climb.
+    { x: 7, y: 96, width: 11, height: 6, type: 'clearing', fill: 'grass' },
+    // Western Preserve cache pocket: trims the nearest tree around world (-64,-58)
+    // so the special chest reads clearly from the grass approach.
+    { x: 84, y: 90, width: 5, height: 5, type: 'clearing', fill: 'grass' },
     // East segment: x=130 to x=242, narrow 4-tile gap at x=243-246 (world ~93-96), then x=247 to map edge.
     { x: 130, y: 96, width: 113, height: 8, type: 'cliff_face' },
     { x: 247, y: 96, width: 45, height: 8, type: 'cliff_face' },
@@ -997,7 +1009,8 @@ export const forestDef: MapDefinition = {
     // Former interior_woodcutter_cottage loot (exterior prop only now).
     { x: 93, y: 177, interactionId: 'forest_woodcutter_chest' },
     // Former interior_cottage_forest loot ??? cottage is now an unenterable vine-choked ruin.
-    { x: 176, y: 96, interactionId: 'forest_cottage_chest' },
+    // Western Preserve Key cache - moved east from the old optional chest at world (26,-54).
+    { x: 195, y: 94, interactionId: 'western_preserve_key_chest' },
     { x: 42, y: 38, interactionId: 'wolf_den_chest' },
     { x: 228, y: 244, interactionId: 'forest_lake_chest' },
     { x: 90, y: 230, interactionId: 'spider_chest' },
@@ -1036,6 +1049,8 @@ export const forestDef: MapDefinition = {
     { x: 105, y: 247, interactionId: 'forest_shore_divide_chest' },
     // North fort approach — Wayfarer Ring + Radiant Vestige (ranger cache) at world (-63, 99).
     { x: 87, y: 249, interactionId: 'north_fort_wayfarer_ring_chest' },
+    // Western Preserve grass cache - Radiant Vestige guarded by Hollow shades at world (-64,-58).
+    { x: 86, y: 92, interactionId: 'western_preserve_vestige_chest' },
     // Ironbark Band - guarded by the east-edge Corrupted Giant (world 143,93 = tile 293,243).
     { x: 245, y: 282, interactionId: 'forest_ironbark_ring_chest' }, // south-woods cliff's edge (world 95,132)
     // NE ridge heresy altar pocket - Radiant Vestige (bonfire flask upgrade). World (85,-104), altar at (85,-105).
@@ -1085,10 +1100,12 @@ export const forestDef: MapDefinition = {
     { x: 35, y: 250, type: 'campfire_remains', walkable: false },
     { x: 275, y: 270, type: 'well', walkable: false, interactionId: 'well' },
     { x: 140, y: 95, type: 'well', walkable: false, interactionId: 'ancient_well' },
-    { x: 30, y: 35, type: 'bones_pile', walkable: true, interactionId: 'wolf_den_bones' },
-    { x: 68, y: 183, type: 'ranger_remains', walkable: true, interactionId: 'chapel_dead_ranger' },
+    { x: 30, y: 35, type: 'bones_pile', walkable: true },
+    { x: 79, y: 182, type: 'ranger_remains', walkable: true, interactionId: 'chapel_dead_ranger' },
     { x: 89, y: 190, type: 'ranger_remains_scattered', walkable: true },
     { x: 262, y: 25, type: 'sign', walkable: false, interactionId: 'volcano_warning' },
+    // Central fork waypost - west to the Grove, south toward the preserve route.
+    { x: 154, y: 146, type: 'sign', walkable: false, interactionId: 'central_fork_waypost' },
     { x: 22, y: 248, type: 'cage', walkable: false },
     // Potion pickups in forest clearings and paths
     // West of Hollow river seal strip (was 68,65 ??? flooded by north-west water seal).
@@ -1168,6 +1185,7 @@ export const forestDef: MapDefinition = {
     { x: 273, y: 259, type: 'summoning_ritual_dud', walkable: true }, // world (123, 109)
     { x: 134, y: 133, type: 'summoning_ritual_dud', walkable: true }, // world (-16, -17)
     { x: 285, y: 162, type: 'summoning_ritual_dud', walkable: true }, // world (135, 12)
+    { x: 40, y: 45, type: 'summoning_ritual_dud', walkable: true }, // world (-110, -105)
     // Failed ritual dead-zone - deliberately inert false read in the Hollow pocket. It tells
     // players this empty combat pocket is authored lore, not missing progression.
     { x: 211, y: 33, type: 'summoning_ritual_dud', walkable: true }, // world (61, -117)
@@ -1337,7 +1355,7 @@ export const forestDef: MapDefinition = {
     // === PROGRESSION BLOOD TRAILS ===
     // Environmental breadcrumbs toward critical pickups - no dialogue, just a dragged patrol read.
 
-    // --- Iron key: south-bank artery west toward chapel dead ranger (65, 183) ---
+    // --- Iron key: south-bank artery west toward chapel dead ranger (79, 182) ---
     { x: 130, y: 179, type: 'bloodstain', walkable: true },
     { x: 115, y: 180, type: 'bloodstain', walkable: true },
     { x: 100, y: 181, type: 'bloodstain', walkable: true },
@@ -1348,11 +1366,15 @@ export const forestDef: MapDefinition = {
     { x: 56, y: 169, type: 'bloodstain', walkable: true },
     { x: 60, y: 175, type: 'bloodstain', walkable: true },
     { x: 63, y: 180, type: 'bloodstain', walkable: true },
-    // Fort-key corpse directionality: the key bearer lies on the east/right side of the chapel
-    // stair approach, with dropped gear and blood pointing back toward the fort road.
+    // Fork 3: the key bearer and blood trail pull the eye east toward progress; the south
+    // drop stays rougher and overgrown so it reads as optional pressure off the patrol road.
     { x: 70, y: 183, type: 'bones', walkable: true },
     { x: 72, y: 182, type: 'bloodstain', walkable: true },
     { x: 74, y: 181, type: 'rubble', walkable: true },
+    { x: 80, y: 181, type: 'rubble', walkable: true },
+    { x: 83, y: 182, type: 'bloodstain', walkable: true },
+    { x: 67, y: 186, type: 'fallen_log_b', walkable: false },
+    { x: 71, y: 187, type: 'tall_grass_b', walkable: true },
 
     // --- Iron gate: bonfire plateau north to the sealed ranger gate (y=199-202) ---
     { x: 134, y: 206, type: 'bloodstain', walkable: true },
@@ -1466,6 +1488,22 @@ export const forestDef: MapDefinition = {
     // === BRANCH TEASES ? visible landmarks at fork points to draw the eye toward optional paths.
     // East ridge tease ? tall statue visible from east end of the artery, suggests "something there".
     { x: 234, y: 178, type: 'statue', walkable: false },
+    // Fork 4: the fort road is the bloodied military push; the east/ranger road is a
+    // legitimate recovery loop toward Olwen, Highlander's Plains, gear, and shortcuts.
+    { x: 226, y: 171, type: 'bloodstain', walkable: true },
+    { x: 224, y: 172, type: 'bones_pile', walkable: true },
+    { x: 231, y: 171, type: 'broken_sign', walkable: false },
+    { x: 238, y: 172, type: 'sign', walkable: false },
+    { x: 242, y: 172, type: 'lantern', walkable: false },
+    { x: 244, y: 174, type: 'campfire_remains', walkable: false },
+    { x: 246, y: 173, type: 'crate', walkable: false },
+    // Fork 5: clean stair marker for progress; tiny glints beyond the tall grass invite
+    // players to notice the hidden connector without making it read like the main road.
+    { x: 226, y: 118, type: 'lantern', walkable: false },
+    { x: 229, y: 119, type: 'sign', walkable: false },
+    { x: 234, y: 117, type: 'tall_grass_b', walkable: true },
+    { x: 237, y: 118, type: 'mushroom', walkable: true },
+    { x: 240, y: 116, type: 'bones', walkable: true },
     // Western bypass tease ? statue visible from the iron-gate plateau, hints at the bypass loop.
     { x: 88, y: 196, type: 'statue', walkable: false },
     { x: 90, y: 198, type: 'lantern', walkable: false },
@@ -1543,14 +1581,29 @@ export const forestDef: MapDefinition = {
     { x: 110, y: 191, type: 'bones', walkable: true },
     // Dead tree on the north approach ??? silhouette before the cliff mouth.
     { x: 106, y: 175, type: 'dead_tree', walkable: false },
+    // Main fork 2: south is the maintained story bend, west is danger pressure,
+    // north is optional curiosity. Each branch gets a different visual verb.
+    { x: 51, y: 217, type: 'lantern', walkable: false },
+    { x: 57, y: 218, type: 'sign', walkable: false },
+    { x: 48, y: 214, type: 'bloodstain', walkable: true },
+    { x: 45, y: 216, type: 'dead_tree_c', walkable: false },
+    { x: 54, y: 205, type: 'broken_sign', walkable: false },
+    { x: 56, y: 201, type: 'lantern', walkable: false },
     { x: 124, y: 203, type: 'bloodstain', walkable: true },
     { x: 129, y: 205, type: 'bloodstain', walkable: true },
     { x: 136, y: 209, type: 'bloodstain', walkable: true },
     { x: 144, y: 213, type: 'bloodstain', walkable: true },
     { x: 126, y: 194, type: 'bloodstain', walkable: true },
     { x: 134, y: 191, type: 'bloodstain', walkable: true },
-    { x: 150, y: 222, type: 'bones_pile', walkable: true },
-    { x: 156, y: 225, type: 'cage', walkable: false },
+    // Main fork 1: the west/left road is the maintained ranger route; the east/right road
+    // is a wreck detour. Keep the choice readable without UI text.
+    { x: 140, y: 224, type: 'lantern', walkable: false },
+    { x: 140, y: 228, type: 'sign', walkable: false },
+    { x: 144, y: 226, type: 'crate', walkable: false },
+    { x: 158, y: 222, type: 'fallen_log_b', walkable: false },
+    { x: 160, y: 225, type: 'stump_c', walkable: false },
+    { x: 166, y: 224, type: 'bones_pile', walkable: true },
+    { x: 172, y: 225, type: 'cage', walkable: false },
     { x: 146, y: 208, type: 'dead_tree_c', walkable: false },
     { x: 118, y: 224, type: 'dead_tree', walkable: false },
     { x: 116, y: 200, type: 'bones_pile', walkable: true },
@@ -1988,6 +2041,40 @@ export const forestDef: MapDefinition = {
     { x: 188, y: 114, type: 'rock', walkable: false },
     { x: 182, y: 118, type: 'flower', walkable: true },
     { x: 186, y: 122, type: 'tall_grass', walkable: true },
+    // Thick log barricade along world x=30..33, y=-21..-28. This blocks the
+    // player-size squeeze lane while still reading as a natural church-side deadfall.
+    { x: 180, y: 122, type: 'stump_c', walkable: false },
+    { x: 181, y: 122, type: 'fallen_log_v', walkable: false },
+    { x: 182, y: 122, type: 'fallen_log_v', walkable: false },
+    { x: 183, y: 122, type: 'rock', walkable: false },
+    { x: 180, y: 123, type: 'fallen_log_v', walkable: false },
+    { x: 181, y: 123, type: 'fallen_log_v', walkable: false },
+    { x: 182, y: 123, type: 'fallen_log_v', walkable: false },
+    { x: 183, y: 123, type: 'stump_b', walkable: false },
+    { x: 180, y: 124, type: 'fallen_log_v', walkable: false },
+    { x: 181, y: 124, type: 'fallen_log_v', walkable: false },
+    { x: 182, y: 124, type: 'fallen_log_v', walkable: false },
+    { x: 183, y: 124, type: 'fallen_log_v', walkable: false },
+    { x: 180, y: 125, type: 'fallen_log_v', walkable: false },
+    { x: 181, y: 125, type: 'fallen_log_v', walkable: false },
+    { x: 182, y: 125, type: 'fallen_log_v', walkable: false },
+    { x: 183, y: 125, type: 'fallen_log_v', walkable: false },
+    { x: 180, y: 126, type: 'fallen_log_v', walkable: false },
+    { x: 181, y: 126, type: 'fallen_log_v', walkable: false },
+    { x: 182, y: 126, type: 'fallen_log_v', walkable: false },
+    { x: 183, y: 126, type: 'fallen_log_v', walkable: false },
+    { x: 180, y: 127, type: 'fallen_log_v', walkable: false },
+    { x: 181, y: 127, type: 'fallen_log_v', walkable: false },
+    { x: 182, y: 127, type: 'fallen_log_v', walkable: false },
+    { x: 183, y: 127, type: 'fallen_log_v', walkable: false },
+    { x: 180, y: 128, type: 'fallen_log_v', walkable: false },
+    { x: 181, y: 128, type: 'fallen_log_v', walkable: false },
+    { x: 182, y: 128, type: 'fallen_log_v', walkable: false },
+    { x: 183, y: 128, type: 'fallen_log_v', walkable: false },
+    { x: 180, y: 129, type: 'stump_c', walkable: false },
+    { x: 181, y: 129, type: 'fallen_log_v', walkable: false },
+    { x: 182, y: 129, type: 'fallen_log_v', walkable: false },
+    { x: 183, y: 129, type: 'rock', walkable: false },
 
     // --- Vine-choked cottage ruin (world 27, 94) — yard clutter ---
     { x: 172, y: 247, type: 'dead_tree_c', walkable: false },
@@ -2118,6 +2205,8 @@ export const forestDef: MapDefinition = {
     // Width reaches x=111 so the south cliff meets the ranger plateau (x=112) with no el0 gap
     // players could slip through to bypass the Disparaged Cottage / gate arc.
     { x: 4, y: 108, width: 108, height: 56, elevation: 1 },
+    // Tiny west preserve cliff-top pocket for the stair at world ~(-139,-49).
+    { x: 7, y: 96, width: 11, height: 9, elevation: 1 },
     // === TIER 1: Cliff-top walkway (sentinel-style raised grass on the central cliff barrier) ===
     { x: 198, y: 114, width: 30, height: 8, elevation: 1 },
     // === TIER 1: Central ranger plateau ===
@@ -2244,6 +2333,8 @@ export const forestDef: MapDefinition = {
     // and cliff wall at y=108-110 (depth 2+1=3). Stair spans y=107..110 to overwrite the full
     // cliff face, but stays narrow so it does not clip into the ladder overlook shoulder.
     { x: 110, y: 107, width: 4, height: 4, elevation: 1 },
+    // West preserve pocket: stairs cut through the cliff near world (-139,-48..-40).
+    { x: 9, y: 102, width: 5, height: 9, elevation: 1 },
     // Traditional cliff-corridor stairway (x=260-262, y=118-130, width=3, height=13).
     // Carved through the main cliff face into a compact grass pocket/overlook. The overlook is
     // sealed by cliff on the east side, so it cannot connect to the corridor until the player
@@ -2270,8 +2361,14 @@ export const forestDef: MapDefinition = {
     { x: 55, y: 252, width: 22, height: 12, enemyType: 'spider', count: 2 },
 
     // NW ??? Hollow dark wolves + shadows (formerly skeletons)
+    // NW Hollow void field: world (-144,-93) to (-96,-144), a wide open wisp spawning area.
+    { x: 6, y: 6, width: 49, height: 52, enemyType: 'void_wisp', count: 6 },
     { x: 65, y: 25, width: 22, height: 16, enemyType: 'wolf', count: 4 },
     { x: 50, y: 50, width: 20, height: 16, enemyType: 'shadow', count: 3 },
+    // Western Preserve cache guards: a melee Hollow Shade and a scythe-throwing Reaver
+    // dispersed through the grass approach before the Radiant Vestige chest.
+    { x: 78, y: 93, width: 4, height: 4, enemyType: 'shadow_lurker', count: 1, patrolRadius: 1.0 },
+    { x: 82, y: 88, width: 4, height: 4, enemyType: 'hollow_reaver', count: 1, patrolRadius: 1.0 },
 
     // Lone Hollow Shade (reaper) at the cliff stretch end ??? world (9, -44) / tile (159, 106).
     { x: 156, y: 104, width: 6, height: 4, enemyType: 'shadow', count: 1 },

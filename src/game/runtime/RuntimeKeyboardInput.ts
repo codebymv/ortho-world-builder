@@ -75,6 +75,8 @@ export function createKeyboardInputController({
     (
       (typeof item.healAmount === 'number' && item.healAmount > 0) ||
       (typeof item.essenceAmount === 'number' && item.essenceAmount > 0) ||
+      (typeof item.projectileDamage === 'number' && item.projectileDamage > 0) ||
+      item.imbueType === 'chrysalis' ||
       item.buffType === 'stealth' ||
       item.buffType === 'berserker'
     );

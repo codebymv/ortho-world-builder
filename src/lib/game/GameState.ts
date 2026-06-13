@@ -31,6 +31,7 @@ export type KnownGameFlag =
   | 'forest_kill_count'
   | 'grove_shelf_shortcut_open'
   | 'highlanders_plains_gate_open'
+  | 'western_preserve_gate_open'
   | 'quarry_bank_shortcut_open'
   | 'west_lake_bridge_plank_extended'
   | 'west_cliff_gate_open'
@@ -127,6 +128,8 @@ export interface PlayerState {
   berserkerTimer: number;
   berserkerDamageMult: number;
   berserkerSpeedMult: number;
+  chrysalisTimer: number;
+  chrysalisDamageMult: number;
   /** Set when Last Breath Charm triggers; cleared on bonfire rest or true death. */
   lastBreathUsedThisLife: boolean;
   /** Perfect parries landed this life - feeds the Ironbark Band's growing reveal bonus. Reset on death. */
@@ -176,6 +179,14 @@ export interface Item {
   healAmount?: number;
   /** Essence granted when consumed (soul-item style - e.g. Sundered Essence). */
   essenceAmount?: number;
+  projectileDamage?: number;
+  projectileSpeed?: number;
+  projectileLifetime?: number;
+  projectileSprite?: string;
+  projectileHitRadius?: number;
+  imbueType?: 'chrysalis';
+  imbueDuration?: number;
+  compatibleWeaponIds?: string[];
   buffType?: 'stealth' | 'berserker' | 'last_breath';
   buffDuration?: number;
   stats?: {
@@ -328,6 +339,8 @@ export class GameState {
       berserkerTimer: 0,
       berserkerDamageMult: 1.0,
       berserkerSpeedMult: 1.0,
+      chrysalisTimer: 0,
+      chrysalisDamageMult: 1.0,
       lastBreathUsedThisLife: false,
       ironbarkParryStacks: 0,
       level: 1,

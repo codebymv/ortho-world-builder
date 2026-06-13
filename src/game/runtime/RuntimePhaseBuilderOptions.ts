@@ -142,6 +142,7 @@ export interface BuildRuntimePhaseContextsOptions {
   enemyVisualProfiles: Record<string, EnemyVisualProfile>;
   enemyVisuals: EnemyVisualRegistry;
   enemyAudio: EnemyLoopContext['enemyAudio'];
+  onEnemyKilled: (enemy: Enemy) => void;
   playPlayerHit: () => void;
   playBossAttack?: () => void;
   playParrySuccess?: () => void;

@@ -166,6 +166,7 @@ export function buildEnemyLoopContext(options: BuildRuntimePhaseContextsOptions)
     createOutlineMesh: options.createOutlineMesh,
     getVisualYAt: options.getVisualYAt,
     getActorRenderOrder: options.getActorRenderOrder,
+    onEnemyKilled: options.onEnemyKilled,
   };
 }
 

@@ -18,6 +18,30 @@ export const items: Record<string, Item> = {
     sprite: 'tempest_grass_item',
     healAmount: 40,
   },
+
+  throwing_barbs: {
+    id: 'throwing_barbs',
+    name: 'Throwing Barbs',
+    description: 'Small hooked iron barbs for striking at range. Crude, light, and easy to lose.',
+    type: 'consumable',
+    sprite: 'throwing_barbs_item',
+    projectileDamage: 20,
+    projectileSpeed: 10,
+    projectileLifetime: 0.75,
+    projectileSprite: 'projectile_throwing_barb',
+    projectileHitRadius: 0.22,
+  },
+
+  chrysalis_parchment: {
+    id: 'chrysalis_parchment',
+    name: 'Chrysalis Parchment',
+    description: 'A brittle vellum strip dusted with pale crystal. For 45 seconds, compatible blades grow a glassy chrysalis edge: strikes hit slightly harder and leave delayed crystalline after-slashes.',
+    type: 'consumable',
+    sprite: 'chrysalis_parchment',
+    imbueType: 'chrysalis',
+    imbueDuration: 45,
+    compatibleWeaponIds: ['meek_short_sword', 'ornamental_broadsword'],
+  },
   
   ancient_map: {
     id: 'ancient_map',
@@ -49,6 +73,14 @@ export const items: Record<string, Item> = {
     description: 'A small rusted key, its teeth worn soft with age. Humbler than the fort\'s iron key, yet someone hid it away in the cliffs for a reason.',
     type: 'key',
     sprite: 'highlanders_key',
+  },
+
+  western_preserve_key: {
+    id: 'western_preserve_key',
+    name: 'Western Preserve Key',
+    description: 'A green-patinated ward key from the old preserve boundary. Its bow is stamped with a leaf-and-gate mark.',
+    type: 'key',
+    sprite: 'western_preserve_key',
   },
   
   moonbloom: {

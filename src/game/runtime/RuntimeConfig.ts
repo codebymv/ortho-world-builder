@@ -55,7 +55,7 @@ export const ENEMY_VISUALS: Record<string, EnemyVisualProfile> = {
   shadow: { baseScale: 1.28, footOffset: 0.16, strideAmp: 0.02, bobAmp: 0.06, squashAmp: 0.03, leanAmp: 0.02, hpBarOffset: 0.72 },
   shadow_lurker: { baseScale: 1.28, footOffset: 0.16, strideAmp: 0.012, bobAmp: 0.04, squashAmp: 0.02, leanAmp: 0.01, hpBarOffset: 0.72 },
   hollow_reaver: { baseScale: 1.34, footOffset: 0.16, strideAmp: 0.012, bobAmp: 0.05, squashAmp: 0.02, leanAmp: 0.015, hpBarOffset: 0.78 },
-  void_wisp: { baseScale: 1.12, footOffset: 0.12, strideAmp: 0.03, bobAmp: 0.05, squashAmp: 0.04, leanAmp: 0.03, hpBarOffset: 0.62 },
+  void_wisp: { baseScale: 1.08, footOffset: 0.12, strideAmp: 0.024, bobAmp: 0.072, squashAmp: 0.03, leanAmp: 0.045, hpBarOffset: 0.60 },
   plant: { baseScale: 1.14, footOffset: 0.16, strideAmp: 0.02, bobAmp: 0.03, squashAmp: 0.03, leanAmp: 0.04, hpBarOffset: 0.64 },
   skeleton: { baseScale: 1.18, footOffset: 0.22, strideAmp: 0.04, bobAmp: 0.04, squashAmp: 0.05, leanAmp: 0.05, hpBarOffset: 0.66 },
   skeleton_captain: { baseScale: 1.54, footOffset: 0.26, strideAmp: 0.03, bobAmp: 0.035, squashAmp: 0.05, leanAmp: 0.04, hpBarOffset: 0.80 },

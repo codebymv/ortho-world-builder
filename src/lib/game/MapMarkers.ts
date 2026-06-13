@@ -62,7 +62,9 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
 
   { keywords: ['ranger outpost'], tileX: 140, tileY: 170, map: 'forest', label: 'Ranger Outpost', type: 'poi', color: '#8FBC8F' },
   { keywords: ['ranger cottage'], tileX: 236, tileY: 227, map: 'forest', label: 'Ranger Cottage', type: 'poi', color: '#9370DB' },
-  { keywords: ['surveyor', 'surveyors den', 'surveyors hollow', 'cave mouth'], tileX: 45, tileY: 114, map: 'forest', label: "Surveyor's Den", type: 'poi', color: '#8B6914' },
+  // The fork sign names Surveyor's Den as world direction only. Do not auto-pin it
+  // as an Optional marker; the forest's optional hint flow belongs to Olwen's cabin pin.
+  { keywords: [], tileX: 45, tileY: 114, map: 'forest', label: "Surveyor's Den", type: 'poi', color: '#8B6914' },
   { keywords: ['traveler', 'travelers inlet', 'traveler inlet'], tileX: 258, tileY: 96, map: 'forest', label: "Traveler's Inlet", type: 'poi', color: '#8B6914' },
   // Fort gate key - use "chapel ruins" only (not plain "chapel") so village chapel dialogue does not ping the woods.
   // Points at the actual chapel_dead_ranger remains (forest map x:65,y:183); the old (55,114) was ~70 tiles off.
@@ -301,6 +303,7 @@ export function shouldHideStoredRingHintMarker(
 // in the map components). Once the related quest completes the dynamic primary disappears,
 // so without this these markers resurface as permanent stray "Secondary" pins.
 const STORED_DONE_MARKER_IDS = new Set(['forest_Disparaged Cottage']);
+const SUPPRESSED_STORED_POI_MARKER_IDS = new Set(["forest_Surveyor's Den"]);
 
 export function shouldHideCompletedObjectiveMarker(
   marker: Pick<MapMarker, 'id'>,
@@ -325,7 +328,8 @@ export function shouldHideStoredMarker(
 ): boolean {
   return (
     shouldHideStoredRingHintMarker(marker, state) ||
-    shouldHideCompletedObjectiveMarker(marker, state)
+    shouldHideCompletedObjectiveMarker(marker, state) ||
+    SUPPRESSED_STORED_POI_MARKER_IDS.has(marker.id)
   );
 }
 

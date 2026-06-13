@@ -736,7 +736,7 @@ export interface ParryFeedbackEvent {
   sourceEnemyId: string | null;
 }
 
-/** Enemy-spawned thrown projectile (e.g. Hollow Reaver scythe). Resolves player collision in updateProjectiles. */
+/** Thrown projectile. Enemy shots resolve player collision; player shots resolve enemy collision. */
 export interface Projectile {
   id: string;
   position: { x: number; y: number };
@@ -744,7 +744,8 @@ export interface Projectile {
   damage: number;
   lifetime: number;
   maxLifetime: number;
-  sourceEnemyId: string;
+  source: 'enemy' | 'player';
+  sourceEnemyId: string | null;
   sprite: string;
   spinRate: number;
   rotation: number;
@@ -771,6 +772,28 @@ export interface FallingScytheHazard {
   source: 'stillness' | 'eclipse';
 }
 
+export interface ChrysalisEchoEvent {
+  phase: 'telegraph' | 'impact';
+  enemy: Enemy;
+  x: number;
+  y: number;
+  slashX: number;
+  slashY: number;
+  damage: number;
+  killed: boolean;
+}
+
+interface PendingChrysalisEcho {
+  enemyId: string;
+  damage: number;
+  timer: number;
+  x: number;
+  y: number;
+  offsetX: number;
+  offsetY: number;
+  telegraphed: boolean;
+}
+
 function removeDeadInPlace<T extends { alive: boolean }>(arr: T[]): void {
   let i = 0;
   let len = arr.length;
@@ -788,6 +811,7 @@ export class CombatSystem {
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
   private fallingScytheHazards: FallingScytheHazard[] = [];
+  private chrysalisEchoes: PendingChrysalisEcho[] = [];
   private gameState: GameState;
   private _cachedLiveEnemies: Enemy[] = [];
   private _enemiesDirty: boolean = true;
@@ -2572,7 +2596,8 @@ export class CombatSystem {
     damage: number;
     sprite: string;
     lifetime: number;
-    sourceEnemyId: string;
+    sourceEnemyId?: string | null;
+    source?: 'enemy' | 'player';
     hitRadius?: number;
     spinRate?: number;
   }): Projectile {
@@ -2583,7 +2608,8 @@ export class CombatSystem {
       damage: opts.damage,
       lifetime: opts.lifetime,
       maxLifetime: opts.lifetime,
-      sourceEnemyId: opts.sourceEnemyId,
+      source: opts.source ?? 'enemy',
+      sourceEnemyId: opts.sourceEnemyId ?? null,
       sprite: opts.sprite,
       spinRate: opts.spinRate ?? 18,
       rotation: 0,
@@ -2593,6 +2619,73 @@ export class CombatSystem {
     };
     this.projectiles.push(proj);
     return proj;
+  }
+
+  queueChrysalisEcho(enemy: Enemy, directDamage: number): void {
+    if (enemy.state === 'dead' || directDamage <= 0) return;
+    const pendingForEnemy = this.chrysalisEchoes.reduce((count, echo) => (
+      echo.enemyId === enemy.id ? count + 1 : count
+    ), 0);
+    if (pendingForEnemy >= 3) return;
+
+    const side = pendingForEnemy % 2 === 0 ? -1 : 1;
+    this.chrysalisEchoes.push({
+      enemyId: enemy.id,
+      damage: Math.max(5, Math.floor(directDamage * 0.38)),
+      timer: 0.58 + pendingForEnemy * 0.16,
+      x: enemy.position.x,
+      y: enemy.position.y,
+      offsetX: side * (0.18 + pendingForEnemy * 0.05),
+      offsetY: 0.25 + pendingForEnemy * 0.05,
+      telegraphed: false,
+    });
+  }
+
+  updateChrysalisEchoes(deltaTime: number): ChrysalisEchoEvent[] {
+    const events: ChrysalisEchoEvent[] = [];
+    let write = 0;
+    for (let i = 0; i < this.chrysalisEchoes.length; i++) {
+      const echo = this.chrysalisEchoes[i];
+      echo.timer -= deltaTime;
+      const target = this.enemies.find(e => e.id === echo.enemyId && e.state !== 'dead');
+      if (!target) continue;
+
+      const slashX = target.position.x + echo.offsetX;
+      const slashY = target.position.y + echo.offsetY;
+      if (!echo.telegraphed && echo.timer <= 0.22) {
+        echo.telegraphed = true;
+        events.push({
+          phase: 'telegraph',
+          enemy: target,
+          x: target.position.x,
+          y: target.position.y,
+          slashX,
+          slashY,
+          damage: 0,
+          killed: false,
+        });
+      }
+
+      if (echo.timer > 0) {
+        this.chrysalisEchoes[write++] = echo;
+        continue;
+      }
+
+      const result = this.playerAttack(target, echo.damage, { x: echo.x, y: echo.y }, this.gameState.player.direction, 0.12);
+      target.damageFlashTimer = Math.max(target.damageFlashTimer, 0.22);
+      events.push({
+        phase: 'impact',
+        enemy: target,
+        x: target.position.x,
+        y: target.position.y,
+        slashX,
+        slashY,
+        damage: echo.damage,
+        killed: result.killed,
+      });
+    }
+    this.chrysalisEchoes.length = write;
+    return events;
   }
 
   getProjectiles(): Projectile[] {
@@ -2631,6 +2724,15 @@ export class CombatSystem {
 
       if (p.lifetime <= 0) {
         p.alive = false;
+        continue;
+      }
+
+      if (p.source === 'player') {
+        const hitEnemy = this.getPlayerProjectileTarget(p);
+        if (hitEnemy) {
+          this.applyPlayerProjectileHit(p, hitEnemy);
+          p.alive = false;
+        }
         continue;
       }
 
@@ -2712,6 +2814,9 @@ export class CombatSystem {
   }
 
   private reflectProjectile(projectile: Projectile): boolean {
+    if (!projectile.sourceEnemyId) {
+      return false;
+    }
     const sourceEnemy = this.enemies.find(e => e.id === projectile.sourceEnemyId && e.state !== 'dead');
     if (!sourceEnemy) {
       return false;
@@ -2732,7 +2837,42 @@ export class CombatSystem {
     return true;
   }
 
+  private getPlayerProjectileTarget(projectile: Projectile): Enemy | undefined {
+    const candidates = this.getEnemiesInRange(projectile.position, projectile.hitRadius + 0.7, this._scratchQueryResult);
+    let best: Enemy | undefined;
+    let bestDistSq = Infinity;
+    for (const enemy of candidates) {
+      if (enemy.state === 'dead') continue;
+      const dx = enemy.position.x - projectile.position.x;
+      const dy = enemy.position.y - projectile.position.y;
+      const reach = projectile.hitRadius + 0.45;
+      const distSq = dx * dx + dy * dy;
+      if (distSq <= reach * reach && distSq < bestDistSq) {
+        best = enemy;
+        bestDistSq = distSq;
+      }
+    }
+    return best;
+  }
+
+  private applyPlayerProjectileHit(projectile: Projectile, target: Enemy): void {
+    const result = this.playerAttack(
+      target,
+      projectile.damage,
+      this.gameState.player.position,
+      this.gameState.player.direction,
+      0.35,
+    );
+    target.playerAggroed = true;
+    if (!result.killed) {
+      target.damageFlashTimer = Math.max(target.damageFlashTimer, 0.18);
+    }
+  }
+
   private getProjectileReflectionTarget(projectile: Projectile): Enemy | undefined {
+    if (!projectile.sourceEnemyId) {
+      return undefined;
+    }
     const target = this.enemies.find(e => e.id === (projectile.reflectedTargetEnemyId ?? projectile.sourceEnemyId) && e.state !== 'dead');
     if (!target) {
       return undefined;

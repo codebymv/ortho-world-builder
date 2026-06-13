@@ -316,6 +316,11 @@ export const dialogues: Record<string, Dialogue> = {
     nodes: [{ id: 'start', text: "Carved into a weathered post: '**The trees grow sick** beyond this river. Turn back if you value your life. Those who cross do not return unchanged.'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
 
+  central_fork_waypost: {
+    id: 'central_fork_waypost',
+    nodes: [{ id: 'start', text: "A three-arrow waypost leans at the fork: '**Grove to the west.**' '**Preserve area to the south.**' '**Surveyor's Den to the southwest.**'", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
+  },
+
   hollow_shortcut_lever: {
     id: 'hollow_shortcut_lever',
     nodes: [{ id: 'start', text: "A crude lever mechanism bound in twisted roots and corroded iron. The path beyond would lead back toward the **Hollow bonfire**.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
@@ -373,10 +378,6 @@ export const dialogues: Record<string, Dialogue> = {
   tombstone: {
     id: 'tombstone',
     nodes: [{ id: 'start', text: "The weathered inscription is barely legible: '__Here lies one who sought the truth__ and found only **darkness**.'", responses: [{ text: "[Pay respects]", nextId: 'end' }] }, { id: 'end', text: "", responses: [] }],
-  },
-  wolf_den_bones: {
-    id: 'wolf_den_bones',
-    nodes: [{ id: 'start', text: "The bones are picked clean and stacked almost neatly. A snapped spear shaft lies among them, suggesting the wolves dragged more than deer back to this hollow.", responses: [{ text: "[Continue]", nextId: 'end' }] }, { id: 'end', text: '', responses: [] }],
   },
   highland_garrison_remains: {
     id: 'highland_garrison_remains',

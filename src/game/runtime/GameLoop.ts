@@ -212,6 +212,13 @@ export function runGameplayPrelude({
       notify('Berserker rage subsides.', { id: 'berserker-faded', duration: 2000 });
     }
   }
+  if (state.player.chrysalisTimer > 0) {
+    state.player.chrysalisTimer = Math.max(0, state.player.chrysalisTimer - deltaTime);
+    if (state.player.chrysalisTimer <= 0) {
+      state.player.chrysalisDamageMult = 1.0;
+      notify('Chrysalis edge flakes away.', { id: 'chrysalis-faded', duration: 2000 });
+    }
+  }
   if (nowSec - state.player.lastStaminaUseTime > state.getStaminaRegenDelay()) {
     const regenRate = state.player.staminaRegenRate * state.getStaminaRegenMultiplier();
     state.player.stamina = Math.min(

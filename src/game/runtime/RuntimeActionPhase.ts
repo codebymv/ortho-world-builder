@@ -62,6 +62,7 @@ interface RuntimeActionPhaseOptions {
   syncWestCliffGateState: () => void;
   syncSouthEntryPicketGateState: () => void;
   syncEastCreekShoreGateState: () => void;
+  syncWesternPreserveGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncEastHollowRouteGateState: () => void;
@@ -145,6 +146,7 @@ export function setupRuntimeActionPhase({
   syncWestCliffGateState,
   syncSouthEntryPicketGateState,
   syncEastCreekShoreGateState,
+  syncWesternPreserveGateState,
   syncRiversideBridgeShortcutState,
   syncHollowShortcutState,
   syncEastHollowRouteGateState,
@@ -423,6 +425,7 @@ export function setupRuntimeActionPhase({
     syncWestCliffGateState,
     syncSouthEntryPicketGateState,
     syncEastCreekShoreGateState,
+    syncWesternPreserveGateState,
     syncRiversideBridgeShortcutState,
     syncHollowShortcutState,
     syncEastHollowRouteGateState,
@@ -501,6 +504,7 @@ export function setupRuntimeActionPhase({
   const consumableUseOptions = {
     state,
     particleSystem,
+    combatSystem,
     notify,
     triggerUIUpdate,
     playPotionDrink: sfx.playPotionDrink,

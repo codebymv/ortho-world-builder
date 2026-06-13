@@ -22,6 +22,9 @@ interface BootstrapContext {
 
 const STARTING_WEAPON_ID = 'meek_short_sword';
 const DEPRECATED_ITEM_ID = 'magic_wand';
+const DEV_TEST_ITEM_GRANT_FLAG = 'dev_test_chrysalis_barbs_grant_v1';
+const DEV_TEST_EXTRA_PARCHMENT_GRANT_FLAG = 'dev_test_chrysalis_parchment_grant_v2';
+const DEV_TEST_MORE_PARCHMENT_GRANT_FLAG = 'dev_test_chrysalis_parchment_grant_v3';
 
 function ensureStartingWeapon(state: GameState, items: Record<string, Item>) {
   const hasStartingWeapon = state.inventory.some(item => item.id === STARTING_WEAPON_ID);
@@ -58,6 +61,36 @@ function reconcileCriticalQuestItems(
 
 function syncEquippedWeapon(state: GameState, preferredWeaponId?: string | null) {
   state.setEquippedWeapon(preferredWeaponId ?? state.equippedWeaponId);
+}
+
+function grantDevTestItemsOnce(state: GameState, items: Record<string, Item>) {
+  if (state.getFlag(DEV_TEST_ITEM_GRANT_FLAG)) return;
+
+  for (let i = 0; i < 3; i++) {
+    if (items.chrysalis_parchment) state.addItem({ ...items.chrysalis_parchment }, { notify: false });
+  }
+  for (let i = 0; i < 10; i++) {
+    if (items.throwing_barbs) state.addItem({ ...items.throwing_barbs }, { notify: false });
+  }
+  state.setFlag(DEV_TEST_ITEM_GRANT_FLAG, true);
+}
+
+function grantExtraChrysalisParchmentOnce(state: GameState, items: Record<string, Item>) {
+  if (state.getFlag(DEV_TEST_EXTRA_PARCHMENT_GRANT_FLAG)) return;
+
+  for (let i = 0; i < 3; i++) {
+    if (items.chrysalis_parchment) state.addItem({ ...items.chrysalis_parchment }, { notify: false });
+  }
+  state.setFlag(DEV_TEST_EXTRA_PARCHMENT_GRANT_FLAG, true);
+}
+
+function grantMoreChrysalisParchmentOnce(state: GameState, items: Record<string, Item>) {
+  if (state.getFlag(DEV_TEST_MORE_PARCHMENT_GRANT_FLAG)) return;
+
+  for (let i = 0; i < 3; i++) {
+    if (items.chrysalis_parchment) state.addItem({ ...items.chrysalis_parchment }, { notify: false });
+  }
+  state.setFlag(DEV_TEST_MORE_PARCHMENT_GRANT_FLAG, true);
 }
 
 export function bootstrapRuntimeState(context: BootstrapContext) {
@@ -116,6 +149,9 @@ export function bootstrapRuntimeState(context: BootstrapContext) {
     // Always keep the starter weapon flagged as seen even on legacy saves.
     state.seenItemIds.add(STARTING_WEAPON_ID);
     reconcileCriticalQuestItems(state, items, criticalPathItems);
+    grantDevTestItemsOnce(state, items);
+    grantExtraChrysalisParchmentOnce(state, items);
+    grantMoreChrysalisParchmentOnce(state, items);
     state.lastBonfire = savedData.lastBonfire ?? null;
     state.droppedEssence = savedData.droppedEssence ?? null;
     state.worldItems = savedData.worldItems ?? [];

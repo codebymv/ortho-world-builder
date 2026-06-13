@@ -212,6 +212,7 @@ export interface EnemyLoopContext {
   createOutlineMesh: (geometry: THREE.BufferGeometry, texture: THREE.Texture | null) => THREE.Mesh;
   getVisualYAt: (x: number, y: number) => number;
   getActorRenderOrder: (x: number, y: number, footOffset: number) => number;
+  onEnemyKilled: (enemy: Enemy) => void;
   playPlayerHit: () => void;
   playBossAttack?: () => void;
   playParrySuccess?: () => void;

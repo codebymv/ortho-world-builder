@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { GameState } from '@/lib/game/GameState';
+import type { CombatSystem } from '@/lib/game/Combat';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
 import { INTERACTABLE_QUERY_RADIUS } from '@/lib/game/World';
 
@@ -27,6 +28,7 @@ interface InteractionSystemLike {
   tryHandleHollowShortcutLever: (interactionId: string) => boolean;
   tryHandleEastHollowRouteGateLever: (interactionId: string) => boolean;
   tryHandleHighlandersPlainsGate: (interactionId: string) => boolean;
+  tryHandleWesternPreserveGate: (interactionId: string) => boolean;
   tryHandleHollowApproachLadder: (interactionId: string, ladderX: number, ladderY: number) => boolean;
   tryHandleCliffCorridorLadder: (interactionId: string, ladderX: number, ladderY: number) => boolean;
   tryHandleFortRidgeLadder: (interactionId: string, ladderX: number, ladderY: number) => boolean;
@@ -61,6 +63,7 @@ export interface PendingConsumableUse {
 interface PotionActionOptions {
   state: GameState;
   particleSystem: { emitHeal: (position: THREE.Vector3) => void; emitDamage: (position: THREE.Vector3) => void };
+  combatSystem?: CombatSystem;
   notify: (title: string, options?: { id?: string; type?: 'success' | 'info' | 'error'; description?: string; duration?: number }) => void;
   triggerUIUpdate: () => void;
   playPotionDrink?: () => void;
@@ -95,6 +98,8 @@ function resolveUsableItem(state: GameState, triggerUIUpdate: () => void) {
     (
       (typeof i.healAmount === 'number' && i.healAmount > 0) ||
       (typeof i.essenceAmount === 'number' && i.essenceAmount > 0) ||
+      (typeof i.projectileDamage === 'number' && i.projectileDamage > 0) ||
+      i.imbueType === 'chrysalis' ||
       i.buffType === 'stealth' ||
       i.buffType === 'berserker'
     );
@@ -146,6 +151,84 @@ function beginConsumableUse(
   setDrinkTimer?.(drinkDuration ?? 0.65);
 }
 
+function getCardinalVector(direction: string): { x: number; y: number } {
+  switch (direction) {
+    case 'up': return { x: 0, y: 1 };
+    case 'down': return { x: 0, y: -1 };
+    case 'left': return { x: -1, y: 0 };
+    case 'right': return { x: 1, y: 0 };
+    default: return { x: 0, y: -1 };
+  }
+}
+
+function throwProjectileConsumable(
+  activeItem: NonNullable<ReturnType<typeof resolveUsableItem>>,
+  options: PotionActionOptions,
+) {
+  const { state, combatSystem, notify, triggerUIUpdate } = options;
+  if (!combatSystem || !activeItem.projectileDamage) return false;
+
+  const dir = getCardinalVector(state.player.direction);
+  const speed = activeItem.projectileSpeed ?? 10;
+  combatSystem.spawnProjectile({
+    position: {
+      x: state.player.position.x + dir.x * 0.55,
+      y: state.player.position.y + dir.y * 0.55,
+    },
+    velocity: { x: dir.x * speed, y: dir.y * speed },
+    damage: activeItem.projectileDamage,
+    sprite: activeItem.projectileSprite ?? 'projectile_throwing_barb',
+    lifetime: activeItem.projectileLifetime ?? 0.75,
+    source: 'player',
+    hitRadius: activeItem.projectileHitRadius ?? 0.22,
+    spinRate: 0,
+  });
+
+  state.removeItem(activeItem.id);
+  if (state.activeItemIndex >= state.inventory.length) {
+    state.activeItemIndex = Math.max(0, state.inventory.length - 1);
+  }
+  notify(`Used ${activeItem.name}`, {
+    id: `used-${activeItem.id}`,
+    type: 'info',
+    description: 'Thrown.',
+    duration: 900,
+  });
+  triggerUIUpdate();
+  return true;
+}
+
+function applyWeaponImbueConsumable(
+  activeItem: NonNullable<ReturnType<typeof resolveUsableItem>>,
+  options: PotionActionOptions,
+) {
+  const { state, notify, triggerUIUpdate, particleSystem, playPotionDrink } = options;
+  if (activeItem.imbueType !== 'chrysalis') return false;
+
+  const equippedWeaponId = state.equippedWeaponId;
+  const compatible = Boolean(equippedWeaponId && activeItem.compatibleWeaponIds?.includes(equippedWeaponId));
+  if (!compatible) {
+    notify('Cannot Imbue Weapon', {
+      id: 'chrysalis-incompatible',
+      type: 'error',
+      description: 'This parchment only takes to plain steel.',
+      duration: 2200,
+    });
+    return true;
+  }
+
+  state.player.chrysalisTimer = activeItem.imbueDuration ?? 45;
+  state.player.chrysalisDamageMult = 1.12;
+  state.removeItem(activeItem.id);
+  if (state.activeItemIndex >= state.inventory.length) {
+    state.activeItemIndex = Math.max(0, state.inventory.length - 1);
+  }
+  playPotionDrink?.();
+  particleSystem.emitAt(state.player.position.x, state.player.position.y, 0.45, 14, 0xBEEFFF, 0.45, 1.3, 1.1);
+  triggerUIUpdate();
+  return true;
+}
+
 export function applyHealthPotionAction(options: PotionActionOptions) {
   const { state, particleSystem, notify, triggerUIUpdate, getIsConsuming } = options;
 
@@ -153,6 +236,16 @@ export function applyHealthPotionAction(options: PotionActionOptions) {
 
   const activeItem = resolveUsableItem(state, triggerUIUpdate);
   if (!activeItem) return;
+
+  if (typeof activeItem.projectileDamage === 'number' && activeItem.projectileDamage > 0) {
+    throwProjectileConsumable(activeItem, options);
+    return;
+  }
+
+  if (activeItem.imbueType === 'chrysalis') {
+    applyWeaponImbueConsumable(activeItem, options);
+    return;
+  }
 
   // Soul-items resolve instantly - no drink animation, like absorbing essence in Souls games.
   if (typeof activeItem.essenceAmount === 'number' && activeItem.essenceAmount > 0) {
@@ -379,6 +472,7 @@ export function runInteractionCheck({
     if (interactionSystem.tryHandleHollowShortcutLever(interactionId)) return;
     if (interactionSystem.tryHandleEastHollowRouteGateLever(interactionId)) return;
     if (interactionSystem.tryHandleHighlandersPlainsGate(interactionId)) return;
+    if (interactionSystem.tryHandleWesternPreserveGate(interactionId)) return;
     if (interactionSystem.tryHandleHollowApproachLadder(interactionId, px, py)) return;
     if (interactionSystem.tryHandleCliffCorridorLadder(interactionId, px, py)) return;
     if (interactionSystem.tryHandleFortRidgeLadder(interactionId, px, py)) return;

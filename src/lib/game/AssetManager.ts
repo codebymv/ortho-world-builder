@@ -3854,59 +3854,59 @@ export class AssetManager {
       [C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C,        C       ],
     ], 4, 'enemy_stone_sentinel_stagger'));
 
-    // ========== VOID WISP â€” old shadow design preserved for later use ==========
-    const VW_BODY  = 0x311B92;
-    const VW_BODY_H = 0x4527A0;
-    const VW_BODY_S = 0x1A0A5E;
-    const VW_EYE   = 0xFF1744;
-    const VW_GLOW  = 0xD500F9;
-    const VW_WISP  = 0x7C4DFF;
+    // ========== VOID WISP - cold lantern-soul skirmisher ==========
+    const VW_CORE = 0xF4FFF8;
+    const VW_COLD = 0xAEEFFF;
+    const VW_BLUE = 0x5FA8C8;
+    const VW_IRON = 0x141B24;
+    const VW_IRON_H = 0x3D4F5E;
+    const VW_ASH = 0xAEB8C0;
+    const VW_VIOLET = 0x6E3BA8;
 
     this.registerTexture('enemy_void_wisp', () => this.createSpriteTexture([
-      [C,       C,        VW_WISP, VW_BODY_H,VW_BODY_H,VW_BODY_H,VW_WISP,C,        C,       C],
-      [C,       VW_BODY,  VW_BODY_H,VW_EYE,  VW_BODY,  VW_EYE,   VW_BODY_H,VW_BODY,C,       C],
-      [C,       VW_BODY_S,VW_BODY, VW_BODY,  VW_GLOW,  VW_BODY,  VW_BODY, VW_BODY_S,C,      C],
-      [VW_WISP, VW_BODY,  VW_BODY_S,VW_BODY, VW_BODY_S,VW_BODY,  VW_BODY_S,VW_BODY,VW_WISP, C],
-      [C,       VW_BODY_S,VW_BODY, VW_BODY,  VW_BODY,  VW_BODY,  VW_BODY, VW_BODY_S,C,      C],
-      [C,       C,        VW_BODY_S,VW_BODY,  VW_BODY_S,VW_BODY,  VW_BODY_S,C,       C,      C],
-      [C,       C,        VW_WISP, VW_BODY_S,VW_BODY,  VW_BODY_S,VW_WISP, C,        C,      C],
-      [C,       VW_WISP,  C,       C,        VW_WISP,  C,        C,       VW_WISP,  C,      C],
+      [C,        C,        C,        VW_ASH,   C,        C,        VW_ASH,   C,        C,        C],
+      [C,        C,        VW_IRON_H,VW_COLD,  VW_CORE,  VW_CORE,  VW_COLD,  VW_IRON_H,C,        C],
+      [C,        VW_IRON,  VW_COLD,  VW_CORE,  VW_COLD,  VW_CORE,  VW_COLD,  VW_IRON,  C,        C],
+      [VW_ASH,   VW_IRON_H,C,        VW_COLD,  VW_CORE,  VW_CORE,  VW_COLD,  C,        VW_IRON_H,VW_ASH],
+      [C,        VW_IRON,  C,        VW_BLUE,  VW_COLD,  VW_COLD,  VW_BLUE,  C,        VW_IRON,  C],
+      [C,        C,        VW_IRON_H,C,        VW_BLUE,  VW_BLUE,  C,        VW_IRON_H,C,        C],
+      [C,        VW_ASH,   C,        C,        VW_COLD,  VW_BLUE,  C,        C,        VW_ASH,   C],
+      [C,        C,        VW_VIOLET,C,        VW_ASH,   C,        VW_ASH,   C,        C,        C],
     ], 4, 'enemy_void_wisp'));
 
-    const VW_EYE_GLOW = 0xFF5252;
-    const VW_CHARGE = 0xEA80FC;
+    const VW_FLARE = 0xFFFFFF;
+    const VW_CHARGE = 0xD9FFFF;
     this.registerTexture('enemy_void_wisp_telegraph', () => this.createSpriteTexture([
-      [VW_CHARGE,C,        VW_WISP,  VW_BODY_H,VW_BODY_H,VW_BODY_H,VW_WISP, C,        VW_CHARGE,C],
-      [C,       VW_BODY,  VW_BODY_H,VW_EYE_GLOW,VW_BODY,VW_EYE_GLOW,VW_BODY_H,VW_BODY,C,      C],
-      [C,       VW_BODY_S,VW_CHARGE,VW_BODY,  VW_GLOW,  VW_BODY,  VW_CHARGE,VW_BODY_S,C,      C],
-      [VW_CHARGE,VW_BODY, VW_BODY_S,VW_CHARGE,VW_GLOW,  VW_CHARGE,VW_BODY_S,VW_BODY,VW_CHARGE,C],
-      [C,       VW_BODY_S,VW_BODY,  VW_BODY,  VW_BODY,  VW_BODY,  VW_BODY, VW_BODY_S,C,      C],
-      [C,       C,        VW_BODY_S,VW_BODY,  VW_BODY_S,VW_BODY,  VW_BODY_S,C,       C,      C],
-      [C,       C,        VW_WISP,  VW_BODY_S,VW_BODY,  VW_BODY_S,VW_WISP, C,        C,      C],
-      [C,       VW_WISP,  C,        C,        VW_WISP,  C,        C,       VW_WISP,  C,      C],
+      [C,        C,        VW_ASH,   C,        VW_CHARGE,VW_CHARGE,C,        VW_ASH,   C,        C],
+      [C,        VW_IRON,  C,        VW_COLD,  VW_FLARE, VW_FLARE, VW_COLD,  C,        VW_IRON,  C],
+      [C,        C,        VW_IRON_H,VW_CHARGE,VW_CORE,  VW_CORE,  VW_CHARGE,VW_IRON_H,C,        C],
+      [VW_ASH,   C,        VW_IRON,  VW_COLD,  VW_FLARE, VW_FLARE, VW_COLD,  VW_IRON,  C,        VW_ASH],
+      [C,        C,        VW_IRON_H,VW_BLUE,  VW_CHARGE,VW_CHARGE,VW_BLUE,  VW_IRON_H,C,        C],
+      [C,        C,        C,        VW_IRON,  VW_BLUE,  VW_BLUE,  VW_IRON,  C,        C,        C],
+      [C,        VW_VIOLET,C,        C,        VW_COLD,  VW_COLD,  C,        C,        VW_ASH,   C],
+      [C,        C,        C,        C,        VW_ASH,   C,        VW_ASH,   C,        C,        C],
     ], 4, 'enemy_void_wisp_telegraph'));
 
     this.registerTexture('enemy_void_wisp_attack', () => this.createSpriteTexture([
-      [C,       VW_WISP,  VW_CHARGE,VW_BODY_H,VW_BODY_H,VW_BODY_H,VW_CHARGE,VW_WISP,C,      C],
-      [VW_WISP, VW_BODY,  VW_BODY_H,VW_EYE_GLOW,VW_GLOW,VW_EYE_GLOW,VW_BODY_H,VW_BODY,VW_WISP,C],
-      [VW_CHARGE,VW_BODY_S,VW_BODY, VW_GLOW,  VW_CHARGE,VW_GLOW,  VW_BODY, VW_BODY_S,VW_CHARGE,C],
-      [VW_WISP, VW_BODY,  VW_BODY_S,VW_BODY,  VW_BODY_S,VW_BODY,  VW_BODY_S,VW_BODY,VW_WISP, C],
-      [C,       VW_BODY_S,VW_BODY,  VW_BODY,  VW_BODY,  VW_BODY,  VW_BODY, VW_BODY_S,C,      C],
-      [C,       C,        VW_BODY_S,VW_BODY,  VW_BODY_S,VW_BODY,  VW_BODY_S,C,       C,      C],
-      [C,       C,        VW_WISP,  VW_BODY_S,VW_BODY,  VW_BODY_S,VW_WISP, C,        C,      C],
-      [C,       VW_WISP,  C,        C,        VW_WISP,  C,        C,       VW_WISP,  C,      C],
+      [C,        C,        C,        VW_ASH,   VW_CHARGE,VW_FLARE, VW_CHARGE,C,        C,        C],
+      [C,        C,        VW_IRON_H,VW_COLD,  VW_FLARE, VW_FLARE, VW_CORE,  VW_COLD,  C,        C],
+      [C,        VW_IRON,  VW_COLD,  VW_FLARE, VW_CHARGE,VW_CORE,  VW_COLD,  VW_BLUE,  VW_COLD,  C],
+      [VW_ASH,   C,        VW_IRON,  VW_COLD,  VW_FLARE, VW_CHARGE,VW_BLUE,  VW_COLD,  VW_FLARE, VW_COLD],
+      [C,        VW_IRON_H,C,        VW_BLUE,  VW_COLD,  VW_BLUE,  VW_COLD,  VW_FLARE, VW_COLD,  C],
+      [C,        C,        VW_IRON_H,C,        VW_BLUE,  VW_BLUE,  C,        VW_COLD,  C,        C],
+      [C,        VW_ASH,   C,        C,        VW_COLD,  VW_BLUE,  C,        C,        VW_ASH,   C],
+      [C,        C,        VW_VIOLET,C,        VW_ASH,   C,        VW_ASH,   C,        C,        C],
     ], 4, 'enemy_void_wisp_attack'));
 
-    // Stagger - energy dispersing outward, core fragmented, wisps scattered to edges
     this.registerTexture('enemy_void_wisp_stagger', () => this.createSpriteTexture([
-      [VW_WISP,  C,        C,        VW_BODY_H,VW_BODY_H,VW_BODY_H,C,        C,        VW_WISP, C],
-      [C,        VW_BODY_S,C,        VW_EYE,   VW_BODY,  VW_EYE,   C,        VW_BODY_S,C,       C],
-      [C,        C,        VW_BODY,  VW_BODY_S,VW_GLOW,  VW_BODY_S,VW_BODY,  C,        C,       C],
-      [VW_WISP,  VW_BODY_S,C,        VW_BODY_S,VW_BODY,  VW_BODY_S,C,        VW_BODY_S,VW_WISP, C],
-      [C,        C,        VW_BODY_S,C,        VW_BODY,  VW_BODY,  C,        VW_BODY_S,C,       C],
-      [C,        VW_WISP,  C,        VW_BODY_S,C,        C,        VW_BODY_S,C,        VW_WISP, C],
-      [VW_WISP,  C,        C,        C,        VW_BODY_S,VW_BODY_S,C,        C,        C,       VW_WISP],
-      [C,        VW_WISP,  C,        C,        C,        C,        C,        VW_WISP,  C,       C],
+      [C,        VW_ASH,   C,        C,        VW_COLD,  C,        C,        C,        VW_ASH,   C],
+      [VW_IRON_H,C,        C,        VW_CORE,  C,        VW_CORE,  C,        C,        C,        VW_IRON_H],
+      [C,        C,        VW_IRON,  C,        VW_CHARGE,VW_COLD,  C,        VW_IRON,  C,        C],
+      [VW_ASH,   C,        C,        VW_BLUE,  C,        C,        VW_BLUE,  C,        C,        VW_ASH],
+      [C,        VW_IRON_H,C,        C,        VW_COLD,  VW_BLUE,  C,        C,        VW_IRON_H,C],
+      [C,        C,        VW_ASH,   C,        C,        C,        C,        VW_ASH,   C,        C],
+      [C,        VW_VIOLET,C,        C,        VW_ASH,   C,        VW_ASH,   C,        VW_VIOLET,C],
+      [C,        C,        C,        VW_ASH,   C,        C,        C,        VW_ASH,   C,        C],
     ], 4, 'enemy_void_wisp_stagger'));
 
     // ========== SHADOW REAPER â€” tall hooded figure, skull mask, curved scythe ==========
@@ -4193,6 +4193,18 @@ export class AssetManager {
       [C,       C,       C,       C,       SB_GLW,  C,       C,       C      ],
       [C,       C,       C,       C,       C,       C,       C,       C      ],
     ], 4, 'projectile_spectral_blade'));
+
+    const TB_D = 0x263238;
+    const TB_M = 0x546E7A;
+    const TB_H = 0xCFD8DC;
+    const TB_T = 0xF5F5F5;
+    this.registerTexture('projectile_throwing_barb', () => this.createSpriteTexture([
+      [C,    C,    C,    C,    C,    C,    TB_T, C],
+      [C,    C,    C,    C,    TB_H, TB_M, TB_D, TB_T],
+      [C,    C,    TB_H, TB_M, TB_D, TB_D, TB_M, C],
+      [TB_H, TB_M, TB_D, TB_D, TB_M, C,    C,    C],
+      [C,    TB_H, TB_M, C,    C,    C,    C,    C],
+    ], 4, 'projectile_throwing_barb'));
 
     // Ridge Revenant casting arm - a sleeved forearm ending in a pale claw wreathed in teal
     // cast-energy, pointing RIGHT (+X). The bladestorm overlay anchors this at the wraith's
@@ -4901,9 +4913,9 @@ export class AssetManager {
     ]);
     registerWalkAliasCycle('enemy_void_wisp', [
       'enemy_void_wisp',
-      'enemy_void_wisp_attack',
       'enemy_void_wisp',
-      'enemy_void_wisp_telegraph',
+      'enemy_void_wisp',
+      'enemy_void_wisp',
     ]);
     registerWalkAliasCycle('enemy_shadow', [
       'enemy_shadow',
@@ -6806,6 +6818,30 @@ export class AssetManager {
       [C,     C,     C,     C,     HK_SD, C,     C,     C   ],  // tip
     ], 4);
 
+    // Western Preserve Key - old brass with a green patina and leaf-shaped bow.
+    const WPK_GH = 0xDCCB72;
+    const WPK_G = 0xA88B34;
+    const WPK_GD = 0x66521F;
+    const WPK_PAT = 0x4FA66A;
+    const WPK_PATH = 0x8ED18C;
+    const WPK_SH = 0xB9C9A5;
+    const WPK_S = 0x6F856E;
+    const WPK_SD = 0x3D4F3F;
+    registerSpriteTexture('western_preserve_key', [
+      [C,       WPK_PATH,WPK_PAT,WPK_GD, WPK_GD, WPK_PAT,WPK_PATH,C      ],
+      [WPK_PATH,WPK_PAT,C,      C,      C,      C,      WPK_PAT,C      ],
+      [WPK_PAT, WPK_GD, C,      WPK_GH, WPK_GH, C,      WPK_GD, WPK_PAT],
+      [C,       WPK_PAT,WPK_GD, WPK_G,  WPK_G,  WPK_GD, WPK_PAT,C      ],
+      [C,       C,      C,      WPK_SH, WPK_SD, C,      C,      C      ],
+      [C,       C,      C,      WPK_SH, WPK_SD, WPK_PAT,C,      C      ],
+      [C,       C,      C,      WPK_SH, WPK_SD, C,      C,      C      ],
+      [C,       C,      C,      WPK_SH, WPK_SD, WPK_SH, WPK_S,  C      ],
+      [C,       C,      C,      WPK_SH, WPK_SD, C,      C,      C      ],
+      [C,       C,      C,      WPK_S,  WPK_SD, WPK_PAT,C,      C      ],
+      [C,       C,      C,      C,      WPK_SD, C,      C,      C      ],
+      [C,       C,      C,      C,      WPK_SD, C,      C,      C      ],
+    ], 4);
+
     const MAP_PAPER = 0xEAD7A8;
     const MAP_PAPER_H = 0xFFF1C8;
     const MAP_PAPER_S = 0xB99A66;
@@ -8053,6 +8089,37 @@ export class AssetManager {
       [C,        C,        TG_WRAP,  TG_WRAP_H,TG_WRAP,  C,        C,        C],
       [C,        C,        HERB_S,   HERB_S,   HERB_S,   C,        C,        C],
       [C,        C,        C,        HERB_S,   C,        C,        C,        C],
+    ]);
+
+    const TBI_WRAP = 0x5D4037;
+    const TBI_WRAP_H = 0x8D6E63;
+    const TBI_IRON = 0x37474F;
+    const TBI_EDGE = 0xB0BEC5;
+    const TBI_TIP = 0xECEFF1;
+    registerSpriteTexture('throwing_barbs_item', [
+      [C,        C,        C,        TBI_TIP,  C,        C,        C,        C],
+      [C,        C,        TBI_EDGE, TBI_IRON, TBI_TIP,  C,        C,        C],
+      [C,        TBI_EDGE, TBI_IRON, TBI_WRAP, TBI_IRON, TBI_TIP,  C,        C],
+      [TBI_EDGE, TBI_IRON, TBI_WRAP_H,TBI_WRAP,TBI_WRAP_H,TBI_IRON, TBI_TIP,  C],
+      [C,        C,        TBI_IRON, TBI_WRAP, TBI_IRON, C,        TBI_TIP,  C],
+      [C,        TBI_TIP,  TBI_EDGE, TBI_IRON, TBI_EDGE, C,        C,        C],
+      [C,        C,        C,        TBI_TIP,  C,        C,        C,        C],
+    ]);
+
+    const CP_P = 0xE6D6B8;
+    const CP_PS = 0xA98D68;
+    const CP_E = 0x6D4C41;
+    const CP_C = 0xBEEFFF;
+    const CP_CH = 0xFFFFFF;
+    const CP_INK = 0x607D8B;
+    registerSpriteTexture('chrysalis_parchment', [
+      [C,     CP_E, CP_E, CP_E, CP_E, CP_E, C    ],
+      [CP_E,  CP_P, CP_P, CP_P, CP_P, CP_P, CP_E ],
+      [CP_E,  CP_P, CP_C, CP_INK,CP_C, CP_P, CP_E ],
+      [CP_E,  CP_P, CP_INK,CP_CH,CP_INK,CP_P, CP_E ],
+      [CP_E,  CP_P, CP_C, CP_INK,CP_C, CP_P, CP_E ],
+      [CP_E,  CP_PS,CP_P, CP_P, CP_P, CP_PS,CP_E ],
+      [C,     CP_E, CP_E, CP_E, CP_E, CP_E, C    ],
     ]);
 
 

@@ -502,7 +502,8 @@ export function createRuntimeCombatActions({
 
     const parryBonus = state.player.parryBonusTimer > 0 ? 1.25 : 1;
     const stepDamageMult = stepDef?.damageMult ?? 1;
-    const baseDamage = Math.floor(state.player.attackDamage * parryBonus * stepDamageMult * state.player.berserkerDamageMult);
+    const chrysalisMult = state.player.chrysalisTimer > 0 ? state.player.chrysalisDamageMult : 1;
+    const baseDamage = Math.floor(state.player.attackDamage * parryBonus * stepDamageMult * state.player.berserkerDamageMult * chrysalisMult);
 
     const result = combatSystem.playerAttack(target, baseDamage, state.player.position, state.player.direction);
     playWeaponHit(target);
@@ -538,6 +539,11 @@ export function createRuntimeCombatActions({
     }
 
     particleSystem.emitDamageAt(target.position.x, target.position.y, 0.3);
+    if (state.player.chrysalisTimer > 0 && !result.killed) {
+      combatSystem.queueChrysalisEcho(target, actualDamage);
+      particleSystem.emitAt(target.position.x, target.position.y + 0.45, 0.48, 3, 0xBEEFFF, 0.45, 0.45, 0.35);
+      particleSystem.emitAt(target.position.x, target.position.y + 0.55, 0.52, 2, 0xFFFFFF, 0.32, 0.35, 0.22);
+    }
 
     if (result.killed) onEnemyKilled(target);
   };
@@ -660,6 +666,11 @@ export function createRuntimeCombatActions({
     up_left: { x: -0.707, y: 0.707 }, up_right: { x: 0.707, y: 0.707 },
     down_left: { x: -0.707, y: -0.707 }, down_right: { x: 0.707, y: -0.707 },
   };
+  const isChrysalisWeaponActive = () => (
+    state.player.chrysalisTimer > 0 &&
+    (state.equippedWeaponId === 'meek_short_sword' || state.equippedWeaponId === 'ornamental_broadsword')
+  );
+  const getChrysalisDamageMultiplier = () => isChrysalisWeaponActive() ? state.player.chrysalisDamageMult : 1;
 
   const performLungeAttack = (level: number) => {
     const currentTime = performance.now();
@@ -682,7 +693,12 @@ export function createRuntimeCombatActions({
     const speed = lungeSpeedBase - (lungeSpeedBase - lungeSpeedFull) * level;
     const recovery = lungeRecoveryMin + (lungeRecoveryMax - lungeRecoveryMin) * level;
     const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
-    const damage = Math.floor(state.player.attackDamage * damageMultiplier * state.player.berserkerDamageMult);
+    const damage = Math.floor(
+      state.player.attackDamage *
+      damageMultiplier *
+      state.player.berserkerDamageMult *
+      getChrysalisDamageMultiplier(),
+    );
 
     state.player.lastAttackTime = currentTime;
     state.player.stamina = Math.max(0, state.player.stamina - chargeAttackStaminaCost);
@@ -812,7 +828,12 @@ export function createRuntimeCombatActions({
     clearChargeState();
 
     const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
-    const chargeDamage = Math.floor(state.player.attackDamage * damageMultiplier * state.player.berserkerDamageMult);
+    const chargeDamage = Math.floor(
+      state.player.attackDamage *
+      damageMultiplier *
+      state.player.berserkerDamageMult *
+      getChrysalisDamageMultiplier(),
+    );
     const chargeRange = state.player.attackRange * (1 + level * 0.5);
     _tryStrikeHoodedWitnessAt(state.player.position.x, state.player.position.y, chargeRange);
     breakTilesInRadius(world, world.getCurrentMap(), state.player.position.x, state.player.position.y, chargeRange, particleSystem, {
@@ -858,6 +879,11 @@ export function createRuntimeCombatActions({
 
       particleSystem.emitDamageAt(target.position.x, target.position.y, 0.3);
       particleSystem.emitSparklesAt(target.position.x, target.position.y + 0.3, 0.5);
+      if (isChrysalisWeaponActive() && !result.killed) {
+        combatSystem.queueChrysalisEcho(target, actualDamage);
+        particleSystem.emitAt(target.position.x, target.position.y + 0.45, 0.48, 4, 0xBEEFFF, 0.38, 0.45, 0.5);
+        particleSystem.emitAt(target.position.x, target.position.y + 0.55, 0.52, 2, 0xFFFFFF, 0.24, 0.35, 0.25);
+      }
 
       if (result.killed) {
         onEnemyKilled(target);

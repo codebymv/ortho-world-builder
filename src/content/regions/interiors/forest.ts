@@ -18,8 +18,7 @@ export const interiorCottageForestDef: MapDefinition = {
     { x: 7, y: 8, width: 3, height: 2, type: 'wall', fill: 'stone' },
   ],
   portals: [{ x: 6, y: 9, targetMap: 'forest', targetX: 173, targetY: 96 }],
-  // Loot moved to the overworld: the cottage is now an unenterable vine-choked ruin
-  // (see whispering_woods map.ts chests[] ??? forest_cottage_chest at 176,96).
+  // Loot moved to the overworld: the cottage is now an unenterable vine-choked ruin.
   chests: [],
   interactables: [],
   props: [

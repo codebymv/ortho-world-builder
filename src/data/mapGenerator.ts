@@ -5078,6 +5078,71 @@ function enforceWhisperingWoodsHunterShelfEastLip(tiles: Tile[][], def: MapDefin
   }
 }
 
+/** Church-side deadfall - hard-seal the west/east squeeze route under the authored log pile. */
+function enforceWhisperingWoodsChurchSideDeadfall(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+  const visibleDeadfall = new Map<string, TileType>([
+    ['182,122', 'rock'],
+    ['183,122', 'stump_c'],
+    ['182,123', 'stump_b'],
+    ['183,123', 'fallen_log_v'],
+    ['182,124', 'fallen_log_v_b'],
+    ['183,124', 'fallen_log_v'],
+    ['182,125', 'fallen_log_v_b'],
+    ['183,125', 'fallen_log_v'],
+    ['182,126', 'fallen_log_v_b'],
+    ['183,126', 'fallen_log_v'],
+    ['182,127', 'fallen_log_v_b'],
+    ['183,127', 'fallen_log_v'],
+    ['182,128', 'stump_b'],
+    ['183,128', 'fallen_log_v'],
+    ['182,129', 'fallen_log_v_b'],
+    ['183,129', 'fallen_log_v'],
+  ]);
+
+  for (let ty = 122; ty <= 129; ty++) {
+    for (let tx = 180; tx <= 184; tx++) {
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const tile = tiles[ty][tx];
+      if (!tile || tile.transition || tile.interactable) continue;
+      const blockingEdge = tx >= 182 && tx <= 183;
+      tiles[ty][tx] = createTile(visibleDeadfall.get(`${tx},${ty}`) ?? 'grass', !blockingEdge, {
+        elevation: tile.elevation ?? 0,
+      });
+    }
+  }
+
+  // Reassert the committed forest church layout after late scrub passes. Only the
+  // exterior shell is blocked; interior pews/statues/floor stay intact.
+  const churchX = 180;
+  const churchY = 130;
+  const churchW = 12;
+  const churchH = 16;
+  const aisleCenter = Math.floor(churchW / 2);
+  const isAisle = (dx: number) => dx >= aisleCenter - 1 && dx <= aisleCenter;
+  for (let dy = 0; dy < churchH; dy++) {
+    for (let dx = 0; dx < churchW; dx++) {
+      const tx = churchX + dx;
+      const ty = churchY + dy;
+      if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
+      const tile = tiles[ty][tx];
+      if (!tile || tile.transition || tile.interactable) continue;
+
+      if (dx === 0 || dx === churchW - 1 || dy === 0 || dy === churchH - 1) {
+        const isGate = isAisle(dx) && (dy === 0 || dy === churchH - 1);
+        tiles[ty][tx] = createTile(isGate ? 'dirt' : 'mossy_stone', isGate, { elevation: tile.elevation ?? 0 });
+      } else if ((dx === 2 || dx === churchW - 3) && dy % 3 === 1) {
+        tiles[ty][tx] = createTile('statue', false, { elevation: tile.elevation ?? 0 });
+      } else if (dy >= 3 && dy <= churchH - 3 && dx >= 3 && dx <= churchW - 4) {
+        const isPew = dy % 2 === 0 && !isAisle(dx);
+        tiles[ty][tx] = createTile(isPew ? 'wooden_path' : 'cobblestone', !isPew, { elevation: tile.elevation ?? 0 });
+      } else {
+        tiles[ty][tx] = createTile('cobblestone', true, { elevation: tile.elevation ?? 0 });
+      }
+    }
+  }
+}
+
 /** Auto-mark spinePath on walkable grass/dirt tiles bordering a ±1 elevation neighbour of the same type. */
 function enforceWalkableElevationSeamCrossings(tiles: Tile[][], def: MapDefinition) {
   if (def.name !== 'Whispering Woods') return;
@@ -5271,6 +5336,7 @@ export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
   scrubWhisperingWoodsPrecipiceAltarDeadTrees(tiles, def);
   enforceWhisperingWoodsPrecipiceSpineCliffCover(tiles, def);
   enforceWhisperingWoodsHunterShelfEastLip(tiles, def);
+  enforceWhisperingWoodsChurchSideDeadfall(tiles, def);
 
   // Last visual pass: distribute live tree tiles across kit variants for visual variety.
   // Runs after ALL placement, scrub, and enforcement functions so only tiles that survived

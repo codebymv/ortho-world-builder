@@ -628,6 +628,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       syncWestCliffGateState,
       syncSouthEntryPicketGateState,
       syncEastCreekShoreGateState,
+      syncWesternPreserveGateState,
       syncRiversideBridgeShortcutState,
       syncHollowShortcutState,
       syncEastHollowRouteGateState,
@@ -826,6 +827,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           syncWestCliffGateState,
           syncSouthEntryPicketGateState,
           syncEastCreekShoreGateState,
+          syncWesternPreserveGateState,
           syncRiversideBridgeShortcutState,
           syncHollowShortcutState,
           syncEastHollowRouteGateState,
@@ -1071,6 +1073,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           dir8to4: direction8ToCardinal as unknown as (direction: string) => string,
           performDodge,
           performBufferedAttack,
+          onEnemyKilled,
           playFootstep,
           emitDust: phaseAdapters.emitDust,
           emitHeal: phaseAdapters.emitHeal,
@@ -1124,6 +1127,15 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             screenShake.hitStop(0.04);
             particleSystem.emitDamage(new THREE.Vector3(enemy.position.x, enemy.position.y, 0.3));
             particleSystem.emitSparkles(new THREE.Vector3(enemy.position.x, enemy.position.y + 0.3, 0.5));
+            if (
+              state.player.chrysalisTimer > 0 &&
+              state.equippedWeaponId === 'ornamental_broadsword' &&
+              !result.killed
+            ) {
+              combatSystem.queueChrysalisEcho(enemy, actualDamage);
+              particleSystem.emitAt(enemy.position.x, enemy.position.y + 0.45, 0.48, 4, 0xBEEFFF, 0.38, 0.45, 0.5);
+              particleSystem.emitAt(enemy.position.x, enemy.position.y + 0.55, 0.52, 2, 0xFFFFFF, 0.24, 0.35, 0.25);
+            }
             if (result.killed) {
               onEnemyKilled(enemy);
             }

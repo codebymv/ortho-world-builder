@@ -46,6 +46,9 @@ export const vendors: Record<string, VendorDef> = {
       // Ephemeral Extract removed (moving toward an Estus-style bonfire heal); Tempest Grass
       // is now this merchant's only healing stock.
       { itemId: 'tempest_grass', price: 20, currency: 'gold', stock: 12 },
+      { itemId: 'throwing_barbs', price: 10, currency: 'gold', stock: 18 },
+      { itemId: 'berserker_draught', price: 95, currency: 'gold', stock: 4 },
+      { itemId: 'chrysalis_parchment', price: 140, currency: 'gold', stock: 3 },
       { itemId: 'sundered_essence_i', price: 75, currency: 'gold', stock: 5 },
       { itemId: 'ornamental_broadsword', price: 700, currency: 'gold', unique: true },
     ],

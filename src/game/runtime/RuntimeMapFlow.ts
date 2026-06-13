@@ -431,6 +431,34 @@ export function createRuntimeMapFlow({
     world.refreshMapTileRegion(gateX0 - 1, gateY - 1, gateX1 + 1, gateY + 1);
   };
 
+  const syncWesternPreserveGateState = () => {
+    if (state.currentMap !== 'forest') return;
+    const map = world.getCurrentMap();
+    const open = state.getFlag('western_preserve_gate_open');
+    const gateX = 52; // world x=-98
+    const fenceY0 = 104;
+    const fenceY1 = 113;
+    const gateY0 = 108;
+    const gateY1 = 110;
+    const gateCenterY = 109;
+    for (let ty = fenceY0; ty <= fenceY1; ty++) {
+      const existing = map.tiles[ty]?.[gateX];
+      if (!existing) continue;
+      const el = existing.elevation ?? 0;
+      if (open && ty >= gateY0 && ty <= gateY1) {
+        map.tiles[ty][gateX] = { type: 'grass' as TileType, walkable: true, elevation: el };
+      } else if (ty >= gateY0 && ty <= gateY1) {
+        map.tiles[ty][gateX] = {
+          ...closedKeyGateTile(el, 'western_preserve_gate', gateX, gateX),
+          ...(ty === gateCenterY ? { keyGateLock: true } : { keyGateLock: false }),
+        };
+      } else {
+        map.tiles[ty][gateX] = { type: 'iron_fence' as TileType, walkable: false, elevation: el };
+      }
+    }
+    world.refreshMapTileRegion(gateX - 1, fenceY0 - 1, gateX + 1, 123);
+  };
+
   const syncRiversideBridgeShortcutState = () => {
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
@@ -2123,6 +2151,7 @@ export function createRuntimeMapFlow({
     syncWestCliffGateState();
     syncSouthEntryPicketGateState();
     syncEastCreekShoreGateState();
+    syncWesternPreserveGateState();
     syncRiversideBridgeShortcutState();
     syncHollowShortcutState();
     syncEastHollowRouteGateState();
@@ -2346,6 +2375,7 @@ export function createRuntimeMapFlow({
     syncWestCliffGateState,
     syncSouthEntryPicketGateState,
     syncEastCreekShoreGateState,
+    syncWesternPreserveGateState,
     syncRiversideBridgeShortcutState,
     syncHollowShortcutState,
     syncEastHollowRouteGateState,

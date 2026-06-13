@@ -221,6 +221,16 @@ export function applyPlayerVisuals({
       }
     }
     _lastChargeLevel = chargeLevel;
+  } else if (state.player.chrysalisTimer > 0) {
+    _lastChargeLevel = 0;
+    _chargeEmberTimer = 0;
+    _peakSustainEmberTimer = 0;
+    const shimmer = Math.sin(currentTime / 62) * 0.5 + 0.5;
+    const chip = Math.sin(currentTime / 19) * 0.5 + 0.5;
+    (bladeOverlayMat.uniforms.glowColor.value as THREE.Color)
+      .setRGB(0.68 + shimmer * 0.18, 0.92 + shimmer * 0.12, 1.08 + chip * 0.12);
+    bladeOverlayMat.uniforms.opacity.value = 0.56 + shimmer * 0.16;
+    bladeOverlayMesh.visible = true;
   } else if (state.player.parryWindowTimer > 0) {
     _lastChargeLevel = 0;
     _chargeEmberTimer = 0;

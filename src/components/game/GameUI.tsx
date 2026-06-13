@@ -79,6 +79,8 @@ const isQuickUseConsumable = (item: Item | null | undefined): item is Item =>
   (
     (typeof item.healAmount === 'number' && item.healAmount > 0) ||
     (typeof item.essenceAmount === 'number' && item.essenceAmount > 0) ||
+    (typeof item.projectileDamage === 'number' && item.projectileDamage > 0) ||
+    item.imbueType === 'chrysalis' ||
     item.buffType === 'stealth' ||
     item.buffType === 'berserker'
   );
@@ -536,6 +538,12 @@ export const GameUI = ({
               <div className="hidden min-[900px]:flex items-center gap-1.5 bg-red-900/70 border border-red-500/60 rounded-full px-2.5 py-0.5 animate-pulse shrink-0">
                 <span className="text-[10px] font-bold text-red-300 tracking-widest uppercase">Berserker</span>
                 <span className="text-[10px] font-bold text-red-200">{Math.ceil(gameState.player.berserkerTimer)}s</span>
+              </div>
+            )}
+            {gameState.player.chrysalisTimer > 0 && (
+              <div className="hidden min-[900px]:flex items-center gap-1.5 bg-sky-950/75 border border-cyan-300/70 rounded-full px-2.5 py-0.5 shadow-[0_0_10px_rgba(125,211,252,0.35)] shrink-0">
+                <span className="text-[10px] font-bold text-cyan-200 tracking-widest uppercase">Chrysalis</span>
+                <span className="text-[10px] font-bold text-white">{Math.ceil(gameState.player.chrysalisTimer)}s</span>
               </div>
             )}
           </div>

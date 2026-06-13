@@ -487,6 +487,8 @@ const Game = () => {
     bossHealth: number;
     bossMaxHealth: number;
     bossPhase: number;
+    berserkerTimer: number;
+    chrysalisTimer: number;
   } | null>(null);
   const triggerUIUpdateThrottled = (now: number = performance.now()) => {
     const state = gameStateRef.current;
@@ -515,6 +517,8 @@ const Game = () => {
       bossHealth: Math.ceil(nextBossHud?.health ?? 0),
       bossMaxHealth: nextBossHud?.maxHealth ?? 0,
       bossPhase: nextBossHud?.phase ?? 0,
+      berserkerTimer: Math.ceil(state.player.berserkerTimer),
+      chrysalisTimer: Math.ceil(state.player.chrysalisTimer),
     };
     const prevSnapshot = lastUiHudSnapshotRef.current;
     const changed = !prevSnapshot ||
@@ -527,7 +531,9 @@ const Game = () => {
       prevSnapshot.bossName !== nextSnapshot.bossName ||
       prevSnapshot.bossHealth !== nextSnapshot.bossHealth ||
       prevSnapshot.bossMaxHealth !== nextSnapshot.bossMaxHealth ||
-      prevSnapshot.bossPhase !== nextSnapshot.bossPhase;
+      prevSnapshot.bossPhase !== nextSnapshot.bossPhase ||
+      prevSnapshot.berserkerTimer !== nextSnapshot.berserkerTimer ||
+      prevSnapshot.chrysalisTimer !== nextSnapshot.chrysalisTimer;
 
     if (!changed) return;
     if (now - lastUIUpdateRef.current < 90) return;

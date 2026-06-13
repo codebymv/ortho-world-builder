@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { isRingRewardChestInteractionId, isVestigeRewardChestInteractionId } from '@/data/specialChests';
+import { isKeyRewardChestInteractionId, isRingRewardChestInteractionId, isVestigeRewardChestInteractionId } from '@/data/specialChests';
 import type { GameState, Item } from '@/lib/game/GameState';
 import type { RewardBundleEntry, ShowRewardBundleOptions } from '@/game/domain/rewardDisplay';
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
@@ -58,6 +58,7 @@ interface InteractionSystemContext {
   syncWestCliffGateState: () => void;
   syncSouthEntryPicketGateState: () => void;
   syncEastCreekShoreGateState: () => void;
+  syncWesternPreserveGateState: () => void;
   syncRiversideBridgeShortcutState: () => void;
   syncHollowShortcutState: () => void;
   syncEastHollowRouteGateState: () => void;
@@ -267,11 +268,37 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     return true;
   };
 
+  const tryHandleKeyRewardChest = (interactionId: string, px: number, py: number): boolean => {
+    if (!isKeyRewardChestInteractionId(interactionId)) return false;
+    if (context.state.getFlag(`${interactionId}_opened`)) return false;
+
+    const keyItem = interactionId === 'western_preserve_key_chest'
+      ? context.items.western_preserve_key
+      : undefined;
+    if (!keyItem) return false;
+
+    context.playChestUnlock();
+    context.state.addItem({ ...keyItem });
+    context.state.setFlag(`${interactionId}_opened`, true);
+    context.syncOpenedChestState();
+    context.emitSparkles(new THREE.Vector3(px, py, 0.3));
+    context.notify('Special Chest Opened!', {
+      id: 'key-chest-open',
+      type: 'success',
+      description: `Found ${keyItem.name}.`,
+      duration: 3200,
+    });
+    context.triggerUIUpdate();
+    context.triggerSave();
+    return true;
+  };
+
   const tryHandleChestOpen = (interactionId: string, px: number, py: number): boolean => {
     if (!interactionId.includes('chest')) return false;
     if (context.state.getFlag(`${interactionId}_opened`)) return false;
     if (tryHandleRingRewardChest(interactionId, px, py)) return true;
     if (tryHandleVestigeRewardChest(interactionId, px, py)) return true;
+    if (tryHandleKeyRewardChest(interactionId, px, py)) return true;
 
     context.playChestUnlock();
 
@@ -352,10 +379,16 @@ export function createInteractionSystem(context: InteractionSystemContext) {
       forgotten_shrine_chest: 'last_breath_charm',
       wolf_den_chest: 'last_breath_charm',
       // In front of the hollow corridor gate - "you'll need this" before the Hollow proper.
-      hollow_gate_chest: 'last_breath_charm',
+      hollow_gate_chest: 'throwing_barbs',
+      surveyors_hollow_chest: 'chrysalis_parchment',
+      broken_west_lake_bridge_chest: 'chrysalis_parchment',
+      golem_arena_chest: 'chrysalis_parchment',
       cliff_corridor_chest: 'last_breath_charm',
       // Reward for besting the western fort's Ridge Revenant.
       west_fort_chest: 'last_breath_charm',
+    };
+    const CHEST_CONSUMABLE_COUNTS: Record<string, number> = {
+      hollow_gate_chest: 6,
     };
     // Sundered Essence soul-items replace the (plentiful) default Extract in chests chosen
     // by zone/flow. Tier I sits along the southern + peripheral early routes; Tier II only
@@ -401,19 +434,25 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     const resolvedItemId = overrideItemId
       ?? (extractCount > 1 ? 'health_potion' : rollDefaultChestConsumable(interactionId));
     const consumableItem = resolvedItemId ? context.items[resolvedItemId] : undefined;
+    const consumableCount = resolvedItemId ? (CHEST_CONSUMABLE_COUNTS[interactionId] ?? extractCount) : extractCount;
     let consumableLabel: string | null = null;
     if (consumableItem) {
-      for (let i = 0; i < extractCount; i++) {
+      for (let i = 0; i < consumableCount; i++) {
         context.state.addItem({ ...consumableItem }, { notify: false });
       }
-      rewardEntries.push({ kind: 'item', item: { ...consumableItem }, quantity: extractCount });
+      rewardEntries.push({ kind: 'item', item: { ...consumableItem }, quantity: consumableCount });
       context.playItemGrab();
       if (resolvedItemId === 'health_potion') {
+        if (consumableCount > 1) {
+          consumableLabel = `${consumableCount}x Ephemeral Extract`;
+        } else
         consumableLabel = extractCount > 1 ? `${extractCount}× Ephemeral Extract` : 'an Ephemeral Extract';
       } else {
         // Article matches the item name's first vowel sound.
         const startsWithVowel = /^[aeiou]/i.test(consumableItem.name);
-        consumableLabel = `${startsWithVowel ? 'an' : 'a'} ${consumableItem.name}`;
+        consumableLabel = consumableCount > 1
+          ? `${consumableCount}x ${consumableItem.name}`
+          : `${startsWithVowel ? 'an' : 'a'} ${consumableItem.name}`;
       }
     }
 
@@ -564,7 +603,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.updateWorldChunksAtPlayer();
     context.playGateOpenHeavy();
     context.playGateShortcut();
-    context.showHeroOverlay('Gate Unbarred');
+    context.showHeroOverlay('Shortcut Unlocked');
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -739,6 +778,33 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     context.playGateShortcut();
     context.showHeroOverlay("Highlander's Plains");
     context.startCameraPan?.(101, 87, 750);
+    context.triggerSave();
+    context.triggerUIUpdate();
+    return true;
+  };
+
+  const tryHandleWesternPreserveGate = (interactionId: string): boolean => {
+    if (interactionId !== 'western_preserve_gate') return false;
+    if (context.state.currentMap !== 'forest') return true;
+
+    if (context.state.getFlag('western_preserve_gate_open')) {
+      context.notify('The preserve gate is already open.', { id: 'western-preserve-gate-open', duration: 1800 });
+      return true;
+    }
+
+    if (!context.state.hasItem('western_preserve_key')) {
+      context.playGateLockedHeavy();
+      context.notify('Only opens with the Western Preserve Key.', { id: 'western-preserve-gate-locked', duration: 2200 });
+      return true;
+    }
+
+    context.playGateOpenHeavy();
+    context.state.setFlag('western_preserve_gate_open', true);
+    context.syncWesternPreserveGateState();
+    context.updateWorldChunksAtPlayer();
+    context.playGateShortcut();
+    context.showHeroOverlay('Western Preserve');
+    context.startCameraPan?.(-98, -36, 750);
     context.triggerSave();
     context.triggerUIUpdate();
     return true;
@@ -1136,6 +1202,7 @@ export function createInteractionSystem(context: InteractionSystemContext) {
     tryHandleHollowShortcutLever,
     tryHandleEastHollowRouteGateLever,
     tryHandleHighlandersPlainsGate,
+    tryHandleWesternPreserveGate,
     tryHandleHollowApproachLadder,
     tryHandleCliffCorridorLadder,
     tryHandleFortRidgeLadder,
