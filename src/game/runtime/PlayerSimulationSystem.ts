@@ -13,6 +13,7 @@ import {
 } from '@/game/runtime/BreakableProps';
 import { PLAYER_MOVE_RADIUS } from '@/lib/game/playerCombatGeometry';
 import { hasPlayerMeleeLineOfSight } from '@/lib/game/Combat';
+import { SNEAK_SPEED_MULT } from '@/data/balance';
 
 export interface ArcWaveState {
   active: boolean;
@@ -295,7 +296,11 @@ export type PlayerAnimState =
   | 'lunge_recovery'
   | 'drinking'
   | 'block'
-  | 'climb';
+  | 'climb'
+  // Dedicated player finisher pose + recovery (Phase 3 sprite work). The Phase 2
+  // trigger reuses the 'attack' pose, but these are part of the type contract.
+  | 'visceral'
+  | 'visceral_recover';
 
 export type Direction8 =
   | 'up'
@@ -404,6 +409,7 @@ interface UpdatePlayerSimulationOptions {
   playPropBreak?: () => void;
   playTallGrassBreak?: () => void;
   dodgeIFrameDuration: number;
+  resolveAttackFrameHit: (attackFrame: number, comboStep: number) => void;
   // Combo chain state
   comboStep: number;
   comboWindowTimer: number;
@@ -489,6 +495,7 @@ export function updatePlayerSimulation({
   playPropBreak,
   playTallGrassBreak,
   dodgeIFrameDuration,
+  resolveAttackFrameHit,
   comboStep,
   comboWindowTimer,
   comboInputBuffered,
@@ -795,7 +802,8 @@ export function updatePlayerSimulation({
     currentDir8 = rawDir;
     state.player.direction = dir8to4(rawDir) as CardinalDirection;
 
-    const wantsSprint = canPlayerSprint(state.player, keys.shift);
+    // Sprint and sneak are opposite intents: sneaking suppresses sprint.
+    const wantsSprint = canPlayerSprint(state.player, keys.shift) && !state.player.isSneaking;
     state.player.isSprinting = wantsSprint;
     const baseSpeed = wantsSprint ? state.player.sprintSpeed : state.player.speed;
     const climbAdjusted = state.player.isClimbing ? baseSpeed * CLIMB_SPEED_MULT : baseSpeed;
@@ -806,7 +814,8 @@ export function updatePlayerSimulation({
     const onSlowWalk = standingTile?.slowWalk === true;
     let grassAdjusted = onTallGrass ? snareAdjusted * TALL_GRASS_SPEED_MULT : snareAdjusted;
     if (onSlowWalk) grassAdjusted *= TALL_GRASS_SPEED_MULT;
-    const currentSpeed = grassAdjusted * state.player.berserkerSpeedMult * state.getMovementSpeedMultiplier();
+    let currentSpeed = grassAdjusted * state.player.berserkerSpeedMult * state.getMovementSpeedMultiplier();
+    if (state.player.isSneaking) currentSpeed *= SNEAK_SPEED_MULT;
 
     if (wantsSprint) {
       state.player.stamina = Math.max(0, state.player.stamina - 16 * deltaTime);
@@ -961,6 +970,7 @@ export function updatePlayerSimulation({
           state.player.attackRecoveryTimer = getComboRecovery(comboStep);
         }
       } else {
+        resolveAttackFrameHit(attackFrame, comboStep);
         attackFrameTimer = getComboFrameDuration(comboStep);
       }
     }
@@ -979,13 +989,16 @@ export function updatePlayerSimulation({
     spinFrameTimer -= deltaTime;
     if (spinFrameTimer <= 0) {
       spinDirIndex++;
-      if (spinDirIndex >= spinDirections.length) {
+      const maxSpinFrames = state.equippedWeaponId === 'clockwork_axe'
+        ? spinDirections.length * 2
+        : spinDirections.length;
+      if (spinDirIndex >= maxSpinFrames) {
         playerAnimState = moved ? 'walk' : 'idle';
         spinDirIndex = 0;
         state.player.attackAnimationTimer = 0;
       } else {
         // Decelerate: last two frames play at 2x duration for a wind-down feel
-        const remaining = spinDirections.length - spinDirIndex;
+        const remaining = maxSpinFrames - spinDirIndex;
         const slowdown = remaining <= 2 ? 2 : 1;
         spinFrameTimer = spinFrameDuration * slowdown;
       }

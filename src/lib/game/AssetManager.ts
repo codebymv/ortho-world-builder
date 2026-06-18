@@ -1086,7 +1086,7 @@ export class AssetManager {
   // Unified pixel-art character sprite - pure fillRect, no curves
   createChibiCharacter(
     dir: 'down' | 'up' | 'left' | 'right',
-    state: 'idle' | 'walk' | 'attack' | 'charge' | 'hurt' | 'block' = 'idle',
+    state: 'idle' | 'walk' | 'attack' | 'charge' | 'hurt' | 'block' | 'sneak' = 'idle',
     frame: number = 0,
     palette: {
       hair: number; hairLight: number; hairDark: number;
@@ -1118,9 +1118,9 @@ export class AssetManager {
     // Extra downward pixel shift applied only to non-attack hold poses (idle/walk/block/charge).
     // Use for long weapons (e.g. scythe) whose blade tip clips the character's face at cy=default.
     weaponRestYShift: number = 0,
-    // When 'scythe', applies a completely separate WPose table designed around scythe mechanics
-    // (trailing low carry, ground-skim combo 0, hook pull combo 1, diagonal finisher combo 2).
-    weaponType: 'default' | 'scythe' = 'default',
+    // Special weapon types use separate WPose tables so large two-handed weapons read
+    // as unique silhouettes rather than sword recolors.
+    weaponType: 'default' | 'scythe' | 'clockwork_axe' = 'default',
   ): THREE.Texture {
     // Grid-based pixel art: 16 cols x 20 rows, 4px per cell = 64x80
     const G = 4; // grid cell size
@@ -1139,14 +1139,30 @@ export class AssetManager {
     // Use hardcoded pixels only when no icon canvas is supplied (or for the blade-only glow mask).
     const drawHardcodedSword = includeSword && (!weaponCanvas || bladeOnly);
 
+    // Sneak/crouch pose: not a vertical squash but a real fold - the head & torso
+    // sink low, the legs compress into a bent stance (feet stay planted), and the
+    // front/back stance splays wider. Applied as a per-cell coordinate remap so it
+    // works for every view and weapon without bespoke per-frame art.
+    const isCrouch = state === 'sneak';
+    const crouchRemap = (gx: number, gy: number): { rx: number; ry: number } => {
+      let rx = gx, ry = gy;
+      if (gy >= 14) ry = gy;            // feet stay on the ground line
+      else if (gy >= 12) ry = gy + 1;   // shins fold up (bent knees) - legs read short
+      else if (gy >= 7) ry = gy + 2;    // torso/hips sink onto the folded legs
+      else ry = gy + 3;                 // head & neck hunch low
+      if (!isSide && gy >= 12) rx = gx + (gx < 8 ? -1 : 1); // splay the planted stance (front/back)
+      return { rx, ry };
+    };
+
     // Helper: draw a cell at grid position
     const cell = (gx: number, gy: number, color: number) => {
+      const { rx, ry } = isCrouch ? crouchRemap(gx, gy) : { rx: gx, ry: gy };
       ctx.fillStyle = hex(color);
-      ctx.fillRect(gx * G, gy * G, G, G);
+      ctx.fillRect(rx * G, ry * G, G, G);
     };
 
     // Animation
-    const walkLeg = state === 'walk'
+    const walkLeg = (state === 'walk' || state === 'sneak')
       ? frame === 0
         ? -1
         : frame === 1
@@ -1720,8 +1736,18 @@ export class AssetManager {
     // cx/cy = the CHARACTER's grip/hand pixel position (derived from hardcoded sword cells).
     // The icon is drawn with its grip area anchored at (cx, cy) then rotated.
     if (weaponCanvas && !bladeOnly) {
-      const bobPx = bob * G;
-      interface WPose { cx: number; cy: number; angleDeg: number; scale: number }
+      // Crouch lowers the hip/grip anchor ~2 cells so the held weapon follows the body down.
+      const bobPx = bob * G + (isCrouch ? 8 : 0);
+      interface WPose {
+        cx: number;
+        cy: number;
+        angleDeg: number;
+        scale: number;
+        crop?: { sx: number; sy: number; sw: number; sh: number; ax: number; ay: number };
+        drawHands?: boolean;
+        flipX?: boolean;
+        occludeBackBody?: boolean;
+      }
       let pose: WPose | null = null;
 
       // Weapon icons are 32Ã-32 (8 design-pixels Ã- cellSize 4).  Scale 1.0 = native res.
@@ -1732,6 +1758,31 @@ export class AssetManager {
       // Mirror: left cx = W - right cx  (m(n) = 15-n â†” n symmetry â†’ pixel symmetry at W/2).
       const AX = 0.25;
       const AY = 0.8125;
+      const redrawBackBodyOverWeapon = () => {
+        // Rear idle carry is behind the body. Repaint the back silhouette after the
+        // cropped axe head so any overlap reads as occlusion instead of clipping.
+        for (let dy = 7; dy <= 16; dy++) {
+          for (let dx = 4; dx <= 11; dx++) {
+            cell(dx, dy + bob, (dx + dy) % 3 === 0 ? p.capeDark : p.capeMain);
+          }
+        }
+        for (let dx = 5; dx <= 10; dx++) {
+          cell(dx, 7 + bob, p.tunicDark);
+          cell(dx, 8 + bob, p.tunicMain);
+          cell(dx, 9 + bob, p.tunicMain);
+        }
+        for (let dx = 5; dx <= 10; dx++) cell(dx, 10 + bob, p.bootDark);
+        cell(7, 10 + bob, p.trimColor);
+        cell(8, 10 + bob, p.trimColor);
+        for (let dx = 5; dx <= 10; dx++) cell(dx, 11 + bob, p.tunicDark);
+        const lo = walkLeg;
+        cell(6, 12 + bob, p.pantColor); cell(7, 12 + bob, p.pantColor);
+        cell(6, 13 + lo + bob, p.pantColor); cell(7, 13 + lo + bob, p.pantColor);
+        cell(6, 14 + lo + bob, p.bootColor); cell(7, 14 + lo + bob, p.bootColor);
+        cell(8, 12 + bob, p.pantColor); cell(9, 12 + bob, p.pantColor);
+        cell(8, 13 - lo + bob, p.pantColor); cell(9, 13 - lo + bob, p.pantColor);
+        cell(8, 14 - lo + bob, p.bootColor); cell(9, 14 - lo + bob, p.bootColor);
+      };
 
       if (isSide) {
         const cy0 = bobPx;
@@ -1780,6 +1831,35 @@ export class AssetManager {
             // Idle / walk carry - blade trails behind at hip level (cx=40 keeps
             // the blade tip at x≈11 right-facing, well within the left canvas edge at S=1.3)
             pose = { cx: 40, cy: 52 + cy0, angleDeg: -65, scale: 1.0 };
+          }
+        } else if (weaponType === 'clockwork_axe') {
+          // Clockwork Axe: two-handed leverage, big shoulder chops, and a ratchet-ready
+          // charge stance. The head stays large in side view so the axe silhouette reads
+          // even when the player is small on screen.
+          if (atkFrame >= 0 && comboStep === 0) {
+            // Heavy right-to-left chop.
+            if (atkFrame === 0)      pose = { cx: 44, cy: 34 + cy0, angleDeg: -115, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 38, cy: 44 + cy0, angleDeg:  -45, scale: 1.0 };
+            else                     pose = { cx: 30, cy: 58 + cy0, angleDeg:    8, scale: 1.0 };
+          } else if (atkFrame >= 0 && comboStep === 1) {
+            // Backhand return with the haft pulled across both hands.
+            if (atkFrame === 0)      pose = { cx: 28, cy: 58 + cy0, angleDeg:   10, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 36, cy: 42 + cy0, angleDeg:  -78, scale: 1.0 };
+            else                     pose = { cx: 44, cy: 28 + cy0, angleDeg: -132, scale: 1.0 };
+          } else if (atkFrame >= 0 && comboStep === 2) {
+            // Finisher: overhead crank into a grounded cleave.
+            if (atkFrame === 0)      pose = { cx: 34, cy: 20 + cy0, angleDeg:  -45, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 32, cy: 42 + cy0, angleDeg:  -80, scale: 1.0 };
+            else                     pose = { cx: 34, cy: 60 + cy0, angleDeg: -118, scale: 1.0 };
+          } else if (isBlock) {
+            pose = { cx: 42, cy: 40 + cy0, angleDeg: -82, scale: 1.0 };
+          } else if (state === 'charge') {
+            // Wind-up: low ready, gear-lock at shoulder, then full two-handed overhead load.
+            if (frame === 0)      pose = { cx: 42, cy: 54 + cy0, angleDeg:  -18, scale: 1.0 };
+            else if (frame === 1) pose = { cx: 42, cy: 38 + cy0, angleDeg:  -68, scale: 1.0 };
+            else                  pose = { cx: 36, cy: 24 + cy0, angleDeg: -115, scale: 1.0 };
+          } else {
+            pose = { cx: 34, cy: 52 + cy0, angleDeg: 18, scale: 1.0 };
           }
         } else {
           // ── DEFAULT (sword / broadsword) pose table ──────────────────────
@@ -1875,6 +1955,32 @@ export class AssetManager {
         }
       }
 
+      if (!isUp && weaponType === 'clockwork_axe') {
+        const cy0 = bobPx;
+        if (atkFrame >= 0 && comboStep === 0) {
+          // Front/back readable broad chop: loaded high, crossing center, ending low.
+          if (atkFrame === 0)      pose = { cx: 42, cy: 24 + cy0, angleDeg: -120, scale: 1.0 };
+          else if (atkFrame === 1) pose = { cx: 28, cy: 44 + cy0, angleDeg:  -52, scale: 1.0 };
+          else                     pose = { cx: 22, cy: 60 + cy0, angleDeg:   -4, scale: 1.0 };
+        } else if (atkFrame >= 0 && comboStep === 1) {
+          if (atkFrame === 0)      pose = { cx: 22, cy: 60 + cy0, angleDeg:    8, scale: 1.0 };
+          else if (atkFrame === 1) pose = { cx: 38, cy: 42 + cy0, angleDeg:  -84, scale: 1.0 };
+          else                     pose = { cx: 48, cy: 24 + cy0, angleDeg: -138, scale: 1.0 };
+        } else if (atkFrame >= 0 && comboStep === 2) {
+          if (atkFrame === 0)      pose = { cx: 34, cy: 18 + cy0, angleDeg:  -46, scale: 1.0 };
+          else if (atkFrame === 1) pose = { cx: 32, cy: 42 + cy0, angleDeg:  -88, scale: 1.0 };
+          else                     pose = { cx: 32, cy: 62 + cy0, angleDeg: -112, scale: 1.0 };
+        } else if (isBlock) {
+          pose = { cx: 42, cy: 40 + cy0, angleDeg: -82, scale: 1.0 };
+        } else if (state === 'charge') {
+          if (frame === 0)      pose = { cx: 42, cy: 54 + cy0, angleDeg:  -14, scale: 1.0 };
+          else if (frame === 1) pose = { cx: 40, cy: 36 + cy0, angleDeg:  -66, scale: 1.0 };
+          else                  pose = { cx: 34, cy: 24 + cy0, angleDeg: -112, scale: 1.0 };
+        } else {
+          pose = { cx: 30, cy: 54 + cy0, angleDeg: 16, scale: 1.0 };
+        }
+      }
+
       // Up-facing (back of head) - full pose table for all weapon types
       if (isUp) {
         const cy0 = bobPx;
@@ -1906,6 +2012,40 @@ export class AssetManager {
             // Idle/walk carry - cx=40 keeps blade tip inside left edge at S=1.3
             pose = { cx: 40, cy: 52 + cy0, angleDeg: -65, scale: 1.0 };
           }
+        } else if (weaponType === 'clockwork_axe') {
+          // Back-view attacks still show the two-handed axe. In idle/walk the haft is held
+          // in front of the body: the handle is occluded, while the mirrored axe head peeks
+          // over the opposite screen-side shoulder instead of hanging down by the legs.
+          if (atkFrame >= 0 && comboStep === 0) {
+            if (atkFrame === 0)      pose = { cx: 42, cy: 24 + cy0, angleDeg: -120, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 28, cy: 44 + cy0, angleDeg:  -52, scale: 1.0 };
+            else                     pose = { cx: 22, cy: 60 + cy0, angleDeg:   -4, scale: 1.0 };
+          } else if (atkFrame >= 0 && comboStep === 1) {
+            if (atkFrame === 0)      pose = { cx: 22, cy: 60 + cy0, angleDeg:    8, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 38, cy: 42 + cy0, angleDeg:  -84, scale: 1.0 };
+            else                     pose = { cx: 48, cy: 24 + cy0, angleDeg: -138, scale: 1.0 };
+          } else if (atkFrame >= 0 && comboStep === 2) {
+            if (atkFrame === 0)      pose = { cx: 34, cy: 18 + cy0, angleDeg:  -46, scale: 1.0 };
+            else if (atkFrame === 1) pose = { cx: 32, cy: 42 + cy0, angleDeg:  -88, scale: 1.0 };
+            else                     pose = { cx: 32, cy: 62 + cy0, angleDeg: -112, scale: 1.0 };
+          } else if (isBlock) {
+            pose = { cx: 42, cy: 40 + cy0, angleDeg: -82, scale: 1.0 };
+          } else if (state === 'charge') {
+            if (frame === 0)      pose = { cx: 42, cy: 54 + cy0, angleDeg:  -14, scale: 1.0 };
+            else if (frame === 1) pose = { cx: 40, cy: 36 + cy0, angleDeg:  -66, scale: 1.0 };
+            else                  pose = { cx: 34, cy: 24 + cy0, angleDeg: -112, scale: 1.0 };
+          } else {
+            pose = {
+              cx: 18,
+              cy: 34 + cy0,
+              angleDeg: -12,
+              scale: 0.82,
+              crop: { sx: 12, sy: 0, sw: 20, sh: 16, ax: 0.25, ay: 0.55 },
+              drawHands: false,
+              flipX: true,
+              occludeBackBody: true,
+            };
+          }
         } else {
           // ── DEFAULT (sword / broadsword) up-facing ────────────────────────
           // Mirrors the front-facing (!isUp) table; the back-of-head body layout
@@ -1935,8 +2075,14 @@ export class AssetManager {
 
       if (pose) {
         const S = pose.scale * weaponScale;
-        const dw = weaponCanvas.width  * S;
-        const dh = weaponCanvas.height * S;
+        const sx = pose.crop?.sx ?? 0;
+        const sy = pose.crop?.sy ?? 0;
+        const sw = pose.crop?.sw ?? weaponCanvas.width;
+        const sh = pose.crop?.sh ?? weaponCanvas.height;
+        const ax = pose.crop?.ax ?? AX;
+        const ay = pose.crop?.ay ?? AY;
+        const dw = sw * S;
+        const dh = sh * S;
         ctx.save();
         ctx.imageSmoothingEnabled = false;
         if (isLeft) {
@@ -1944,10 +2090,41 @@ export class AssetManager {
           ctx.scale(-1, 1);
         } else {
           ctx.translate(pose.cx, pose.cy);
+          if (pose.flipX) ctx.scale(-1, 1);
         }
         ctx.rotate(pose.angleDeg * (Math.PI / 180));
-        ctx.drawImage(weaponCanvas, -dw * AX, -dh * AY, dw, dh);
+        ctx.drawImage(weaponCanvas, sx, sy, sw, sh, -dw * ax, -dh * ay, dw, dh);
         ctx.restore();
+
+        if (pose.occludeBackBody) redrawBackBodyOverWeapon();
+
+        if (weaponType === 'clockwork_axe' && pose.drawHands !== false) {
+          // Draw the grip hands after the weapon so the haft reads as held, not pasted
+          // over the sprite. The two-hand overdraw is intentionally chunky at gameplay scale.
+          const carryHandLift = atkFrame < 0 && !isBlock && state !== 'charge' ? -1 : 0;
+          if (isSide) {
+            cell(mx(5), 8 + bob + carryHandLift, p.tunicDark);
+            cell(mx(6), 9 + bob + carryHandLift, p.tunicDark);
+            cell(mx(6), 10 + bob + carryHandLift, p.skinShadow);
+            cell(mx(8), 8 + bob + carryHandLift, p.tunicDark);
+            cell(mx(7), 9 + bob + carryHandLift, p.tunicDark);
+            cell(mx(7), 10 + bob + carryHandLift, p.skinShadow);
+          } else if (isUp) {
+            cell(5, 8 + bob + carryHandLift, p.tunicDark);
+            cell(6, 9 + bob + carryHandLift, p.tunicDark);
+            cell(6, 10 + bob + carryHandLift, p.skinShadow);
+            cell(10, 8 + bob + carryHandLift, p.tunicDark);
+            cell(9, 9 + bob + carryHandLift, p.tunicDark);
+            cell(9, 10 + bob + carryHandLift, p.skinShadow);
+          } else {
+            cell(4, 8 + bob + carryHandLift, p.tunicDark);
+            cell(5, 9 + bob + carryHandLift, p.tunicDark);
+            cell(6, 9 + bob + carryHandLift, p.skinShadow);
+            cell(11, 8 + bob + carryHandLift, p.tunicDark);
+            cell(10, 9 + bob + carryHandLift, p.tunicDark);
+            cell(9, 10 + bob + carryHandLift, p.skinShadow);
+          }
+        }
       }
     }
 
@@ -3105,7 +3282,7 @@ export class AssetManager {
 
     // Generate all player sprites using canvas drawing
     const dirs: Array<'down' | 'up' | 'left' | 'right'> = ['down', 'up', 'left', 'right'];
-    const states: Array<'idle' | 'walk' | 'attack' | 'charge' | 'hurt' | 'block'> = ['idle', 'walk', 'attack', 'charge', 'hurt', 'block'];
+    const states: Array<'idle' | 'walk' | 'attack' | 'charge' | 'hurt' | 'block' | 'sneak'> = ['idle', 'walk', 'attack', 'charge', 'hurt', 'block', 'sneak'];
 
     for (const dir of dirs) {
       for (const state of states) {
@@ -7945,6 +8122,114 @@ export class AssetManager {
           const spriteId = `player_scythe_${dd}_attack_${cs}_${fr}`;
           this.registerTexture(spriteId, () => {
             const baseTexture = this.getTexture(`player_scythe_${b}_attack_${cs}_${fr}`)!;
+            if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
+              this.textureDataUrls.set(spriteId, baseTexture.image.toDataURL());
+            }
+            return baseTexture;
+          });
+        }
+      }
+    }
+
+    // Clockwork Axe inventory icon - hooked steel head, brass gear collar, long two-handed haft.
+    // The silhouette follows the reference: long diagonal handle with an oversized crescent head.
+    const CA_B  = 0xD8D8D8;  // polished steel face
+    const CA_H  = 0xF7F3E6;  // bright cutting edge
+    const CA_E  = 0x777A7D;  // steel edge shadow
+    const CA_D  = 0x3E4246;  // dark back plate
+    const CA_BR = 0xB08D57;  // brass gear housing
+    const CA_BH = 0xE0C16A;  // brass highlight
+    const CA_HW = 0x9A642E;  // wood highlight
+    const CA_HF = 0x6B3F18;  // dark wooden haft
+    const CA_GR = 0x4A2A12;  // leather grip
+    registerSpriteTexture('clockwork_axe', [
+      // 16 design pixels packed at 2x: more room for a real crescent head + long haft.
+      /* 00 */ [C,     C,     C,     C,     C,     C,     C,     C,     C,     CA_D,  CA_D,  CA_E,  CA_E,  C,     C,     C    ],
+      /* 01 */ [C,     C,     C,     C,     C,     C,     C,     C,     CA_D,  CA_E,  CA_B,  CA_B,  CA_H,  CA_E,  C,     C    ],
+      /* 02 */ [C,     C,     C,     C,     C,     C,     C,     CA_D,  CA_E,  CA_B,  CA_B,  CA_H,  CA_H,  CA_B,  CA_E,  C    ],
+      /* 03 */ [C,     C,     C,     C,     C,     C,     C,     CA_D,  CA_B,  CA_B,  CA_H,  CA_H,  CA_B,  CA_B,  CA_E,  C    ],
+      /* 04 */ [C,     C,     C,     C,     C,     C,     CA_D,  CA_B,  CA_B,  CA_H,  CA_H,  C,     C,     CA_B,  CA_E,  C    ],
+      /* 05 */ [C,     C,     C,     C,     C,     C,     CA_D,  CA_B,  CA_H,  CA_H,  C,     C,     CA_BR, CA_B,  CA_E,  C    ],
+      /* 06 */ [C,     C,     C,     C,     C,     CA_HF, CA_HW, CA_BR, CA_BH, CA_BR, CA_BR, CA_BH, CA_BR, CA_E,  C,     C    ],
+      /* 07 */ [C,     C,     C,     C,     CA_HF, CA_HW, CA_HF, CA_HF, CA_BR, CA_D,  CA_BR, C,     C,     C,     C,     C    ],
+      /* 08 */ [C,     C,     C,     CA_HF, CA_HW, CA_HF, C,     C,     CA_BR, C,     C,     C,     C,     C,     C,     C    ],
+      /* 09 */ [C,     C,     CA_HF, CA_HW, CA_HF, C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C    ],
+      /* 10 */ [C,     CA_HF, CA_HW, CA_HF, C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C    ],
+      /* 11 */ [CA_HF, CA_HW, CA_HF, C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C    ],
+      /* 12 */ [CA_HW, CA_HF, C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C    ],
+      /* 13 */ [CA_GR, CA_HW, C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C    ],
+      /* 14 */ [CA_GR, C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C    ],
+      /* 15 */ [CA_GR, C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C,     C    ],
+    ], 2);
+
+    const heroClockworkAxePalette = {
+      ...heroPalette,
+      bladeMain:      0xD8D8D8,
+      bladeHighlight: 0xF7F3E6,
+      bladeShadow:    0x777A7D,
+      guardColor:     0xB08D57,
+      gripColor:      0x6B3F18,
+      bladeStyle:     'broad' as const,
+    };
+
+    for (const dir of dirs) {
+      for (const state of states) {
+        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' || state === 'block' ? 1 : 2;
+        for (let f = 0; f < maxFrames; f++) {
+          const d = dir, s = state, fr = f;
+          const spriteId = `player_clockwork_axe_${d}_${s}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const tex = this.getTexture('clockwork_axe');
+            const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
+            return this.createChibiCharacter(d, s, fr, heroClockworkAxePalette, spriteId, false, true, wc, 1.35, 0, 10, 'clockwork_axe');
+          });
+        }
+      }
+    }
+
+    // Clockwork Axe combo step textures: chops use a bespoke two-handed axe pose table.
+    for (const dir of dirs) {
+      for (let step = 0; step < 3; step++) {
+        for (let f = 0; f < 3; f++) {
+          const d = dir, cs = step, fr = f;
+          const spriteId = `player_clockwork_axe_${d}_attack_${cs}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const tex = this.getTexture('clockwork_axe');
+            const wc = tex?.image instanceof HTMLCanvasElement ? tex.image : undefined;
+            return this.createChibiCharacter(d, 'attack', fr, heroClockworkAxePalette, spriteId, false, true, wc, 1.35, cs, 10, 'clockwork_axe');
+          });
+        }
+      }
+    }
+
+    // Diagonal Clockwork Axe sprite aliases
+    for (const dDir of bsDiagDirs) {
+      const base = bsDiagBase[dDir];
+      for (const state of states) {
+        const maxFrames = state === 'attack' || state === 'charge' ? 3 : state === 'hurt' || state === 'block' ? 1 : 2;
+        for (let f = 0; f < maxFrames; f++) {
+          const dd = dDir, b = base, s = state, fr = f;
+          const spriteId = `player_clockwork_axe_${dd}_${s}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const baseTexture = this.getTexture(`player_clockwork_axe_${b}_${s}_${fr}`)!;
+            if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
+              this.textureDataUrls.set(spriteId, baseTexture.image.toDataURL());
+            }
+            return baseTexture;
+          });
+        }
+      }
+    }
+
+    // Diagonal Clockwork Axe combo step aliases
+    for (const dDir of bsDiagDirs) {
+      const base = bsDiagBase[dDir];
+      for (let step = 0; step < 3; step++) {
+        for (let f = 0; f < 3; f++) {
+          const dd = dDir, b = base, cs = step, fr = f;
+          const spriteId = `player_clockwork_axe_${dd}_attack_${cs}_${fr}`;
+          this.registerTexture(spriteId, () => {
+            const baseTexture = this.getTexture(`player_clockwork_axe_${b}_attack_${cs}_${fr}`)!;
             if (baseTexture instanceof THREE.CanvasTexture && baseTexture.image instanceof HTMLCanvasElement) {
               this.textureDataUrls.set(spriteId, baseTexture.image.toDataURL());
             }

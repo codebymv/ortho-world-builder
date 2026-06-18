@@ -4,6 +4,7 @@ import type { GameState } from '@/lib/game/GameState';
 import type { ParticleSystem } from '@/lib/game/ParticleSystem';
 import type { ScreenShake } from '@/lib/game/ScreenShake';
 import { getComboSpriteStep } from '@/data/weaponMovesets';
+import { isEquippedWeaponImbueActive } from '@/lib/game/weaponRules';
 
 let _lastDamageFlashActive = false;
 let _lastHeldItemSprite = '';
@@ -107,6 +108,7 @@ export function applyPlayerVisuals({
     } else if (desiredOutline === 'charge-peak') {
       const peakOutlineHex = state.equippedWeaponId === 'ornamental_broadsword' ? 0x66CCFF
         : state.equippedWeaponId === 'terminus_scythe' ? 0xCC66FF
+        : state.equippedWeaponId === 'clockwork_axe' ? 0xC9B07A
         : 0xFFCC44;
       outlineMat.color.setHex(peakOutlineHex);
     } else {
@@ -125,6 +127,7 @@ export function applyPlayerVisuals({
   //   4. Otherwise hidden.
   const isBroadsword = state.equippedWeaponId === 'ornamental_broadsword';
   const isScythe = state.equippedWeaponId === 'terminus_scythe';
+  const isClockworkAxe = state.equippedWeaponId === 'clockwork_axe';
   const bladeOverlayMat = bladeOverlayMesh.material as THREE.ShaderMaterial;
   if (isChargingAttack && chargeLevel > 0) {
     // ─── Charge ramp curve: easeOut so the early part feels "loading" and the
@@ -144,6 +147,10 @@ export function applyPlayerVisuals({
         // Eclipse-purple to white-hot - scythe goes through a different palette.
         (bladeOverlayMat.uniforms.glowColor.value as THREE.Color)
           .setRGB(peakIntensity * 0.95, peakIntensity * 0.55, peakIntensity * 1.05);
+      } else if (isClockworkAxe) {
+        // Brass/steel lock-in, not magic: warm rim over a pale cutting edge.
+        (bladeOverlayMat.uniforms.glowColor.value as THREE.Color)
+          .setRGB(peakIntensity * 1.02, peakIntensity * 0.82, peakIntensity * 0.42);
       } else {
         // Solar gold-white for the default sword.
         (bladeOverlayMat.uniforms.glowColor.value as THREE.Color)
@@ -166,6 +173,12 @@ export function applyPlayerVisuals({
         const r = intensity * (0.55 + ramp * 0.40);
         const g = intensity * (0.15 + ramp * 0.30);
         const b = intensity * (0.75 + ramp * 0.25);
+        (bladeOverlayMat.uniforms.glowColor.value as THREE.Color).setRGB(r, g, b);
+      } else if (isClockworkAxe) {
+        // Burnished brass ramp - the mechanism is winding, not enchanting.
+        const r = intensity * (0.70 + ramp * 0.28);
+        const g = intensity * (0.50 + ramp * 0.28);
+        const b = intensity * (0.18 + ramp * 0.12);
         (bladeOverlayMat.uniforms.glowColor.value as THREE.Color).setRGB(r, g, b);
       } else {
         // Default sword: deep amber → bright gold
@@ -195,14 +208,14 @@ export function applyPlayerVisuals({
         const emitInterval = 0.16 - chargeLevel * 0.10; // 0.16s → 0.06s as charge ramps
         if (_chargeEmberTimer <= 0) {
           _chargeEmberTimer = emitInterval;
-          const color = isBroadsword ? 0x88BBEE : isScythe ? 0xCC55EE : 0xFFB347;
+          const color = isBroadsword ? 0x88BBEE : isScythe ? 0xCC55EE : isClockworkAxe ? 0xB08D57 : 0xFFB347;
           particleSystem.emitAt(playerX + (Math.random() - 0.5) * 0.3, blade_y, 0.45, 2, color, 0.45, 0.7, 0.5);
         }
       }
       // PEAK BURST: one-shot the FRAME the player crosses chargeLevel = 1.
       if (chargeLevel >= 1 && _lastChargeLevel < 1) {
-        const ringColor = isBroadsword ? 0xCCEEFF : isScythe ? 0xEEAAFF : 0xFFE680;
-        const coreColor = isBroadsword ? 0xFFFFFF : isScythe ? 0xFFFFFF : 0xFFFFFF;
+        const ringColor = isBroadsword ? 0xCCEEFF : isScythe ? 0xEEAAFF : isClockworkAxe ? 0xD5B76B : 0xFFE680;
+        const coreColor = isClockworkAxe ? 0xF7F3E6 : 0xFFFFFF;
         // Small radial ring at the blade - reads as the weapon "locking in".
         particleSystem.emitAt(playerX, blade_y, 0.5, 10, ringColor, 0.5, 1.6, 1.8);
         particleSystem.emitAt(playerX, blade_y, 0.55, 5, coreColor, 0.35, 1.1, 1.2);
@@ -213,7 +226,7 @@ export function applyPlayerVisuals({
         _peakSustainEmberTimer -= deltaTime;
         if (_peakSustainEmberTimer <= 0) {
           _peakSustainEmberTimer = 0.10 + Math.random() * 0.05;
-          const color = isBroadsword ? 0xCCEEFF : isScythe ? 0xEEAAFF : 0xFFE680;
+          const color = isBroadsword ? 0xCCEEFF : isScythe ? 0xEEAAFF : isClockworkAxe ? 0xD5B76B : 0xFFE680;
           particleSystem.emitAt(playerX + (Math.random() - 0.5) * 0.4, blade_y + Math.random() * 0.25, 0.5, 1, color, 0.45, 0.9, 0.4);
         }
       } else {
@@ -221,7 +234,7 @@ export function applyPlayerVisuals({
       }
     }
     _lastChargeLevel = chargeLevel;
-  } else if (state.player.chrysalisTimer > 0) {
+  } else if (isEquippedWeaponImbueActive(state.inventory, state.equippedWeaponId, 'chrysalis', state.player.chrysalisTimer)) {
     _lastChargeLevel = 0;
     _chargeEmberTimer = 0;
     _peakSustainEmberTimer = 0;
@@ -433,6 +446,12 @@ export function resolvePlayerTexture({
       const spinDir = spinDirections[Math.min(spinDirIndex, spinDirections.length - 1)];
       const spinFrame = Math.min(spinDirIndex % 3, 2);
       textureKey = getPlayerTextureName(spinDir, 'attack_0', spinFrame);
+    } else if (state.equippedWeaponId === 'clockwork_axe') {
+      // Clockwork charge is two rotations: normal reach first, ratcheted finisher second.
+      const spinDir = spinDirections[spinDirIndex % spinDirections.length];
+      const spinStep = spinDirIndex >= spinDirections.length ? 2 : 0;
+      const spinFrame = Math.min(spinDirIndex % 3, 2);
+      textureKey = getPlayerTextureName(spinDir, `attack_${spinStep}`, spinFrame);
     } else {
       const spinDir = spinDirections[Math.min(spinDirIndex, spinDirections.length - 1)];
       textureKey = getPlayerTextureName(spinDir, 'attack', 1);
@@ -453,6 +472,9 @@ export function resolvePlayerTexture({
     textureKey = getPlayerTextureName(currentDir8, 'attack', 2);
   } else if (playerAnimState === 'block') {
     textureKey = getPlayerTextureName(currentDir8, 'block', 0);
+  } else if (state.player.isSneaking && (playerAnimState === 'walk' || playerAnimState === 'idle')) {
+    // Dedicated crouch pose while sneaking (idle = frame 0, moving = walk cadence frames).
+    textureKey = getPlayerTextureName(currentDir8, 'sneak', animFrame);
   } else {
     textureKey = getPlayerTextureName(currentDir8, playerAnimState, animFrame);
   }
@@ -473,7 +495,9 @@ export function resolvePlayerTexture({
     // For spin_attack both weapons now use the current spin direction for their fallback.
     const fallbackDir = dir8to4(
       playerAnimState === 'spin_attack'
-        ? spinDirections[Math.min(spinDirIndex, spinDirections.length - 1)]
+        ? state.equippedWeaponId === 'clockwork_axe'
+          ? spinDirections[spinDirIndex % spinDirections.length]
+          : spinDirections[Math.min(spinDirIndex, spinDirections.length - 1)]
         : currentDir8,
     );
     const fallbackState =
@@ -482,7 +506,11 @@ export function resolvePlayerTexture({
         : playerAnimState === 'charge'
           ? 'charge'
           : playerAnimState === 'spin_attack'
-            ? (state.equippedWeaponId === 'terminus_scythe' ? 'attack_0' : 'attack')
+            ? state.equippedWeaponId === 'terminus_scythe'
+              ? 'attack_0'
+              : state.equippedWeaponId === 'clockwork_axe'
+                ? `attack_${spinDirIndex >= spinDirections.length ? 2 : 0}`
+                : 'attack'
             : playerAnimState === 'hurt'
               ? 'hurt'
               : playerAnimState;
@@ -490,7 +518,9 @@ export function resolvePlayerTexture({
       playerAnimState === 'attack'
         ? Math.min(attackFrame, 2)
         : playerAnimState === 'spin_attack'
-          ? (state.equippedWeaponId === 'terminus_scythe' ? Math.min(spinDirIndex % 3, 2) : 1)
+          ? (state.equippedWeaponId === 'terminus_scythe' || state.equippedWeaponId === 'clockwork_axe'
+            ? Math.min(spinDirIndex % 3, 2)
+            : 1)
           : playerAnimState === 'charge'
             ? Math.min(animFrame, 2)
             : animFrame;

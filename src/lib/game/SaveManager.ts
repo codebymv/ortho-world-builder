@@ -93,6 +93,8 @@ function migrateQuests(quests: Quest[]): Quest[] {
 function migrateInventoryItem(item: Item): Item {
   if (item.id === 'cursed_idol') return { ...items.wolf_ring };
   if (item.id === 'wayfarer_ring') return { ...items.wayfarer_ring };
+  if (item.id === 'chrysalis_parchment') return { ...items.chrysalis_parchment };
+  if (item.id === 'clockwork_axe') return { ...items.clockwork_axe };
   return item;
 }
 

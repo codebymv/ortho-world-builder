@@ -3,6 +3,7 @@ import { SharedGeometry } from '@/lib/game/AssetManager';
 import { applyEnemyVisuals, updateDeadEnemyVisual } from '@/game/runtime/EnemyVisualSystem';
 import type { EnemyLoopContext } from '@/game/runtime/RuntimePhaseContexts';
 import { ENEMY_BLUEPRINTS } from '@/data/enemies';
+import { SNEAK_DETECTION_MULT } from '@/data/balance';
 import { getClimbVisualElevation } from '@/game/runtime/PlayerSimulationSystem';
 import { updateEastRidgeBoulder } from '@/game/runtime/EastRidgeBoulder';
 import { updateFailedRitualGlyphs, updateRevenantRituals } from '@/game/runtime/RevenantRituals';
@@ -467,7 +468,7 @@ export function runEnemyLoop({
         }
       }
     },
-    state.player.stealthDetectionMult,
+    state.player.stealthDetectionMult * (state.player.isSneaking ? SNEAK_DETECTION_MULT : 1),
     particleSystem,
     playPropBreak,
     state.player.isClimbing,

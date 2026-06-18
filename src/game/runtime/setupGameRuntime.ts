@@ -10,6 +10,7 @@ import { SaveManager } from '@/lib/game/SaveManager';
 import { preloadMap, subscribeMapHotReload } from '@/data/maps';
 import { getStaggerDamageMultiplier } from '@/data/balance';
 import { getMoveset } from '@/data/weaponMovesets';
+import { isEquippedWeaponImbueActive } from '@/lib/game/weaponRules';
 import type { DialogueNode } from '@/data/dialogues';
 import { hasDialogueId } from '@/data/dialogueIds';
 import { notify } from '@/lib/game/notificationBus';
@@ -499,6 +500,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
     const getPlayerTextureName = (dir: string, animState: string, frame: number): string => {
       const weaponPrefix = state.equippedWeaponId === 'ornamental_broadsword' ? 'broadsword_'
         : state.equippedWeaponId === 'terminus_scythe' ? 'scythe_'
+        : state.equippedWeaponId === 'clockwork_axe' ? 'clockwork_axe_'
         : '';
       return `player_${weaponPrefix}${dir}_${animState}_${frame}`;
     };
@@ -785,6 +787,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
       performAttack,
       performBufferedAttack,
       performChargeAttack,
+      resolveAttackFrameHit,
       triggerComboChain,
       onEnemyKilled,
       restAtBonfire,
@@ -875,6 +878,9 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           lungeRecoveryMax: LUNGE_RECOVERY_MAX,
           openBonfireMenu: wrappedOpenBonfireMenu,
           showTransitionOverlay,
+          scheduleEffect: (callback, delayMs) => {
+            effectTimeouts.push(setTimeout(callback, delayMs));
+          },
         });
       } catch (error) {
         fatalRuntime.report(error, 'action phase setup');
@@ -938,6 +944,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
           performAttack: () => {},
           performBufferedAttack: () => null,
           performChargeAttack: () => {},
+          resolveAttackFrameHit: () => {},
           triggerComboChain: () => null,
           onEnemyKilled: () => {},
           restAtBonfire: () => {},
@@ -1127,11 +1134,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             screenShake.hitStop(0.04);
             particleSystem.emitDamage(new THREE.Vector3(enemy.position.x, enemy.position.y, 0.3));
             particleSystem.emitSparkles(new THREE.Vector3(enemy.position.x, enemy.position.y + 0.3, 0.5));
-            if (
-              state.player.chrysalisTimer > 0 &&
-              state.equippedWeaponId === 'ornamental_broadsword' &&
-              !result.killed
-            ) {
+            if (isEquippedWeaponImbueActive(state.inventory, state.equippedWeaponId, 'chrysalis', state.player.chrysalisTimer) && !result.killed) {
               combatSystem.queueChrysalisEcho(enemy, actualDamage);
               particleSystem.emitAt(enemy.position.x, enemy.position.y + 0.45, 0.48, 4, 0xBEEFFF, 0.38, 0.45, 0.5);
               particleSystem.emitAt(enemy.position.x, enemy.position.y + 0.55, 0.52, 2, 0xFFFFFF, 0.24, 0.35, 0.25);
@@ -1145,6 +1148,7 @@ export function setupGameRuntimeEffect(options: SetupGameRuntimeOptions) {
             // Recovery complete - no additional SFX needed (swing played at lunge start)
           },
           dodgeIFrameDuration: DODGE_IFRAME_DURATION,
+          resolveAttackFrameHit,
           triggerComboChain,
           comboWindowDuration: getMoveset(state.equippedWeaponId).comboWindow,
           getComboFrameDuration: (step: number) => {

@@ -226,6 +226,24 @@ export const SPRITE_PLAYER: HudSpriteSpec = {
 };
 
 /**
+ * Crouch / sneak indicator - a hunched, low figure with a wide planted stance
+ * and feet apart, distinct from the upright SPRITE_PLAYER bust. Shown in the HUD
+ * while the sneak toggle is active. Reuses the hooded-traveler palette.
+ */
+export const SPRITE_CROUCH: HudSpriteSpec = {
+  grid: [
+    [_, _, C.hoodDk, C.hood, C.hood, C.hoodDk, _, _],
+    [_, _, C.hood, C.skin, C.skin, C.hood, _, _],
+    [_, C.hoodDk, C.hood, C.hood, C.hood, C.hood, C.hoodDk, _],
+    [_, C.hood, C.hoodHi, C.hood, C.hood, C.hoodHi, C.hood, _],
+    [C.hoodDk, C.hood, C.hood, C.hoodHi, C.hoodHi, C.hood, C.hood, C.hoodDk],
+    [C.hood, C.hoodDk, C.hood, C.hood, C.hood, C.hood, C.hoodDk, C.hood],
+    [C.hoodDk, _, C.hoodDk, _, _, C.hoodDk, _, C.hoodDk],
+    [C.hoodDk, _, _, _, _, _, _, C.hoodDk],
+  ],
+};
+
+/**
  * Inventory satchel. Leather pouch with a brass buckle in the center - pairs
  * thematically with the cottage chest and quest item iconography.
  */

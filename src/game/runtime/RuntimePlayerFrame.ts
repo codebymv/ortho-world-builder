@@ -138,7 +138,8 @@ export function runPlayerFramePhase({
   let attackOffsetX = 0;
   let attackOffsetY = 0;
   const facing4 = dir8to4(currentDir8);
-  const walkCycleSpeed = state.player.isSprinting ? 70 : 95;
+  // Sneak crouch-walk has a slower, lower cadence than a normal stride.
+  const walkCycleSpeed = state.player.isSprinting ? 70 : state.player.isSneaking ? 135 : 95;
   const moveWave =
     playerAnimState === 'walk' || state.player.isDodging
       ? Math.sin(currentTime / walkCycleSpeed)
@@ -233,7 +234,8 @@ export function runPlayerFramePhase({
   let visualRotation = 0;
 
   if (playerAnimState === 'walk') {
-    const sprintMult = state.player.isSprinting ? 1.4 : 1.0;
+    // Sneaking damps the bob/lean to a careful, low crouch-walk.
+    const sprintMult = state.player.isSprinting ? 1.4 : state.player.isSneaking ? 0.5 : 1.0;
     attackOffsetY += stride * 0.06 * sprintMult;
     if (facing4 === 'left') attackOffsetX -= stride * 0.04 * sprintMult;
     else if (facing4 === 'right') attackOffsetX += stride * 0.04 * sprintMult;
@@ -254,6 +256,10 @@ export function runPlayerFramePhase({
     if (facing4 === 'left') attackOffsetX -= climbWave * 0.015;
     else if (facing4 === 'right') attackOffsetX += climbWave * 0.015;
   }
+
+  // Crouch is now carried by the dedicated 'sneak' sprite pose (drawn in
+  // createChibiCharacter), so no squash transform here - only the slower walk
+  // cadence + damped bob above sell the careful crouch-walk motion.
 
   if (state.player.isDodging) {
     const t = 1 - state.player.dodgeTimer / state.player.dodgeDuration;
@@ -430,15 +436,49 @@ export function runPlayerFramePhase({
       }
     } else {
       // ─── Default sword: spinning ring expanding from the player ──────────────
-      const progress = 1 - spinSwooshTimer / spinSwooshDuration;
-      meshes.spinSwooshMesh.visible = true;
-      meshes.spinSwooshMaterial.color.setHex(0xccddff);
-      meshes.spinSwooshMaterial.opacity = (1 - progress) * 0.35;
-      const chargeRange = state.player.attackRange * 1.5;
-      const spinScale = chargeRange * (0.3 + progress * 0.7);
-      meshes.spinSwooshMesh.scale.set(spinScale, spinScale, 1);
-      meshes.spinSwooshMesh.rotation.z = progress * Math.PI * 2;
+      // Clockwork Axe reads as two distinct metallic spins: normal reach first,
+      // then a short ratchet beat followed by an extended follow-up sweep.
+      const isClockwork = state.equippedWeaponId === 'clockwork_axe';
+      meshes.spinSwooshMaterial.color.setHex(isClockwork ? 0xC9B07A : 0xccddff);
       meshes.spinSwooshMesh.position.set(playerVisualX, playerVisualY, 0.3);
+      if (isClockwork) {
+        const firstSpinDuration = spinSwooshDuration * 0.7;
+        const followUpBeatDuration = spinSwooshDuration * 0.18;
+        const secondSpinDuration = spinSwooshDuration * 0.84;
+        const totalDuration = firstSpinDuration + followUpBeatDuration + secondSpinDuration;
+        const elapsed = Math.max(0, totalDuration - spinSwooshTimer);
+        const shortRange = state.player.attackRange * 1.15;
+        const extendedRange = state.player.attackRange * 2.55;
+
+        if (elapsed < firstSpinDuration) {
+          const p = Math.max(0, Math.min(1, elapsed / firstSpinDuration));
+          const fade = Math.sin(p * Math.PI);
+          const scale = shortRange * (0.78 + p * 0.22);
+          meshes.spinSwooshMesh.visible = true;
+          meshes.spinSwooshMaterial.opacity = fade * 0.38;
+          meshes.spinSwooshMesh.scale.set(scale, scale, 1);
+          meshes.spinSwooshMesh.rotation.z = p * Math.PI * 2;
+        } else if (elapsed < firstSpinDuration + followUpBeatDuration) {
+          meshes.spinSwooshMesh.visible = false;
+        } else {
+          const p = Math.max(0, Math.min(1, (elapsed - firstSpinDuration - followUpBeatDuration) / secondSpinDuration));
+          const eased = 1 - Math.pow(1 - p, 2);
+          const fade = Math.sin(p * Math.PI);
+          const scale = shortRange * 0.85 + (extendedRange - shortRange * 0.85) * eased;
+          meshes.spinSwooshMesh.visible = true;
+          meshes.spinSwooshMaterial.opacity = fade * 0.48;
+          meshes.spinSwooshMesh.scale.set(scale, scale, 1);
+          meshes.spinSwooshMesh.rotation.z = Math.PI * 2 + p * Math.PI * 2;
+        }
+      } else {
+        const progress = Math.max(0, Math.min(1, 1 - spinSwooshTimer / spinSwooshDuration));
+        meshes.spinSwooshMesh.visible = true;
+        meshes.spinSwooshMaterial.opacity = (1 - progress) * 0.35;
+        const chargeRange = state.player.attackRange * 1.5;
+        const spinScale = chargeRange * (0.3 + progress * 0.7);
+        meshes.spinSwooshMesh.scale.set(spinScale, spinScale, 1);
+        meshes.spinSwooshMesh.rotation.z = progress * Math.PI * 2;
+      }
     }
   } else {
     meshes.spinSwooshMesh.visible = false;

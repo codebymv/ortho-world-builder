@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
 import { SaveManager, type SaveData } from '../SaveManager';
 import { GameState } from '../GameState';
+import { items } from '@/data/items';
 
 // Minimal in-memory localStorage shim - vitest runs in node, so global
 // localStorage isn't defined by default.
@@ -169,6 +170,69 @@ describe('SaveManager.load - defaults for missing v5 fields', () => {
     const loaded = SaveManager.load() as SaveData;
     expect(loaded.inventory).toEqual([]);
     expect(loaded.gameFlags).toEqual({});
+  });
+});
+
+describe('SaveManager.load - weapon migration', () => {
+  it('does not auto-inject Clockwork Axe into ordinary saves', () => {
+    writeRaw({
+      version: 8,
+      timestamp: 1,
+      player: {
+        position: { x: 0, y: 0 },
+        direction: 'down',
+        health: 100,
+        maxHealth: 100,
+        gold: 0,
+        essence: 0,
+        attackDamage: 20,
+        stamina: 120,
+        maxStamina: 120,
+      },
+      currentMap: 'village',
+      inventory: [{ ...items.meek_short_sword }],
+      equippedWeaponId: 'meek_short_sword',
+      weaponLoadout: ['meek_short_sword', null, null],
+      gameFlags: {},
+      worldItems: [],
+      lastBonfire: null,
+      droppedEssence: null,
+    });
+
+    const loaded = SaveManager.load() as SaveData;
+    expect(loaded.inventory.some(item => item.id === 'clockwork_axe')).toBe(false);
+    expect(loaded.weaponLoadout).toEqual(['meek_short_sword', null, null]);
+  });
+
+  it('preserves Clockwork Axe when an existing save already owns it', () => {
+    writeRaw({
+      version: 8,
+      timestamp: 1,
+      player: {
+        position: { x: 0, y: 0 },
+        direction: 'down',
+        health: 100,
+        maxHealth: 100,
+        gold: 0,
+        essence: 0,
+        attackDamage: 20,
+        stamina: 120,
+        maxStamina: 120,
+      },
+      currentMap: 'village',
+      inventory: [{ id: 'clockwork_axe', name: 'Old Axe', description: '', type: 'equipment', sprite: 'sword' }],
+      equippedWeaponId: 'clockwork_axe',
+      gameFlags: {},
+      worldItems: [],
+      lastBonfire: null,
+      droppedEssence: null,
+    });
+
+    const loaded = SaveManager.load() as SaveData;
+    const clockwork = loaded.inventory.find(item => item.id === 'clockwork_axe');
+    expect(clockwork?.sprite).toBe('clockwork_axe');
+    expect(clockwork?.weaponClass).toBe('imbued');
+    expect(loaded.weaponLoadout).toContain('clockwork_axe');
   });
 });
 

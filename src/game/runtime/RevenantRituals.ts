@@ -117,17 +117,12 @@ interface DudRitualSite {
   mapId: string;
   tileX: number;
   tileY: number;
-  title: string;
-  description: string;
 }
 
 const DUD_RITUAL_SITES: DudRitualSite[] = FOREST_DUD_RITUAL_ANCHORS.map(anchor => ({
   mapId: 'forest',
   tileX: anchor.tileX,
   tileY: anchor.tileY,
-  title: 'The sigil will not hold',
-  description:
-    'Cursed sediment fizzles in the cracked ring and dies. Whoever tried this rite chose the wrong ground. The elevation shifts, or the working was simply too chaotic to bind.',
 }));
 
 function siteKey(site: RitualSite): string {
@@ -289,16 +284,6 @@ export function updateFailedRitualGlyphs(ctx: Pick<RevenantRitualContext, 'state
     if (dx * dx + dy * dy > TRIGGER_RADIUS_SQ) continue;
 
     _hintedDud.add(key);
-    const cores = state.player.cursedSediment ?? 0;
-    notify(site.title, {
-      id: `ritual-dud-${key}`,
-      type: 'info',
-      description:
-        cores >= MIN_CURSED_SEDIMENT
-          ? `${site.description} Even steeped in heresy, nothing answers here.`
-          : site.description,
-      duration: 5200,
-    });
   }
 }
 

@@ -35,12 +35,11 @@ export const items: Record<string, Item> = {
   chrysalis_parchment: {
     id: 'chrysalis_parchment',
     name: 'Chrysalis Parchment',
-    description: 'A brittle vellum strip dusted with pale crystal. For 45 seconds, compatible blades grow a glassy chrysalis edge: strikes hit slightly harder and leave delayed crystalline after-slashes.',
+    description: 'A brittle vellum strip dusted with pale crystal. For 45 seconds, compatible non-imbued weapons grow a glassy chrysalis edge: strikes hit slightly harder and leave delayed crystalline after-slashes.',
     type: 'consumable',
     sprite: 'chrysalis_parchment',
     imbueType: 'chrysalis',
     imbueDuration: 45,
-    compatibleWeaponIds: ['meek_short_sword', 'ornamental_broadsword'],
   },
   
   ancient_map: {
@@ -121,6 +120,9 @@ export const items: Record<string, Item> = {
     description: 'A broad, heavy blade etched with faded ceremonial runes. Whoever carried it into these woods never carried it out.',
     type: 'equipment',
     sprite: 'broadsword',
+    weaponClass: 'standard',
+    upgradeTrack: 'standard',
+    canReceiveParchment: true,
     stats: {
       // 22 -> 28: turns the only mid-rung into a real upgrade so the weapon ladder reads
       // 20 -> 28 -> 34 instead of 20/22 then a cliff to the Terminus Scythe. Makes the
@@ -137,6 +139,9 @@ export const items: Record<string, Item> = {
     description: 'A well-crafted blade of sturdy iron. Reliable and sharp.',
     type: 'equipment',
     sprite: 'sword',
+    weaponClass: 'standard',
+    upgradeTrack: 'standard',
+    canReceiveParchment: true,
     stats: {
       damage: 28,
       range: 2.15,
@@ -149,6 +154,9 @@ export const items: Record<string, Item> = {
     description: 'A simple, reliable starting blade. Attack with left click.',
     type: 'equipment',
     sprite: 'sword',
+    weaponClass: 'standard',
+    upgradeTrack: 'standard',
+    canReceiveParchment: true,
     stats: {
       damage: 20,
       range: 2,
@@ -161,6 +169,9 @@ export const items: Record<string, Item> = {
     description: 'A dark sword forged from an alloy found only in the ancient ruins. Its edge hums with residual magic.',
     type: 'equipment',
     sprite: 'sword',
+    weaponClass: 'imbued',
+    upgradeTrack: 'special',
+    canReceiveParchment: false,
     stats: {
       damage: 36,
       range: 2.3,
@@ -173,6 +184,9 @@ export const items: Record<string, Item> = {
     description: 'A two-handed scythe radiating dark matter energy. Its charge attack sends a devastating arc slash forward, cutting the threads that bind souls to this world.',
     type: 'equipment',
     sprite: 'scythe',
+    weaponClass: 'imbued',
+    upgradeTrack: 'special',
+    canReceiveParchment: false,
     stats: {
       damage: 34,
       range: 2.6,
@@ -185,9 +199,27 @@ export const items: Record<string, Item> = {
     description: 'A massive crystalline blade pulsing with arcane power. Devastatingly slow but overwhelmingly powerful.',
     type: 'equipment',
     sprite: 'sword',
+    weaponClass: 'imbued',
+    upgradeTrack: 'special',
+    canReceiveParchment: false,
     stats: {
       damage: 44,
       range: 2.5,
+    },
+  },
+
+  clockwork_axe: {
+    id: 'clockwork_axe',
+    name: 'Clockwork Axe',
+    description: 'A geared, piston-driven axe of brass and blackened steel - no enchantment, only mechanism. Its head finds the gap in any guard, and a hidden ratchet snaps the haft out mid-swing to bite far beyond its reach. Bench-forged in the workshops of the district ahead.',
+    type: 'equipment',
+    sprite: 'clockwork_axe',
+    weaponClass: 'imbued',
+    upgradeTrack: 'special',
+    canReceiveParchment: false,
+    stats: {
+      damage: 36,
+      range: 2.0,
     },
   },
 

@@ -51,6 +51,9 @@ export const vendors: Record<string, VendorDef> = {
       { itemId: 'chrysalis_parchment', price: 140, currency: 'gold', stock: 3 },
       { itemId: 'sundered_essence_i', price: 75, currency: 'gold', stock: 5 },
       { itemId: 'ornamental_broadsword', price: 700, currency: 'gold', unique: true },
+      // Steep tease: realistically unattainable on a first run, foreshadows the weapon
+      // found in the next district.
+      { itemId: 'clockwork_axe', price: 1800, currency: 'gold', unique: true },
     ],
   },
   merchant: {

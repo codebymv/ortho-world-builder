@@ -8,6 +8,12 @@ import {
   hitsToKillEnemy,
   hitsToKillPlayer,
 } from '@/data/balance';
+import {
+  ENEMY_TELEGRAPH_MIN,
+  HEAVY_ENEMY_TELEGRAPH_MIN,
+  getEnemyTelegraphMinimum,
+  resolveVariableTelegraphDuration,
+} from '@/lib/game/Combat';
 
 describe('CombatBalance', () => {
   it('defines survivability target ranges', () => {
@@ -55,5 +61,12 @@ describe('CombatBalance', () => {
     expect(reaver?.rangedRange).toBeLessThanOrEqual(3.5);
     expect(reaver?.rangedProjectileLifetime).toBeLessThanOrEqual(1.2);
     expect(reaver?.rangedCooldown).toBeGreaterThanOrEqual(1.2);
+  });
+
+  it('keeps randomized enemy snap telegraphs readable', () => {
+    expect(resolveVariableTelegraphDuration(0.5, ENEMY_TELEGRAPH_MIN, 0.01, 0)).toBe(ENEMY_TELEGRAPH_MIN);
+    expect(resolveVariableTelegraphDuration(0.5, HEAVY_ENEMY_TELEGRAPH_MIN, 0.01, 0)).toBe(HEAVY_ENEMY_TELEGRAPH_MIN);
+    expect(getEnemyTelegraphMinimum({ currentAttackType: 'normal' })).toBe(ENEMY_TELEGRAPH_MIN);
+    expect(getEnemyTelegraphMinimum({ currentAttackType: 'combo_finisher' })).toBe(HEAVY_ENEMY_TELEGRAPH_MIN);
   });
 });

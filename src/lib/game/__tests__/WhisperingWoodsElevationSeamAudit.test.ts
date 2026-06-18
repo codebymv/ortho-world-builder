@@ -3,6 +3,7 @@ import { generateMap } from '@/data/mapGenerator';
 import { forestDef } from '@/content/regions/whispering_woods/map';
 import { interiorHollowArenaDef } from '@/content/regions/interiors/hollow';
 import { getBonfiresForMap } from '@/data/bonfires';
+import { HOLLOW_CORRUPTED_WATER_RECTS } from '@/data/hollowCorruptedWater';
 import { canCrossSpinePathElevation } from '@/lib/game/World';
 import type { Tile } from '@/lib/game/World';
 
@@ -464,7 +465,7 @@ describe('hollow corridor gate at world (-32,-102)', () => {
       }
     }
     for (let ty = 49; ty <= 54; ty++) {
-      for (let tx = 116; tx <= 130; tx++) {
+      for (let tx = 116; tx <= 129; tx++) {
         tiles[ty][tx] = {
           type: 'hollow_blight',
           walkable: true,
@@ -489,7 +490,7 @@ describe('hollow corridor gate at world (-32,-102)', () => {
       elevation: 1,
       spinePath: true,
     });
-    for (let tx = 119; tx <= 130; tx++) {
+    for (let tx = 119; tx <= 129; tx++) {
       expect(map.tiles[53][tx]).toMatchObject({
         type: 'hollow_blight',
         walkable: true,
@@ -497,6 +498,11 @@ describe('hollow corridor gate at world (-32,-102)', () => {
         spinePath: true,
       });
     }
+    expect(map.tiles[53][130]).toMatchObject({
+      type: 'cliff_corrupted',
+      walkable: false,
+      elevation: 1,
+    });
     expect(map.tiles[54][126]).toMatchObject({
       type: 'hollow_blight',
       walkable: true,
@@ -525,23 +531,25 @@ describe('hollow corridor gate at world (-32,-102)', () => {
     }
   });
 
-  it('opened shortcut clears the cliff lip behind the full gate width', () => {
+  it('opened shortcut clears the gate mouth while preserving the east cliff shoulder', () => {
     const map = generateMap(forestDef);
     applyOpenHollowGate(map.tiles);
     const behindGate = map.tiles[49][124];
     const gateMouth = map.tiles[50][124];
     const eastBackEdge = map.tiles[52][127];
-    const southCollisionRow = map.tiles[53][130];
+    const southCollisionRow = map.tiles[53][129];
+    const eastCliffShoulder = map.tiles[53][130];
     const lowerProbe = map.tiles[54][126];
     expect(behindGate).toMatchObject({ type: 'hollow_blight', walkable: true, elevation: 1, spinePath: true });
     expect(gateMouth.walkable).toBe(true);
     expect(eastBackEdge).toMatchObject({ type: 'hollow_blight', walkable: true, elevation: 1, spinePath: true });
     expect(southCollisionRow).toMatchObject({ type: 'hollow_blight', walkable: true, elevation: 1, spinePath: true });
+    expect(eastCliffShoulder).toMatchObject({ type: 'cliff_corrupted', walkable: false, elevation: 1 });
     expect(lowerProbe).toMatchObject({ type: 'hollow_blight', walkable: true, elevation: 1, spinePath: true });
     expect(canCrossSpinePathElevation(behindGate, gateMouth)).toBe(true);
     expect(canCrossSpinePathElevation(gateMouth, eastBackEdge)).toBe(true);
     expect(canCrossSpinePathElevation(eastBackEdge, southCollisionRow)).toBe(true);
-    expect(canCrossSpinePathElevation(southCollisionRow, lowerProbe)).toBe(true);
+    expect(canCrossSpinePathElevation(map.tiles[53][126], lowerProbe)).toBe(true);
   });
 });
 
@@ -560,6 +568,37 @@ describe('Whispering Woods visual language pass', () => {
     expect(map.tiles[33][211]).toMatchObject({ type: 'summoning_ritual_dud', walkable: true });
     expect(map.tiles[31][208].type).toBe('ritual_candle_knocked');
     expect(map.tiles[37][212].type).toBe('bloodstain');
+  });
+
+  it('keeps the Deep Hollow north pool fully corrupted across the west edge', () => {
+    const map = generateMap(forestDef);
+    for (const [tx, ty] of [
+      [155, 18], // near world (5, -132)
+      [147, 24], // upper lip of the basin near world (-3, -126)
+      [146, 25],
+      [145, 29],
+      [165, 29],
+      [148, 34],
+      [162, 34],
+      [154, 38],
+    ] as const) {
+      expect(map.tiles[ty][tx].type).toBe('water_corrupted');
+      expect(map.tiles[ty][tx].walkable).toBe(false);
+    }
+  });
+
+  it('includes the Deep Hollow waterfall feed in the corrupted-water basin', () => {
+    const map = generateMap(forestDef);
+    const isInCorruptedBasin = HOLLOW_CORRUPTED_WATER_RECTS.some(([x, y, width, height]) =>
+      155 >= x && 155 < x + width &&
+      12 >= y && 12 < y + height,
+    );
+
+    expect(isInCorruptedBasin).toBe(true);
+    expect(map.tiles[12][155]).toMatchObject({
+      type: 'waterfall',
+      walkable: false,
+    });
   });
 
   it('keeps the fort-key ranger reachable on the east side of the chapel stair approach', () => {

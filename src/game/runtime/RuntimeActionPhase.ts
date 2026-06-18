@@ -109,6 +109,7 @@ interface RuntimeActionPhaseOptions {
   lungeRecoveryMax: number;
   openBonfireMenu: () => void;
   showTransitionOverlay: (mapName: string, mapSubtitle?: string) => void;
+  scheduleEffect?: (callback: () => void, delayMs: number) => void;
 }
 
 export function setupRuntimeActionPhase({
@@ -193,6 +194,7 @@ export function setupRuntimeActionPhase({
   lungeRecoveryMax,
   openBonfireMenu,
   showTransitionOverlay,
+  scheduleEffect,
 }: RuntimeActionPhaseOptions) {
   const sfx = createRuntimeSfx({
     processAudioElement,
@@ -266,7 +268,14 @@ export function setupRuntimeActionPhase({
     getIsConsuming: () => runtimeSession.animation.drinkTimer > 0,
   });
 
-  const { onEnemyKilled, performAttack, performBufferedAttack, performChargeAttack, triggerComboChain } = createRuntimeCombatActions({
+  const {
+    onEnemyKilled,
+    performAttack,
+    performBufferedAttack,
+    performChargeAttack,
+    resolveAttackFrameHit,
+    triggerComboChain,
+  } = createRuntimeCombatActions({
     state,
     world,
     visitedTilesRef,
@@ -288,6 +297,7 @@ export function setupRuntimeActionPhase({
     playWeaponChargeRelease: sfx.playWeaponChargeRelease,
     playWeaponArcWave: sfx.playWeaponArcWave,
     playStaggerEnemy: sfx.playStaggerEnemy,
+    scheduleEffect,
     getKillCount,
     setKillCount,
     getCurrentDir8,
@@ -600,6 +610,7 @@ export function setupRuntimeActionPhase({
     performAttack,
     performBufferedAttack,
     performChargeAttack,
+    resolveAttackFrameHit,
     triggerComboChain,
     onEnemyKilled,
     restAtBonfire: bonfireActions.restAtBonfire,

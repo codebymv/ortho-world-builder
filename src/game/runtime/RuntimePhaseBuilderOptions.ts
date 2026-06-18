@@ -84,6 +84,7 @@ export interface BuildRuntimePhaseContextsOptions {
   arcWave: import('@/game/runtime/PlayerSimulationSystem').ArcWaveState;
   onArcWaveHit: (enemy: Enemy, damage: number) => void;
   dodgeIFrameDuration: number;
+  resolveAttackFrameHit: (attackFrame: number, comboStep: number) => void;
   triggerComboChain: () => { frameDuration: number } | null;
   comboWindowDuration: number;
   getComboFrameDuration: (step: number) => number;

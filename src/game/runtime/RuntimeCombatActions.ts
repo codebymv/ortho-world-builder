@@ -16,9 +16,10 @@ import {
 import { markObjectiveDone } from '@/lib/game/progressionToasts';
 import { revealAllTilesForMap } from '@/lib/game/visitedTiles';
 import { getStaggerDamageMultiplier } from '@/data/balance';
-import { getMoveset } from '@/data/weaponMovesets';
+import { getComboActiveFrame, getMoveset, getWeaponVisceral } from '@/data/weaponMovesets';
 import { SaveManager } from '@/lib/game/SaveManager';
 import { tryStrikeHoodedWitness } from '@/game/runtime/hoodedWitnessVanish';
+import { isEquippedWeaponImbueActive } from '@/lib/game/weaponRules';
 
 type Direction8 = 'up' | 'down' | 'left' | 'right' | 'up_left' | 'up_right' | 'down_left' | 'down_right';
 type Direction4 = 'up' | 'down' | 'left' | 'right';
@@ -86,7 +87,21 @@ type PlayerAnimState =
   | 'lunge'
   | 'lunge_recovery'
   | 'drinking'
-  | 'block';
+  | 'block'
+  | 'visceral'
+  | 'visceral_recover';
+
+interface PendingAttackHit {
+  step: number;
+  activeFrame: 1 | 2;
+  weaponId: string | null;
+  origin: { x: number; y: number };
+  direction: Direction4;
+  attackDamage: number;
+  attackRange: number;
+  parryBonus: number;
+  startedAt: number;
+}
 
 interface CombatSystemLike {
   getEnemiesInRange: (position: { x: number; y: number }, range: number, out?: Enemy[]) => Enemy[];
@@ -94,9 +109,13 @@ interface CombatSystemLike {
   playerAttack: (
     enemy: Enemy,
     damage: number,
-    playerPosition: { x: number; y: number },
-    playerDirection: string,
+    playerPosition?: { x: number; y: number },
+    playerDirection?: string,
+    poiseMult?: number,
+    opensVisceralOnBreak?: boolean,
+    critVsTelegraph?: boolean,
   ) => { killed: boolean; staggered: boolean; backstab: boolean };
+  performVisceral: (enemy: Enemy) => { killed: boolean; damage: number };
 }
 
 interface FloatingTextLike {
@@ -140,6 +159,7 @@ interface RuntimeCombatActionOptions {
   playWeaponChargeRelease: () => void;
   playWeaponArcWave: () => void;
   playStaggerEnemy: () => void;
+  scheduleEffect?: (callback: () => void, delayMs: number) => void;
   getKillCount: () => number;
   setKillCount: (value: number) => void;
   getCurrentDir8: () => Direction8;
@@ -209,6 +229,7 @@ export function createRuntimeCombatActions({
   playWeaponChargeRelease,
   playWeaponArcWave,
   playStaggerEnemy,
+  scheduleEffect,
   getKillCount,
   setKillCount,
   getCurrentDir8,
@@ -255,6 +276,8 @@ export function createRuntimeCombatActions({
   syncRevenantTerminusChestState,
   triggerSave,
 }: RuntimeCombatActionOptions) {
+  let pendingAttackHit: PendingAttackHit | null = null;
+
   const onEnemyKilled = (enemy: Enemy) => {
     const nextKillCount = getKillCount() + 1;
     setKillCount(nextKillCount);
@@ -471,16 +494,16 @@ export function createRuntimeCombatActions({
     });
   };
 
-  const _applyAttackDamage = (step: number) => {
-    const moveset = getMoveset(state.equippedWeaponId);
+  const _applyAttackDamage = (hit: PendingAttackHit) => {
+    const { step, weaponId, origin, direction } = hit;
+    const moveset = getMoveset(weaponId);
     const stepDef = moveset.steps[step] ?? moveset.steps[moveset.steps.length - 1];
-    const stepRange = state.player.attackRange * (stepDef?.rangeMult ?? 1);
-    const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, stepRange, _scratchEnemies);
-    const direction = dir8to4(getCurrentDir8()) as Direction4;
+    const stepRange = hit.attackRange * (stepDef?.rangeMult ?? 1);
+    const enemiesInRange = combatSystem.getEnemiesInRange(origin, stepRange, _scratchEnemies);
     const off = DIR_OFFSETS_4[direction];
-    const attackX = state.player.position.x + off.x;
-    const attackY = state.player.position.y + off.y;
-    const target = getForwardMeleeTarget(enemiesInRange, state.player.position, direction, world);
+    const attackX = origin.x + off.x;
+    const attackY = origin.y + off.y;
+    const target = getForwardMeleeTarget(enemiesInRange, origin, direction, world);
     if (!target) {
       _tryStrikeHoodedWitnessAt(attackX, attackY, stepRange);
       particleSystem.emitAt(attackX, attackY, 0.3, 4, 0xffffff, 0.3, 1, 1);
@@ -500,24 +523,30 @@ export function createRuntimeCombatActions({
 
     _tryStrikeHoodedWitnessAt(attackX, attackY, stepRange);
 
-    const parryBonus = state.player.parryBonusTimer > 0 ? 1.25 : 1;
+    const parryBonus = hit.parryBonus;
     const stepDamageMult = stepDef?.damageMult ?? 1;
-    const chrysalisMult = state.player.chrysalisTimer > 0 ? state.player.chrysalisDamageMult : 1;
-    const baseDamage = Math.floor(state.player.attackDamage * parryBonus * stepDamageMult * state.player.berserkerDamageMult * chrysalisMult);
+    const chrysalisMult = isEquippedWeaponImbueActive(state.inventory, weaponId, 'chrysalis', state.player.chrysalisTimer)
+      ? state.player.chrysalisDamageMult
+      : 1;
+    const baseDamage = Math.floor(hit.attackDamage * parryBonus * stepDamageMult * state.player.berserkerDamageMult * chrysalisMult);
 
-    const result = combatSystem.playerAttack(target, baseDamage, state.player.position, state.player.direction);
+    // Clockwork Axe lands an interrupt crit on enemies caught mid-telegraph; capture
+    // the pre-hit state since playerAttack may transition it (e.g. poise break -> stagger).
+    const critTelegraph = weaponId === 'clockwork_axe';
+    const wasTelegraphing = target.state === 'telegraphing';
+    const result = combatSystem.playerAttack(target, baseDamage, origin, direction, 1.0, false, critTelegraph);
     playWeaponHit(target);
 
     if (parryBonus > 1) state.player.parryBonusTimer = 0;
 
-    const isCrit = target.state === 'recovering' || target.state === 'staggered';
+    const isCrit = target.state === 'recovering' || target.state === 'staggered' || target.state === 'visceral_open' || (critTelegraph && wasTelegraphing);
     const isBackstab = result.backstab;
     const isStaggered = result.staggered;
     if (isStaggered) playStaggerEnemy();
 
     let actualDamage = baseDamage;
     if (isBackstab) actualDamage = Math.floor(baseDamage * 2.5);
-    else if (target.state === 'staggered') actualDamage = Math.floor(baseDamage * getStaggerDamageMultiplier(target.type));
+    else if (target.state === 'staggered' || target.state === 'visceral_open') actualDamage = Math.floor(baseDamage * getStaggerDamageMultiplier(target.type));
     else if (isCrit) actualDamage = Math.floor(baseDamage * 1.5);
 
     floatingText.spawnDamage(target.position.x, target.position.y, actualDamage, isCrit || isBackstab);
@@ -539,7 +568,7 @@ export function createRuntimeCombatActions({
     }
 
     particleSystem.emitDamageAt(target.position.x, target.position.y, 0.3);
-    if (state.player.chrysalisTimer > 0 && !result.killed) {
+    if (isEquippedWeaponImbueActive(state.inventory, weaponId, 'chrysalis', state.player.chrysalisTimer) && !result.killed) {
       combatSystem.queueChrysalisEcho(target, actualDamage);
       particleSystem.emitAt(target.position.x, target.position.y + 0.45, 0.48, 3, 0xBEEFFF, 0.45, 0.45, 0.35);
       particleSystem.emitAt(target.position.x, target.position.y + 0.55, 0.52, 2, 0xFFFFFF, 0.32, 0.35, 0.22);
@@ -559,10 +588,11 @@ export function createRuntimeCombatActions({
 
     if (getIsBlocking()) setIsBlocking(false);
 
+    const direction = dir8to4(getCurrentDir8()) as Direction4;
     playSwordSwing();
     playBladeSheath();
     setSwooshTimer(swooshDuration);
-    setSwooshFacing(dir8to4(getCurrentDir8()));
+    setSwooshFacing(direction);
 
     const moveset = getMoveset(state.equippedWeaponId);
     const stepFrameMult = moveset.steps[step]?.frameMult ?? 1;
@@ -577,8 +607,100 @@ export function createRuntimeCombatActions({
     setAttackFrameTimer(frameDuration);
     state.player.attackAnimationTimer = attackAnimationDuration;
 
-    _applyAttackDamage(step);
+    pendingAttackHit = {
+      step,
+      activeFrame: getComboActiveFrame(state.equippedWeaponId, step),
+      weaponId: state.equippedWeaponId,
+      origin: { ...state.player.position },
+      direction,
+      attackDamage: state.player.attackDamage,
+      attackRange: state.player.attackRange,
+      parryBonus: state.player.parryBonusTimer > 0 ? 1.25 : 1,
+      startedAt: currentTime,
+    };
     return frameDuration;
+  };
+
+  const resolveAttackFrameHit = (attackFrame: number, step: number) => {
+    if (!pendingAttackHit) return;
+    if (pendingAttackHit.step !== step) return;
+    if (attackFrame < pendingAttackHit.activeFrame) return;
+    const hit = pendingAttackHit;
+    pendingAttackHit = null;
+    _applyAttackDamage(hit);
+  };
+
+  // Returns a forward enemy whose visceral window is open, if any. Used to let a
+  // normal attack press redirect into a finisher.
+  const findVisceralTarget = (): Enemy | null => {
+    const range = state.player.attackRange * 1.1;
+    const enemiesInRange = combatSystem.getEnemiesInRange(state.player.position, range, _scratchEnemies);
+    const direction = dir8to4(getCurrentDir8()) as Direction4;
+    const target = getForwardMeleeTarget(enemiesInRange, state.player.position, direction, world);
+    return target && target.state === 'visceral_open' ? target : null;
+  };
+
+  // Visceral finisher: big tier-scaled %maxHP hit + heavy feel. Free (no stamina),
+  // grants i-frames (applied inside combatSystem.performVisceral). The player pose
+  // currently reuses the 'attack' swing; a dedicated 'visceral' pose lands in Phase 3.
+  const onVisceral = (target: Enemy) => {
+    const chor = getWeaponVisceral(state.equippedWeaponId);
+    const result = combatSystem.performVisceral(target);
+    if (result.damage === 0) return; // window closed between detection and resolve
+
+    playSwordSwing();
+    playBladeSheath();
+
+    // Player pose reuses existing frames per style: the scythe's reap spins, every
+    // other style plays the attack swing. Dedicated visceral poses are Phase 3 art.
+    if (chor.style === 'reap') {
+      setSpinSwooshTimer(spinSwooshDuration);
+      setSpinDirIndex(0);
+      setSpinFrameTimer(spinFrameDuration);
+      setPlayerAnimState('spin_attack');
+      setAttackFrame(1);
+      state.player.attackAnimationTimer = spinFrameDuration * spinDirections.length;
+    } else {
+      setSwooshTimer(swooshDuration);
+      setSwooshFacing(dir8to4(getCurrentDir8()));
+      setPlayerAnimState('attack');
+      setAttackFrame(0);
+      setAttackFrameTimer(attackFrameDuration);
+      state.player.attackAnimationTimer = attackFrameDuration * 3;
+    }
+    state.player.lastAttackTime = performance.now();
+
+    // Style SFX from existing hooks - heavy weapons get the charge-release boom,
+    // the scythe reuses its arc-wave whoosh.
+    if (chor.style === 'cleave' || chor.style === 'crush') playWeaponChargeRelease();
+    else if (chor.style === 'reap') playWeaponArcWave();
+    playWeaponHit(target);
+
+    floatingText.spawnDamage(target.position.x, target.position.y, result.damage, true);
+    floatingText.spawn(target.position.x, target.position.y + 0.7, 'VISCERAL', '#ff5252', 1.2);
+    screenShake.shake(chor.shakeIntensity, chor.shakeDuration);
+    screenShake.hitStop(chor.hitstop);
+
+    // Signature burst repeated `hits` times during the hitstop freeze: reads as a
+    // flurry for light weapons, a single heavy detonation for greatswords.
+    for (let i = 0; i < chor.hits; i++) {
+      particleSystem.emitAt(
+        target.position.x,
+        target.position.y + 0.3 + i * 0.05,
+        0.45,
+        chor.particleCount,
+        chor.particleColor,
+        chor.particleSize,
+        chor.particleSpeed,
+        0.9,
+      );
+    }
+    particleSystem.emitSparklesAt(target.position.x, target.position.y + 0.3, 0.6);
+
+    if (result.killed) onEnemyKilled(target);
+
+    setComboStep(0);
+    setComboWindowTimer(0);
   };
 
   const performAttack = () => {
@@ -587,6 +709,17 @@ export function createRuntimeCombatActions({
 
     const animState = getPlayerAnimState();
     if (animState === 'drinking') return;
+
+    // Visceral finisher takes priority over a normal swing when a window is open
+    // on a forward enemy. Skipped mid-swing / while dodging or climbing.
+    if (animState !== 'attack' && !state.player.isDodging && !state.player.isClimbing) {
+      const visceralTarget = findVisceralTarget();
+      if (visceralTarget) {
+        onVisceral(visceralTarget);
+        return;
+      }
+    }
+
     const step = getComboStep();
 
     // During active swing: buffer the next press regardless of combo step.
@@ -666,11 +799,10 @@ export function createRuntimeCombatActions({
     up_left: { x: -0.707, y: 0.707 }, up_right: { x: 0.707, y: 0.707 },
     down_left: { x: -0.707, y: -0.707 }, down_right: { x: 0.707, y: -0.707 },
   };
-  const isChrysalisWeaponActive = () => (
-    state.player.chrysalisTimer > 0 &&
-    (state.equippedWeaponId === 'meek_short_sword' || state.equippedWeaponId === 'ornamental_broadsword')
-  );
-  const getChrysalisDamageMultiplier = () => isChrysalisWeaponActive() ? state.player.chrysalisDamageMult : 1;
+  const isChrysalisWeaponActive = (weaponId: string | null | undefined = state.equippedWeaponId) =>
+    isEquippedWeaponImbueActive(state.inventory, weaponId, 'chrysalis', state.player.chrysalisTimer);
+  const getChrysalisDamageMultiplier = (weaponId: string | null | undefined = state.equippedWeaponId) =>
+    isChrysalisWeaponActive(weaponId) ? state.player.chrysalisDamageMult : 1;
 
   const performLungeAttack = (level: number) => {
     const currentTime = performance.now();
@@ -788,6 +920,151 @@ export function createRuntimeCombatActions({
     setSpinSwooshTimer(0.65);
   };
 
+  // Clockwork Axe charge: a 2-rotation spin. Rotation 1 strikes at the axe's normal
+  // (short) reach; the haft ratchets out and rotation 2 sweeps a much larger radius as
+  // a guaranteed crit (the mechanical lockout strike). Non-magical - brass/steam debris,
+  // no glow. (The discrete temporal pause-then-extend choreography is a visual-polish
+  // pass; the damage model already captures both reaches: close enemies eat both
+  // rotations, enemies in the outer ring are caught only by the extended second sweep.)
+  const performClockworkSpin = (level: number) => {
+    const currentTime = performance.now();
+    if (
+      getPlayerAnimState() === 'drinking' ||
+      state.player.isDodging ||
+      state.player.isClimbing ||
+      state.player.stamina < chargeAttackStaminaCost
+    ) {
+      clearChargeState();
+      setPlayerAnimState('idle');
+      return;
+    }
+
+    playSwordSwing();
+    playBladeSheath();
+    playWeaponChargeRelease();
+
+    const firstSpinDuration = spinSwooshDuration * 0.7;
+    const followUpBeatDuration = spinSwooshDuration * 0.18;
+    const secondSpinDuration = spinSwooshDuration * 0.84;
+    setSpinSwooshTimer(firstSpinDuration + followUpBeatDuration + secondSpinDuration);
+
+    const spinAttackDuration = spinFrameDuration * (spinDirections.length * 2 + 2); // two rotations plus wind-down frames
+    state.player.lastAttackTime = currentTime;
+    const attackStartedAt = state.player.lastAttackTime;
+    state.player.stamina = Math.max(0, state.player.stamina - chargeAttackStaminaCost);
+    state.player.lastStaminaUseTime = performance.now() / 1000 + spinAttackDuration;
+    setPlayerAnimState('spin_attack');
+    setSpinDirIndex(0);
+    setSpinFrameTimer(spinFrameDuration);
+    setAttackFrame(1);
+    state.player.attackAnimationTimer = spinAttackDuration;
+    clearChargeState();
+
+    const damageMultiplier = 1 + (chargeDamageMult - 1) * level;
+    const chargeDamage = Math.floor(
+      state.player.attackDamage * damageMultiplier * state.player.berserkerDamageMult * getChrysalisDamageMultiplier(),
+    );
+    const px = state.player.position.x;
+    const py = state.player.position.y;
+    const baseRange = state.player.attackRange;                        // rotation 1 (short)
+    const extRange = state.player.attackRange * (2.05 + level * 0.5);  // rotation 2 (extended)
+
+    const getChargeSpinDisplayDamage = (
+      target: Enemy,
+      damage: number,
+      stateBeforeHit: Enemy['state'],
+      critVsTelegraph: boolean,
+    ): number => {
+      if (stateBeforeHit === 'staggered' || stateBeforeHit === 'visceral_open') {
+        return Math.floor(damage * getStaggerDamageMultiplier(target.type));
+      }
+      if (stateBeforeHit === 'recovering' || (critVsTelegraph && stateBeforeHit === 'telegraphing')) {
+        return Math.floor(damage * 1.5);
+      }
+      return damage;
+    };
+
+    const resolveClockworkSpinHit = (
+      origin: { x: number; y: number },
+      range: number,
+      damage: number,
+      options: { critVsTelegraph: boolean; forceCritText: boolean; extended: boolean },
+    ) => {
+      const enemiesInRange = combatSystem.getEnemiesInRange(origin, range, _scratchEnemies);
+      for (const target of enemiesInRange) {
+        if (!hasPlayerMeleeLineOfSight(world, origin.x, origin.y, target.position.x, target.position.y)) continue;
+        const hitState = target.state;
+        const result = combatSystem.playerAttack(target, damage, undefined, undefined, 1.0, false, options.critVsTelegraph);
+        playWeaponHit(target);
+        if (result.staggered) playStaggerEnemy();
+        const displayDamage = getChargeSpinDisplayDamage(target, damage, hitState, options.critVsTelegraph);
+        const isCritText = options.forceCritText
+          || hitState === 'recovering'
+          || hitState === 'staggered'
+          || hitState === 'visceral_open'
+          || (options.critVsTelegraph && hitState === 'telegraphing');
+        floatingText.spawnDamage(target.position.x, target.position.y, displayDamage, isCritText);
+        if (options.extended) {
+          particleSystem.emitAt(target.position.x, target.position.y + 0.3, 0.4, 6, 0xB08D57, 0.22, 1.6, 0.6);
+        } else {
+          particleSystem.emitDamageAt(target.position.x, target.position.y, 0.3);
+        }
+        if (isChrysalisWeaponActive() && !result.killed) {
+          combatSystem.queueChrysalisEcho(target, displayDamage);
+          particleSystem.emitAt(target.position.x, target.position.y + 0.45, 0.48, 4, 0xBEEFFF, 0.38, 0.45, 0.5);
+          particleSystem.emitAt(target.position.x, target.position.y + 0.55, 0.52, 2, 0xFFFFFF, 0.24, 0.35, 0.25);
+        }
+        if (result.killed) onEnemyKilled(target);
+      }
+    };
+
+    _tryStrikeHoodedWitnessAt(px, py, baseRange);
+    breakTilesInRadius(world, world.getCurrentMap(), px, py, baseRange, particleSystem, {
+      generic: playPropBreak,
+      tallGrass: playTallGrassBreak,
+    });
+    particleSystem.emitAt(px, py, 0.25, 7, 0xB08D57, 0.16, 1.25, 0.45);
+    screenShake.shake(0.18, 0.16);
+    resolveClockworkSpinHit({ x: px, y: py }, baseRange, chargeDamage, {
+      critVsTelegraph: true,
+      forceCritText: false,
+      extended: false,
+    });
+    screenShake.hitStop(0.05);
+
+    const schedule = scheduleEffect ?? ((callback: () => void, delayMs: number) => { setTimeout(callback, delayMs); });
+    schedule(() => {
+      if (state.player.lastAttackTime !== attackStartedAt) return;
+      if (getPlayerAnimState() !== 'spin_attack') return;
+
+      const sx = state.player.position.x;
+      const sy = state.player.position.y;
+      _tryStrikeHoodedWitnessAt(sx, sy, extRange);
+      breakTilesInRadius(world, world.getCurrentMap(), sx, sy, extRange, particleSystem, {
+        generic: playPropBreak,
+        tallGrass: playTallGrassBreak,
+      });
+
+      // Mechanical extend tell: brass shards + a steam puff thrown out to the extended
+      // reach in the facing direction. Deliberately metallic, never a magic glow.
+      const dir = dir8to4(getCurrentDir8());
+      const ed = dir === 'up' ? { x: 0, y: 1 } : dir === 'down' ? { x: 0, y: -1 } : dir === 'left' ? { x: -1, y: 0 } : { x: 1, y: 0 };
+      particleSystem.emitAt(sx + ed.x * extRange * 0.7, sy + ed.y * extRange * 0.7, 0.3, 10, 0xB08D57, 0.18, 2.0, 0.6);
+      particleSystem.emitAt(sx + ed.x * extRange * 0.6, sy + ed.y * extRange * 0.6, 0.4, 6, 0xCFCFCF, 0.3, 1.4, 0.7);
+      playSwordSwing();
+      playBladeSheath();
+      screenShake.shake(0.34, 0.24);
+
+      const r2Damage = Math.floor(chargeDamage * 1.35);
+      resolveClockworkSpinHit({ x: sx, y: sy }, extRange, r2Damage, {
+        critVsTelegraph: false,
+        forceCritText: true,
+        extended: true,
+      });
+      screenShake.hitStop(0.08);
+    }, (firstSpinDuration + followUpBeatDuration) * 1000);
+  };
+
   const performChargeAttack = (level: number) => {
     if (state.equippedWeaponId === 'ornamental_broadsword') {
       performLungeAttack(level);
@@ -795,6 +1072,10 @@ export function createRuntimeCombatActions({
     }
     if (state.equippedWeaponId === 'terminus_scythe') {
       performArcSlash(level);
+      return;
+    }
+    if (state.equippedWeaponId === 'clockwork_axe') {
+      performClockworkSpin(level);
       return;
     }
 
@@ -865,11 +1146,13 @@ export function createRuntimeCombatActions({
         chargeDamage,
         state.player.position,
         state.player.direction,
+        1.0,
+        true, // charged attack: a poise break opens a Stance Break visceral window
       );
       playWeaponHit(target);
       if (result.staggered) playStaggerEnemy();
 
-      const actualDamage = target.state === 'staggered'
+      const actualDamage = (target.state === 'staggered' || target.state === 'visceral_open')
         ? Math.floor(chargeDamage * getStaggerDamageMultiplier(target.type))
         : chargeDamage;
 
@@ -896,6 +1179,7 @@ export function createRuntimeCombatActions({
     performAttack,
     performBufferedAttack,
     performChargeAttack,
+    resolveAttackFrameHit,
     triggerComboChain,
   };
 }

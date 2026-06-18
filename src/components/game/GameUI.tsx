@@ -20,6 +20,7 @@ import {
   SPRITE_PLAYER,
   SPRITE_MAP,
   SPRITE_OBJECTIVES,
+  SPRITE_CROUCH,
 } from '@/components/game/HudSprite';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
@@ -94,6 +95,7 @@ const CombatBars = React.memo(({
   maxStamina,
   lastBreathItem,
   lastBreathArmed,
+  isSneaking,
   assetManager,
 }: {
   health: number;
@@ -102,6 +104,7 @@ const CombatBars = React.memo(({
   maxStamina: number;
   lastBreathItem?: Item | null;
   lastBreathArmed?: boolean;
+  isSneaking?: boolean;
   assetManager?: AssetManager | null;
 }) => (
   <div className="flex items-center gap-3 min-[1100px]:gap-5 shrink-0">
@@ -138,6 +141,15 @@ const CombatBars = React.memo(({
         {Math.round(stamina)}/{maxStamina}
       </span>
     </div>
+
+    {/* Always reserve the slot so toggling crouch never reflows the bars - just
+        hide the glyph (visibility, not display) when not sneaking. */}
+    <HudSprite
+      spec={SPRITE_CROUCH}
+      size={22}
+      title="Crouching (C): slower, harder to detect"
+      className={`shrink-0 drop-shadow-[0_0_4px_rgba(0,0,0,0.8)] ${isSneaking ? '' : 'invisible'}`}
+    />
   </div>
 ));
 
@@ -526,6 +538,7 @@ export const GameUI = ({
               maxStamina={gameState.player.maxStamina}
               lastBreathItem={lastBreathEntry?.item}
               lastBreathArmed={lastBreathArmed}
+              isSneaking={gameState.player.isSneaking}
               assetManager={assetManager}
             />
             {gameState.player.stealthTimer > 0 && (

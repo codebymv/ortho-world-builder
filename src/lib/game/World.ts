@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager';
 import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
+import { HOLLOW_CORRUPTED_WATER_RECTS } from '@/data/hollowCorruptedWater';
 import { isPositionInBonfireSafeZone } from '@/game/runtime/bonfireCombatGuard';
 import { GroundInstanceLayer } from './GroundInstanceLayer';
 import { TransientTileDecalField } from './TransientTileDecals';
@@ -1109,6 +1110,27 @@ export class World {
       Math.abs(tileY - this.renderCenter.y) > DECORATIVE_OVERLAY_NEAR_RADIUS;
   }
 
+  private isWhisperingWoodsMap(): boolean {
+    return this.map.mapKey === 'forest' || this.map.name === 'Whispering Woods';
+  }
+
+  private isHollowCorruptedWaterVisualTile(tile: Tile, tileX?: number, tileY?: number): boolean {
+    if (!this.isWhisperingWoodsMap()) return false;
+    if (tileX === undefined || tileY === undefined) return false;
+    if (tile.type !== 'water' && tile.type !== 'waterfall') return false;
+
+    return HOLLOW_CORRUPTED_WATER_RECTS.some(([x, y, width, height]) =>
+      tileX >= x && tileX < x + width &&
+      tileY >= y && tileY < y + height,
+    );
+  }
+
+  private getVisualTileType(tile: Tile, tileX?: number, tileY?: number): TileType {
+    return this.isHollowCorruptedWaterVisualTile(tile, tileX, tileY)
+      ? 'water_corrupted'
+      : tile.type;
+  }
+
   // FNV-1a 32-bit folding helpers. A trailing field-separator fold mirrors the old '|' join so
   // distinct field boundaries can't collide (e.g. "ab"+"c" vs "a"+"bc").
   private hashFoldStr(h: number, s: string): number {
@@ -1134,12 +1156,14 @@ export class World {
   private getTileVisualSignature(tile: Tile, tileX: number, tileY: number): number {
     const overlayCulled = this.shouldCullDecorativeOverlay(tile, tileX, tileY);
     const overlayTextureId = getOverlayTextureId(tile.type, tileX, tileY);
+    const visualTileType = this.getVisualTileType(tile, tileX, tileY);
     const baseType = this.isOverlayTileType(tile.type)
       ? tile.baseTile ?? this.resolveBaseTileType(tileX, tileY, TILE_METADATA[tile.type]?.baseTile ?? 'grass')
-      : tile.type;
+      : visualTileType;
 
     let h = 0x811c9dc5;
     h = this.hashFoldStr(h, tile.type);
+    h = this.hashFoldStr(h, visualTileType);
     h = this.hashFoldNum(h, tile.walkable ? 1 : 0);
     h = this.hashFoldNum(h, tile.elevation ?? 0);
     h = this.hashFoldStr(h, tile.baseTile ?? '');
@@ -1608,7 +1632,8 @@ export class World {
     const isOverlay = TILE_METADATA[tile.type]?.isOverlay;
 
     if (!isOverlay) {
-      const texture = this.assetManager.getTexture(tile.type);
+      const visualTileType = this.getVisualTileType(tile, tileX, tileY);
+      const texture = this.assetManager.getTexture(visualTileType);
       if (!texture) return null;
       
       if (tileX !== undefined && tileY !== undefined && tile.walkable) {
@@ -1623,7 +1648,7 @@ export class World {
             tileType: tile.type,
             sortAnchorY: null,
           };
-          const baseMesh = this.createPlaneMesh(texture, -0.5, `base_${tile.type}`);
+          const baseMesh = this.createPlaneMesh(texture, -0.5, `base_${visualTileType}`);
           baseMesh.updateMatrix();
           group.add(baseMesh);
           this.appendTerrainSeamFillers(group, tile, tileX, tileY);
@@ -1656,7 +1681,7 @@ export class World {
         group.clear();
         group.matrixAutoUpdate = false;
         group.userData = { tileType: tile.type, sortAnchorY: null };
-        const baseMesh = this.createPlaneMesh(texture, -0.5, `base_${tile.type}`);
+        const baseMesh = this.createPlaneMesh(texture, -0.5, `base_${visualTileType}`);
         baseMesh.updateMatrix();
         group.add(baseMesh);
         this.appendTerrainSeamFillers(group, tile, tileX, tileY);
@@ -1670,13 +1695,13 @@ export class World {
           this.recycleObject(group); // returns the base quad + group to their pools
           const placeholder = this.groundPlaceholderPool.pop() ?? new THREE.Object3D();
           placeholder.matrixAutoUpdate = false;
-          placeholder.userData = { instancedGround: true, groundType: tile.type, tileType: tile.type };
+          placeholder.userData = { instancedGround: true, groundType: visualTileType, tileType: tile.type };
           return placeholder;
         }
         return group;
       }
 
-      return this.createPlaneMesh(texture, -0.5, `base_${tile.type}`);
+      return this.createPlaneMesh(texture, -0.5, `base_${visualTileType}`);
     }
 
     const overlayTextureId = getOverlayTextureId(tile.type, tileX, tileY);
@@ -1970,10 +1995,52 @@ export class World {
     };
   }
 
+  private syncVisibleHollowCorruptedWater(centerTileX: number, centerTileY: number): void {
+    if (this.map.mapKey !== 'forest' && this.map.name !== 'Whispering Woods') return;
+
+    const visibleRadius = RENDER_RADIUS + this.PRELOAD_EXTRA + 2;
+    const viewMinX = Math.max(0, centerTileX - visibleRadius);
+    const viewMaxX = Math.min(this.map.width - 1, centerTileX + visibleRadius);
+    const viewMinY = Math.max(0, centerTileY - visibleRadius);
+    const viewMaxY = Math.min(this.map.height - 1, centerTileY + visibleRadius);
+
+    let changedMinX = Infinity;
+    let changedMinY = Infinity;
+    let changedMaxX = -Infinity;
+    let changedMaxY = -Infinity;
+
+    for (const [x, y, width, height] of HOLLOW_CORRUPTED_WATER_RECTS) {
+      const minX = Math.max(viewMinX, x);
+      const maxX = Math.min(viewMaxX, x + width - 1);
+      const minY = Math.max(viewMinY, y);
+      const maxY = Math.min(viewMaxY, y + height - 1);
+      if (minX > maxX || minY > maxY) continue;
+
+      for (let ty = minY; ty <= maxY; ty++) {
+        const row = this.map.tiles[ty];
+        if (!row) continue;
+        for (let tx = minX; tx <= maxX; tx++) {
+          const tile = row[tx];
+          if (tile?.type !== 'water') continue;
+          row[tx] = { ...tile, type: 'water_corrupted', walkable: false };
+          changedMinX = Math.min(changedMinX, tx);
+          changedMinY = Math.min(changedMinY, ty);
+          changedMaxX = Math.max(changedMaxX, tx);
+          changedMaxY = Math.max(changedMaxY, ty);
+        }
+      }
+    }
+
+    if (Number.isFinite(changedMinX)) {
+      this.refreshTileRegion(changedMinX, changedMinY, changedMaxX, changedMaxY);
+    }
+  }
+
   updateChunks(playerWorldX: number, playerWorldY: number) {
     const centerTileX = Math.floor(playerWorldX + this.map.width / 2);
     const centerTileY = Math.floor(playerWorldY + this.map.height / 2);
     this.renderCenter = { x: centerTileX, y: centerTileY };
+    this.syncVisibleHollowCorruptedWater(centerTileX, centerTileY);
 
     const dx = centerTileX - this.lastChunkCenter.x;
     const dy = centerTileY - this.lastChunkCenter.y;

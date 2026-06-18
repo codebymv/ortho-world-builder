@@ -125,6 +125,8 @@ export interface PlayerState {
   knockbackVelY: number;
   stealthTimer: number;
   stealthDetectionMult: number;
+  /** Persistent sneak toggle (the dedicated approach mode): slows the player and shrinks enemy detection. */
+  isSneaking: boolean;
   berserkerTimer: number;
   berserkerDamageMult: number;
   berserkerSpeedMult: number;
@@ -186,7 +188,9 @@ export interface Item {
   projectileHitRadius?: number;
   imbueType?: 'chrysalis';
   imbueDuration?: number;
-  compatibleWeaponIds?: string[];
+  weaponClass?: 'standard' | 'imbued';
+  upgradeTrack?: 'standard' | 'special';
+  canReceiveParchment?: boolean;
   buffType?: 'stealth' | 'berserker' | 'last_breath';
   buffDuration?: number;
   stats?: {
@@ -336,6 +340,7 @@ export class GameState {
       knockbackVelY: 0,
       stealthTimer: 0,
       stealthDetectionMult: 1.0,
+      isSneaking: false,
       berserkerTimer: 0,
       berserkerDamageMult: 1.0,
       berserkerSpeedMult: 1.0,

@@ -56,6 +56,7 @@ export function buildGameplayPreludeContext(options: BuildRuntimePhaseContextsOp
     playPropBreak: options.playPropBreak,
     playTallGrassBreak: options.playTallGrassBreak,
     dodgeIFrameDuration: options.dodgeIFrameDuration,
+    resolveAttackFrameHit: options.resolveAttackFrameHit,
     triggerComboChain: options.triggerComboChain,
     comboWindowDuration: options.comboWindowDuration,
     getComboFrameDuration: options.getComboFrameDuration,

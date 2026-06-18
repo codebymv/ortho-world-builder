@@ -3,6 +3,7 @@ import type { GameState } from '@/lib/game/GameState';
 import type { CombatSystem } from '@/lib/game/Combat';
 import type { CriticalPathItemVisual } from '@/data/criticalPathItems';
 import { INTERACTABLE_QUERY_RADIUS } from '@/lib/game/World';
+import { canEquippedWeaponReceiveImbue } from '@/lib/game/weaponRules';
 
 interface InteractionSystemLike {
   tryInteractWithNearbyNpc: (range: number) => boolean;
@@ -205,13 +206,12 @@ function applyWeaponImbueConsumable(
   const { state, notify, triggerUIUpdate, particleSystem, playPotionDrink } = options;
   if (activeItem.imbueType !== 'chrysalis') return false;
 
-  const equippedWeaponId = state.equippedWeaponId;
-  const compatible = Boolean(equippedWeaponId && activeItem.compatibleWeaponIds?.includes(equippedWeaponId));
+  const compatible = canEquippedWeaponReceiveImbue(state.inventory, state.equippedWeaponId, 'chrysalis');
   if (!compatible) {
     notify('Cannot Imbue Weapon', {
       id: 'chrysalis-incompatible',
       type: 'error',
-      description: 'This parchment only takes to plain steel.',
+      description: 'This parchment only takes to compatible non-imbued weapons.',
       duration: 2200,
     });
     return true;

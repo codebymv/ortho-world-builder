@@ -104,6 +104,7 @@ export interface GameplayPreludeContext {
   playPropBreak?: () => void;
   playTallGrassBreak?: () => void;
   dodgeIFrameDuration: number;
+  resolveAttackFrameHit: (attackFrame: number, comboStep: number) => void;
   triggerComboChain: () => { frameDuration: number } | null;
   comboWindowDuration: number;
   getComboFrameDuration: (step: number) => number;

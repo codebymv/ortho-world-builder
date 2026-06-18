@@ -88,8 +88,8 @@ export const forestDef: MapDefinition = {
     // (bridge_decay_blend) replaces hard rectangle boundaries ??? south stays mostly intact wood,
     // north goes hollow-tainted, with mixed tiles in between. Water gap x=123???124 on north rows.
     { x: 118, y: 81, width: 12, height: 15, type: 'bridge_decay_blend' },
-    // Corrupted-water pass (mapGenerator) taints only the deeper east hollow pool; NW seal / west-run
-    // and bridge approach river stay normal blue water (hooded river witness at ~-55,-73).
+    // Corrupted-water pass (mapGenerator) taints this Hollow approach river so the water matches
+    // the corrupted terrain above it; southern creek systems stay normal blue.
 
     // === THE HOLLOW ??? Dark clearings and corrupted terrain (y < 75) ===
     { x: 40, y: 30, width: 30, height: 30, type: 'clearing', fill: 'dark_grass' },
@@ -2384,10 +2384,10 @@ export const forestDef: MapDefinition = {
     { x: 86, y: 116, width: 20, height: 14, enemyType: 'wolf', count: 3 },
     // Stone Sentinel guards the deeper cliff sanctum east of the Iron Gate / Cliff Ledge route.
     { x: 209, y: 190, width: 1, height: 1, enemyType: 'stone_sentinel', count: 1 },
-    // Cliff inlet back wall (world ~-46,41 / tile ~108,191) ??? Hollow Shade lurking deep.
+    // Cliff inlet back wall (world ~-40,39 / tile ~110,188) - Hollow Shade lurking deep.
     // Very tight chaseRange (2.8) ??? only aggros on direct approach; easily missed.
-    // Faces south (cliff wall) by default. A dripfeed of the Hollow section.
-    { x: 107, y: 190, width: 6, height: 2, enemyType: 'shadow_lurker', count: 1 },
+    // Moved above the cliff-face pocket so it lurks on the ledge instead of clipping into the wall.
+    { x: 108, y: 188, width: 5, height: 1, enemyType: 'shadow_lurker', count: 1 },
 
     // The two Ridge Revenants are no longer placed as static zones - they are SUMMONED from
     // heresy glyphs (props: summoning_ritual at tile 260,142 and 18,147) when a player holding

@@ -7,7 +7,13 @@ import {
   isPositionInBonfireSafeZone,
   nudgeEnemyOutOfBonfireSanctuary,
 } from '@/game/runtime/bonfireCombatGuard';
-import { getStaggerDamageMultiplier } from '@/data/balance';
+import {
+  getStaggerDamageMultiplier,
+  getVisceralDamage,
+  getVisceralWindowDuration,
+  isStanceBreakable,
+  isVisceralExempt,
+} from '@/data/balance';
 import { PLAYER_HIT_RADIUS } from '@/lib/game/playerCombatGeometry';
 
 type CardinalDirection = 'up' | 'down' | 'left' | 'right';
@@ -65,6 +71,33 @@ export function getActiveCombatLeashRangeSq(chaseRangeSq: number): number {
 /** True when the target is still inside the leash used by the chasing state. */
 export function shouldEnemyResumeChasing(distSq: number, chaseRangeSq: number): boolean {
   return distSq <= getActiveCombatLeashRangeSq(chaseRangeSq);
+}
+
+/** Front-arc threshold for pre-aggro detection: dot(facing, toPlayer) >= this is "in front". 0.5 = 120° cone. */
+export const DETECTION_FRONT_DOT = 0.5;
+/** Behind/side detection radius as a fraction of chase range - a short proximity "sense", not full sight. */
+export const DETECTION_REAR_FACTOR = 0.45;
+
+/**
+ * Pre-aggro detection range (squared), accounting for the enemy's facing cone:
+ * full `chaseRangeSq` inside the frontal arc, a much shorter rear/side radius behind.
+ * This is the stealth "blind spot" - it ONLY governs the idle (unaware) -> chasing
+ * transition. Once `playerAggroed`, detection is omnidirectional and this is not used,
+ * so running behind an enemy mid-fight does not make it lose track of you.
+ */
+export function detectionRangeSqForFacing(
+  facing: string,
+  toPlayerX: number,
+  toPlayerY: number,
+  chaseRangeSq: number,
+): number {
+  const len = Math.hypot(toPlayerX, toPlayerY);
+  if (len < 1e-6) return chaseRangeSq; // standing on the enemy: always detectable
+  const f = cardinalDirectionToVector(facing);
+  const dot = (f.x * toPlayerX + f.y * toPlayerY) / len;
+  return dot >= DETECTION_FRONT_DOT
+    ? chaseRangeSq
+    : chaseRangeSq * (DETECTION_REAR_FACTOR * DETECTION_REAR_FACTOR);
 }
 
 type EnemyMovePredicate = (fromX: number, fromY: number, toX: number, toY: number, r: number) => boolean;
@@ -336,15 +369,51 @@ import type { EnemyBehaviorOverrides } from '../../data/enemies';
  * 15% held (held a beat longer for a fake-out feel), 75% standard ±15% jitter.
  * This breaks the metronome cadence that makes a fight feel rote.
  */
-function setVariableTelegraph(enemy: Enemy, baseDuration: number): void {
-  const roll = Math.random();
+export const ENEMY_TELEGRAPH_MIN = 0.35;
+export const HEAVY_ENEMY_TELEGRAPH_MIN = 0.45;
+
+const HEAVY_TELEGRAPH_ATTACK_TYPES = new Set<string>([
+  'sweep',
+  'nova',
+  'combo_sweep',
+  'combo_finisher',
+  'hail_mary',
+  'golem_grab',
+  'golem_stomp',
+  'sentinel_slab',
+  'reaver_rush',
+  'giant_lunge',
+  'revenant_crusher',
+  'revenant_flurry',
+  'revenant_bladestorm',
+  'phase_transition',
+]);
+
+export function getEnemyTelegraphMinimum(enemy: Pick<Enemy, 'currentAttackType'>): number {
+  return HEAVY_TELEGRAPH_ATTACK_TYPES.has(enemy.currentAttackType)
+    ? HEAVY_ENEMY_TELEGRAPH_MIN
+    : ENEMY_TELEGRAPH_MIN;
+}
+
+export function resolveVariableTelegraphDuration(
+  baseDuration: number,
+  minimumDuration: number,
+  roll = Math.random(),
+  varianceRoll = Math.random(),
+): number {
+  let duration: number;
   if (roll < 0.10) {
-    enemy.telegraphTimer = baseDuration * 0.45; // snap strike
+    duration = baseDuration * 0.45; // snap strike
   } else if (roll < 0.25) {
-    enemy.telegraphTimer = baseDuration * (1.25 + Math.random() * 0.25); // held
+    duration = baseDuration * (1.25 + varianceRoll * 0.25); // held
   } else {
-    enemy.telegraphTimer = baseDuration * (0.85 + Math.random() * 0.30);
+    duration = baseDuration * (0.85 + varianceRoll * 0.30);
   }
+  return Math.max(minimumDuration, duration);
+}
+
+function setVariableTelegraph(enemy: Enemy, baseDuration: number): void {
+  enemy.telegraphTimer = resolveVariableTelegraphDuration(baseDuration, getEnemyTelegraphMinimum(enemy));
   enemy.telegraphTotal = enemy.telegraphTimer;
 }
 
@@ -478,7 +547,7 @@ export interface Enemy {
   speed: number;
   attackRange: number;
   chaseRange: number;
-  state: 'idle' | 'chasing' | 'telegraphing' | 'attacking' | 'recovering' | 'staggered' | 'dead' | 'retreating' | 'charging' | 'slamming';
+  state: 'idle' | 'chasing' | 'telegraphing' | 'attacking' | 'recovering' | 'staggered' | 'dead' | 'retreating' | 'charging' | 'slamming' | 'visceral_open';
   lastAttackTime: number;
   attackCooldown: number;
   damageFlashTimer: number;
@@ -504,6 +573,10 @@ export interface Enemy {
   maxPoise: number;
   staggerTimer: number;
   staggerDuration: number;
+  /** Tier-2 visceral punish window: time left while the enemy is open to a finisher. */
+  visceralTimer: number;
+  /** Full duration of the current visceral window (for visual normalization). */
+  visceralDuration: number;
   poiseRegenTimer: number;
   /** Seconds before this enemy can start a new attack telegraph (e.g. after lunge knockback). */
   attackWindupLockTimer: number;
@@ -873,6 +946,8 @@ export class CombatSystem {
       maxPoise: options.poise ?? 100,
       staggerTimer: 0,
       staggerDuration: options.staggerDuration ?? 1.5,
+      visceralTimer: 0,
+      visceralDuration: 0,
       poiseRegenTimer: 0,
       attackWindupLockTimer: 0,
       type: sprite.replace('enemy_', ''),
@@ -1107,7 +1182,7 @@ export class CombatSystem {
         distSq = playerDistSq;
       }
 
-      if (enemy.state !== 'staggered') {
+      if (enemy.state !== 'staggered' && enemy.state !== 'visceral_open') {
         enemy.poiseRegenTimer += deltaTime;
         if (enemy.poiseRegenTimer >= 2.0) {
           enemy.poise = Math.min(enemy.maxPoise, enemy.poise + enemy.maxPoise * 0.05);
@@ -1240,10 +1315,17 @@ export class CombatSystem {
 
           // Start chasing if target is in range. Faction targets bypass the LoS check because
           // a nearby ally already has eyes on the player. No-world (test) contexts also bypass.
-          // For normal detection: require a clear sightline so enemies don't aggro through walls.
+          // For normal detection: require a clear sightline so enemies don't aggro through walls,
+          // AND require the player to be inside the enemy's facing cone (full range in front, a
+          // short rear/side sense behind) - the stealth blind spot. Faction detection ignores the
+          // cone (an ally already flagged the player).
+          const playerDx = playerPosition.x - enemy.position.x;
+          const playerDy = playerPosition.y - enemy.position.y;
+          const playerDetectSq = detectionRangeSqForFacing(enemy.facing, playerDx, playerDy, chaseRangeSq);
+          const playerInDetection = (playerDx * playerDx + playerDy * playerDy) <= playerDetectSq;
           if (
             !playerInBonfireSanctuary &&
-            (distSq <= chaseRangeSq || enemy.factionTarget !== null) &&
+            (playerInDetection || enemy.factionTarget !== null) &&
             (enemy.factionTarget !== null || !world || hasAggroLineOfSight(world, enemy.position.x, enemy.position.y, playerPosition.x, playerPosition.y))
           ) {
             enemy.state = 'chasing';
@@ -1582,9 +1664,7 @@ export class CombatSystem {
                 const player = this.gameState.player;
                 const isParry = playerBlocking && (now - blockStartTime) < PARRY_WINDOW;
                 if (isParry) {
-                  enemy.state = 'staggered';
-                  enemy.staggerTimer = enemy.staggerDuration;
-                  enemy.damageFlashTimer = enemy.staggerDuration;
+                  this.applyParryStagger(enemy);
                   player.parryBonusTimer = 1.0;
                   this.gameState.registerPerfectParry();
                   player.iFrameTimer = Math.max(player.iFrameTimer, 0.5);
@@ -2101,6 +2181,19 @@ export class CombatSystem {
           }
           break;
         }
+
+        case 'visceral_open': {
+          // Tier-2 punish window: frozen and open to a finisher. If it lapses
+          // unanswered, drop back to chase/idle with partial poise restored.
+          enemy.visceralTimer -= deltaTime;
+          enemy.damageFlashTimer = Math.max(0, enemy.damageFlashTimer - deltaTime);
+          updateMovementVisuals(enemy, 0, 0, false, 0);
+          if (enemy.visceralTimer <= 0) {
+            enemy.poise = enemy.maxPoise * 0.3;
+            enemy.state = shouldEnemyResumeChasing(distSq, chaseRangeSq) ? 'chasing' : 'idle';
+          }
+          break;
+        }
       }
     }
 
@@ -2109,7 +2202,9 @@ export class CombatSystem {
 
   private enemyAttackEnemy(attacker: Enemy, target: Enemy): void {
     target.poise -= attacker.damage;
-    if (target.poise <= 0 && target.state !== 'staggered') {
+    // Faction-fight poise breaks produce a plain stagger, never a visceral window
+    // (player skill only), and must not clobber an existing visceral window.
+    if (target.poise <= 0 && target.state !== 'staggered' && target.state !== 'visceral_open') {
       target.state = 'staggered';
       target.staggerTimer = target.staggerDuration;
       target.damageFlashTimer = target.staggerDuration;
@@ -2126,6 +2221,72 @@ export class CombatSystem {
       this.gameState.addEssence(Math.floor(target.essenceReward * 0.5));
       this.gameState.addGold(Math.floor(target.goldReward * 0.5));
     }
+  }
+
+  /**
+   * Open a tier-2 "visceral" punish window on an enemy. Distinct from the tier-1
+   * `staggered` state: a visceral can be answered with a finisher (`performVisceral`)
+   * for big % maxHP damage. Returns false (without changing state) if the enemy is
+   * exempt, so callers can fall back to a normal stagger.
+   */
+  private tryOpenVisceralWindow(enemy: Enemy): boolean {
+    if (isVisceralExempt(enemy.type)) return false;
+    enemy.state = 'visceral_open';
+    enemy.visceralDuration = getVisceralWindowDuration(enemy.type, enemy.phase);
+    enemy.visceralTimer = enemy.visceralDuration;
+    // Brief impact flash on entry only - the sustained read is the slump pose +
+    // transform, not a cryptic colour strobe held for the whole window.
+    enemy.damageFlashTimer = 0.15;
+    enemy.poiseRegenTimer = 0;
+    // Force a diving water_slime back to the surface so the window - and the
+    // finisher animation - actually reads on a visible target.
+    enemy.waterDiveTimer = 0;
+    return true;
+  }
+
+  /**
+   * Enemy-side reaction to a successful parry: open a visceral window if eligible,
+   * otherwise fall back to a normal stagger. Shared by all parry resolution sites.
+   */
+  private applyParryStagger(enemy: Enemy): void {
+    if (!this.tryOpenVisceralWindow(enemy)) {
+      enemy.state = 'staggered';
+      enemy.staggerTimer = enemy.staggerDuration;
+      enemy.damageFlashTimer = enemy.staggerDuration;
+    }
+  }
+
+  /**
+   * Resolve a visceral finisher against an enemy whose window is open. Deals a
+   * tier-scaled % of max HP (with the stagger burst folded in) and grants the
+   * player i-frames for the finisher animation. No-op if the enemy isn't actually
+   * in a visceral window.
+   */
+  performVisceral(enemy: Enemy): { killed: boolean; damage: number } {
+    if (enemy.state !== 'visceral_open') {
+      return { killed: false, damage: 0 };
+    }
+    const damage = getVisceralDamage(enemy.type, enemy.maxHealth);
+    enemy.health = Math.max(0, enemy.health - damage);
+    enemy.poiseRegenTimer = 0;
+    const player = this.gameState.player;
+    player.iFrameTimer = Math.max(player.iFrameTimer, 0.6);
+
+    if (enemy.health <= 0) {
+      enemy.state = 'dead';
+      this._enemiesDirty = true;
+      this.gameState.addEssence(enemy.essenceReward);
+      this.gameState.addGold(enemy.goldReward);
+      return { killed: true, damage };
+    }
+
+    // Survived the finisher: drop into recovery (and restore some poise) so it
+    // can't be chain-visceral'd on the next frame.
+    enemy.state = 'recovering';
+    enemy.recoverTimer = enemy.recoverDuration;
+    enemy.poise = enemy.maxPoise * 0.5;
+    enemy.visceralTimer = 0;
+    return { killed: false, damage };
   }
 
   /**
@@ -2183,9 +2344,7 @@ export class CombatSystem {
 
     if (isParry) {
       if (sourceEnemy && sourceEnemy.state !== 'dead') {
-        sourceEnemy.state = 'staggered';
-        sourceEnemy.staggerTimer = sourceEnemy.staggerDuration;
-        sourceEnemy.damageFlashTimer = sourceEnemy.staggerDuration;
+        this.applyParryStagger(sourceEnemy);
       }
       player.parryBonusTimer = 1.0;
       this.gameState.registerPerfectParry();
@@ -2231,9 +2390,7 @@ export class CombatSystem {
     const isParry = isBlocking && (now - blockStartTime) < PARRY_WINDOW;
 
     if (isParry) {
-      enemy.state = 'staggered';
-      enemy.staggerTimer = enemy.staggerDuration;
-      enemy.damageFlashTimer = enemy.staggerDuration;
+      this.applyParryStagger(enemy);
       player.parryBonusTimer = 1.0;
       this.gameState.registerPerfectParry();
       player.iFrameTimer = Math.max(player.iFrameTimer, 0.5);
@@ -2281,6 +2438,12 @@ export class CombatSystem {
      *  deal full HP damage but only graze poise - e.g. the scythe arc wave, which should
      *  wound enemies without CC-locking everything it touches. */
     poiseMult: number = 1.0,
+    /** When true (charged attacks), a poise break on a stance-breakable enemy opens a
+     *  tier-2 visceral window instead of a normal stagger. */
+    opensVisceralOnBreak: boolean = false,
+    /** When true (Clockwork Axe), hits also crit (1.5x) against enemies mid-telegraph -
+     *  an interrupt/punish crit window other weapons don't get. */
+    critVsTelegraph: boolean = false,
   ): AttackResult {
     if (targetEnemy.state === 'dead') {
       return { killed: false, staggered: false, backstab: false };
@@ -2322,18 +2485,35 @@ export class CombatSystem {
       finalDamage = Math.floor(damage * 1.5);
     }
 
-    if (targetEnemy.state === 'staggered') {
+    // Clockwork Axe interrupt crit: punish enemies caught winding up an attack.
+    if (critVsTelegraph && targetEnemy.state === 'telegraphing') {
+      finalDamage = Math.floor(damage * 1.5);
+    }
+
+    if (targetEnemy.state === 'staggered' || targetEnemy.state === 'visceral_open') {
       finalDamage = Math.floor(damage * getStaggerDamageMultiplier(targetEnemy.type));
     }
 
     let poiseAbsorbed = false;
     targetEnemy.poise -= Math.floor(finalDamage * poiseMult);
-    if (targetEnemy.poise <= 0 && targetEnemy.state !== 'staggered') {
+    if (
+      targetEnemy.poise <= 0 &&
+      targetEnemy.state !== 'staggered' &&
+      targetEnemy.state !== 'visceral_open'
+    ) {
       if (targetEnemy.behaviorOverrides.poiseImmunityFirstHit && !targetEnemy.poiseImmunityUsed) {
         targetEnemy.poiseImmunityUsed = true;
         targetEnemy.poise = Math.floor(targetEnemy.maxPoise * 0.5);
         targetEnemy.poiseAbsorbFlashTimer = 0.4;
         poiseAbsorbed = true;
+      } else if (
+        opensVisceralOnBreak &&
+        isStanceBreakable(targetEnemy.type) &&
+        this.tryOpenVisceralWindow(targetEnemy)
+      ) {
+        // Stance Break: a charged-attack poise break on an eligible enemy opens
+        // the tier-2 window. Still reported as `staggered` so hit feedback fires.
+        isStaggered = true;
       } else {
         targetEnemy.state = 'staggered';
         targetEnemy.staggerTimer = targetEnemy.staggerDuration;
@@ -2894,7 +3074,7 @@ export class CombatSystem {
   private applyReflectedProjectileHit(projectile: Projectile, target: Enemy): void {
     const reflectedDamage = this.getReflectedProjectileDamage(projectile);
     target.poise -= reflectedDamage;
-    if (target.poise <= 0 && target.state !== 'staggered') {
+    if (target.poise <= 0 && target.state !== 'staggered' && target.state !== 'visceral_open') {
       target.state = 'staggered';
       target.staggerTimer = target.staggerDuration;
       target.damageFlashTimer = target.staggerDuration;

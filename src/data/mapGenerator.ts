@@ -1,5 +1,6 @@
 import { WorldMap, Tile, TileType } from '@/lib/game/World';
 import { TILE_METADATA } from './tiles';
+import { HOLLOW_CORRUPTED_WATER_RECTS } from './hollowCorruptedWater';
 import { getClosedChestTileType, isChestTileType } from './specialChests';
 import { enforceBonfireSanctuaryTiles } from '@/game/runtime/bonfireCombatGuard';
 import { applyRevenantRitualDecor } from '@/game/runtime/revenantRitualDecor';
@@ -3426,22 +3427,32 @@ function applyHollowBoundaryBlend(tiles: Tile[][], def: MapDefinition) {
   }
 }
 
-/**
- * Whispering Woods deep-hollow east pool only. Does NOT touch the NW seal / west-run pond by the
- * hooded river witness (world ~-55,-73) or the decayed-bridge approach river — those stay normal water.
- */
+/** Corrupts the Hollow-side waters while leaving the southern river and creek systems blue. */
 function applyWhisperingWoodsHollowApproachCorruptedWater(tiles: Tile[][], def: MapDefinition) {
   if (def.name !== 'Whispering Woods') return;
   const h = tiles.length;
   const w = tiles[0]?.length ?? 0;
 
-  // Deeper east hollow pool near world (4, -112) / tile ~(154, 38).
-  for (let ty = 26; ty < 52 && ty < h; ty++) {
-    for (let tx = 140; tx < 170 && tx < w; tx++) {
-      const t = tiles[ty][tx];
-      if (t.type !== 'water') continue;
-      tiles[ty][tx] = { ...t, type: 'water_corrupted', walkable: false };
+  const corruptWaterRect = (x: number, y: number, width: number, height: number) => {
+    for (let ty = y; ty < y + height && ty < h; ty++) {
+      if (ty < 0) continue;
+      for (let tx = x; tx < x + width && tx < w; tx++) {
+        if (tx < 0) continue;
+        const t = tiles[ty][tx];
+        if (t.type !== 'water') continue;
+        tiles[ty][tx] = { ...t, type: 'water_corrupted', walkable: false };
+      }
     }
+  };
+
+  // Deep Hollow pool north of the gate district. Keep the whole connected basin corrupted,
+  // not just the east half.
+  corruptWaterRect(...HOLLOW_CORRUPTED_WATER_RECTS[0]);
+
+  // Hollow approach river under the corrupted biome. These mirror the authored river pieces in
+  // whispering_woods/map.ts, so bridge tiles stay intact and unrelated southern creeks stay blue.
+  for (const rect of HOLLOW_CORRUPTED_WATER_RECTS.slice(1)) {
+    corruptWaterRect(...rect);
   }
 }
 
@@ -3542,8 +3553,8 @@ function enforceHollowWestCorruptedStairShelf(tiles: Tile[][], def: MapDefinitio
   setRect(113, 49, 3, 9, 'cliff', false);
   // Back-side landing for the Hollow shortcut gate. The closed gate rows still block progress,
   // but the far side must not be a cliff lip or the shortcut remains visually/traversally false.
-  // Match the full opened gate width, not just the center gate panels.
-  setRect(116, 49, 15, 6, 'hollow_blight', true, { spinePath: true });
+  // Match the opened gate width, not just the center gate panels; x=130 stays cliff shoulder.
+  setRect(116, 49, 14, 6, 'hollow_blight', true, { spinePath: true });
   setRect(92, 52, 2, 3, 'hollow_blight', true);
   setRect(94, 49, 7, 6, 'stairs', true, { stairAxis: 'ew' });
   setRect(107, 54, 1, 1, 'heresy_altar', false);

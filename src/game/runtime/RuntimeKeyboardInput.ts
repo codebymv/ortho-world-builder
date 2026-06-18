@@ -234,6 +234,13 @@ export function createKeyboardInputController({
       e.preventDefault();
       consumePotion();
     }
+    if (lk === 'c' && !e.repeat && !state.dialogueActive) {
+      // Dedicated approach mode: binary toggle, persists until pressed again.
+      // State is surfaced by the crouch HUD icon, not a toast.
+      e.preventDefault();
+      state.player.isSneaking = !state.player.isSneaking;
+      triggerUIUpdate();
+    }
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
       cycleConsumable(-1);

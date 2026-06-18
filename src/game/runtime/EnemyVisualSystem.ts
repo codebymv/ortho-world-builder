@@ -98,14 +98,14 @@ function resolveSpriteKey(enemy: Enemy, enemyType: string, walkFrame: number, ch
   if (enemyType === 'golem') {
     const phase = enemy.phase ?? 1;
     const prefix = phase >= 2 ? 'enemy_golem_phase2' : 'enemy_golem';
-    if (enemy.state === 'staggered') return `${prefix}_stagger`;
+    if (enemy.state === 'staggered' || enemy.state === 'visceral_open') return `${prefix}_stagger`;
     if (enemy.state === 'telegraphing') return `${prefix}_telegraph`;
     if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return `${prefix}_attack`;
     if (enemy.moveBlend > 0.25) return `${prefix}_walk_${walkFrame}`;
     return prefix;
   }
   if (enemyType === 'stone_sentinel') {
-    if (enemy.state === 'staggered') return 'enemy_stone_sentinel_stagger';
+    if (enemy.state === 'staggered' || enemy.state === 'visceral_open') return 'enemy_stone_sentinel_stagger';
     if (enemy.state === 'telegraphing') return 'enemy_stone_sentinel_telegraph';
     if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return 'enemy_stone_sentinel_attack';
     if (enemy.moveBlend > 0.25) return `enemy_stone_sentinel_walk_${walkFrame}`;
@@ -117,7 +117,7 @@ function resolveSpriteKey(enemy: Enemy, enemyType: string, walkFrame: number, ch
     if (enemy.moveBlend > 0.25) return `enemy_ridge_revenant_walk_${walkFrame}`;
     return 'enemy_ridge_revenant';
   }
-  if (enemy.state === 'staggered') return `${enemy.sprite}_stagger`;
+  if (enemy.state === 'staggered' || enemy.state === 'visceral_open') return `${enemy.sprite}_stagger`;
   if (enemy.state === 'telegraphing') return `${enemy.sprite}_telegraph`;
   if (enemy.state === 'recovering' && enemy.attackAnimationTimer > 0) return `${enemy.sprite}_attack`;
   if (enemy.moveBlend > 0.25 && ENEMY_WALK_ANIMATIONS[enemyType]) {
@@ -468,6 +468,23 @@ export function applyEnemyVisuals({
       scaleX *= 1 + impactSquash * 0.1;
       scaleY *= 1 - impactSquash * 0.08;
     }
+  } else if (enemy.state === 'visceral_open') {
+    // Tier-2 vulnerability: a deep, heavy slump that reads as genuinely impaired -
+    // distinct from the light stagger micro-shake. Buckles low and fast, then holds
+    // the doubled-over pose with a slow, heavy tremor for the rest of the window.
+    const dur = enemy.visceralDuration > 0 ? enemy.visceralDuration : 1;
+    const progress = Math.min(1, Math.max(0, 1 - enemy.visceralTimer / dur)); // 0→1
+    const buckle = Math.min(1, progress * 5); // snap into the slump in the first ~20%
+    scaleX *= 1 + buckle * 0.22; // splay wide
+    scaleY *= 1 - buckle * 0.30; // collapse height
+    finalEnemyY -= buckle * 0.18; // sink toward the ground
+    // Hunch toward the player - a doubled-over, exposed read.
+    const hunchDir = state.player.position.x >= enemy.position.x ? 1 : -1;
+    rotation = hunchDir * buckle * 0.12;
+    // Slow, heavy tremor (slower than the stagger jitter), easing as it stabilises.
+    const tremor = 0.03 * (1 - progress * 0.4);
+    finalEnemyX += fastSin(currentTime / 42 + seed) * tremor;
+    finalEnemyY += fastCos(currentTime / 58 + seed) * tremor * 0.6;
   } else {
     const breathe = fastSin(currentTime / 800 + seed * 3);
     if (enemyType === 'hollow_guardian') {
