@@ -28,10 +28,10 @@ export class AssetManager {
   }
 
   /**
-   * Soft idle "wave crest" decal on a transparent background. World.tickWaterRipples stamps one
-   * briefly onto a random visible water tile, fades it in and back out, then recycles it — so the
-   * surface gets the occasional subtle lap instead of a constant per-tile loop. Two gently curved,
-   * pale-cyan crest lines (bright core riding a fainter body) tapered to nothing at the edges.
+   * Soft idle ripple decal on a transparent background. World.tickAmbientDecals stamps one briefly
+   * onto a random visible water tile, fades it in and back out, then recycles it. Top-down
+   * concentric rings (dark trough + bright crest) expand over the blue water tile — distinct from
+   * the horizontal wind streaks used on grass.
    */
   createWaterRippleTexture(width = 32, height = 32): THREE.Texture {
     const canvas = document.createElement('canvas');
@@ -39,19 +39,53 @@ export class AssetManager {
     canvas.height = height;
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, width, height);
-    const drawCrest = (cy: number, amp: number, coreAlpha: number, bodyAlpha: number) => {
-      for (let x = 4; x < width - 4; x++) {
-        const t = (x - 4) / (width - 8);
-        const edge = Math.sin(t * Math.PI); // 0 at the ends, 1 in the middle — soft taper
-        const y = Math.round(cy + Math.sin(t * Math.PI * 2) * amp);
-        ctx.fillStyle = `rgba(150, 215, 245, ${bodyAlpha * edge})`;
-        ctx.fillRect(x, y + 1, 1, 1);
-        ctx.fillStyle = `rgba(228, 246, 255, ${coreAlpha * edge})`;
-        ctx.fillRect(x, y, 1, 1);
+
+    const cx = width * 0.5 - 0.5;
+    const cy = height * 0.5 - 0.5;
+    const rings = [
+      { radius: 3.8, crest: 0.58, shadow: 0.32 },
+      { radius: 6.4, crest: 0.42, shadow: 0.22 },
+      { radius: 8.8, crest: 0.24, shadow: 0.12 },
+    ] as const;
+
+    const crestRgb: [number, number, number] = [129, 212, 250];
+    const shadowRgb: [number, number, number] = [21, 101, 192];
+    const specRgb: [number, number, number] = [187, 230, 253];
+
+    for (let py = 0; py < height; py++) {
+      for (let px = 0; px < width; px++) {
+        const edgeFade = Math.min(
+          Math.min(px, width - 1 - px, py, height - 1 - py) / 3.5,
+          1,
+        );
+        if (edgeFade <= 0) continue;
+
+        const dist = Math.hypot(px - cx, py - cy);
+        let rgb: [number, number, number] | null = null;
+        let alpha = 0;
+
+        for (const ring of rings) {
+          const band = dist - ring.radius;
+          if (Math.abs(band) <= 0.42) {
+            const t = 1 - Math.abs(band) / 0.42;
+            rgb = band >= 0 ? specRgb : crestRgb;
+            alpha = ring.crest * t;
+            break;
+          }
+          if (band < -0.42 && band >= -1.05) {
+            const t = 1 - (Math.abs(band) - 0.42) / 0.63;
+            rgb = shadowRgb;
+            alpha = ring.shadow * t;
+            break;
+          }
+        }
+
+        if (!rgb || alpha <= 0.02) continue;
+        ctx.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha * edgeFade})`;
+        ctx.fillRect(px, py, 1, 1);
       }
-    };
-    drawCrest(13, 2.2, 0.85, 0.45);
-    drawCrest(20, 1.6, 0.55, 0.3);
+    }
+
     const texture = new THREE.CanvasTexture(canvas);
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;

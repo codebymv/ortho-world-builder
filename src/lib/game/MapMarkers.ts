@@ -58,21 +58,11 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   { keywords: ['fort', 'watchtower'], tileX: 200, tileY: 26, map: 'village', label: 'North Fort', type: 'danger', color: '#FF4500' },
   { keywords: ['lake'], tileX: 185, tileY: 120, map: 'village', label: 'Village Lake', type: 'poi', color: '#4169E1' },
 
-  // Forest locations
+  // Whispering Woods (forest): no keyword-discovered pins. Runtime-only markers:
+  //   - getManuscriptPrimaryObjectiveMarker (Primary)
+  //   - getRingHintMarker after Olwen's hint (Optional)
 
-  { keywords: ['ranger outpost'], tileX: 140, tileY: 170, map: 'forest', label: 'Ranger Outpost', type: 'poi', color: '#8FBC8F' },
-  { keywords: ['ranger cottage'], tileX: 236, tileY: 227, map: 'forest', label: 'Ranger Cottage', type: 'poi', color: '#9370DB' },
-  // The fork sign names Surveyor's Den as world direction only. Do not auto-pin it
-  // as an Optional marker; the forest's optional hint flow belongs to Olwen's cabin pin.
-  { keywords: [], tileX: 45, tileY: 114, map: 'forest', label: "Surveyor's Den", type: 'poi', color: '#8B6914' },
-  { keywords: ['traveler', 'travelers inlet', 'traveler inlet'], tileX: 258, tileY: 96, map: 'forest', label: "Traveler's Inlet", type: 'poi', color: '#8B6914' },
-  // Fort gate key - use "chapel ruins" only (not plain "chapel") so village chapel dialogue does not ping the woods.
-  // Points at the actual chapel_dead_ranger remains (forest map x:65,y:183); the old (55,114) was ~70 tiles off.
-  { keywords: ['chapel ruins'], tileX: 65, tileY: 183, map: 'forest', label: 'Chapel Ruins (ranger remains)', type: 'poi', color: '#A1887F' },
-  { keywords: ['disparaged cottage', 'hunter cottage', 'old shack', 'shack', 'run down old shack'], tileX: 137, tileY: 184, map: 'forest', label: 'Disparaged Cottage', type: 'quest', color: '#FFD700' },
-  
-  // Whispering Woods quests
-  { keywords: ['hunter', 'missing hunter', 'hunter manuscript', 'manuscript', 'find signs'], tileX: 137, tileY: 184, map: 'forest', label: 'Disparaged Cottage', type: 'quest', color: '#FFD700' },
+  // Whispering Woods quests (village-side reporting only)
   { keywords: ['return to the elder', 'findings'], tileX: 102, tileY: 70, map: 'village', label: 'Report to Elder', type: 'quest', color: '#FFD700' },
 
   // Guilrhym
@@ -88,8 +78,6 @@ export const KNOWN_LOCATIONS: KnownLocation[] = [
   { keywords: ['bandit', 'bandits'], tileX: 223, tileY: 14, map: 'village', label: 'Bandit Camp', type: 'danger', color: '#8B0000' },
   { keywords: ['skeleton', 'undead'], tileX: 15, tileY: 25, map: 'village', label: 'Undead', type: 'danger', color: '#D3D3D3' },
   { keywords: ['spider', 'spiders'], tileX: 214, tileY: 123, map: 'village', label: 'Spider Nest', type: 'danger', color: '#800080' },
-  { keywords: ['golem', 'stone golem'], tileX: 225, tileY: 155, map: 'forest', label: 'Stone Golem', type: 'danger', color: '#696969' },
-  { keywords: ['ridge revenant', 'east ridge', 'ridge ascent', 'tempered core'], tileX: 260, tileY: 142, map: 'forest', label: 'East Ridge Ascent', type: 'danger', color: '#FF6F00' },
 ];
 
 function normalizeMarkerText(value: string): string {
@@ -143,6 +131,8 @@ export function isPrimaryObjectiveMarker(
   // Dynamic objective markers are always primary when they exist
   if (marker.id === MANUSCRIPT_PRIMARY_MARKER_ID) return true;
   if (marker.id === VILLAGE_PRIMARY_MARKER_ID) return true;
+  // Olwen's ring hint is the sole forest Optional pin — never promote to Primary.
+  if (marker.id === RING_HINT_MARKER_ID) return false;
 
   const objectiveText = getPrimaryObjectiveText(state);
   if (!objectiveText) return false;
@@ -326,11 +316,27 @@ export function shouldHideStoredMarker(
   marker: Pick<MapMarker, 'id' | 'label' | 'map' | 'tileX' | 'tileY'>,
   state: GameState,
 ): boolean {
+  // Whispering Woods never persists discovered pins — only runtime primary + Olwen optional.
+  if (marker.map === 'forest') return true;
+
   return (
     shouldHideStoredRingHintMarker(marker, state) ||
     shouldHideCompletedObjectiveMarker(marker, state) ||
     SUPPRESSED_STORED_POI_MARKER_IDS.has(marker.id)
   );
+}
+
+const HIDE_MARKER_IDS_WHEN_PRIMARY = new Set(['village_Village Elder']);
+
+export function isHiddenMapMarker(
+  marker: Pick<MapMarker, 'id' | 'label' | 'map' | 'tileX' | 'tileY' | 'type'>,
+  state: GameState | null,
+  dynamicPrimary: Pick<MapMarker, 'id'> | null = null,
+): boolean {
+  if (marker.type === 'danger') return true;
+  if (state && shouldHideStoredMarker(marker, state)) return true;
+  if (dynamicPrimary && HIDE_MARKER_IDS_WHEN_PRIMARY.has(marker.id)) return true;
+  return false;
 }
 
 /** @deprecated Use {@link shouldHideStoredMarker} */
@@ -380,6 +386,10 @@ export function extractMarkersFromText(
   const addedIds = new Set<string>();
 
   for (const loc of KNOWN_LOCATIONS) {
+    // Forest pins are runtime-only (see getManuscriptPrimaryObjectiveMarker / getRingHintMarker).
+    if (loc.map === 'forest') continue;
+    // Danger pins are never shown on the map key.
+    if (loc.type === 'danger') continue;
     // Check if any keyword appears in the text
     const matched = loc.keywords.some(kw => lower.includes(kw));
     if (!matched) continue;
@@ -424,6 +434,7 @@ export function extractMarkersFromText(
         }
       }
       // Also add the actual location marker (for when the player gets to that map)
+      if (loc.map === 'forest') continue;
       markers.push({
         id: markerId,
         label: loc.label,

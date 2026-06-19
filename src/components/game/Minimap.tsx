@@ -4,12 +4,12 @@ import { WorldMap } from '@/lib/game/World';
 import {
   getManuscriptPrimaryObjectiveMarker,
   getVillagePrimaryObjectiveMarker,
-  getIdolHintMarker,
+  getRingHintMarker,
   isPrimaryObjectiveMarker,
-  shouldHideStoredIdolHintMarker,
+  isHiddenMapMarker,
   MANUSCRIPT_PRIMARY_MARKER_ID,
   VILLAGE_PRIMARY_MARKER_ID,
-  IDOL_HINT_MARKER_ID,
+  RING_HINT_MARKER_ID,
   type MapMarker,
 } from '@/lib/game/MapMarkers';
 import type { GameState } from '@/lib/game/GameState';
@@ -23,7 +23,6 @@ import {
 import { PlayerFaceMapIcon } from '@/components/game/PlayerFaceMapIcon';
 
 const DYNAMIC_PRIMARY_MARKER_IDS = new Set([MANUSCRIPT_PRIMARY_MARKER_ID, VILLAGE_PRIMARY_MARKER_ID]);
-const HIDE_MARKER_IDS_WHEN_PRIMARY = new Set(['forest_Disparaged Cottage', 'village_Village Elder']);
 
 interface MinimapProps {
   currentMap: WorldMap;
@@ -140,17 +139,16 @@ export const Minimap = memo(
           ? ([getManuscriptPrimaryObjectiveMarker(state), getVillagePrimaryObjectiveMarker(state)]
               .find(m => m?.map === currentMapId) ?? null)
           : null;
-        const idolMarker = state ? getIdolHintMarker(state) : null;
+        const ringHintMarker = state ? getRingHintMarker(state) : null;
         const baseMarkers = mapMarkersRef.current.filter(
           m =>
             m.map === currentMapId &&
             !DYNAMIC_PRIMARY_MARKER_IDS.has(m.id) &&
-            m.id !== IDOL_HINT_MARKER_ID &&
+            m.id !== RING_HINT_MARKER_ID &&
             m.type !== 'portal' &&
-            (!state || !shouldHideStoredIdolHintMarker(m, state)) &&
-            !(dynamicPrimary && HIDE_MARKER_IDS_WHEN_PRIMARY.has(m.id)),
+            !isHiddenMapMarker(m, state, dynamicPrimary),
         );
-        const dynamicSecondary = idolMarker?.map === currentMapId ? [idolMarker] : [];
+        const dynamicSecondary = ringHintMarker?.map === currentMapId ? [ringHintMarker] : [];
         const currentMarkers = [...(dynamicPrimary ? [dynamicPrimary] : []), ...baseMarkers, ...dynamicSecondary];
         const hasPulsing = currentMarkers.some(m => nowMs < m.pulseUntil);
         minFrameMs = hasPulsing ? 16 : 48;
@@ -199,17 +197,16 @@ export const Minimap = memo(
         ? ([getManuscriptPrimaryObjectiveMarker(state), getVillagePrimaryObjectiveMarker(state)]
             .find(m => m?.map === currentMapId) ?? null)
         : null;
-      const idolMarker = state ? getIdolHintMarker(state) : null;
+      const ringHintMarker = state ? getRingHintMarker(state) : null;
       const base = markers.filter(
         m =>
           m.map === currentMapId &&
           !DYNAMIC_PRIMARY_MARKER_IDS.has(m.id) &&
-          m.id !== IDOL_HINT_MARKER_ID &&
+          m.id !== RING_HINT_MARKER_ID &&
           m.type !== 'portal' &&
-          (!state || !shouldHideStoredIdolHintMarker(m, state)) &&
-          !(dynamicPrimary && HIDE_MARKER_IDS_WHEN_PRIMARY.has(m.id)),
+          !isHiddenMapMarker(m, state, dynamicPrimary),
       );
-      const dynamicSecondary = idolMarker?.map === currentMapId ? [idolMarker] : [];
+      const dynamicSecondary = ringHintMarker?.map === currentMapId ? [ringHintMarker] : [];
       const all = [...(dynamicPrimary ? [dynamicPrimary] : []), ...base, ...dynamicSecondary];
       const objective = all.filter(m => state && isPrimaryObjectiveMarker(m, state));
       const objectiveIds = new Set(objective.map(m => m.id));
@@ -222,11 +219,9 @@ export const Minimap = memo(
       const isObjective = (m: typeof visibleMarkers[number]) => (state ? isPrimaryObjectiveMarker(m, state) : false);
       const hasPrimary = visibleMarkers.some(m => isObjective(m));
       const hasOptional = visibleMarkers.some(m => (m.type === 'quest' || m.type === 'poi') && !isObjective(m));
-      const hasDanger = visibleMarkers.some(m => m.type === 'danger' && !isObjective(m));
       return [
         ...(hasPrimary ? [{ key: 'primary', label: 'Primary', color: '#FFD700', hollow: false }] : []),
         ...(hasOptional ? [{ key: 'optional', label: 'Optional', color: '#8FBC8F', hollow: true }] : []),
-        ...(hasDanger ? [{ key: 'danger', label: 'Danger', color: '#FF6F00', hollow: true }] : []),
       ];
     }, [visibleMarkers, gameStateRef]);
 

@@ -1,6 +1,7 @@
 import type { TileType, WorldMap, Tile } from '@/lib/game/World';
 import type { GameState } from '@/lib/game/GameState';
 import type { AssetManager } from '@/lib/game/AssetManager';
+import { getHollowWaterCorruptionIntensity, getHollowWaterVisualBlend } from '@/data/hollowCorruptedWater';
 import { isNpcObjectiveTarget, isPrimaryObjectiveMarker, markerTargetsNpc, type MapMarker } from '@/lib/game/MapMarkers';
 import { parseVisitedTileKey } from '@/lib/game/visitedTiles';
 
@@ -318,6 +319,85 @@ const MINIMAP_TILE_COLOR: Partial<Record<TileType, string>> & Record<string, str
 const UNWALKABLE_FALLBACK = '#3E2723';
 const WALKABLE_FALLBACK = '#4CAF50';
 
+const MINIMAP_WATER_BLUE = MINIMAP_TILE_COLOR.water;
+const MINIMAP_WATER_CORRUPT = MINIMAP_TILE_COLOR.water_corrupted;
+
+function isWhisperingWoodsMap(mapName: string, mapKey?: string): boolean {
+  return mapKey === 'forest' || mapName === 'Whispering Woods';
+}
+
+function isHollowGradientWaterTile(tileType: string): boolean {
+  return tileType === 'water' || tileType === 'waterfall' || tileType === 'water_corrupted';
+}
+
+function parseMinimapHex(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ];
+}
+
+function lerpMinimapHex(from: string, to: string, t: number): string {
+  const clamped = Math.max(0, Math.min(1, t));
+  const [r0, g0, b0] = parseMinimapHex(from);
+  const [r1, g1, b1] = parseMinimapHex(to);
+  const r = Math.round(r0 + (r1 - r0) * clamped);
+  const g = Math.round(g0 + (g1 - g0) * clamped);
+  const b = Math.round(b0 + (b1 - b0) * clamped);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`.toUpperCase();
+}
+
+/**
+ * Minimap pixel color for hollow-approach water — mirrors World.ts blend (intensity + visual blend).
+ * Returns null when the caller should use the default terrain color path.
+ */
+export function minimapColorForHollowWater(
+  tileX: number,
+  tileY: number,
+  tileType: string,
+  mapName: string,
+  mapKey?: string,
+): string | null {
+  if (!isWhisperingWoodsMap(mapName, mapKey) || !isHollowGradientWaterTile(tileType)) return null;
+
+  const intensity = getHollowWaterCorruptionIntensity(tileX, tileY);
+  if (intensity <= 0) return MINIMAP_WATER_BLUE;
+
+  const blend = getHollowWaterVisualBlend(intensity);
+  return lerpMinimapHex(MINIMAP_WATER_BLUE, MINIMAP_WATER_CORRUPT, blend);
+}
+
+function drawHollowWaterMinimapCell(
+  ctx: CanvasRenderingContext2D,
+  tileX: number,
+  tileY: number,
+  px: number,
+  py: number,
+  scale: number,
+  color: string,
+): void {
+  ctx.fillStyle = color;
+  ctx.fillRect(px, py, scale, scale);
+
+  // At higher zoom, add a faint center fleck on stronger corruption (reads like in-world noise).
+  const intensity = getHollowWaterCorruptionIntensity(tileX, tileY);
+  if (scale >= 2 && intensity > 0.35) {
+    const u = minimapTileHash(tileX, tileY);
+    if (u > 0.55 - intensity * 0.2) {
+      ctx.fillStyle = `rgba(140, 90, 170, ${0.12 + intensity * 0.2})`;
+      const s = Math.max(1, Math.floor(scale * 0.4));
+      ctx.fillRect(
+        px + Math.floor((scale - s) * u),
+        py + Math.floor((scale - s) * (1 - u)),
+        s,
+        s,
+      );
+    }
+  }
+}
+
 /**
  * Landmark tile types that are always drawn on the map regardless of fog-of-war,
  * rendered as a proportionally-sized icon rather than a raw 1px tile so they read
@@ -559,9 +639,19 @@ export function drawMinimapTerrainCell(
   scale: number,
   mapHeight: number,
   mapName: string,
+  mapKey?: string,
 ): void {
   const px = tileX * scale;
   const py = (mapHeight - 1 - tileY) * scale;
+  const hollowWaterColor = minimapColorForHollowWater(tileX, tileY, tile.type, mapName, mapKey);
+  if (hollowWaterColor) {
+    drawHollowWaterMinimapCell(ctx, tileX, tileY, px, py, scale, hollowWaterColor);
+    if (isWhisperingWoodsMap(mapName, mapKey) && scale <= 1) {
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(px, py, scale, scale);
+    }
+    return;
+  }
   if (tile.type === 'hollow_blight') {
     drawHollowBlightMinimapCell(ctx, tileX, tileY, px, py, scale);
     if (mapName === 'Whispering Woods' && scale <= 1) {
@@ -580,7 +670,7 @@ export function drawMinimapTerrainCell(
   }
   ctx.fillStyle = tileColorForMinimap(tile);
   ctx.fillRect(px, py, scale, scale);
-  if (mapName === 'Whispering Woods' && scale <= 1) {
+  if (isWhisperingWoodsMap(mapName, mapKey) && scale <= 1) {
     ctx.fillStyle = 'rgba(255,255,255,0.12)';
     ctx.fillRect(px, py, scale, scale);
   }
@@ -748,7 +838,7 @@ export function drawMinimapTerrain(p: DrawMinimapTerrainParams): void {
       for (let tx = 0; tx < w; tx++) {
         const tile = tiles[ty]?.[tx];
         if (!tile) continue;
-        drawMinimapTerrainCell(ctx, tile, tx, ty, scale, h, currentMap.name);
+        drawMinimapTerrainCell(ctx, tile, tx, ty, scale, h, currentMap.name, currentMap.mapKey);
       }
     }
   } else {
@@ -761,7 +851,7 @@ export function drawMinimapTerrain(p: DrawMinimapTerrainParams): void {
           if (tx >= 0 && ty >= 0 && tx < w && ty < h) {
             const tile = tiles[ty]?.[tx];
             if (tile) {
-              drawMinimapTerrainCell(ctx, tile, tx, ty, scale, h, currentMap.name);
+              drawMinimapTerrainCell(ctx, tile, tx, ty, scale, h, currentMap.name, currentMap.mapKey);
             }
           }
         }
@@ -772,7 +862,7 @@ export function drawMinimapTerrain(p: DrawMinimapTerrainParams): void {
       const { x, y } = tileInfo;
       const tile = tiles[y]?.[x];
       if (!tile) continue;
-      drawMinimapTerrainCell(ctx, tile, x, y, scale, h, currentMap.name);
+      drawMinimapTerrainCell(ctx, tile, x, y, scale, h, currentMap.name, currentMap.mapKey);
     }
   }
 

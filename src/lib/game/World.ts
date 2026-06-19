@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager';
 import { TILE_METADATA, DETAIL_CONFIG } from '@/data/tiles';
-import { HOLLOW_CORRUPTED_WATER_RECTS } from '@/data/hollowCorruptedWater';
+import { HOLLOW_CORRUPTED_WATER_RECTS, getHollowApproachWaterTargetType, getHollowWaterCorruptionIntensity, getHollowWaterVisualBlend } from '@/data/hollowCorruptedWater';
 import { isPositionInBonfireSafeZone } from '@/game/runtime/bonfireCombatGuard';
 import { GroundInstanceLayer } from './GroundInstanceLayer';
 import { TransientTileDecalField } from './TransientTileDecals';
@@ -447,10 +447,10 @@ export class World {
     this.waterRipples = new TransientTileDecalField(
       scene,
       {
-        maxConcurrent: 5, lifeMs: 1500, minGapMs: 320, maxGapMs: 950,
-        size: 0.9, renderOrder: 56000, z: 0.03, peakOpacity: 0.7,
-        scaleFrom: 0.85, scaleTo: 1.25, driftX: 0, driftY: 0.07,
-        jitter: 0.5, rotationJitter: 0.6,
+        maxConcurrent: 5, lifeMs: 1700, minGapMs: 380, maxGapMs: 1100,
+        size: 0.95, renderOrder: 56000, z: 0.025, peakOpacity: 0.62,
+        scaleFrom: 0.55, scaleTo: 1.35, driftX: 0, driftY: 0,
+        jitter: 0.28, rotationJitter: 0,
       },
       () => this.assetManager.getTexture('water_ripple') ?? null,
     );
@@ -1117,18 +1117,59 @@ export class World {
   private isHollowCorruptedWaterVisualTile(tile: Tile, tileX?: number, tileY?: number): boolean {
     if (!this.isWhisperingWoodsMap()) return false;
     if (tileX === undefined || tileY === undefined) return false;
-    if (tile.type !== 'water' && tile.type !== 'waterfall') return false;
-
-    return HOLLOW_CORRUPTED_WATER_RECTS.some(([x, y, width, height]) =>
-      tileX >= x && tileX < x + width &&
-      tileY >= y && tileY < y + height,
-    );
+    if (tile.type !== 'water' && tile.type !== 'waterfall' && tile.type !== 'water_corrupted') return false;
+    return getHollowWaterCorruptionIntensity(tileX, tileY) >= 1;
   }
 
   private getVisualTileType(tile: Tile, tileX?: number, tileY?: number): TileType {
-    return this.isHollowCorruptedWaterVisualTile(tile, tileX, tileY)
-      ? 'water_corrupted'
-      : tile.type;
+    if (this.isHollowCorruptedWaterVisualTile(tile, tileX, tileY)) {
+      return 'water_corrupted';
+    }
+    if (
+      this.isWhisperingWoodsMap()
+      && tileX !== undefined
+      && tileY !== undefined
+      && tile.type === 'water_corrupted'
+      && getHollowWaterCorruptionIntensity(tileX, tileY) < 1
+    ) {
+      return 'water';
+    }
+    return tile.type;
+  }
+
+  /** Corrupted-water texture blended over blue water; opacity scales with Y (no noise blotches). */
+  private createHollowWaterBlendOverlay(tileX: number, tileY: number, tileType: TileType): THREE.Mesh | null {
+    if (!this.isWhisperingWoodsMap()) return null;
+    if (tileType !== 'water' && tileType !== 'waterfall') return null;
+
+    const intensity = getHollowWaterCorruptionIntensity(tileX, tileY);
+    if (intensity <= 0 || intensity >= 1) return null;
+
+    const corruptTex = this.assetManager.getTexture('water_corrupted');
+    if (!corruptTex) return null;
+
+    const blend = getHollowWaterVisualBlend(intensity);
+    const bucket = Math.round(blend * 24);
+    const matKey = `hollow_water_blend_${bucket}`;
+    let mat = this.materialCache.get(matKey);
+    if (!mat) {
+      mat = new THREE.MeshBasicMaterial({
+        map: corruptTex,
+        transparent: true,
+        opacity: blend,
+        depthWrite: false,
+        depthTest: false,
+        alphaTest: 0.02,
+      });
+      this.materialCache.set(matKey, mat);
+    }
+
+    const mesh = this.acquireMesh(this.sharedTileGeometry, mat);
+    mesh.frustumCulled = true;
+    mesh.position.z = -0.48;
+    mesh.matrixAutoUpdate = false;
+    mesh.userData = { renderRole: 'overlay' };
+    return mesh;
   }
 
   // FNV-1a 32-bit folding helpers. A trailing field-separator fold mirrors the old '|' join so
@@ -1181,6 +1222,13 @@ export class World {
     h = this.hashFoldStr(h, overlayTextureId);
     h = this.hashFoldStr(h, baseType);
     h = this.hashFoldNum(h, overlayCulled ? 1 : 0);
+    if (
+      this.isWhisperingWoodsMap()
+      && (tile.type === 'water' || tile.type === 'waterfall' || tile.type === 'water_corrupted')
+    ) {
+      const blend = getHollowWaterVisualBlend(getHollowWaterCorruptionIntensity(tileX, tileY));
+      h = this.hashFoldNum(h, Math.round(blend * 24));
+    }
     return h >>> 0;
   }
 
@@ -1430,8 +1478,9 @@ export class World {
       if (tileY >= this.map.height - 1) return;
       const nb = this.map.tiles[tileY + 1]?.[tileX];
       if (!nb) return;
-      if (WATER_BRIDGE_TILES.has(nb.type)) return;
       const ne = nb.elevation ?? 0;
+      // Skip level/lower water — but still fill when a walkable bank steps up to higher water.
+      if (WATER_BRIDGE_TILES.has(nb.type) && ne <= me) return;
       if (HEIGHT_TILE_TYPES.has(nb.type) && (ne <= me || waterTile)) return;
       if (ne <= me) return;
       const gap = (ne - me) * World.ELEVATION_Y_OFFSET;
@@ -1520,8 +1569,9 @@ export class World {
       // Water/bridge tiles normally rely on bank/cliff art to cover elevation faces, but when a
       // plain walkable bank at higher elevation sits directly behind (screen-north, row ty+1,
       // no cliff sprite), the elevated row leaves a sky strip along the waterline — fill just
-      // that gap.
+      // that gap. Also fill when a higher water row sits directly north (el2 channel over el1).
       addSouth();
+      addNorth();
       return;
     }
     addSouth();
@@ -1677,6 +1727,7 @@ export class World {
       if (tileX !== undefined && tileY !== undefined) {
         const hollowRot =
           tile.walkable ? this.createHollowTransitionCorruptionDecals(tileX, tileY, tile.type) : null;
+        const hollowWaterBlend = this.createHollowWaterBlendOverlay(tileX, tileY, tile.type);
         const group = this.overlayPool.pop() ?? new THREE.Group();
         group.clear();
         group.matrixAutoUpdate = false;
@@ -1688,6 +1739,10 @@ export class World {
         if (hollowRot) {
           hollowRot.updateMatrix();
           group.add(hollowRot);
+        }
+        if (hollowWaterBlend) {
+          hollowWaterBlend.updateMatrix();
+          group.add(hollowWaterBlend);
         }
         // Pure flat ground tile (no seams/decals/shadow) → hand its quad to the instanced layer
         // and stand a placeholder in its place so the existing chunk lifecycle still tracks it.
@@ -2021,8 +2076,10 @@ export class World {
         if (!row) continue;
         for (let tx = minX; tx <= maxX; tx++) {
           const tile = row[tx];
-          if (tile?.type !== 'water') continue;
-          row[tx] = { ...tile, type: 'water_corrupted', walkable: false };
+          if (!tile) continue;
+          const target = getHollowApproachWaterTargetType(tx, ty, tile.type);
+          if (!target || tile.type === target) continue;
+          row[tx] = { ...tile, type: target, walkable: false };
           changedMinX = Math.min(changedMinX, tx);
           changedMinY = Math.min(changedMinY, ty);
           changedMaxX = Math.max(changedMaxX, tx);

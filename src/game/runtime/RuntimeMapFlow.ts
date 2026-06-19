@@ -5,7 +5,7 @@ import { createMapTransitionService } from '@/game/domain/MapTransitionService';
 import { getVillageReactivityStage } from '@/game/domain/VillageReactivity';
 import { mapDefinitions } from '@/data/maps';
 import { TILE_METADATA } from '@/data/tiles';
-import { HOLLOW_CORRUPTED_WATER_RECTS } from '@/data/hollowCorruptedWater';
+import { HOLLOW_CORRUPTED_WATER_RECTS, reconcileHollowApproachWaterInRects } from '@/data/hollowCorruptedWater';
 import { getClosedChestTileType, getOpenedChestTileType, isChestTileType } from '@/data/specialChests';
 import { evictEnemiesFromBonfireSafeZones } from '@/game/runtime/bonfireCombatGuard';
 import { spawnEnemiesFromMapZones } from '@/game/runtime/RuntimeWorldUtils';
@@ -578,22 +578,9 @@ export function createRuntimeMapFlow({
   const syncHollowCorruptedWaterState = () => {
     if (state.currentMap !== 'forest') return;
     const map = world.getCurrentMap();
-    let changed = false;
-
-    for (const [x, y, width, height] of HOLLOW_CORRUPTED_WATER_RECTS) {
-      for (let ty = y; ty < y + height; ty++) {
-        const row = map.tiles[ty];
-        if (!row) continue;
-        for (let tx = x; tx < x + width; tx++) {
-          const tile = row[tx];
-          if (tile?.type !== 'water') continue;
-          row[tx] = { ...tile, type: 'water_corrupted' as TileType, walkable: false };
-          changed = true;
-        }
-      }
+    if (reconcileHollowApproachWaterInRects(map.tiles, HOLLOW_CORRUPTED_WATER_RECTS)) {
+      world.rebuildChunks();
     }
-
-    if (changed) world.rebuildChunks();
   };
 
   // Permanent iron fence blocking the dirt-spine entrance to the hollow-approach ridge

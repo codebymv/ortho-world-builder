@@ -1,6 +1,6 @@
 import { WorldMap, Tile, TileType } from '@/lib/game/World';
 import { TILE_METADATA } from './tiles';
-import { HOLLOW_CORRUPTED_WATER_RECTS } from './hollowCorruptedWater';
+import { HOLLOW_CORRUPTED_WATER_RECTS, reconcileHollowApproachWaterInRects } from './hollowCorruptedWater';
 import { getClosedChestTileType, isChestTileType } from './specialChests';
 import { enforceBonfireSanctuaryTiles } from '@/game/runtime/bonfireCombatGuard';
 import { applyRevenantRitualDecor } from '@/game/runtime/revenantRitualDecor';
@@ -3173,6 +3173,21 @@ function normalizeWhisperingWoodsSoutheastCreekWaterElevation(tiles: Tile[][], d
   }
 }
 
+function normalizeWhisperingWoodsFarHollowRiverWaterElevation(tiles: Tile[][], def: MapDefinition) {
+  if (def.name !== 'Whispering Woods') return;
+
+  // Hollow-approach river (meander, east exit, far east channel). Elevation zone el=2 for the
+  // north-fort shelf overlaps the y=79 water row, leaving water at el2 above el1 grass/water —
+  // a sky strip along world y=-71 (tiles x≈204–222). Keep the whole channel at el1.
+  for (let ty = 78; ty <= 95; ty++) {
+    for (let tx = 116; tx <= 260; tx++) {
+      const tile = tiles[ty]?.[tx];
+      if (!tile || !WATER_BRIDGE_TILES.has(tile.type)) continue;
+      tiles[ty][tx] = { ...tile, elevation: 1 };
+    }
+  }
+}
+
 // Vertical cliff art: only when the tile to the NORTH (smaller y) is higher than the tile to the SOUTH.
 // The complementary ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“south/east neighbor higherÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â case is filled at render time in World.appendTerrainSeamFillers
 // so paths and portal rows do not show sky gaps.
@@ -3430,30 +3445,7 @@ function applyHollowBoundaryBlend(tiles: Tile[][], def: MapDefinition) {
 /** Corrupts the Hollow-side waters while leaving the southern river and creek systems blue. */
 function applyWhisperingWoodsHollowApproachCorruptedWater(tiles: Tile[][], def: MapDefinition) {
   if (def.name !== 'Whispering Woods') return;
-  const h = tiles.length;
-  const w = tiles[0]?.length ?? 0;
-
-  const corruptWaterRect = (x: number, y: number, width: number, height: number) => {
-    for (let ty = y; ty < y + height && ty < h; ty++) {
-      if (ty < 0) continue;
-      for (let tx = x; tx < x + width && tx < w; tx++) {
-        if (tx < 0) continue;
-        const t = tiles[ty][tx];
-        if (t.type !== 'water') continue;
-        tiles[ty][tx] = { ...t, type: 'water_corrupted', walkable: false };
-      }
-    }
-  };
-
-  // Deep Hollow pool north of the gate district. Keep the whole connected basin corrupted,
-  // not just the east half.
-  corruptWaterRect(...HOLLOW_CORRUPTED_WATER_RECTS[0]);
-
-  // Hollow approach river under the corrupted biome. These mirror the authored river pieces in
-  // whispering_woods/map.ts, so bridge tiles stay intact and unrelated southern creeks stay blue.
-  for (const rect of HOLLOW_CORRUPTED_WATER_RECTS.slice(1)) {
-    corruptWaterRect(...rect);
-  }
+  reconcileHollowApproachWaterInRects(tiles, HOLLOW_CORRUPTED_WATER_RECTS);
 }
 
 function enforceForestRockyHillShelf(tiles: Tile[][], def: MapDefinition) {
@@ -4385,9 +4377,9 @@ function scrubWhisperingWoodsPrecipiceReserveSouthSeam(tiles: Tile[][], def: Map
 function scrubWhisperingWoodsPrecipiceAltarDeadTrees(tiles: Tile[][], def: MapDefinition) {
   if (def.name !== 'Whispering Woods') return;
 
-  // World (86,-105) / tile (236,45): open up the NE ridge heresy altar without
+  // World (86,-115) / tile (236,35): open up the NE ridge heresy altar without
   // changing the altar itself or the surrounding elevation seam art.
-  for (let ty = 41; ty <= 49; ty++) {
+  for (let ty = 31; ty <= 39; ty++) {
     for (let tx = 231; tx <= 240; tx++) {
       if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[0].length) continue;
       const t = tiles[ty][tx];
@@ -5274,6 +5266,7 @@ export function generateMap(def: MapDefinition, mapKey?: string): WorldMap {
 
   applyElevationZones(tiles, def);
   normalizeWhisperingWoodsSoutheastCreekWaterElevation(tiles, def);
+  normalizeWhisperingWoodsFarHollowRiverWaterElevation(tiles, def);
   stampCliffs(tiles, def);
   // Second decoration cleanup: catches non-interactable decor that ended up adjacent
   // to cliffs after stampCliffs ran (pre-cliff cleanup couldn't see those yet).

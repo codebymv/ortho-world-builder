@@ -1053,7 +1053,7 @@ export const forestDef: MapDefinition = {
     { x: 86, y: 92, interactionId: 'western_preserve_vestige_chest' },
     // Ironbark Band - guarded by the east-edge Corrupted Giant (world 143,93 = tile 293,243).
     { x: 245, y: 282, interactionId: 'forest_ironbark_ring_chest' }, // south-woods cliff's edge (world 95,132)
-    // NE ridge heresy altar pocket - Radiant Vestige (bonfire flask upgrade). World (85,-104), altar at (85,-105).
+    // NE ridge heresy altar pocket - Radiant Vestige (bonfire flask upgrade). World (85,-104); altar moved south to (85,-115).
     { x: 235, y: 46, interactionId: 'east_ridge_vestige_chest' },
     // Broken west lake bridge reward at world (46,109), default Ephemeral Extract.
     { x: 196, y: 259, interactionId: 'broken_west_lake_bridge_chest' },
@@ -1206,7 +1206,7 @@ export const forestDef: MapDefinition = {
     // === HERESY ALTARS (minimap landmarks ? downscaled sprite icons once explored) ===
     // Corrupted shrines hidden off the main progression spine ? 2 hits to destroy, +1 cursed sediment each.
     { x: 34, y: 259, type: 'heresy_altar', walkable: false }, // world (-116, 109) ? far SW dirt plot
-    { x: 235, y: 45, type: 'heresy_altar', walkable: false }, // world (85, -105) ? NE ridge clearing
+    { x: 235, y: 35, type: 'heresy_altar', walkable: false }, // world (85, -115) — NE ridge clearing, south of vestige chest
     { x: 277, y: 205, type: 'heresy_altar', walkable: false }, // world (127, 55) ? east ranger outpost flank
     { x: 58, y: 155, type: 'heresy_altar', walkable: false }, // world (-92, 5) - west grove shelf approach
     { x: 177, y: 182, type: 'heresy_altar', walkable: false }, // world (27, 32) ? final cliff lookout

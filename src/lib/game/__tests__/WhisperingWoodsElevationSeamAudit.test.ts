@@ -199,6 +199,20 @@ describe('Whispering Woods elevation seam audit', () => {
     expect(canCrossSpinePathElevation(north, south)).toBe(true);
   });
 
+  it('world (54,-71) through (72,-71) far hollow river has no elevation step at the bank', () => {
+    const map = generateMap(forestDef);
+    for (let wx = 54; wx <= 72; wx++) {
+      const tx = wx + 150;
+      const water = map.tiles[79][tx];
+      const bank = map.tiles[78][tx];
+      expect(water.type).toBe('water');
+      expect(bank.type).toBe('grass');
+      expect(water.elevation).toBe(1);
+      expect(bank.elevation).toBe(1);
+      expect(map.tiles[80][tx].elevation).toBe(1);
+    }
+  });
+
   it('world (54,-100) to (68,-100) corridor is fully walkable dirt shelf', () => {
     const map = generateMap(forestDef);
     for (let tx = 204; tx <= 217; tx++) {
@@ -829,10 +843,10 @@ describe('Guilrhym return landing', () => {
   it('keeps the NE ridge heresy altar clear of surrounding dead trees', () => {
     const map = generateMap(forestDef);
 
-    expect(map.tiles[45][235].type).toBe('heresy_altar');
-    for (let ty = 41; ty <= 49; ty++) {
+    expect(map.tiles[35][235].type).toBe('heresy_altar');
+    for (let ty = 31; ty <= 39; ty++) {
       for (let tx = 231; tx <= 240; tx++) {
-        if (tx === 235 && ty === 45) continue;
+        if (tx === 235 && ty === 35) continue;
         expect(map.tiles[ty][tx].type).not.toBe('dead_tree');
       }
     }

@@ -250,6 +250,38 @@ describe('SaveManager.hasSave / clearSave', () => {
   });
 });
 
+describe('SaveManager.load - map marker migration', () => {
+  it('strips persisted forest and danger markers from old saves', () => {
+    writeRaw({
+      version: 7,
+      timestamp: 1,
+      player: {
+        position: { x: 0, y: 0 },
+        direction: 'down',
+        health: 100,
+        maxHealth: 100,
+        gold: 0,
+        essence: 0,
+        attackDamage: 20,
+        stamina: 100,
+        maxStamina: 100,
+      },
+      currentMap: 'forest',
+      lastBonfire: null,
+      droppedEssence: null,
+      mapMarkers: [
+        { id: 'forest_Ranger Outpost', label: 'Ranger Outpost', tileX: 140, tileY: 170, map: 'forest', type: 'poi', color: '#fff' },
+        { id: 'forest_Stone Golem', label: 'Stone Golem', tileX: 213, tileY: 70, map: 'forest', type: 'danger', color: '#000' },
+        { id: 'village_Church', label: 'Church', tileX: 51, tileY: 37, map: 'village', type: 'poi', color: '#fff' },
+        { id: 'village_Wolf Territory', label: 'Wolf Territory', tileX: 85, tileY: 15, map: 'village', type: 'danger', color: '#808080' },
+      ],
+    });
+
+    const loaded = SaveManager.load() as SaveData;
+    expect(loaded.mapMarkers.map(m => m.id)).toEqual(['village_Church']);
+  });
+});
+
 describe('SaveManager boss attempt checkpoints', () => {
   it('saves and loads a normalized pre-boss checkpoint separately from the normal save', () => {
     const state = new GameState(new THREE.Scene(), new THREE.OrthographicCamera());

@@ -270,7 +270,13 @@ function normalizeSave(raw: RawSave): SaveData {
     // coords were corrected (e.g. Chapel Ruins) don't keep rendering it in the wrong place.
     mapMarkers: Array.isArray(raw.mapMarkers)
       ? (raw.mapMarkers as MapMarker[])
-          .filter(m => m.type !== 'portal' && m.label !== 'Whispering Woods')
+          .filter(
+            m =>
+              m.type !== 'portal' &&
+              m.label !== 'Whispering Woods' &&
+              m.map !== 'forest' &&
+              m.type !== 'danger',
+          )
           .map(reconcileMarkerWithKnownLocation)
       : [],
     visitedTiles: Array.isArray(raw.visitedTiles) ? raw.visitedTiles : [],
@@ -312,7 +318,9 @@ function createSaveData(state: GameState, mapMarkers: MapMarker[], visitedTiles:
     worldItems: state.worldItems.map(wi => ({ ...wi })),
     quests: state.quests.map(q => ({ ...q, objectives: [...q.objectives], reward: q.reward ? { ...q.reward } : undefined })),
     gameFlags: { ...state.gameFlags },
-    mapMarkers: mapMarkers.map(m => ({ ...m })),
+    mapMarkers: mapMarkers
+      .filter(m => m.map !== 'forest' && m.type !== 'danger')
+      .map(m => ({ ...m })),
     visitedTiles: Array.from(visitedTiles),
     seenItemIds: Array.from(state.seenItemIds),
     killedEnemyIds: Array.from(state.killedEnemyIds),
